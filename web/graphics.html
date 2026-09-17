@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>CAVEAT Graphics — The Door</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #07090e;
+      color: #edf1f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 15% 0%, #202b42 0, transparent 38rem),
+        radial-gradient(circle at 90% 20%, #301b36 0, transparent 34rem),
+        #07090e;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 18px 56px; }
+    header { max-width: 760px; margin-bottom: 24px; }
+    .eyebrow, .kicker, .chip, .phase {
+      color: #9ca8bb;
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1 { font-size: clamp(2.6rem, 8vw, 5rem); line-height: .96; margin: 10px 0 16px; letter-spacing: -.06em; }
+    header p { max-width: 700px; margin: 0; color: #b5bfce; font-size: 1.08rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .chip { border: 1px solid #334057; border-radius: 999px; padding: 5px 10px; color: #cbd4e2; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 18px; align-items: start; }
+    .card {
+      border: 1px solid #293244;
+      border-radius: 22px;
+      background: rgba(13, 17, 25, .84);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .24);
+      overflow: hidden;
+    }
+    .scene-card { padding: 14px; }
+    .card-head { display: flex; justify-content: space-between; gap: 12px; padding: 4px 6px 12px; }
+    #phase { color: #d19cff; }
+    canvas { display: block; width: 100%; height: auto; border: 1px solid #293244; border-radius: 15px; background: #0b0f17; }
+    .readout { min-height: 50px; padding: 12px 6px 2px; color: #9ca8bb; font-size: .9rem; }
+    .readout strong { color: #edf1f7; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 8px 6px 2px; color: #9ca8bb; font-size: .8rem; }
+    .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: currentColor; }
+    .legend .unknown { color: #7d8798; }
+    .legend .opposed { color: #ff6b6b; }
+    .legend .retained { color: #ffd166; }
+    .legend .reopened { color: #d19cff; }
+    .controls-card { padding: 22px; }
+    #state { border-bottom: 1px solid #293244; margin-bottom: 20px; padding-bottom: 18px; }
+    #state h2 { margin: 8px 0 0; font-size: 1.25rem; line-height: 1.15; }
+    #game h2 { margin: 8px 0 12px; line-height: 1.12; }
+    .budget { color: #9ca8bb; font-size: .88rem; }
+    .budget strong { color: #edf1f7; }
+    button {
+      display: block;
+      width: 100%;
+      margin: 11px 0;
+      padding: 15px 16px;
+      color: #f7f9fc;
+      text-align: left;
+      font: inherit;
+      border: 1px solid #46536a;
+      border-radius: 14px;
+      background: #151c29;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, transform .15s;
+    }
+    button:hover, button:focus-visible { border-color: #b9c8e5; background: #202a3d; }
+    button:active { transform: translateY(1px); }
+    .feedback, .error { padding: 13px 14px; border-radius: 14px; background: #151c29; }
+    .feedback { border-left: 3px solid #d19cff; }
+    .feedback.discovery { border-left-color: #75c7ff; }
+    .feedback p { margin: 8px 0 0; color: #b5bfce; }
+    .evidence { margin: 11px 0; padding: 11px 12px; border: 1px solid #334057; border-radius: 12px; color: #cbd4e2; }
+    .evidence b { color: #75c7ff; }
+    .error { color: #ff9d9d; border: 1px solid #7f3f4b; }
+    .trail-card { margin-top: 18px; padding: 20px 22px; }
+    .trail-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    #trail-count { color: #9ca8bb; font-size: .82rem; }
+    #graphics-trail div { padding: 8px 0; border-top: 1px solid #202838; color: #9ca8bb; font-size: .9rem; }
+    #graphics-trail b { color: #edf1f7; }
+    footer { padding: 20px 4px 0; }
+    a { color: #9fc2ff; }
+    @media (max-width: 760px) {
+      .wrap { padding: 22px 13px 42px; }
+      .grid { grid-template-columns: 1fr; }
+      .controls-card { padding: 18px; }
+      .trail-card { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">A visual scene projected by the CAVEAT runtime</div>
+      <h1>CAVEAT Graphics</h1>
+      <p>
+        The scene does not pretend uncertainty is gone. Evidence changes what is visible,
+        commitments become provisional geometry, and reopening changes the render state while preserving the trail.
+      </p>
+      <div class="chips">
+        <span class="chip">Rust + WebAssembly</span>
+        <span class="chip">Caveat RenderGraph</span>
+        <span class="chip">Mobile-first prototype</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card scene-card" aria-labelledby="render-graph-heading">
+        <div class="card-head">
+          <span id="render-graph-heading" class="kicker">Render graph</span>
+          <span id="phase" class="phase">INITIAL</span>
+        </div>
+        <canvas id="scene" width="900" height="560" aria-label="A visual CAVEAT scene showing a sealed evacuation door"></canvas>
+        <div id="readout" class="readout">Loading scene state…</div>
+        <div class="legend" aria-label="Scene status legend">
+          <span class="unknown">unexamined</span>
+          <span class="opposed">opposed</span>
+          <span class="retained">retained</span>
+          <span class="reopened">reopened</span>
+        </div>
+      </section>
+
+      <section class="card controls-card" aria-live="polite">
+        <div id="state"></div>
+        <div id="game">Loading CAVEAT…</div>
+      </section>
+    </div>
+
+    <section class="card trail-card" aria-labelledby="trail-heading">
+      <div class="trail-head">
+        <span id="trail-heading" class="kicker">Decision trail</span>
+        <span id="trail-count">0 events</span>
+      </div>
+      <div id="graphics-trail"><div>No visual decisions yet.</div></div>
+    </section>
+
+    <footer><a href="./">Return to The Door</a></footer>
+  </main>
+
+  <script type="module">
+    import init, { WebGraphicsSession } from './pkg/caveat_runtime.js';
+
+    const LABELS = {
+      latch_sensor_recently_serviced: 'the latch sensor was recently serviced',
+      camera_has_blind_spot: 'the camera has a blind spot',
+      maintenance_record: 'the maintenance record',
+      coverage_test: 'the camera diagnostic',
+      corridor_clear: 'the corridor is clear',
+      latch_alarm_reliable: 'the latch alarm is reliable',
+      door_unsafe: 'the door may be unsafe',
+      open: 'Open the sealed door.',
+      wait: 'Wait for more information.',
+      reroute: 'Abandon this corridor and reroute.',
+      continue: 'Continue with the earlier plan.',
+      retreat: 'Retreat from the corridor.',
+      stairwell: 'Take the alternate stairwell.'
+    };
+
+    const WIDTH = 900;
+    const HEIGHT = 560;
+    const canvas = document.querySelector('#scene');
+    const context = canvas.getContext('2d');
+    const stateElement = document.querySelector('#state');
+    const gameElement = document.querySelector('#game');
+    const readoutElement = document.querySelector('#readout');
+    const trailElement = document.querySelector('#graphics-trail');
+    const phaseElement = document.querySelector('#phase');
+    const trailCountElement = document.querySelector('#trail-count');
+
+    let game;
+    let sceneData;
+    let feedback = null;
+
+    function label(value) {
+      return LABELS[value] || String(value).split('_').join(' ');
+    }
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function clear(node) {
+      node.replaceChildren();
+    }
+
+    function addButton(text, handler) {
+      const button = element('button', null, text);
+      button.type = 'button';
+      button.addEventListener('click', handler);
+      gameElement.appendChild(button);
+    }
+
+    function statusColor(status) {
+      return {
+        unknown: '#7d8798',
+        supported: '#7de2a6',
+        opposed: '#ff6b6b',
+        retained: '#ffd166',
+        reopened: '#d19cff',
+        settled: '#75c7ff'
+      }[status] || '#7d8798';
+    }
+
+    function renderState() {
+      clear(stateElement);
+      const kicker = element('div', 'kicker', 'Rust CAVEAT render state');
+      const heading = element('h2', null, sceneData.message);
+      stateElement.append(kicker, heading);
+
+      phaseElement.textContent = String(sceneData.phase).toUpperCase().replaceAll('-', ' ');
+
+      const active = sceneData.caveats.filter(function(caveat) { return caveat.active; });
+      clear(readoutElement);
+      if (active.length === 0) {
+        readoutElement.textContent = 'No caveat has been examined yet.';
+      } else {
+        const strong = element('strong', null, 'Active caveats: ');
+        const names = active.map(function(caveat) { return label(caveat.id); }).join(' · ');
+        readoutElement.append(strong, document.createTextNode(names));
+      }
+    }
+
+    function renderTrail() {
+      clear(trailElement);
+      trailCountElement.textContent = sceneData.trail.length + (sceneData.trail.length === 1 ? ' event' : ' events');
+      if (sceneData.trail.length === 0) {
+        trailElement.appendChild(element('div', null, 'No visual decisions yet.'));
+        return;
+      }
+
+      sceneData.trail.forEach(function(entry, index) {
+        const row = element('div');
+        row.appendChild(element('b', null, (index + 1) + '. ' + entry.kind));
+        row.appendChild(document.createTextNode(' — ' + entry.text));
+        trailElement.appendChild(row);
+      });
+    }
+
+    function renderControls() {
+      const pending = JSON.parse(game.pending());
+      clear(gameElement);
+
+      if (pending.kind === 'error') {
+        gameElement.appendChild(element('div', 'error', pending.message));
+        return;
+      }
+
+      if (feedback) {
+        if (feedback.type === 'discovery') {
+          gameElement.appendChild(element('div', 'kicker', 'Evidence entered the scene'));
+          gameElement.appendChild(element('h2', null, 'The render graph changed.'));
+          feedback.items.forEach(function(item) {
+            const row = element('div', 'evidence');
+            row.appendChild(element('b', null, label(item.evidence)));
+            row.appendChild(document.createTextNode(' ' + item.relation + ' ' + label(item.target)));
+            gameElement.appendChild(row);
+          });
+          addButton('Continue', function() {
+            feedback = null;
+            renderControls();
+          });
+          return;
+        }
+
+        const commitment = feedback.item;
+        gameElement.appendChild(element('div', 'kicker', 'Provisional commitment'));
+        gameElement.appendChild(element('h2', null, label(commitment.action)));
+        const box = element('div', 'feedback');
+        box.appendChild(element('div', 'kicker', 'Uncertainty retained'));
+        box.appendChild(element('p', null, 'The render state still carries:'));
+        commitment.retained.forEach(function(item) {
+          box.appendChild(element('p', null, '• ' + label(item)));
+        });
+        if (commitment.reopened_by.length) {
+          box.appendChild(element('p', null, 'Commitment reopened because ' + commitment.reopened_by.map(label).join(', ') + '.'));
+        }
+        gameElement.appendChild(box);
+        addButton(commitment.reopened_by.length ? 'Reconsider' : 'Continue', function() {
+          feedback = null;
+          renderControls();
+        });
+        return;
+      }
+
+      if (pending.kind === 'complete') {
+        gameElement.appendChild(element('div', 'kicker', 'Scene history preserved'));
+        gameElement.appendChild(element('h2', null, 'Graphic decision complete'));
+        gameElement.appendChild(element('p', null, 'The final image is only one state. The trail below records how it changed.'));
+        addButton('Play again', function() { location.reload(); });
+        return;
+      }
+
+      const budget = element('div', 'budget');
+      budget.appendChild(document.createTextNode('Attention remaining: '));
+      budget.appendChild(element('strong', null, String(pending.budget)));
+      if (pending.kind === 'investigate') {
+        budget.appendChild(document.createTextNode(' · investigation costs ' + pending.cost));
+      }
+      gameElement.appendChild(budget);
+      gameElement.appendChild(element('h2', null, pending.kind === 'investigate' ? 'What caveat do you inspect?' : 'What do you do next?'));
+
+      pending.options.forEach(function(option) {
+        addButton(label(option), function() { act(option); });
+      });
+    }
+
+    function renderAll() {
+      renderState();
+      renderTrail();
+      renderControls();
+    }
+
+    function act(selection) {
+      try {
+        game.apply(selection);
+        sceneData = JSON.parse(game.scene());
+        const discoveries = JSON.parse(game.discoveries());
+        const commitment = JSON.parse(game.commitment());
+        feedback = commitment
+          ? { type: 'commitment', item: commitment }
+          : discoveries.length
+            ? { type: 'discovery', items: discoveries }
+            : null;
+        renderAll();
+      } catch (error) {
+        gameElement.replaceChildren(element('div', 'error', String(error)));
+      }
+    }
+
+    function drawCorridor(node) {
+      const x = node.x;
+      const y = node.y;
+      const w = node.width;
+      const h = node.height;
+      const gradient = context.createLinearGradient(0, y, 0, y + h);
+      gradient.addColorStop(0, '#1b2638');
+      gradient.addColorStop(1, '#101722');
+      context.fillStyle = gradient;
+      context.fillRect(x, y, w, h);
+
+      context.fillStyle = '#0d131d';
+      context.beginPath();
+      context.moveTo(x + 135, y + h);
+      context.lineTo(x + w - 135, y + h);
+      context.lineTo(x + w - 220, y + h * .48);
+      context.lineTo(x + 220, y + h * .48);
+      context.closePath();
+      context.fill();
+
+      context.strokeStyle = '#314058';
+      context.lineWidth = 2;
+      for (let index = 0; index < 6; index += 1) {
+        const offset = index / 6;
+        context.beginPath();
+        context.moveTo(x + 220 + offset * 12, y + h * .48);
+        context.lineTo(x + 135 + offset * 110, y + h);
+        context.moveTo(x + w - 220 - offset * 12, y + h * .48);
+        context.lineTo(x + w - 135 - offset * 110, y + h);
+        context.stroke();
+      }
+
+      context.fillStyle = '#e94b5f';
+      context.globalAlpha = .7;
+      context.fillRect(x + 28, y + 24, 7, h - 48);
+      context.fillRect(x + w - 35, y + 24, 7, h - 48);
+      context.globalAlpha = 1;
+      context.fillStyle = '#8f9db5';
+      context.font = '700 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+      context.fillText('CORRIDOR / PROVISIONAL VIEW', x + 24, y + 25);
+    }
+
+    function drawDoor(node, time) {
+      const x = node.x;
+      const y = node.y;
+      const w = node.width;
+      const h = node.height;
+      const color = statusColor(node.status);
+      const pulse = node.effect === 'pulse' ? .55 + Math.sin(time * 5) * .25 : 1;
+      context.save();
+      context.globalAlpha = (node.opacity / 100) * pulse;
+      context.shadowColor = color;
+      context.shadowBlur = node.effect === 'ghost' ? 20 : 10;
+      if (node.effect === 'ghost' || node.status === 'reopened') {
+        context.setLineDash([10, 8]);
+        context.strokeStyle = color;
+        context.lineWidth = 5;
+        context.strokeRect(x, y, w, h);
+        context.setLineDash([]);
+        context.fillStyle = 'rgba(209, 156, 255, .08)';
+        context.fillRect(x, y, w, h);
+      } else {
+        context.fillStyle = '#202b3a';
+        context.fillRect(x, y, w, h);
+        context.strokeStyle = color;
+        context.lineWidth = 4;
+        context.strokeRect(x, y, w, h);
+      }
+      context.shadowBlur = 0;
+      context.strokeStyle = '#71809a';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(x + 22, y + 24);
+      context.lineTo(x + w - 22, y + 24);
+      context.moveTo(x + 22, y + h - 24);
+      context.lineTo(x + w - 22, y + h - 24);
+      context.stroke();
+      context.fillStyle = color;
+      context.beginPath();
+      context.arc(x + w - 32, y + h / 2, 8, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = '#edf1f7';
+      context.font = '700 14px system-ui, sans-serif';
+      context.fillText(node.status.toUpperCase(), x + 22, y + h / 2 - 8);
+      context.fillStyle = '#aab6c9';
+      context.font = '13px system-ui, sans-serif';
+      context.fillText('SEALED DOOR', x + 22, y + h / 2 + 16);
+      context.restore();
+    }
+
+    function drawOcclusion(node, time) {
+      const x = node.x;
+      const y = node.y;
+      const w = node.width;
+      const h = node.height;
+      context.save();
+      context.globalAlpha = node.opacity / 100;
+      const gradient = context.createLinearGradient(x, y, x + w, y + h);
+      gradient.addColorStop(0, 'rgba(10, 14, 23, .15)');
+      gradient.addColorStop(1, 'rgba(10, 14, 23, .96)');
+      context.fillStyle = gradient;
+      context.fillRect(x, y, w, h);
+      context.strokeStyle = '#ff6b6b';
+      context.lineWidth = 2;
+      context.setLineDash([5, 7]);
+      context.strokeRect(x, y, w, h);
+      context.setLineDash([]);
+      context.globalAlpha = .3 + Math.sin(time * 2) * .05;
+      context.strokeStyle = '#ff6b6b';
+      for (let offset = -h; offset < w; offset += 20) {
+        context.beginPath();
+        context.moveTo(x + offset, y + h);
+        context.lineTo(x + offset + h, y);
+        context.stroke();
+      }
+      context.globalAlpha = 1;
+      context.fillStyle = '#ff9d9d';
+      context.font = '800 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+      context.fillText('BLIND SPOT', x + 18, y + 27);
+      context.fillStyle = '#c7828c';
+      context.font = '12px system-ui, sans-serif';
+      context.fillText('visibility is not evidence', x + 18, y + 48);
+      context.restore();
+    }
+
+    function drawCaveat(node, time) {
+      const x = node.x + node.width / 2;
+      const y = node.y + node.height / 2;
+      const color = statusColor(node.status);
+      const radius = 28 + Math.sin(time * 5) * 3;
+      context.save();
+      context.globalAlpha = node.opacity / 100;
+      context.strokeStyle = color;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.stroke();
+      context.fillStyle = color;
+      context.font = '900 27px system-ui, sans-serif';
+      context.textAlign = 'center';
+      context.fillText('?', x, y + 10);
+      context.textAlign = 'left';
+      context.fillStyle = '#cbd4e2';
+      context.font = '700 12px system-ui, sans-serif';
+      context.fillText('LATCH CAVEAT', node.x + 8, node.y + node.height - 9);
+      context.restore();
+    }
+
+    function drawBadge(node) {
+      const color = statusColor(node.status);
+      context.save();
+      context.globalAlpha = node.opacity / 100;
+      context.fillStyle = 'rgba(255, 209, 102, .12)';
+      context.fillRect(node.x, node.y, node.width, node.height);
+      context.strokeStyle = color;
+      context.lineWidth = 2;
+      context.strokeRect(node.x, node.y, node.width, node.height);
+      context.fillStyle = color;
+      context.font = '800 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+      context.fillText('UNCERTAINTY RETAINED', node.x + 14, node.y + 29);
+      context.restore();
+    }
+
+    function drawHistory(node) {
+      context.save();
+      context.globalAlpha = .55;
+      context.strokeStyle = statusColor(node.status);
+      context.lineWidth = 2;
+      context.setLineDash([7, 8]);
+      context.strokeRect(node.x, node.y, node.width, node.height);
+      context.setLineDash([]);
+      context.fillStyle = '#d19cff';
+      context.font = '800 11px ui-monospace, SFMono-Regular, Menlo, monospace';
+      context.fillText('EARLIER STATE', node.x + 12, node.y + 22);
+      context.restore();
+    }
+
+    function drawPath(node) {
+      context.save();
+      context.globalAlpha = node.opacity / 100;
+      context.strokeStyle = statusColor(node.status);
+      context.lineWidth = 5;
+      context.setLineDash([14, 9]);
+      context.beginPath();
+      context.moveTo(node.x, node.y + node.height / 2);
+      context.lineTo(node.x + node.width, node.y + node.height / 2);
+      context.stroke();
+      context.setLineDash([]);
+      context.fillStyle = statusColor(node.status);
+      context.beginPath();
+      context.moveTo(node.x + node.width, node.y + node.height / 2);
+      context.lineTo(node.x + node.width - 18, node.y + node.height / 2 - 11);
+      context.lineTo(node.x + node.width - 18, node.y + node.height / 2 + 11);
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+
+    function draw(time) {
+      context.clearRect(0, 0, WIDTH, HEIGHT);
+      const background = context.createLinearGradient(0, 0, WIDTH, HEIGHT);
+      background.addColorStop(0, '#0a0f19');
+      background.addColorStop(1, '#151020');
+      context.fillStyle = background;
+      context.fillRect(0, 0, WIDTH, HEIGHT);
+
+      if (sceneData) {
+        context.fillStyle = '#6f7e96';
+        context.font = '800 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        context.fillText('CAVEAT RENDERGRAPH · ' + sceneData.phase.toUpperCase(), 70, 62);
+        sceneData.nodes.filter(function(node) { return node.visible; }).forEach(function(node) {
+          if (node.shape === 'corridor') drawCorridor(node);
+          if (node.shape === 'door') drawDoor(node, time);
+          if (node.shape === 'occlusion') drawOcclusion(node, time);
+          if (node.shape === 'caveat') drawCaveat(node, time);
+          if (node.shape === 'badge') drawBadge(node);
+          if (node.shape === 'history') drawHistory(node);
+          if (node.shape === 'path') drawPath(node);
+        });
+      }
+      requestAnimationFrame(draw);
+    }
+
+    async function boot() {
+      try {
+        await init();
+        const response = await fetch('./the_door_round2.cav');
+        if (!response.ok) throw new Error('Scenario request failed: ' + response.status);
+        game = new WebGraphicsSession(await response.text());
+        sceneData = JSON.parse(game.scene());
+        renderAll();
+        requestAnimationFrame(draw);
+      } catch (error) {
+        gameElement.replaceChildren(element('div', 'error', String(error)));
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
