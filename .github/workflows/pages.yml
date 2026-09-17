@@ -1,0 +1,179 @@
+name: deploy-door
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust with WebAssembly target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache wasm-bindgen CLI
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+
+      - name: Compile CAVEAT runtime for WebAssembly
+        run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
+
+      - name: Ensure wasm-bindgen CLI
+        run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+
+      - name: Build The Door static site
+        run: |
+          rm -rf dist
+          mkdir -p dist/pkg
+          wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
+          cp web/index.html dist/index.html
+          cp web/the_door_round2.cav dist/the_door_round2.cav
+          test -s dist/index.html
+          test -s dist/the_door_round2.cav
+          test -s dist/pkg/caveat_runtime.js
+          test -s dist/pkg/caveat_runtime_bg.wasm
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  smoke:
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SITE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+
+      - name: Install WebKit browser
+        run: npx playwright install --with-deps webkit
+
+      - name: Verify HTTPS assets and complete iPhone playthrough
+        run: |
+          node <<'NODE'
+          const { webkit, devices } = require("playwright");
+
+          const rawBase = process.env.SITE_URL;
+          if (!rawBase || !rawBase.startsWith("https://")) {
+            throw new Error("Pages did not return an HTTPS URL: " + rawBase);
+          }
+          const base = rawBase.endsWith("/") ? rawBase : rawBase + "/";
+          const paths = [
+            "",
+            "pkg/caveat_runtime.js",
+            "pkg/caveat_runtime_bg.wasm",
+            "the_door_round2.cav"
+          ];
+
+          (async () => {
+            const errors = [];
+            const browser = await webkit.launch();
+            const context = await browser.newContext({
+              ...devices["iPhone 13"],
+              serviceWorkers: "block"
+            });
+            const page = await context.newPage();
+
+            page.on("console", (message) => {
+              if (message.type() === "error") errors.push("console: " + message.text());
+            });
+            page.on("pageerror", (error) => errors.push("pageerror: " + error.message));
+            page.on("requestfailed", (request) => {
+              errors.push("request failed: " + request.url() + " — " + request.failure()?.errorText);
+            });
+
+            await page.goto(base, { waitUntil: "networkidle" });
+            await page.getByText("Attention remaining: 3", { exact: false }).waitFor();
+
+            const statuses = await page.evaluate(async (siteBase, assetPaths) => {
+              const result = {};
+              for (const path of assetPaths) {
+                const response = await fetch(new URL(path, siteBase));
+                result[path || "/"] = response.status;
+              }
+              return result;
+            }, base, paths);
+
+            for (const [path, status] of Object.entries(statuses)) {
+              if (status !== 200) throw new Error("Unexpected HTTPS status " + status + " for " + path);
+            }
+
+            await page.getByRole("button", {
+              name: "the latch sensor was recently serviced",
+              exact: true
+            }).click();
+            await page.getByRole("button", { name: "Continue", exact: true }).click();
+            await page.getByRole("button", {
+              name: "Open the sealed door.",
+              exact: true
+            }).click();
+            await page.getByRole("button", { name: "Reconsider", exact: true }).click();
+            await page.getByRole("button", {
+              name: "Retreat from the corridor.",
+              exact: true
+            }).click();
+            await page.getByText("Decision record complete", { exact: false }).waitFor();
+
+            const trail = await page.locator("#trail").innerText();
+            for (const marker of ["DISCOVERED", "COMMITTED", "REOPENED"]) {
+              if (!trail.includes(marker)) {
+                throw new Error("Decision Trail is missing " + marker + ": " + trail);
+              }
+            }
+
+            if (errors.length) throw new Error(errors.join("\n"));
+            await browser.close();
+            console.log("Verified HTTPS assets and complete WebKit/iPhone playthrough.");
+          })().catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+          });
+          NODE
