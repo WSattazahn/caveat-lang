@@ -1,0 +1,23 @@
+claim p;
+claim not_p;
+claim q;
+claim not_q;
+claim r;
+claim unrelated;
+
+evidence ep from "source_p";
+evidence enp from "source_not_p";
+evidence enq from "source_not_q";
+ep supports p;
+enp supports not_p;
+enq supports not_q;
+
+rule p_to_q when p => q;
+rule q_to_r when q => r;
+infer p_to_q;
+infer q_to_r;
+
+caveat q_source_may_be_stale consequence material;
+q_source_may_be_stale qualifies q;
+
+commit act_on_r because enough retaining not_p, not_q, q_source_may_be_stale;
