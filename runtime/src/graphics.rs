@@ -128,7 +128,7 @@ pub struct CaveatScene {
 
 impl CaveatScene {
     pub fn door() -> Self {
-        Self {
+        let mut scene = Self {
             title: "CAVEAT Graphics".into(),
             phase: "initial".into(),
             message: "The scene is provisional. Investigate a caveat to change what can be seen."
@@ -205,7 +205,20 @@ impl CaveatScene {
                 ),
             ],
             trail: Vec::new(),
-        }
+        };
+
+        scene.set_node("blind_spot", VisualStatus::Unknown, VisualEffect::Occlude, 100, false);
+        scene.set_node("latch", VisualStatus::Unknown, VisualEffect::Pulse, 100, false);
+        scene.set_node(
+            "retained_uncertainty",
+            VisualStatus::Unknown,
+            VisualEffect::None,
+            100,
+            false,
+        );
+        scene.set_node("old_commitment", VisualStatus::Unknown, VisualEffect::Ghost, 100, false);
+        scene.set_node("retreat_path", VisualStatus::Unknown, VisualEffect::Reveal, 100, false);
+        scene
     }
 
     pub fn apply(
