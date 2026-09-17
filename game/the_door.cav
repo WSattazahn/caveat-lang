@@ -1,0 +1,27 @@
+budget 3;
+
+claim corridor_clear;
+claim door_safe;
+claim door_unsafe;
+claim evacuation_route_available;
+
+evidence camera_frame from "camera_7";
+evidence latch_alarm from "latch_sensor";
+evidence route_map from "evacuation_plan";
+
+camera_frame supports corridor_clear;
+latch_alarm supports door_unsafe;
+route_map supports evacuation_route_available;
+
+caveat latch_sensor_recently_serviced consequence high;
+caveat camera_has_blind_spot consequence material;
+latch_sensor_recently_serviced qualifies latch_alarm;
+camera_has_blind_spot qualifies camera_frame;
+
+examine latch_sensor_recently_serviced cost 2;
+defer camera_has_blind_spot;
+
+rule route_is_viable when corridor_clear, evacuation_route_available => door_safe;
+infer route_is_viable;
+
+commit open_door because enough retaining door_unsafe, camera_has_blind_spot;
