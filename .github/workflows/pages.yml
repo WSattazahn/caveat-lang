@@ -46,8 +46,10 @@ jobs:
           mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html dist/index.html
+          cp web/graphics.html dist/graphics.html
           cp web/the_door_round2.cav dist/the_door_round2.cav
           test -s dist/index.html
+          test -s dist/graphics.html
           test -s dist/the_door_round2.cav
           test -s dist/pkg/caveat_runtime.js
           test -s dist/pkg/caveat_runtime_bg.wasm
@@ -110,6 +112,7 @@ jobs:
           const base = rawBase.endsWith("/") ? rawBase : rawBase + "/";
           const paths = [
             "",
+            "graphics.html",
             "pkg/caveat_runtime.js",
             "pkg/caveat_runtime_bg.wasm",
             "the_door_round2.cav"
@@ -174,6 +177,36 @@ jobs:
               for (const marker of ["DISCOVERED", "COMMITTED", "REOPENED"]) {
                 if (!trail.includes(marker)) {
                   throw new Error("Decision Trail is missing " + marker + ": " + trail);
+                }
+              }
+
+              await page.goto(new URL("graphics.html", base), { waitUntil: "domcontentloaded" });
+              await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
+              await page.getByText("CAVEAT Graphics", { exact: true }).waitFor();
+              await page.locator("#scene").waitFor();
+              await page.getByText("Rust CAVEAT render state", { exact: true }).waitFor();
+
+              await page.getByRole("button", {
+                name: "the camera has a blind spot",
+                exact: true
+              }).click();
+              await page.getByRole("button", { name: "Continue", exact: true }).click();
+              await page.getByRole("button", {
+                name: "Open the sealed door.",
+                exact: true
+              }).click();
+              await page.getByRole("button", { name: "Reconsider", exact: true }).click();
+              await page.getByRole("button", {
+                name: "Retreat from the corridor.",
+                exact: true
+              }).click();
+              await page.getByRole("button", { name: "Continue", exact: true }).click();
+              await page.getByText("Graphic decision complete", { exact: false }).waitFor();
+
+              const graphicsTrail = await page.locator("#graphics-trail").innerText();
+              for (const marker of ["DISCOVERED", "COMMITTED", "REOPENED"]) {
+                if (!graphicsTrail.includes(marker)) {
+                  throw new Error("CAVEAT Graphics trail is missing " + marker + ": " + graphicsTrail);
                 }
               }
 
