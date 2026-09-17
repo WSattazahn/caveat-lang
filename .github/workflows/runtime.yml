@@ -12,7 +12,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
-      - run: cargo run --manifest-path runtime/Cargo.toml --example canonical_001
-      - run: cargo run --manifest-path runtime/Cargo.toml --example canonical_002
-      - run: cargo run --manifest-path runtime/Cargo.toml --example canonical_003
+      - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_001.cav
+      - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_002.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_003.cav
