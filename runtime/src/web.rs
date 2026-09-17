@@ -39,7 +39,10 @@ fn pending_json(pending: PendingInteraction) -> String {
             budget,
         } => format!(
             "{{\"kind\":\"investigate\",\"name\":{},\"options\":{},\"cost\":{},\"budget\":{}}}",
-            json_string(&name), string_array(&options), cost, budget
+            json_string(&name),
+            string_array(&options),
+            cost,
+            budget
         ),
         PendingInteraction::Choice {
             name,
@@ -47,7 +50,9 @@ fn pending_json(pending: PendingInteraction) -> String {
             budget,
         } => format!(
             "{{\"kind\":\"choice\",\"name\":{},\"options\":{},\"budget\":{}}}",
-            json_string(&name), string_array(&options), budget
+            json_string(&name),
+            string_array(&options),
+            budget
         ),
         PendingInteraction::Complete => "{\"kind\":\"complete\"}".into(),
     }

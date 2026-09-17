@@ -33,12 +33,10 @@ pub fn parse(source: &str) -> Result<Program, String> {
                 ["claim", name] => Statement::Claim {
                     name: (*name).into(),
                 },
-                ["evidence", name, "from", rest @ ..] if !rest.is_empty() => {
-                    Statement::Evidence {
-                        name: (*name).into(),
-                        source: rest.join(" ").trim_matches('"').into(),
-                    }
-                }
+                ["evidence", name, "from", rest @ ..] if !rest.is_empty() => Statement::Evidence {
+                    name: (*name).into(),
+                    source: rest.join(" ").trim_matches('"').into(),
+                },
                 ["caveat", name, "consequence", consequence] => Statement::Caveat {
                     name: (*name).into(),
                     consequence: parse_consequence(consequence)?,

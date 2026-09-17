@@ -62,15 +62,7 @@ pub struct VisualNode {
 }
 
 impl VisualNode {
-    fn new(
-        id: &str,
-        shape: &str,
-        x: u32,
-        y: u32,
-        width: u32,
-        height: u32,
-        label: &str,
-    ) -> Self {
+    fn new(id: &str, shape: &str, x: u32, y: u32, width: u32, height: u32, label: &str) -> Self {
         Self {
             id: id.into(),
             shape: shape.into(),
@@ -207,8 +199,20 @@ impl CaveatScene {
             trail: Vec::new(),
         };
 
-        scene.set_node("blind_spot", VisualStatus::Unknown, VisualEffect::Occlude, 100, false);
-        scene.set_node("latch", VisualStatus::Unknown, VisualEffect::Pulse, 100, false);
+        scene.set_node(
+            "blind_spot",
+            VisualStatus::Unknown,
+            VisualEffect::Occlude,
+            100,
+            false,
+        );
+        scene.set_node(
+            "latch",
+            VisualStatus::Unknown,
+            VisualEffect::Pulse,
+            100,
+            false,
+        );
         scene.set_node(
             "retained_uncertainty",
             VisualStatus::Unknown,
@@ -216,8 +220,20 @@ impl CaveatScene {
             100,
             false,
         );
-        scene.set_node("old_commitment", VisualStatus::Unknown, VisualEffect::Ghost, 100, false);
-        scene.set_node("retreat_path", VisualStatus::Unknown, VisualEffect::Reveal, 100, false);
+        scene.set_node(
+            "old_commitment",
+            VisualStatus::Unknown,
+            VisualEffect::Ghost,
+            100,
+            false,
+        );
+        scene.set_node(
+            "retreat_path",
+            VisualStatus::Unknown,
+            VisualEffect::Reveal,
+            100,
+            false,
+        );
         scene
     }
 
@@ -230,8 +246,7 @@ impl CaveatScene {
         match selection {
             "latch_sensor_recently_serviced" => {
                 self.phase = "latch-evidence".into();
-                self.message =
-                    "The maintenance record undermines confidence in the latch.".into();
+                self.message = "The maintenance record undermines confidence in the latch.".into();
                 self.push_trail("INVESTIGATED", label(selection));
                 self.activate_caveat(
                     "latch_sensor_recently_serviced",
@@ -257,7 +272,8 @@ impl CaveatScene {
             }
             "reroute" => {
                 self.phase = "rerouted".into();
-                self.message = "The corridor is abandoned while uncertainty remains visible.".into();
+                self.message =
+                    "The corridor is abandoned while uncertainty remains visible.".into();
                 self.set_node(
                     "retreat_path",
                     VisualStatus::Settled,
@@ -355,7 +371,8 @@ impl CaveatScene {
                 }
                 "open" => {
                     self.phase = "opened".into();
-                    self.message = "The door is open, with retained uncertainty still visible.".into();
+                    self.message =
+                        "The door is open, with retained uncertainty still visible.".into();
                     self.set_node(
                         "door",
                         VisualStatus::Retained,
@@ -376,13 +393,7 @@ impl CaveatScene {
                     self.message =
                         "The revised decision settles the route without pretending uncertainty vanished."
                             .into();
-                    self.set_node(
-                        "door",
-                        VisualStatus::Settled,
-                        VisualEffect::None,
-                        100,
-                        true,
-                    );
+                    self.set_node("door", VisualStatus::Settled, VisualEffect::None, 100, true);
                     self.set_node(
                         "retreat_path",
                         VisualStatus::Settled,

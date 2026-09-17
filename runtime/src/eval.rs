@@ -161,12 +161,7 @@ impl Evaluator {
             resources: self.resources.clone(),
         }
     }
-    fn charge(
-        &mut self,
-        caveat: &str,
-        cost: u64,
-        context: &str,
-    ) -> Result<(NodeId, u64), String> {
+    fn charge(&mut self, caveat: &str, cost: u64, context: &str) -> Result<(NodeId, u64), String> {
         let id = self.resolve(caveat)?;
         let ledger = self
             .resources
@@ -380,10 +375,7 @@ impl Evaluator {
             }
             Statement::WhenCommitted { action, then }
                 if self.symbols.get(action).is_some_and(|id| {
-                    matches!(
-                        self.graph.nodes.get(id),
-                        Some(NodeKind::Commitment { .. })
-                    )
+                    matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
                 }) =>
             {
                 match then {
@@ -419,9 +411,7 @@ impl Evaluator {
                     .iter()
                     .map(|name| self.resolve(name))
                     .collect::<Result<Vec<_>, _>>()?;
-                let id = self
-                    .graph
-                    .commit_because(action, &retained, reason.clone());
+                let id = self.graph.commit_because(action, &retained, reason.clone());
                 self.define(action, id)?;
                 let snapshot = self.snapshot();
                 self.event(EventKind::Committed {
