@@ -16,3 +16,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --all-targets
       - run: cargo run --example canonical_001
+      - run: cargo run --example canonical_002
+      - run: cargo run --example canonical_003
