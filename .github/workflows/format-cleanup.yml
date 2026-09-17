@@ -1,0 +1,37 @@
+name: format-cleanup
+
+on:
+  push:
+    branches:
+      - cleanup/stabilize-caveat
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rustfmt:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[rustfmt]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: cleanup/stabilize-caveat
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Repair invalid compact float literals
+        run: perl -0pi -e 's/(?<![0-9])\.(?=[0-9])/0./g' runtime/src/world3d.rs
+      - name: Apply rustfmt
+        run: cargo fmt --manifest-path runtime/Cargo.toml --all
+      - name: Commit canonical source
+        run: |
+          if git diff --quiet; then
+            echo "Already canonical"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runtime
+          git commit -m "fix: canonicalize World3D Rust source [rustfmt]"
+          git push origin HEAD:cleanup/stabilize-caveat

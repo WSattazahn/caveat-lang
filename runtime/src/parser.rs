@@ -1,4 +1,248 @@
-use crate::ast::{ConditionalAction,Program,Statement};use crate::{Attention,Consequence,Relation,StopReason};
-pub fn parse(source:&str)->Result<Program,String>{let mut s=vec![];for raw in source.split(';'){let l=raw.trim();if l.is_empty(){continue}let w:Vec<&str>=l.split_whitespace().collect();let x=if l.starts_with("scene "){Statement::Scene{text:quoted(l,"scene ")?}}else if l.starts_with("display "){parse_display(l)?}else if w.first()==Some(&"investigate"){parse_investigate(&w,l)?}else if w.first()==Some(&"reveal"){parse_reveal(&w,l)?}else if w.first()==Some(&"rule"){parse_rule(&w,l)?}else if w.first()==Some(&"choice"){parse_choice(&w,l)?}else if w.first()==Some(&"when_committed"){parse_when(&w,l)?}else{match w.as_slice(){["budget",n]=>Statement::Budget{units:num(n)?},["claim",n]=>Statement::Claim{name:(*n).into()},["evidence",n,"from",rest@..]if!rest.is_empty()=>Statement::Evidence{name:(*n).into(),source:rest.join(" ").trim_matches('"').into()},["caveat",n,"consequence",c]=>Statement::Caveat{name:(*n).into(),consequence:cons(c)?},[f,"supports",t]=>Statement::Relate{from:(*f).into(),relation:Relation::Supports,to:(*t).into()},[f,"opposes",t]=>Statement::Relate{from:(*f).into(),relation:Relation::Opposes,to:(*t).into()},[f,"qualifies",t]=>Statement::Relate{from:(*f).into(),relation:Relation::Qualifies,to:(*t).into()},["examine",n,"cost",c]=>Statement::Examine{caveat:(*n).into(),cost:num(c)?},["examine",n]=>Statement::Attention{caveat:(*n).into(),state:Attention::Examining},["defer",n]=>Statement::Attention{caveat:(*n).into(),state:Attention::Deferred},["inspect",inv,c,"cost",n]=>Statement::Inspect{investigation:(*inv).into(),caveat:(*c).into(),cost:num(n)?},["infer",r]=>Statement::Infer{rule:(*r).into()},["select",c,o]=>Statement::Select{choice:(*c).into(),option:(*o).into()},["commit",a,"because",r]=>Statement::Commit{action:(*a).into(),reason:reason(r)?,retaining:vec![]},["commit",a,"because",r,"retaining",rest@..]=>Statement::Commit{action:(*a).into(),reason:reason(r)?,retaining:ids(rest)},["reopen",c,"because",b]=>Statement::Reopen{commitment:(*c).into(),because:(*b).into()},_=>return Err(format!("cannot parse statement: {l}"))}};s.push(x)}Ok(Program::new(s))}
-fn parse_reveal(w:&[&str],l:&str)->Result<Statement,String>{match w{["reveal",c,"then",f,"supports",t]=>Ok(Statement::Reveal{when_inspected:(*c).into(),from:(*f).into(),relation:Relation::Supports,to:(*t).into()}),["reveal",c,"then",f,"opposes",t]=>Ok(Statement::Reveal{when_inspected:(*c).into(),from:(*f).into(),relation:Relation::Opposes,to:(*t).into()}),_=>Err(format!("invalid reveal: {l}"))}}fn parse_investigate(w:&[&str],l:&str)->Result<Statement,String>{match w{["investigate",name,"options",rest@..]=>Ok(Statement::Investigate{name:(*name).into(),options:ids(rest)}),_=>Err(format!("invalid investigate: {l}"))}}fn quoted(l:&str,prefix:&str)->Result<String,String>{let x=l.strip_prefix(prefix).unwrap().trim();if x.len()>=2&&x.starts_with('"')&&x.ends_with('"'){Ok(x[1..x.len()-1].to_string())}else{Err(format!("expected quoted text: {l}"))}}fn parse_display(l:&str)->Result<Statement,String>{let rest=l.strip_prefix("display ").unwrap();let mut p=rest.splitn(2,' ');let symbol=p.next().unwrap();let text=p.next().ok_or_else(||format!("display missing text: {l}"))?;Ok(Statement::Display{symbol:symbol.into(),text:quoted(&format!("x {text}"),"x ")?})}
-fn parse_when(w:&[&str],l:&str)->Result<Statement,String>{match w{["when_committed",a,"reopen",c,"because",b]=>Ok(Statement::WhenCommitted{action:(*a).into(),then:ConditionalAction::Reopen{commitment:(*c).into(),because:(*b).into()}}),["when_committed",a,f,"supports",t]=>Ok(Statement::WhenCommitted{action:(*a).into(),then:ConditionalAction::Relate{from:(*f).into(),relation:Relation::Supports,to:(*t).into()}}),["when_committed",a,f,"opposes",t]=>Ok(Statement::WhenCommitted{action:(*a).into(),then:ConditionalAction::Relate{from:(*f).into(),relation:Relation::Opposes,to:(*t).into()}}),_=>Err(format!("invalid when_committed: {l}"))}}fn parse_rule(w:&[&str],l:&str)->Result<Statement,String>{let a=w.iter().position(|x|*x=="=>").ok_or_else(||format!("rule missing =>: {l}"))?;Ok(Statement::Rule{name:w[1].into(),premises:ids(&w[3..a]),conclusion:w[a+1].into()})}fn parse_choice(w:&[&str],_:&str)->Result<Statement,String>{let r=w.iter().position(|x|*x=="retaining");let end=r.unwrap_or(w.len());Ok(Statement::Choice{name:w[1].into(),options:ids(&w[3..end]),retaining:r.map(|i|ids(&w[i+1..])).unwrap_or_default()})}fn ids(xs:&[&str])->Vec<String>{xs.join(" ").split(',').map(|x|x.trim().to_string()).filter(|x|!x.is_empty()).collect()}fn num(s:&str)->Result<u64,String>{s.parse().map_err(|_|format!("invalid resource amount: {s}"))}fn cons(s:&str)->Result<Consequence,String>{match s{"negligible"=>Ok(Consequence::Negligible),"low"=>Ok(Consequence::Low),"material"=>Ok(Consequence::Material),"high"=>Ok(Consequence::High),"catastrophic"=>Ok(Consequence::Catastrophic),_=>Err(format!("unknown consequence: {s}"))}}fn reason(s:&str)->Result<StopReason,String>{match s{"enough"=>Ok(StopReason::Enough),"budget"=>Ok(StopReason::BudgetExhausted),"deadline"=>Ok(StopReason::Deadline),_=>Err(format!("unknown stop reason: {s}"))}}
+use crate::ast::{ConditionalAction, Program, Statement};
+use crate::{Attention, Consequence, Relation, StopReason};
+
+pub fn parse(source: &str) -> Result<Program, String> {
+    let mut statements = Vec::new();
+    for raw in source.split(';') {
+        let line = raw.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let words: Vec<&str> = line.split_whitespace().collect();
+        let statement = if line.starts_with("scene ") {
+            Statement::Scene {
+                text: quoted(line, "scene ")?,
+            }
+        } else if line.starts_with("display ") {
+            parse_display(line)?
+        } else if words.first() == Some(&"investigate") {
+            parse_investigate(&words, line)?
+        } else if words.first() == Some(&"reveal") {
+            parse_reveal(&words, line)?
+        } else if words.first() == Some(&"rule") {
+            parse_rule(&words, line)?
+        } else if words.first() == Some(&"choice") {
+            parse_choice(&words)?
+        } else if words.first() == Some(&"when_committed") {
+            parse_when(&words, line)?
+        } else {
+            match words.as_slice() {
+                ["budget", amount] => Statement::Budget {
+                    units: number(amount)?,
+                },
+                ["claim", name] => Statement::Claim {
+                    name: (*name).into(),
+                },
+                ["evidence", name, "from", rest @ ..] if !rest.is_empty() => Statement::Evidence {
+                    name: (*name).into(),
+                    source: rest.join(" ").trim_matches('"').into(),
+                },
+                ["caveat", name, "consequence", consequence] => Statement::Caveat {
+                    name: (*name).into(),
+                    consequence: parse_consequence(consequence)?,
+                },
+                [from, "supports", to] => relation(from, Relation::Supports, to),
+                [from, "opposes", to] => relation(from, Relation::Opposes, to),
+                [from, "qualifies", to] => relation(from, Relation::Qualifies, to),
+                ["examine", name, "cost", cost] => Statement::Examine {
+                    caveat: (*name).into(),
+                    cost: number(cost)?,
+                },
+                ["examine", name] => Statement::Attention {
+                    caveat: (*name).into(),
+                    state: Attention::Examining,
+                },
+                ["defer", name] => Statement::Attention {
+                    caveat: (*name).into(),
+                    state: Attention::Deferred,
+                },
+                ["inspect", investigation, caveat, "cost", cost] => Statement::Inspect {
+                    investigation: (*investigation).into(),
+                    caveat: (*caveat).into(),
+                    cost: number(cost)?,
+                },
+                ["infer", rule] => Statement::Infer {
+                    rule: (*rule).into(),
+                },
+                ["select", choice, option] => Statement::Select {
+                    choice: (*choice).into(),
+                    option: (*option).into(),
+                },
+                ["commit", action, "because", reason] => Statement::Commit {
+                    action: (*action).into(),
+                    reason: parse_reason(reason)?,
+                    retaining: Vec::new(),
+                },
+                ["commit", action, "because", reason, "retaining", rest @ ..] => {
+                    Statement::Commit {
+                        action: (*action).into(),
+                        reason: parse_reason(reason)?,
+                        retaining: identifiers(rest),
+                    }
+                }
+                ["reopen", commitment, "because", because] => Statement::Reopen {
+                    commitment: (*commitment).into(),
+                    because: (*because).into(),
+                },
+                _ => return Err(format!("cannot parse statement: {line}")),
+            }
+        };
+        statements.push(statement);
+    }
+    Ok(Program::new(statements))
+}
+
+fn relation(from: &str, relation: Relation, to: &str) -> Statement {
+    Statement::Relate {
+        from: from.into(),
+        relation,
+        to: to.into(),
+    }
+}
+
+fn parse_reveal(words: &[&str], line: &str) -> Result<Statement, String> {
+    match words {
+        ["reveal", caveat, "then", from, "supports", to] => Ok(Statement::Reveal {
+            when_inspected: (*caveat).into(),
+            from: (*from).into(),
+            relation: Relation::Supports,
+            to: (*to).into(),
+        }),
+        ["reveal", caveat, "then", from, "opposes", to] => Ok(Statement::Reveal {
+            when_inspected: (*caveat).into(),
+            from: (*from).into(),
+            relation: Relation::Opposes,
+            to: (*to).into(),
+        }),
+        _ => Err(format!("invalid reveal: {line}")),
+    }
+}
+
+fn parse_investigate(words: &[&str], line: &str) -> Result<Statement, String> {
+    match words {
+        ["investigate", name, "options", rest @ ..] => Ok(Statement::Investigate {
+            name: (*name).into(),
+            options: identifiers(rest),
+        }),
+        _ => Err(format!("invalid investigate: {line}")),
+    }
+}
+
+fn quoted(line: &str, prefix: &str) -> Result<String, String> {
+    let value = line.strip_prefix(prefix).unwrap().trim();
+    if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') {
+        Ok(value[1..value.len() - 1].to_string())
+    } else {
+        Err(format!("expected quoted text: {line}"))
+    }
+}
+
+fn parse_display(line: &str) -> Result<Statement, String> {
+    let rest = line.strip_prefix("display ").unwrap();
+    let mut parts = rest.splitn(2, ' ');
+    let symbol = parts.next().unwrap();
+    let text = parts
+        .next()
+        .ok_or_else(|| format!("display missing text: {line}"))?;
+    Ok(Statement::Display {
+        symbol: symbol.into(),
+        text: quoted(&format!("x {text}"), "x ")?,
+    })
+}
+
+fn parse_when(words: &[&str], line: &str) -> Result<Statement, String> {
+    match words {
+        ["when_committed", action, "reopen", commitment, "because", because] => {
+            Ok(Statement::WhenCommitted {
+                action: (*action).into(),
+                then: ConditionalAction::Reopen {
+                    commitment: (*commitment).into(),
+                    because: (*because).into(),
+                },
+            })
+        }
+        ["when_committed", action, from, "supports", to] => Ok(Statement::WhenCommitted {
+            action: (*action).into(),
+            then: ConditionalAction::Relate {
+                from: (*from).into(),
+                relation: Relation::Supports,
+                to: (*to).into(),
+            },
+        }),
+        ["when_committed", action, from, "opposes", to] => Ok(Statement::WhenCommitted {
+            action: (*action).into(),
+            then: ConditionalAction::Relate {
+                from: (*from).into(),
+                relation: Relation::Opposes,
+                to: (*to).into(),
+            },
+        }),
+        _ => Err(format!("invalid when_committed: {line}")),
+    }
+}
+
+fn parse_rule(words: &[&str], line: &str) -> Result<Statement, String> {
+    let arrow = words
+        .iter()
+        .position(|word| *word == "=>")
+        .ok_or_else(|| format!("rule missing =>: {line}"))?;
+    if words.len() < 5 || arrow <= 3 || arrow + 1 >= words.len() {
+        return Err(format!("invalid rule: {line}"));
+    }
+    Ok(Statement::Rule {
+        name: words[1].into(),
+        premises: identifiers(&words[3..arrow]),
+        conclusion: words[arrow + 1].into(),
+    })
+}
+
+fn parse_choice(words: &[&str]) -> Result<Statement, String> {
+    if words.len() < 4 || words.get(2) != Some(&"options") {
+        return Err("invalid choice".into());
+    }
+    let retaining = words.iter().position(|word| *word == "retaining");
+    let end = retaining.unwrap_or(words.len());
+    Ok(Statement::Choice {
+        name: words[1].into(),
+        options: identifiers(&words[3..end]),
+        retaining: retaining
+            .map(|index| identifiers(&words[index + 1..]))
+            .unwrap_or_default(),
+    })
+}
+
+fn identifiers(values: &[&str]) -> Vec<String> {
+    values
+        .join(" ")
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+fn number(value: &str) -> Result<u64, String> {
+    value
+        .parse()
+        .map_err(|_| format!("invalid resource amount: {value}"))
+}
+
+fn parse_consequence(value: &str) -> Result<Consequence, String> {
+    match value {
+        "negligible" => Ok(Consequence::Negligible),
+        "low" => Ok(Consequence::Low),
+        "material" => Ok(Consequence::Material),
+        "high" => Ok(Consequence::High),
+        "catastrophic" => Ok(Consequence::Catastrophic),
+        _ => Err(format!("unknown consequence: {value}")),
+    }
+}
+
+fn parse_reason(value: &str) -> Result<StopReason, String> {
+    match value {
+        "enough" => Ok(StopReason::Enough),
+        "budget" => Ok(StopReason::BudgetExhausted),
+        "deadline" => Ok(StopReason::Deadline),
+        _ => Err(format!("unknown stop reason: {value}")),
+    }
+}
