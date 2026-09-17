@@ -1,5 +1,89 @@
-use std::collections::HashMap;use crate::ast::{ConditionalAction,Program,Statement};use crate::{Attention,Edge,EpistemicGraph,NodeId,NodeKind,Relation,StopReason};
-#[derive(Debug,Clone,PartialEq,Eq)]pub struct ResourceLedger{pub initial:u64,pub remaining:u64,pub spent:u64,pub exhausted:bool}#[derive(Debug,Clone,PartialEq,Eq)]pub struct EpistemicSnapshot{pub nodes:HashMap<NodeId,NodeKind>,pub edges:Vec<Edge>,pub resources:Option<ResourceLedger>}#[derive(Debug,Clone,PartialEq,Eq)]pub struct InferenceRule{pub premises:Vec<NodeId>,pub conclusion:NodeId}#[derive(Debug,Clone,PartialEq,Eq)]pub struct ChoicePoint{pub options:Vec<String>,pub retaining:Vec<NodeId>,pub selected:Option<String>}#[derive(Debug,Clone,PartialEq,Eq)]pub struct Investigation{pub options:Vec<String>,pub inspected:Vec<String>}
-#[derive(Debug,Clone,PartialEq,Eq)]pub enum EventKind{Scene{text:String},BudgetDeclared{units:u64},Examined{caveat:NodeId,cost:u64,remaining:u64},InvestigationOffered{name:String,options:Vec<String>},Investigated{name:String,caveat:NodeId,cost:u64,remaining:u64},Revealed{because:NodeId,from:NodeId,relation:Relation,to:NodeId},Inferred{rule:String,conclusion:NodeId,premises:Vec<NodeId>},ChoiceOffered{name:String,options:Vec<String>},ChoiceSelected{name:String,option:String,commitment:NodeId},ConditionalApplied{because_action:String},Committed{commitment:NodeId,retained:Vec<NodeId>,reason:StopReason,snapshot:EpistemicSnapshot},Reopened{commitment:NodeId,because:NodeId}}#[derive(Debug,Clone,PartialEq,Eq)]pub struct Event{pub sequence:u64,pub kind:EventKind}#[derive(Debug)]pub struct Evaluation{pub graph:EpistemicGraph,pub symbols:HashMap<String,NodeId>,pub resources:Option<ResourceLedger>,pub history:Vec<Event>,pub rules:HashMap<String,InferenceRule>,pub choices:HashMap<String,ChoicePoint>,pub investigations:HashMap<String,Investigation>,pub display:HashMap<String,String>}
-pub fn evaluate(program:&Program)->Result<Evaluation,String>{let mut g=EpistemicGraph::new();let mut sy=HashMap::new();let mut res=None;let mut history=vec![];let mut rules=HashMap::new();let mut choices=HashMap::new();let mut investigations=HashMap::new();let mut display=HashMap::new();let mut inspected:Vec<String>=vec![];let mut seq=1;macro_rules! event{($k:expr)=>{{history.push(Event{sequence:seq,kind:$k});seq+=1;}}}for st in &program.statements{match st{Statement::Scene{text}=>event!(EventKind::Scene{text:text.clone()}),Statement::Display{symbol,text}=>{display.insert(symbol.clone(),text.clone());},Statement::Budget{units}=>{res=Some(ResourceLedger{initial:*units,remaining:*units,spent:0,exhausted:*units==0});event!(EventKind::BudgetDeclared{units:*units});},Statement::Claim{name}=>{let i=g.add(NodeKind::Claim{proposition:name.clone()});define(&mut sy,name,i)?},Statement::Evidence{name,source}=>{let i=g.add(NodeKind::Evidence{description:name.clone(),source:source.clone()});define(&mut sy,name,i)?},Statement::Caveat{name,consequence}=>{let i=g.add_caveat(name,*consequence);define(&mut sy,name,i)?},Statement::Relate{from,relation,to}=>g.relate(resolve(&sy,from)?,*relation,resolve(&sy,to)?),Statement::Attention{caveat,state}=>g.set_attention(resolve(&sy,caveat)?,*state),Statement::Examine{caveat,cost}=>charge(&mut g,&sy,&mut res,caveat,*cost,&mut history,&mut seq)?,Statement::Investigate{name,options}=>{for o in options{resolve(&sy,o)?;}investigations.insert(name.clone(),Investigation{options:options.clone(),inspected:vec![]});event!(EventKind::InvestigationOffered{name:name.clone(),options:options.clone()});},Statement::Inspect{investigation,caveat,cost}=>{let inv=investigations.get_mut(investigation).ok_or_else(||format!("unknown investigation: {investigation}"))?;if !inv.options.contains(caveat){return Err(format!("invalid investigation option: {caveat}"))}let id=resolve(&sy,caveat)?;let r=res.as_mut().ok_or("investigation requires budget")?;if *cost>r.remaining{return Err("insufficient investigation budget".into())}r.remaining-=*cost;r.spent+=*cost;r.exhausted=r.remaining==0;g.set_attention(id,Attention::Examined);inv.inspected.push(caveat.clone());inspected.push(caveat.clone());event!(EventKind::Investigated{name:investigation.clone(),caveat:id,cost:*cost,remaining:r.remaining});},Statement::Reveal{when_inspected,from,relation,to}=>{if inspected.contains(when_inspected){let because=resolve(&sy,when_inspected)?;let f=resolve(&sy,from)?;let t=resolve(&sy,to)?;g.relate(f,*relation,t);event!(EventKind::Revealed{because,from:f,relation:*relation,to:t});}},Statement::Rule{name,premises,conclusion}=>{rules.insert(name.clone(),InferenceRule{premises:premises.iter().map(|n|resolve(&sy,n)).collect::<Result<Vec<_>,_>>()?,conclusion:resolve(&sy,conclusion)?});},Statement::Infer{rule}=>{let r=rules.get(rule).ok_or_else(||format!("unknown rule: {rule}"))?.clone();for p in&r.premises{g.relate(*p,Relation::Supports,r.conclusion)}event!(EventKind::Inferred{rule:rule.clone(),conclusion:r.conclusion,premises:r.premises});},Statement::Choice{name,options,retaining}=>{choices.insert(name.clone(),ChoicePoint{options:options.clone(),retaining:retaining.iter().map(|n|resolve(&sy,n)).collect::<Result<Vec<_>,_>>()?,selected:None});event!(EventKind::ChoiceOffered{name:name.clone(),options:options.clone()});},Statement::Select{choice,option}=>{let cp=choices.get_mut(choice).ok_or_else(||format!("unknown choice: {choice}"))?;if !cp.options.contains(option){return Err(format!("invalid option {option}"))}let id=g.commit_because(option,&cp.retaining,StopReason::Enough);define(&mut sy,option,id)?;cp.selected=Some(option.clone());event!(EventKind::ChoiceSelected{name:choice.clone(),option:option.clone(),commitment:id});let snap=EpistemicSnapshot{nodes:g.nodes.clone(),edges:g.edges.clone(),resources:res.clone()};event!(EventKind::Committed{commitment:id,retained:cp.retaining.clone(),reason:StopReason::Enough,snapshot:snap});},Statement::WhenCommitted{action,then}=>{if sy.get(action).is_some_and(|id|matches!(g.nodes.get(id),Some(NodeKind::Commitment{..}))){match then{ConditionalAction::Reopen{commitment,because}=>{let c=resolve(&sy,commitment)?;let b=resolve(&sy,because)?;g.reopen(c,b);event!(EventKind::Reopened{commitment:c,because:b});},ConditionalAction::Relate{from,relation,to}=>g.relate(resolve(&sy,from)?,*relation,resolve(&sy,to)?)}event!(EventKind::ConditionalApplied{because_action:action.clone()});}},Statement::Commit{action,reason,retaining}=>{let ids=retaining.iter().map(|n|resolve(&sy,n)).collect::<Result<Vec<_>,_>>()?;let i=g.commit_because(action,&ids,reason.clone());define(&mut sy,action,i)?;let snap=EpistemicSnapshot{nodes:g.nodes.clone(),edges:g.edges.clone(),resources:res.clone()};event!(EventKind::Committed{commitment:i,retained:ids,reason:reason.clone(),snapshot:snap});},Statement::Reopen{commitment,because}=>{let c=resolve(&sy,commitment)?;let b=resolve(&sy,because)?;g.reopen(c,b);event!(EventKind::Reopened{commitment:c,because:b});}}}let _=seq;Ok(Evaluation{graph:g,symbols:sy,resources:res,history,rules,choices,investigations,display})}
-fn charge(g:&mut EpistemicGraph,sy:&HashMap<String,NodeId>,res:&mut Option<ResourceLedger>,c:&str,cost:u64,h:&mut Vec<Event>,seq:&mut u64)->Result<(),String>{let id=resolve(sy,c)?;let r=res.as_mut().ok_or("examine requires budget")?;if cost>r.remaining{return Err("insufficient budget".into())}r.remaining-=cost;r.spent+=cost;r.exhausted=r.remaining==0;g.set_attention(id,Attention::Examined);h.push(Event{sequence:*seq,kind:EventKind::Examined{caveat:id,cost,remaining:r.remaining}});*seq+=1;Ok(())}fn define(s:&mut HashMap<String,NodeId>,n:&str,i:NodeId)->Result<(),String>{if s.insert(n.into(),i).is_some(){Err(format!("duplicate symbol: {n}"))}else{Ok(())}}fn resolve(s:&HashMap<String,NodeId>,n:&str)->Result<NodeId,String>{s.get(n).copied().ok_or_else(||format!("unknown symbol: {n}"))}
+use crate::ast::{ConditionalAction, Program, Statement};
+use crate::{Attention, Edge, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResourceLedger { pub initial: u64, pub remaining: u64, pub spent: u64, pub exhausted: bool }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpistemicSnapshot { pub nodes: HashMap<NodeId, NodeKind>, pub edges: Vec<Edge>, pub resources: Option<ResourceLedger> }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InferenceRule { pub premises: Vec<NodeId>, pub conclusion: NodeId }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChoicePoint { pub options: Vec<String>, pub retaining: Vec<NodeId>, pub selected: Option<String> }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Investigation { pub options: Vec<String>, pub inspected: Vec<String> }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EventKind {
+    Scene { text: String }, BudgetDeclared { units: u64 }, Examined { caveat: NodeId, cost: u64, remaining: u64 },
+    InvestigationOffered { name: String, options: Vec<String> }, Investigated { name: String, caveat: NodeId, cost: u64, remaining: u64 },
+    Revealed { because: NodeId, from: NodeId, relation: Relation, to: NodeId }, Inferred { rule: String, conclusion: NodeId, premises: Vec<NodeId> },
+    ChoiceOffered { name: String, options: Vec<String> }, ChoiceSelected { name: String, option: String, commitment: NodeId },
+    ConditionalApplied { because_action: String }, Committed { commitment: NodeId, retained: Vec<NodeId>, reason: StopReason, snapshot: EpistemicSnapshot },
+    Reopened { commitment: NodeId, because: NodeId },
+}
+#[derive(Debug, Clone, PartialEq, Eq)] pub struct Event { pub sequence: u64, pub kind: EventKind }
+#[derive(Debug)] pub struct Evaluation { pub graph: EpistemicGraph, pub symbols: HashMap<String, NodeId>, pub resources: Option<ResourceLedger>, pub history: Vec<Event>, pub rules: HashMap<String, InferenceRule>, pub choices: HashMap<String, ChoicePoint>, pub investigations: HashMap<String, Investigation>, pub display: HashMap<String, String> }
+
+struct Evaluator {
+    graph: EpistemicGraph, symbols: HashMap<String, NodeId>, resources: Option<ResourceLedger>, history: Vec<Event>,
+    rules: HashMap<String, InferenceRule>, choices: HashMap<String, ChoicePoint>, investigations: HashMap<String, Investigation>,
+    display: HashMap<String, String>, inspected: Vec<String>, next_sequence: u64,
+}
+
+impl Evaluator {
+    fn new() -> Self { Self { graph: EpistemicGraph::new(), symbols: HashMap::new(), resources: None, history: Vec::new(), rules: HashMap::new(), choices: HashMap::new(), investigations: HashMap::new(), display: HashMap::new(), inspected: Vec::new(), next_sequence: 1 } }
+    fn event(&mut self, kind: EventKind) { self.history.push(Event { sequence: self.next_sequence, kind }); self.next_sequence += 1; }
+    fn resolve(&self, name: &str) -> Result<NodeId, String> { self.symbols.get(name).copied().ok_or_else(|| format!("unknown symbol: {name}")) }
+    fn define(&mut self, name: &str, id: NodeId) -> Result<(), String> { if self.symbols.insert(name.into(), id).is_some() { Err(format!("duplicate symbol: {name}")) } else { Ok(()) } }
+    fn snapshot(&self) -> EpistemicSnapshot { EpistemicSnapshot { nodes: self.graph.nodes.clone(), edges: self.graph.edges.clone(), resources: self.resources.clone() } }
+    fn charge(&mut self, caveat: &str, cost: u64, context: &str) -> Result<(NodeId, u64), String> {
+        let id = self.resolve(caveat)?;
+        let ledger = self.resources.as_mut().ok_or_else(|| format!("{context} requires budget"))?;
+        if cost > ledger.remaining { return Err(format!("insufficient {context} budget")); }
+        ledger.remaining -= cost; ledger.spent += cost; ledger.exhausted = ledger.remaining == 0;
+        self.graph.set_attention(id, Attention::Examined); Ok((id, ledger.remaining))
+    }
+    fn apply(&mut self, statement: &Statement) -> Result<(), String> {
+        match statement {
+            Statement::Scene { text } => self.event(EventKind::Scene { text: text.clone() }),
+            Statement::Display { symbol, text } => { self.display.insert(symbol.clone(), text.clone()); }
+            Statement::Budget { units } => { self.resources = Some(ResourceLedger { initial: *units, remaining: *units, spent: 0, exhausted: *units == 0 }); self.event(EventKind::BudgetDeclared { units: *units }); }
+            Statement::Claim { name } => { let id = self.graph.add(NodeKind::Claim { proposition: name.clone() }); self.define(name, id)?; }
+            Statement::Evidence { name, source } => { let id = self.graph.add(NodeKind::Evidence { description: name.clone(), source: source.clone() }); self.define(name, id)?; }
+            Statement::Caveat { name, consequence } => { let id = self.graph.add_caveat(name, *consequence); self.define(name, id)?; }
+            Statement::Relate { from, relation, to } => { let from = self.resolve(from)?; let to = self.resolve(to)?; self.graph.relate(from, *relation, to); }
+            Statement::Attention { caveat, state } => { let id = self.resolve(caveat)?; self.graph.set_attention(id, *state); }
+            Statement::Examine { caveat, cost } => { let (id, remaining) = self.charge(caveat, *cost, "examine")?; self.event(EventKind::Examined { caveat: id, cost: *cost, remaining }); }
+            Statement::Investigate { name, options } => { for option in options { self.resolve(option)?; } self.investigations.insert(name.clone(), Investigation { options: options.clone(), inspected: Vec::new() }); self.event(EventKind::InvestigationOffered { name: name.clone(), options: options.clone() }); }
+            Statement::Inspect { investigation, caveat, cost } => {
+                let valid = self.investigations.get(investigation).ok_or_else(|| format!("unknown investigation: {investigation}"))?.options.contains(caveat);
+                if !valid { return Err(format!("invalid investigation option: {caveat}")); }
+                let (id, remaining) = self.charge(caveat, *cost, "investigation")?;
+                self.investigations.get_mut(investigation).expect("validated investigation").inspected.push(caveat.clone()); self.inspected.push(caveat.clone());
+                self.event(EventKind::Investigated { name: investigation.clone(), caveat: id, cost: *cost, remaining });
+            }
+            Statement::Reveal { when_inspected, from, relation, to } if self.inspected.contains(when_inspected) => { let because = self.resolve(when_inspected)?; let from = self.resolve(from)?; let to = self.resolve(to)?; self.graph.relate(from, *relation, to); self.event(EventKind::Revealed { because, from, relation: *relation, to }); }
+            Statement::Reveal { .. } => {}
+            Statement::Rule { name, premises, conclusion } => { let premises = premises.iter().map(|n| self.resolve(n)).collect::<Result<Vec<_>, _>>()?; let conclusion = self.resolve(conclusion)?; self.rules.insert(name.clone(), InferenceRule { premises, conclusion }); }
+            Statement::Infer { rule } => { let rule_value = self.rules.get(rule).ok_or_else(|| format!("unknown rule: {rule}"))?.clone(); for premise in &rule_value.premises { self.graph.relate(*premise, Relation::Supports, rule_value.conclusion); } self.event(EventKind::Inferred { rule: rule.clone(), conclusion: rule_value.conclusion, premises: rule_value.premises }); }
+            Statement::Choice { name, options, retaining } => { let retaining = retaining.iter().map(|n| self.resolve(n)).collect::<Result<Vec<_>, _>>()?; self.choices.insert(name.clone(), ChoicePoint { options: options.clone(), retaining, selected: None }); self.event(EventKind::ChoiceOffered { name: name.clone(), options: options.clone() }); }
+            Statement::Select { choice, option } => {
+                let point = self.choices.get(choice).ok_or_else(|| format!("unknown choice: {choice}"))?.clone(); if !point.options.contains(option) { return Err(format!("invalid option {option}")); }
+                let id = self.graph.commit_because(option, &point.retaining, StopReason::Enough); self.define(option, id)?; self.choices.get_mut(choice).expect("validated choice").selected = Some(option.clone());
+                self.event(EventKind::ChoiceSelected { name: choice.clone(), option: option.clone(), commitment: id }); let snapshot = self.snapshot(); self.event(EventKind::Committed { commitment: id, retained: point.retaining, reason: StopReason::Enough, snapshot });
+            }
+            Statement::WhenCommitted { action, then } if self.symbols.get(action).is_some_and(|id| matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))) => {
+                match then { ConditionalAction::Reopen { commitment, because } => { let commitment = self.resolve(commitment)?; let because = self.resolve(because)?; self.graph.reopen(commitment, because); self.event(EventKind::Reopened { commitment, because }); }, ConditionalAction::Relate { from, relation, to } => { let from = self.resolve(from)?; let to = self.resolve(to)?; self.graph.relate(from, *relation, to); } }
+                self.event(EventKind::ConditionalApplied { because_action: action.clone() });
+            }
+            Statement::WhenCommitted { .. } => {}
+            Statement::Commit { action, reason, retaining } => { let retained = retaining.iter().map(|n| self.resolve(n)).collect::<Result<Vec<_>, _>>()?; let id = self.graph.commit_because(action, &retained, reason.clone()); self.define(action, id)?; let snapshot = self.snapshot(); self.event(EventKind::Committed { commitment: id, retained, reason: reason.clone(), snapshot }); }
+            Statement::Reopen { commitment, because } => { let commitment = self.resolve(commitment)?; let because = self.resolve(because)?; self.graph.reopen(commitment, because); self.event(EventKind::Reopened { commitment, because }); }
+        }
+        Ok(())
+    }
+    fn finish(self) -> Evaluation { Evaluation { graph: self.graph, symbols: self.symbols, resources: self.resources, history: self.history, rules: self.rules, choices: self.choices, investigations: self.investigations, display: self.display } }
+}
+
+pub fn evaluate(program: &Program) -> Result<Evaluation, String> { let mut evaluator = Evaluator::new(); for statement in &program.statements { evaluator.apply(statement)?; } Ok(evaluator.finish()) }
