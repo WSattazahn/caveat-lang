@@ -1,3 +1,18 @@
+scene "Emergency lights pulse red. The evacuation corridor is behind a sealed door, and the building systems disagree about whether opening it is safe.";
+display camera_frame "Camera 7 shows an apparently clear corridor.";
+display latch_alarm "The door latch sensor reports an unsafe condition.";
+display route_map "The evacuation plan marks this corridor as an approved route.";
+display camera_has_blind_spot "Camera 7 cannot see the final section beyond the turn.";
+display latch_sensor_recently_serviced "The latch sensor was serviced recently, so its alarm may be unreliable.";
+display open "Open the sealed door.";
+display wait "Wait and gather whatever information arrives.";
+display reroute "Abandon this corridor and reroute.";
+display smoke_report "A hallway detector now reports smoke beyond the door.";
+display stairwell_report "The stairwell sensor reports the alternate route is clear.";
+display stairwell_report_delayed "The stairwell report may be delayed.";
+display continue "Continue with the earlier plan.";
+display retreat "Retreat from the corridor.";
+display stairwell "Take the alternate stairwell.";
 budget 3;
 claim corridor_clear;
 claim door_safe;
@@ -19,13 +34,11 @@ rule route_is_viable when corridor_clear, evacuation_route_available => door_saf
 infer route_is_viable;
 choice door_decision options open, wait, reroute retaining door_unsafe, camera_has_blind_spot;
 select door_decision open;
-
 evidence smoke_report from "hallway_detector";
 when_committed open smoke_report opposes corridor_clear;
 when_committed open reopen open because camera_has_blind_spot;
 when_committed wait smoke_report supports door_unsafe;
 when_committed reroute smoke_report opposes corridor_clear;
-
 claim alternate_route_clear;
 evidence stairwell_report from "stairwell_sensor";
 stairwell_report supports alternate_route_clear;
