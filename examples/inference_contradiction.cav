@@ -1,0 +1,14 @@
+claim p;
+claim not_p;
+claim q;
+claim unrelated;
+
+evidence evidence_for_p from "source_a";
+evidence evidence_for_not_p from "source_b";
+evidence_for_p supports p;
+evidence_for_not_p supports not_p;
+
+rule derive_q when p => q;
+infer derive_q;
+
+commit act_on_q because enough retaining not_p;
