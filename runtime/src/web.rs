@@ -1,77 +1,9 @@
-#[cfg(target_arch="wasm32")]use wasm_bindgen::prelude::*;use crate::graphics::CaveatScene;use crate::session::{PendingInteraction,Session};
+#[cfg(target_arch="wasm32")]use wasm_bindgen::prelude::*;use crate::graphics::CaveatScene;use crate::session::{PendingInteraction,Session};use crate::world3d::World3D;
 fn esc(s:&str)->String{s.replace('\\',"\\\\").replace('"',"\\\"").replace('\n',"\\n")}fn arr(xs:&[String])->String{format!("[{}]",xs.iter().map(|x|format!("\"{}\"",esc(x))).collect::<Vec<_>>().join(","))}fn pending_json(p:PendingInteraction)->String{match p{PendingInteraction::Investigate{name,options,cost,budget}=>format!("{{\"kind\":\"investigate\",\"name\":\"{}\",\"options\":{},\"cost\":{},\"budget\":{}}}",esc(&name),arr(&options),cost,budget),PendingInteraction::Choice{name,options,budget}=>format!("{{\"kind\":\"choice\",\"name\":\"{}\",\"options\":{},\"budget\":{}}}",esc(&name),arr(&options),budget),PendingInteraction::Complete=>"{\"kind\":\"complete\"}".into()}}
 #[cfg_attr(target_arch="wasm32",wasm_bindgen)]pub fn evaluate_summary(source:&str)->String{match crate::parser::parse(source).and_then(|p|crate::eval::evaluate(&p)){Ok(e)=>format!("CAVEAT|nodes={}|edges={}|events={}",e.graph.nodes.len(),e.graph.edges.len(),e.history.len()),Err(e)=>format!("CAVEAT_ERROR|{e}")}}
 #[cfg_attr(target_arch="wasm32",wasm_bindgen)]pub struct WebSession{inner:Session}
 #[cfg_attr(target_arch="wasm32",wasm_bindgen)]impl WebSession{#[cfg_attr(target_arch="wasm32",wasm_bindgen(constructor))]pub fn new(source:&str)->Result<WebSession,String>{Ok(Self{inner:Session::from_source(source)?})}pub fn pending(&self)->String{match self.inner.pending(){Ok(p)=>pending_json(p),Err(e)=>format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))}}pub fn apply(&mut self,selection:&str)->Result<(),String>{self.inner.apply(selection)}pub fn discoveries(&self)->String{format!("[{}]",self.inner.discoveries().iter().map(|d|format!("{{\"because\":\"{}\",\"evidence\":\"{}\",\"relation\":\"{}\",\"target\":\"{}\"}}",esc(&d.because),esc(&d.evidence),esc(&d.relation),esc(&d.target))).collect::<Vec<_>>().join(","))}pub fn commitment(&self)->String{match self.inner.commitment(){Some(c)=>format!("{{\"action\":\"{}\",\"retained\":{},\"reopened_by\":{}}}",esc(&c.action),arr(&c.retained),arr(&c.reopened_by)),None=>"null".into()}}pub fn summary(&self)->String{match crate::eval::evaluate(self.inner.program()){Ok(e)=>{let b=e.resources.as_ref().map(|x|format!("{}/{}",x.remaining,x.initial)).unwrap_or_else(||"none".into());format!("CAVEAT|nodes={}|edges={}|events={}|budget={}",e.graph.nodes.len(),e.graph.edges.len(),e.history.len(),b)},Err(e)=>format!("CAVEAT_ERROR|{e}")}}}
-
-
-#[cfg_attr(target_arch="wasm32", wasm_bindgen)]
-pub struct WebGraphicsSession {
-    inner: Session,
-    scene: CaveatScene,
-}
-
-#[cfg_attr(target_arch="wasm32", wasm_bindgen)]
-impl WebGraphicsSession {
-    #[cfg_attr(target_arch="wasm32", wasm_bindgen(constructor))]
-    pub fn new(source: &str) -> Result<WebGraphicsSession, String> {
-        Ok(Self {
-            inner: Session::from_source(source)?,
-            scene: CaveatScene::door(),
-        })
-    }
-
-    pub fn pending(&self) -> String {
-        match self.inner.pending() {
-            Ok(pending) => pending_json(pending),
-            Err(error) => format!("{{\"kind\":\"error\",\"message\":\"{}\"}}", esc(&error)),
-        }
-    }
-
-    pub fn apply(&mut self, selection: &str) -> Result<(), String> {
-        self.inner.apply(selection)?;
-        let discoveries = self.inner.discoveries().to_vec();
-        let commitment = self.inner.commitment().cloned();
-        self.scene
-            .apply(selection, &discoveries, commitment.as_ref());
-        Ok(())
-    }
-
-    pub fn scene(&self) -> String {
-        self.scene.to_json()
-    }
-
-    pub fn discoveries(&self) -> String {
-        format!(
-            "[{}]",
-            self.inner
-                .discoveries()
-                .iter()
-                .map(|discovery| format!(
-                    "{{\"because\":\"{}\",\"evidence\":\"{}\",\"relation\":\"{}\",\"target\":\"{}\"}}",
-                    esc(&discovery.because),
-                    esc(&discovery.evidence),
-                    esc(&discovery.relation),
-                    esc(&discovery.target)
-                ))
-                .collect::<Vec<_>>()
-                .join(",")
-        )
-    }
-
-    pub fn commitment(&self) -> String {
-        match self.inner.commitment() {
-            Some(commitment) => format!(
-                "{{\"action\":\"{}\",\"retained\":{},\"reopened_by\":{}}}",
-                esc(&commitment.action),
-                arr(&commitment.retained),
-                arr(&commitment.reopened_by)
-            ),
-            None => "null".into(),
-        }
-    }
-
-    pub fn summary(&self) -> String {
-        format!("CAVEAT_GRAPHICS|phase={}", self.scene.phase)
-    }
-}
+#[cfg_attr(target_arch="wasm32",wasm_bindgen)]pub struct WebGraphicsSession{inner:Session,scene:CaveatScene}
+#[cfg_attr(target_arch="wasm32",wasm_bindgen)]impl WebGraphicsSession{#[cfg_attr(target_arch="wasm32",wasm_bindgen(constructor))]pub fn new(source:&str)->Result<WebGraphicsSession,String>{Ok(Self{inner:Session::from_source(source)?,scene:CaveatScene::door()})}pub fn pending(&self)->String{match self.inner.pending(){Ok(p)=>pending_json(p),Err(e)=>format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))}}pub fn apply(&mut self,selection:&str)->Result<(),String>{self.inner.apply(selection)?;let d=self.inner.discoveries().to_vec();let c=self.inner.commitment().cloned();self.scene.apply(selection,&d,c.as_ref());Ok(())}pub fn scene(&self)->String{self.scene.to_json()}pub fn summary(&self)->String{format!("CAVEAT_GRAPHICS|phase={}",self.scene.phase)}}
+#[cfg_attr(target_arch="wasm32",wasm_bindgen)]pub struct Web3DSession{inner:Session,world:World3D}
+#[cfg_attr(target_arch="wasm32",wasm_bindgen)]impl Web3DSession{#[cfg_attr(target_arch="wasm32",wasm_bindgen(constructor))]pub fn new(source:&str)->Result<Web3DSession,String>{Ok(Self{inner:Session::from_source(source)?,world:World3D::the_door()})}pub fn pending(&self)->String{match self.inner.pending(){Ok(p)=>pending_json(p),Err(e)=>format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))}}pub fn world(&self)->String{self.world.to_json()}pub fn apply(&mut self,selection:&str)->Result<(),String>{self.inner.apply(selection)?;let reopened=self.inner.commitment().is_some_and(|c|!c.reopened_by.is_empty());self.world.apply_action(selection,reopened);Ok(())}pub fn discoveries(&self)->String{format!("[{}]",self.inner.discoveries().iter().map(|d|format!("{{\"because\":\"{}\",\"evidence\":\"{}\",\"relation\":\"{}\",\"target\":\"{}\"}}",esc(&d.because),esc(&d.evidence),esc(&d.relation),esc(&d.target))).collect::<Vec<_>>().join(","))}pub fn commitment(&self)->String{match self.inner.commitment(){Some(c)=>format!("{{\"action\":\"{}\",\"retained\":{},\"reopened_by\":{}}}",esc(&c.action),arr(&c.retained),arr(&c.reopened_by)),None=>"null".into()}}}
