@@ -1,0 +1,7 @@
+[package]
+name = "caveat-runtime"
+version = "0.1.0"
+edition = "2021"
+description = "Reference runtime for the experimental CAVEAT programming language"
+
+[dependencies]
