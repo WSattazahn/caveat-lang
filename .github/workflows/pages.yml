@@ -13,14 +13,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-      - uses: actions/cache@v4
+          components: rustfmt, clippy
+      - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
           key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
+      - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
+      - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
       - run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
@@ -66,5 +69,5 @@ jobs:
         run: |
           node <<'NODE'
           const {webkit,devices}=require('playwright');
-          (async()=>{let b=await webkit.launch();try{let p=await b.newPage({...devices['iPhone 13']});let base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';let errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});let r=await p.goto(new URL('3d.html',base));if(!r||!r.ok())throw Error('3D page HTTP failure');await p.getByText('The Door 3D',{exact:true}).waitFor();await p.getByText('Attention 3',{exact:false}).waitFor();let canvas=await p.locator('canvas#c').boundingBox();if(!canvas||canvas.width<100||canvas.height<100)throw Error('3D canvas not rendered');let buttons=await p.locator('#choices button').count();if(buttons<2)throw Error('CAVEAT 3D choices missing');let world=await p.evaluate(()=>({w:document.querySelector('#c').width,h:document.querySelector('#c').height}));if(!world.w||!world.h)throw Error('WebGL canvas has no backing buffer');if(errors.length)throw Error(errors.join('\n'));console.log('Verified CAVEAT 3D HTTPS + WebGL + WASM on iPhone WebKit.');}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          (async()=>{let b=await webkit.launch();try{let p=await b.newPage({...devices['iPhone 13']});let base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';let errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});let r=await p.goto(new URL('3d.html',base));if(!r||!r.ok())throw Error('3D page HTTP failure');await p.getByText('The Door',{exact:true}).waitFor();await p.getByText('Attention 3',{exact:false}).waitFor();let canvas=await p.locator('canvas#c').boundingBox();if(!canvas||canvas.width<100||canvas.height<100)throw Error('3D canvas not rendered');let buttons=await p.locator('#choices button').count();if(buttons<2)throw Error('CAVEAT 3D choices missing');let world=await p.evaluate(()=>({w:document.querySelector('#c').width,h:document.querySelector('#c').height}));if(!world.w||!world.h)throw Error('WebGL canvas has no backing buffer');if(errors.length)throw Error(errors.join('\n'));console.log('Verified CAVEAT 3D HTTPS + WebGL + WASM on iPhone WebKit.');}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
