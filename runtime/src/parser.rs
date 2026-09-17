@@ -10,7 +10,9 @@ pub fn parse(source: &str) -> Result<Program, String> {
         }
         let words: Vec<&str> = line.split_whitespace().collect();
         let statement = if line.starts_with("scene ") {
-            Statement::Scene { text: quoted(line, "scene ")? }
+            Statement::Scene {
+                text: quoted(line, "scene ")?,
+            }
         } else if line.starts_with("display ") {
             parse_display(line)?
         } else if words.first() == Some(&"investigate") {
@@ -25,12 +27,18 @@ pub fn parse(source: &str) -> Result<Program, String> {
             parse_when(&words, line)?
         } else {
             match words.as_slice() {
-                ["budget", amount] => Statement::Budget { units: number(amount)? },
-                ["claim", name] => Statement::Claim { name: (*name).into() },
-                ["evidence", name, "from", rest @ ..] if !rest.is_empty() => Statement::Evidence {
-                    name: (*name).into(),
-                    source: rest.join(" ").trim_matches('"').into(),
+                ["budget", amount] => Statement::Budget {
+                    units: number(amount)?,
                 },
+                ["claim", name] => Statement::Claim {
+                    name: (*name).into(),
+                },
+                ["evidence", name, "from", rest @ ..] if !rest.is_empty() => {
+                    Statement::Evidence {
+                        name: (*name).into(),
+                        source: rest.join(" ").trim_matches('"').into(),
+                    }
+                }
                 ["caveat", name, "consequence", consequence] => Statement::Caveat {
                     name: (*name).into(),
                     consequence: parse_consequence(consequence)?,
@@ -38,15 +46,46 @@ pub fn parse(source: &str) -> Result<Program, String> {
                 [from, "supports", to] => relation(from, Relation::Supports, to),
                 [from, "opposes", to] => relation(from, Relation::Opposes, to),
                 [from, "qualifies", to] => relation(from, Relation::Qualifies, to),
-                ["examine", name, "cost", cost] => Statement::Examine { caveat: (*name).into(), cost: number(cost)? },
-                ["examine", name] => Statement::Attention { caveat: (*name).into(), state: Attention::Examining },
-                ["defer", name] => Statement::Attention { caveat: (*name).into(), state: Attention::Deferred },
-                ["inspect", investigation, caveat, "cost", cost] => Statement::Inspect { investigation: (*investigation).into(), caveat: (*caveat).into(), cost: number(cost)? },
-                ["infer", rule] => Statement::Infer { rule: (*rule).into() },
-                ["select", choice, option] => Statement::Select { choice: (*choice).into(), option: (*option).into() },
-                ["commit", action, "because", reason] => Statement::Commit { action: (*action).into(), reason: parse_reason(reason)?, retaining: Vec::new() },
-                ["commit", action, "because", reason, "retaining", rest @ ..] => Statement::Commit { action: (*action).into(), reason: parse_reason(reason)?, retaining: identifiers(rest) },
-                ["reopen", commitment, "because", because] => Statement::Reopen { commitment: (*commitment).into(), because: (*because).into() },
+                ["examine", name, "cost", cost] => Statement::Examine {
+                    caveat: (*name).into(),
+                    cost: number(cost)?,
+                },
+                ["examine", name] => Statement::Attention {
+                    caveat: (*name).into(),
+                    state: Attention::Examining,
+                },
+                ["defer", name] => Statement::Attention {
+                    caveat: (*name).into(),
+                    state: Attention::Deferred,
+                },
+                ["inspect", investigation, caveat, "cost", cost] => Statement::Inspect {
+                    investigation: (*investigation).into(),
+                    caveat: (*caveat).into(),
+                    cost: number(cost)?,
+                },
+                ["infer", rule] => Statement::Infer {
+                    rule: (*rule).into(),
+                },
+                ["select", choice, option] => Statement::Select {
+                    choice: (*choice).into(),
+                    option: (*option).into(),
+                },
+                ["commit", action, "because", reason] => Statement::Commit {
+                    action: (*action).into(),
+                    reason: parse_reason(reason)?,
+                    retaining: Vec::new(),
+                },
+                ["commit", action, "because", reason, "retaining", rest @ ..] => {
+                    Statement::Commit {
+                        action: (*action).into(),
+                        reason: parse_reason(reason)?,
+                        retaining: identifiers(rest),
+                    }
+                }
+                ["reopen", commitment, "because", because] => Statement::Reopen {
+                    commitment: (*commitment).into(),
+                    because: (*because).into(),
+                },
                 _ => return Err(format!("cannot parse statement: {line}")),
             }
         };
@@ -56,20 +95,37 @@ pub fn parse(source: &str) -> Result<Program, String> {
 }
 
 fn relation(from: &str, relation: Relation, to: &str) -> Statement {
-    Statement::Relate { from: from.into(), relation, to: to.into() }
+    Statement::Relate {
+        from: from.into(),
+        relation,
+        to: to.into(),
+    }
 }
 
 fn parse_reveal(words: &[&str], line: &str) -> Result<Statement, String> {
     match words {
-        ["reveal", caveat, "then", from, "supports", to] => Ok(Statement::Reveal { when_inspected: (*caveat).into(), from: (*from).into(), relation: Relation::Supports, to: (*to).into() }),
-        ["reveal", caveat, "then", from, "opposes", to] => Ok(Statement::Reveal { when_inspected: (*caveat).into(), from: (*from).into(), relation: Relation::Opposes, to: (*to).into() }),
+        ["reveal", caveat, "then", from, "supports", to] => Ok(Statement::Reveal {
+            when_inspected: (*caveat).into(),
+            from: (*from).into(),
+            relation: Relation::Supports,
+            to: (*to).into(),
+        }),
+        ["reveal", caveat, "then", from, "opposes", to] => Ok(Statement::Reveal {
+            when_inspected: (*caveat).into(),
+            from: (*from).into(),
+            relation: Relation::Opposes,
+            to: (*to).into(),
+        }),
         _ => Err(format!("invalid reveal: {line}")),
     }
 }
 
 fn parse_investigate(words: &[&str], line: &str) -> Result<Statement, String> {
     match words {
-        ["investigate", name, "options", rest @ ..] => Ok(Statement::Investigate { name: (*name).into(), options: identifiers(rest) }),
+        ["investigate", name, "options", rest @ ..] => Ok(Statement::Investigate {
+            name: (*name).into(),
+            options: identifiers(rest),
+        }),
         _ => Err(format!("invalid investigate: {line}")),
     }
 }
@@ -87,25 +143,59 @@ fn parse_display(line: &str) -> Result<Statement, String> {
     let rest = line.strip_prefix("display ").unwrap();
     let mut parts = rest.splitn(2, ' ');
     let symbol = parts.next().unwrap();
-    let text = parts.next().ok_or_else(|| format!("display missing text: {line}"))?;
-    Ok(Statement::Display { symbol: symbol.into(), text: quoted(&format!("x {text}"), "x ")? })
+    let text = parts
+        .next()
+        .ok_or_else(|| format!("display missing text: {line}"))?;
+    Ok(Statement::Display {
+        symbol: symbol.into(),
+        text: quoted(&format!("x {text}"), "x ")?,
+    })
 }
 
 fn parse_when(words: &[&str], line: &str) -> Result<Statement, String> {
     match words {
-        ["when_committed", action, "reopen", commitment, "because", because] => Ok(Statement::WhenCommitted { action: (*action).into(), then: ConditionalAction::Reopen { commitment: (*commitment).into(), because: (*because).into() } }),
-        ["when_committed", action, from, "supports", to] => Ok(Statement::WhenCommitted { action: (*action).into(), then: ConditionalAction::Relate { from: (*from).into(), relation: Relation::Supports, to: (*to).into() } }),
-        ["when_committed", action, from, "opposes", to] => Ok(Statement::WhenCommitted { action: (*action).into(), then: ConditionalAction::Relate { from: (*from).into(), relation: Relation::Opposes, to: (*to).into() } }),
+        ["when_committed", action, "reopen", commitment, "because", because] => {
+            Ok(Statement::WhenCommitted {
+                action: (*action).into(),
+                then: ConditionalAction::Reopen {
+                    commitment: (*commitment).into(),
+                    because: (*because).into(),
+                },
+            })
+        }
+        ["when_committed", action, from, "supports", to] => Ok(Statement::WhenCommitted {
+            action: (*action).into(),
+            then: ConditionalAction::Relate {
+                from: (*from).into(),
+                relation: Relation::Supports,
+                to: (*to).into(),
+            },
+        }),
+        ["when_committed", action, from, "opposes", to] => Ok(Statement::WhenCommitted {
+            action: (*action).into(),
+            then: ConditionalAction::Relate {
+                from: (*from).into(),
+                relation: Relation::Opposes,
+                to: (*to).into(),
+            },
+        }),
         _ => Err(format!("invalid when_committed: {line}")),
     }
 }
 
 fn parse_rule(words: &[&str], line: &str) -> Result<Statement, String> {
-    let arrow = words.iter().position(|word| *word == "=>").ok_or_else(|| format!("rule missing =>: {line}"))?;
+    let arrow = words
+        .iter()
+        .position(|word| *word == "=>")
+        .ok_or_else(|| format!("rule missing =>: {line}"))?;
     if words.len() < 5 || arrow <= 3 || arrow + 1 >= words.len() {
         return Err(format!("invalid rule: {line}"));
     }
-    Ok(Statement::Rule { name: words[1].into(), premises: identifiers(&words[3..arrow]), conclusion: words[arrow + 1].into() })
+    Ok(Statement::Rule {
+        name: words[1].into(),
+        premises: identifiers(&words[3..arrow]),
+        conclusion: words[arrow + 1].into(),
+    })
 }
 
 fn parse_choice(words: &[&str]) -> Result<Statement, String> {
@@ -114,15 +204,29 @@ fn parse_choice(words: &[&str]) -> Result<Statement, String> {
     }
     let retaining = words.iter().position(|word| *word == "retaining");
     let end = retaining.unwrap_or(words.len());
-    Ok(Statement::Choice { name: words[1].into(), options: identifiers(&words[3..end]), retaining: retaining.map(|index| identifiers(&words[index + 1..])).unwrap_or_default() })
+    Ok(Statement::Choice {
+        name: words[1].into(),
+        options: identifiers(&words[3..end]),
+        retaining: retaining
+            .map(|index| identifiers(&words[index + 1..]))
+            .unwrap_or_default(),
+    })
 }
 
 fn identifiers(values: &[&str]) -> Vec<String> {
-    values.join(" ").split(',').map(str::trim).filter(|value| !value.is_empty()).map(str::to_string).collect()
+    values
+        .join(" ")
+        .split(',')
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 fn number(value: &str) -> Result<u64, String> {
-    value.parse().map_err(|_| format!("invalid resource amount: {value}"))
+    value
+        .parse()
+        .map_err(|_| format!("invalid resource amount: {value}"))
 }
 
 fn parse_consequence(value: &str) -> Result<Consequence, String> {
