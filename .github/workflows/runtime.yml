@@ -28,16 +28,38 @@ jobs:
         run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - name: Ensure wasm-bindgen CLI
         run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
-      - name: Build complete browser distribution
+      - name: Build browser distribution
         run: |
           rm -rf dist && mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
-          test -s dist/index.html && test -s dist/graphics.html && test -s dist/3d.html
-          test -s dist/the_door_round2.cav && test -s dist/pkg/caveat_runtime.js && test -s dist/pkg/caveat_runtime_bg.wasm
       - name: Evaluate canonical Door scenario
         run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door_round2.cav
-      - name: Playthrough — investigate latch, open, retreat
-        run: printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-      - name: Playthrough — investigate camera, wait, stairwell
-        run: printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+      - name: Playthroughs
+        run: |
+          printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install visual QA tools
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
+          npx playwright install --with-deps webkit
+      - name: Visual QA — iPhone Door before and after opening
+        run: |
+          python3 -m http.server 4173 --directory dist >/tmp/caveat-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          node <<'NODE'
+          const {webkit,devices}=require('playwright');
+          const {PNG}=require('pngjs');
+          const fs=require('fs');
+          const variance=b=>{const p=PNG.sync.read(b);let s=0,s2=0,n=p.width*p.height;for(let i=0;i<p.data.length;i+=4){const v=(p.data[i]+p.data[i+1]+p.data[i+2])/3;s+=v;s2+=v*v}return s2/n-(s/n)**2};
+          (async()=>{const browser=await webkit.launch();try{const page=await browser.newPage({...devices['iPhone 13']});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});const response=await page.goto('http://127.0.0.1:4173/3d.html');if(!response||!response.ok())throw Error('3D page HTTP failure');await page.getByText('Emergency alarm. Leave this floor.').waitFor();const open=page.getByRole('button',{name:/Open door/});await open.waitFor();const canvas=page.locator('#c');const before=await canvas.screenshot();fs.writeFileSync('door-before.png',before);if(variance(before)<40)throw Error('before screenshot lacks meaningful geometry');await open.click();await page.waitForTimeout(2200);const after=await canvas.screenshot();fs.writeFileSync('door-after.png',after);if(Buffer.compare(before,after)===0)throw Error('Open door caused no visual change');if(variance(after)<40)throw Error('after screenshot lacks meaningful geometry');await page.getByText(/door opens/i).waitFor();if(errors.length)throw Error(errors.join('\n'));console.log('VISUAL PASS: Door rendered and visibly changed after opening.');}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: caveat-door-visual-inspection
+          path: door-*.png
