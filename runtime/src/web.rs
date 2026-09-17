@@ -1,28 +1,17 @@
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
-use crate::ast::{Program,Statement};
+use crate::session::{PendingInteraction,Session};
+fn esc(s:&str)->String{s.replace('\\',"\\\\").replace('"',"\\\"").replace('\n',"\\n")}fn arr(xs:&[String])->String{format!("[{}]",xs.iter().map(|x|format!("\"{}\"",esc(x))).collect::<Vec<_>>().join(","))}fn pending_json(p:PendingInteraction)->String{match p{PendingInteraction::Investigate{name,options,cost,budget}=>format!("{{\"kind\":\"investigate\",\"name\":\"{}\",\"options\":{},\"cost\":{},\"budget\":{}}}",esc(&name),arr(&options),cost,budget),PendingInteraction::Choice{name,options,budget}=>format!("{{\"kind\":\"choice\",\"name\":\"{}\",\"options\":{},\"budget\":{}}}",esc(&name),arr(&options),budget),PendingInteraction::Complete=>"{\"kind\":\"complete\"}".into()}}
+#[cfg_attr(target_arch="wasm32", wasm_bindgen)]pub fn evaluate_summary(source:&str)->String{match crate::parser::parse(source).and_then(|p|crate::eval::evaluate(&p)){Ok(e)=>format!("CAVEAT|nodes={}|edges={}|events={}",e.graph.nodes.len(),e.graph.edges.len(),e.history.len()),Err(e)=>format!("CAVEAT_ERROR|{e}")}}
 
-fn esc(s:&str)->String{s.replace('\\',"\\\\").replace('"',"\\\"").replace('\n',"\\n")}
-fn arr(xs:&[String])->String{format!("[{}]",xs.iter().map(|x|format!("\"{}\"",esc(x))).collect::<Vec<_>>().join(","))}
-
+/// Stateful browser-owned CAVEAT execution session.
 #[cfg_attr(target_arch="wasm32", wasm_bindgen)]
-pub fn evaluate_summary(source:&str)->String{match crate::parser::parse(source).and_then(|p|crate::eval::evaluate(&p)){Ok(e)=>{let b=e.resources.as_ref().map(|x|format!("{}/{}",x.remaining,x.initial)).unwrap_or_else(||"none".into());format!("CAVEAT|nodes={}|edges={}|events={}|budget={}",e.graph.nodes.len(),e.graph.edges.len(),e.history.len(),b)},Err(e)=>format!("CAVEAT_ERROR|{e}")}}
-
-/// Returns the first unresolved interactive operation as JSON. Browser clients
-/// can render this without understanding the internal graph representation.
+pub struct WebSession{inner:Session}
 #[cfg_attr(target_arch="wasm32", wasm_bindgen)]
-pub fn pending_interaction(source:&str)->String{
- let p=match crate::parser::parse(source){Ok(p)=>p,Err(e)=>return format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))};
- for(i,s)in p.statements.iter().enumerate(){match s{
-  Statement::Inspect{investigation,caveat,cost}=>{let pre=match crate::eval::evaluate(&Program::new(p.statements[..i].to_vec())){Ok(x)=>x,Err(e)=>return format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))};if let Some(inv)=pre.investigations.get(investigation){let budget=pre.resources.as_ref().map(|b|b.remaining).unwrap_or(0);return format!("{{\"kind\":\"investigate\",\"name\":\"{}\",\"options\":{},\"default\":\"{}\",\"cost\":{},\"budget\":{}}}",esc(investigation),arr(&inv.options),esc(caveat),cost,budget)}}
-  Statement::Select{choice,option}=>{let pre=match crate::eval::evaluate(&Program::new(p.statements[..i].to_vec())){Ok(x)=>x,Err(e)=>return format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))};if let Some(cp)=pre.choices.get(choice){let budget=pre.resources.as_ref().map(|b|b.remaining).unwrap_or(0);return format!("{{\"kind\":\"choice\",\"name\":\"{}\",\"options\":{},\"default\":\"{}\",\"budget\":{}}}",esc(choice),arr(&cp.options),esc(option),budget)}}
-  _=>{}
- }}"{\"kind\":\"complete\"}".into()
+impl WebSession{
+ #[cfg_attr(target_arch="wasm32", wasm_bindgen(constructor))]
+ pub fn new(source:&str)->Result<WebSession,String>{Ok(Self{inner:Session::from_source(source)?})}
+ pub fn pending(&self)->String{match self.inner.pending(){Ok(p)=>pending_json(p),Err(e)=>format!("{{\"kind\":\"error\",\"message\":\"{}\"}}",esc(&e))}}
+ pub fn apply(&mut self,selection:&str)->Result<(),String>{self.inner.apply(selection)}
+ pub fn summary(&self)->String{match crate::eval::evaluate(self.inner.program()){Ok(e)=>{let b=e.resources.as_ref().map(|x|format!("{}/{}",x.remaining,x.initial)).unwrap_or_else(||"none".into());format!("CAVEAT|nodes={}|edges={}|events={}|budget={}",e.graph.nodes.len(),e.graph.edges.len(),e.history.len(),b)},Err(e)=>format!("CAVEAT_ERROR|{e}")}}
 }
-
-/// Rewrites the first pending operation with the player's selection. Returning
-/// source keeps the browser stateless while CAVEAT remains authoritative.
-#[cfg_attr(target_arch="wasm32", wasm_bindgen)]
-pub fn apply_first_action(source:&str,selection:&str)->String{let mut p=match crate::parser::parse(source){Ok(p)=>p,Err(e)=>return format!("CAVEAT_ERROR|{e}")};for s in&mut p.statements{match s{Statement::Inspect{caveat,..}=>{*caveat=selection.into();break},Statement::Select{option,..}=>{*option=selection.into();break},_=>{}}}serialize(&p)}
-
-fn serialize(p:&Program)->String{format!("{:?}",p)}
