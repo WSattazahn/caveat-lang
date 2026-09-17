@@ -1,0 +1,9 @@
+budget 3;
+claim release_ready;
+caveat edge_case_a consequence material;
+caveat edge_case_b consequence low;
+edge_case_a qualifies release_ready;
+edge_case_b qualifies release_ready;
+examine edge_case_a cost 2;
+examine edge_case_b cost 1;
+commit ship_v1 because budget retaining edge_case_a, edge_case_b;
