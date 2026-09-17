@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -81,6 +81,7 @@ jobs:
     needs: deploy
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     env:
@@ -116,63 +117,70 @@ jobs:
 
           (async () => {
             const errors = [];
-            const browser = await webkit.launch();
-            const context = await browser.newContext({
-              ...devices["iPhone 13"],
-              serviceWorkers: "block"
-            });
-            const page = await context.newPage();
+            let browser;
+            try {
+              browser = await webkit.launch();
+              const context = await browser.newContext({
+                ...devices["iPhone 13"],
+                serviceWorkers: "block"
+              });
+              const page = await context.newPage();
+              page.setDefaultTimeout(30000);
+              page.setDefaultNavigationTimeout(30000);
 
-            page.on("console", (message) => {
-              if (message.type() === "error") errors.push("console: " + message.text());
-            });
-            page.on("pageerror", (error) => errors.push("pageerror: " + error.message));
-            page.on("requestfailed", (request) => {
-              errors.push("request failed: " + request.url() + " — " + request.failure()?.errorText);
-            });
+              page.on("console", (message) => {
+                if (message.type() === "error") errors.push("console: " + message.text());
+              });
+              page.on("pageerror", (error) => errors.push("pageerror: " + error.message));
+              page.on("requestfailed", (request) => {
+                errors.push("request failed: " + request.url() + " — " + request.failure()?.errorText);
+              });
 
-            await page.goto(base, { waitUntil: "networkidle" });
-            await page.getByText("Attention remaining: 3", { exact: false }).waitFor();
+              await page.goto(base, { waitUntil: "domcontentloaded" });
+              await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
+              await page.getByText("Attention remaining: 3", { exact: false }).waitFor();
 
-            const statuses = await page.evaluate(async (siteBase, assetPaths) => {
-              const result = {};
-              for (const path of assetPaths) {
-                const response = await fetch(new URL(path, siteBase));
-                result[path || "/"] = response.status;
+              const statuses = await page.evaluate(async (siteBase, assetPaths) => {
+                const result = {};
+                for (const path of assetPaths) {
+                  const response = await fetch(new URL(path, siteBase));
+                  result[path || "/"] = response.status;
+                }
+                return result;
+              }, base, paths);
+
+              for (const [path, status] of Object.entries(statuses)) {
+                if (status !== 200) throw new Error("Unexpected HTTPS status " + status + " for " + path);
               }
-              return result;
-            }, base, paths);
 
-            for (const [path, status] of Object.entries(statuses)) {
-              if (status !== 200) throw new Error("Unexpected HTTPS status " + status + " for " + path);
-            }
+              await page.getByRole("button", {
+                name: "the latch sensor was recently serviced",
+                exact: true
+              }).click();
+              await page.getByRole("button", { name: "Continue", exact: true }).click();
+              await page.getByRole("button", {
+                name: "Open the sealed door.",
+                exact: true
+              }).click();
+              await page.getByRole("button", { name: "Reconsider", exact: true }).click();
+              await page.getByRole("button", {
+                name: "Retreat from the corridor.",
+                exact: true
+              }).click();
+              await page.getByText("Decision record complete", { exact: false }).waitFor();
 
-            await page.getByRole("button", {
-              name: "the latch sensor was recently serviced",
-              exact: true
-            }).click();
-            await page.getByRole("button", { name: "Continue", exact: true }).click();
-            await page.getByRole("button", {
-              name: "Open the sealed door.",
-              exact: true
-            }).click();
-            await page.getByRole("button", { name: "Reconsider", exact: true }).click();
-            await page.getByRole("button", {
-              name: "Retreat from the corridor.",
-              exact: true
-            }).click();
-            await page.getByText("Decision record complete", { exact: false }).waitFor();
-
-            const trail = await page.locator("#trail").innerText();
-            for (const marker of ["DISCOVERED", "COMMITTED", "REOPENED"]) {
-              if (!trail.includes(marker)) {
-                throw new Error("Decision Trail is missing " + marker + ": " + trail);
+              const trail = await page.locator("#trail").innerText();
+              for (const marker of ["DISCOVERED", "COMMITTED", "REOPENED"]) {
+                if (!trail.includes(marker)) {
+                  throw new Error("Decision Trail is missing " + marker + ": " + trail);
+                }
               }
-            }
 
-            if (errors.length) throw new Error(errors.join("\n"));
-            await browser.close();
-            console.log("Verified HTTPS assets and complete WebKit/iPhone playthrough.");
+              if (errors.length) throw new Error(errors.join("\n"));
+              console.log("Verified HTTPS assets and complete WebKit/iPhone playthrough.");
+            } finally {
+              if (browser) await browser.close();
+            }
           })().catch((error) => {
             console.error(error);
             process.exitCode = 1;
