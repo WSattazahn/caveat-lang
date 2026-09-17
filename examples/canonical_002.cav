@@ -1,0 +1,14 @@
+claim bridge_safe;
+evidence static_load_test from "lab";
+
+caveat paint_color_variation consequence negligible;
+caveat untested_crosswind consequence catastrophic;
+
+static_load_test supports bridge_safe;
+paint_color_variation qualifies bridge_safe;
+untested_crosswind qualifies bridge_safe;
+
+defer paint_color_variation;
+examine untested_crosswind;
+
+commit continue_review because enough retaining paint_color_variation, untested_crosswind;
