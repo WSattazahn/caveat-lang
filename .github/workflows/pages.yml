@@ -140,14 +140,14 @@ jobs:
               await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
               await page.getByText("Attention remaining: 3", { exact: false }).waitFor();
 
-              const statuses = await page.evaluate(async (siteBase, assetPaths) => {
+              const statuses = await page.evaluate(async ({ siteBase, assetPaths }) => {
                 const result = {};
                 for (const path of assetPaths) {
                   const response = await fetch(new URL(path, siteBase));
                   result[path || "/"] = response.status;
                 }
                 return result;
-              }, base, paths);
+              }, { siteBase: base, assetPaths: paths });
 
               for (const [path, status] of Object.entries(statuses)) {
                 if (status !== 200) throw new Error("Unexpected HTTPS status " + status + " for " + path);
