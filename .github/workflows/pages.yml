@@ -167,6 +167,7 @@ jobs:
                 name: "Retreat from the corridor.",
                 exact: true
               }).click();
+              await page.getByRole("button", { name: "Continue", exact: true }).click();
               await page.getByText("Decision record complete", { exact: false }).waitFor();
 
               const trail = await page.locator("#trail").innerText();
