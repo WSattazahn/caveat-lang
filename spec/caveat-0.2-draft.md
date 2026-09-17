@@ -3,40 +3,41 @@
 This draft records changes earned by executable/adversarial evidence. It does not supersede 0.1 yet.
 
 ## 1. Qualification topology
+Draft 0.1's depth-only model fails on circular qualification. The runtime distinguishes `Finite { max_depth }` and `Cyclic`. Cyclic qualification MUST NOT be reported as ordinary finite depth. Dynamic/open-ended topology remains future work.
 
-Draft 0.1 treated qualification primarily in terms of depth. Adversarial cyclic qualification showed that this is insufficient.
+## 2. Resource semantics
+Resource accounting is now executable rather than descriptive.
 
-The runtime now distinguishes at least:
+- `budget N` declares a deterministic unit ledger.
+- `examine X cost N` consumes units and marks X examined only if the cost can be paid.
+- The ledger preserves initial, spent, remaining, and exhausted state.
+- `commit ... because budget` is valid only when the ledger is actually exhausted.
+- Insufficient budget for an attempted examination is an evaluation error; it does not silently consume nonexistent resources.
 
-- `Finite { max_depth }`
-- `Cyclic`
+The unit is intentionally abstract in 0.2. Domain mappings to time, money, tool calls, tokens, experiments, or human attention remain outside the core semantics.
 
-A cyclic qualification graph MUST NOT be reported as having an ordinary finite qualification depth. Future work may add dynamic/open-ended topology when runtime generation exists.
+## 3. Temporal history and commitment snapshots
+The current graph answers what the program believes/contains now. It is insufficient for explaining why an earlier commitment was made.
 
-## 2. Resource semantics — unresolved
+Evaluation therefore maintains an ordered immutable history. Budget declarations, charged examinations, commitments, and reopenings are events with monotonically increasing sequence numbers.
 
-Draft 0.1 names resource-bounded stopping and `BudgetExhausted`, but the runtime does not yet possess a resource ledger. Therefore budget exhaustion is currently representable as a reason but not causally enforced by execution.
+Every commitment captures an `EpistemicSnapshot` containing a clone of the graph nodes, graph edges, and resource ledger as they existed immediately after creation of the commitment. Information introduced later MUST NOT appear retroactively in that snapshot.
 
-Draft 0.2 must define:
+This establishes two distinct semantic views:
 
-- a resource budget primitive;
-- costs for examination operations;
-- what happens when an operation exceeds remaining budget;
-- whether resource accounting is deterministic and replayable;
-- how a budget-driven commitment differs from an `enough` commitment.
+- **current graph** — present epistemic state;
+- **commitment snapshot** — epistemic state available at the decision event.
 
-## 3. Reopening history
+Reopening changes current state and appends a history event. It does not mutate the historical snapshot that justified the earlier commitment.
 
-Repeated reopening currently produces multiple `Reopens` edges even when the commitment is already open. This preserves event visibility but does not encode event time or distinguish first reopening from subsequent evidence. Draft 0.2 should introduce an event/history model rather than overloading graph edges as an event log.
+## 4. Reopening history
+Repeated reopening remains visible as repeated history events. Draft 0.2 still needs to decide whether reopening an already-open commitment is semantically distinct from attaching further post-reopening evidence.
 
-## 4. Contradiction
+## 5. Contradiction
+Supporting and opposing evidence can coexist without explosion at the representation layer. A formal paraconsistent inference system remains unresolved.
 
-The first adversarial tests confirm that supporting and opposing evidence can coexist in the graph without explosion. This is representation-level contradiction tolerance only; a formal paraconsistent inference system remains unresolved.
-
-## 5. Errors
-
-Duplicate symbol definitions and references to undefined symbols are explicit evaluation errors in the reference runtime.
+## 6. Errors
+Duplicate symbols, undefined references, invalid resource amounts, unaffordable charged examinations, and false budget-exhaustion commitments are explicit evaluation errors.
 
 ## Rule
-
 A semantic change enters Draft 0.2 because a program, proof, implementation constraint, or use case earned it — not because the language needs to appear novel.
