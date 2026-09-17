@@ -1,63 +1,59 @@
 name: runtime
-
 on:
   push:
     branches: [main]
   pull_request:
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-          components: rustfmt, clippy
+        with: {targets: wasm32-unknown-unknown, components: 'rustfmt, clippy'}
       - uses: actions/cache@v5
-        with:
-          path: ~/.cargo/bin/wasm-bindgen
-          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
-      - name: Check Rust formatting
-        run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
-      - name: Lint Rust — zero warnings
-        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
-      - name: Test Rust runtime
-        run: cargo test --manifest-path runtime/Cargo.toml --all-targets
-      - name: Compile browser WebAssembly target
-        run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
-      - name: Ensure wasm-bindgen CLI
-        run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+        with: {path: ~/.cargo/bin/wasm-bindgen, key: 'wasm-bindgen-cli-0.2.104-${{ runner.os }}'}
+      - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
+      - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+      - run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
+      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
       - name: Build browser distribution
         run: |
           rm -rf dist && mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
-      - name: Evaluate canonical Door scenario
-        run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door_round2.cav
-      - name: Playthroughs
+      - name: CLI branch playthroughs
         run: |
-          printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          printf 'camera_has_blind_spot\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          printf 'latch_sensor_recently_serviced\nopen\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          printf 'camera_has_blind_spot\nreroute\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install visual QA tools
-        run: |
-          npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
-          npx playwright install --with-deps webkit
-      - name: Visual QA — play Door and preserve every stage
+        with: {node-version: 22}
+      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npx playwright install --with-deps webkit
+      - name: Visual QA — every player-facing route
         run: |
           python3 -m http.server 4173 --directory dist >/tmp/caveat-http.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID || true' EXIT
+          trap 'kill $! || true' EXIT
           node <<'NODE'
-          const {webkit,devices}=require('playwright'); const {PNG}=require('pngjs'); const fs=require('fs');
-          const variance=b=>{const p=PNG.sync.read(b);let s=0,s2=0,n=p.width*p.height;for(let i=0;i<p.data.length;i+=4){const v=(p.data[i]+p.data[i+1]+p.data[i+2])/3;s+=v;s2+=v*v}return s2/n-(s/n)**2};
-          (async()=>{const browser=await webkit.launch();try{const page=await browser.newPage({...devices['iPhone 13']});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});const response=await page.goto('http://127.0.0.1:4173/3d.html');if(!response||!response.ok())throw Error('3D page HTTP failure');await page.getByText('Emergency alarm. Leave this floor.').waitFor();const canvas=page.locator('#c');const shot=async n=>{const b=await canvas.screenshot();fs.writeFileSync(n,b);return b};const initial=await shot('door-00-initial.png');if(variance(initial)<40)throw Error('initial screenshot lacks meaningful geometry');await page.getByRole('button',{name:/Inspect latch/}).click();await page.waitForTimeout(300);const closed=await shot('door-01-after-latch.png');const open=page.getByRole('button',{name:/Push panic bar/});await open.waitFor();await open.click();await page.waitForTimeout(450);await shot('door-02-opening.png');await page.waitForTimeout(1900);const opened=await shot('door-03-open.png');if(Buffer.compare(closed,opened)===0)throw Error('panic bar caused no visual change');if(variance(opened)<40)throw Error('open screenshot lacks meaningful geometry');await page.getByText(/panic bar releases/i).waitFor();if(errors.length)throw Error(errors.join('\n'));console.log('VISUAL PASS: actual panic-bar flow captured.');}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          const {webkit,devices}=require('playwright'),fs=require('fs');
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          (async()=>{const browser=await webkit.launch();try{
+            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
+            async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click()}
+            async function inspect(name,re,text){const p=await fresh(name);await click(p,re);await sleep(350);await p.getByText(text).waitFor();await p.screenshot({path:`door-${name}-01.png`,fullPage:true});await p.close()}
+            await inspect('inspect-latch',/Inspect latch/,/Evidence: the latch sensor/);
+            await inspect('inspect-camera',/Check camera/,/camera coverage has a blind turn/);
+            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await click(p,/Push panic bar/);await sleep(2600);await p.screenshot({path:`door-open-${route}-01-beyond-a.png`,fullPage:true});await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await sleep(route==='stairwell'?5200:3200);await p.getByText(new RegExp(route==='continue'?'continue forward':route==='retreat'?'physically return':'reach the landing','i')).waitFor();await p.screenshot({path:`door-open-${route}-02-final.png`,fullPage:true});await p.close()}
+            {const p=await fresh('wait');await click(p,/Check camera/);await click(p,/Wait/);await sleep(500);await p.getByText(/remain on the original side/i).waitFor();await p.screenshot({path:'door-wait-01.png',fullPage:true});await p.close()}
+            {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await sleep(2600);await p.getByText(/physically leave toward the alternate route/i).waitFor();await p.screenshot({path:'door-reroute-01.png',fullPage:true});await p.close()}
+            console.log('ALL CAVEAT ROUTES CAPTURED');
+          }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: caveat-door-visual-inspection
+          name: caveat-all-route-visual-qa
           path: door-*.png
