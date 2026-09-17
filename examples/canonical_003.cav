@@ -1,0 +1,11 @@
+claim release_ready;
+
+caveat edge_case_1 consequence low;
+caveat edge_case_2 consequence low;
+caveat edge_case_3 consequence low;
+
+edge_case_1 qualifies release_ready;
+edge_case_2 qualifies edge_case_1;
+edge_case_3 qualifies edge_case_2;
+
+commit ship_v1 because enough retaining edge_case_1, edge_case_2, edge_case_3;
