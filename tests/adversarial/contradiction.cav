@@ -1,0 +1,6 @@
+claim door_open;
+evidence camera from "camera_7";
+evidence latch from "latch_sensor";
+camera supports door_open;
+latch opposes door_open;
+commit enter because enough retaining camera, latch;
