@@ -11,13 +11,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
       - name: Compile browser WebAssembly target
         run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
-      - name: Install wasm-bindgen CLI
-        run: cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - name: Ensure wasm-bindgen CLI
+        run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
       - name: Generate playable browser site
         run: |
+          rm -rf dist
           mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html dist/index.html
@@ -31,6 +36,3 @@ jobs:
         run: printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
       - name: Playthrough — investigate camera, wait, stairwell
         run: printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/
