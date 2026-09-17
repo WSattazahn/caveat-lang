@@ -21,8 +21,10 @@ choice door_decision options open, wait, reroute retaining door_unsafe, camera_h
 select door_decision open;
 
 evidence smoke_report from "hallway_detector";
-smoke_report opposes corridor_clear;
-reopen open because camera_has_blind_spot;
+when_committed open smoke_report opposes corridor_clear;
+when_committed open reopen open because camera_has_blind_spot;
+when_committed wait smoke_report supports door_unsafe;
+when_committed reroute smoke_report opposes corridor_clear;
 
 claim alternate_route_clear;
 evidence stairwell_report from "stairwell_sensor";
