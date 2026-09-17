@@ -1,4 +1,4 @@
-use caveat_runtime::{EpistemicGraph, NodeKind, Relation};
+use caveat_runtime::{Consequence, EpistemicGraph, NodeKind, Relation};
 
 fn main() {
     let mut g = EpistemicGraph::new();
@@ -6,7 +6,7 @@ fn main() {
     let not_cat = g.add(NodeKind::Claim { proposition: "creature_is_not_cat".into() });
     let photo = g.add(NodeKind::Evidence { description: "photo_1".into(), source: "camera".into() });
     let label = g.add(NodeKind::Evidence { description: "label_1".into(), source: "display_label".into() });
-    let misplaced = g.add(NodeKind::Caveat { description: "label_may_be_misplaced".into() });
+    let misplaced = g.add_caveat("label_may_be_misplaced", Consequence::Material);
 
     g.relate(photo, Relation::Supports, cat);
     g.relate(label, Relation::Supports, not_cat);
