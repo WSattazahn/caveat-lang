@@ -9,7 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+      - name: Compile browser WebAssembly target
+        run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_001.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_002.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_003.cav
