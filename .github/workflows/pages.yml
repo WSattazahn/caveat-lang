@@ -180,7 +180,7 @@ jobs:
                 }
               }
 
-              await page.goto(new URL("graphics.html", base), { waitUntil: "domcontentloaded" });
+              await page.goto(new URL("graphics.html", base).toString(), { waitUntil: "domcontentloaded" });
               await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
               await page.getByText("CAVEAT Graphics", { exact: true }).waitFor();
               await page.locator("#scene").waitFor();
