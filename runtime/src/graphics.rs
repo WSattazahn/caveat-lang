@@ -131,7 +131,8 @@ impl CaveatScene {
         Self {
             title: "CAVEAT Graphics".into(),
             phase: "initial".into(),
-            message: "The scene is provisional. Investigate a caveat to change what can be seen.".into(),
+            message: "The scene is provisional. Investigate a caveat to change what can be seen."
+                .into(),
             nodes: vec![
                 VisualNode::new(
                     "corridor",
@@ -403,7 +404,7 @@ impl CaveatScene {
             .join(",");
 
         format!(
-            "{{"schema":1,"title":{},"phase":{},"message":{},"nodes":[{}],"caveats":[{}],"trail":[{}]}}",
+            "{{\"schema\":1,\"title\":{},\"phase\":{},\"message\":{},\"nodes\":[{}],\"caveats\":[{}],\"trail\":[{}]}}",
             json_string(&self.title),
             json_string(&self.phase),
             json_string(&self.message),
@@ -414,11 +415,15 @@ impl CaveatScene {
     }
 
     fn activate_caveat(&mut self, id: &str, status: VisualStatus, effect: VisualEffect) {
-        if let Some(caveat) = self.caveats.iter_mut().find(|c| c.id == id) {
+        let target = self.caveats.iter_mut().find(|c| c.id == id).map(|caveat| {
             caveat.active = true;
             caveat.status = status;
             caveat.effect = effect;
-            self.set_node(&caveat.target.clone(), status, effect, 100, true);
+            caveat.target.clone()
+        });
+
+        if let Some(target) = target {
+            self.set_node(&target, status, effect, 100, true);
         }
     }
 
@@ -466,7 +471,7 @@ fn json_string(value: &str) -> String {
 
     for character in value.chars() {
         match character {
-            '"' => out.push_str("\\""),
+            '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
@@ -484,7 +489,7 @@ fn json_string(value: &str) -> String {
 
 fn node_json(node: &VisualNode) -> String {
     format!(
-        "{{"id":{},"shape":{},"x":{},"y":{},"width":{},"height":{},"status":{},"effect":{},"opacity":{},"visible":{},"label":{}}}",
+        "{{\"id\":{},\"shape\":{},\"x\":{},\"y\":{},\"width\":{},\"height\":{},\"status\":{},\"effect\":{},\"opacity\":{},\"visible\":{},\"label\":{}}}",
         json_string(&node.id),
         json_string(&node.shape),
         node.x,
@@ -501,7 +506,7 @@ fn node_json(node: &VisualNode) -> String {
 
 fn caveat_json(caveat: &VisualCaveat) -> String {
     format!(
-        "{{"id":{},"target":{},"consequence":{},"status":{},"effect":{},"active":{}}}",
+        "{{\"id\":{},\"target\":{},\"consequence\":{},\"status\":{},\"effect\":{},\"active\":{}}}",
         json_string(&caveat.id),
         json_string(&caveat.target),
         json_string(&caveat.consequence),
@@ -513,7 +518,7 @@ fn caveat_json(caveat: &VisualCaveat) -> String {
 
 fn trail_json(entry: &VisualTrail) -> String {
     format!(
-        "{{"kind":{},"text":{}}}",
+        "{{\"kind\":{},\"text\":{}}}",
         json_string(&entry.kind),
         json_string(&entry.text)
     )
@@ -538,11 +543,7 @@ mod tests {
         let mut session = Session::from_source(SOURCE).expect("scenario parses");
         let mut scene = CaveatScene::door();
 
-        step(
-            &mut session,
-            &mut scene,
-            "camera_has_blind_spot",
-        );
+        step(&mut session, &mut scene, "camera_has_blind_spot");
         assert_eq!(scene.phase, "camera-evidence");
         assert!(scene.caveats.iter().any(|c| c.active));
         assert!(scene.to_json().contains("\"effect\":\"occlude\""));
