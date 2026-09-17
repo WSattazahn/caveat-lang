@@ -1,0 +1,16 @@
+claim creature_is_cat;
+claim creature_is_not_cat;
+
+evidence photo_1 from "camera";
+evidence label_1 from "display_label";
+caveat label_may_be_misplaced consequence material;
+
+photo_1 supports creature_is_cat;
+label_1 supports creature_is_not_cat;
+label_may_be_misplaced qualifies label_1;
+
+commit treat_as_cat because enough retaining creature_is_not_cat, label_may_be_misplaced;
+
+evidence curator_record_7 from "archive";
+curator_record_7 opposes label_1;
+reopen treat_as_cat because label_may_be_misplaced;
