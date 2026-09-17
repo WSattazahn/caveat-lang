@@ -1,10 +1,8 @@
 name: runtime
-
 on:
   push:
     branches: [main]
   pull_request:
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,3 +13,4 @@ jobs:
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_001.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_002.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/canonical_003.cav
+      - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/resource_budget.cav
