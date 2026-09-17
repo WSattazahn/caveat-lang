@@ -16,3 +16,4 @@ jobs:
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/resource_budget.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/inference_contradiction.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/multistep_inference.cav
+      - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door.cav
