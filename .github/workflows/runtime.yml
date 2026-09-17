@@ -10,50 +10,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
-
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
           key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
-
       - name: Check Rust formatting
         run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
-
       - name: Lint Rust — zero warnings
         run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
-
       - name: Test Rust runtime
         run: cargo test --manifest-path runtime/Cargo.toml --all-targets
-
       - name: Compile browser WebAssembly target
         run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
-
       - name: Ensure wasm-bindgen CLI
         run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
-
       - name: Build complete browser distribution
         run: |
-          rm -rf dist
-          mkdir -p dist/pkg
+          rm -rf dist && mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
-          test -s dist/index.html
-          test -s dist/graphics.html
-          test -s dist/3d.html
-          test -s dist/the_door_round2.cav
-          test -s dist/pkg/caveat_runtime.js
-          test -s dist/pkg/caveat_runtime_bg.wasm
-
+          test -s dist/index.html && test -s dist/graphics.html && test -s dist/3d.html
+          test -s dist/the_door_round2.cav && test -s dist/pkg/caveat_runtime.js && test -s dist/pkg/caveat_runtime_bg.wasm
       - name: Evaluate canonical Door scenario
         run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door_round2.cav
-
       - name: Playthrough — investigate latch, open, retreat
         run: printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-
       - name: Playthrough — investigate camera, wait, stairwell
         run: printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
