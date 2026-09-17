@@ -1,0 +1,5 @@
+caveat caveat_a consequence material;
+caveat caveat_b consequence material;
+caveat_a qualifies caveat_b;
+caveat_b qualifies caveat_a;
+commit proceed because enough retaining caveat_a, caveat_b;
