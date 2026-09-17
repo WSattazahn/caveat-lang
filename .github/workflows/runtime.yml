@@ -18,3 +18,5 @@ jobs:
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/multistep_inference.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door.cav
       - run: printf 'wait\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door.cav
+      - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door_round2.cav
+      - run: printf 'open\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
