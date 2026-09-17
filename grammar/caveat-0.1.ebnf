@@ -1,0 +1,22 @@
+program       = { statement } ;
+statement     = claim | evidence | caveat | relation | attention | commit | reopen ;
+
+claim         = "claim" identifier ";" ;
+evidence      = "evidence" identifier "from" string ";" ;
+caveat        = "caveat" identifier "consequence" consequence ";" ;
+relation      = identifier relation_word identifier ";" ;
+attention     = ("examine" | "defer") identifier ";" ;
+commit        = "commit" identifier "because" stop_reason [ "retaining" id_list ] ";" ;
+reopen        = "reopen" identifier "because" identifier ";" ;
+
+relation_word = "supports" | "opposes" | "qualifies" ;
+consequence   = "negligible" | "low" | "material" | "high" | "catastrophic" ;
+stop_reason   = "enough" | "budget" | "deadline" ;
+id_list       = identifier { "," identifier } ;
+identifier    = letter { letter | digit | "_" } ;
+string        = '"' { ? any character except quote ? } '"' ;
+letter        = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" |
+                "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" |
+                "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" |
+                "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
+digit         = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
