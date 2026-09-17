@@ -16,18 +16,21 @@ jobs:
         run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - name: Install wasm-bindgen CLI
         run: cargo install wasm-bindgen-cli --version 0.2.104 --locked
-      - name: Generate browser package
+      - name: Generate playable browser site
         run: |
-          mkdir -p web/pkg
-          wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir web/pkg --target web
-          test -f web/pkg/caveat_runtime.js
-          test -f web/pkg/caveat_runtime_bg.wasm
+          mkdir -p dist/pkg
+          wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
+          cp web/index.html dist/index.html
+          cp web/the_door_round2.cav dist/the_door_round2.cav
+          test -f dist/index.html
+          test -f dist/the_door_round2.cav
+          test -f dist/pkg/caveat_runtime.js
+          test -f dist/pkg/caveat_runtime_bg.wasm
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door_round2.cav
       - name: Playthrough — investigate latch, open, retreat
         run: printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
       - name: Playthrough — investigate camera, wait, stairwell
         run: printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          name: caveat-browser-package
-          path: web/pkg/
+          path: dist/
