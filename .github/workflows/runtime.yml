@@ -16,7 +16,8 @@ jobs:
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/resource_budget.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/inference_contradiction.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- examples/multistep_inference.cav
-      - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door.cav
-      - run: printf 'wait\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door.cav
       - run: cargo run --manifest-path runtime/Cargo.toml --bin caveat -- game/the_door_round2.cav
-      - run: printf 'open\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+      - name: Playthrough — investigate latch, open, retreat
+        run: printf 'latch_sensor_recently_serviced\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+      - name: Playthrough — investigate camera, wait, stairwell
+        run: printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
