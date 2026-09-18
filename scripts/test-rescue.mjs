@@ -34,7 +34,13 @@ async function startServer() {
 }
 
 const read = page => page.evaluate(() => window.__rescue.snapshot());
-const screenshot = (page, name) => page.screenshot({ path: path.join(results, `rescue-${name}.png`), fullPage: true });
+const screenshot = async (page, name) => {
+  const before = await read(page);
+  const result = await page.screenshot({ path: path.join(results, `rescue-${name}.png`), fullPage: true });
+  const after = await read(page);
+  assert.equal(after.values.elapsed, before.values.elapsed, 'Capturing a screenshot must not advance the game between player inputs');
+  return result;
+};
 const fits = page => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 
 async function fresh(browser, options = {}, renderFps = Number(process.env.RENDER_FPS || 10), preparePage) {
@@ -57,6 +63,9 @@ async function fresh(browser, options = {}, renderFps = Number(process.env.RENDE
   const introductoryWords = (await page.locator('body').innerText()).trim().split(/\s+/).length;
   assert(introductoryWords < 110, `Opening asks the player to read ${introductoryWords} words`);
   await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+  // install() starts a running virtual clock. Pause before starting the game so
+  // software-GPU screenshots and input transport cannot add uncontrolled ticks.
+  await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
   if (renderFps > 0) {
     // Keep every real 30 Hz Caveat simulation tick, but avoid rendering thousands
     // of expensive software-GPU frames during the complete-route checks. The
