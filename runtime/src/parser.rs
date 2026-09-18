@@ -30,6 +30,25 @@ pub fn parse(source: &str) -> Result<Program, String> {
                 ["budget", amount] => Statement::Budget {
                     units: number(amount)?,
                 },
+                ["place", name, "kind", kind] => Statement::Place {
+                    name: (*name).into(),
+                    kind: (*kind).into(),
+                },
+                ["entity", name, "kind", kind, "at", at] => Statement::Entity {
+                    name: (*name).into(),
+                    kind: (*kind).into(),
+                    at: (*at).into(),
+                },
+                ["connect", from, "to", to] => Statement::Connect {
+                    from: (*from).into(),
+                    to: (*to).into(),
+                    via: None,
+                },
+                ["connect", from, "to", to, "via", via] => Statement::Connect {
+                    from: (*from).into(),
+                    to: (*to).into(),
+                    via: Some((*via).into()),
+                },
                 ["claim", name] => Statement::Claim {
                     name: (*name).into(),
                 },
