@@ -378,7 +378,7 @@ impl World3D {
                     place: "stair_flight_down".into(),
                     position: Vec3::new(3.65, 1.55, -9.45),
                     heading_degrees: 90.0,
-                    pitch_degrees: 42.0,
+                    pitch_degrees: 22.0,
                 },
             ],
             passages: vec![
