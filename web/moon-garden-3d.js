@@ -70,7 +70,7 @@ sphere('miso_eye_l',[6.27,.94,-4.97],[.045,.055,.035],[.94,.81,.32],{emissive:.3
 sphere('miso_eye_r',[6.52,.94,-4.97],[.045,.055,.035],[.94,.81,.32],{emissive:.35,visible:false});
 
 export const moonGarden3D={
-  schema:'caveat3d/0.1',
+  schema:'caveat3d/0.2',
   source:'./moon_garden.cav',
   place:'Moon Garden · Lantern Court',
   atmosphere:{clear:[.035,.06,.085],fog:[.05,.10,.12]},
@@ -114,23 +114,43 @@ export const moonGarden3D={
     follow_tracks:'The fountain splashes across the stones and erases the cleanest part of the trail.',
     check_greenhouse:'A lantern swings. The moving shape repeats in the glass. Some of what you saw was reflection.'
   },
-  actions:{
-    bell_echo_distorts_direction:{camera:{position:[1.4,3.2,8.1],target:[1.0,2.1,.1]},emphasize:['lantern_1','lantern_core_1'],duration:.9,place:'Moon Garden · Lantern Court'},
-    wet_stones_hide_tracks:{camera:{position:[-1.2,2.3,5.7],target:[-3.2,0,-2.2]},emphasize:['stone_6','pond'],duration:.9,place:'Moon Garden · Pond Path'},
-    greenhouse_glass_mirrors_movement:{camera:{position:[-1.5,3.5,6.1],target:[-6.2,1.4,-4.6]},emphasize:['green_glass_back','green_glass_side'],duration:1.0,place:'Moon Garden · Glasshouse'},
-    follow_bell:{camera:{position:[2.0,2.7,3.6],target:[1.7,.9,-2.7]},emphasize:['bridge_plank_4','lantern_2'],duration:1.25,place:'Moon Garden · Moon Bridge'},
-    follow_tracks:{camera:{position:[-.8,2.5,4.2],target:[-3.3,.1,-3.0]},emphasize:['pond','stone_7'],duration:1.2,place:'Moon Garden · Pond Path'},
-    check_greenhouse:{camera:{position:[-2.2,2.8,2.0],target:[-6.1,1.3,-4.7]},emphasize:['green_glass_back'],duration:1.2,place:'Moon Garden · Glasshouse'},
-    bridge_water_masks_sound:{camera:{position:[2.1,1.8,.5],target:[1.6,.65,-2.8]},emphasize:['bridge_plank_4','pond'],duration:.95,place:'Moon Garden · Moon Bridge'},
-    cushion_may_hold_old_fur:{camera:{position:[3.1,2.15,.2],target:[5.15,.72,-3.7]},emphasize:['tea_cushion'],duration:1.0,place:'Moon Garden · Tea Pavilion'},
-    moths_follow_heat_not_cats:{camera:{position:[3.0,3.0,2.0],target:[5.2,2.0,-3.0]},emphasize:['lantern_3','firefly_16'],duration:1.0,place:'Moon Garden · Lantern Line'},
-    cross_moon_bridge:{camera:{position:[2.4,2.2,-.2],target:[2.0,.5,-3.1]},emphasize:['bridge_plank_4'],duration:1.2,place:'Moon Garden · Moon Bridge'},
-    search_tea_pavilion:{camera:{position:[3.8,2.3,-.1],target:[5.6,.8,-4.8]},emphasize:['tea_cushion','fern_2'],duration:1.25,place:'Moon Garden · Tea Pavilion'},
-    open_glasshouse:{camera:{position:[-2.5,2.3,-.3],target:[-6.2,1.2,-4.7]},emphasize:['greenhouse_floor'],duration:1.2,place:'Moon Garden · Glasshouse'}
+  places:{
+    lantern_courtyard:{label:'Moon Garden · Lantern Court',camera:{position:[0,4.5,13.8],target:[0,1.0,-2.7]},duration:.55},
+    pond_path:{label:'Moon Garden · Pond Path',camera:{position:[-1.2,2.3,5.7],target:[-3.2,0,-2.2]},duration:.62},
+    glasshouse:{label:'Moon Garden · Glasshouse',camera:{position:[-1.5,3.5,6.1],target:[-6.2,1.4,-4.6]},duration:.68},
+    tea_pavilion:{label:'Moon Garden · Tea Pavilion',camera:{position:[3.1,2.15,.2],target:[5.15,.72,-3.7]},duration:.62},
+    moon_bridge:{label:'Moon Garden · Moon Bridge',camera:{position:[2.1,1.8,.5],target:[1.6,.65,-2.8]},duration:.62},
+    fern_nook:{label:'Moon Garden · Fern Nook',camera:{position:[4.3,1.65,-1.7],target:[6.5,.7,-5.45]},duration:.78}
+  },
+  entities:{
+    brass_bell:{objects:['lantern_1','lantern_core_1'],camera:{position:[1.4,3.2,8.1],target:[1.0,2.1,.1]},duration:.58},
+    mossy_stones:{objects:['stone_6','pond'],camera:{position:[-1.2,2.3,5.7],target:[-3.2,0,-2.2]},duration:.58},
+    glass_door:{objects:['green_glass_back','green_glass_side'],camera:{position:[-2.2,2.8,2.0],target:[-6.1,1.3,-4.7]},duration:.6},
+    paper_lanterns:{objects:['lantern_3','firefly_16'],camera:{position:[3.0,3.0,2.0],target:[5.2,2.0,-3.0]},duration:.58},
+    bridge_water:{objects:['bridge_plank_4','pond'],camera:{position:[2.1,1.8,.5],target:[1.6,.65,-2.8]},duration:.58},
+    tea_cushion:{objects:['tea_cushion'],camera:{position:[3.1,2.15,.2],target:[5.15,.72,-3.7]},duration:.58},
+    miso:{objects:['miso_body','miso_head','miso_ear_l','miso_ear_r','miso_tail','miso_eye_l','miso_eye_r']}
+  },
+  symbols:{
+    second_chime:{objects:['lantern_1','lantern_core_1']},
+    pressed_moss:{objects:['stone_7','pond']},
+    warm_pawprint:{objects:['green_glass_back','green_glass_side']},
+    owl_wingbeat:{objects:['lantern_2','lantern_core_2']},
+    fountain_splash:{objects:['pond','pond_glow']},
+    reflected_lantern:{objects:['green_glass_back','lantern_4']},
+    tiny_purr:{objects:['fern_2','fern_3'],camera:{position:[4.0,1.8,-1.2],target:[6.5,.55,-5.6]},duration:.62},
+    black_fur:{objects:['tea_cushion']},
+    moths_avoid_fern:{objects:['firefly_15','firefly_16','fern_2']},
+    miso_found:{
+      objects:['miso_body','miso_head','miso_ear_l','miso_ear_r','miso_tail','miso_eye_l','miso_eye_r'],
+      reveal:['miso_body','miso_head','miso_ear_l','miso_ear_r','miso_tail','miso_eye_l','miso_eye_r'],
+      camera:{position:[4.3,1.65,-1.7],target:[6.5,.7,-5.45]},
+      duration:.9
+    }
   },
   endings:{
-    search_tea_pavilion:{title:'There you are.',body:'Behind the tea pavilion, the ferns rustle once. Miso answers with a tiny purr and steps into the lantern light.',badge:'Miso found · uncertainty revised',place:'Moon Garden · Fern Nook',reveal:['miso_body','miso_head','miso_ear_l','miso_ear_r','miso_tail','miso_eye_l','miso_eye_r'],camera:{position:[4.3,1.65,-1.7],target:[6.5,.7,-5.45]},duration:1.45},
-    cross_moon_bridge:{title:'A detour, then a purr.',body:'The willow bank is empty. From the quieter side of the bridge you finally hear Miso behind the pavilion.',badge:'Miso found · route revised',place:'Moon Garden · Moon Bridge',reveal:['miso_body','miso_head','miso_ear_l','miso_ear_r','miso_tail','miso_eye_l','miso_eye_r'],camera:{position:[2.0,2.0,-2.0],target:[6.4,.7,-5.4]},duration:1.55},
-    open_glasshouse:{title:'Not inside. Right outside.',body:'The greenhouse is warm and empty. When the door closes, Miso appears on the pavilion path behind you.',badge:'Miso found · false lead resolved',place:'Moon Garden · Glasshouse',reveal:['miso_body','miso_head','miso_ear_l','miso_ear_r','miso_tail','miso_eye_l','miso_eye_r'],camera:{position:[-2.2,2.0,-1.0],target:[6.3,.7,-5.2]},duration:1.65}
+    search_tea_pavilion:{title:'There you are.',body:'Behind the tea pavilion, the ferns rustle once. Miso answers with a tiny purr and steps into the lantern light.',badge:'Miso found · uncertainty revised',place:'Moon Garden · Fern Nook'},
+    cross_moon_bridge:{title:'A detour, then a purr.',body:'The willow bank is empty. You circle back through the lantern court, and the route finally converges on a purr behind the pavilion.',badge:'Miso found · route revised',place:'Moon Garden · Fern Nook'},
+    open_glasshouse:{title:'Not inside. Back to the ferns.',body:'The greenhouse is warm and empty. Retracing the route brings you behind the pavilion, where Miso finally steps out of the fern nook.',badge:'Miso found · false lead resolved',place:'Moon Garden · Fern Nook'}
   }
 };
