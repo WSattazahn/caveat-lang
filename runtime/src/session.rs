@@ -224,7 +224,6 @@ fn symbol_name(evaluation: &Evaluation, id: NodeId) -> String {
         .unwrap_or_else(|| id.to_string())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::Session;
@@ -250,7 +249,9 @@ reveal second_clue then second_evidence supports cat_near_pavilion;
     fn feedback_reports_only_discoveries_from_the_current_interaction() {
         let mut session = Session::from_source(SOURCE).expect("session should parse");
 
-        session.apply("first_clue").expect("first clue should apply");
+        session
+            .apply("first_clue")
+            .expect("first clue should apply");
         assert_eq!(session.discoveries().len(), 1);
         assert_eq!(session.discoveries()[0].because, "first_clue");
 
@@ -267,7 +268,9 @@ reveal second_clue then second_evidence supports cat_near_pavilion;
             "go"
         );
 
-        session.apply("second_clue").expect("second clue should apply");
+        session
+            .apply("second_clue")
+            .expect("second clue should apply");
         assert_eq!(session.discoveries().len(), 1);
         assert_eq!(session.discoveries()[0].because, "second_clue");
     }
