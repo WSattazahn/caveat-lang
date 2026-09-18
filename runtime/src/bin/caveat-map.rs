@@ -7,8 +7,8 @@ fn fail(message: impl std::fmt::Display) -> ! {
 }
 
 fn load(path: &str) -> CaveatMap {
-    let source =
-        fs::read_to_string(path).unwrap_or_else(|error| fail(format!("cannot read {path}: {error}")));
+    let source = fs::read_to_string(path)
+        .unwrap_or_else(|error| fail(format!("cannot read {path}: {error}")));
     CaveatMap::from_source(&source).unwrap_or_else(|error| fail(format!("map error: {error}")))
 }
 
