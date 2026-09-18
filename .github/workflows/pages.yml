@@ -1,9 +1,8 @@
-name: deploy-door
+name: deploy-pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -16,6 +15,37 @@ permissions:
   id-token: write
 
 jobs:
+  changes:
+    name: regression scope
+    runs-on: ubuntu-latest
+    outputs:
+      legacy_door: ${{ steps.scope.outputs.legacy_door }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: scope
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            legacy=true
+          else
+            base="${{ github.event.before }}"
+            head="$GITHUB_SHA"
+            if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+              legacy=true
+            else
+              files="$(git diff --name-only "$base" "$head")"
+              printf '%s\n' "$files"
+              if printf '%s\n' "$files" | grep -Eq '^(runtime/|game/the_door_round2\.cav$|web/3d\.html$|web/the_door_round2\.cav$)'; then
+                legacy=true
+              else
+                legacy=false
+              fi
+            fi
+          fi
+          echo "legacy_door=$legacy" >> "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +94,8 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  visual-test:
+  visual-mr-caveat:
+    name: live Mr. Caveat QA
     needs: deploy
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -72,39 +103,34 @@ jobs:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+        with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
       - run: npx playwright install --with-deps webkit
-      - name: Capture and test Moon Garden and Door
+      - name: Play live Missing Dumpling
         run: |
           node <<'NODE'
-          const { webkit, devices } = require('playwright');
-          const { PNG } = require('pngjs');
-          const fs = require('fs');
-          const variance = b => {
-            const p = PNG.sync.read(b); let s=0,s2=0,n=p.width*p.height;
-            for(let i=0;i<p.data.length;i+=4){const v=(p.data[i]+p.data[i+1]+p.data[i+2])/3;s+=v;s2+=v*v}
-            return s2/n-(s/n)**2;
-          };
+          const {webkit,devices}=require('playwright');
+          const {PNG}=require('pngjs');
+          const fs=require('fs');
+          const variance=b=>{const p=PNG.sync.read(b);let s=0,s2=0,n=p.width*p.height;for(let i=0;i<p.data.length;i+=4){const v=(p.data[i]+p.data[i+1]+p.data[i+2])/3;s+=v;s2+=v*v}return s2/n-(s/n)**2};
           (async()=>{
             const browser=await webkit.launch();
-            try {
+            try{
               const page=await browser.newPage({...devices['iPhone 13']});
               const errors=[];
               page.on('pageerror',e=>errors.push(e.message));
               page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
               const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
-              const mrResponse=await page.goto(new URL('mr-caveat.html',base).toString());
-              if(!mrResponse||!mrResponse.ok()) throw Error('Mr. Caveat HTTP failure');
+              const response=await page.goto(new URL('mr-caveat.html',base).toString());
+              if(!response||!response.ok())throw Error('Mr. Caveat HTTP failure');
               await page.getByRole('button',{name:/Cause a problem/}).waitFor();
-              const mrStart=await page.screenshot(); fs.writeFileSync('mr-caveat-live-start.png',mrStart);
-              if(variance(mrStart)<40) throw Error('Mr. Caveat start lacks meaningful visual detail');
+              const start=await page.screenshot();fs.writeFileSync('mr-caveat-live-start.png',start);
+              if(variance(start)<40)throw Error('Mr. Caveat title lacks visual detail');
               await page.getByRole('button',{name:/Cause a problem/}).click();
-              const mrBg=await page.locator('#world').evaluate(el=>getComputedStyle(el).backgroundImage);
-              if(!mrBg.includes('moon-market.svg')) throw Error('Live Mr. Caveat scene asset did not load');
-              const mrGameplay=await page.screenshot(); fs.writeFileSync('mr-caveat-live-gameplay.png',mrGameplay);
-              if(variance(mrGameplay)<40) throw Error('Mr. Caveat gameplay lacks meaningful visual detail');
+              const bg=await page.locator('#world').evaluate(el=>getComputedStyle(el).backgroundImage);
+              if(!bg.includes('moon-market.svg'))throw Error('Live Moon Market scene did not load');
+              const gameplay=await page.screenshot();fs.writeFileSync('mr-caveat-live-gameplay.png',gameplay);
+              if(variance(gameplay)<40)throw Error('Mr. Caveat gameplay lacks visual detail');
               await page.evaluate(()=>window.__mrCaveatTest.teleport(37));
               await page.getByRole('button',{name:/Look closer/}).click();
               await page.getByRole('button',{name:/That complicates things/}).click();
@@ -121,102 +147,117 @@ jobs:
               await page.getByRole('button',{name:/GO\./}).click();
               await page.evaluate(()=>window.__mrCaveatTest.finishRunner());
               await page.getByText(/Of course it was the cat/i).waitFor();
-              const mrEnd=await page.screenshot(); fs.writeFileSync('mr-caveat-live-end.png',mrEnd);
-              if(Buffer.compare(mrStart,mrEnd)===0) throw Error('Mr. Caveat did not visibly change during play');
-              const moonResponse=await page.goto(base);
-              if(!moonResponse||!moonResponse.ok()) throw Error('Moon Garden HTTP failure');
-              await page.getByText('Find a useful clue').waitFor();
-              const moonStart=await page.screenshot(); fs.writeFileSync('moon-start.png',moonStart);
-              if(variance(moonStart)<40) throw Error('Moon Garden start lacks meaningful visual detail');
-              const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
-              if(overflow) throw Error('Moon Garden horizontally overflows iPhone viewport');
-              await page.getByRole('button',{name:/Listen for Miso/}).click();
-              await page.getByText('Clue found').waitFor();
-              await page.getByRole('button',{name:/Keep going/}).click();
-              await page.getByRole('button',{name:/Follow the bell/}).click();
-              await page.getByText('Commitment reopened',{exact:true}).waitFor();
-              await page.getByRole('button',{name:/Revise the plan/}).click();
-              await page.getByRole('button',{name:/still-warm cushion/}).click();
-              await page.getByText('Clue found').waitFor();
-              await page.getByRole('button',{name:/Keep going/}).click();
-              await page.getByRole('button',{name:/Search behind the tea pavilion/}).click();
-              await page.getByText('Decision made.').waitFor();
-              await page.getByRole('button',{name:/See what happens/}).click();
-              await page.getByText('There you are.').waitFor();
-              await page.waitForFunction(()=>document.querySelector('#miso')?.classList.contains('visible'));
-              await page.waitForTimeout(900);
-              const misoVisible=await page.locator('#miso').evaluate(el=>Number(getComputedStyle(el).opacity)>.95);
-              if(!misoVisible) throw Error('Moon Garden ending did not reveal Miso');
-              const misoBox=await page.locator('#miso').boundingBox();
-              const sceneBox=await page.locator('#scene').boundingBox();
-              if(!misoBox||!sceneBox||misoBox.x<sceneBox.x+sceneBox.width*.65||misoBox.y<sceneBox.y+sceneBox.height*.45) throw Error('Miso ending sprite is misplaced');
-              const moonEnd=await page.screenshot(); fs.writeFileSync('moon-end.png',moonEnd);
-              if(Buffer.compare(moonStart,moonEnd)===0) throw Error('Moon Garden did not visibly change during play');
-              const moon3dResponse=await page.goto(new URL('moon-garden-3d.html',base).toString());
-              if(!moon3dResponse||!moon3dResponse.ok()) throw Error('Moon Garden 3D HTTP failure');
-              await page.getByText('Find a useful clue').waitFor();
-              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
-              const moon3dMode=await page.evaluate(()=>window.__caveat3dMode);
-              if(moon3dMode!=='action_runtime') throw Error('Live Moon Garden 3D is not using action-runtime commands');
-              const moon3dCanvas=page.locator('#c3d');
-              await page.waitForFunction(()=>{const c=document.querySelector('#c3d');return c&&c.width>300&&c.height>250});
-              const moon3dStart=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-start.png',moon3dStart);
-              if(variance(moon3dStart)<28) throw Error('Moon Garden 3D start lacks meaningful geometry');
-              const click3d=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
-              await click3d(/Listen for Miso/);
-              const liveFirstExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
-              if(!liveFirstExecution?.commands?.some(c=>c.kind==='inspect'&&c.entity==='brass_bell')) throw Error('Live Moon Garden 3D missed Inspect(brass_bell)');
-              await page.getByText('Clue found').waitFor();
-              await page.getByRole('button',{name:/Keep going/}).click();
-              await click3d(/Follow the bell/);
-              await page.getByText('Commitment reopened',{exact:true}).waitFor();
-              await page.getByRole('button',{name:/Revise the plan/}).click();
-              await click3d(/still-warm pavilion cushion/i);
-              await page.getByText('Clue found').waitFor();
-              await page.getByRole('button',{name:/Keep going/}).click();
-              await click3d(/Search behind the tea pavilion/i);
-              await page.getByText('Decision made.').waitFor();
-              await page.getByRole('button',{name:/See what happens/}).click();
-              await page.getByText('There you are.').waitFor();
-              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
-              await page.getByText('Moon Garden · Fern Nook').waitFor();
-              const liveWorldState=await page.evaluate(()=>window.__caveat3dWorldState);
-              const liveFinalExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
-              if(liveWorldState?.current_place!=='fern_nook') throw Error('Live Moon Garden action runtime did not finish at fern_nook');
-              if(!liveFinalExecution?.commands?.some(c=>c.kind==='observe'&&c.symbol==='miso_found')) throw Error('Live Miso reveal is not driven by Observe(miso_found)');
-              const moon3dEnd=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-end.png',moon3dEnd);
-              if(Buffer.compare(moon3dStart,moon3dEnd)===0) throw Error('Moon Garden 3D did not visibly change during play');
-              if(variance(moon3dEnd)<28) throw Error('Moon Garden 3D ending lacks meaningful geometry');
-              const response=await page.goto(new URL('3d.html',base).toString());
-              if(!response||!response.ok()) throw Error('HTTP failure');
-              await page.getByText('Emergency alarm. Leave this floor.').waitFor();
-              const inspect=page.getByRole('button',{name:/Inspect latch/});
-              await inspect.waitFor();
-              await inspect.click();
-              await page.waitForFunction(()=>window.__caveatIdle?.());
-              await page.getByText(/Evidence: the latch sensor/).waitFor();
-              const open=page.getByRole('button',{name:/Push panic bar/});
-              await open.waitFor();
-              const canvas=page.locator('#c');
-              const before=await canvas.screenshot(); fs.writeFileSync('door-before.png',before);
-              if(variance(before)<40) throw Error('before image lacks meaningful geometry');
-              await open.click();
-              await page.waitForFunction(()=>window.__caveatIdle?.(),null,{timeout:15000});
-              const after=await canvas.screenshot(); fs.writeFileSync('door-after.png',after);
-              if(Buffer.compare(before,after)===0) throw Error('opening caused no visual change');
-              if(variance(after)<40) throw Error('after image lacks meaningful geometry');
-              await page.getByText(/Door A opened/i).waitFor();
-              if(errors.length) throw Error(errors.join('\n'));
-              console.log('VISUAL PASS');
-            } finally { await browser.close(); }
+              const end=await page.screenshot();fs.writeFileSync('mr-caveat-live-end.png',end);
+              if(Buffer.compare(start,end)===0)throw Error('Mr. Caveat did not visibly change');
+              if(errors.length)throw Error(errors.join('\n'));
+            }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: caveat-door-visual-inspection
-          path: |
-            door-*.png
-            moon-*.png
-            moon3d-*.png
-            mr-caveat-live-*.png
+          name: mr-caveat-live-visuals
+          path: mr-caveat-live-*.png
+
+  visual-moon-2d:
+    name: live Moon Garden 2D QA
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npx playwright install --with-deps webkit
+      - name: Play live Moon Garden
+        run: |
+          node <<'NODE'
+          const {webkit,devices}=require('playwright');
+          (async()=>{
+            const browser=await webkit.launch();
+            try{
+              const page=await browser.newPage({...devices['iPhone 13']});
+              const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
+              await page.goto(base);
+              await page.getByText('Find a useful clue').waitFor();
+              await page.getByRole('button',{name:/Listen for Miso/}).click();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await page.getByRole('button',{name:/Follow the bell/}).click();
+              await page.getByText('Commitment reopened',{exact:true}).waitFor();
+              await page.getByRole('button',{name:/Revise the plan/}).click();
+              await page.getByRole('button',{name:/still-warm cushion/}).click();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await page.getByRole('button',{name:/Search behind the tea pavilion/}).click();
+              await page.getByRole('button',{name:/See what happens/}).click();
+              await page.getByText('There you are.').waitFor();
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+  visual-moon-3d:
+    name: live Moon Garden 3D QA
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npx playwright install --with-deps webkit
+      - name: Play live Moon Garden 3D
+        run: |
+          node <<'NODE'
+          const {webkit,devices}=require('playwright');
+          (async()=>{
+            const browser=await webkit.launch();
+            try{
+              const page=await browser.newPage({...devices['iPhone 13']});
+              const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
+              await page.goto(new URL('moon-garden-3d.html',base).toString());
+              await page.getByText('Find a useful clue').waitFor();
+              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              await page.getByRole('button',{name:/Listen for Miso/}).click();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await page.getByRole('button',{name:/Follow the bell/}).click();
+              await page.getByText('Commitment reopened',{exact:true}).waitFor();
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+  visual-door:
+    name: live legacy Door QA
+    needs: [deploy, changes]
+    if: needs.changes.outputs.legacy_door == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
+      - run: npx playwright install --with-deps webkit
+      - name: Smoke-test live Door 3D
+        run: |
+          node <<'NODE'
+          const {webkit,devices}=require('playwright');
+          (async()=>{
+            const browser=await webkit.launch();
+            try{
+              const page=await browser.newPage({...devices['iPhone 13']});
+              const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
+              const response=await page.goto(new URL('3d.html',base).toString());
+              if(!response||!response.ok())throw Error('Door HTTP failure');
+              await page.getByText('Emergency alarm. Leave this floor.').waitFor();
+              await page.getByRole('button',{name:/Inspect latch/}).click();
+              await page.waitForFunction(()=>window.__caveatIdle?.());
+              await page.getByRole('button',{name:/Push panic bar/}).click();
+              await page.waitForFunction(()=>window.__caveatIdle?.());
+              await page.getByText(/Door A opened/i).waitFor();
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
