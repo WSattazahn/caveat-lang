@@ -61,7 +61,10 @@ pub fn transpile(source: &str) -> Result<String, String> {
             }
 
             let name = function_name(trimmed).ok_or_else(|| {
-                at_line(line_number, "could not determine function name from signature")
+                at_line(
+                    line_number,
+                    "could not determine function name from signature",
+                )
             })?;
             let provisional_return = has_provisional_return(trimmed);
             function = Some(FunctionState {
@@ -98,7 +101,10 @@ pub fn transpile(source: &str) -> Result<String, String> {
     }
 
     if let Some(state) = function {
-        return Err(format!("function {} is missing a closing brace", state.name));
+        return Err(format!(
+            "function {} is missing a closing brace",
+            state.name
+        ));
     }
 
     Ok(output)
@@ -174,8 +180,8 @@ fn rewrite_function_line(
             ));
         }
 
-        let (expression, retained) = parse_commit(trimmed)
-            .ok_or_else(|| at_line(line_number, "malformed commitment"))?;
+        let (expression, retained) =
+            parse_commit(trimmed).ok_or_else(|| at_line(line_number, "malformed commitment"))?;
         require_retained_caveats(state, &retained, line_number)?;
         state.saw_commit = true;
 
@@ -253,7 +259,10 @@ fn require_declared_caveat(
     } else {
         Err(at_line(
             line_number,
-            &format!("caveat {caveat} has not been declared in function {}", state.name),
+            &format!(
+                "caveat {caveat} has not been declared in function {}",
+                state.name
+            ),
         ))
     }
 }
