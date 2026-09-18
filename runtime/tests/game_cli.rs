@@ -1,6 +1,5 @@
 use std::{
     fs,
-    io::Write,
     process::{Command, Output, Stdio},
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -54,23 +53,21 @@ fn run(source: &str, arguments: &[&str], input: &str) -> Output {
         std::process::id(),
         NEXT.fetch_add(1, Ordering::Relaxed)
     ));
+    let input_file = file.with_extension("stdin");
     fs::write(&file, source).unwrap();
-    let mut child = Command::new(env!("CARGO_BIN_EXE_caveat"))
+    // Some modes finish without reading stdin. Prepare input before launching
+    // so an early exit cannot race a parent-side pipe write (BrokenPipe).
+    fs::write(&input_file, input).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_caveat"))
         .args(arguments)
         .arg(&file)
-        .stdin(Stdio::piped())
+        .stdin(Stdio::from(fs::File::open(&input_file).unwrap()))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()
+        .output()
         .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(input.as_bytes())
-        .unwrap();
-    let output = child.wait_with_output().unwrap();
     fs::remove_file(file).unwrap();
+    fs::remove_file(input_file).unwrap();
     output
 }
 
