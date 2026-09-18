@@ -117,6 +117,9 @@ pub enum Statement {
         options: Vec<String>,
         retaining: Vec<String>,
     },
+    Converge {
+        choice: String,
+    },
     Select {
         choice: String,
         option: String,

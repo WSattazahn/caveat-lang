@@ -126,12 +126,16 @@ jobs:
               if(!moon3dResponse||!moon3dResponse.ok()) throw Error('Moon Garden 3D HTTP failure');
               await page.getByText('Find a useful clue').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              const moon3dMode=await page.evaluate(()=>window.__caveat3dMode);
+              if(moon3dMode!=='action_runtime') throw Error('Live Moon Garden 3D is not using action-runtime commands');
               const moon3dCanvas=page.locator('#c3d');
               await page.waitForFunction(()=>{const c=document.querySelector('#c3d');return c&&c.width>300&&c.height>250});
               const moon3dStart=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-start.png',moon3dStart);
               if(variance(moon3dStart)<28) throw Error('Moon Garden 3D start lacks meaningful geometry');
               const click3d=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
               await click3d(/Listen for Miso/);
+              const liveFirstExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
+              if(!liveFirstExecution?.commands?.some(c=>c.kind==='inspect'&&c.entity==='brass_bell')) throw Error('Live Moon Garden 3D missed Inspect(brass_bell)');
               await page.getByText('Clue found').waitFor();
               await page.getByRole('button',{name:/Keep going/}).click();
               await click3d(/Follow the bell/);
@@ -146,6 +150,10 @@ jobs:
               await page.getByText('There you are.').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
               await page.getByText('Moon Garden · Fern Nook').waitFor();
+              const liveWorldState=await page.evaluate(()=>window.__caveat3dWorldState);
+              const liveFinalExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
+              if(liveWorldState?.current_place!=='fern_nook') throw Error('Live Moon Garden action runtime did not finish at fern_nook');
+              if(!liveFinalExecution?.commands?.some(c=>c.kind==='observe'&&c.symbol==='miso_found')) throw Error('Live Miso reveal is not driven by Observe(miso_found)');
               const moon3dEnd=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-end.png',moon3dEnd);
               if(Buffer.compare(moon3dStart,moon3dEnd)===0) throw Error('Moon Garden 3D did not visibly change during play');
               if(variance(moon3dEnd)<28) throw Error('Moon Garden 3D ending lacks meaningful geometry');

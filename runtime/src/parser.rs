@@ -88,6 +88,9 @@ pub fn parse(source: &str) -> Result<Program, String> {
                 ["infer", rule] => Statement::Infer {
                     rule: (*rule).into(),
                 },
+                ["converge", choice] => Statement::Converge {
+                    choice: (*choice).into(),
+                },
                 ["select", choice, option] => Statement::Select {
                     choice: (*choice).into(),
                     option: (*option).into(),

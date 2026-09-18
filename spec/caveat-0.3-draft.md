@@ -152,7 +152,22 @@ The action runtime tracks current logical place and open barriers independently 
 
 The 3D renderer no longer selects behavior by matching action names such as `open`, `retreat`, or `stairwell`. It receives the action execution and maps places/entities to presentation anchors.
 
-## 12. Current migration boundary
+## 12. Explicit action convergence
+
+Distinct player-facing options may intentionally explore different routes and then return to one shared logical place.
+
+Because accidental convergence can hide a world-modeling error, CAVEAT requires that this be declared explicitly:
+
+```
+choice first_move options follow_bell, follow_tracks, check_greenhouse;
+converge first_move;
+```
+
+Without the `converge` statement, two options in one choice that finish at the same destination remain invalid.
+
+The marker does not merge the commitments or erase their retained caveats. It only says that their physical action plans are intentionally allowed to finish at one shared place.
+
+## 13. Current migration boundary
 
 The Door's topology and action consequences now belong to CAVEAT source. The browser still contains scenario-specific geometry and presentation anchors for the canonical demo; moving those templates out of handwritten HTML/Rust is the next presentation phase.
 

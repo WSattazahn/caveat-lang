@@ -72,6 +72,7 @@ pub struct MapChoice {
     pub options: Vec<String>,
     pub retaining: Vec<String>,
     pub selected: Option<String>,
+    pub converging: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -324,7 +325,15 @@ impl CaveatMap {
                     options: options.clone(),
                     retaining: retaining.clone(),
                     selected: None,
+                    converging: false,
                 }),
+                Statement::Converge { choice } => {
+                    let found = choices
+                        .iter_mut()
+                        .find(|candidate| candidate.name == *choice)
+                        .ok_or_else(|| format!("converge references unknown choice {choice}"))?;
+                    found.converging = true;
+                }
                 Statement::Select { choice, option } => {
                     if let Some(found) = choices
                         .iter_mut()
@@ -931,6 +940,9 @@ fn validate_world(
     }
 
     for choice in choices {
+        if choice.converging {
+            continue;
+        }
         let mut destinations = HashSet::new();
         for option in &choice.options {
             let Some(plan) = world
@@ -1185,6 +1197,48 @@ select inbound return;
 "#;
         let map = CaveatMap::from_source(source).expect("open precondition should validate");
         assert_eq!(map.world.action_plans.len(), 2);
+    }
+
+    #[test]
+    fn explicit_convergence_allows_actions_to_return_to_one_place() {
+        let source = r#"
+place hub kind courtyard;
+place left kind garden_path;
+place right kind garden_path;
+connect hub to left;
+connect hub to right;
+start_at hub;
+action search_left from hub to hub steps move left, move hub;
+action search_right from hub to hub steps move right, move hub;
+choice search options search_left, search_right;
+converge search;
+select search search_left;
+"#;
+        let map = CaveatMap::from_source(source).expect("explicit convergence should validate");
+        let choice = map
+            .choices
+            .iter()
+            .find(|choice| choice.name == "search")
+            .expect("choice should exist");
+        assert!(choice.converging);
+    }
+
+    #[test]
+    fn duplicate_action_destinations_still_require_explicit_convergence() {
+        let source = r#"
+place hub kind courtyard;
+place left kind garden_path;
+place right kind garden_path;
+connect hub to left;
+connect hub to right;
+start_at hub;
+action search_left from hub to hub steps move left, move hub;
+action search_right from hub to hub steps move right, move hub;
+choice search options search_left, search_right;
+select search search_left;
+"#;
+        let error = CaveatMap::from_source(source).expect_err("implicit convergence should fail");
+        assert!(error.contains("without explicit convergence"));
     }
 
     #[test]

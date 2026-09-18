@@ -1,4 +1,4 @@
-import init, { WebSession, caveat_map } from './pkg/caveat_runtime.js';
+import init, { WebSession, caveat_map, caveat_simulate } from './pkg/caveat_runtime.js';
 
 const DEG = Math.PI / 180;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -34,7 +34,7 @@ class Renderer3D{
     this.canvas=canvas;this.gl=canvas.getContext('webgl',{antialias:true,alpha:false});if(!this.gl)throw new Error('WebGL unavailable');
     this.manifest=manifest;this.objects=new Map();this.meshes={cube:cubeMesh(),sphere:sphereMesh(),cylinder:cylinderMesh()};
     this.camera={position:[...(manifest.camera?.position||[0,4,14])],target:[...(manifest.camera?.target||[0,1,0])],fov:manifest.camera?.fov||58};
-    this.cameraTween=null;this.userYaw=0;this.userPitch=0;this.drag=null;this.last=performance.now();
+    this.cameraTween=null;this.cameraQueue=[];this.userYaw=0;this.userPitch=0;this.drag=null;this.last=performance.now();
     this.initGL();this.loadObjects(manifest.objects||[]);this.bindPointers();this.draw();requestAnimationFrame(t=>this.frame(t));
   }
   initGL(){
@@ -50,9 +50,11 @@ class Renderer3D{
   loadObjects(list){for(const raw of list)this.objects.set(raw.id,{visible:raw.visible!==false,emissive:raw.emissive||0,opacity:raw.opacity??1,...raw})}
   setVisible(id,v){const o=this.objects.get(id);if(o)o.visible=v}
   setEmphasis(ids=[]){const set=new Set(ids);for(const o of this.objects.values())o._boost=set.has(o.id)?0.42:0}
-  animateCamera(to,duration=1.1){if(!to)return;const pos=to.position||this.camera.position,target=to.target||this.camera.target;this.cameraTween={fromP:[...this.camera.position],toP:[...pos],fromT:[...this.camera.target],toT:[...target],t:0,d:duration}}
+  startNextCamera(){if(this.cameraTween||!this.cameraQueue.length)return;const next=this.cameraQueue.shift(),to=next.camera||next,pos=to.position||this.camera.position,target=to.target||this.camera.target;this.cameraTween={fromP:[...this.camera.position],toP:[...pos],fromT:[...this.camera.target],toT:[...target],t:0,d:next.duration||to.duration||.72}}
+  animateCamera(to,duration=1.1){if(!to)return;this.cameraQueue=[];this.cameraTween=null;this.userYaw=0;this.userPitch=0;this.cameraQueue.push({camera:to,duration});this.startNextCamera()}
+  animateCameraSequence(frames=[]){this.cameraQueue=[];this.cameraTween=null;this.userYaw=0;this.userPitch=0;for(const frame of frames)if(frame?.camera||frame?.position)this.cameraQueue.push(frame.camera?frame:{camera:frame,duration:frame.duration});this.startNextCamera()}
   bindPointers(){this.canvas.addEventListener('pointerdown',e=>{this.drag={x:e.clientX,y:e.clientY};this.canvas.setPointerCapture?.(e.pointerId)});this.canvas.addEventListener('pointermove',e=>{if(!this.drag)return;this.userYaw+=(e.clientX-this.drag.x)*.004;this.userPitch=clamp(this.userPitch+(e.clientY-this.drag.y)*.003,-.35,.35);this.drag={x:e.clientX,y:e.clientY}});this.canvas.addEventListener('pointerup',()=>this.drag=null);this.canvas.addEventListener('pointercancel',()=>this.drag=null)}
-  update(dt){if(this.cameraTween){this.cameraTween.t=Math.min(this.cameraTween.d,this.cameraTween.t+dt);const q=ease(this.cameraTween.t/this.cameraTween.d);this.camera.position=mix3(this.cameraTween.fromP,this.cameraTween.toP,q);this.camera.target=mix3(this.cameraTween.fromT,this.cameraTween.toT,q);if(this.cameraTween.t>=this.cameraTween.d)this.cameraTween=null}}
+  update(dt){if(this.cameraTween){this.cameraTween.t=Math.min(this.cameraTween.d,this.cameraTween.t+dt);const q=ease(this.cameraTween.t/this.cameraTween.d);this.camera.position=mix3(this.cameraTween.fromP,this.cameraTween.toP,q);this.camera.target=mix3(this.cameraTween.fromT,this.cameraTween.toT,q);if(this.cameraTween.t>=this.cameraTween.d){this.cameraTween=null;this.startNextCamera()}}else this.startNextCamera()}
   frame(now){const dt=Math.min(.05,(now-this.last)/1000);this.last=now;this.update(dt);this.draw();requestAnimationFrame(t=>this.frame(t))}
   draw(){const gl=this.gl,d=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.floor(this.canvas.clientWidth*d)),h=Math.max(1,Math.floor(this.canvas.clientHeight*d));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h}gl.viewport(0,0,w,h);const clear=this.manifest.atmosphere?.clear||[.035,.055,.075];gl.clearColor(clear[0],clear[1],clear[2],1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);
     let eye=[...this.camera.position],target=[...this.camera.target];if(this.userYaw||this.userPitch){const v=vsub(eye,target),r=Math.hypot(v[0],v[2]),ang=Math.atan2(v[0],v[2])+this.userYaw;eye=[target[0]+Math.sin(ang)*r,target[1]+v[1]+this.userPitch*r,target[2]+Math.cos(ang)*r]}
@@ -60,7 +62,7 @@ class Renderer3D{
     const opaque=[],trans=[];for(const o of this.objects.values())if(o.visible)(o.opacity??1)<.999?trans.push(o):opaque.push(o);for(const o of opaque)this.drawObject(o);if(trans.length){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);for(const o of trans)this.drawObject(o);gl.depthMask(true);gl.disable(gl.BLEND)}
   }
   drawObject(o){const gl=this.gl,m=this.meshes[o.primitive||'cube']||this.meshes.cube;gl.bindBuffer(gl.ARRAY_BUFFER,m.pb);gl.enableVertexAttribArray(this.loc.pos);gl.vertexAttribPointer(this.loc.pos,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,m.nb);gl.enableVertexAttribArray(this.loc.normal);gl.vertexAttribPointer(this.loc.normal,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);gl.uniformMatrix4fv(this.loc.model,false,transformMatrix(o));gl.uniform3fv(this.loc.color,o.color||[.7,.7,.7]);gl.uniform1f(this.loc.em,(o.emissive||0)+(o._boost||0));gl.uniform1f(this.loc.op,o.opacity??1);gl.drawElements(gl.TRIANGLES,m.i.length,gl.UNSIGNED_SHORT,0)}
-  get idle(){return !this.cameraTween}
+  get idle(){return !this.cameraTween&&this.cameraQueue.length===0}
 }
 
 export async function bootCaveat3D(manifest, root=document){
@@ -73,19 +75,58 @@ export async function bootCaveat3D(manifest, root=document){
   const response=await fetch(manifest.source);if(!response.ok)throw new Error(`scenario HTTP ${response.status}`);const source=await response.text();
   const rawMap=JSON.parse(caveat_map(source));if(rawMap.kind==='error')throw new Error(rawMap.message);const map=rawMap;
   const displays=new Map();for(const s of map.symbols||[])if(s.display)displays.set(s.name,s.display);for(const a of map.actions||[])if(a.display)displays.set(a.id,a.display);
-  let session=new WebSession(source),history=[],lastChoice=null;
-  const renderer=new Renderer3D(canvas,manifest);window.__caveat3dIdle=()=>renderer.idle;
+  let session=new WebSession(source),history=[],lastChoice=null,worldActions=[];
+  const renderer=new Renderer3D(canvas,manifest);
+  window.__caveat3dIdle=()=>renderer.idle;
+  window.__caveat3dMode='action_runtime';
+  window.__caveat3dLastExecution=null;
+  window.__caveat3dWorldState=null;
   const pretty=id=>displays.get(id)||String(id).replaceAll('_',' ').replace(/\b\w/g,x=>x.toUpperCase());
   const caveatText=id=>manifest.caveats?.[id]||'This evidence is useful, but it is not absolute.';
+  const objectIds=binding=>binding?.objects||[];
+  function applyBinding(binding,frames,emphasis){
+    if(!binding)return;
+    for(const id of objectIds(binding))emphasis.add(id);
+    for(const id of binding.reveal||[])renderer.setVisible(id,true);
+    for(const id of binding.hide||[])renderer.setVisible(id,false);
+    if(binding.camera)frames.push({camera:binding.camera,duration:binding.duration||.72});
+  }
+  function applyExecution(execution,state){
+    const frames=[],emphasis=new Set();
+    for(const command of execution?.commands||[]){
+      if(command.kind==='move'){
+        const binding=manifest.places?.[command.to];
+        applyBinding(binding,frames,emphasis);
+      }else if(['inspect','operate','open'].includes(command.kind)){
+        applyBinding(manifest.entities?.[command.entity],frames,emphasis);
+      }else if(command.kind==='observe'){
+        applyBinding(manifest.symbols?.[command.symbol],frames,emphasis);
+      }else if(command.kind==='stay'){
+        applyBinding(manifest.places?.[command.place],frames,emphasis);
+      }
+    }
+    renderer.setEmphasis([...emphasis]);
+    renderer.animateCameraSequence(frames);
+    const finalPlace=state?.current_place||execution?.to;
+    const place=manifest.places?.[finalPlace];
+    if(placeEl&&finalPlace)placeEl.textContent=place?.label||pretty(finalPlace);
+  }
+  function previewWorldAction(id){
+    const actions=[...worldActions,id];
+    const result=JSON.parse(caveat_simulate(source,actions.join(',')));
+    if(result.kind==='error')throw new Error(result.message);
+    const execution=result.executions?.[result.executions.length-1];
+    if(!execution)throw new Error(`CAVEAT action runtime produced no execution for ${id}`);
+    return{actions,result,execution};
+  }
   function log(kind,text){history.push({kind,text});root.querySelector('#trail3d').innerHTML=history.map((x,i)=>`<div class="trail-row"><span>${i+1}</span><div><b>${safe(x.kind)}</b> ${safe(x.text)}</div></div>`).join('')}
-  function applyPresentation(id){const p=manifest.actions?.[id];if(!p)return;renderer.setEmphasis(p.emphasize||[]);if(p.camera)renderer.animateCamera(p.camera,p.duration||1.1);for(const x of p.reveal||[])renderer.setVisible(x,true);for(const x of p.hide||[])renderer.setVisible(x,false);if(placeEl&&p.place)placeEl.textContent=p.place}
   function copyFor(name){return manifest.interactions?.[name]||{eyebrow:'CAVEAT',title:'Choose what to do next',body:'The world is waiting.'}}
   function render(){let p;try{p=JSON.parse(session.pending())}catch(e){return fail(e)}if(p.kind==='error')return fail(p.message);if(p.kind==='complete')return ending();const copy=copyFor(p.name),investigate=p.kind==='investigate';statusEl.textContent=`CAVEAT · attention ${p.budget}`;const buttons=(p.options||[]).map(id=>`<button class="choice3d" type="button" data-id="${safe(id)}"><b>${safe(pretty(id))}</b><small>${safe(manifest.hints?.[id]||'')}</small></button>`).join('');gameEl.innerHTML=`<div class="eyebrow">${safe(copy.eyebrow||(investigate?'Investigation':'Decision'))}</div><h1>${safe(copy.title)}</h1><p>${safe(copy.body||'')}</p><div class="meta"><span>Attention ${p.budget}</span><span>${investigate?`Investigate · cost ${p.cost}`:'Commit under uncertainty'}</span></div><div class="choices3d">${buttons}</div>`;gameEl.querySelectorAll('.choice3d').forEach(b=>b.addEventListener('click',()=>apply(b.dataset.id,p.kind)))}
-  function apply(id,kind){gameEl.querySelectorAll('button').forEach(b=>b.disabled=true);try{session.apply(id);applyPresentation(id);log(kind==='investigate'?'Investigated':'Committed',pretty(id));if(kind==='choice')lastChoice=id;const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());if(discoveries.length)return discovery(id,discoveries);if(commitment)return commitmentView(id,commitment);render()}catch(e){fail(e)}}
+  function apply(id,kind){gameEl.querySelectorAll('button').forEach(b=>b.disabled=true);try{const world=previewWorldAction(id);session.apply(id);worldActions=world.actions;window.__caveat3dLastExecution=world.execution;window.__caveat3dWorldState=world.result.state;applyExecution(world.execution,world.result.state);log(kind==='investigate'?'Investigated':'Committed',pretty(id));if(kind==='choice')lastChoice=id;const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());if(discoveries.length)return discovery(id,discoveries);if(commitment)return commitmentView(id,commitment);render()}catch(e){fail(e)}}
   function discovery(id,discoveries){const first=pretty(discoveries[0].evidence);const rows=discoveries.map(d=>`<div class="finding"><b>${d.relation==='opposes'?'Weakens':'Supports'}</b> ${safe(pretty(d.target))}</div>`).join('');gameEl.innerHTML=`<div class="eyebrow">Clue found</div><h1>${safe(first)}</h1><p>${safe(manifest.discoveryText?.[id]||first)}</p><div class="findings">${rows}</div><div class="caveat"><b>Caveat examined</b>${safe(caveatText(id))}</div><button class="primary" type="button" id="continue3d">Keep going</button>`;gameEl.querySelector('#continue3d').addEventListener('click',render);statusEl.textContent='CAVEAT · evidence updated'}
   function commitmentView(id,c){const reopened=(c.reopened_by||[]).length>0,cause=reopened?c.reopened_by[0]:null;gameEl.innerHTML=`<div class="eyebrow">${reopened?'Commitment reopened':'Commitment recorded'}</div><h1>${reopened?'That changes things.':'Decision made.'}</h1><p>${safe(manifest.commitmentText?.[id]||(reopened?'New evidence makes the earlier move worth revisiting.':'The decision is recorded without pretending uncertainty disappeared.'))}</p><div class="caveat"><b>${reopened?'Why it reopened':'Uncertainty retained'}</b>${safe(cause?caveatText(cause):`${(c.retained||[]).length} caveat(s) remain attached to this commitment.`)}</div><button class="primary" type="button" id="continue3d">${reopened?'Revise the plan':'See what happens'}</button>`;gameEl.querySelector('#continue3d').addEventListener('click',render);log(reopened?'Reopened':'Retained',reopened?pretty(cause):`${(c.retained||[]).length} caveat(s)`);statusEl.textContent=reopened?'CAVEAT · reopened':'CAVEAT · commitment held'}
-  function ending(){const end=manifest.endings?.[lastChoice]||manifest.ending||{title:'Complete',body:'The route is complete.'};if(end.presentation)applyPresentation(end.presentation);for(const x of end.reveal||[])renderer.setVisible(x,true);if(end.camera)renderer.animateCamera(end.camera,end.duration||1.3);if(placeEl&&end.place)placeEl.textContent=end.place;statusEl.textContent='CAVEAT · complete';gameEl.innerHTML=`<div class="eyebrow">Story complete</div><h1>${safe(end.title)}</h1><p>${safe(end.body)}</p><div class="ending-chip">${safe(end.badge||'uncertainty preserved, then revised')}</div><button class="primary" type="button" id="again3d">Play again</button>`;gameEl.querySelector('#again3d').addEventListener('click',reset);log('Resolved',end.log||'The story reached an ending while preserving the decision trail.')}
-  function reset(){session=new WebSession(source);history=[];lastChoice=null;for(const o of manifest.objects||[])renderer.setVisible(o.id,o.visible!==false);renderer.camera.position=[...(manifest.camera?.position||[0,4,14])];renderer.camera.target=[...(manifest.camera?.target||[0,1,0])];renderer.userYaw=0;renderer.userPitch=0;renderer.setEmphasis([]);if(placeEl)placeEl.textContent=manifest.place||'';root.querySelector('#trail3d').innerHTML='<div class="trail-row"><span>0</span><div><b>Story loaded.</b> No decisions yet.</div></div>';render()}
+  function ending(){const end=manifest.endings?.[lastChoice]||manifest.ending||{title:'Complete',body:'The route is complete.'};for(const x of end.reveal||[])renderer.setVisible(x,true);if(end.camera)renderer.animateCamera(end.camera,end.duration||1.3);if(placeEl&&end.place)placeEl.textContent=end.place;statusEl.textContent='CAVEAT · complete';gameEl.innerHTML=`<div class="eyebrow">Story complete</div><h1>${safe(end.title)}</h1><p>${safe(end.body)}</p><div class="ending-chip">${safe(end.badge||'uncertainty preserved, then revised')}</div><button class="primary" type="button" id="again3d">Play again</button>`;gameEl.querySelector('#again3d').addEventListener('click',reset);log('Resolved',end.log||'The story reached an ending while preserving the decision trail.')}
+  function reset(){session=new WebSession(source);history=[];lastChoice=null;worldActions=[];window.__caveat3dLastExecution=null;window.__caveat3dWorldState=null;for(const o of manifest.objects||[])renderer.setVisible(o.id,o.visible!==false);renderer.camera.position=[...(manifest.camera?.position||[0,4,14])];renderer.camera.target=[...(manifest.camera?.target||[0,1,0])];renderer.cameraQueue=[];renderer.cameraTween=null;renderer.userYaw=0;renderer.userPitch=0;renderer.setEmphasis([]);if(placeEl)placeEl.textContent=manifest.place||'';root.querySelector('#trail3d').innerHTML='<div class="trail-row"><span>0</span><div><b>Story loaded.</b> No decisions yet.</div></div>';render()}
   function fail(e){statusEl.textContent='CAVEAT · error';gameEl.innerHTML=`<div class="error"><b>The 3D story could not continue.</b><br>${safe(e?.message||e)}</div>`}
   if(placeEl)placeEl.textContent=manifest.place||'';render();return{renderer,map,session};
 }

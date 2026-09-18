@@ -30,6 +30,7 @@ jobs:
           printf 'latch_sensor_recently_serviced\nopen\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/moon_garden.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
           printf 'bell_echo_distorts_direction\nfollow_bell\ncushion_may_hold_old_fur\nsearch_tea_pavilion\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/moon_garden.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot wait
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot reroute
@@ -107,6 +108,8 @@ jobs:
               await page.goto('http://127.0.0.1:4175/moon-garden-3d.html');
               await page.getByText('Find a useful clue').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              const mode=await page.evaluate(()=>window.__caveat3dMode);
+              if(mode!=='action_runtime')throw Error('Moon Garden 3D is not using normalized action-runtime execution');
               const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
               if(overflow)throw Error('Moon Garden 3D has horizontal overflow on iPhone');
               const canvas=page.locator('#c3d');
@@ -118,6 +121,9 @@ jobs:
               const click=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
 
               await click(/Listen for Miso/);
+              const firstExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
+              if(!firstExecution?.commands?.some(c=>c.kind==='inspect'&&c.entity==='brass_bell'))throw Error('3D renderer did not consume Inspect(brass_bell)');
+              if(!firstExecution?.commands?.some(c=>c.kind==='observe'&&c.symbol==='second_chime'))throw Error('3D renderer did not consume Observe(second_chime)');
               await page.getByText('Clue found').waitFor();
               await page.getByRole('button',{name:/Keep going/}).click();
 
@@ -135,6 +141,10 @@ jobs:
               await page.getByText('There you are.').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
               await page.getByText('Moon Garden · Fern Nook').waitFor();
+              const worldState=await page.evaluate(()=>window.__caveat3dWorldState);
+              const finalExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
+              if(worldState?.current_place!=='fern_nook')throw Error('Action runtime did not finish Moon Garden at fern_nook');
+              if(!finalExecution?.commands?.some(c=>c.kind==='observe'&&c.symbol==='miso_found'))throw Error('Ending reveal is not driven by Observe(miso_found)');
               const ending=await canvas.screenshot();fs.writeFileSync('moon-garden-3d-01-ending.png',ending);
               if(Buffer.compare(start,ending)===0)throw Error('Moon Garden 3D canvas did not visibly change');
               if(errors.length)throw Error(errors.join('\n'));
