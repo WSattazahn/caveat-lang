@@ -1200,6 +1200,48 @@ select inbound return;
     }
 
     #[test]
+    fn explicit_convergence_allows_actions_to_return_to_one_place() {
+        let source = r#"
+place hub kind courtyard;
+place left kind garden_path;
+place right kind garden_path;
+connect hub to left;
+connect hub to right;
+start_at hub;
+action search_left from hub to hub steps move left, move hub;
+action search_right from hub to hub steps move right, move hub;
+choice search options search_left, search_right;
+converge search;
+select search search_left;
+"#;
+        let map = CaveatMap::from_source(source).expect("explicit convergence should validate");
+        let choice = map
+            .choices
+            .iter()
+            .find(|choice| choice.name == "search")
+            .expect("choice should exist");
+        assert!(choice.converging);
+    }
+
+    #[test]
+    fn duplicate_action_destinations_still_require_explicit_convergence() {
+        let source = r#"
+place hub kind courtyard;
+place left kind garden_path;
+place right kind garden_path;
+connect hub to left;
+connect hub to right;
+start_at hub;
+action search_left from hub to hub steps move left, move hub;
+action search_right from hub to hub steps move right, move hub;
+choice search options search_left, search_right;
+select search search_left;
+"#;
+        let error = CaveatMap::from_source(source).expect_err("implicit convergence should fail");
+        assert!(error.contains("without explicit convergence"));
+    }
+
+    #[test]
     fn trace_follows_relations_and_rules() {
         let map = CaveatMap::from_source(SOURCE).expect("map should build");
         let trace = map.trace("camera_gap");
