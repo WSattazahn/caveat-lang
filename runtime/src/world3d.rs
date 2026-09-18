@@ -395,115 +395,156 @@ impl World3D {
             state,
         });
     }
-    pub fn apply_action(&mut self, action: &str, reopened: bool) {
-        match action {
-            "latch_sensor_recently_serviced" => {
-                self.set_state("latch", EpistemicVisualState::Evidence)
+    pub fn apply_execution(
+        &mut self,
+        execution: &ActionExecution,
+        reopened: bool,
+    ) -> Result<(), String> {
+        let mut opened = Vec::new();
+
+        for command in &execution.commands {
+            match command {
+                WorldCommand::Inspect { entity } => {
+                    self.set_state(entity, EpistemicVisualState::Evidence);
+                }
+                WorldCommand::Operate { .. } | WorldCommand::Observe { .. } => {}
+                WorldCommand::Open { entity } => {
+                    let hinge = format!("{entity}_hinge");
+                    let target = if self.objects.iter().any(|object| object.id == hinge) {
+                        hinge
+                    } else {
+                        entity.clone()
+                    };
+                    self.events.push(WorldEvent3D::RotateY {
+                        object: target,
+                        degrees: -92.0,
+                        duration: 0.9,
+                    });
+                    self.set_state(entity, EpistemicVisualState::Retained);
+                    opened.push(entity.clone());
+                }
+                WorldCommand::Move { to, via, .. } => {
+                    self.enqueue_move(to, via.as_deref())?;
+                }
+                WorldCommand::Stay { .. } => {}
             }
-            "camera_has_blind_spot" => {
-                self.set_state("security_camera", EpistemicVisualState::Evidence)
-            }
-            "open" => {
-                self.events.push(WorldEvent3D::RotateY {
-                    object: "door_hinge".into(),
-                    degrees: -92.0,
-                    duration: 1.0,
-                });
-                self.set_state("door", EpistemicVisualState::Retained);
-                self.events.push(WorldEvent3D::MovePath {
-                    object: "player".into(),
-                    points: vec![
-                        Vec3::new(0.0, 1.7, 1.2),
-                        Vec3::new(0.0, 1.7, -4.6),
-                        Vec3::new(0.0, 1.7, -5.5),
-                    ],
-                    duration: 2.2,
-                });
-            }
-            "wait" => {
-                self.set_state("door", EpistemicVisualState::Retained);
-            }
-            "reroute" => {
-                self.events.push(WorldEvent3D::LookYaw {
-                    object: "player".into(),
-                    degrees: 180.0,
-                    duration: 0.55,
-                });
-                self.events.push(WorldEvent3D::MovePath {
-                    object: "player".into(),
-                    points: vec![Vec3::new(0.0, 1.7, 5.8), Vec3::new(-2.2, 1.7, 7.0)],
-                    duration: 1.8,
-                });
-            }
-            "continue" => {
-                self.events.push(WorldEvent3D::MovePath {
-                    object: "player".into(),
-                    points: vec![Vec3::new(0.0, 1.7, -7.2), Vec3::new(0.0, 1.7, -11.8)],
-                    duration: 2.0,
-                });
-                self.set_state("door", EpistemicVisualState::Committed);
-            }
-            "retreat" => {
-                self.events.push(WorldEvent3D::LookYaw {
-                    object: "player".into(),
-                    degrees: 180.0,
-                    duration: 0.55,
-                });
-                self.events.push(WorldEvent3D::MovePath {
-                    object: "player".into(),
-                    points: vec![
-                        Vec3::new(0.0, 1.7, -4.8),
-                        Vec3::new(0.0, 1.7, -2.6),
-                        Vec3::new(0.0, 1.7, 3.5),
-                    ],
-                    duration: 2.4,
-                });
-                self.set_state("door", EpistemicVisualState::Committed);
-            }
-            "stairwell" => {
-                self.events.push(WorldEvent3D::LookYaw {
-                    object: "player".into(),
-                    degrees: -90.0,
-                    duration: 0.55,
-                });
-                self.events.push(WorldEvent3D::MovePath {
-                    object: "player".into(),
-                    points: vec![Vec3::new(0.0, 1.7, -8.8), Vec3::new(1.6, 1.7, -8.8)],
-                    duration: 1.5,
-                });
-                self.events.push(WorldEvent3D::RotateY {
-                    object: "stair_door_hinge".into(),
-                    degrees: -92.0,
-                    duration: 0.9,
-                });
-                self.events.push(WorldEvent3D::MovePath {
-                    object: "player".into(),
-                    points: vec![
-                        Vec3::new(2.8, 1.7, -8.8),
-                        Vec3::new(4.2, 1.7, -8.8),
-                        Vec3::new(5.0, 0.9, -9.8),
-                    ],
-                    duration: 2.4,
-                });
-                self.set_state("stairwell", EpistemicVisualState::Committed);
-            }
-            _ => {}
         }
+
+        let final_state = if reopened {
+            EpistemicVisualState::Reopened
+        } else {
+            EpistemicVisualState::Committed
+        };
+        for entity in opened {
+            self.set_state(&entity, final_state);
+        }
+
         if reopened {
-            self.set_state("door", EpistemicVisualState::Reopened);
-            if let Some(o) = self.objects.iter_mut().find(|o| o.id == "reopened_marker") {
-                o.visible = true
+            if let Some(object) = self
+                .objects
+                .iter_mut()
+                .find(|object| object.id == "reopened_marker")
+            {
+                object.visible = true;
             }
             self.events.push(WorldEvent3D::SetVisible {
                 object: "reopened_marker".into(),
                 visible: true,
             });
         }
+
+        Ok(())
     }
+
+    fn enqueue_move(&mut self, place: &str, via: Option<&str>) -> Result<(), String> {
+        let destination = self.anchor(place)?;
+        let origin = self.camera.transform.position;
+        let facing_target = via
+            .and_then(|entity| self.passage_anchor(entity))
+            .unwrap_or(destination);
+        self.face_toward(facing_target);
+
+        let mut points = Vec::new();
+        if let Some(entity) = via {
+            if let Some(passage) = self.passage_anchor(entity) {
+                points.push(passage);
+            }
+        }
+        points.push(destination);
+
+        let mut distance = 0.0;
+        let mut previous = origin;
+        for point in &points {
+            distance += vec3_distance(previous, *point);
+            previous = *point;
+        }
+        let duration = (distance / 3.0).clamp(0.45, 2.8);
+
+        self.events.push(WorldEvent3D::MovePath {
+            object: "player".into(),
+            points,
+            duration,
+        });
+        self.camera.transform.position = destination;
+        Ok(())
+    }
+
+    fn face_toward(&mut self, target: Vec3) {
+        let origin = self.camera.transform.position;
+        let dx = target.x - origin.x;
+        let dz = target.z - origin.z;
+        if dx.abs() < 0.001 && dz.abs() < 0.001 {
+            return;
+        }
+
+        let desired = dx.atan2(-dz) * 180.0 / PI;
+        let delta = normalize_degrees(desired - self.heading_degrees);
+        if delta.abs() >= 1.0 {
+            self.events.push(WorldEvent3D::LookYaw {
+                object: "player".into(),
+                degrees: delta,
+                duration: 0.45,
+            });
+        }
+        self.heading_degrees = desired;
+    }
+
+    fn anchor(&self, place: &str) -> Result<Vec3, String> {
+        self.anchors
+            .iter()
+            .find(|anchor| anchor.place == place)
+            .map(|anchor| anchor.position)
+            .ok_or_else(|| format!("3D presentation has no anchor for place {place}"))
+    }
+
+    fn passage_anchor(&self, entity: &str) -> Option<Vec3> {
+        self.passages
+            .iter()
+            .find(|anchor| anchor.entity == entity)
+            .map(|anchor| anchor.position)
+    }
+
     pub fn to_json(&self) -> String {
         format!("{{\"schema\":4,\"id\":{},\"camera\":{},\"objects\":[{}],\"lights\":[{}],\"events\":[{}]}}",json_string(&self.id),camera_json(&self.camera),self.objects.iter().map(object_json).collect::<Vec<_>>().join(","),self.lights.iter().map(light_json).collect::<Vec<_>>().join(","),self.events.iter().map(event_json).collect::<Vec<_>>().join(","))
     }
 }
+fn vec3_distance(a: Vec3, b: Vec3) -> f32 {
+    let dx = b.x - a.x;
+    let dy = b.y - a.y;
+    let dz = b.z - a.z;
+    (dx * dx + dy * dy + dz * dz).sqrt()
+}
+
+fn normalize_degrees(mut degrees: f32) -> f32 {
+    while degrees > 180.0 {
+        degrees -= 360.0;
+    }
+    while degrees < -180.0 {
+        degrees += 360.0;
+    }
+    degrees
+}
+
 fn vec3_json(v: Vec3) -> String {
     format!("[{:?},{:?},{:?}]", v.x, v.y, v.z)
 }
