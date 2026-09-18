@@ -53,35 +53,11 @@
 <!-- background roofs -->
 <g opacity=".8"><path d="M760 248l220-95 238 95-34 33H794Z" fill="#243039"/><path d="M1180 315l170-80 210 74-29 33h-325Z" fill="#27303a"/><g fill="#73352c"><rect x="815" y="274" width="340" height="150"/><rect x="1240" y="334" width="290" height="122"/></g></g>
 
-<!-- suspect sauce face -->
-<g transform="translate(560 480)" filter="url(#shadow)">
- <ellipse cx="0" cy="150" rx="75" ry="18" fill="#130d0d" opacity=".5"/>
- <ellipse cx="0" cy="64" rx="62" ry="68" fill="#f4e7ce"/><path d="M-48 21l-4-37 30 26M47 21l4-37-30 26" fill="#f4e7ce"/>
- <circle cx="-22" cy="56" r="8" fill="#2e2522"/><circle cx="21" cy="56" r="8" fill="#2e2522"/><path d="M-7 77q7 8 14 0" fill="none" stroke="#b56b55" stroke-width="5"/>
- <g fill="#e6553d"><circle cx="-30" cy="82" r="9"/><circle cx="-12" cy="92" r="7"/><path d="M6 85q18 5 22 22" stroke="#e6553d" stroke-width="8" fill="none"/></g>
- <ellipse cx="0" cy="135" rx="52" ry="42" fill="#f3e5cd"/>
- <ellipse cx="0" cy="135" rx="42" ry="17" fill="#7d4a2b"/><path d="M-35 130q30-18 70 0" stroke="#d3a23e" stroke-width="8"/>
- <path d="M-48 130l-32-18M48 130l33-18" stroke="#8b5c3d" stroke-width="6"/>
-</g>
-
-<!-- suspect chopsticks -->
-<g transform="translate(785 500)" filter="url(#shadow)">
- <ellipse cx="0" cy="140" rx="68" ry="16" fill="#130d0d" opacity=".5"/>
- <ellipse cx="0" cy="57" rx="58" ry="64" fill="#526071"/><ellipse cx="0" cy="62" rx="40" ry="46" fill="#e5e0d4"/><ellipse cx="0" cy="70" rx="13" ry="8" fill="#e0a34d"/>
- <circle cx="-18" cy="49" r="7" fill="#232129"/><circle cx="19" cy="49" r="7" fill="#232129"/>
- <path d="M-42 15l-12-37 33 23M42 15l12-37-33 23" fill="#526071"/>
- <ellipse cx="0" cy="127" rx="45" ry="36" fill="#48586b"/>
- <path d="M-14 105l-15-58M12 105l18-63" stroke="#b88650" stroke-width="5" stroke-linecap="round"/>
- <ellipse cx="0" cy="-6" rx="31" ry="12" fill="#6d8a57"/><path d="M-24-5q22-24 47 1" fill="#7ca15f"/>
-</g>
-
-<!-- suspect innocent -->
-<g transform="translate(980 505)" filter="url(#shadow)">
- <ellipse cx="0" cy="138" rx="66" ry="16" fill="#130d0d" opacity=".5"/>
- <ellipse cx="0" cy="62" rx="60" ry="66" fill="#f0d4cc"/><path d="M-45 25l-16-48q31 10 38 35M44 25l17-48q-31 10-38 35" fill="#e7bbb7"/>
- <circle cx="-20" cy="57" r="8" fill="#392b2b"/><circle cx="20" cy="57" r="8" fill="#392b2b"/><path d="M-8 78q8 7 16 0" fill="none" stroke="#a15d5b" stroke-width="5"/>
- <ellipse cx="0" cy="131" rx="48" ry="37" fill="#eed1ca"/><path d="M-32 118q28 31 64 0" fill="none" stroke="#d89d97" stroke-width="12"/>
- <path d="M-58 8q23-31 57-26q35-4 59 26" fill="none" stroke="#be6f74" stroke-width="13"/>
+<!-- animated suspects are rendered by mr-caveat.html so the world can react -->
+<g opacity=".42" fill="#c77a44">
+  <ellipse cx="560" cy="645" rx="68" ry="13"/>
+  <ellipse cx="785" cy="646" rx="62" ry="12"/>
+  <ellipse cx="980" cy="646" rx="60" ry="12"/>
 </g>
 
 <!-- foreground market clutter -->
