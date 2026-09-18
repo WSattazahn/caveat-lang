@@ -1,3 +1,5 @@
+use crate::action_runtime::{ActionExecution, WorldCommand};
+use std::f32::consts::PI;
 use std::fmt::Write as _;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -136,12 +138,27 @@ pub enum WorldEvent3D {
     },
 }
 #[derive(Debug, Clone, PartialEq)]
+pub struct PlaceAnchor3D {
+    pub place: String,
+    pub position: Vec3,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PassageAnchor3D {
+    pub entity: String,
+    pub position: Vec3,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct World3D {
     pub id: String,
     pub camera: Camera3D,
     pub objects: Vec<Object3D>,
     pub lights: Vec<Light3D>,
     pub events: Vec<WorldEvent3D>,
+    pub anchors: Vec<PlaceAnchor3D>,
+    pub passages: Vec<PassageAnchor3D>,
+    heading_degrees: f32,
 }
 
 impl World3D {
@@ -240,7 +257,7 @@ impl World3D {
                     EpistemicVisualState::Neutral,
                 ),
                 obj(
-                    "door",
+                    "door_a",
                     Vec3::new(1.1, 0.0, 0.0),
                     Vec3::new(2.2, 2.8, 0.16),
                     Some("door_hinge"),
@@ -249,7 +266,7 @@ impl World3D {
                     EpistemicVisualState::Uncertain,
                 ),
                 obj(
-                    "latch",
+                    "latch_sensor",
                     Vec3::new(2.0, 0.0, 0.13),
                     Vec3::new(0.14, 0.22, 0.12),
                     Some("door_hinge"),
@@ -258,7 +275,7 @@ impl World3D {
                     EpistemicVisualState::Uncertain,
                 ),
                 obj(
-                    "security_camera",
+                    "camera_7",
                     Vec3::new(-2.5, 2.65, -2.5),
                     Vec3::new(0.32, 0.22, 0.5),
                     None,
@@ -276,7 +293,7 @@ impl World3D {
                     EpistemicVisualState::Neutral,
                 ),
                 obj(
-                    "stair_door",
+                    "stair_door_b",
                     Vec3::new(0.0, 0.0, 1.0),
                     Vec3::new(0.16, 2.7, 2.0),
                     Some("stair_door_hinge"),
@@ -318,6 +335,43 @@ impl World3D {
                 },
             ],
             events: vec![],
+            anchors: vec![
+                PlaceAnchor3D {
+                    place: "start_corridor".into(),
+                    position: Vec3::new(0.0, 1.7, 5.0),
+                },
+                PlaceAnchor3D {
+                    place: "cross_corridor".into(),
+                    position: Vec3::new(0.0, 1.7, -5.5),
+                },
+                PlaceAnchor3D {
+                    place: "continuation_corridor".into(),
+                    position: Vec3::new(0.0, 1.7, -11.8),
+                },
+                PlaceAnchor3D {
+                    place: "alternate_route".into(),
+                    position: Vec3::new(-2.2, 1.7, 7.0),
+                },
+                PlaceAnchor3D {
+                    place: "stair_landing".into(),
+                    position: Vec3::new(4.2, 1.7, -8.8),
+                },
+                PlaceAnchor3D {
+                    place: "stair_flight_down".into(),
+                    position: Vec3::new(5.0, 0.9, -9.8),
+                },
+            ],
+            passages: vec![
+                PassageAnchor3D {
+                    entity: "door_a".into(),
+                    position: Vec3::new(0.0, 1.7, -3.9),
+                },
+                PassageAnchor3D {
+                    entity: "stair_door_b".into(),
+                    position: Vec3::new(2.8, 1.7, -8.8),
+                },
+            ],
+            heading_degrees: 0.0,
         };
         if let Some(o) = w.objects.iter_mut().find(|o| o.id == "reopened_marker") {
             o.visible = false
