@@ -103,3 +103,39 @@ fn web_session_stops_offering_impossible_revised_routes_after_wait() {
 
     assert_eq!(session.pending(), "{\"kind\":\"complete\"}");
 }
+
+
+#[test]
+fn web_3d_uses_entity_parent_hinges_and_endpoint_pitch() {
+    let mut session = Web3DSession::new(DOOR).expect("Web3D session should initialize");
+    session
+        .apply("latch_sensor_recently_serviced")
+        .expect("latch inspection should apply");
+    session.apply("open").expect("Door A should open");
+
+    let after_open: serde_json::Value =
+        serde_json::from_str(&session.world()).expect("world JSON should parse");
+    assert!(after_open["events"].as_array().is_some_and(|events| {
+        events.iter().any(|event| {
+            event["kind"] == "rotate_y" && event["object"] == "door_hinge"
+        })
+    }));
+
+    session
+        .apply("stairwell")
+        .expect("stairwell route should execute");
+    let after_stairs: serde_json::Value =
+        serde_json::from_str(&session.world()).expect("world JSON should parse");
+    let events = after_stairs["events"]
+        .as_array()
+        .expect("world events should be an array");
+
+    assert!(events.iter().any(|event| {
+        event["kind"] == "rotate_y" && event["object"] == "stair_door_hinge"
+    }));
+    assert!(events.iter().any(|event| event["kind"] == "look_pitch"));
+    assert_eq!(
+        after_stairs["camera"]["transform"]["position"],
+        serde_json::json!([4.55, 1.05, -9.45])
+    );
+}
