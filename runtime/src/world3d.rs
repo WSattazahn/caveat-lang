@@ -502,6 +502,24 @@ fn light_json(v: &Light3D) -> String {
         v.intensity
     )
 }
+
+fn json_string(value: &str) -> String {
+    let mut output = String::from("\"");
+    for character in value.chars() {
+        match character {
+            '"' => output.push_str("\\\""),
+            '\\' => output.push_str("\\\\"),
+            '\n' => output.push_str("\\n"),
+            c if c.is_control() => {
+                let _ = write!(output, "\\u{:04x}", c as u32);
+            }
+            c => output.push(c),
+        }
+    }
+    output.push('"');
+    output
+}
+
 fn event_json(v: &WorldEvent3D) -> String {
     match v {
         WorldEvent3D::RotateY {
