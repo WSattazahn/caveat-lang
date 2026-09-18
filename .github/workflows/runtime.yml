@@ -64,14 +64,13 @@ jobs:
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
       - run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Build browser distribution
-        run: |
-          rm -rf dist && mkdir -p dist/pkg
-          wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
-          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav web/caveat3d.js web/moon-garden-3d.js web/moon-garden-3d.html web/mr-caveat.html dist/
-          cp game/moon_garden.cav dist/moon_garden.cav
-          cp game/missing_dumpling.cav dist/missing_dumpling.cav
-          cp -R web/assets dist/assets
+        run: npm run assemble
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
@@ -85,6 +84,31 @@ jobs:
           name: browser-dist
           path: dist
           retention-days: 1
+
+  last-beacon:
+    name: The Last Beacon browser QA
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Play desktop and mobile routes
+        run: npm run test:beacon
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: last-beacon-browser-qa
+          path: test-results/
 
   mr-caveat:
     name: Mr. Caveat iPhone QA

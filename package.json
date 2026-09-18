@@ -1,0 +1,23 @@
+{
+  "name": "caveat-lang-games",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Build and verify the CAVEAT language browser games",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "assemble": "node scripts/build-web.mjs --assemble-only",
+    "serve": "node scripts/serve.mjs",
+    "test:beacon": "node scripts/test-beacon.mjs",
+    "package:game": "node scripts/package-standalone.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "playwright": "1.55.0"
+  }
+}

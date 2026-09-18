@@ -1,4 +1,5 @@
 use crate::action_runtime::{simulate, ActionRuntime};
+use crate::game_session::GameSession;
 use crate::graphics::CaveatScene;
 use crate::map::{to_json_pretty, CaveatMap};
 use crate::session::{CommitmentFeedback, Discovery, PendingInteraction, Session};
@@ -150,6 +151,46 @@ pub fn evaluate_summary(source: &str) -> String {
     }
 }
 
+/// Generic game bridge. Unlike the legacy presentation-specific wrappers, it
+/// contains no scene, action-name or renderer behavior.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub struct WebGameSession {
+    inner: GameSession,
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+impl WebGameSession {
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen(constructor))]
+    pub fn new(source: &str) -> Result<WebGameSession, String> {
+        Ok(Self {
+            inner: GameSession::from_source(source)?,
+        })
+    }
+
+    pub fn snapshot(&self) -> String {
+        self.inner
+            .snapshot()
+            .and_then(|snapshot| to_json_pretty(&snapshot))
+            .unwrap_or_else(|error| error_json(&error))
+    }
+
+    pub fn apply(&mut self, selection: &str) -> Result<String, String> {
+        self.inner
+            .apply(selection)
+            .and_then(|snapshot| to_json_pretty(&snapshot))
+    }
+
+    pub fn save(&self) -> String {
+        self.inner.save()
+    }
+
+    pub fn restore(source: &str, save: &str) -> Result<WebGameSession, String> {
+        Ok(Self {
+            inner: GameSession::restore(source, save)?,
+        })
+    }
+}
+
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct WebSession {
     inner: Session,
@@ -175,7 +216,7 @@ impl WebSession {
         commitment_json(self.inner.commitment())
     }
     pub fn summary(&self) -> String {
-        match crate::eval::evaluate(self.inner.program()) {
+        match self.inner.current_evaluation() {
             Ok(evaluation) => {
                 let budget = evaluation
                     .resources

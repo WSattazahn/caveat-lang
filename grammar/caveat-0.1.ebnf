@@ -15,6 +15,11 @@ stop_reason   = "enough" | "budget" | "deadline" ;
 id_list       = identifier { "," identifier } ;
 number        = digit { digit } ;
 identifier    = letter { letter | digit | "_" } ;
-string        = '"' { ? any character except quote ? } '"' ;
+string        = '"' { string_character | escape } '"' ;
+string_character = ? any Unicode character except double quote and backslash ? ;
+escape        = "\" ( '"' | "\" | "n" | "r" | "t" ) ;
+line_comment  = ( "//" | "#" ) { ? any character except newline ? } ;
+(* Outside strings, comments run through the end of the line and count as whitespace.
+   Semicolons inside strings are text. See spec/caveat-text-0.1.md for runtime notes. *)
 letter        = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
 digit         = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
