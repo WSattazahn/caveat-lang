@@ -80,6 +80,8 @@ pub enum Relation {
     InContext,
     Retains,
     Reopens,
+    /// A decision used this evidence as a basis; this does not assert truth.
+    ReliesOn,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Edge {
@@ -188,12 +190,15 @@ impl EpistemicGraph {
                 if !seen.insert(node) {
                     continue;
                 }
-                for next in self
-                    .edges
-                    .iter()
-                    .filter(|edge| edge.from == node && edge.relation == Relation::Supports)
-                    .map(|edge| edge.to)
-                {
+                for next in self.edges.iter().filter_map(|edge| {
+                    if edge.from == node && edge.relation == Relation::Supports {
+                        Some(edge.to)
+                    } else if edge.to == node && edge.relation == Relation::ReliesOn {
+                        Some(edge.from)
+                    } else {
+                        None
+                    }
+                }) {
                     queue.push_back(next);
                 }
             }

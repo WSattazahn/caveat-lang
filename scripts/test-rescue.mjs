@@ -140,6 +140,7 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     let previousHitCount = 0;
     let midCaptured = false;
     let currentCaptured = false;
+    let observedBasis;
     let end;
     for (let step = 0; step < 95; step++) {
       const before = await read(page);
@@ -161,6 +162,13 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
         assert(after.relations.some(edge => edge.from === 'crosscurrent_reading' && edge.relation === 'opposes'));
         assert(after.commitments.some(entry => entry.action === 'trust_forecast' && entry.open));
         assert(after.commitments.some(entry => entry.action === 'counter_steer' && entry.retained.includes('surge_unmeasured')));
+        for (const name of ['observed_foam', 'estimated_peak', 'steering_plan', 'compensation']) {
+          assert(after.qualified_values[name].provenance.evidence.includes('crosscurrent_reading'), `${name} lost the observed sample`);
+          assert(after.qualified_values[name].provenance.caveats.includes('surge_unmeasured'), `${name} lost the current caveat`);
+        }
+        observedBasis = after.commitment_bases.counter_steer;
+        assert(Math.abs(observedBasis.value + 0.585) < 1e-10, 'The committed steering command must come from the source function');
+        assert(after.relations.some(edge => edge.from === 'counter_steer' && edge.relation === 'relies_on' && edge.to === 'crosscurrent_reading'));
         await screenshot(page, `${name}-current-observed`);
         currentCaptured = true;
       }
@@ -171,6 +179,7 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     assert.equal(end.values.rescued, 32);
     assert.equal(end.values.hull, 3, 'The open-water route should be steerable without taking damage');
     assert.equal(end.values.current_seen, 1, 'This route should discover and account for the crosscurrent');
+    assert.deepEqual(end.commitment_bases.counter_steer, observedBasis, 'Continued play rewrote the historical observation-based command');
     assert(end.values.elapsed >= 50 && end.values.elapsed <= 90, `Unexpected run duration ${end.values.elapsed}`);
     assert.equal(await fits(page), true);
     await page.getByRole('button', { name: /^Try again\b/i }).waitFor();
@@ -266,12 +275,12 @@ async function sourceOnlyPresentation(browser) {
   let sourceIntercepted = false;
   const addition = `
 // This variant is delivered as Caveat source; the host JavaScript is untouched.
-bind passengers_label.text = "SOURCE VARIANT CREW";
+bind passengers_label.text = "SOURCE VARIANT CREW" when forecast_drift == 0;
 bind crosscurrent_marker.scale = 1.5;
-bind crosscurrent_marker.ring.color = "#ff00ff";
+bind crosscurrent_marker.ring.color = "#ff00ff" when forecast_drift == 0;
 bind crosscurrent_marker.visible = true;
 cue qa_source_tone sound 523.25 0.07 0.02;
-on start emit qa_source_tone;
+on start when forecast_drift == 0 emit qa_source_tone;
 `;
   const { context, page, errors } = await fresh(browser, {}, 10, async page => {
     await page.route('**/light_the_way.cav', async route => {
@@ -285,6 +294,11 @@ on start emit qa_source_tone;
     assert(sourceIntercepted, 'The test must change the served Caveat source itself');
     const state = await begin(page);
     assert.equal(state.bindings.passengers_label.text, 'SOURCE VARIANT CREW');
+    for (const [target, property] of [['passengers_label', 'text'], ['crosscurrent_marker', 'ring.color']]) {
+      const basis = state.binding_qualifications[target][property];
+      assert(basis.evidence.includes('morning_forecast'), 'The rendered primitive lost its source selection basis');
+      assert(basis.caveats.includes('surge_unmeasured'), 'Presentation stripped an unresolved caveat');
+    }
     assert.equal(await page.locator('[data-caveat="passengers_label"]').innerText(), 'SOURCE VARIANT CREW',
       'The HUD ignored the source-only text binding');
     const rendered = await page.evaluate(() => window.__rescue.presentation());

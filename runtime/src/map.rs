@@ -1203,7 +1203,10 @@ fn conditional_mentions(conditional: &MapConditional, subject: &str) -> bool {
 }
 
 fn relation_name(relation: Relation) -> String {
-    format!("{relation:?}").to_lowercase()
+    match relation {
+        Relation::ReliesOn => "relies_on".into(),
+        _ => format!("{relation:?}").to_lowercase(),
+    }
 }
 
 fn symbol_name(evaluation: &eval::Evaluation, id: crate::NodeId) -> Option<String> {

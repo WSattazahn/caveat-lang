@@ -9,6 +9,7 @@ use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
 use crate::reactive_expr::{self, Expr, FunctionDef, Value, ValueType};
+pub use crate::reactive_expr::{Provenance, Tracked};
 use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -45,6 +46,7 @@ pub enum Effect {
     Commit {
         action: String,
         reason: StopReason,
+        using: Option<Expr>,
         retaining: Vec<String>,
     },
     Reopen {
@@ -186,6 +188,14 @@ pub struct Clock {
     pub step: Number,
 }
 
+pub type QualifiedValue = Tracked<f64>;
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CommitmentBasis {
+    pub value: Option<f64>,
+    pub provenance: Provenance,
+}
+
 #[derive(Debug, Clone)]
 struct StateRange {
     min: f64,
@@ -221,9 +231,17 @@ pub struct ReactiveSnapshot {
     pub sequence: u64,
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
+    pub qualified_values: BTreeMap<String, QualifiedValue>,
+    pub commitment_bases: BTreeMap<String, CommitmentBasis>,
+    pub observation_qualifications: BTreeMap<String, Provenance>,
+    pub examination_qualifications: BTreeMap<String, Provenance>,
+    pub reopening_qualifications: BTreeMap<String, Provenance>,
+    pub predicate_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     pub events: Vec<EventSignature>,
     pub bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    pub binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     pub cues: Vec<Cue>,
+    pub cue_qualifications: Vec<Provenance>,
     pub controls: BTreeMap<String, Control>,
     pub clock: Option<Clock>,
     pub world: MapWorld,
@@ -247,15 +265,22 @@ pub struct ReactiveSession {
     source_id: String,
     sequence: u64,
     last_event: Option<String>,
-    values: BTreeMap<String, f64>,
+    values: BTreeMap<String, QualifiedValue>,
+    commitment_bases: BTreeMap<String, CommitmentBasis>,
+    observation_qualifications: BTreeMap<String, Provenance>,
+    examination_qualifications: BTreeMap<String, Provenance>,
+    reopening_qualifications: BTreeMap<String, Provenance>,
+    predicate_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     ranges: BTreeMap<String, StateRange>,
     constants: BTreeMap<String, f64>,
     events: BTreeMap<String, Vec<Parameter>>,
     rules: Arc<Vec<Rule>>,
     binding_rules: Arc<Vec<Binding>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
+    cue_qualifications: Vec<Provenance>,
     controls: BTreeMap<String, Control>,
     clock: Option<Clock>,
     graph: EpistemicGraph,
@@ -321,6 +346,12 @@ impl ReactiveSession {
                     if let Effect::Set { value, .. } = &mut rule.effect {
                         *value = reactive_expr::expand(value, &functions)?;
                     }
+                    if let Effect::Commit {
+                        using: Some(value), ..
+                    } = &mut rule.effect
+                    {
+                        *value = reactive_expr::expand(value, &functions)?;
+                    }
                 }
                 Directive::Binding(binding) => {
                     binding.condition = reactive_expr::expand(&binding.condition, &functions)?;
@@ -345,14 +376,21 @@ impl ReactiveSession {
             sequence: 0,
             last_event: None,
             values: BTreeMap::new(),
+            commitment_bases: BTreeMap::new(),
+            observation_qualifications: BTreeMap::new(),
+            examination_qualifications: BTreeMap::new(),
+            reopening_qualifications: BTreeMap::new(),
+            predicate_qualifications: BTreeMap::new(),
             ranges: BTreeMap::new(),
             constants,
             events: BTreeMap::new(),
             rules: Arc::new(Vec::new()),
             binding_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
+            binding_qualifications: BTreeMap::new(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
+            cue_qualifications: Vec::new(),
             controls: BTreeMap::new(),
             clock: None,
             graph: evaluation.graph,
@@ -419,27 +457,30 @@ impl ReactiveSession {
                         .chain(session.constants.keys())
                         .cloned()
                         .collect();
-                    if initial.validate(&numeric, &|_, _| {
-                        Err("state initializers cannot query live graph predicates".into())
+                    if initial.validate(&numeric, &|kind, name| match kind {
+                        "qualification_evidence" => session.require_kind(name, "evidence"),
+                        "qualification_caveat" => session.require_kind(name, "caveat"),
+                        _ => Err("state initializers cannot query live graph predicates".into()),
                     })? != ValueType::Number
                     {
                         return Err(format!("state {name} initializer must be numeric"));
                     }
-                    let value = initial.evaluate(
+                    let value = initial.evaluate_tracked(
                         &|name| {
-                            session
-                                .values
-                                .get(name)
-                                .or_else(|| session.constants.get(name))
-                                .copied()
+                            Ok(session.values.get(name).cloned().or_else(|| {
+                                session.constants.get(name).copied().map(Tracked::plain)
+                            }))
                         },
                         &|_, _| Err("state initializer cannot query graph".into()),
+                        &|evidence, caveats| session.qualify(evidence, caveats),
                     )?;
-                    let Value::Number(value) = value else {
+                    let Value::Number(number) = value.value else {
                         unreachable!("validated number initializer")
                     };
-                    check_range(name, value, min.value(), max.value())?;
-                    session.values.insert(name.clone(), value);
+                    check_range(name, number, min.value(), max.value())?;
+                    session
+                        .values
+                        .insert(name.clone(), Tracked::new(number, value.provenance)?);
                     session.ranges.insert(
                         name.clone(),
                         StateRange {
@@ -521,7 +562,7 @@ impl ReactiveSession {
             )?;
         }
         session.validate_rules()?;
-        session.bindings = session.evaluate_bindings()?;
+        session.evaluate_bindings()?;
         Ok(session)
     }
 
@@ -550,6 +591,8 @@ impl ReactiveSession {
             match kind {
                 "observed" => self.require_kind(symbol, "evidence"),
                 "examined" => self.require_kind(symbol, "caveat"),
+                "qualification_evidence" => self.require_kind(symbol, "evidence"),
+                "qualification_caveat" => self.require_kind(symbol, "caveat"),
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
                 _ => Err(format!("unknown epistemic predicate {kind}")),
@@ -599,7 +642,14 @@ impl ReactiveSession {
                         return Err("reactive examination requires an attention budget".into());
                     }
                 }
-                Effect::Commit { retaining, .. } => {
+                Effect::Commit {
+                    using, retaining, ..
+                } => {
+                    if let Some(value) = using {
+                        if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
+                            return Err("commit using requires a numeric expression".into());
+                        }
+                    }
                     let mut retained = HashSet::new();
                     for caveat in retaining {
                         self.require_kind(caveat, "caveat")?;
@@ -651,36 +701,58 @@ impl ReactiveSession {
         Ok(())
     }
 
-    fn evaluate_bindings(
-        &self,
-    ) -> Result<BTreeMap<String, BTreeMap<String, BindingValue>>, String> {
+    fn evaluate_bindings(&mut self) -> Result<(), String> {
         let mut bindings = BTreeMap::<String, BTreeMap<String, BindingValue>>::new();
+        let mut data = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
+        let mut guards = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
         let parameters = BTreeMap::new();
         for binding in self.binding_rules.iter() {
             let context = || format!("binding {}.{}", binding.target, binding.property);
-            if self
+            let condition = self
                 .evaluate(&binding.condition, &parameters)
-                .map_err(|error| format!("{}: {error}", context()))?
-                != Value::Bool(true)
-            {
+                .map_err(|error| format!("{}: {error}", context()))?;
+            guards
+                .entry(binding.target.clone())
+                .or_default()
+                .entry(binding.property.clone())
+                .or_default()
+                .merge(&condition.provenance)?;
+            if condition.value != Value::Bool(true) {
                 continue;
             }
             let value = match &binding.value {
-                BindingExpression::Text(value) => BindingValue::Text(value.clone()),
-                BindingExpression::Expression(expression) => match self
-                    .evaluate(expression, &parameters)
-                    .map_err(|error| format!("{}: {error}", context()))?
-                {
-                    Value::Number(value) => BindingValue::Number(value),
-                    Value::Bool(value) => BindingValue::Bool(value),
-                },
+                BindingExpression::Text(value) => Tracked::plain(BindingValue::Text(value.clone())),
+                BindingExpression::Expression(expression) => {
+                    let value = self
+                        .evaluate(expression, &parameters)
+                        .map_err(|error| format!("{}: {error}", context()))?;
+                    let primitive = match value.value {
+                        Value::Number(value) => BindingValue::Number(value),
+                        Value::Bool(value) => BindingValue::Bool(value),
+                    };
+                    Tracked::new(primitive, value.provenance)?
+                }
             };
             bindings
                 .entry(binding.target.clone())
                 .or_default()
-                .insert(binding.property.clone(), value);
+                .insert(binding.property.clone(), value.value);
+            data.entry(binding.target.clone())
+                .or_default()
+                .insert(binding.property.clone(), value.provenance);
         }
-        Ok(bindings)
+        for (target, properties) in guards {
+            for (property, provenance) in properties {
+                data.entry(target.clone())
+                    .or_default()
+                    .entry(property)
+                    .or_default()
+                    .merge(&provenance)?;
+            }
+        }
+        self.bindings = bindings;
+        self.binding_qualifications = data;
+        Ok(())
     }
 
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
@@ -743,6 +815,7 @@ impl ReactiveSession {
         let mut next = self.clone();
         next.effects.clear();
         next.cues.clear();
+        next.cue_qualifications.clear();
         for (index, rule) in self
             .rules
             .iter()
@@ -751,8 +824,34 @@ impl ReactiveSession {
         {
             let result = (|| {
                 let condition = next.evaluate(&rule.condition, parameters)?;
-                if condition == Value::Bool(true) {
-                    next.apply_effect(&rule.effect, parameters)?;
+                if condition.value == Value::Bool(true) {
+                    next.apply_effect(&rule.effect, parameters, &condition.provenance)?;
+                } else if let Effect::Set { name, .. } = &rule.effect {
+                    // Retaining a value after a failed qualified guard is itself
+                    // dependent on the guard; do not silently discard that basis.
+                    next.values
+                        .get_mut(name)
+                        .expect("validated state")
+                        .provenance
+                        .merge(&condition.provenance)?;
+                } else {
+                    let target = match &rule.effect {
+                        Effect::Reveal { evidence, .. } => Some(("observed", evidence)),
+                        Effect::Examine { caveat, .. } => Some(("examined", caveat)),
+                        Effect::Commit { action, .. } => Some(("committed", action)),
+                        Effect::Reopen { action, .. } => Some(("reopened", action)),
+                        _ => None,
+                    };
+                    if let Some((kind, name)) = target {
+                        if !condition.provenance.is_empty() {
+                            next.predicate_qualifications
+                                .entry(kind.into())
+                                .or_default()
+                                .entry(name.clone())
+                                .or_default()
+                                .merge(&condition.provenance)?;
+                        }
+                    }
                 }
                 Ok::<_, String>(())
             })();
@@ -764,7 +863,7 @@ impl ReactiveSession {
             .ok_or("reactive event sequence exhausted")?;
         next.last_event = Some(event.into());
         // Binding failures roll back the same numeric/graph/cue transaction.
-        next.bindings = next.evaluate_bindings()?;
+        next.evaluate_bindings()?;
         let snapshot = next.snapshot();
         *self = next;
         Ok(snapshot)
@@ -774,16 +873,19 @@ impl ReactiveSession {
         &self,
         expression: &Expr,
         parameters: &BTreeMap<String, f64>,
-    ) -> Result<Value, String> {
-        expression.evaluate(
+    ) -> Result<Tracked<Value>, String> {
+        expression.evaluate_tracked(
             &|name| {
-                self.values
-                    .get(name)
-                    .or_else(|| parameters.get(name))
-                    .or_else(|| self.constants.get(name))
-                    .copied()
+                Ok(self.values.get(name).cloned().or_else(|| {
+                    parameters
+                        .get(name)
+                        .or_else(|| self.constants.get(name))
+                        .copied()
+                        .map(Tracked::plain)
+                }))
             },
-            &|kind, name| self.predicate(kind, name),
+            &|kind, name| self.predicate_tracked(kind, name),
+            &|evidence, caveats| self.qualify(evidence, caveats),
         )
     }
 
@@ -819,20 +921,183 @@ impl ReactiveSession {
         })
     }
 
+    fn incoming_caveats(&self, roots: impl IntoIterator<Item = NodeId>) -> Vec<String> {
+        let mut frontier = roots.into_iter().collect::<Vec<_>>();
+        let mut visited = HashSet::new();
+        let mut caveats = HashSet::new();
+        while let Some(id) = frontier.pop() {
+            if !visited.insert(id) {
+                continue;
+            }
+            for edge in self
+                .graph
+                .edges
+                .iter()
+                .filter(|edge| edge.to == id && edge.relation == Relation::Qualifies)
+            {
+                if matches!(
+                    self.graph.nodes.get(&edge.from),
+                    Some(NodeKind::Caveat { .. })
+                ) {
+                    caveats.insert(edge.from);
+                    frontier.push(edge.from);
+                }
+            }
+        }
+        self.symbols
+            .iter()
+            .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
+            .collect()
+    }
+
+    fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+        self.require_kind(evidence, "evidence")?;
+        if !self.predicate("observed", evidence)? {
+            return Err(format!(
+                "cannot qualify a value with unobserved evidence {evidence}"
+            ));
+        }
+        for caveat in extras {
+            self.require_kind(caveat, "caveat")?;
+        }
+        let id = self.symbols[evidence];
+        let mut roots = vec![id];
+        roots.extend(extras.iter().map(|caveat| self.symbols[caveat]));
+        roots.extend(
+            self.graph
+                .edges
+                .iter()
+                .filter(|edge| {
+                    edge.from == id
+                        && matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                        && matches!(self.graph.nodes.get(&edge.to), Some(NodeKind::Claim { .. }))
+                })
+                .map(|edge| edge.to),
+        );
+        let caveats = self
+            .incoming_caveats(roots)
+            .into_iter()
+            .chain(extras.iter().cloned());
+        let mut provenance = Provenance::from_names([evidence.into()], caveats)?;
+        if let Some(observation) = self.observation_qualifications.get(evidence) {
+            provenance.merge(observation)?;
+        }
+        if let Some(dependency) = self
+            .predicate_qualifications
+            .get("observed")
+            .and_then(|targets| targets.get(evidence))
+        {
+            provenance.merge(dependency)?;
+        }
+        Ok(provenance)
+    }
+
+    fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        let value = self.predicate(kind, name)?;
+        let mut provenance = match kind {
+            "observed" if value => self.qualify(name, &[])?,
+            "examined" => {
+                let id = self.symbols[name];
+                let mut provenance = Provenance::from_names(
+                    [],
+                    std::iter::once(name.into()).chain(self.incoming_caveats([id])),
+                )?;
+                if let Some(examination) = self.examination_qualifications.get(name) {
+                    provenance.merge(examination)?;
+                }
+                provenance
+            }
+            "committed" | "reopened"
+                if self.symbols.get(name).is_some_and(|id| {
+                    matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
+                }) =>
+            {
+                let id = self.symbols[name];
+                let mut provenance = self
+                    .commitment_bases
+                    .get(name)
+                    .map(|basis| basis.provenance.clone())
+                    .unwrap_or_default();
+                if let Some(reopening) = self.reopening_qualifications.get(name) {
+                    provenance.merge(reopening)?;
+                }
+                let by_id = self
+                    .symbols
+                    .iter()
+                    .map(|(name, id)| (*id, name))
+                    .collect::<HashMap<_, _>>();
+                for edge in &self.graph.edges {
+                    if edge.from == id && edge.relation == Relation::Retains {
+                        provenance
+                            .merge(&Provenance::from_names([], [by_id[&edge.to].clone()])?)?;
+                    } else if edge.from == id && edge.relation == Relation::ReliesOn {
+                        // Commitment basis is historical. Do not re-query its
+                        // original value or replace its frozen qualifications.
+                        provenance
+                            .merge(&Provenance::from_names([by_id[&edge.to].clone()], [])?)?;
+                    } else if kind == "reopened"
+                        && edge.to == id
+                        && edge.relation == Relation::Reopens
+                    {
+                        provenance.merge(&self.qualify(by_id[&edge.from], &[])?)?;
+                    }
+                }
+                provenance
+            }
+            _ => Provenance::default(),
+        };
+        if let Some(dependency) = self
+            .predicate_qualifications
+            .get(kind)
+            .and_then(|targets| targets.get(name))
+        {
+            provenance.merge(dependency)?;
+        }
+        if kind == "reopened" {
+            // Whether a future action can be reopened also depends on the
+            // earlier decision that left its commitment absent.
+            if let Some(dependency) = self
+                .predicate_qualifications
+                .get("committed")
+                .and_then(|targets| targets.get(name))
+            {
+                provenance.merge(dependency)?;
+            }
+        }
+        Tracked::new(value, provenance)
+    }
+
+    fn clear_predicate_dependency(&mut self, kind: &str, name: &str) {
+        if let Some(targets) = self.predicate_qualifications.get_mut(kind) {
+            targets.remove(name);
+            if targets.is_empty() {
+                self.predicate_qualifications.remove(kind);
+            }
+        }
+    }
+
     fn apply_effect(
         &mut self,
         effect: &Effect,
         parameters: &BTreeMap<String, f64>,
+        guard: &Provenance,
     ) -> Result<(), String> {
         match effect {
-            Effect::Emit { name } => self.cues.push(self.cue_definitions[name].clone()),
+            Effect::Emit { name } => {
+                self.cues.push(self.cue_definitions[name].clone());
+                self.cue_qualifications.push(guard.clone());
+            }
             Effect::Set { name, value } => {
-                let Value::Number(value) = self.evaluate(value, parameters)? else {
+                let value = self.evaluate(value, parameters)?;
+                let Value::Number(number) = value.value else {
                     return Err("numeric state expression returned a boolean".into());
                 };
                 let range = &self.ranges[name];
-                check_range(name, value, range.min, range.max)?;
-                self.values.insert(name.clone(), value);
+                check_range(name, number, range.min, range.max)?;
+                self.values.insert(
+                    name.clone(),
+                    Tracked::new(number, value.provenance.union(guard)?)?,
+                );
             }
             Effect::Reveal {
                 evidence,
@@ -847,6 +1112,11 @@ impl ReactiveSession {
                     .iter()
                     .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
                 {
+                    self.clear_predicate_dependency("observed", evidence);
+                    self.observation_qualifications
+                        .entry(evidence.clone())
+                        .or_default()
+                        .merge(guard)?;
                     self.graph.relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
                         evidence: evidence.clone(),
@@ -856,6 +1126,15 @@ impl ReactiveSession {
                 }
             }
             Effect::Examine { caveat, cost } => {
+                // This guard is part of the successful attention decision. It
+                // survives a later `examined(...)` query without changing any
+                // underlying claim or removing a retained caveat.
+                let attention_basis = self
+                    .examination_qualifications
+                    .get(caveat)
+                    .cloned()
+                    .unwrap_or_default()
+                    .union(guard)?;
                 let resources = self
                     .resources
                     .as_mut()
@@ -868,6 +1147,9 @@ impl ReactiveSession {
                 resources.exhausted = resources.remaining == 0;
                 self.graph
                     .set_attention(self.symbols[caveat], Attention::Examined);
+                self.clear_predicate_dependency("examined", caveat);
+                self.examination_qualifications
+                    .insert(caveat.clone(), attention_basis);
                 self.effects.push(EffectReport::Examine {
                     caveat: caveat.clone(),
                     cost: *cost,
@@ -876,20 +1158,58 @@ impl ReactiveSession {
             Effect::Commit {
                 action,
                 reason,
+                using,
                 retaining,
             } => {
                 if self.symbols.contains_key(action) {
                     return Err(format!("commitment {action} already exists"));
                 }
-                let retained = retaining
+                let mut provenance = guard.clone();
+                let used_value = if let Some(expression) = using {
+                    let value = self.evaluate(expression, parameters)?;
+                    let Value::Number(number) = value.value else {
+                        return Err("commit using requires a numeric value".into());
+                    };
+                    provenance.merge(&value.provenance)?;
+                    Some(number)
+                } else {
+                    None
+                };
+                provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
+                let mut retained_names = retaining.clone();
+                for caveat in &provenance.caveats {
+                    self.require_kind(caveat, "caveat")?;
+                    if !retained_names.contains(caveat) {
+                        retained_names.push(caveat.clone());
+                    }
+                }
+                let retained = retained_names
                     .iter()
                     .map(|name| self.symbols[name])
                     .collect::<Vec<_>>();
                 let id = self.graph.commit_because(action, &retained, reason.clone());
+                self.clear_predicate_dependency("committed", action);
                 self.symbols.insert(action.clone(), id);
+                for evidence in &provenance.evidence {
+                    self.require_kind(evidence, "evidence")?;
+                    if !self.predicate("observed", evidence)? {
+                        return Err(format!(
+                            "commitment basis includes unobserved evidence {evidence}"
+                        ));
+                    }
+                    self.graph
+                        .relate(id, Relation::ReliesOn, self.symbols[evidence]);
+                }
+                self.commitment_bases.insert(
+                    action.clone(),
+                    CommitmentBasis {
+                        value: used_value,
+                        provenance,
+                    },
+                );
                 self.effects.push(EffectReport::Commit {
                     action: action.clone(),
-                    retained: retaining.clone(),
+                    retained: retained_names,
                 });
             }
             Effect::Reopen { action, because } => {
@@ -904,6 +1224,12 @@ impl ReactiveSession {
                 if !self.graph.edges.iter().any(|edge| {
                     edge.from == from && edge.to == id && edge.relation == Relation::Reopens
                 }) {
+                    let basis = self.qualify(because, &[])?.union(guard)?;
+                    self.clear_predicate_dependency("reopened", action);
+                    self.reopening_qualifications
+                        .entry(action.clone())
+                        .or_default()
+                        .merge(&basis)?;
                     self.graph.reopen(id, from);
                     self.effects.push(EffectReport::Reopen {
                         action: action.clone(),
@@ -974,14 +1300,26 @@ impl ReactiveSession {
         }
         ReactiveSnapshot {
             bindings: self.bindings.clone(),
+            binding_qualifications: self.binding_qualifications.clone(),
             cues: self.cues.clone(),
+            cue_qualifications: self.cue_qualifications.clone(),
+            qualified_values: self.values.clone(),
+            commitment_bases: self.commitment_bases.clone(),
+            observation_qualifications: self.observation_qualifications.clone(),
+            examination_qualifications: self.examination_qualifications.clone(),
+            reopening_qualifications: self.reopening_qualifications.clone(),
+            predicate_qualifications: self.predicate_qualifications.clone(),
             controls: self.controls.clone(),
             clock: self.clock.clone(),
             schema: REACTIVE_SCHEMA.into(),
             source_id: self.source_id.clone(),
             sequence: self.sequence,
             last_event: self.last_event.clone(),
-            values: self.values.clone(),
+            values: self
+                .values
+                .iter()
+                .map(|(name, value)| (name.clone(), value.value))
+                .collect(),
             world: self.world.clone(),
             events: self
                 .events
@@ -1033,6 +1371,7 @@ fn relation_name(relation: Relation) -> &'static str {
         Relation::InContext => "in_context",
         Relation::Retains => "retains",
         Relation::Reopens => "reopens",
+        Relation::ReliesOn => "relies_on",
     }
 }
 
@@ -1452,18 +1791,49 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 "deadline" => StopReason::Deadline,
                 _ => return Err(format!("unknown commit reason {reason}")),
             };
-            let retaining = match rest {
-                [] => Vec::new(),
-                ["retaining", names @ ..] if !names.is_empty() => names
+            let parse_retained = |names: &[&str]| -> Result<Vec<String>, String> {
+                if names.is_empty() {
+                    return Err("retaining requires at least one caveat".into());
+                }
+                names
                     .join(" ")
                     .split(',')
                     .map(|name| identifier(name.trim()))
-                    .collect::<Result<_, _>>()?,
-                _ => return Err("commit expects retaining CAVEAT, CAVEAT".into()),
+                    .collect()
+            };
+            let (using, retaining) = match rest {
+                [] => (None, Vec::new()),
+                ["retaining", names @ ..] => (None, parse_retained(names)?),
+                ["using", expression @ ..] if !expression.is_empty() => {
+                    let mut depth = 0_i64;
+                    let mut boundary = None;
+                    for (index, token) in expression.iter().enumerate() {
+                        if index > 0 && depth == 0 && *token == "retaining" {
+                            boundary = Some(index);
+                            break;
+                        }
+                        depth += token.chars().filter(|ch| *ch == '(').count() as i64;
+                        depth -= token.chars().filter(|ch| *ch == ')').count() as i64;
+                    }
+                    let end = boundary.unwrap_or(expression.len());
+                    let using = reactive_expr::parse_unresolved(&expression[..end].join(" "))?;
+                    let retaining = boundary
+                        .map(|index| parse_retained(&expression[index + 1..]))
+                        .transpose()?
+                        .unwrap_or_default();
+                    (Some(using), retaining)
+                }
+                _ => {
+                    return Err(
+                        "commit expects [using NUMERIC_EXPRESSION] [retaining CAVEAT, CAVEAT]"
+                            .into(),
+                    )
+                }
             };
             Ok(Effect::Commit {
                 action: identifier(action)?,
                 reason,
+                using,
                 retaining,
             })
         }

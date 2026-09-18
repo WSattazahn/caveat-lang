@@ -3,6 +3,10 @@ scene "Drag the light left or right. Reach the green harbor.";
 // Pure numeric helpers are reusable CAVEAT functions, with explicit arguments.
 fn distance(ax, az, bx, bz) = sqrt((ax - bx) * (ax - bx) + (az - bz) * (az - bz));
 fn pulse(time, rate) = 0.5 + 0.5 * sin(time * rate);
+fn tidal_pulse(time) = 0.35 + 0.65 * pulse(time, 1.8);
+fn infer_peak(flow, phase) = flow / phase;
+fn counter_plan(peak, fraction) = -peak * fraction;
+fn current_field(peak, phase, separation, radius) = peak * phase * clamp(1 - separation / radius, 0, 1);
 
 place keeper_court kind courtyard;
 place lighthouse_base kind lighthouse;
@@ -149,10 +153,11 @@ evidence crosscurrent_reading from "light-observed foam drift at crosscurrent_ma
 caveat surge_unmeasured consequence high;
 morning_forecast supports crosscurrent_mild;
 surge_unmeasured qualifies morning_forecast;
+surge_unmeasured qualifies crosscurrent_reading;
 display crosscurrent_mild "The forecast current will not materially displace the ferry.";
 display morning_forecast "The morning tidal record predicts mild crossflow.";
 display crosscurrent_reading "Foam in the light moves sideways faster than the forecast predicts.";
-display surge_unmeasured "Storm surge may exceed the morning tidal forecast.";
+display surge_unmeasured "Storm surge may outgrow the forecast or a brief measurement.";
 display trust_forecast "Hold normal course using the forecast, retaining surge uncertainty.";
 display counter_steer "Apply partial counter-steering, retaining uncertainty about the next surge.";
 claim clear_course;
@@ -237,6 +242,12 @@ state current_distance = 100;
 state current_force = 0;
 state compensation = 0;
 state current_seen = 0 min 0 max 1;
+// A working estimate carries its observed evidence and the graph's caveats.
+state forecast_drift = qualified(0, morning_forecast);
+state observed_foam = 0;
+state estimated_peak = 0;
+state steering_plan = counter_plan(forecast_drift, 0.65);
+state measurement_ready = 0 min 0 max 1;
 state reef_one_seen = 0 min 0 max 1;
 state reef_one_distance = 100;
 state reef_two_seen = 0 min 0 max 1;
@@ -284,7 +295,7 @@ cue reef_two_ring ring reef_two "#ffe3a0" 0.75;
 cue reef_one_ring ring reef_one "#ffe3a0" 0.75;
 
 on start when phase == 0 emit depart;
-on start when phase == 0 and not committed(trust_forecast) commit trust_forecast because enough retaining surge_unmeasured;
+on start when phase == 0 and not committed(trust_forecast) commit trust_forecast because enough using forecast_drift;
 on start when phase == 0 and not committed(follow_light) commit follow_light because enough retaining reef_one_shadow, reef_two_shadow, reef_three_shadow, reef_four_shadow, reef_five_shadow, reef_six_shadow;
 on start when phase == 0 set phase = 1;
 on pause when phase == 1 set paused = 1;
@@ -325,7 +336,13 @@ on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, ai
 on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) and not examined(surge_unmeasured) examine surge_unmeasured cost 1;
 on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) set current_seen = 1;
 on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) and not reopened(trust_forecast) reopen trust_forecast because crosscurrent_reading;
-on tick when phase == 1 and paused == 0 and reopened(trust_forecast) and not committed(counter_steer) commit counter_steer because enough retaining surge_unmeasured;
+// Sample once where the light observed foam; do not borrow ongoing world telemetry.
+on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) and measurement_ready == 0 set observed_foam = qualified(current_strength * tidal_pulse(elapsed), crosscurrent_reading);
+on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) and measurement_ready == 0 set estimated_peak = infer_peak(observed_foam, tidal_pulse(elapsed));
+on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) and measurement_ready == 0 set steering_plan = counter_plan(estimated_peak, 0.65);
+on tick when phase == 1 and paused == 0 and observed(crosscurrent_reading) and measurement_ready == 0 set measurement_ready = 1;
+// Reliance comes from the actual derived command, including inherited caveats.
+on tick when phase == 1 and paused == 0 and reopened(trust_forecast) and not committed(counter_steer) commit counter_steer because enough using steering_plan;
 
 on tick when phase == 1 and paused == 0 set elapsed = min(time_limit, elapsed + dt);
 on tick when phase == 1 and paused == 0 set collision_cooldown = max(0, collision_cooldown - dt);
@@ -364,11 +381,10 @@ on tick when phase == 1 and paused == 0 and observed(reef_six_reading) and reef_
 
 // The external current is deterministic physical truth, independent of observation.
 on tick when phase == 1 and paused == 0 set current_distance = distance(boat_x, boat_z, crosscurrent_marker.x, crosscurrent_marker.z);
-on tick when phase == 1 and paused == 0 set current_pulse = 0.35 + 0.65 * pulse(elapsed, 1.8);
-on tick when phase == 1 and paused == 0 set current_force = current_strength * current_pulse * clamp(1 - current_distance / current_radius, 0, 1);
+on tick when phase == 1 and paused == 0 set current_pulse = tidal_pulse(elapsed);
+on tick when phase == 1 and paused == 0 set current_force = current_field(current_strength, current_pulse, current_distance, current_radius);
 // Revision changes the navigator's response, not the current.
-on tick when phase == 1 and paused == 0 set compensation = 0;
-on tick when phase == 1 and paused == 0 and committed(counter_steer) set compensation = -current_force * 0.65;
+on tick when phase == 1 and paused == 0 set compensation = current_field(steering_plan, current_pulse, current_distance, current_radius);
 on tick when phase == 1 and paused == 0 and committed(counter_steer) and current_force > 0.08 and warning < 2 set warning = 3;
 
 // Reopened knowledge changes the ferry's approach speed, buying room to steer.

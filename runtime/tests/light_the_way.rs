@@ -350,6 +350,25 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
         .retained
         .iter()
         .any(|symbol| symbol == "surge_unmeasured"));
+    assert_eq!(observed.commitment_bases["trust_forecast"].value, Some(0.0));
+    assert!((observed.commitment_bases["counter_steer"].value.unwrap() + 0.585).abs() < 1e-10);
+    for state in ["observed_foam", "estimated_peak", "steering_plan"] {
+        let provenance = &observed.qualified_values[state].provenance;
+        assert!(
+            provenance.evidence.contains("crosscurrent_reading"),
+            "{state} lost the observed sample"
+        );
+        assert!(
+            provenance.caveats.contains("surge_unmeasured"),
+            "{state} lost uncertainty through its source function"
+        );
+    }
+    assert!(observed
+        .relations
+        .iter()
+        .any(|edge| edge.from == "counter_steer"
+            && edge.relation == "relies_on"
+            && edge.to == "crosscurrent_reading"));
 
     for _ in 0..(30 * 80) {
         let before = uninformed.snapshot();
@@ -369,6 +388,13 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
         let unknown = tick(&mut uninformed);
         let force = value(&unknown, "current_force");
         if force.abs() > 0.000_001 {
+            assert_eq!(
+                value(&known, "current_strength"),
+                value(&unknown, "current_strength")
+            );
+            assert!(known.qualified_values["current_strength"]
+                .provenance
+                .is_empty());
             assert!(
                 (value(&known, "current_force") - force).abs() < 0.000_001,
                 "knowledge changed the current itself rather than the response to it"
@@ -404,6 +430,69 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
 }
 
 #[test]
+fn a_later_physical_change_cannot_silently_refresh_the_observed_navigation_plan() {
+    // The additional event is authored in this Caveat fixture. No host-side
+    // mutation, alternate simulator, or production testing hook is involved.
+    let source = format!("{SOURCE}\nevent change_current strength min 0 max 2;\non change_current set current_strength = strength;");
+    let mut game = started(&source);
+    aim(&mut game, -3.8, 33.5);
+    let measured = dispatch(&mut game, "tick", &[("dt", 0.0)]);
+    assert_eq!(value(&measured, "measurement_ready"), 1.0);
+    assert!((value(&measured, "estimated_peak") - 0.9).abs() < 1e-10);
+    let frozen_basis = measured.commitment_bases["counter_steer"].clone();
+    let mut changed = false;
+    for frame in 0..(30 * 80) {
+        let before = game.snapshot();
+        let z = value(&before, "boat_z");
+        if frame % 30 == 0 {
+            aim(
+                &mut game,
+                if z > 41.0 {
+                    5.5
+                } else if z > 32.0 {
+                    -4.0
+                } else {
+                    5.3
+                },
+                60.0,
+            );
+        }
+        let near = tick(&mut game);
+        if value(&near, "current_force") > 0.02 {
+            // Zero-duration ticks recompute the field at exactly the same
+            // source position/time, isolating physical strength from steering.
+            let old = dispatch(&mut game, "tick", &[("dt", 0.0)]);
+            dispatch(&mut game, "change_current", &[("strength", 1.8)]);
+            let new = dispatch(&mut game, "tick", &[("dt", 0.0)]);
+            assert_eq!(value(&old, "boat_x"), value(&new, "boat_x"));
+            assert_eq!(value(&old, "boat_z"), value(&new, "boat_z"));
+            assert_eq!(value(&old, "elapsed"), value(&new, "elapsed"));
+            assert!(
+                (value(&new, "current_force") - value(&old, "current_force") * 2.0).abs() < 1e-10
+            );
+            assert_eq!(
+                value(&new, "compensation"),
+                value(&old, "compensation"),
+                "navigation cannot see an unmeasured change"
+            );
+            for state in ["observed_foam", "estimated_peak", "steering_plan"] {
+                assert_eq!(
+                    value(&new, state),
+                    value(&measured, state),
+                    "{state} sampled the physical truth again without a new observation"
+                );
+            }
+            assert_eq!(new.commitment_bases["counter_steer"], frozen_basis);
+            assert_eq!(new.relations, old.relations);
+            assert_eq!(new.budget, old.budget);
+            changed = true;
+            break;
+        }
+    }
+    assert!(changed, "the input route never reached the crosscurrent");
+}
+
+#[test]
 fn source_presentation_overrides_do_not_replace_the_games_live_knowledge() {
     let variant = format!("{SOURCE}\nbind passengers_label.text = \"SOURCE VARIANT CREW\";\nbind crosscurrent_marker.scale = 1.5;\nbind crosscurrent_marker.ring.color = \"#ff00ff\";\nbind crosscurrent_marker.visible = true;\ncue qa_source_tone sound 523.25 0.07 0.02;\non start emit qa_source_tone;\n");
     let mut normal = started(SOURCE);
@@ -421,6 +510,8 @@ fn source_presentation_overrides_do_not_replace_the_games_live_knowledge() {
     );
     assert_eq!(json["bindings"]["crosscurrent_marker"]["scale"], 1.5);
     assert_eq!(edited.values, original.values);
+    assert_eq!(edited.qualified_values, original.qualified_values);
+    assert_eq!(edited.commitment_bases, original.commitment_bases);
     assert_eq!(edited.relations, original.relations);
     assert_eq!(edited.commitments, original.commitments);
     assert_eq!(edited.budget, original.budget);
@@ -448,6 +539,12 @@ fn an_observation_emits_feedback_once_without_spending_attention_again() {
 #[test]
 fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
     let mut session = started(SOURCE);
+    let initial_qualifications = session
+        .snapshot()
+        .relations
+        .into_iter()
+        .filter(|edge| edge.relation == "qualifies")
+        .collect::<Vec<_>>();
     let points = session
         .snapshot()
         .world
@@ -472,8 +569,7 @@ fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
         .cloned()
         .collect::<Vec<_>>();
     assert_eq!(
-        qualifications.len(),
-        7,
+        qualifications, initial_qualifications,
         "examined caveats must remain actual graph edges"
     );
     assert!(known

@@ -10,7 +10,7 @@ There are no required story decisions or reading panels. The earlier narrative g
 
 [`game/light_the_way.cav`](../game/light_the_way.cav) defines all simulation values, movement equations, steering acceleration, wind, discovery, collisions, cooldown, scoring, success, and failure. It also defines world coordinates, input mappings, the clock, UI screens and values, object poses and colors, and explicit feedback cues. The browser dispatches declared inputs, applies evaluated bindings, and presents emitted cues. It does not infer game meaning from variables such as `phase`, `hull`, or `boat_x`.
 
-The source uses [CAVEAT reactive 0.2](../spec/caveat-reactive-0.2.md) alongside the existing epistemic graph. Pure functions are reusable expressions; bindings connect evaluated values to generic presentation targets:
+The source's events, controls, and bindings follow the [CAVEAT reactive 0.2](../spec/caveat-reactive-0.2.md) presentation contract. [Reactive 0.3](../spec/caveat-reactive-0.3.md) adds qualified values that carry the epistemic graph's evidence and caveats through numeric computation. Pure functions are reusable expressions; bindings connect evaluated values to generic presentation targets:
 
 ```caveat
 fn distance(ax, az, bx, bz) = sqrt((ax - bx) * (ax - bx) + (az - bz) * (az - bz));
@@ -22,7 +22,7 @@ clock tick every 0.03333333333333333;
 
 Expressions can refer directly to source positions such as `reef_one.x` and `harbor_goal.z`. Physics and visuals consequently share one authored location for each rock and the harbor.
 
-Numeric functions and UI bindings provide ordinary programming facilities. CAVEAT's distinctive contribution remains the record of claims, provenance, caveats, attention cost, provisional commitments, and revision—not arithmetic or drawing a boat by itself.
+Functions and UI bindings provide familiar programming facilities. Their values can preserve evidence and caveats across computation, so that record reaches a decision without manually copying a caveat list. CAVEAT's distinctive contribution remains claims, provenance, qualifications, attention cost, provisional commitments, and revision—not drawing a boat by itself.
 
 ## One input, visible consequences
 
@@ -42,14 +42,32 @@ Each discovered rock examines its corresponding caveat once. The first contrary 
 
 The crosscurrent adds a second provisional decision. `morning_forecast`, with tidal-archive provenance, supports `crosscurrent_mild`. `surge_unmeasured` qualifies that evidence. Starting the rescue commits to `trust_forecast` while retaining the caveat.
 
-Shining the light into the current yields `crosscurrent_reading`: measured foam drift opposes the forecast claim. Examination costs one attention unit. The original supporting evidence is preserved. The observation reopens `trust_forecast`, then the source commits to partial `counter_steer`, retaining the same unresolved surge caveat.
+Shining the light into the current yields `crosscurrent_reading`: measured foam drift opposes the forecast claim. Examination costs one attention unit. The original supporting evidence is preserved. The observation reopens `trust_forecast`. A qualified measurement then passes through pure functions to produce the steering plan on which `counter_steer` relies.
 
 | Physical truth | Navigation response |
 | --- | --- |
-| `current_force` depends only on the authored position, radius, strength, and time pulse. | `compensation` remains zero until the revised `counter_steer` commitment exists. |
-| Observing the current never weakens or removes it. | The revised policy counters 65% of the current while continuing toward harbor. |
+| `current_force` depends on the authored field, time pulse, and ferry's position within it. | The forecast supplies a qualified zero-drift estimate, so the original steering plan applies no compensation. |
+| Observing the current never weakens or removes it. | The revised policy counters 65% of the estimated current while continuing toward harbor. |
 
 The foam marker, force, opposing reading, warning, response, and cue all come from this source file. The renderer supplies a generic ring asset; it has no crosscurrent-specific behavior. There is no forced reading panel, and an objection does not automatically halt the ferry. The earlier forecast and retained caveat remain inspectable after revision.
+
+### The steering calculation carries its reasons
+
+`forecast_drift = qualified(0, morning_forecast)` is the initial working estimate. The constructor attaches the observed forecast and inherits `surge_unmeasured` from the graph. `trust_forecast` uses that value, retaining its caveat automatically.
+
+The light takes one simulated foam-speed sample when the reading is first observed. `qualified(sample, crosscurrent_reading)` carries that reading and its qualification into `observed_foam`. The pure functions `infer_peak()` and `counter_plan()` produce `estimated_peak` and `steering_plan` without stripping their metadata:
+
+```caveat
+fn infer_peak(flow, phase) = flow / phase;
+fn counter_plan(peak, fraction) = -peak * fraction;
+fn current_field(peak, phase, separation, radius) = peak * phase * clamp(1 - separation / radius, 0, 1);
+```
+
+The revised commitment says `commit counter_steer because enough using steering_plan`. Its evidence basis and retained caveat come from the derived value actually used, rather than another hand-authored `retaining` list. The command is approximately `-0.585` at peak in this scenario. Its numeric value is fixed after the observation, then `current_field()` projects it over the local pulse and distance on later ticks. The navigator does not keep borrowing the simulator's current strength as fresh telemetry.
+
+This preserves the existing steering behavior while giving it an inspectable computational basis. If the actual current later changes, a previously sampled plan can become stale; its caveat has not been erased by examination.
+
+`snapshot.values` remains a plain numeric projection for compatibility. `qualified_values` exposes the associated evidence and caveats; `commitment_bases` preserves the number and provenance used at each commitment. Metadata can also travel through a command into the resulting boat position and a position-dependent force calculation. That is computational lineage, not a declaration that observation changed the physical current or that every qualified value is false. At the same actual position and time, the external field still has the same numeric force.
 
 ## Input and state contract
 
@@ -76,6 +94,8 @@ The following domain values remain available for inspection and testing. Hosts c
 | `warning` | `0` clear, `1` light released, `2` known rock or impact, `3` current compensation |
 | `reef_one_seen` through `reef_six_seen` | Discovered-rock presentation |
 | `current_force`, `compensation`, `current_seen` | External current, revised response, and observation state |
+| `forecast_drift`, `observed_foam`, `estimated_peak`, `steering_plan` | Qualified forecast, measurement, inference, and command |
+| `measurement_ready` | Keeps the sampled numeric steering plan fixed until a new session |
 | `failure_reason` | `1` hull lost, `2` missed harbor, `3` time expired |
 | `rescued`, `total_passengers`, `score` | Source-authoritative result |
 | `aim_x_min/max`, `aim_z_min/max`, `aim_speed` | Input limits and keyboard target speed |
@@ -95,4 +115,4 @@ npm run serve
 
 Open `/rescue.html` on the local server. Build prerequisites are in the [README](../README.md).
 
-Runtime verification covers the safe opening, real-input rescue, unattended failure, impact immunity, observations and reopened knowledge, source tuning, pause, controls, and explicit cues. A paired current test uses legitimate inputs to establish equal external force but different navigation responses after observation, while preserving the original forecast, opposing evidence, and retained caveat. Browser checks additionally exercise direct controls, a complete rescue, mobile presentation, and source-only changes to HUD text, an object binding, and a previously unknown cue.
+Runtime verification covers the safe opening, real-input rescue, unattended failure, impact immunity, observations and reopened knowledge, source tuning, pause, controls, and explicit cues. A paired current test uses legitimate inputs to establish equal external force but different navigation responses after observation, while preserving the original forecast, opposing evidence, and retained caveat. Qualified-value checks follow the measurement through pure functions into the command and its commitment basis. Browser checks additionally exercise direct controls, a complete rescue, mobile presentation, and source-only changes to HUD text, an object binding, and a previously unknown cue.

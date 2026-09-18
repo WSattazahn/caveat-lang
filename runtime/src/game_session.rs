@@ -514,6 +514,7 @@ fn relation_name(relation: Relation) -> String {
         Relation::InContext => "in_context",
         Relation::Retains => "retains",
         Relation::Reopens => "reopens",
+        Relation::ReliesOn => "relies_on",
     }
     .into()
 }

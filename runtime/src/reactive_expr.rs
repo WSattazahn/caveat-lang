@@ -4,13 +4,147 @@
 //! epistemic graph. They cannot mutate state or invoke arbitrary host code.
 
 use crate::presentation::Number;
-use std::collections::{BTreeMap, HashSet};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
 const MAX_SOURCE_BYTES: usize = 65_536;
 const MAX_FUNCTIONS: usize = 128;
 const MAX_EXPANDED_NODES: usize = 4096;
+pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
+pub const MAX_PROVENANCE_BYTES: usize = 65_536;
+
+/// Dependencies of an evaluated value, not an assertion that evidence is true
+/// or that a caveat is discharged. The host resolves and types graph names.
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+pub struct Provenance {
+    pub evidence: BTreeSet<String>,
+    pub caveats: BTreeSet<String>,
+}
+
+impl Provenance {
+    /// Construct a sorted, deduplicated trace without truncating dependencies.
+    pub fn from_names(
+        evidence: impl IntoIterator<Item = String>,
+        caveats: impl IntoIterator<Item = String>,
+    ) -> Result<Self, String> {
+        let mut result = Self::default();
+        let mut count = 0;
+        let mut bytes = 0;
+        for (is_evidence, name) in evidence
+            .into_iter()
+            .map(|name| (true, name))
+            .chain(caveats.into_iter().map(|name| (false, name)))
+        {
+            let names = if is_evidence {
+                &mut result.evidence
+            } else {
+                &mut result.caveats
+            };
+            if names.contains(&name) {
+                continue;
+            }
+            check_provenance_size(count + 1, bytes, name.len())?;
+            count += 1;
+            bytes += name.len();
+            names.insert(name);
+        }
+        Ok(result)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.evidence.is_empty() && self.caveats.is_empty()
+    }
+
+    fn size(&self) -> Result<(usize, usize), String> {
+        let count = self
+            .evidence
+            .len()
+            .checked_add(self.caveats.len())
+            .ok_or_else(provenance_identifier_error)?;
+        check_provenance_size(count, 0, 0)?;
+        let mut bytes = 0;
+        for name in self.evidence.iter().chain(&self.caveats) {
+            check_provenance_size(count, bytes, name.len())?;
+            bytes += name.len();
+        }
+        Ok((count, bytes))
+    }
+
+    /// Recheck public fields at a trust boundary before accepting host metadata.
+    pub fn validate(&self) -> Result<(), String> {
+        self.size().map(|_| ())
+    }
+
+    /// Union is deterministic and preserves both dependency categories.
+    pub fn union(&self, other: &Self) -> Result<Self, String> {
+        self.validate()?;
+        other.validate()?;
+        let mut result = self.clone();
+        result.merge(other)?;
+        Ok(result)
+    }
+
+    /// An overflow leaves `self` unchanged. No identifier is silently dropped.
+    pub fn merge(&mut self, other: &Self) -> Result<(), String> {
+        let (mut count, mut bytes) = self.size()?;
+        other.validate()?;
+        for name in other
+            .evidence
+            .difference(&self.evidence)
+            .chain(other.caveats.difference(&self.caveats))
+        {
+            check_provenance_size(count + 1, bytes, name.len())?;
+            count += 1;
+            bytes += name.len();
+        }
+        self.evidence.extend(other.evidence.iter().cloned());
+        self.caveats.extend(other.caveats.iter().cloned());
+        Ok(())
+    }
+}
+
+fn provenance_identifier_error() -> String {
+    format!("value provenance exceeds limit {MAX_PROVENANCE_IDENTIFIERS} identifiers")
+}
+
+fn check_provenance_size(count: usize, bytes: usize, additional: usize) -> Result<(), String> {
+    if count > MAX_PROVENANCE_IDENTIFIERS {
+        return Err(provenance_identifier_error());
+    }
+    if bytes
+        .checked_add(additional)
+        .is_none_or(|total| total > MAX_PROVENANCE_BYTES)
+    {
+        return Err(format!(
+            "value provenance exceeds limit {MAX_PROVENANCE_BYTES} name bytes"
+        ));
+    }
+    Ok(())
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+pub struct Tracked<T> {
+    pub value: T,
+    pub provenance: Provenance,
+}
+
+impl<T> Tracked<T> {
+    pub fn plain(value: T) -> Self {
+        Self {
+            value,
+            provenance: Provenance::default(),
+        }
+    }
+
+    /// Numeric finiteness is checked by expression evaluation; this generic
+    /// constructor checks only the dependency metadata.
+    pub fn new(value: T, provenance: Provenance) -> Result<Self, String> {
+        provenance.validate()?;
+        Ok(Self { value, provenance })
+    }
+}
 
 /// A parsed expression with finite, canonical number literals.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,6 +175,7 @@ enum Node {
     // numeric and evaluated eagerly, so `constant(1 / 0)` must still fail.
     ExpandedCall(Vec<Expr>, Box<Expr>),
     Predicate(String, String),
+    Qualified(Box<Expr>, String, Vec<String>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -175,7 +310,7 @@ fn finite(value: f64) -> Result<f64, String> {
 impl Expr {
     fn new(node: Node) -> Result<Self, String> {
         let depth = match &node {
-            Node::Unary(_, child) => child.depth + 1,
+            Node::Unary(_, child) | Node::Qualified(child, _, _) => child.depth + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
             Node::Function(_, children) | Node::UserCall(_, children) => {
                 children.iter().map(|child| child.depth).max().unwrap_or(0) + 1
@@ -230,6 +365,16 @@ impl Expr {
             Node::Predicate(name, target) => {
                 predicate(name, target)?;
                 Ok(ValueType::Bool)
+            }
+            Node::Qualified(value, evidence, caveats) => {
+                value
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Number)?;
+                predicate("qualification_evidence", evidence)?;
+                for caveat in caveats {
+                    predicate("qualification_caveat", caveat)?;
+                }
+                Ok(ValueType::Number)
             }
             Node::Unary(operator, child) => {
                 let expected = match operator {
@@ -293,26 +438,88 @@ impl Expr {
         numbers: &impl Fn(&str) -> Option<f64>,
         predicate: &impl Fn(&str, &str) -> Result<bool, String>,
     ) -> Result<Value, String> {
+        self.evaluate_tracked(
+            &|name| Ok(numbers(name).map(Tracked::plain)),
+            &|kind, name| predicate(kind, name).map(Tracked::plain),
+            &|_, _| Err("qualified values require a tracked evaluation host".into()),
+        )
+        .map(|tracked| tracked.value)
+    }
+
+    /// Preserve the sorted union of every dependency actually read. This
+    /// includes ignored eager function arguments, but excludes short-circuited
+    /// operands. The host supplies typed graph provenance and authorizes
+    /// explicit qualification; expression evaluation never asserts truth.
+    pub fn evaluate_tracked(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
+    ) -> Result<Tracked<Value>, String> {
+        // The existing evaluator already visits precisely the operands that
+        // contribute to this evaluation. Accumulating at those reads gives
+        // identical propagation without copying full traces at every AST node.
+        let provenance = RefCell::new(Provenance::default());
+        let value = self.evaluate_values(
+            &|name| {
+                let Some(tracked) = numbers(name)? else {
+                    return Ok(None);
+                };
+                let value = finite(tracked.value)?;
+                provenance.borrow_mut().merge(&tracked.provenance)?;
+                Ok(Some(value))
+            },
+            &|kind, name| {
+                let tracked = predicate(kind, name)?;
+                provenance.borrow_mut().merge(&tracked.provenance)?;
+                Ok(tracked.value)
+            },
+            &|evidence, caveats| provenance.borrow_mut().merge(&qualify(evidence, caveats)?),
+        )?;
+        Ok(Tracked {
+            value,
+            provenance: provenance.into_inner(),
+        })
+    }
+
+    fn evaluate_values(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<f64>, String>,
+        predicate: &impl Fn(&str, &str) -> Result<bool, String>,
+        qualify: &impl Fn(&str, &[String]) -> Result<(), String>,
+    ) -> Result<Value, String> {
         match &self.node {
             Node::Number(value) => Ok(Value::Number(value.value())),
             Node::Bool(value) => Ok(Value::Bool(*value)),
             Node::Variable(name) => {
                 let value =
-                    numbers(name).ok_or_else(|| format!("unknown numeric identifier {name}"))?;
+                    numbers(name)?.ok_or_else(|| format!("unknown numeric identifier {name}"))?;
                 Ok(Value::Number(finite(value)?))
             }
             Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
+            Node::Qualified(value, evidence, caveats) => {
+                let value = value
+                    .evaluate_values(numbers, predicate, qualify)?
+                    .number()?;
+                qualify(evidence, caveats)?;
+                Ok(Value::Number(value))
+            }
             Node::UserCall(name, _) => Err(format!(
                 "source function {name} must be expanded before evaluation"
             )),
             Node::ExpandedCall(arguments, body) => {
                 for argument in arguments {
-                    argument.evaluate(numbers, predicate)?.number()?;
+                    argument
+                        .evaluate_values(numbers, predicate, qualify)?
+                        .number()?;
                 }
-                Ok(Value::Number(body.evaluate(numbers, predicate)?.number()?))
+                Ok(Value::Number(
+                    body.evaluate_values(numbers, predicate, qualify)?
+                        .number()?,
+                ))
             }
             Node::Unary(operator, child) => {
-                let value = child.evaluate(numbers, predicate)?;
+                let value = child.evaluate_values(numbers, predicate, qualify)?;
                 match operator {
                     Unary::Positive => Ok(Value::Number(value.number()?)),
                     Unary::Negative => Ok(Value::Number(-value.number()?)),
@@ -320,13 +527,13 @@ impl Expr {
                 }
             }
             Node::Binary(operator, left, right) => {
-                let left = left.evaluate(numbers, predicate)?;
+                let left = left.evaluate_values(numbers, predicate, qualify)?;
                 match operator {
                     Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
                     Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
                     _ => {}
                 }
-                let right = right.evaluate(numbers, predicate)?;
+                let right = right.evaluate_values(numbers, predicate, qualify)?;
                 match operator {
                     Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
                     Binary::Equal | Binary::NotEqual => {
@@ -367,7 +574,11 @@ impl Expr {
             Node::Function(function, arguments) => {
                 let arguments = arguments
                     .iter()
-                    .map(|argument| argument.evaluate(numbers, predicate)?.number())
+                    .map(|argument| {
+                        argument
+                            .evaluate_values(numbers, predicate, qualify)?
+                            .number()
+                    })
                     .collect::<Result<Vec<_>, _>>()?;
                 let result = match function {
                     Function::Abs => arguments[0].abs(),
@@ -632,6 +843,18 @@ impl Parser {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
         }
+        if name == "qualified" {
+            let value = self.expression(0, nesting)?;
+            self.expect(TokenKind::Comma, "',' before qualification evidence")?;
+            let evidence = self.graph_identifier("qualified evidence")?;
+            let mut caveats = Vec::new();
+            while self.peek() == Some(&TokenKind::Comma) {
+                self.cursor += 1;
+                caveats.push(self.graph_identifier("qualified caveat")?);
+            }
+            self.expect(TokenKind::RightParen, "')' after qualified value")?;
+            return Ok(Node::Qualified(Box::new(value), evidence, caveats));
+        }
         if matches!(
             name.as_str(),
             "observed" | "examined" | "committed" | "reopened"
@@ -684,6 +907,16 @@ impl Parser {
             Ok(Node::Function(function, arguments))
         } else {
             Ok(Node::UserCall(name, arguments))
+        }
+    }
+
+    fn graph_identifier(&mut self, context: &str) -> Result<String, String> {
+        let offset = self.offset();
+        match self.take() {
+            Some(TokenKind::Identifier(name)) if plain_identifier(&name) => Ok(name),
+            _ => Err(format!(
+                "{context} requires a plain graph identifier at byte {offset}"
+            )),
         }
     }
 }
@@ -768,7 +1001,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         if name != &definition.name || !plain_identifier(name) {
             return Err(format!("invalid source function name {}", definition.name));
         }
-        if Function::named(name).is_some() || predicate_name(name) {
+        if Function::named(name).is_some() || predicate_name(name) || name == "qualified" {
             return Err(format!(
                 "source function {name} shadows an intrinsic or predicate"
             ));
@@ -817,7 +1050,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
 
 fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
     match &expression.node {
-        Node::Unary(_, child) => collect_calls(child, calls),
+        Node::Unary(_, child) | Node::Qualified(child, _, _) => collect_calls(child, calls),
         Node::Binary(_, left, right) => {
             collect_calls(left, calls);
             collect_calls(right, calls);
@@ -904,6 +1137,18 @@ impl Expander<'_> {
                     return Err("pure source functions cannot query graph predicates".into());
                 }
                 Node::Predicate(name.clone(), target.clone())
+            }
+            Node::Qualified(value, evidence, caveats) => {
+                if parameters.is_some() {
+                    return Err(
+                        "pure source functions cannot capture evidence in qualified values".into(),
+                    );
+                }
+                Node::Qualified(
+                    Box::new(self.walk(value, parameters)?),
+                    evidence.clone(),
+                    caveats.clone(),
+                )
             }
             Node::Unary(operator, child) => {
                 Node::Unary(*operator, Box::new(self.walk(child, parameters)?))
@@ -1007,6 +1252,408 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    fn provenance(evidence: &[&str], caveats: &[&str]) -> Provenance {
+        Provenance::from_names(
+            evidence.iter().map(|name| (*name).to_string()),
+            caveats.iter().map(|name| (*name).to_string()),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn tracked_arithmetic_comparisons_and_intrinsics_cannot_launder_dependencies() {
+        let expected = provenance(&["reading"], &["uncertainty"]);
+        for source in [
+            "x * 0",
+            "x - x",
+            "-x",
+            "+x",
+            "min(0, x)",
+            "max(x, 100)",
+            "clamp(x, 0, 1)",
+            "clamp(0, 0, x)",
+            "abs(x)",
+            "sqrt(x)",
+            "sin(x)",
+            "cos(x)",
+            "atan2(x, 1)",
+            "x == x",
+            "x != 0",
+            "x < 100",
+            "x <= 2",
+            "x > 1",
+            "x >= 2",
+            "not x > 10",
+        ] {
+            let expression = parse(source).unwrap();
+            let old_value = expression
+                .evaluate(&|_| Some(2.0), &|_, _| Ok(false))
+                .unwrap();
+            let tracked = expression
+                .evaluate_tracked(
+                    &|_| Ok(Some(Tracked::new(2.0, expected.clone())?)),
+                    &|_, _| Ok(Tracked::plain(false)),
+                    &|_, _| Err("unexpected qualification".into()),
+                )
+                .unwrap();
+            assert_eq!(tracked.value, old_value, "{source}");
+            assert_eq!(tracked.provenance, expected, "{source}");
+        }
+        let literal = parse("1 + 2")
+            .unwrap()
+            .evaluate_tracked(
+                &|_| Err("unexpected read".into()),
+                &|_, _| Err("unexpected predicate".into()),
+                &|_, _| Err("unexpected qualification".into()),
+            )
+            .unwrap();
+        assert!(literal.provenance.is_empty());
+    }
+
+    #[test]
+    fn tracked_boolean_short_circuit_only_retains_evaluated_dependencies() {
+        for (source, left, right, visits, names) in [
+            (
+                "observed(left) or examined(right)",
+                true,
+                false,
+                1,
+                vec!["left"],
+            ),
+            (
+                "observed(left) and examined(right)",
+                false,
+                true,
+                1,
+                vec!["left"],
+            ),
+            (
+                "observed(left) and examined(right)",
+                true,
+                false,
+                2,
+                vec!["left", "right"],
+            ),
+            (
+                "observed(left) or examined(right)",
+                false,
+                true,
+                2,
+                vec!["left", "right"],
+            ),
+            ("not observed(left)", true, false, 1, vec!["left"]),
+        ] {
+            let calls = Cell::new(0);
+            let tracked = parse(source)
+                .unwrap()
+                .evaluate_tracked(
+                    &|_| Ok(None),
+                    &|_, name| {
+                        calls.set(calls.get() + 1);
+                        Tracked::new(
+                            if name == "left" { left } else { right },
+                            provenance(&[name], &[]),
+                        )
+                    },
+                    &|_, _| Err("unexpected qualification".into()),
+                )
+                .unwrap();
+            assert_eq!(calls.get(), visits, "{source}");
+            assert_eq!(tracked.provenance, provenance(&names, &[]), "{source}");
+        }
+        for source in [
+            "true or qualified(1, missing) > 0",
+            "false and qualified(1, missing) > 0",
+        ] {
+            let tracked = parse(source)
+                .unwrap()
+                .evaluate_tracked(
+                    &|_| Ok(None),
+                    &|_, _| Err("unexpected predicate".into()),
+                    &|_, _| Err("evidence has not been observed".into()),
+                )
+                .unwrap();
+            assert!(tracked.provenance.is_empty());
+        }
+    }
+
+    #[test]
+    fn qualified_constructor_checks_graph_types_and_unions_numeric_and_graph_traces() {
+        let expression = parse("qualified(raw + 2, reading, uncertainty, omission)").unwrap();
+        let validations = RefCell::new(Vec::new());
+        assert_eq!(
+            expression.validate(&["raw".into()].into_iter().collect(), &|kind, name| {
+                validations
+                    .borrow_mut()
+                    .push((kind.to_string(), name.to_string()));
+                Ok(())
+            }),
+            Ok(ValueType::Number)
+        );
+        assert_eq!(
+            *validations.borrow(),
+            vec![
+                ("qualification_evidence".into(), "reading".into()),
+                ("qualification_caveat".into(), "uncertainty".into()),
+                ("qualification_caveat".into(), "omission".into()),
+            ]
+        );
+        let tracked = expression
+            .evaluate_tracked(
+                &|_| {
+                    Ok(Some(Tracked::new(
+                        3.0,
+                        provenance(&["earlier"], &["retained"]),
+                    )?))
+                },
+                &|_, _| Err("constructor must use the dedicated callback".into()),
+                &|evidence, caveats| {
+                    assert_eq!(evidence, "reading");
+                    assert_eq!(
+                        caveats,
+                        &["uncertainty".to_string(), "omission".to_string()]
+                    );
+                    Ok(provenance(
+                        &[evidence],
+                        &["uncertainty", "omission", "transitive"],
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(tracked.value, Value::Number(5.0));
+        assert_eq!(
+            tracked.provenance,
+            provenance(
+                &["earlier", "reading"],
+                &["retained", "uncertainty", "omission", "transitive"]
+            )
+        );
+        assert!(expression
+            .validate(&["raw".into()].into_iter().collect(), &|_, _| Err(
+                "wrong graph kind".into()
+            ))
+            .is_err());
+        assert!(expression
+            .evaluate(&|_| Some(3.0), &|_, _| Ok(true))
+            .unwrap_err()
+            .contains("tracked evaluation host"));
+    }
+
+    #[test]
+    fn qualified_constructor_is_numeric_explicit_and_fails_on_host_rejection() {
+        for source in [
+            "qualified()",
+            "qualified(1)",
+            "qualified(1, 2)",
+            "qualified(1, reading,)",
+            "qualified(1, reading.x)",
+            "qualified(1, reading, risk + 1)",
+        ] {
+            assert!(parse(source).is_err(), "{source}");
+        }
+        let expression = parse("qualified(true, reading)").unwrap();
+        assert!(expression
+            .validate(&HashSet::new(), &|_, _| Ok(()))
+            .is_err());
+        let calls = Cell::new(0);
+        assert!(expression
+            .evaluate_tracked(&|_| Ok(None), &|_, _| Ok(Tracked::plain(false)), &|_, _| {
+                calls.set(calls.get() + 1);
+                Ok(Provenance::default())
+            })
+            .is_err());
+        assert_eq!(calls.get(), 0);
+        let expression = parse("qualified(1, unread)").unwrap();
+        assert_eq!(
+            expression.evaluate_tracked(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Err("evidence unread has not been observed".into()),
+            ),
+            Err("evidence unread has not been observed".into())
+        );
+        let nested = parse("qualified(qualified(1, first, a), second, b)")
+            .unwrap()
+            .evaluate_tracked(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|evidence, caveats| {
+                    Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            nested.provenance,
+            provenance(&["first", "second"], &["a", "b"])
+        );
+    }
+
+    #[test]
+    fn expanded_functions_preserve_ignored_qualified_arguments_without_global_capture() {
+        let functions = definitions(&[("ignore", &["x"], "0"), ("cancel", &["x"], "x-x")]);
+        validate_functions(&functions).unwrap();
+        for source in [
+            "ignore(qualified(3, reading, risk))",
+            "cancel(qualified(3, reading, risk))",
+            "ignore(cancel(qualified(3, reading, risk)))",
+        ] {
+            let expression = expand(&parse_unresolved(source).unwrap(), &functions).unwrap();
+            let tracked = expression
+                .evaluate_tracked(
+                    &|_| Ok(None),
+                    &|_, _| Ok(Tracked::plain(false)),
+                    &|evidence, caveats| {
+                        Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                    },
+                )
+                .unwrap();
+            assert_eq!(tracked.value, Value::Number(0.0));
+            assert_eq!(tracked.provenance, provenance(&["reading"], &["risk"]));
+        }
+        let capture = definitions(&[("capture", &["x"], "qualified(x, reading)")]);
+        assert!(validate_functions(&capture).is_err());
+        assert!(expand(&parse_unresolved("capture(1)").unwrap(), &capture).is_err());
+        let shadow = definitions(&[("qualified", &["x"], "x")]);
+        assert!(validate_functions(&shadow).unwrap_err().contains("shadows"));
+    }
+
+    #[test]
+    fn provenance_is_sorted_deduplicated_and_bounded_with_atomic_merge() {
+        let left = provenance(&["z", "a", "z"], &["risk"]);
+        let right = provenance(&["b", "a"], &["risk", "omission"]);
+        let joined = left.union(&right).unwrap();
+        assert_eq!(joined, right.union(&left).unwrap());
+        assert_eq!(
+            serde_json::to_string(&joined).unwrap(),
+            "{\"evidence\":[\"a\",\"b\",\"z\"],\"caveats\":[\"omission\",\"risk\"]}"
+        );
+        let mut full = Provenance::from_names(
+            (0..MAX_PROVENANCE_IDENTIFIERS).map(|index| format!("e{index}")),
+            [],
+        )
+        .unwrap();
+        assert_eq!(full.union(&full).unwrap(), full);
+        let before = full.clone();
+        assert!(full
+            .merge(&provenance(&[], &["additional"]))
+            .unwrap_err()
+            .contains("identifiers"));
+        assert_eq!(full, before);
+        assert!(Provenance::from_names(
+            (0..=MAX_PROVENANCE_IDENTIFIERS).map(|index| format!("e{index}")),
+            []
+        )
+        .is_err());
+        let full_bytes =
+            Provenance::from_names(["é".repeat(MAX_PROVENANCE_BYTES / 2)], []).unwrap();
+        let mut oversized = full_bytes.clone();
+        assert!(oversized
+            .merge(&provenance(&[], &["x"]))
+            .unwrap_err()
+            .contains("name bytes"));
+        assert_eq!(oversized, full_bytes);
+        assert!(Provenance::from_names(["a".repeat(MAX_PROVENANCE_BYTES + 1)], []).is_err());
+    }
+
+    #[test]
+    fn tracked_evaluation_rejects_oversized_host_metadata_and_combined_traces() {
+        let half = MAX_PROVENANCE_IDENTIFIERS / 2;
+        let expression = parse("left + right").unwrap();
+        let result = expression.evaluate_tracked(
+            &|name| {
+                let (start, end) = if name == "left" {
+                    (0, half)
+                } else {
+                    (half, MAX_PROVENANCE_IDENTIFIERS + 1)
+                };
+                Ok(Some(Tracked::new(
+                    1.0,
+                    Provenance::from_names((start..end).map(|index| format!("e{index}")), [])?,
+                )?))
+            },
+            &|_, _| Ok(Tracked::plain(false)),
+            &|_, _| Ok(Provenance::default()),
+        );
+        assert!(result.unwrap_err().contains("identifiers"));
+        let invalid = Provenance {
+            evidence: (0..=MAX_PROVENANCE_IDENTIFIERS)
+                .map(|index| format!("e{index}"))
+                .collect(),
+            caveats: BTreeSet::new(),
+        };
+        assert!(parse("x")
+            .unwrap()
+            .evaluate_tracked(
+                &|_| Ok(Some(Tracked {
+                    value: 1.0,
+                    provenance: invalid.clone()
+                })),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+            )
+            .is_err());
+        assert!(parse("observed(e)")
+            .unwrap()
+            .evaluate_tracked(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked {
+                    value: true,
+                    provenance: invalid.clone()
+                }),
+                &|_, _| Ok(Provenance::default()),
+            )
+            .is_err());
+        assert!(parse("qualified(1, e)")
+            .unwrap()
+            .evaluate_tracked(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(invalid.clone()),
+            )
+            .is_err());
+    }
+
+    #[test]
+    fn tracked_evaluation_keeps_arithmetic_and_callback_errors() {
+        for source in ["x / 0", "x * 1e308", "sqrt(-x)", "clamp(x, 2, 1)"] {
+            let expression = parse(source).unwrap();
+            let expected = expression
+                .evaluate(&|_| Some(2.0), &|_, _| Ok(false))
+                .unwrap_err();
+            let actual = expression
+                .evaluate_tracked(
+                    &|_| {
+                        Ok(Some(Tracked::new(
+                            2.0,
+                            provenance(&["reading"], &["risk"]),
+                        )?))
+                    },
+                    &|_, _| Ok(Tracked::plain(false)),
+                    &|_, _| Ok(Provenance::default()),
+                )
+                .unwrap_err();
+            assert_eq!(actual, expected, "{source}");
+        }
+        let expression = parse("x").unwrap();
+        assert_eq!(
+            expression.evaluate_tracked(
+                &|_| Err("host lookup failed".into()),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default())
+            ),
+            Err("host lookup failed".into())
+        );
+        for value in [f64::INFINITY, f64::NEG_INFINITY, f64::NAN] {
+            assert!(expression
+                .evaluate_tracked(
+                    &|_| Ok(Some(Tracked::plain(value))),
+                    &|_, _| Ok(Tracked::plain(false)),
+                    &|_, _| Ok(Provenance::default())
+                )
+                .is_err());
+        }
     }
 
     #[test]
