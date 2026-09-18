@@ -1,4 +1,17 @@
 scene "Emergency lights pulse red. The evacuation corridor is behind a sealed door, and the building systems disagree about whether opening it is safe.";
+place start_corridor kind corridor;
+place cross_corridor kind corridor;
+place continuation_corridor kind corridor;
+place alternate_route kind corridor;
+place stair_landing kind stairwell;
+place stair_flight_down kind stairwell;
+entity door_a kind fire_door at start_corridor;
+entity stair_door_b kind fire_door at cross_corridor;
+connect start_corridor to cross_corridor via door_a;
+connect cross_corridor to continuation_corridor;
+connect start_corridor to alternate_route;
+connect cross_corridor to stair_landing via stair_door_b;
+connect stair_landing to stair_flight_down;
 display latch_sensor_recently_serviced "Check the maintenance record for the latch sensor.";
 display camera_has_blind_spot "Inspect the camera coverage for blind spots.";
 display maintenance_record "Maintenance log: the latch sensor failed calibration twice after servicing.";
