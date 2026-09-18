@@ -1,4 +1,4 @@
-use crate::action_runtime::ActionRuntime;
+use crate::action_runtime::{simulate, ActionRuntime};
 use crate::graphics::CaveatScene;
 use crate::map::{to_json_pretty, CaveatMap};
 use crate::session::{CommitmentFeedback, Discovery, PendingInteraction, Session};
@@ -119,6 +119,21 @@ pub fn caveat_trace(source: &str, symbol: &str) -> String {
 pub fn caveat_actions(source: &str) -> String {
     CaveatMap::from_source(source)
         .and_then(|map| to_json_pretty(&map.actions))
+        .unwrap_or_else(|error| error_json(&error))
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn caveat_simulate(source: &str, actions_csv: &str) -> String {
+    CaveatMap::from_source(source)
+        .and_then(|map| {
+            let actions = actions_csv
+                .split(',')
+                .map(str::trim)
+                .filter(|action| !action.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>();
+            simulate(&map, &actions).and_then(|result| to_json_pretty(&result))
+        })
         .unwrap_or_else(|error| error_json(&error))
 }
 
