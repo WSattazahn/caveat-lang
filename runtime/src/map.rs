@@ -1077,7 +1077,11 @@ mod tests {
 place start kind corridor;
 place landing kind stairwell;
 entity door_a kind fire_door at start;
+entity camera kind camera at start;
 connect start to landing via door_a;
+start_at start;
+action camera_gap from start to start steps inspect camera, observe camera_frame;
+action open from start to landing steps operate door_a, open door_a, through door_a;
 budget 2;
 claim route_clear;
 claim route_safe;
@@ -1145,6 +1149,41 @@ when_committed open reopen open because camera_gap;
         let source = "place start kind corridor; entity door_a kind fire_door at nowhere;";
         let error = CaveatMap::from_source(source).expect_err("unknown place should fail");
         assert!(error.contains("entity door_a references unknown place nowhere"));
+    }
+
+    #[test]
+    fn closed_barrier_traversal_is_rejected() {
+        let source = r#"
+place a kind corridor;
+place b kind corridor;
+entity door_a kind fire_door at a;
+connect a to b via door_a;
+start_at a;
+action leave from a to b steps through door_a;
+choice route options leave;
+select route leave;
+"#;
+        let error = CaveatMap::from_source(source).expect_err("closed traversal should fail");
+        assert!(error.contains("traverses closed barrier door_a"));
+    }
+
+    #[test]
+    fn requires_open_allows_cross_action_return() {
+        let source = r#"
+place a kind corridor;
+place b kind corridor;
+entity door_a kind fire_door at a;
+connect a to b via door_a;
+start_at a;
+action leave from a to b steps open door_a, through door_a;
+action return from b to a requires_open door_a steps through door_a;
+choice outbound options leave;
+select outbound leave;
+choice inbound options return;
+select inbound return;
+"#;
+        let map = CaveatMap::from_source(source).expect("open precondition should validate");
+        assert_eq!(map.world.action_plans.len(), 2);
     }
 
     #[test]
