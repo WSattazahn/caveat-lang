@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#160f12">
+<title>Mr. Caveat — Moon Market Mischief</title>
+<style>
+:root{color-scheme:dark;--cream:#fff1d6;--ink:#201716;--gold:#ffc86b;--red:#ff725d;--panel:rgba(17,12,15,.88)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#100b0e;font-family:ui-rounded,"SF Pro Rounded","Avenir Next",system-ui,-apple-system,sans-serif;color:var(--cream)}
+button{font:inherit}
+#game{position:fixed;inset:0;overflow:hidden;background:#160f12}
+.world{position:absolute;inset:0;background-image:linear-gradient(rgba(9,5,8,.05),rgba(9,5,8,.12)),url('./assets/mr-caveat-scene.webp');background-size:cover;background-position:72% 50%;transition:background-position .18s linear,filter .35s ease}
+.world.bridge{background-image:linear-gradient(rgba(9,5,8,.04),rgba(9,5,8,.12)),url('./assets/mr-caveat-bridge.webp');background-size:cover;background-position:50% 50%}
+.world:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 30%,transparent 0 42%,rgba(8,4,8,.22) 76%,rgba(8,4,8,.62) 100%),linear-gradient(180deg,rgba(0,0,0,.12),transparent 38%,rgba(0,0,0,.36))}
+.top{position:absolute;z-index:20;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:max(11px,env(safe-area-inset-top));display:flex;align-items:flex-start;justify-content:space-between;gap:10px;pointer-events:none}
+.logo{padding:9px 12px;border-radius:16px;background:rgba(18,12,14,.66);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 30px rgba(0,0,0,.28)}
+.logo b{display:block;font-size:14px;letter-spacing:.07em}.logo span{display:block;font-size:10px;color:#d7c6b5;margin-top:2px}
+.case{max-width:56%;padding:9px 11px;border-radius:16px;background:rgba(18,12,14,.66);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);text-align:right}
+.case small{display:block;color:#efc77f;font-size:9px;letter-spacing:.14em;text-transform:uppercase}.case b{font-size:12px;line-height:1.25}
+.sparkbar{display:flex;gap:4px;justify-content:flex-end;margin-top:5px}.spark{width:8px;height:8px;border-radius:50%;background:#5f514c;box-shadow:0 0 0 1px rgba(255,255,255,.12)}.spark.on{background:#ff8a61;box-shadow:0 0 12px #ff6c4f}
+.ground{position:absolute;left:0;right:0;bottom:0;height:28%;z-index:4;background:linear-gradient(transparent,rgba(21,12,13,.06) 22%,rgba(13,8,9,.18));pointer-events:none}
+.avatar{position:absolute;z-index:10;bottom:18%;left:18%;width:88px;height:122px;transform:translateX(-50%);transition:filter .15s ease;filter:drop-shadow(0 12px 13px rgba(0,0,0,.45))}
+.avatar.walking{animation:bob .28s ease-in-out infinite alternate}.avatar.stumble{animation:stumble .28s ease}.avatar.jump{animation:none}
+.bot-head{position:absolute;left:8px;top:2px;width:72px;height:67px;border-radius:44% 48% 45% 46%;background:linear-gradient(145deg,#e9ddd0,#bba993 58%,#8d7867);border:2px solid #5d4a3c;box-shadow:inset 8px 7px 15px rgba(255,255,255,.3),inset -8px -8px 14px rgba(53,35,31,.28)}
+.bot-head:before{content:"";position:absolute;width:34px;height:11px;border-radius:50%;left:18px;top:-7px;background:#6b4b38;border:2px solid #3e3028;transform:rotate(-6deg)}
+.antenna{position:absolute;left:36px;top:-17px;width:4px;height:17px;background:#514239;border-radius:4px}.antenna:after{content:"";position:absolute;left:-5px;top:-7px;width:13px;height:13px;border-radius:50%;background:#ffd071;box-shadow:0 0 18px #ffb74f}
+.eye{position:absolute;top:20px;width:22px;height:30px;border-radius:45%;background:#1d1918;border:2px solid #5f5148;overflow:hidden}.eye:after{content:"";position:absolute;inset:4px 5px;border-radius:50%;background:#fff8de;box-shadow:0 0 12px rgba(255,244,205,.85)}.eye.l{left:11px}.eye.r{right:10px}
+.avatar.suspicious .eye.r{height:17px;top:27px}.avatar.panicked .antenna:after{background:#ff6150;box-shadow:0 0 20px #ff412e}
+.mouth{position:absolute;left:33px;top:54px;width:11px;height:5px;border-bottom:2px solid #47372e;border-radius:50%}
+.bot-body{position:absolute;left:21px;top:61px;width:48px;height:48px;border-radius:16px 16px 20px 20px;background:linear-gradient(145deg,#79604c,#4d3a31);border:2px solid #3b2d27;box-shadow:inset 6px 5px 10px rgba(255,255,255,.12)}
+.bot-body:after{content:"";position:absolute;left:15px;top:10px;width:15px;height:15px;border-radius:50%;background:#ffe08b;box-shadow:0 0 12px #ffc35c}
+.arm,.leg{position:absolute;background:#5f4a3c;border:2px solid #362b27;border-radius:12px}.arm{top:69px;width:16px;height:42px}.arm.l{left:11px;transform:rotate(18deg)}.arm.r{right:10px;transform:rotate(-18deg)}.leg{top:101px;width:18px;height:24px}.leg.l{left:22px}.leg.r{right:21px}
+.shadow{position:absolute;z-index:9;bottom:17.2%;left:18%;width:86px;height:18px;border-radius:50%;background:rgba(0,0,0,.3);filter:blur(3px);transform:translateX(-50%)}
+.thought{position:absolute;z-index:14;left:18%;bottom:calc(18% + 128px);transform:translateX(-50%) scale(.94);max-width:min(270px,70vw);padding:10px 13px;border-radius:18px;background:#fff4db;color:#2c1d19;font-weight:800;font-size:12px;line-height:1.3;box-shadow:0 8px 28px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.2s ease}
+.thought.show{opacity:1;transform:translateX(-50%) scale(1)}.thought:after{content:"";position:absolute;left:34px;bottom:-9px;width:17px;height:17px;background:#fff4db;transform:rotate(45deg);border-radius:3px}
+.marker{position:absolute;z-index:8;bottom:31%;width:54px;height:54px;border-radius:50%;transform:translateX(-50%);border:2px solid rgba(255,224,145,.65);background:rgba(255,196,93,.13);box-shadow:0 0 28px rgba(255,190,75,.25);opacity:0;transition:.2s;pointer-events:none}.marker.near{opacity:1;animation:pulse 1s ease-in-out infinite}
+.marker:after{content:"!";position:absolute;inset:0;display:grid;place-items:center;color:#ffe1a0;font-size:24px;font-weight:900}
+.dialogue{position:absolute;z-index:30;left:50%;bottom:calc(max(94px,env(safe-area-inset-bottom) + 82px));width:min(690px,calc(100% - 28px));transform:translateX(-50%);padding:15px 16px;border-radius:20px;background:rgba(18,11,13,.91);border:1px solid rgba(255,255,255,.15);box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:.22s}
+.dialogue.show{opacity:1;pointer-events:auto}.speaker{color:#ffc86b;font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px}.line{font-size:15px;line-height:1.4;color:#fff2dc}.choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.choices button,.dialogue .continue{border:1px solid rgba(255,255,255,.14);border-radius:13px;padding:10px 12px;background:rgba(255,255,255,.08);color:#fff0d7;font-weight:750}.dialogue .continue{width:100%;margin-top:12px;background:#f3c56e;color:#2a1d16;border:0}
+.controls{position:absolute;z-index:25;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none}
+.pad,.acts{display:flex;gap:8px;pointer-events:auto}.ctrl{width:60px;height:60px;border:1px solid rgba(255,255,255,.18);border-radius:20px;background:rgba(18,12,15,.72);backdrop-filter:blur(10px);color:#fff2db;font-size:23px;font-weight:900;box-shadow:0 8px 25px rgba(0,0,0,.25);touch-action:none}.ctrl:active,.ctrl.on{transform:translateY(2px);background:rgba(255,194,97,.18)}.ctrl.small{width:52px;height:52px;font-size:17px}.action{min-width:116px;width:auto;padding:0 15px;font-size:13px;letter-spacing:.02em;background:rgba(238,183,88,.87);color:#2b1d16;border-color:#ffe1a4}.action:disabled{opacity:.38;filter:grayscale(.5)}
+.mischief{background:rgba(124,70,107,.8)}
+.runner{position:absolute;z-index:40;inset:0;display:none;overflow:hidden;background-image:linear-gradient(rgba(8,4,7,.08),rgba(8,4,7,.18)),url('./assets/mr-caveat-bridge.webp');background-size:cover;background-position:50% 50%}.runner.show{display:block}.runner .road{position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(14,8,9,.15) 25%,rgba(9,6,8,.6))}
+.runnerBot{position:absolute;z-index:3;left:20%;bottom:18%;width:72px;height:98px;transform:scale(.86);filter:drop-shadow(0 10px 12px rgba(0,0,0,.45))}.runnerBot .bot-head{transform:scale(.82);transform-origin:top left}.runnerBot .bot-body{transform:scale(.82);transform-origin:top left}.runnerBot .arm,.runnerBot .leg{transform:scale(.82)}
+.chaser{position:absolute;z-index:2;left:5%;bottom:20%;font-size:58px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.4));animation:chaseBob .25s ease-in-out infinite alternate}.cat{left:auto;right:11%;font-size:50px}
+.obstacle{position:absolute;z-index:2;bottom:17%;font-size:42px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.4))}
+.runnerHud{position:absolute;z-index:5;left:50%;top:max(70px,calc(env(safe-area-inset-top) + 55px));transform:translateX(-50%);width:min(560px,calc(100% - 30px));display:flex;gap:10px;align-items:center}.runnerBar{flex:1;height:10px;border-radius:99px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);overflow:hidden}.runnerBar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#ffc66a,#ff735c);border-radius:99px}.runnerText{font-size:11px;font-weight:850;text-shadow:0 2px 8px #000}
+.jumpBtn{position:absolute;z-index:6;right:18px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:0;border-radius:22px;background:#f4c66e;color:#291b16;font-weight:900;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.splash{position:absolute;z-index:60;inset:0;display:grid;place-items:end center;padding:18px 18px max(22px,env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent 15%,rgba(9,5,8,.08) 42%,rgba(9,5,8,.92) 88%),url('./assets/mr-caveat-scene.webp') center/cover no-repeat}
+.splashCard{width:min(720px,100%);padding:18px;border:1px solid rgba(255,255,255,.14);border-radius:22px;background:rgba(17,11,13,.84);backdrop-filter:blur(14px);box-shadow:0 20px 70px rgba(0,0,0,.45)}
+.splashCard h1{margin:0;font-size:clamp(34px,9vw,64px);line-height:.92;letter-spacing:-.055em}.splashCard h1 small{display:block;font-size:.34em;letter-spacing:.02em;color:#f6c976;margin-bottom:6px}.splashCard p{margin:10px 0 15px;color:#e1d1c0;line-height:1.45;max-width:560px}.start{width:100%;min-height:52px;border:0;border-radius:15px;background:#f4c66e;color:#261914;font-weight:900;font-size:15px}
+.end{position:absolute;z-index:60;inset:0;display:none;place-items:end center;padding:18px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(8,4,6,.9)),url('./assets/mr-caveat-bridge.webp') center/cover no-repeat}.end.show{display:grid}.endCard{width:min(700px,100%);padding:18px;border-radius:22px;background:rgba(16,10,12,.89);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}.endCard h2{margin:0 0 8px;font-size:32px}.endCard p{margin:0 0 13px;color:#decfc0;line-height:1.45}.endCard button{width:100%;min-height:50px;border:0;border-radius:14px;background:#f4c66e;color:#251914;font-weight:900}
+.brain{position:absolute;z-index:70;right:11px;top:82px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(17,11,13,.65);color:#d8c8b7;font-size:14px}.brainPanel{position:absolute;z-index:69;right:12px;top:125px;width:min(350px,calc(100% - 24px));max-height:52vh;overflow:auto;padding:12px;border-radius:15px;background:rgba(12,8,10,.94);border:1px solid rgba(255,255,255,.12);display:none;font-size:11px;line-height:1.45;color:#c8b8aa}.brainPanel.show{display:block}.brainPanel b{color:#f0c878}
+.toast{position:absolute;z-index:50;top:46%;left:50%;transform:translate(-50%,-50%) scale(.94);padding:11px 15px;border-radius:16px;background:rgba(16,10,12,.9);border:1px solid rgba(255,255,255,.14);font-weight:850;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+@keyframes bob{to{transform:translateX(-50%) translateY(-4px) rotate(-1deg)}}@keyframes stumble{30%{transform:translateX(-50%) rotate(-12deg)}70%{transform:translateX(-50%) rotate(9deg)}}@keyframes chaseBob{to{transform:translateY(-5px) rotate(-2deg)}}@keyframes pulse{50%{transform:translateX(-50%) scale(1.12);box-shadow:0 0 40px rgba(255,190,75,.4)}}
+@media(max-width:700px){.avatar{width:76px;height:108px}.bot-head{transform:scale(.88);transform-origin:top left}.bot-body,.arm,.leg{transform:scale(.88);transform-origin:top left}.dialogue{bottom:calc(max(84px,env(safe-area-inset-bottom) + 76px));padding:13px}.line{font-size:14px}.ctrl{width:56px;height:56px}.action{min-width:104px}.case{max-width:52%}.logo span{display:none}.world{background-size:auto 100%;background-position:66% 50%}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="world" id="world"></div>
+  <div class="ground"></div>
+  <div class="top">
+    <div class="logo"><b>MR. CAVEAT</b><span>small robot · big suspicions</span></div>
+    <div class="case"><small id="phaseLabel">Case 01</small><b id="objective">Someone stole Bao's moon dumpling.</b><div class="sparkbar"><i class="spark"></i><i class="spark"></i><i class="spark"></i></div></div>
+  </div>
+  <button class="brain" id="brainBtn" aria-label="Mr. Caveat's notes">?</button>
+  <div class="brainPanel" id="brainPanel"><b>Mr. Caveat's extremely unnecessary brain notes</b><div id="brainLog"></div></div>
+
+  <div class="shadow" id="shadow"></div>
+  <div class="avatar" id="avatar" aria-label="Mr. Caveat">
+    <div class="bot-head"><i class="antenna"></i><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div>
+    <div class="bot-body"></div><i class="arm l"></i><i class="arm r"></i><i class="leg l"></i><i class="leg r"></i>
+  </div>
+  <div class="thought" id="thought">Extremely suspicious.</div>
+  <div class="marker" id="marker"></div>
+
+  <div class="dialogue" id="dialogue"><div class="speaker" id="speaker">Mr. Caveat</div><div class="line" id="line"></div><div class="choices" id="dialogueChoices"></div></div>
+
+  <div class="controls" id="controls">
+    <div class="pad"><button class="ctrl" id="left" aria-label="Move left">←</button><button class="ctrl" id="right" aria-label="Move right">→</button><button class="ctrl small" id="jump" aria-label="Jump">↑</button></div>
+    <div class="acts"><button class="ctrl small mischief" id="poke" aria-label="Poke something">✦</button><button class="ctrl action" id="action" disabled>Nothing nearby</button></div>
+  </div>
+
+  <div class="runner" id="runner">
+    <div class="road"></div>
+    <div class="runnerHud"><span class="runnerText" id="runnerText">RUN</span><div class="runnerBar"><i id="runnerProgress"></i></div></div>
+    <div class="runnerBot" id="runnerBot"><div class="bot-head"><i class="antenna"></i><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><div class="bot-body"></div><i class="arm l"></i><i class="arm r"></i><i class="leg l"></i><i class="leg r"></i></div>
+    <div class="chaser" id="chaser">😾</div>
+    <button class="jumpBtn" id="runnerJump">JUMP</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="splash" id="splash">
+    <div class="splashCard"><h1><small>CASE 01</small>The Missing Dumpling</h1><p>Bao is missing one moon dumpling. Three bystanders look guilty. Mr. Caveat has already decided this is absolutely his business.</p><button class="start" id="start">Cause a problem</button></div>
+  </div>
+
+  <div class="end" id="end">
+    <div class="endCard"><h2>Of course it was the cat.</h2><p>Miso sits above the bridge eating the evidence. Bao is furious. Mr. Caveat would like the record to show that his earlier accusations were “preliminary field research.”</p><button id="again">Do it again</button></div>
+  </div>
+</div>
+<script type="module">
+import init,{WebSession}from'./pkg/caveat_runtime.js';
+
+const $=s=>document.querySelector(s);
+const world=$('#world'),avatar=$('#avatar'),shadow=$('#shadow'),thought=$('#thought'),marker=$('#marker'),actionBtn=$('#action'),dialogue=$('#dialogue'),speaker=$('#speaker'),line=$('#line'),choiceBox=$('#dialogueChoices'),objective=$('#objective'),phaseLabel=$('#phaseLabel'),runner=$('#runner'),runnerBot=$('#runnerBot'),chaser=$('#chaser'),runnerProgress=$('#runnerProgress'),runnerText=$('#runnerText'),toast=$('#toast');
+let session,phase='intro',x=18,y=0,vy=0,moving=0,trouble=0,lastTarget=null,brain=[],loop=0,locked=false;
+const suspects={
+  sauce:{x:37,label:'Sauce Face',inspect:'sauce_might_be_noodles',lead:'follow_sauce_face',emoji:'😾'},
+  chop:{x:57,label:'Chopsticks',inspect:'chopsticks_are_common',lead:'question_chopsticks',emoji:'🐧'},
+  innocent:{x:77,label:'Innocent...?',inspect:'basket_could_be_delivery',lead:'peek_basket',emoji:'🐰'}
+};
+const second={
+  wrapper:{x:18,label:'crumpled wrapper',select:'wrapper_smell_might_be_fish'},
+  flour:{x:47,label:'tiny flour print',select:'tiny_print_could_be_shop_cat'},
+  roof:{x:88,label:'roof shadow',select:'roof_shadow_might_be_cat'}
+};
+const finals={
+  alley:{x:7,label:'search the side alley',select:'search_alley'},
+  stall:{x:23,label:'look under the stall',select:'search_under_stall'},
+  bridge:{x:91,label:'check the bridge roof',select:'search_bridge'}
+};
+const inspectLines={
+  sauce_might_be_noodles:['Sauce Face','That red stuff is spicy noodle sauce. He is messy, not convicted.'],
+  chopsticks_are_common:['Bao','I hand out those chopsticks with every bowl. Please stop interrogating the utensils.'],
+  basket_could_be_delivery:['Innocent...?','The basket contains herbs, a receipt, and one deeply offended rabbit.']
+};
+const leadLines={
+  follow_sauce_face:['Sauce Face','HEY! Stop following me! I bought noodles before the dumpling even vanished!'],
+  question_chopsticks:['Chopsticks','I am literally helping Bao close the stall. Also: those are my chopsticks.'],
+  peek_basket:['Innocent...?','You could have asked before diving into my groceries, tiny metal detective.']
+};
+const secondLines={
+  tiny_print_could_be_shop_cat:['Mr. Caveat','Tiny pawprint. Flour. Heading toward the bridge. ...oh.'],
+  roof_shadow_might_be_cat:['Mr. Caveat','Black tail. Roof lantern. Extremely cat-shaped development.'],
+  wrapper_smell_might_be_fish:['Mr. Caveat','Dried fish smell on the wrapper. We may have been investigating the wrong species.']
+};
+
+function say(name,text,buttons=[]){speaker.textContent=name;line.textContent=text;choiceBox.innerHTML='';for(const b of buttons){const el=document.createElement('button');el.textContent=b.label;el.onclick=b.on;choiceBox.appendChild(el)}dialogue.classList.add('show')}
+function closeSay(){dialogue.classList.remove('show');choiceBox.innerHTML=''}
+function note(text){brain.push(text);$('#brainLog').innerHTML=brain.map((x,i)=>'<p><b>'+(i+1)+'.</b> '+x+'</p>').join('')}
+function pop(text){toast.textContent=text;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),900)}
+function think(text,ms=1500){thought.textContent=text;thought.classList.add('show');setTimeout(()=>thought.classList.remove('show'),ms)}
+function setTrouble(n){trouble=Math.max(0,Math.min(3,n));document.querySelectorAll('.spark').forEach((e,i)=>e.classList.toggle('on',i<trouble))}
+function setFace(kind=''){avatar.classList.remove('suspicious','panicked');if(kind)avatar.classList.add(kind)}
+function setPhase(p){phase=p;locked=false;closeSay();updateObjective();updateTarget()}
+function updateObjective(){
+  if(phase==='suspect'){phaseLabel.textContent='Find a clue';objective.textContent='Walk up to somebody suspicious and investigate.'}
+  if(phase==='lead'){phaseLabel.textContent='Make a call';objective.textContent='Pick your suspect. Mr. Caveat is ready to be overconfident.'}
+  if(phase==='second'){phaseLabel.textContent='Something is off';objective.textContent='The accusation fell apart. Find one clue everyone missed.'}
+  if(phase==='hunt'){phaseLabel.textContent='Find the thief';objective.textContent='The clues point somewhere small, fast, and probably fluffy.'}
+}
+function activeTargets(){return phase==='suspect'||phase==='lead'?suspects:phase==='second'?second:phase==='hunt'?finals:{}}
+function nearest(){let best=null,d=999;for(const [key,t] of Object.entries(activeTargets())){const q=Math.abs(x-t.x);if(q<d){d=q;best={key,...t,d}}}return best&&best.d<9?best:null}
+function updateTarget(){const t=nearest();lastTarget=t;if(t){marker.style.left=t.x+'%';marker.classList.add('near');actionBtn.disabled=false;actionBtn.textContent=phase==='suspect'?'Look closer':phase==='lead'?'Accuse '+t.label:phase==='second'?'Inspect '+t.label:t.label}else{marker.classList.remove('near');actionBtn.disabled=true;actionBtn.textContent='Nothing nearby'}}
+function runtimeSelect(id){const p=JSON.parse(session.pending());if(!(p.options||[]).includes(id))throw Error('Story/runtime desync: '+id);session.apply(id);const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());note(id+(discoveries.length?' → '+discoveries.map(d=>d.evidence).join(', '):commitment?' → acted':' → ok'));return{discoveries,commitment}}
+function moveFrame(){
+  if(!locked&&moving){x=Math.max(4,Math.min(96,x+moving*.24));avatar.classList.add('walking')}else avatar.classList.remove('walking');
+  if(y>0||vy!==0){y=Math.max(0,y+vy);vy-=.12;if(y<=0){y=0;vy=0}}
+  avatar.style.left=x+'%';shadow.style.left=x+'%';avatar.style.bottom='calc(18% + '+y+'px)';thought.style.left=x+'%';
+  const pan=38+(x/100)*48;world.style.backgroundPosition=pan+'% 50%';updateTarget();loop=requestAnimationFrame(moveFrame)
+}
+function jump(){if(y===0&&!locked){vy=3.4;avatar.classList.add('jump');setTimeout(()=>avatar.classList.remove('jump'),450)}}
+function begin(){document.querySelector('#splash').style.display='none';setPhase('suspect');think('Three suspects. Excellent.');note('Bao reports one missing moon dumpling.')}
+async function interact(){
+  if(locked||!lastTarget)return;
+  locked=true;
+  try{
+    if(phase==='suspect'){
+      const id=lastTarget.inspect;runtimeSelect(id);setFace('suspicious');const [who,text]=inspectLines[id];say(who,text,[{label:'That complicates things.',on:()=>{closeSay();setFace('');setPhase('lead')}}])
+    }else if(phase==='lead'){
+      const id=lastTarget.lead;const target={...lastTarget};runtimeSelect(id);setFace('panicked');const [who,text]=leadLines[id];say(who,text,[{label:'Run.',on:()=>{closeSay();startRunner('escape',target)}}])
+    }else if(phase==='second'){
+      const id=lastTarget.select;runtimeSelect(id);const [who,text]=secondLines[id];say(who,text,[{label:'Follow it.',on:()=>{closeSay();setFace('');setPhase('hunt')}}])
+    }else if(phase==='hunt'){
+      const id=lastTarget.select;runtimeSelect(id);say('Mr. Caveat','I have narrowed this down to a location containing approximately one bridge, one roof, and one terrible possibility.',[{label:'GO.',on:()=>{closeSay();startRunner('miso',{emoji:'🐈‍⬛'})}}])
+    }
+  }catch(e){say('Something broke',e.message,[{label:'Reset',on:()=>location.reload()}])}
+}
+function poke(){
+  if(locked)return;const t=nearest();setTrouble(trouble+1);
+  if(t&&t.key==='sauce'){think('poke.');pop('Noodles wobble dangerously.')}
+  else if(t&&t.key==='chop'){think('scientific poke.');pop('Three chopsticks hit the ground.')}
+  else if(t&&t.key==='innocent'){think('basket inspection!');pop('An offended squeak.')}
+  else{think('Probably evidence.');pop(['Lantern rung.','Pebble kicked.','Crate investigated.'][Math.floor(Math.random()*3)])}
+  if(trouble===2)think('I sense consequences.',1200)
+}
+function bindHold(el,dir){const on=e=>{e.preventDefault();moving=dir;el.classList.add('on')},off=()=>{if(moving===dir)moving=0;el.classList.remove('on')};el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('pointerleave',off)}
+bindHold($('#left'),-1);bindHold($('#right'),1);$('#jump').onclick=jump;$('#action').onclick=interact;$('#poke').onclick=poke;
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')moving=-1;if(e.key==='ArrowRight'||e.key==='d')moving=1;if(e.key==='ArrowUp'||e.key==='w'||e.key===' ')jump();if(e.key==='e'||e.key==='Enter')interact();if(e.key==='p')poke()});
+addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','d'].includes(e.key))moving=0});
+
+let runnerKind='',runnerStart=0,runnerY=0,runnerVy=0,obstacles=[],runnerRAF=0;
+function startRunner(kind,target){
+  locked=true;runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerY=0;runnerVy=0;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH THE DUMPLING THIEF':'BAD ACCUSATION. RUN.';chaser.textContent=kind==='miso'?'🐈‍⬛':target.emoji||'😾';chaser.classList.toggle('cat',kind==='miso');spawnObstacle(104);spawnObstacle(146);spawnObstacle(188);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
+}
+function spawnObstacle(xp){const e=document.createElement('div');e.className='obstacle';e.textContent=Math.random()>.5?'🧺':'📦';e.dataset.x=xp;runner.appendChild(e);obstacles.push(e)}
+function runnerJump(){if(runnerY===0)runnerVy=6.1}
+$('#runnerJump').onclick=runnerJump;
+function runnerTick(t){
+  const duration=runnerKind==='miso'?7200:6000,p=Math.min(1,(t-runnerStart)/duration);runnerProgress.style.width=(p*100)+'%';
+  runnerY=Math.max(0,runnerY+runnerVy);runnerVy-=.28;if(runnerY<=0){runnerY=0;runnerVy=0}runnerBot.style.bottom='calc(18% + '+runnerY+'px)';
+  const speed=runnerKind==='miso'?1.15:1.0;
+  for(const o of obstacles){let ox=Number(o.dataset.x)-speed;o.dataset.x=ox;o.style.left=ox+'%';if(ox>15&&ox<26&&runnerY<34&&!o.dataset.hit){o.dataset.hit='1';runnerBot.classList.add('stumble');setTimeout(()=>runnerBot.classList.remove('stumble'),300);pop('BONK')}}
+  if(p>=1){finishRunner();return}runnerRAF=requestAnimationFrame(runnerTick)
+}
+function finishRunner(){
+  for(const o of obstacles)o.remove();obstacles=[];runner.classList.remove('show');locked=false;
+  if(runnerKind==='escape'){setTrouble(Math.max(1,trouble));say('Mr. Caveat','I have revised my position from “definitely guilty” to “strongly motivated to chase me.”',[{label:'Maybe find a better clue.',on:()=>{closeSay();setPhase('second')}}])}
+  else{document.querySelector('#end').classList.add('show');phase='end';objective.textContent='Case solved. Bao would like his dumpling back.';think('...caveat.',2400)}
+}
+$('#start').onclick=begin;$('#again').onclick=()=>location.reload();
+$('#brainBtn').onclick=()=>$('#brainPanel').classList.toggle('show');
+
+window.__mrCaveatTest={
+  teleport(v){x=v;updateTarget()},
+  get phase(){return phase},
+  get target(){return lastTarget?.key||null},
+  interact(){return interact()},
+  select(id){return runtimeSelect(id)},
+  finishRunner(){finishRunner()},
+  state(){return{x,phase,trouble,brain:[...brain]}}
+};
+
+try{await init();const response=await fetch('./missing_dumpling.cav');if(!response.ok)throw Error('case file missing');session=new WebSession(await response.text());requestAnimationFrame(moveFrame)}catch(e){document.querySelector('#start').disabled=true;document.querySelector('#start').textContent='Case failed to load';console.error(e)}
+</script>
+</body>
+</html>
