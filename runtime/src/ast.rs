@@ -6,6 +6,17 @@ pub struct Program {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActionStep {
+    Inspect { entity: String },
+    Operate { entity: String },
+    Open { entity: String },
+    Through { entity: String },
+    Move { place: String },
+    Observe { symbol: String },
+    Stay,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConditionalAction {
     Reopen {
         commitment: String,
@@ -40,6 +51,16 @@ pub enum Statement {
         from: String,
         to: String,
         via: Option<String>,
+    },
+    StartAt {
+        place: String,
+    },
+    ActionPlan {
+        action: String,
+        from: String,
+        to: String,
+        requires_open: Vec<String>,
+        steps: Vec<ActionStep>,
     },
     Budget {
         units: u64,
