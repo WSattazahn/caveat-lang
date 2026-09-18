@@ -62,7 +62,7 @@ jobs:
               await page.getByRole('button',{name:/Keep going/}).click();
 
               await page.getByRole('button',{name:/Follow the bell/}).click();
-              await page.getByText('Commitment reopened').waitFor();
+              await page.getByText('Commitment reopened',{exact:true}).waitFor();
               await page.getByRole('button',{name:/Revise the plan/}).click();
 
               await page.getByRole('button',{name:/still-warm cushion/}).click();
