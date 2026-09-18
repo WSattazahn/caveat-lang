@@ -27,6 +27,20 @@ pub enum Statement {
         symbol: String,
         text: String,
     },
+    Place {
+        name: String,
+        kind: String,
+    },
+    Entity {
+        name: String,
+        kind: String,
+        at: String,
+    },
+    Connect {
+        from: String,
+        to: String,
+        via: Option<String>,
+    },
     Budget {
         units: u64,
     },
