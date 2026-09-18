@@ -10,7 +10,7 @@ CAVEAT 0.3 is executable: the Rust reference runtime parses source, evaluates th
 
 The current playable proof-of-use is **Moon Garden**, a short mobile-first mystery whose investigations, evidence, caveats, retained uncertainty, and commitment reopening are authored in `game/moon_garden.cav`. It now has both a polished 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
 
-**CAVEAT 3D 0.1** adds a reusable mobile WebGL renderer and a separate presentation-manifest contract (`spec/caveat3d-0.1.md`). The renderer consumes the real WebSession and CAVEAT Map instead of duplicating game logic. The next graphics milestone is to bind presentation more directly to normalized world/action commands so less choreography needs to be keyed by individual action ids.
+**CAVEAT 3D 0.2** now consumes normalized Rust action-runtime executions (`Move`, `Inspect`, `Operate`, `Open`, `Observe`, `Stay`) and maps those commands to semantic place/entity/symbol presentation bindings. Moon Garden no longer needs normal per-action camera choreography. See `spec/caveat3d-0.2.md`. The remaining graphics problem is art-direction automation: semantic identifiers can now drive the scene, but attractive camera composition and assets still require authored presentation bindings.
 
 ## Repository layout
 
