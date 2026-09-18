@@ -22,13 +22,15 @@ jobs:
           rm -rf dist && mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
-      - name: CLI branch playthroughs
+      - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           printf 'camera_has_blind_spot\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           printf 'latch_sensor_recently_serviced\nopen\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          printf 'camera_has_blind_spot\nreroute\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot wait
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot reroute
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav latch_sensor_recently_serviced open stairwell
       - uses: actions/setup-node@v4
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0
@@ -39,16 +41,16 @@ jobs:
           trap 'kill $! || true' EXIT
           node <<'NODE'
           const {webkit,devices}=require('playwright'),fs=require('fs');
-          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
           (async()=>{const browser=await webkit.launch();try{
-            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
-            async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click()}
-            async function inspect(name,re,text){const p=await fresh(name);await click(p,re);await sleep(350);await p.getByText(text).waitFor();await p.screenshot({path:`door-${name}-01.png`,fullPage:true});await p.close()}
+            async function waitIdle(p){await p.waitForFunction(()=>window.__caveatIdle?.()===true,null,{timeout:15000})}
+            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await waitIdle(p);await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
+            async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click();await waitIdle(p)}
+            async function inspect(name,re,text){const p=await fresh(name);await click(p,re);await p.getByText(text).waitFor();await p.screenshot({path:`door-${name}-01.png`,fullPage:true});await p.close()}
             await inspect('inspect-latch',/Inspect latch/,/Evidence: the latch sensor/);
             await inspect('inspect-camera',/Check camera/,/camera coverage has a blind turn/);
-            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await click(p,/Push panic bar/);await sleep(2600);await p.screenshot({path:`door-open-${route}-01-beyond-a.png`,fullPage:true});await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await sleep(route==='stairwell'?5200:3200);await p.getByText(new RegExp(route==='continue'?'continue forward':route==='retreat'?'physically return':'reach the landing','i')).waitFor();await p.screenshot({path:`door-open-${route}-02-final.png`,fullPage:true});await p.close()}
-            {const p=await fresh('wait');await click(p,/Check camera/);await click(p,/Wait/);await sleep(500);await p.getByText(/remain on the original side/i).waitFor();await p.screenshot({path:'door-wait-01.png',fullPage:true});await p.close()}
-            {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await sleep(2600);await p.getByText(/physically leave toward the alternate route/i).waitFor();await p.screenshot({path:'door-reroute-01.png',fullPage:true});await p.close()}
+            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await click(p,/Push panic bar/);await p.screenshot({path:`door-open-${route}-01-beyond-a.png`,fullPage:true});await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await p.getByText(new RegExp(route==='continue'?'continue forward':route==='retreat'?'physically return':'reach the landing','i')).waitFor();await p.screenshot({path:`door-open-${route}-02-final.png`,fullPage:true});await p.close()}
+            {const p=await fresh('wait');await click(p,/Check camera/);await click(p,/Wait/);await p.getByText(/remain on the original side/i).waitFor();await p.screenshot({path:'door-wait-01.png',fullPage:true});await p.close()}
+            {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await p.getByText(/physically leave toward the alternate route/i).waitFor();await p.screenshot({path:'door-reroute-01.png',fullPage:true});await p.close()}
             console.log('ALL CAVEAT ROUTES CAPTURED');
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE

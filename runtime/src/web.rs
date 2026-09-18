@@ -1,3 +1,4 @@
+use crate::action_runtime::{simulate, ActionRuntime};
 use crate::graphics::CaveatScene;
 use crate::map::{to_json_pretty, CaveatMap};
 use crate::session::{CommitmentFeedback, Discovery, PendingInteraction, Session};
@@ -122,6 +123,21 @@ pub fn caveat_actions(source: &str) -> String {
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn caveat_simulate(source: &str, actions_csv: &str) -> String {
+    CaveatMap::from_source(source)
+        .and_then(|map| {
+            let actions = actions_csv
+                .split(',')
+                .map(str::trim)
+                .filter(|action| !action.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>();
+            simulate(&map, &actions).and_then(|result| to_json_pretty(&result))
+        })
+        .unwrap_or_else(|error| error_json(&error))
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn evaluate_summary(source: &str) -> String {
     match crate::parser::parse(source).and_then(|program| crate::eval::evaluate(&program)) {
         Ok(evaluation) => format!(
@@ -215,30 +231,81 @@ impl WebGraphicsSession {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Web3DSession {
     inner: Session,
+    map: CaveatMap,
+    actions: ActionRuntime,
     world: World3D,
 }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 impl Web3DSession {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen(constructor))]
     pub fn new(source: &str) -> Result<Web3DSession, String> {
+        let map = CaveatMap::from_source(source)?;
+        let actions = ActionRuntime::new(&map)?;
         Ok(Self {
             inner: Session::from_source(source)?,
+            map,
+            actions,
             world: World3D::the_door(),
         })
     }
     pub fn pending(&self) -> String {
-        session_pending(&self.inner)
+        match self.inner.pending() {
+            Ok(PendingInteraction::Investigate {
+                name,
+                options,
+                cost,
+                budget,
+            }) => {
+                let options = self.actions.available_actions(&self.map, &options);
+                if options.is_empty() {
+                    pending_json(PendingInteraction::Complete)
+                } else {
+                    pending_json(PendingInteraction::Investigate {
+                        name,
+                        options,
+                        cost,
+                        budget,
+                    })
+                }
+            }
+            Ok(PendingInteraction::Choice {
+                name,
+                options,
+                budget,
+            }) => {
+                let options = self.actions.available_actions(&self.map, &options);
+                if options.is_empty() {
+                    pending_json(PendingInteraction::Complete)
+                } else {
+                    pending_json(PendingInteraction::Choice {
+                        name,
+                        options,
+                        budget,
+                    })
+                }
+            }
+            Ok(PendingInteraction::Complete) => pending_json(PendingInteraction::Complete),
+            Err(error) => error_json(&error),
+        }
     }
     pub fn world(&self) -> String {
         self.world.to_json()
     }
     pub fn apply(&mut self, selection: &str) -> Result<(), String> {
-        self.inner.apply(selection)?;
-        let reopened = self
-            .inner
+        let (next_actions, execution) = self.actions.preview(&self.map, selection)?;
+
+        let mut next_inner = self.inner.clone();
+        next_inner.apply(selection)?;
+        let reopened = next_inner
             .commitment()
             .is_some_and(|commitment| !commitment.reopened_by.is_empty());
-        self.world.apply_action(selection, reopened);
+
+        let mut next_world = self.world.clone();
+        next_world.apply_execution(&execution, reopened)?;
+
+        self.inner = next_inner;
+        self.actions = next_actions;
+        self.world = next_world;
         Ok(())
     }
     pub fn discoveries(&self) -> String {

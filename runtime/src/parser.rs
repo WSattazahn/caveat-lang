@@ -1,4 +1,4 @@
-use crate::ast::{ConditionalAction, Program, Statement};
+use crate::ast::{ActionStep, ConditionalAction, Program, Statement};
 use crate::{Attention, Consequence, Relation, StopReason};
 
 pub fn parse(source: &str) -> Result<Program, String> {
@@ -25,6 +25,8 @@ pub fn parse(source: &str) -> Result<Program, String> {
             parse_choice(&words)?
         } else if words.first() == Some(&"when_committed") {
             parse_when(&words, line)?
+        } else if words.first() == Some(&"action") {
+            parse_action(line)?
         } else {
             match words.as_slice() {
                 ["budget", amount] => Statement::Budget {
@@ -48,6 +50,9 @@ pub fn parse(source: &str) -> Result<Program, String> {
                     from: (*from).into(),
                     to: (*to).into(),
                     via: Some((*via).into()),
+                },
+                ["start_at", place] => Statement::StartAt {
+                    place: (*place).into(),
                 },
                 ["claim", name] => Statement::Claim {
                     name: (*name).into(),
@@ -167,6 +172,76 @@ fn parse_display(line: &str) -> Result<Statement, String> {
         symbol: symbol.into(),
         text: quoted(&format!("x {text}"), "x ")?,
     })
+}
+
+fn parse_action(line: &str) -> Result<Statement, String> {
+    let rest = line
+        .strip_prefix("action ")
+        .ok_or_else(|| format!("invalid action: {line}"))?;
+    let (header, steps_text) = rest
+        .split_once(" steps ")
+        .ok_or_else(|| format!("action missing steps: {line}"))?;
+    let words = header.split_whitespace().collect::<Vec<_>>();
+
+    if words.len() < 5 || words.get(1) != Some(&"from") || words.get(3) != Some(&"to") {
+        return Err(format!("invalid action header: {line}"));
+    }
+
+    let action = words[0].to_string();
+    let from = words[2].to_string();
+    let to = words[4].to_string();
+    let requires_open = if words.len() == 5 {
+        Vec::new()
+    } else if words.get(5) == Some(&"requires_open") {
+        identifiers(&words[6..])
+    } else {
+        return Err(format!("invalid action preconditions: {line}"));
+    };
+
+    let steps = steps_text
+        .split(',')
+        .map(str::trim)
+        .filter(|step| !step.is_empty())
+        .map(parse_action_step)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if steps.is_empty() {
+        return Err(format!("action requires at least one step: {line}"));
+    }
+
+    Ok(Statement::ActionPlan {
+        action,
+        from,
+        to,
+        requires_open,
+        steps,
+    })
+}
+
+fn parse_action_step(step: &str) -> Result<ActionStep, String> {
+    let words = step.split_whitespace().collect::<Vec<_>>();
+    match words.as_slice() {
+        ["inspect", entity] => Ok(ActionStep::Inspect {
+            entity: (*entity).into(),
+        }),
+        ["operate", entity] => Ok(ActionStep::Operate {
+            entity: (*entity).into(),
+        }),
+        ["open", entity] => Ok(ActionStep::Open {
+            entity: (*entity).into(),
+        }),
+        ["through", entity] => Ok(ActionStep::Through {
+            entity: (*entity).into(),
+        }),
+        ["move", place] => Ok(ActionStep::Move {
+            place: (*place).into(),
+        }),
+        ["observe", symbol] => Ok(ActionStep::Observe {
+            symbol: (*symbol).into(),
+        }),
+        ["stay"] => Ok(ActionStep::Stay),
+        _ => Err(format!("invalid action step: {step}")),
+    }
 }
 
 fn parse_when(words: &[&str], line: &str) -> Result<Statement, String> {
