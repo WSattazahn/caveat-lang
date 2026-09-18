@@ -39,13 +39,13 @@ class Renderer3D{
   }
   initGL(){
     const gl=this.gl;
-    const vs=`attribute vec3 aPos;attribute vec3 aNormal;uniform mat4 uVP;uniform mat4 uModel;varying vec3 vNormal;varying vec3 vWorld;void main(){vec4 w=uModel*vec4(aPos,1.0);vWorld=w.xyz;vNormal=mat3(uModel)*aNormal;gl_Position=uVP*w;}`;
+    const vs=`attribute vec3 aPos;attribute vec3 aNormal;uniform mat4 uVP;uniform mat4 uModel;varying vec3 vNormal;varying vec3 vWorld;void main(){vec4 w=uModel*vec4(aPos,1.0);vWorld=w.xyz;vNormal=(uModel*vec4(aNormal,0.0)).xyz;gl_Position=uVP*w;}`;
     const fs=`precision mediump float;uniform vec3 uColor;uniform vec3 uFog;uniform float uEmissive;uniform float uOpacity;uniform vec3 uCamera;varying vec3 vNormal;varying vec3 vWorld;void main(){vec3 n=normalize(vNormal);vec3 sun=normalize(vec3(-0.35,0.8,0.42));float d=max(dot(n,sun),0.0);float hemi=0.48+0.30*max(n.y,0.0);vec3 c=uColor*(hemi+d*0.42)+uColor*uEmissive;float dist=distance(vWorld,uCamera);float fog=clamp((dist-15.0)/34.0,0.0,0.62);c=mix(c,uFog,fog);gl_FragColor=vec4(c,uOpacity);}`;
     const sh=(type,src)=>{const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s};
     this.program=gl.createProgram();gl.attachShader(this.program,sh(gl.VERTEX_SHADER,vs));gl.attachShader(this.program,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(this.program);if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(this.program));gl.useProgram(this.program);
     this.loc={pos:gl.getAttribLocation(this.program,'aPos'),normal:gl.getAttribLocation(this.program,'aNormal'),vp:gl.getUniformLocation(this.program,'uVP'),model:gl.getUniformLocation(this.program,'uModel'),color:gl.getUniformLocation(this.program,'uColor'),fog:gl.getUniformLocation(this.program,'uFog'),em:gl.getUniformLocation(this.program,'uEmissive'),op:gl.getUniformLocation(this.program,'uOpacity'),camera:gl.getUniformLocation(this.program,'uCamera')};
     for(const m of Object.values(this.meshes)){m.pb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,m.pb);gl.bufferData(gl.ARRAY_BUFFER,m.p,gl.STATIC_DRAW);m.nb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,m.nb);gl.bufferData(gl.ARRAY_BUFFER,m.n,gl.STATIC_DRAW);m.ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,m.ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,m.i,gl.STATIC_DRAW)}
-    gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);
+    gl.enable(gl.DEPTH_TEST);
   }
   loadObjects(list){for(const raw of list)this.objects.set(raw.id,{visible:raw.visible!==false,emissive:raw.emissive||0,opacity:raw.opacity??1,...raw})}
   setVisible(id,v){const o=this.objects.get(id);if(o)o.visible=v}
