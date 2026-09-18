@@ -98,7 +98,7 @@ jobs:
               const inspect=page.getByRole('button',{name:/Inspect latch/});
               await inspect.waitFor();
               await inspect.click();
-              await page.waitForFunction(()=>window.__caveatAnimationIdle?.());
+              await page.waitForFunction(()=>window.__caveatIdle?.());
               await page.getByText(/Evidence: the latch sensor/).waitFor();
               const open=page.getByRole('button',{name:/Push panic bar/});
               await open.waitFor();
@@ -106,7 +106,7 @@ jobs:
               const before=await canvas.screenshot(); fs.writeFileSync('door-before.png',before);
               if(variance(before)<40) throw Error('before image lacks meaningful geometry');
               await open.click();
-              await page.waitForFunction(()=>window.__caveatAnimationIdle?.(),null,{timeout:15000});
+              await page.waitForFunction(()=>window.__caveatIdle?.(),null,{timeout:15000});
               const after=await canvas.screenshot(); fs.writeFileSync('door-after.png',after);
               if(Buffer.compare(before,after)===0) throw Error('opening caused no visual change');
               if(variance(after)<40) throw Error('after image lacks meaningful geometry');
