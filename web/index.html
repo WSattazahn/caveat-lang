@@ -149,8 +149,11 @@
     .firefly:nth-of-type(2){animation-delay:-1.2s}.firefly:nth-of-type(3){animation-delay:-2.4s}
     .route-glow{opacity:.08;transition:opacity .6s ease}
     .route-glow.active{opacity:.75}
-    #miso{opacity:0;transform:translate(0,12px);transition:opacity .8s ease,transform .8s ease}
-    #miso.visible{opacity:1;transform:translate(0,0)}
+    #glassGlow.route-glow,#pavilionGlow.route-glow{opacity:0}
+    #glassGlow.route-glow.active{opacity:.15}
+    #pavilionGlow.route-glow.active{opacity:.14}
+    #miso{opacity:0;transition:opacity .8s ease}
+    #miso.visible{opacity:1}
     @keyframes flicker{0%,100%{opacity:.74;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
     @keyframes drift{from{transform:translate(-4px,2px);opacity:.35}to{transform:translate(7px,-7px);opacity:.9}}
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
@@ -335,19 +338,19 @@
       title:'There you are.',
       text:'Behind the tea pavilion, the ferns rustle once. Miso answers with a tiny purr and steps out wearing the most innocent expression in the garden.',
       place:'Moon Garden · Fern Nook',
-      note:'Miso found · commitment held'
+      note:'Miso found · resolved'
     },
     cross_moon_bridge:{
       title:'A detour, then a purr.',
       text:'The willow bank is empty — but the quieter side of the bridge lets you hear Miso clearly. She trots out from the pavilion path as if she planned the whole thing.',
       place:'Moon Garden · Moon Bridge',
-      note:'Miso found · route revised'
+      note:'Miso found · revised'
     },
     open_glasshouse:{
       title:'Not inside. Right outside.',
       text:'The greenhouse is warm and empty. When the door clicks shut, Miso appears on the path behind you, tail high, apparently satisfied that you checked.',
       place:'Moon Garden · Glasshouse',
-      note:'Miso found · false lead resolved'
+      note:'Miso found · false lead'
     }
   };
 
