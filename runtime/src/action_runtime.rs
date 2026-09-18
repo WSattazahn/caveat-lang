@@ -131,12 +131,13 @@ impl ActionRuntime {
                             "action {action} cannot traverse closed barrier {entity}"
                         ));
                     }
-                    let destination = other_side(map, &self.current_place, entity).ok_or_else(|| {
-                        format!(
-                            "action {action} cannot traverse {entity} from {}",
-                            self.current_place
-                        )
-                    })?;
+                    let destination =
+                        other_side(map, &self.current_place, entity).ok_or_else(|| {
+                            format!(
+                                "action {action} cannot traverse {entity} from {}",
+                                self.current_place
+                            )
+                        })?;
                     let origin = std::mem::replace(&mut self.current_place, destination.clone());
                     commands.push(WorldCommand::Move {
                         from: origin,
@@ -270,7 +271,9 @@ select revised continue;
         assert!(runtime.is_available(&map, "leave"));
         assert!(!runtime.is_available(&map, "return"));
 
-        let (runtime, leave) = runtime.preview(&map, "leave").expect("leave should execute");
+        let (runtime, leave) = runtime
+            .preview(&map, "leave")
+            .expect("leave should execute");
         assert_eq!(leave.from, "a");
         assert_eq!(leave.to, "b");
         assert_eq!(runtime.current_place(), "b");
