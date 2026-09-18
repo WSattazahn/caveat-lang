@@ -71,3 +71,89 @@ This moves the first authoritative part of the game's physical layout out of `wo
 ## 7. Next step
 
 Draft 0.3 next adds action plans that reference this topology. That layer must statically reject impossible transitions such as traversing a closed barrier without an opening operation or claiming a stairwell destination that is not reachable through the world graph.
+
+
+## 8. World start state
+
+A world with executable action plans declares the player's initial logical place:
+
+```
+start_at start_corridor;
+```
+
+The start place must exist. A world with action plans but no `start_at` is invalid.
+
+## 9. Action plans
+
+Player-facing actions can declare a checked physical plan:
+
+```
+action open
+  from start_corridor
+  to cross_corridor
+  steps operate door_a, open door_a, through door_a, observe smoke_report;
+```
+
+The bootstrap parser accepts the same declaration on one source statement:
+
+```
+action open from start_corridor to cross_corridor steps operate door_a, open door_a, through door_a, observe smoke_report;
+```
+
+Available steps in the first executable action-plan profile are:
+
+- `inspect ENTITY`
+- `operate ENTITY`
+- `open ENTITY`
+- `through ENTITY`
+- `move PLACE`
+- `observe SYMBOL`
+- `stay`
+
+An action may declare a state precondition established by an earlier action:
+
+```
+action retreat from cross_corridor to start_corridor requires_open door_a steps through door_a;
+```
+
+This is different from silently assuming the door is open. The runtime carries barrier state across commitments.
+
+## 10. Static action-plan checks
+
+Before execution, the CAVEAT Map rejects an action plan when:
+
+- its source or destination place does not exist;
+- it references an unknown entity or observation symbol;
+- it opens an entity that is not openable;
+- it operates/inspects an entity inaccessible from the current simulated place;
+- it traverses a barrier that is neither opened earlier in the plan nor declared in `requires_open`;
+- a `through` step names a connector that does not connect the current place;
+- a `move` step lacks a direct connector-free world edge;
+- the step sequence finishes somewhere other than the declared destination;
+- a player-facing option has no action plan in an action-plan-enabled world;
+- two options in one choice accidentally resolve to the same destination without an explicit convergence mechanism.
+
+The validator therefore catches the class of error where a script says “use the stairwell” but the declared physical sequence never reaches a stairwell.
+
+## 11. Generic action runtime
+
+The reference runtime executes validated plans into generic commands:
+
+```
+Inspect(entity)
+Operate(entity)
+Open(entity)
+Move(from, to, via?)
+Observe(symbol)
+Stay(place)
+```
+
+The action runtime tracks current logical place and open barriers independently from any renderer. Presentation layers consume these generic commands.
+
+The 3D renderer no longer selects behavior by matching action names such as `open`, `retreat`, or `stairwell`. It receives the action execution and maps places/entities to presentation anchors.
+
+## 12. Current migration boundary
+
+The Door's topology and action consequences now belong to CAVEAT source. The browser still contains scenario-specific geometry and presentation anchors for the canonical demo; moving those templates out of handwritten HTML/Rust is the next presentation phase.
+
+The important boundary is already enforced: changing the semantic route or action sequence is a CAVEAT-source change, not a new Rust action-name branch.
