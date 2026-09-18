@@ -18,6 +18,16 @@ This file is deliberately part of the feature. CAVEAT should not only model unce
 
 **Status:** resolved by architecture and CI.
 
+## Caveat: session feedback can replay stale discoveries
+
+**Consequence:** material.
+
+The first iPhone playthrough test exposed a real runtime bug: after an investigation, making a later choice could report the earlier discovery again because Session collected every Reveal event in the re-evaluated history.
+
+**Response:** Session feedback now filters Reveal events by the current interaction selection, with a regression test proving that a choice does not replay an earlier clue and that a later investigation reports only its own discovery.
+
+**Status:** resolved in the runtime, not papered over in the Moon Garden UI.
+
 ## Caveat: polish can regress on the phone where the game is actually being tried
 
 **Consequence:** high.
