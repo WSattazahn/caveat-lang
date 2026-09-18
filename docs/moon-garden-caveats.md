@@ -36,6 +36,16 @@ The first iPhone playthrough test exposed a real runtime bug: after an investiga
 
 **Status:** gated by CI.
 
+## Caveat: automated success can still hide ugly composition bugs
+
+**Consequence:** high.
+
+The first passing end-state logic still produced a bad screenshot: CSS transform styling moved Miso to the upper-left edge of the SVG, and a generic highlight rule turned the pavilion glow into a large opaque blob.
+
+**Response:** the uploaded iPhone artifact was inspected visually, not just accepted because selectors passed. Miso now keeps the source-authored SVG position and fades in without replacing the group transform; fill glows have restrained per-object opacity; QA now asserts that the ending sprite is in the intended lower-right area of the scene. Mobile scene captions were also constrained and developer demo links were removed from the player-facing page.
+
+**Status:** resolved and regression-tested.
+
 ## Caveat: replacing the root demo could destroy the old Door work
 
 **Consequence:** material.
