@@ -16,6 +16,8 @@ entity brass_bell kind bell at lantern_courtyard;
 entity mossy_stones kind path_marker at pond_path;
 entity glass_door kind greenhouse_door at glasshouse;
 entity paper_lanterns kind lanterns at lantern_courtyard;
+entity bridge_water kind water_sound at moon_bridge;
+entity tea_cushion kind cushion at tea_pavilion;
 start_at lantern_courtyard;
 
 display cat_near_bridge "Miso is near the moon bridge.";
@@ -83,6 +85,7 @@ reveal greenhouse_glass_mirrors_movement then warm_pawprint opposes cat_near_gre
 reveal greenhouse_glass_mirrors_movement then warm_pawprint supports cat_near_pavilion;
 
 choice first_move options follow_bell, follow_tracks, check_greenhouse retaining bell_echo_distorts_direction, wet_stones_hide_tracks, greenhouse_glass_mirrors_movement;
+converge first_move;
 select first_move follow_bell;
 
 evidence owl_wingbeat from "garden_canopy";
@@ -118,3 +121,19 @@ reveal moths_follow_heat_not_cats then moths_avoid_fern supports cat_near_pavili
 
 choice final_move options cross_moon_bridge, search_tea_pavilion, open_glasshouse retaining bridge_water_masks_sound, cushion_may_hold_old_fur, moths_follow_heat_not_cats;
 select final_move search_tea_pavilion;
+
+action bell_echo_distorts_direction from lantern_courtyard to lantern_courtyard steps inspect brass_bell, observe second_chime;
+action wet_stones_hide_tracks from lantern_courtyard to lantern_courtyard steps move pond_path, inspect mossy_stones, observe pressed_moss, move lantern_courtyard;
+action greenhouse_glass_mirrors_movement from lantern_courtyard to lantern_courtyard steps move glasshouse, inspect glass_door, observe warm_pawprint, move lantern_courtyard;
+
+action follow_bell from lantern_courtyard to lantern_courtyard steps move pond_path, move moon_bridge, observe owl_wingbeat, move pond_path, move lantern_courtyard;
+action follow_tracks from lantern_courtyard to lantern_courtyard steps move pond_path, observe fountain_splash, move lantern_courtyard;
+action check_greenhouse from lantern_courtyard to lantern_courtyard steps move glasshouse, observe reflected_lantern, move lantern_courtyard;
+
+action bridge_water_masks_sound from lantern_courtyard to lantern_courtyard steps move pond_path, move moon_bridge, inspect bridge_water, observe tiny_purr, move pond_path, move lantern_courtyard;
+action cushion_may_hold_old_fur from lantern_courtyard to lantern_courtyard steps move tea_pavilion, inspect tea_cushion, observe black_fur, move lantern_courtyard;
+action moths_follow_heat_not_cats from lantern_courtyard to lantern_courtyard steps inspect paper_lanterns, observe moths_avoid_fern;
+
+action cross_moon_bridge from lantern_courtyard to moon_bridge steps move pond_path, move moon_bridge;
+action search_tea_pavilion from lantern_courtyard to fern_nook steps move tea_pavilion, move fern_nook, observe tiny_purr;
+action open_glasshouse from lantern_courtyard to glasshouse steps move glasshouse, operate glass_door, open glass_door;
