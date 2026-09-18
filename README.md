@@ -8,11 +8,25 @@ CAVEAT explores a persistent epistemic graph rather than reducing every computat
 
 CAVEAT 0.3 is executable, and the **0.4 game profile** adds executable knowledge requirements, evidence-dependent outcomes, and source-authored spatial presentation. The Rust reference runtime parses source, evaluates the epistemic graph, exposes the CAVEAT Map, and runs the same game program in a terminal or a WebAssembly browser session. The new features are specified in [Draft 0.4](spec/caveat-0.4-draft.md).
 
-The newest playable proof-of-use is **The Last Beacon**, a 3D island mystery whose available decisions, evidence, retained uncertainty, nine outcomes, locations, cameras, and paths are authored in `game/the_last_beacon.cav`. **Moon Garden** remains a short mobile-first mystery with both a 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
+The newest playable proof-of-use is **Light the Way**, a direct-control ferry rescue powered by the new reactive CAVEAT profile. Movement, scouting, collisions, damage, score, and outcomes are source rules. **The Last Beacon** remains a separate 3D island mystery whose available decisions, evidence, retained uncertainty, nine outcomes, locations, cameras, and paths are authored in `game/the_last_beacon.cav`. **Moon Garden** remains a short mobile-first mystery with both a 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
 
 **CAVEAT 3D 0.2** now consumes normalized Rust action-runtime executions (`Move`, `Inspect`, `Operate`, `Open`, `Observe`, `Stay`) and maps those commands to semantic place/entity/symbol presentation bindings. Moon Garden no longer needs normal per-action camera choreography. See `spec/caveat3d-0.2.md`. The remaining graphics problem is art-direction automation: semantic identifiers can now drive the scene, but attractive camera composition and assets still require authored presentation bindings.
 
-## The Last Beacon
+## Light the Way — play immediately
+
+[Play Light the Way](https://last-beacon-caveat.w4ltr0n.chatgpt.site). Hold and drag the lighthouse beam, or use the arrow keys. Steer the ferry around reefs into the green harbor. A crossing takes about a minute; damage, progress, and rescued passengers appear directly in the scene. Retry immediately. No download or reading panels are required.
+
+The new [reactive language profile](spec/caveat-reactive-0.1.md) adds bounded numeric state, typed events, arithmetic, ordered conditional rules, and atomic event execution. The same rules can read and change CAVEAT's actual evidence graph. In [the game source](game/light_the_way.cav), spotting a reef records evidence, pays to examine the associated caveat, reopens the initial course commitment, and makes the ferry slow near the known danger. The original chart claim and contrary evidence both remain in the graph.
+
+```caveat
+state boat_x = ferry.x min -9.5 max 13;
+event tick dt min 0 max 0.1;
+on tick when phase == 1 set boat_z = boat_z - boat_speed * dt;
+```
+
+The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
+
+## The Last Beacon — story experiment
 
 On stormbound Saint Orin, thirty-two ferry passengers are approaching a failing lighthouse. Spend three watches investigating uncertain evidence, try provisional plans, reopen them when the world disagrees, and choose between restoring the light, sending the island pilot, or holding the ferry offshore until daylight. Six interactions produce 324 legal decision sequences and nine outcomes across three final destinations. Earlier investigations unlock targeted preparations; performing those preparations changes what the same final order accomplishes. See the [game design and action contracts](docs/THE_LAST_BEACON.md).
 
@@ -30,7 +44,7 @@ resolve relight_beacon as beacon_unverified otherwise;
 
 The runtime checks the reached evidence graph before an action. Declared but undiscovered evidence cannot unlock it; contradictory evidence remains recorded. The browser receives available choices, blocked reasons, and the selected outcome from CAVEAT. It supplies reusable graphics and controls. [Presentation declarations](spec/presentation.md) also place the world and compose its views without changing JavaScript.
 
-[Play the hosted game](https://last-beacon-caveat.w4ltr0n.chatgpt.site). This hosted copy opens directly in your browser; downloading an HTML file is optional.
+[Play the earlier story](https://last-beacon-caveat.w4ltr0n.chatgpt.site/last-beacon.html). This hosted copy opens directly in your browser; downloading an HTML file is optional.
 
 ### Build and play
 
@@ -44,15 +58,15 @@ npm run build
 npm run serve
 ```
 
-Open [The Last Beacon locally](http://127.0.0.1:4173/last-beacon.html). The build compiles the Rust runtime to WebAssembly and assembles `dist/` with game sources, browser assets, and a local copy of Three.js. Existing games remain available in the same build.
+Open [Light the Way locally](http://127.0.0.1:4173/rescue.html). The earlier [story experiment](http://127.0.0.1:4173/last-beacon.html) remains available. The build compiles the Rust runtime to WebAssembly and assembles `dist/` with game sources, browser assets, and a local copy of Three.js. Existing games remain available in the same build.
 
-To play the same Caveat program in a terminal, without a browser or JavaScript:
+To play the earlier Last Beacon story in a terminal, without a browser or JavaScript:
 
 ```sh
 cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --game game/the_last_beacon.cav
 ```
 
-For an optional offline copy, run `npm run package:game` after building. Open `dist/The-Last-Beacon.html` in a full modern browser: it embeds the actual CAVEAT WebAssembly runtime, story, and graphics and works without a server or network connection. Some file-preview applications disable scripts or module imports; those previews cannot run the game. The launch screen now includes browser guidance, a retry action, and a timeout for failed or stalled imports. Device-local saves preserve your watch. Choose with the buttons or keys **1–3**, open the journal with **J**, and toggle ambient sound with **M**.
+For an optional offline copy, run `npm run package:game` after building. Open `dist/Light-the-Way.html` in a full modern browser (`dist/The-Last-Beacon.html` contains the earlier story): it embeds the actual CAVEAT WebAssembly runtime, story, and graphics and works without a server or network connection. Some file-preview applications disable scripts or module imports; those previews cannot run the game. The launch screen now includes browser guidance, a retry action, and a timeout for failed or stalled imports. In the earlier story game, device-local saves preserve your watch. Choose with the buttons or keys **1–3**, open the journal with **J**, and toggle ambient sound with **M**.
 
 The [workflow notes](docs/WORKFLOW.md) explain how the video's visual inspection and testing loop informed this implementation.
 
@@ -63,9 +77,10 @@ cargo test --manifest-path runtime/Cargo.toml
 cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
 npx playwright install chromium
 npm run test:beacon
+npm run test:rescue
 ```
 
-The Rust tests exhaust legal Beacon routes, checking unavailable-action rejection, investigation costs, retained caveats, reopening, physical destinations, evidence-dependent outcomes, and save restoration. Browser tests exercise the WebAssembly game and its presentation, starting their own local server. Run `npm run build` first; a separate `npm run serve` process is not required for tests. After `npm run package:game`, `npm run test:launch` also exercises blocked imports, a stalled module, and disabled-script previews.
+Reactive runtime tests check atomic rollback and malformed input, and rescue simulations verify a complete crossing, damage, timing, and the direct effect of observed evidence on motion. Browser rescue tests use real mouse, keyboard, and touch input. The story tests exhaust legal Beacon routes, checking unavailable-action rejection, investigation costs, retained caveats, reopening, physical destinations, evidence-dependent outcomes, and save restoration. Browser tests exercise the WebAssembly game and its presentation, starting their own local server. Run `npm run build` first; a separate `npm run serve` process is not required for tests. After `npm run package:game`, `npm run test:launch` also exercises blocked imports, a stalled module, and disabled-script previews.
 
 ## Repository layout
 

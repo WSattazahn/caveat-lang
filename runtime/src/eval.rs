@@ -200,6 +200,7 @@ impl Evaluator {
                 self.display.insert(symbol.clone(), text.clone());
             }
             Statement::Place { .. }
+            | Statement::Reactive(_)
             | Statement::Presentation(_)
             | Statement::Entity { .. }
             | Statement::Connect { .. }

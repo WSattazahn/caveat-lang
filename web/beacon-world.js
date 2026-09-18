@@ -37,15 +37,16 @@ function radialTexture() {
 }
 
 export function createBeaconWorld(canvas, options = {}) {
+  const rescueMode = options.mode === 'rescue';
   const random = seeded();
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x071c2b);
-  scene.fog = new THREE.FogExp2(0x092736, 0.0078);
+  scene.fog = new THREE.FogExp2(0x092736, rescueMode ? 0.0032 : 0.0078);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.22;
+  renderer.toneMappingExposure = rescueMode ? 1.4 : 1.22;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 750);
@@ -86,6 +87,10 @@ export function createBeaconWorld(canvas, options = {}) {
   let needsRender = true;
   let presentation = {};
   let authoredPositions = new Map();
+  let rescueState = null;
+  let previousHull = null;
+  let previousPhase = null;
+  let impactTime = 0;
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
@@ -311,7 +316,7 @@ export function createBeaconWorld(canvas, options = {}) {
   }
   const rainGeometry = new THREE.BufferGeometry();
   rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainArray, 3));
-  const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: 0x89a8b0, transparent: true, opacity: 0.11, depthWrite: false }));
+  const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: 0x89a8b0, transparent: true, opacity: rescueMode ? 0.055 : 0.11, depthWrite: false }));
   world.add(rain);
 
   function makeRoof(parent, width, depth, y, height, color) {
@@ -456,6 +461,74 @@ export function createBeaconWorld(canvas, options = {}) {
     else object.position.set(Math.cos(index * 2.4) * 1.5, 0, Math.sin(index * 2.4) * 1.5);
     const data = { id: def.id, kind: def.kind, place: def.at, object, activated: false, open: false, time: 0, initial: object.position.clone() };
     switch (def.kind) {
+      case 'ferry': {
+        const hullShape = new THREE.Shape();
+        hullShape.moveTo(-1.25, -3.25); hullShape.lineTo(1.25, -3.25);
+        hullShape.lineTo(1.48, 1.6); hullShape.quadraticCurveTo(1.36, 3.0, 0, 3.8);
+        hullShape.quadraticCurveTo(-1.36, 3.0, -1.48, 1.6); hullShape.closePath();
+        const body = new THREE.Group(); object.add(body);
+        const hull = mesh(new THREE.ExtrudeGeometry(hullShape, { depth: 0.8, bevelEnabled: true, bevelSize: 0.17, bevelThickness: 0.13, bevelSegments: 1, steps: 1 }), material(0x9f523d, { roughness: 0.5 }), body);
+        // Shape +Y becomes the ferry's local +Z bow, matching its heading and
+        // the wake at local -Z. Lift the extrusion to preserve the deck height.
+        hull.rotation.x = Math.PI / 2;
+        hull.position.y = 0.8;
+        box(body, 0, 0.81, -0.15, 2.5, 0.18, 5.75, 0xe0c899);
+        box(body, 0, 1.42, -0.6, 2.16, 1.04, 3.15, 0xd5d6bd);
+        box(body, 0, 2.04, -0.64, 2.43, 0.2, 3.5, 0x537e7a);
+        box(body, 0, 2.58, -1.1, 1.55, 0.93, 1.43, 0xe4dbc0);
+        box(body, 0, 3.08, -1.08, 1.77, 0.17, 1.65, 0x446564);
+        for (const x of [-1.1, 1.1]) for (let i = 0; i < 4; i++) warmWindow(body, x, 1.45, -1.77 + i * 0.83, 0.53, 0.47, x < 0 ? -Math.PI / 2 : Math.PI / 2);
+        warmWindow(body, 0, 2.64, -0.35, 1.0, 0.45);
+        cylinder(body, 0.5, 2.62, -2.1, 0.21, 0.26, 1.13, 0xbd9c70, 10);
+        beam(body, [0, 3.1, -1.1], [0, 4.2, -1.1], 0.04, 0xc7cbaa);
+        const halo = glow(body, [0, 4.2, -1.1], 0xffd791, 3.3, 0.88);
+        for (const x of [-1.32, 1.32]) {
+          beam(body, [x, 1.2, 1.1], [x, 1.2, 2.3], 0.032, 0xcbd1b2);
+          for (const z of [1.1, 1.7, 2.3]) beam(body, [x, 0.9, z], [x, 1.45, z], 0.03, 0xcbd1b2);
+        }
+        const wake = new THREE.Group(); object.add(wake);
+        for (let i = 0; i < 3; i++) {
+          const arc = mesh(new THREE.TorusGeometry(1.8 + i * 0.75, 0.045, 4, 30, Math.PI * 0.72), new THREE.MeshBasicMaterial({ color: 0xb7e3db, transparent: true, opacity: 0.24 - i * 0.055, depthWrite: false }), wake, [0, -0.36, -3.2 - i * 0.65]);
+          arc.rotation.set(Math.PI / 2, 0, Math.PI * 0.15);
+        }
+        object.rotation.y = Math.PI;
+        Object.assign(data, { body, halo, wake, displayPosition: object.position.clone(), targetPosition: object.position.clone(), targetHeading: Math.PI });
+        animated.push(data);
+        break;
+      }
+      case 'reef': {
+        const rng = seeded(index * 135 + 391);
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * TAU, radius = i === 0 ? 0 : 0.8 + rng() * 0.5;
+          const stone = mesh(geo('reef-stone', () => new THREE.DodecahedronGeometry(1, 0)), material(i % 2 ? 0x527270 : 0x789087, { flatShading: true }), object, [Math.cos(a) * radius, i === 0 ? 0.95 : 0.24, Math.sin(a) * radius], [i === 0 ? 1.35 : 1.1, i === 0 ? 1.8 : 0.7, 1.12]);
+          stone.rotation.set(rng() * 0.25, rng() * TAU, rng() * 0.22);
+        }
+        const foam = mesh(new THREE.RingGeometry(2.2, 2.48, 32), new THREE.MeshBasicMaterial({ color: 0xb1d8ca, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false }), object, [0, 0.19, 0]);
+        foam.rotation.x = -Math.PI / 2;
+        const reveal = mesh(new THREE.RingGeometry(2.55, 2.65, 32), new THREE.MeshBasicMaterial({ color: 0xf4c16c, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }), object, [0, 0.23, 0]);
+        reveal.rotation.x = -Math.PI / 2;
+        Object.assign(data, { foam, reveal, revealed: false, revealTime: 0 }); animated.push(data);
+        break;
+      }
+      case 'harbor_goal': {
+        const ring = mesh(new THREE.TorusGeometry(3.6, 0.095, 5, 64), new THREE.MeshBasicMaterial({ color: 0x83f1bd, transparent: true, opacity: 0.9, depthWrite: false, fog: false, toneMapped: false }), object, [0, 0.04, 0]);
+        ring.rotation.x = Math.PI / 2;
+        const inner = mesh(new THREE.RingGeometry(2.75, 3.5, 64), new THREE.MeshBasicMaterial({ color: 0x76e6b4, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false, fog: false, toneMapped: false }), object, [0, 0.02, 0]);
+        inner.rotation.x = -Math.PI / 2;
+        for (const x of [-3.5, 3.5]) {
+          cylinder(object, x, 0.75, 0, 0.09, 0.2, 1.6, 0x3b6862, 8);
+          glow(object, [x, 1.55, 0], 0x83ffc4, 2.8, 0.82);
+        }
+        const passengers = new THREE.Group(); object.add(passengers);
+        for (let i = 0; i < 32; i++) {
+          const person = new THREE.Group(); person.position.set((i % 8 - 3.5) * 0.34, 1.17, -3.2 - Math.floor(i / 8) * 0.4); passengers.add(person);
+          cylinder(person, 0, 0.23, 0, 0.1, 0.14, 0.4, i % 3 ? 0xe3b474 : 0x93c9b2, 5);
+          sphere(person, 0, 0.54, 0, 0.1, 0xddcfaf);
+          person.visible = false;
+        }
+        Object.assign(data, { ring, inner, passengers }); animated.push(data);
+        break;
+      }
       case 'beacon': {
         cylinder(object, 0, -0.08, 0, 0.52, 0.62, 0.22, 0x9a9777, 16);
         const lens = cylinder(object, 0, 0.76, 0, 0.65, 0.65, 1.38, 0xb9d9c4, 16, { emissive: 0xffbf68, emissiveIntensity: 0.35, metalness: 0.3, roughness: 0.2 });
@@ -614,6 +687,117 @@ export function createBeaconWorld(canvas, options = {}) {
   void coat;
   const selection = mesh(new THREE.RingGeometry(0.8, 0.85, 48), new THREE.MeshBasicMaterial({ color: 0xe6c687, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }), graph);
   selection.rotation.x = -Math.PI / 2;
+  marker.visible = !rescueMode;
+
+  const rescueEffects = new THREE.Group(); scene.add(rescueEffects); rescueEffects.visible = rescueMode;
+  const aimSpot = new THREE.Group(); rescueEffects.add(aimSpot);
+  const aimDisc = mesh(new THREE.CircleGeometry(3.1, 48), new THREE.MeshBasicMaterial({ color: 0xffdc8b, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }), aimSpot);
+  aimDisc.rotation.x = -Math.PI / 2;
+  const aimRing = mesh(new THREE.TorusGeometry(2.1, 0.065, 5, 48), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.9, depthWrite: false, fog: false, toneMapped: false }), aimSpot);
+  aimRing.rotation.x = Math.PI / 2;
+  const aimCore = glow(aimSpot, [0, 0.3, 0], 0xffde9a, 3.1, 0.6);
+  for (let i = 0; i < 4; i++) {
+    const a = i / 4 * TAU;
+    const tick = box(aimSpot, Math.cos(a) * 2.55, 0.01, Math.sin(a) * 2.55, 0.55, 0.025, 0.06, 0xffd27a, { emissive: 0xffc56b, emissiveIntensity: 1.2 });
+    tick.rotation.y = -a;
+  }
+  const lightCone = mesh(new THREE.ConeGeometry(3.8, 1, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe4a0, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }), rescueEffects);
+  lightCone.castShadow = lightCone.receiveShadow = false;
+  aimDisc.castShadow = aimRing.castShadow = false;
+  const routeGeometry = new THREE.BufferGeometry();
+  routeGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3));
+  const routeHint = new THREE.Line(routeGeometry, new THREE.LineDashedMaterial({ color: 0xa6e6c5, transparent: true, opacity: 0.7, dashSize: 0.55, gapSize: 0.48, depthWrite: false, fog: false, toneMapped: false }));
+  rescueEffects.add(routeHint);
+  const impactWave = mesh(new THREE.RingGeometry(0.9, 1.05, 48), new THREE.MeshBasicMaterial({ color: 0xff8663, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }), rescueEffects);
+  impactWave.rotation.x = -Math.PI / 2;
+
+  function setRescueState(snapshot) {
+    const values = snapshot?.values || snapshot;
+    if (!values || typeof values.boat_x !== 'number' || typeof values.boat_z !== 'number') return;
+    const first = rescueState === null || (Number(rescueState.phase) >= 2 && Number(values.phase) <= 1);
+    if (first) { impactTime = 0; previousHull = null; }
+    rescueState = { ...values };
+    const phase = Number(values.phase || 0);
+    if (previousHull !== null && values.hull < previousHull) {
+      impactTime = 1;
+      impactWave.position.set(values.boat_x, 0.25, values.boat_z);
+    }
+    if (phase === 0 && previousPhase !== 0) impactTime = 0;
+    previousHull = values.hull;
+    previousPhase = phase;
+    for (const data of entities.values()) {
+      if (data.kind === 'ferry') {
+        const anchor = places.get(data.place);
+        const y = authoredPositions.get(data.id)?.[1] ?? 0.6;
+        const target = v(values.boat_x, y, values.boat_z).sub(anchor.position);
+        const difference = target.clone().sub(data.targetPosition);
+        if (first || phase === 0) data.targetHeading = Math.PI;
+        else if (difference.lengthSq() > 0.000001) data.targetHeading = Math.atan2(difference.x, difference.z);
+        data.targetPosition.copy(target);
+        if (first || phase === 0 || reducedMotion) {
+          data.object.position.copy(target);
+          data.object.rotation.y = first || phase === 0 ? Math.PI : data.targetHeading;
+        }
+        data.wake.visible = phase === 1;
+        data.halo.material.color.setHex(phase === 3 ? 0xdf7654 : 0xffd791);
+        data.halo.material.opacity = phase === 3 ? 0.35 : 0.88;
+      }
+      if (data.kind === 'reef') {
+        const revealed = Number(values[`${data.id}_seen`] || 0) > 0;
+        if (revealed && !data.revealed) data.revealTime = 1.5;
+        if (!revealed) data.revealTime = 0;
+        data.revealed = revealed;
+      }
+      if (data.kind === 'harbor_goal') {
+        const count = Math.max(0, Math.floor(Number(values.rescued || 0)));
+        data.passengers.children.forEach((person, index) => { person.visible = index < count; });
+        data.ring.material.color.setHex(phase === 2 ? 0xd0ffd8 : 0x83f1bd);
+      }
+    }
+    needsRender = true;
+  }
+
+  function updateRescue(dt) {
+    if (!rescueMode || !rescueState) return;
+    const state = rescueState, phase = Number(state.phase || 0);
+    const ferry = [...entities.values()].find(entity => entity.kind === 'ferry');
+    const beacon = [...entities.values()].find(entity => entity.kind === 'beacon');
+    const aim = v(Number(state.aim_x || 0), 0.23, Number(state.aim_z || 0));
+    const active = Number(state.light_on || 0) > 0;
+    // The ready-state ghost shows the gesture; it never feeds values back to
+    // the source runtime or moves the real ferry.
+    if (phase === 0) aim.set(Number(state.boat_x) + Math.sin(elapsed * 0.7) * 7, 0.23, Number(state.boat_z) - 8);
+    aimSpot.position.copy(aim);
+    aimSpot.visible = phase < 2;
+    aimDisc.material.opacity = active || phase === 0 ? 0.18 : 0.035;
+    aimRing.material.opacity = active || phase === 0 ? 0.95 : 0.5;
+    aimCore.material.opacity = active || phase === 0 ? 0.75 : 0.25;
+    aimRing.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.045);
+    lightCone.visible = Boolean(beacon) && (active || phase === 0 || phase === 2);
+    if (beacon) {
+      const origin = beacon.object.getWorldPosition(v()).add(v(0, 0.8, 0));
+      lightCone.position.copy(origin).add(aim).multiplyScalar(0.5);
+      lightCone.scale.y = origin.distanceTo(aim);
+      lightCone.quaternion.setFromUnitVectors(UP, origin.clone().sub(aim).normalize());
+      beacon.sweep.visible = false;
+      beacon.lens.material.emissiveIntensity = active || phase === 2 ? 3.6 : 0.4;
+      beacon.halo.material.opacity = active || phase === 2 ? 0.9 : 0.3;
+      beacon.halo.scale.setScalar(active || phase === 2 ? 8 : 4);
+    }
+    routeHint.visible = phase === 1 && Boolean(ferry);
+    if (ferry) {
+      const point = ferry.object.getWorldPosition(v());
+      const position = routeGeometry.attributes.position;
+      position.setXYZ(0, point.x, 0.22, point.z); position.setXYZ(1, aim.x, 0.22, aim.z); position.needsUpdate = true;
+      routeHint.computeLineDistances();
+      routeHint.material.color.setHex(Number(state.warning) >= 2 ? 0xff805a : Number(state.warning) === 1 ? 0xffcd76 : 0x9ce8c2);
+    }
+    if (impactTime > 0) {
+      impactTime = Math.max(0, impactTime - dt);
+      impactWave.material.opacity = impactTime * 0.8;
+      impactWave.scale.setScalar(1 + (1 - impactTime) * 5);
+    } else impactWave.material.opacity = 0;
+  }
 
   function clearGraph() {
     for (const child of [...graph.children]) if (child !== marker && child !== selection) graph.remove(child);
@@ -821,6 +1005,7 @@ export function createBeaconWorld(canvas, options = {}) {
   function reset() {
     needsRender = true;
     resetGeneration++;
+    rescueState = null; previousHull = null; previousPhase = null; impactTime = 0;
     for (const item of tweens) item.resolve();
     tweens.clear(); busy = false; immediatePlayback = false;
     cameraEye.copy(baseEye); cameraTarget.copy(baseTarget); yaw = pitch = 0; zoom = 1;
@@ -856,11 +1041,13 @@ export function createBeaconWorld(canvas, options = {}) {
   resize();
 
   function onDown(event) {
+    if (options.interactiveCamera === false) return;
     if (event.button !== undefined && event.button !== 0) return;
     drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, pointerId: event.pointerId };
     canvas.setPointerCapture?.(event.pointerId);
   }
   function onMove(event) {
+    if (options.interactiveCamera === false) return;
     if (!drag || busy) return;
     needsRender = true;
     yaw += (event.clientX - drag.x) * 0.004;
@@ -868,6 +1055,7 @@ export function createBeaconWorld(canvas, options = {}) {
     drag.x = event.clientX; drag.y = event.clientY;
   }
   function onUp(event) {
+    if (options.interactiveCamera === false) return;
     if (!drag) return;
     const wasClick = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 6;
     drag = null;
@@ -880,6 +1068,7 @@ export function createBeaconWorld(canvas, options = {}) {
   }
   function onCancel() { drag = null; }
   function onWheel(event) {
+    if (options.interactiveCamera === false) return;
     event.preventDefault();
     needsRender = true;
     if (!busy) zoom = clamp(zoom + event.deltaY * 0.0005, 0.7, 1.65);
@@ -913,15 +1102,33 @@ export function createBeaconWorld(canvas, options = {}) {
     spherical.theta += yaw;
     spherical.phi = clamp(spherical.phi + pitch, 0.2, 1.46);
     // A portrait viewport gets the same island silhouette without clipping.
-    spherical.radius *= zoom * Math.max(1, Math.min(1.85, 0.95 / camera.aspect));
+    spherical.radius *= zoom * (rescueMode ? Math.max(1, Math.min(1.18, 0.44 / camera.aspect)) : Math.max(1, Math.min(1.85, 0.95 / camera.aspect)));
     camera.position.copy(cameraTarget).add(v().setFromSpherical(spherical));
-    if (!busy && !drag && !reducedMotion) { camera.position.x += Math.sin(elapsed * 0.15) * 0.12; camera.position.y += Math.sin(elapsed * 0.19) * 0.08; }
+    if (!rescueMode && !busy && !drag && !reducedMotion) { camera.position.x += Math.sin(elapsed * 0.15) * 0.12; camera.position.y += Math.sin(elapsed * 0.19) * 0.08; }
     camera.lookAt(cameraTarget);
     markerRing.material.opacity = 0.67 + Math.sin(elapsed * 2.5) * 0.18;
     playerGlow.material.opacity = 0.6 + Math.sin(elapsed * 3.3) * 0.08;
     for (const lamp of lamps) lamp.halo.material.opacity = 0.64 + Math.sin(elapsed * 2.3 + lamp.phase) * 0.055;
     for (const data of animated) {
       data.time += dt;
+      if (data.kind === 'ferry') {
+        data.object.position.lerp(data.targetPosition, 1 - Math.exp(-Math.min(wallTime, 0.5) * 12));
+        const difference = THREE.MathUtils.euclideanModulo(data.targetHeading - data.object.rotation.y + Math.PI, TAU) - Math.PI;
+        data.object.rotation.y += difference * (1 - Math.exp(-dt * 7));
+        data.body.position.y = reducedMotion ? 0 : Math.sin(elapsed * 1.5) * 0.055;
+        data.body.rotation.z = Number(rescueState?.phase) === 3 ? -0.19 : Math.sin(elapsed * 1.3) * 0.018;
+        data.wake.scale.setScalar(1 + Math.sin(elapsed * 2) * 0.05);
+      }
+      if (data.kind === 'reef') {
+        data.foam.material.opacity = (data.revealed ? 0.48 : 0.25) + Math.sin(elapsed * 1.3 + data.initial.x) * 0.035;
+        if (data.revealTime > 0) data.revealTime = Math.max(0, data.revealTime - dt);
+        data.reveal.material.opacity = data.revealTime > 0 ? data.revealTime / 1.5 * 0.95 : data.revealed ? 0.25 : 0;
+        data.reveal.scale.setScalar(data.revealTime > 0 ? 1 + (1 - data.revealTime / 1.5) * 0.8 : 1);
+      }
+      if (data.kind === 'harbor_goal') {
+        data.ring.material.opacity = 0.68 + Math.sin(elapsed * 2.6) * 0.2;
+        data.inner.material.opacity = Number(rescueState?.phase) === 2 ? 0.3 : 0.09;
+      }
       if (data.kind === 'beacon' && data.activated) data.sweep.rotation.y += dt * 0.3;
       if (data.kind === 'transmitter' && data.activated) {
         const phase = (elapsed * 0.65) % 1;
@@ -944,6 +1151,7 @@ export function createBeaconWorld(canvas, options = {}) {
         }
       }
     }
+    updateRescue(dt);
     if (!reducedMotion) {
       const p = rainGeometry.attributes.position.array;
       for (let i = 0; i < 390; i++) {
@@ -973,15 +1181,28 @@ export function createBeaconWorld(canvas, options = {}) {
   if (options.model) setModel(options.model);
   raf = requestAnimationFrame(frame);
   return {
-    play, reset, setModel, setWorld, focus, resize, dispose,
+    play, reset, setModel, setWorld, setRescueState, focus, resize, dispose,
     setReducedMotion(value) { reducedMotion = Boolean(value); needsRender = true; },
     get currentPlace() { return currentPlace; },
     get idle() { return !busy && tweens.size === 0; },
     getPlaces: () => [...places.values()].map(p => ({ id: p.id, kind: p.kind, position: p.position.toArray() })),
     getScreenPosition(id) {
-      const place = places.get(id); if (!place) return null;
-      const p = place.position.clone().add(v(0, 1.5, 0)).project(camera);
-      return { x: (p.x + 1) * 0.5, y: (1 - p.y) * 0.5, visible: p.z > -1 && p.z < 1 };
+      const entity = entities.get(id), place = places.get(id);
+      if (!entity && !place) return null;
+      const position = entity ? entity.object.getWorldPosition(v()).add(v(0, entity.kind === 'ferry' ? 3.8 : 0.3, 0)) : place.position.clone().add(v(0, 1.5, 0));
+      const p = position.project(camera);
+      return { x: (p.x + 1) * 0.5, y: (1 - p.y) * 0.5, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 };
+    },
+    projected(x, z) {
+      const p = v(x, 0.2, z).project(camera);
+      return { x: (p.x + 1) * 0.5, y: (1 - p.y) * 0.5, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 };
+    },
+    pointFromScreen(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      pointer.set((clientX - rect.left) / rect.width * 2 - 1, -(clientY - rect.top) / rect.height * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      const point = raycaster.ray.intersectPlane(new THREE.Plane(UP, -0.2), v());
+      return point ? { x: point.x, z: point.z } : null;
     },
     getPresentation: () => ({
       places: [...places.values()].map(p => ({ id: p.id, position: p.position.toArray(), camera: p.camera, target: p.target })),

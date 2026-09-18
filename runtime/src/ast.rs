@@ -48,6 +48,7 @@ pub enum ConditionalAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
+    Reactive(crate::reactive::Directive),
     Presentation(crate::presentation::Directive),
     Require {
         action: String,

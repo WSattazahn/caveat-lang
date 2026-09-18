@@ -7,6 +7,8 @@ pub mod graphics;
 pub mod map;
 pub mod parser;
 pub mod presentation;
+pub mod reactive;
+mod reactive_expr;
 pub mod session;
 pub mod web;
 pub mod world3d;
@@ -92,7 +94,7 @@ pub struct QualificationImpact {
     pub affected: Vec<NodeId>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EpistemicGraph {
     next_id: NodeId,
     pub nodes: HashMap<NodeId, NodeKind>,

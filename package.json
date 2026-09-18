@@ -13,7 +13,8 @@
     "serve": "node scripts/serve.mjs",
     "test:beacon": "node scripts/test-beacon.mjs",
     "test:launch": "node scripts/test-launch.mjs",
-    "package:game": "node scripts/package-standalone.mjs"
+    "package:game": "node scripts/package-standalone.mjs",
+    "test:rescue": "node scripts/test-rescue.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

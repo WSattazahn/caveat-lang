@@ -15,7 +15,7 @@ const server = createServer(async (request, response) => {
     const file = path.resolve(dist, `.${name}`);
     if (!file.startsWith(`${dist}${path.sep}`)) throw new Error('Invalid path');
     response.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
-    if (name === '/The-Last-Beacon.html') {
+    if (name === '/Light-the-Way.html') {
       // A file preview can allow classic JavaScript but reject data: imports.
       response.setHeader('Content-Security-Policy', "script-src 'self' 'unsafe-inline'; object-src 'none'");
     }
@@ -37,38 +37,46 @@ try {
 
   await check('healthy launch is not replaced by the watchdog', async page => {
     await page.clock.install();
-    await page.goto(`${base}/last-beacon.html`);
-    await page.getByRole('button', { name: /Begin the watch/ }).waitFor();
+    await page.goto(`${base}/rescue.html`);
+    await page.getByRole('button', { name: /Start rescue/ }).waitFor();
     await page.clock.fastForward(25000);
-    assert.equal(await page.getByRole('button', { name: /Begin the watch/ }).isVisible(), true);
+    assert.equal(await page.getByRole('button', { name: /Start rescue/ }).isVisible(), true);
     assert.equal(await page.locator('#app').getAttribute('data-launch-status'), null);
+  });
+
+  await check('portable rescue starts without a server or network', async page => {
+    await page.context().setOffline(true);
+    await page.goto(new URL('../dist/Light-the-Way.html', import.meta.url).href);
+    await page.getByRole('button', { name: /Start rescue/ }).click();
+    await page.waitForFunction(() => window.__rescue?.snapshot().values.elapsed > 0.3);
+    assert.equal(await page.evaluate(() => window.__rescue.snapshot().values.phase), 1);
   });
 
   await check('failed static dependency produces a recovery action', async page => {
     await page.route('**/beacon-world.js', route => route.abort('failed'));
-    await page.goto(`${base}/last-beacon.html`);
+    await page.goto(`${base}/rescue.html`);
     await page.getByRole('button', { name: 'Try again', exact: true }).waitFor();
     assert.match(await page.locator('#loading-status').innerText(), /could not load|could not start/);
     assert.equal(await page.locator('#app').getAttribute('data-launch-status'), 'blocked');
   });
 
   await check('stalled module stops showing an indefinite preparation message', async page => {
-    await page.route('**/last-beacon.js', () => {});
-    await page.goto(`${base}/last-beacon.html`, { waitUntil: 'commit' });
+    await page.route('**/rescue.js', () => {});
+    await page.goto(`${base}/rescue.html`, { waitUntil: 'commit' });
     await page.getByRole('button', { name: 'Try again', exact: true }).waitFor();
     assert.match(await page.locator('#loading-status').innerText(), /has not started/);
   });
 
   await check('restricted standalone preview explains the block', async page => {
-    await page.goto(`${base}/The-Last-Beacon.html`);
+    await page.goto(`${base}/Light-the-Way.html`);
     await page.getByRole('button', { name: 'Try again', exact: true }).waitFor();
     assert.match(await page.locator('#loading-status').innerText(), /blocked|could not load|could not start/);
   });
 
   await check('disabled JavaScript leaves a readable browser instruction', async page => {
-    await page.goto(`${base}/last-beacon.html`);
+    await page.goto(`${base}/rescue.html`);
     assert.equal(await page.locator('noscript .error-box').isVisible(), true);
-    assert.match(await page.locator('noscript .error-box').innerText(), /JavaScript is disabled/);
+    assert.match(await page.locator('noscript .error-box').innerText(), /JavaScript enabled/);
     assert.equal(await page.locator('.launch-help').isVisible(), true);
   }, { javaScriptEnabled: false });
 } finally {

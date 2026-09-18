@@ -99,6 +99,9 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
 }
 
 fn parse_statement(line: &str) -> Result<Statement, String> {
+    if let Some(directive) = crate::reactive::parse_directive(line) {
+        return directive.map(Statement::Reactive);
+    }
     if let Some(directive) = crate::presentation::parse_directive(line) {
         return directive.map(Statement::Presentation);
     }

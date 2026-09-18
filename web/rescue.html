@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071b26">
+  <meta name="description" content="Drag the lighthouse beam. Dodge the reefs. Bring 32 passengers home. An action game running on Caveat.">
+  <title>Light the Way — The Last Beacon</title>
+  <link rel="stylesheet" href="./rescue.css">
+</head>
+<body>
+  <main id="app" data-screen="loading">
+    <canvas id="world" tabindex="0" aria-label="Rescue channel. Hold and drag the light to guide the ferry, or use the arrow keys."></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+    <header class="masthead">
+      <a class="wordmark" href="./" aria-label="Caveat games"><span aria-hidden="true">◈</span><span>THE LAST BEACON<small>LIGHT THE WAY</small></span></a>
+      <div class="tools"><button id="sound" class="icon-button" aria-label="Turn sound on" aria-pressed="false">♪<span>Sound</span></button><button id="pause" class="icon-button" aria-label="Pause game" hidden>Ⅱ<span>Pause</span></button></div>
+    </header>
+    <section id="intro" class="intro">
+      <div class="eyebrow">32 PEOPLE. ONE WAY HOME.</div>
+      <h1>Light<br>the <em>way.</em></h1>
+      <p id="instruction">Drag the light left or right.<br>Bring the ferry to the green harbor.</p>
+      <div id="start-actions"><p id="loading-status" role="status">Lighting the channel…</p><a id="launch-hosted" class="launch-help" href="https://last-beacon-caveat.w4ltr0n.chatgpt.site" target="_blank" rel="noopener">Open in your browser ↗</a><noscript><p class="error-box">Open the game in a browser with JavaScript enabled.</p></noscript></div>
+      <div class="intro-controls"><span class="drag-icon" aria-hidden="true">↔</span> HOLD + DRAG <span class="dot">·</span> OR ARROW KEYS</div>
+    </section>
+    <div id="demo-cue" class="demo-cue" aria-hidden="true"><span class="demo-ring"></span><span class="demo-pointer">↖</span><span class="demo-word">MOVE THE LIGHT</span></div>
+    <section id="hud" class="hud" aria-label="Rescue status" hidden>
+      <div class="passengers"><strong id="passengers">32</strong><span>PEOPLE ABOARD</span></div>
+      <div class="hull-status"><span class="hud-label">HULL</span><div id="hull" aria-label="3 hull remaining"><i></i><i></i><i></i></div></div>
+      <div class="time-status"><strong id="time">1:30</strong><span>TO GET HOME</span></div>
+    </section>
+    <div id="goal-label" class="world-label goal-label" aria-hidden="true"><span>⌂</span> HARBOR</div>
+    <div id="boat-label" class="world-label boat-label" aria-hidden="true"><span>32</span> ABOARD</div>
+    <div id="toast" class="toast" aria-live="polite" hidden></div>
+    <div id="impact" class="impact" aria-hidden="true"></div>
+    <footer id="play-footer" class="play-footer" hidden><p id="control-hint">HOLD + DRAG THE LIGHT</p><div class="progress-track" aria-label="Progress to harbor"><div id="progress-fill"></div><span id="progress-ship">▰</span><span class="harbor-symbol" aria-hidden="true">⌂</span></div></footer>
+    <section id="pause-panel" class="overlay-panel" aria-label="Paused game" hidden><span class="eyebrow">TAKE A BREATH</span><h2>Paused.</h2><button id="resume" class="primary">Keep going <span>→</span></button><button id="restart-paused" class="quiet-button">Start over</button></section>
+    <section id="ending" class="overlay-panel ending" aria-labelledby="ending-title" hidden>
+      <div id="ending-eyebrow" class="eyebrow">HOME AT LAST</div><h2 id="ending-title">32 safe.</h2><p id="ending-note"></p>
+      <div id="result-stats" class="result-stats"></div><button id="retry" class="primary">Try again <span>↻</span></button>
+      <details class="about-caveat"><summary>How Caveat runs this game</summary><p>Movement, reef discoveries, damage and the rescue result are rules in the Caveat source. The browser draws what that program decides.</p><a href="https://github.com/WSattazahn/caveat-lang/blob/codex/last-beacon-game/game/light_the_way.cav" target="_blank" rel="noopener">Read the game source ↗</a></details>
+    </section>
+    <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+  </main>
+  <script src="./beacon-bootstrap.js"></script>
+  <script type="module" src="./rescue.js"></script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+scene "Drag the light left or right. Reach the green harbor.";
+
+place keeper_court kind courtyard;
+place lighthouse_base kind lighthouse;
+place lantern_room kind lantern_room;
+place observatory kind observatory;
+place tidal_archive kind archive;
+place harbor kind harbor;
+place breakwater kind breakwater;
+connect keeper_court to lighthouse_base;
+connect lighthouse_base to lantern_room;
+connect keeper_court to observatory;
+connect keeper_court to tidal_archive;
+connect keeper_court to harbor;
+connect harbor to breakwater;
+entity lamp kind beacon at lantern_room;
+entity lens kind optic at lantern_room;
+entity radio kind transmitter at observatory;
+entity star_scope kind telescope at observatory;
+entity tide_table kind chart at tidal_archive;
+entity tide_gauge kind gauge at harbor;
+entity buoy kind buoy at breakwater;
+entity dynamo kind generator at lighthouse_base;
+entity pilot_boat kind boat at harbor;
+entity chart_board kind chart at keeper_court;
+entity ferry kind ferry at harbor;
+entity harbor_goal kind harbor_goal at harbor;
+entity reef_one kind reef at harbor;
+entity reef_two kind reef at harbor;
+entity reef_three kind reef at harbor;
+entity reef_four kind reef at harbor;
+entity reef_five kind reef at harbor;
+entity reef_six kind reef at harbor;
+start_at keeper_court;
+
+// Rendering and collision detection share these source positions.
+position keeper_court at 0 3.15 2;
+position lighthouse_base at -6.4 6.1 -5.8;
+position lantern_room at -6.4 20 -5.8;
+position observatory at 9.5 5.2 -3.8;
+position tidal_archive at -10.8 2.8 6;
+position harbor at 5.3 1.2 12.2;
+position breakwater at 15.5 1.1 14.9;
+position lamp at -6.4 20.13 -5.8;
+position lens at -5.9 20.12 -4.65;
+position radio at 12.5 5.4 -4.5;
+position star_scope at 9.5 9.95 -3.8;
+position tide_table at -9.45 3 8.8;
+position tide_gauge at 2.65 0.7 13.7;
+position buoy at 18.9 0.3 16.3;
+position dynamo at -9.2 6.35 -5.8;
+position pilot_boat at 9 0.44 16.7;
+position chart_board at 1.35 3.35 4.8;
+position ferry at 0 0.6 58;
+position harbor_goal at 5.3 0.3 19;
+position reef_one at -1 0 45;
+position reef_two at 3.5 0 36;
+position reef_three at -0.2 0 27;
+position reef_four at -6.6 0 27;
+position reef_five at -7.4 0 45;
+position reef_six at 9.9 0 36;
+camera keeper_court from 21 23 34 toward 0 6 2;
+camera lighthouse_base from 9 19 17 toward -6.4 11 -5.8;
+camera lantern_room from 5.5 27 10 toward -6.4 21 -5.8;
+camera observatory from 26 16 14 toward 9.5 6.6 -3.8;
+camera tidal_archive from 3 13 24 toward -10.8 4 6;
+camera harbor from 24 13 32 toward 5.3 2.4 12.2;
+camera breakwater from 30 13 32 toward 15.5 1.6 14.9;
+overview from 0 76 94 toward 0 0 31;
+route keeper_court to lighthouse_base via -3.6 6.18 -1.5;
+route keeper_court to observatory via 4.5 5.26 -0.5;
+route keeper_court to tidal_archive via -5.5 3.15 4.45;
+route keeper_court to harbor via 2 3.18 7.5 then 3.5 2.75 9.7 then 4.3 1.9 11;
+route harbor to breakwater via 10.3 1.15 14.05;
+route lighthouse_base to lantern_room via -6.4 6.6 -3.26
+    then -7.2758 6.925 -3.4259
+    then -8.0373 7.25 -3.883
+    then -8.5913 7.575 -4.5728
+    then -8.8712 7.9 -5.4086
+    then -8.8446 8.225 -6.2863
+    then -8.5171 8.55 -7.0974
+    then -7.9313 8.875 -7.7425
+    then -7.1614 9.2 -8.1434
+    then -6.3036 9.525 -8.2526
+    then -5.4643 9.85 -8.0589
+    then -4.7468 10.175 -7.5884
+    then -4.2384 10.5 -6.9014
+    then -4.0003 10.825 -6.084
+    then -4.0595 11.15 -5.2381
+    then -4.4066 11.475 -4.468
+    then -4.9964 11.8 -3.8681
+    then -5.7544 12.125 -3.5108
+    then -6.5859 12.45 -3.4383
+    then -7.3878 12.775 -3.6572
+    then -8.0617 13.1 -4.1383
+    then -8.5255 13.425 -4.8201
+    then -8.7238 13.75 -5.6171
+    then -8.6343 14.075 -6.4301
+    then -8.2704 14.4 -7.159
+    then -7.6792 14.725 -7.7145
+    then -6.9353 15.05 -8.0296
+    then -6.1316 15.375 -8.0677
+    then -5.3676 15.7 -7.8261
+    then -4.7371 16.025 -7.3371
+    then -4.3167 16.35 -6.663
+    then -4.1562 16.675 -5.8882
+    then -4.2734 17 -5.109
+    then -4.6515 17.325 -4.4216
+    then -5.2416 17.65 -3.9097
+    then -5.9693 17.975 -3.6349
+    then -6.7438 18.3 -3.6291
+    then -7.4693 18.625 -3.8905
+    then -8.0569 18.95 -4.3849
+    then -8.4354 19.275 -5.0491
+    then -8.56 19.6 -5.8;
+
+display game_title "LIGHT THE WAY";
+display title "LIGHT THE WAY";
+display game_subtitle "32 passengers. One light.";
+display subtitle "32 passengers. One light.";
+display instruction "Drag the light left or right. Reach the green harbor.";
+display start_label "Start rescue";
+display retry_label "Try again";
+display win_title "EVERYONE HOME";
+display win_body "32 passengers rescued.";
+display loss_title "THE FERRY NEEDS YOU";
+display loss_1 "Three impacts. Find a clearer route.";
+display loss_2 "You missed the harbor. Aim for the green ring.";
+display loss_3 "Time ran out. Keep the ferry moving.";
+display warning_0 "Clear water";
+display warning_1 "Hold the light to steer";
+display warning_2 "Rocks ahead. Steer clear.";
+display score_label "Keeper score";
+display source_note "The course, collisions, rescue, and discoveries run in CAVEAT.";
+display clear_course "The charted approach is clear.";
+display keeper_chart "An old chart marks open water between the ferry and harbor.";
+display follow_light "Follow the light toward the harbor";
+
+budget 6;
+claim clear_course;
+evidence keeper_chart from "tide_table";
+keeper_chart supports clear_course;
+evidence reef_one_reading from "reef_one";
+caveat reef_one_shadow consequence high;
+reef_one_shadow qualifies keeper_chart;
+display reef_one_reading "The light reveals submerged rock.";
+display reef_one_shadow "The chart may omit a submerged rock.";
+evidence reef_two_reading from "reef_two";
+caveat reef_two_shadow consequence high;
+reef_two_shadow qualifies keeper_chart;
+display reef_two_reading "The light reveals submerged rock.";
+display reef_two_shadow "The chart may omit a submerged rock.";
+evidence reef_three_reading from "reef_three";
+caveat reef_three_shadow consequence high;
+reef_three_shadow qualifies keeper_chart;
+display reef_three_reading "The light reveals submerged rock.";
+display reef_three_shadow "The chart may omit a submerged rock.";
+evidence reef_four_reading from "reef_four";
+caveat reef_four_shadow consequence high;
+reef_four_shadow qualifies keeper_chart;
+display reef_four_reading "The light reveals submerged rock.";
+display reef_four_shadow "The chart may omit a submerged rock.";
+evidence reef_five_reading from "reef_five";
+caveat reef_five_shadow consequence high;
+reef_five_shadow qualifies keeper_chart;
+display reef_five_reading "The light reveals submerged rock.";
+display reef_five_shadow "The chart may omit a submerged rock.";
+evidence reef_six_reading from "reef_six";
+caveat reef_six_shadow consequence high;
+reef_six_shadow qualifies keeper_chart;
+display reef_six_reading "The light reveals submerged rock.";
+display reef_six_shadow "The chart may omit a submerged rock.";
+
+// Values are the complete simulation contract. No motion or collision rule lives in JavaScript.
+state boat_x = ferry.x min -9.5 max 13;
+state boat_z = ferry.z min 0 max 70;
+state boat_vx = 0 min -4 max 4;
+state aim_x = ferry.x min -9.5 max 13;
+state aim_z = 45 min 19 max 60;
+state light_on = 0 min 0 max 1;
+state phase = 0 min 0 max 3;
+state hull = 3 min 0 max 3;
+state elapsed = 0 min 0 max 90;
+state rescued = 0 min 0 max 32;
+state collision_cooldown = 0 min 0 max 2;
+state warning = 0 min 0 max 2;
+state failure_reason = 0 min 0 max 3;
+state hit_count = 0 min 0 max 3;
+state reefs_seen = 0 min 0 max 6;
+state score = 0 min 0 max 6000;
+state progress = 0 min 0 max 1;
+state total_passengers = 32;
+state time_limit = 90;
+state aim_speed = 12;
+state aim_x_min = -9.5;
+state aim_x_max = 13;
+state aim_z_min = 19;
+state aim_z_max = 60;
+state forward_speed = 0.6;
+state cautious_speed = 0.42;
+state max_speed = 2.1;
+state turn_acceleration = 3.2;
+state collision_grace = 2;
+state reef_radius = 2.3;
+state boat_radius = 1.1;
+state beam_radius = 3.8;
+state caution_radius = 6.2;
+state goal_radius = 2.9;
+state wind_strength = 0.11;
+state boat_speed = forward_speed;
+state target_vx = 0 min -4 max 4;
+state contact = 0 min 0 max 6;
+state hit_x = 0;
+state reef_one_seen = 0 min 0 max 1;
+state reef_one_distance = 100;
+state reef_two_seen = 0 min 0 max 1;
+state reef_two_distance = 100;
+state reef_three_seen = 0 min 0 max 1;
+state reef_three_distance = 100;
+state reef_four_seen = 0 min 0 max 1;
+state reef_four_distance = 100;
+state reef_five_seen = 0 min 0 max 1;
+state reef_five_distance = 100;
+state reef_six_seen = 0 min 0 max 1;
+state reef_six_distance = 100;
+
+event start;
+event aim x min -100 max 100, z min -100 max 100, active min 0 max 1;
+event tick dt min 0 max 0.1;
+
+on start when phase == 0 and not committed(follow_light) commit follow_light because enough retaining reef_one_shadow, reef_two_shadow, reef_three_shadow, reef_four_shadow, reef_five_shadow, reef_six_shadow;
+on start when phase == 0 set phase = 1;
+on aim when phase < 2 set aim_x = clamp(x, aim_x_min, aim_x_max);
+on aim when phase < 2 set aim_z = clamp(z, aim_z_min, aim_z_max);
+on aim when phase < 2 set light_on = active;
+
+// Scouting reveals actual contradictory evidence. The old chart support is retained.
+on tick when phase == 1 and light_on == 1 and sqrt((aim_x - reef_one.x) * (aim_x - reef_one.x) + (aim_z - reef_one.z) * (aim_z - reef_one.z)) <= beam_radius and not observed(reef_one_reading) reveal reef_one_reading opposes clear_course;
+on tick when phase == 1 and light_on == 1 and sqrt((aim_x - reef_two.x) * (aim_x - reef_two.x) + (aim_z - reef_two.z) * (aim_z - reef_two.z)) <= beam_radius and not observed(reef_two_reading) reveal reef_two_reading opposes clear_course;
+on tick when phase == 1 and light_on == 1 and sqrt((aim_x - reef_three.x) * (aim_x - reef_three.x) + (aim_z - reef_three.z) * (aim_z - reef_three.z)) <= beam_radius and not observed(reef_three_reading) reveal reef_three_reading opposes clear_course;
+on tick when phase == 1 and light_on == 1 and sqrt((aim_x - reef_four.x) * (aim_x - reef_four.x) + (aim_z - reef_four.z) * (aim_z - reef_four.z)) <= beam_radius and not observed(reef_four_reading) reveal reef_four_reading opposes clear_course;
+on tick when phase == 1 and light_on == 1 and sqrt((aim_x - reef_five.x) * (aim_x - reef_five.x) + (aim_z - reef_five.z) * (aim_z - reef_five.z)) <= beam_radius and not observed(reef_five_reading) reveal reef_five_reading opposes clear_course;
+on tick when phase == 1 and light_on == 1 and sqrt((aim_x - reef_six.x) * (aim_x - reef_six.x) + (aim_z - reef_six.z) * (aim_z - reef_six.z)) <= beam_radius and not observed(reef_six_reading) reveal reef_six_reading opposes clear_course;
+
+on tick when phase == 1 set elapsed = min(time_limit, elapsed + dt);
+on tick when phase == 1 set collision_cooldown = max(0, collision_cooldown - dt);
+on tick when phase == 1 set warning = 0;
+on tick when phase == 1 and light_on < 0.5 set warning = 1;
+on tick when phase == 1 set reef_one_distance = sqrt((boat_x - reef_one.x) * (boat_x - reef_one.x) + (boat_z - reef_one.z) * (boat_z - reef_one.z));
+on tick when phase == 1 set reef_two_distance = sqrt((boat_x - reef_two.x) * (boat_x - reef_two.x) + (boat_z - reef_two.z) * (boat_z - reef_two.z));
+on tick when phase == 1 set reef_three_distance = sqrt((boat_x - reef_three.x) * (boat_x - reef_three.x) + (boat_z - reef_three.z) * (boat_z - reef_three.z));
+on tick when phase == 1 set reef_four_distance = sqrt((boat_x - reef_four.x) * (boat_x - reef_four.x) + (boat_z - reef_four.z) * (boat_z - reef_four.z));
+on tick when phase == 1 set reef_five_distance = sqrt((boat_x - reef_five.x) * (boat_x - reef_five.x) + (boat_z - reef_five.z) * (boat_z - reef_five.z));
+on tick when phase == 1 set reef_six_distance = sqrt((boat_x - reef_six.x) * (boat_x - reef_six.x) + (boat_z - reef_six.z) * (boat_z - reef_six.z));
+on tick when phase == 1 and observed(reef_one_reading) and not examined(reef_one_shadow) examine reef_one_shadow cost 1;
+on tick when phase == 1 and observed(reef_one_reading) set reef_one_seen = 1;
+on tick when phase == 1 and observed(reef_one_reading) and not reopened(follow_light) reopen follow_light because reef_one_reading;
+on tick when phase == 1 and observed(reef_one_reading) and reef_one_distance < caution_radius set warning = 2;
+on tick when phase == 1 and observed(reef_two_reading) and not examined(reef_two_shadow) examine reef_two_shadow cost 1;
+on tick when phase == 1 and observed(reef_two_reading) set reef_two_seen = 1;
+on tick when phase == 1 and observed(reef_two_reading) and not reopened(follow_light) reopen follow_light because reef_two_reading;
+on tick when phase == 1 and observed(reef_two_reading) and reef_two_distance < caution_radius set warning = 2;
+on tick when phase == 1 and observed(reef_three_reading) and not examined(reef_three_shadow) examine reef_three_shadow cost 1;
+on tick when phase == 1 and observed(reef_three_reading) set reef_three_seen = 1;
+on tick when phase == 1 and observed(reef_three_reading) and not reopened(follow_light) reopen follow_light because reef_three_reading;
+on tick when phase == 1 and observed(reef_three_reading) and reef_three_distance < caution_radius set warning = 2;
+on tick when phase == 1 and observed(reef_four_reading) and not examined(reef_four_shadow) examine reef_four_shadow cost 1;
+on tick when phase == 1 and observed(reef_four_reading) set reef_four_seen = 1;
+on tick when phase == 1 and observed(reef_four_reading) and not reopened(follow_light) reopen follow_light because reef_four_reading;
+on tick when phase == 1 and observed(reef_four_reading) and reef_four_distance < caution_radius set warning = 2;
+on tick when phase == 1 and observed(reef_five_reading) and not examined(reef_five_shadow) examine reef_five_shadow cost 1;
+on tick when phase == 1 and observed(reef_five_reading) set reef_five_seen = 1;
+on tick when phase == 1 and observed(reef_five_reading) and not reopened(follow_light) reopen follow_light because reef_five_reading;
+on tick when phase == 1 and observed(reef_five_reading) and reef_five_distance < caution_radius set warning = 2;
+on tick when phase == 1 and observed(reef_six_reading) and not examined(reef_six_shadow) examine reef_six_shadow cost 1;
+on tick when phase == 1 and observed(reef_six_reading) set reef_six_seen = 1;
+on tick when phase == 1 and observed(reef_six_reading) and not reopened(follow_light) reopen follow_light because reef_six_reading;
+on tick when phase == 1 and observed(reef_six_reading) and reef_six_distance < caution_radius set warning = 2;
+
+// Reopened knowledge changes the ferry's approach speed, buying room to steer.
+on tick when phase == 1 set boat_speed = forward_speed;
+on tick when phase == 1 and reopened(follow_light) and warning == 2 set boat_speed = cautious_speed;
+on tick when phase == 1 set target_vx = 0;
+on tick when phase == 1 and light_on >= 0.5 set target_vx = clamp((aim_x - boat_x) * 0.95, -max_speed, max_speed);
+on tick when phase == 1 set boat_vx = boat_vx + clamp(target_vx - boat_vx, -turn_acceleration * dt, turn_acceleration * dt);
+on tick when phase == 1 set boat_x = clamp(boat_x + (boat_vx + sin(elapsed * 0.7) * wind_strength) * dt, aim_x_min, aim_x_max);
+on tick when phase == 1 set boat_z = boat_z - boat_speed * dt;
+on tick when phase == 1 set progress = clamp((ferry.z - boat_z) / (ferry.z - harbor_goal.z), 0, 1);
+
+// Contacts use the same position identifiers as the rendered reefs.
+on tick when phase == 1 set contact = 0;
+on tick when phase == 1 set reef_one_distance = sqrt((boat_x - reef_one.x) * (boat_x - reef_one.x) + (boat_z - reef_one.z) * (boat_z - reef_one.z));
+on tick when phase == 1 and contact == 0 and collision_cooldown <= 0 and reef_one_distance < reef_radius + boat_radius set contact = 1;
+on tick when phase == 1 and contact == 1 set hit_x = reef_one.x;
+on tick when phase == 1 and contact == 1 and not observed(reef_one_reading) reveal reef_one_reading opposes clear_course;
+on tick when phase == 1 set reef_two_distance = sqrt((boat_x - reef_two.x) * (boat_x - reef_two.x) + (boat_z - reef_two.z) * (boat_z - reef_two.z));
+on tick when phase == 1 and contact == 0 and collision_cooldown <= 0 and reef_two_distance < reef_radius + boat_radius set contact = 2;
+on tick when phase == 1 and contact == 2 set hit_x = reef_two.x;
+on tick when phase == 1 and contact == 2 and not observed(reef_two_reading) reveal reef_two_reading opposes clear_course;
+on tick when phase == 1 set reef_three_distance = sqrt((boat_x - reef_three.x) * (boat_x - reef_three.x) + (boat_z - reef_three.z) * (boat_z - reef_three.z));
+on tick when phase == 1 and contact == 0 and collision_cooldown <= 0 and reef_three_distance < reef_radius + boat_radius set contact = 3;
+on tick when phase == 1 and contact == 3 set hit_x = reef_three.x;
+on tick when phase == 1 and contact == 3 and not observed(reef_three_reading) reveal reef_three_reading opposes clear_course;
+on tick when phase == 1 set reef_four_distance = sqrt((boat_x - reef_four.x) * (boat_x - reef_four.x) + (boat_z - reef_four.z) * (boat_z - reef_four.z));
+on tick when phase == 1 and contact == 0 and collision_cooldown <= 0 and reef_four_distance < reef_radius + boat_radius set contact = 4;
+on tick when phase == 1 and contact == 4 set hit_x = reef_four.x;
+on tick when phase == 1 and contact == 4 and not observed(reef_four_reading) reveal reef_four_reading opposes clear_course;
+on tick when phase == 1 set reef_five_distance = sqrt((boat_x - reef_five.x) * (boat_x - reef_five.x) + (boat_z - reef_five.z) * (boat_z - reef_five.z));
+on tick when phase == 1 and contact == 0 and collision_cooldown <= 0 and reef_five_distance < reef_radius + boat_radius set contact = 5;
+on tick when phase == 1 and contact == 5 set hit_x = reef_five.x;
+on tick when phase == 1 and contact == 5 and not observed(reef_five_reading) reveal reef_five_reading opposes clear_course;
+on tick when phase == 1 set reef_six_distance = sqrt((boat_x - reef_six.x) * (boat_x - reef_six.x) + (boat_z - reef_six.z) * (boat_z - reef_six.z));
+on tick when phase == 1 and contact == 0 and collision_cooldown <= 0 and reef_six_distance < reef_radius + boat_radius set contact = 6;
+on tick when phase == 1 and contact == 6 set hit_x = reef_six.x;
+on tick when phase == 1 and contact == 6 and not observed(reef_six_reading) reveal reef_six_reading opposes clear_course;
+
+on tick when phase == 1 and contact > 0 set hull = max(0, hull - 1);
+on tick when phase == 1 and contact > 0 set hit_count = min(3, hit_count + 1);
+on tick when phase == 1 and contact > 0 set collision_cooldown = collision_grace;
+on tick when phase == 1 and contact > 0 set warning = 2;
+on tick when phase == 1 and contact > 0 and boat_x >= hit_x set boat_vx = 1.8;
+on tick when phase == 1 and contact > 0 and boat_x < hit_x set boat_vx = -1.8;
+on tick when phase == 1 and contact > 0 set boat_x = clamp(boat_x + boat_vx * 0.5, aim_x_min, aim_x_max);
+
+// A collision is also evidence, including on the final damaged frame.
+on tick when phase == 1 and observed(reef_one_reading) and not examined(reef_one_shadow) examine reef_one_shadow cost 1;
+on tick when phase == 1 and observed(reef_one_reading) set reef_one_seen = 1;
+on tick when phase == 1 and observed(reef_one_reading) and not reopened(follow_light) reopen follow_light because reef_one_reading;
+on tick when phase == 1 and observed(reef_two_reading) and not examined(reef_two_shadow) examine reef_two_shadow cost 1;
+on tick when phase == 1 and observed(reef_two_reading) set reef_two_seen = 1;
+on tick when phase == 1 and observed(reef_two_reading) and not reopened(follow_light) reopen follow_light because reef_two_reading;
+on tick when phase == 1 and observed(reef_three_reading) and not examined(reef_three_shadow) examine reef_three_shadow cost 1;
+on tick when phase == 1 and observed(reef_three_reading) set reef_three_seen = 1;
+on tick when phase == 1 and observed(reef_three_reading) and not reopened(follow_light) reopen follow_light because reef_three_reading;
+on tick when phase == 1 and observed(reef_four_reading) and not examined(reef_four_shadow) examine reef_four_shadow cost 1;
+on tick when phase == 1 and observed(reef_four_reading) set reef_four_seen = 1;
+on tick when phase == 1 and observed(reef_four_reading) and not reopened(follow_light) reopen follow_light because reef_four_reading;
+on tick when phase == 1 and observed(reef_five_reading) and not examined(reef_five_shadow) examine reef_five_shadow cost 1;
+on tick when phase == 1 and observed(reef_five_reading) set reef_five_seen = 1;
+on tick when phase == 1 and observed(reef_five_reading) and not reopened(follow_light) reopen follow_light because reef_five_reading;
+on tick when phase == 1 and observed(reef_six_reading) and not examined(reef_six_shadow) examine reef_six_shadow cost 1;
+on tick when phase == 1 and observed(reef_six_reading) set reef_six_seen = 1;
+on tick when phase == 1 and observed(reef_six_reading) and not reopened(follow_light) reopen follow_light because reef_six_reading;
+
+// Source alone declares success or failure.
+on tick when phase == 1 set reefs_seen = reef_one_seen + reef_two_seen + reef_three_seen + reef_four_seen + reef_five_seen + reef_six_seen;
+on tick when phase == 1 and hull <= 0 set failure_reason = 1;
+on tick when phase == 1 and hull <= 0 set phase = 3;
+on tick when phase == 1 and sqrt((boat_x - harbor_goal.x) * (boat_x - harbor_goal.x) + (boat_z - harbor_goal.z) * (boat_z - harbor_goal.z)) <= goal_radius set rescued = total_passengers;
+on tick when phase == 1 and rescued == total_passengers set progress = 1;
+on tick when phase == 1 and rescued == total_passengers set score = hull * 1000 + max(0, time_limit - elapsed) * 20 + reefs_seen * 100;
+on tick when phase == 1 and rescued == total_passengers set phase = 2;
+on tick when phase == 1 and boat_z < harbor_goal.z - 2 set failure_reason = 2;
+on tick when phase == 1 and boat_z < harbor_goal.z - 2 set phase = 3;
+on tick when phase == 1 and elapsed >= time_limit set failure_reason = 3;
+on tick when phase == 1 and elapsed >= time_limit set phase = 3;

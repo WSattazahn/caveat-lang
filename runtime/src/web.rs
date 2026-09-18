@@ -2,6 +2,7 @@ use crate::action_runtime::{simulate, ActionRuntime};
 use crate::game_session::GameSession;
 use crate::graphics::CaveatScene;
 use crate::map::{to_json_pretty, CaveatMap};
+use crate::reactive::ReactiveSession;
 use crate::session::{CommitmentFeedback, Discovery, PendingInteraction, Session};
 use crate::world3d::World3D;
 #[cfg(target_arch = "wasm32")]
@@ -31,6 +32,33 @@ fn error_json(message: &str) -> String {
         "{{\"kind\":\"error\",\"message\":{}}}",
         json_string(message)
     )
+}
+
+/// A generic event bridge: arithmetic, collisions, and epistemic effects all
+/// execute in CAVEAT source. The host supplies only bounded event parameters.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub struct WebReactiveSession {
+    inner: ReactiveSession,
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+impl WebReactiveSession {
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen(constructor))]
+    pub fn new(source: &str) -> Result<WebReactiveSession, String> {
+        Ok(Self {
+            inner: ReactiveSession::from_source(source)?,
+        })
+    }
+
+    pub fn snapshot(&self) -> String {
+        to_json_pretty(&self.inner.snapshot()).expect("finite reactive snapshot")
+    }
+
+    pub fn dispatch(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        self.inner
+            .dispatch_json(event, payload_json)
+            .and_then(|snapshot| to_json_pretty(&snapshot))
+    }
 }
 
 fn pending_json(pending: PendingInteraction) -> String {

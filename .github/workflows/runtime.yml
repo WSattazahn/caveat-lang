@@ -114,6 +114,31 @@ jobs:
           name: last-beacon-browser-qa
           path: test-results/
 
+  light-the-way:
+    name: Light the Way action game QA
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Steer the ferry with mouse, keyboard and touch
+        run: BROWSERS=chromium,webkit npm run test:rescue
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: light-the-way-browser-qa
+          path: test-results/rescue-*
+
   mr-caveat:
     name: Mr. Caveat iPhone QA
     needs: core
