@@ -7,6 +7,48 @@
 </defs>
 <rect width="1600" height="900" fill="url(#sky)"/><circle cx="1290" cy="120" r="65" fill="#f7edc8"/><circle cx="1290" cy="120" r="125" fill="#fff0b9" opacity=".11" filter="url(#blur)"/>
 <path d="M0 510Q300 435 600 490T1160 470T1600 430V900H0Z" fill="#222329"/><path d="M0 590Q340 515 780 570T1600 525V900H0Z" fill="url(#water)"/>
+<!-- dense Moon Market skyline behind the chase -->
+<g opacity=".96" filter="url(#shadow)">
+  <g transform="translate(455 235)">
+    <rect x="0" y="145" width="250" height="250" rx="8" fill="#51302c"/>
+    <path d="M-35 150L125 48l160 102-34 35H0Z" fill="#26303a"/>
+    <path d="M4 148L125 72l122 76" fill="none" stroke="#8d5b45" stroke-width="14"/>
+    <g fill="#f1bd62" opacity=".72"><rect x="35" y="195" width="44" height="62" rx="5"/><rect x="105" y="195" width="44" height="62" rx="5"/><rect x="175" y="195" width="44" height="62" rx="5"/></g>
+    <rect x="86" y="285" width="78" height="110" fill="#2d2021"/>
+    <path d="M-20 305h290" stroke="#bd6941" stroke-width="18"/>
+  </g>
+  <g transform="translate(895 250)">
+    <rect x="0" y="130" width="265" height="245" rx="8" fill="#4a2e2b"/>
+    <path d="M-25 135L132 40l160 95-34 34H5Z" fill="#222d36"/>
+    <path d="M4 134L132 64l128 70" fill="none" stroke="#83533f" stroke-width="13"/>
+    <g fill="#f3c76f" opacity=".68"><rect x="35" y="184" width="48" height="58" rx="5"/><rect x="108" y="184" width="48" height="58" rx="5"/><rect x="181" y="184" width="48" height="58" rx="5"/></g>
+    <rect x="95" y="272" width="77" height="103" fill="#291e20"/>
+    <path d="M-12 292h288" stroke="#b95e3d" stroke-width="17"/>
+  </g>
+  <g transform="translate(710 168)">
+    <rect x="0" y="118" width="180" height="190" rx="7" fill="#5d342b"/>
+    <path d="M-42 118L90 36l132 82-30 30H-12Z" fill="#1f2933"/>
+    <path d="M-16 113L90 54l106 59" fill="none" stroke="#9d684c" stroke-width="12"/>
+    <rect x="58" y="160" width="64" height="148" fill="#2d2021"/>
+    <rect x="15" y="155" width="34" height="54" rx="4" fill="#f6c86e" opacity=".78"/>
+    <rect x="131" y="155" width="34" height="54" rx="4" fill="#f6c86e" opacity=".78"/>
+  </g>
+</g>
+<g filter="url(#shadow)">
+  <rect x="614" y="285" width="82" height="142" rx="10" fill="#8e4d36" transform="rotate(-3 655 356)"/>
+  <path d="M655 300v112" stroke="#e9c58d" stroke-width="7" opacity=".6"/>
+  <circle cx="655" cy="331" r="12" fill="#f1ca79"/>
+  <rect x="1087" y="268" width="86" height="150" rx="10" fill="#7a4235" transform="rotate(4 1130 343)"/>
+  <path d="M1130 284v115" stroke="#e7c08b" stroke-width="7" opacity=".6"/>
+</g>
+<g opacity=".48" filter="url(#blur)" fill="#f39b48"><circle cx="515" cy="376" r="44"/><circle cx="800" cy="323" r="48"/><circle cx="1085" cy="378" r="45"/></g>
+<g opacity=".55" stroke-linecap="round">
+  <path d="M470 565v140" stroke="#f0a04d" stroke-width="9"/>
+  <path d="M515 555v170" stroke="#d75e42" stroke-width="6"/>
+  <path d="M785 530v210" stroke="#f5bd5d" stroke-width="10"/>
+  <path d="M830 540v185" stroke="#d96a45" stroke-width="7"/>
+  <path d="M1080 556v165" stroke="#e9914a" stroke-width="9"/>
+</g>
 <!-- huge bridge -->
 <path d="M110 650Q745 170 1485 650" fill="none" stroke="#55494a" stroke-width="116" stroke-linecap="round" filter="url(#shadow)"/>
 <path d="M110 624Q745 205 1485 624" fill="none" stroke="#a78475" stroke-width="28" stroke-linecap="round"/>
