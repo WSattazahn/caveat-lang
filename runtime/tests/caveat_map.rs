@@ -21,6 +21,16 @@ fn the_door_has_ai_readable_semantic_map() {
         .actions
         .iter()
         .any(|action| action.id == "stairwell" && action.choice == "revised_decision"));
+    assert!(map
+        .world
+        .places
+        .iter()
+        .any(|place| place.id == "stair_landing" && place.kind == "stairwell"));
+    assert!(map.world.connections.iter().any(|connection| {
+        connection.from == "cross_corridor"
+            && connection.to == "stair_landing"
+            && connection.via.as_deref() == Some("stair_door_b")
+    }));
 }
 
 #[test]
@@ -62,4 +72,20 @@ fn map_json_is_stable_machine_readable_json() {
     assert_eq!(value["schema"], MAP_SCHEMA);
     assert!(value["actions"].is_array());
     assert!(value["world"]["places"].is_array());
+}
+
+
+#[test]
+fn world_trace_reaches_stairwell_through_declared_topology() {
+    let map = CaveatMap::from_source(DOOR).expect("The Door should map");
+    let trace = map.trace("start_corridor");
+
+    assert!(trace
+        .nodes
+        .iter()
+        .any(|node| node.symbol == "stair_landing"));
+    assert!(trace
+        .nodes
+        .iter()
+        .any(|node| node.symbol == "stair_flight_down"));
 }
