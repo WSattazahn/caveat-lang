@@ -75,4 +75,6 @@ fn event_json(v:&WorldEvent3D)->String{match v{
     WorldEvent3D::MoveTo{object,position,duration}=>format!("{{\"kind\":\"move_to\",\"object\":{},\"position\":{},\"duration\":{:?}}}",json_string(object),vec3_json(*position),duration),
     WorldEvent3D::MovePath{object,points,duration}=>format!("{{\"kind\":\"move_path\",\"object\":{},\"points\":[{}],\"duration\":{:?}}}",json_string(object),points.iter().map(|p|vec3_json(*p)).collect::<Vec<_>>().join(","),duration),
     WorldEvent3D::LookYaw{object,degrees,duration}=>format!("{{\"kind\":\"look_yaw\",\"object\":{},\"degrees\":{:?},\"duration\":{:?}}}",json_string(object),degrees,duration),
-    WorldEvent3D::SetVisible{object,visible}=>format!("{{\"kind\":\"visible\",\"object\":{},\"visible\":{}}}",json_string(object),visible
+    WorldEvent3D::SetVisible{object,visible}=>format!("{{\"kind\":\"visible\",\"object\":{},\"visible\":{}}}",json_string(object),visible),
+    WorldEvent3D::SetEpistemicState{object,state}=>format!("{{\"kind\":\"epistemic_state\",\"object\":{},\"state\":{}}}",json_string(object),json_string(state.as_str())),
+}}
