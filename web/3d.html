@@ -55,7 +55,7 @@ function architecture(P,V){
 }
 function doorHardware(P,V,id='door_hinge'){const H=node(id),q=(x,y,z,sx,sy,sz,col)=>box(mul(P,mul(V,mul(H,mul(tr(x,y,z),sc(sx/2,sy/2,sz/2))))),col);q(1.10,-.10,.13,1.68,.075,.075,[.72,.74,.74]);q(.27,-.10,.14,.18,.25,.12,[.27,.29,.30]);q(1.93,-.10,.14,.18,.25,.12,[.27,.29,.30]);q(1.12,1.12,.11,.62,.11,.10,[.48,.50,.51])}
 function draw(now=performance.now()){
-  const dt=lastFrameTime===null?.016:Math.min(.1,(now-lastFrameTime)/1000);
+  const dt=lastFrameTime===null ? .016 : Math.min(.1,(now-lastFrameTime)/1000);
   lastFrameTime=now;
   tick(dt);
   const d=Math.min(devicePixelRatio||1,2),w=c.clientWidth*d,h=c.clientHeight*d;
