@@ -30,6 +30,8 @@ resolve relight_beacon as beacon_unverified otherwise;
 
 The runtime checks the reached evidence graph before an action. Declared but undiscovered evidence cannot unlock it; contradictory evidence remains recorded. The browser receives available choices, blocked reasons, and the selected outcome from CAVEAT. It supplies reusable graphics and controls. [Presentation declarations](spec/presentation.md) also place the world and compose its views without changing JavaScript.
 
+[Play the hosted game](https://last-beacon-caveat.w4ltr0n.chatgpt.site). This hosted copy opens directly in your browser; downloading an HTML file is optional.
+
 ### Build and play
 
 With stable Rust and Node.js 20 or newer installed, run from the repository root:
