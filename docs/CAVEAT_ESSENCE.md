@@ -38,6 +38,18 @@ A decision series can select a new revision only after its current decision has 
 
 Skipped sampling and revision guards also affect which record remains current. Their dependencies belong to the current selection, separate from immutable archived values. A missing sample is still missing. Failed transactions consume no occurrence IDs and publish no partial history. Capacity limits reject an event atomically rather than evicting evidence silently.
 
+## Computation over archives
+
+[Reactive 0.6](../spec/caveat-reactive-0.6.md) allows source-defined computation
+over these archives. A fold's reducer is ordinary Caveat code; Rust supplies
+bounded traversal. Counting and selecting records preserve the qualifications
+behind membership and indexing, and every visited record remains a dependency
+even if a reducer ignores it. Means, ranges, and trends describe authored
+interpretations of recorded observations. They do not discharge calibration
+caveats, turn past observations into present truth, or erase conflicting edges.
+The thermostat tests demonstrate that changing only a Caveat policy can change
+the control decision without altering the observations it was based on.
+
 ## The crosscurrent example
 
 The rescue source defines a morning forecast with provenance and a caveat about an unmeasured surge. The initial navigation decision retains that caveat. A later observation can oppose the forecast and reopen the earlier decision. The revised counter-steering commitment also retains uncertainty.

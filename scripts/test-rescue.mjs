@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -215,6 +215,11 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
           assert(navigationBasis(revised).provenance.evidence.includes(newest.id));
           assert(navigationBasis(revised).provenance.caveats.includes('reading_may_age'));
           assert.equal(await page.locator('#reading-age').innerText(), 'READ 0s AGO');
+          assert.equal(revised.bindings.toast.text, 'Flow reversed. Steering revised.');
+          assert.equal(await page.locator('[data-caveat="toast"]').innerText(), revised.bindings.toast.text);
+          for (const reading of flowReadings(revised).slice(-2)) {
+            assert(revised.binding_qualifications.toast.text.evidence.includes(reading.id));
+          }
           const actual = await page.evaluate(() => window.__rescue.presentation());
           assert.equal(actual.bindings.crosscurrent_marker['arrow.rotation_y'], actual.bindings.last_reading_marker['arrow.rotation_y']);
           lastObserved = revised;
@@ -428,6 +433,43 @@ on start when forecast_drift == 0 emit qa_source_tone;
   } finally { await context.close(); }
 }
 
+async function historyComputation(browser, name) {
+  const source = await readFile(path.join(root, 'examples/thermostat_history.cav'), 'utf8');
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  try {
+    // Load on the local build's origin, then exercise its real WebAssembly
+    // API with a separate program, without a game-specific calculation host.
+    await page.goto(new URL('rescue.css', base).href);
+    const result = await page.evaluate(async source => {
+      const { default: init, WebReactiveSession } = await import('./pkg/caveat_runtime.js');
+      await init();
+      const session = new WebReactiveSession(source + `
+        event invalid_index;
+        on invalid_index sample temperature = 30 supports warm_enough;
+        on invalid_index set recorded_mean = history_at(temperature, 99);
+      `);
+      try {
+        for (const value of [17, 25, 17]) session.dispatch('read', JSON.stringify({ value }));
+        const before = session.snapshot();
+        let rejected = false;
+        try { session.dispatch('invalid_index', '{}'); } catch { rejected = true; }
+        return { snapshot: JSON.parse(before), rejected, unchanged: before === session.snapshot() };
+      } finally { session.free(); }
+    }, source);
+    assert(result.rejected && result.unchanged, 'Failed indexed access published partial WASM state');
+    assert.equal(result.snapshot.values.recorded_mean, 59 / 3);
+    assert.equal(result.snapshot.values.recorded_low, 17);
+    assert.equal(result.snapshot.values.recorded_high, 25);
+    assert.equal(result.snapshot.bindings.change.text, 'Falling');
+    assert.deepEqual(result.snapshot.qualified_values.recorded_mean.provenance.evidence,
+      ['temperature@1', 'temperature@2', 'temperature@3']);
+    assert(result.snapshot.qualified_values.recorded_mean.provenance.caveats.includes('calibration_offset'));
+    report.checks.push(`${name}: source-defined history folds, qualified indexed reads, and atomic rejection in WebAssembly`);
+    console.log(`PASS ${name}: Caveat history computation in WebAssembly`);
+  } finally { await context.close(); }
+}
+
 try {
   await mkdir(results, { recursive: true });
   await startServer();
@@ -438,6 +480,7 @@ try {
     const browser = await engine.launch({ headless: true, ...(name === 'chromium' ? { args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] } : {}) });
     browsers.push(browser);
     report.browsers[name] = browser.version();
+    await historyComputation(browser, name);
     await pointerRoute(browser, {}, name);
     await pointerRoute(browser, { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } }, `${name}-mobile`);
     if (name === 'chromium') {

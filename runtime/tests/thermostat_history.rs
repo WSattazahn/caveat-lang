@@ -45,6 +45,24 @@ fn thermostat_revises_opposing_readings_without_erasing_its_reasons() {
     let third = read(&mut session, 17.0);
     assert_eq!(third["bindings"]["temperature"]["text"], "17 C");
     assert_eq!(third["bindings"]["heating"]["text"], "100%");
+    assert_eq!(
+        third["bindings"]["history"]["text"],
+        "3 readings; mean 20 C; range 17 to 25 C"
+    );
+    assert_eq!(third["bindings"]["change"]["text"], "Falling");
+    assert_eq!(third["values"]["recorded_low"], 17.0);
+    assert_eq!(third["values"]["recorded_high"], 25.0);
+    assert_eq!(third["values"]["change"], -8.0);
+    for state in ["recorded_mean", "recorded_low", "recorded_high"] {
+        assert_eq!(
+            third["qualified_values"][state]["provenance"]["evidence"],
+            json!(["temperature@1", "temperature@2", "temperature@3"])
+        );
+        assert!(third["qualified_values"][state]["provenance"]["caveats"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("calibration_offset")));
+    }
     assert_eq!(third["commitment_bases"]["heating@1"], first_basis);
     assert_eq!(third["commitment_bases"]["heating@2"], second_basis);
     assert_eq!(
@@ -95,4 +113,29 @@ fn rejected_heating_revision_cannot_publish_a_phantom_sensor_reading() {
     let before = session.snapshot();
     assert!(session.dispatch_json("read", r#"{"value":17}"#).is_err());
     assert_eq!(session.snapshot(), before);
+}
+
+#[test]
+fn editing_only_caveat_source_changes_the_history_based_control_policy() {
+    // Choosing a historical mean is an authored policy, not runtime doctrine.
+    // It changes the response while leaving the actual readings untouched.
+    let mean_policy = SOURCE.replace(
+        "heating_demand(latest(temperature), 21)",
+        "heating_demand(recorded_mean, 21)",
+    );
+    let mut latest = ReactiveSession::from_source(SOURCE).unwrap();
+    let mut mean = ReactiveSession::from_source(&mean_policy).unwrap();
+    for value in [17.0, 25.0, 17.0] {
+        read(&mut latest, value);
+        read(&mut mean, value);
+    }
+    let latest = latest.snapshot();
+    let mean = mean.snapshot();
+    assert_eq!(latest.commitment_bases["heating@3"].value, Some(1.0));
+    assert!((mean.commitment_bases["heating@3"].value.unwrap() - 1.0 / 3.0).abs() < 1e-10);
+    assert_eq!(latest.reading_streams, mean.reading_streams);
+    assert!(mean.commitment_bases["heating@3"]
+        .provenance
+        .caveats
+        .contains("calibration_offset"));
 }

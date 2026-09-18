@@ -21,3 +21,10 @@ The Light the Way revision applies the same inspect-and-correct loop to a cleare
 The storm revision makes a language feature into a player decision: a current reading can become stale, and rescouting occupies the steering light while the ferry continues moving. Verification follows both a manual route with the old plan and a fresh-reading route, checks that a short pointer pass cannot count as a sample, and inspects the visible storm and scan feedback. The same build exercises source-defined math and display functions; deleting browser formatting and notice timers is checked against rendered behavior rather than line counts alone.
 
 The recurring-reading revision tests three distinct observations and successive decisions from the same source procedure. Visual review checks that the actual-flow and last-reading arrows communicate disagreement, and that a factual age label stays readable on a phone. Source-owned water and rain clocks are checked against wall-time changes, pause, replay, and the earlier games' unbound rendering behavior. A separate thermostat example exercises the language without game-specific runtime support.
+
+The history-computation revision checks reductions authored as pure Caveat
+functions, including record order, ignored inputs, qualified indexes, empty
+histories, and failures after partial event work. The thermostat changes policy
+through a source edit while preserving the same sensor archive. Game feedback
+compares measured historical directions in Caveat; browser verification checks
+the reversal message and the evidence attached to it during an actual crossing.

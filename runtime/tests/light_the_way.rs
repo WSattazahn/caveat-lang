@@ -277,6 +277,18 @@ fn storm_resampling_preserves_history_and_reduces_real_drift_before_rescue() {
         assert_eq!(value(&revised, "boat_z"), value(&old, "boat_z"));
     }
     assert_eq!(flow_count(&revised), 3);
+    assert_eq!(
+        revised.bindings["toast"]["text"].as_str(),
+        Some("Flow reversed. Steering revised.")
+    );
+    for id in ["flow@2", "flow@3"] {
+        assert!(revised.binding_qualifications["toast"]["text"]
+            .evidence
+            .contains(id));
+    }
+    assert!(revised.binding_qualifications["toast"]["text"]
+        .caveats
+        .contains("reading_may_age"));
     let force = value(&old, "current_force");
     assert!(
         force > 0.1,

@@ -573,6 +573,9 @@ bind toast.visible = phase == 1 and paused == 0 and notice_remaining > 0;
 bind toast.text = "";
 bind toast.text = "Rock hit. Steer clear." when notice_kind == 1;
 bind toast.text = "Reading saved. Steering revised." when notice_kind == 2;
+// Compare actual archived observations; visible weather alone cannot produce
+// this measurement-based conclusion. No browser history algorithm is needed.
+bind toast.text = "Flow reversed. Steering revised." when notice_kind == 2 and history_count(flow) >= 2 and latest(flow) * history_at(flow, history_count(flow) - 2) < 0;
 bind toast.text = "Flow shifted. Hold ring to measure." when notice_kind == 3;
 bind toast.text = "Flow shifted. Old reading kept." when notice_kind == 3 and has_sample(flow);
 bind impact.active = phase == 1 and paused == 0 and collision_cooldown > collision_grace - 0.3;

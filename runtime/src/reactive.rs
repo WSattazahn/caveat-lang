@@ -8,7 +8,7 @@ use crate::eval::ResourceLedger;
 use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
-use crate::reactive_expr::{self, Expr, FunctionDef, Value, ValueType};
+use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Value, ValueType};
 pub use crate::reactive_expr::{Provenance, Tracked};
 use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::Serialize;
@@ -665,7 +665,7 @@ impl ReactiveSession {
                     {
                         return Err(format!("state {name} initializer must be numeric"));
                     }
-                    let value = initial.evaluate_tracked_with_history(
+                    let value = initial.evaluate_tracked_with_histories(
                         &|name| {
                             Ok(session.values.get(name).cloned().or_else(|| {
                                 session.constants.get(name).copied().map(Tracked::plain)
@@ -673,7 +673,7 @@ impl ReactiveSession {
                         },
                         &|kind, name| session.predicate_tracked(kind, name),
                         &|evidence, caveats| session.qualify(evidence, caveats),
-                        &|name| session.latest(name),
+                        &|name, query| session.history_read(name, query),
                     )?;
                     let Value::Number(number) = value.value else {
                         unreachable!("validated number initializer")
@@ -1016,6 +1016,59 @@ impl ReactiveSession {
         }
     }
 
+    fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, String> {
+        if query == HistoryRead::Latest {
+            return self.latest(name);
+        }
+        // Counting records is a qualified observation of membership. Include
+        // every reached record's basis and guards for leaving history unchanged.
+        // Indexed reads retain the selected record plus current selection guards.
+        if let Some(stream) = self.reading_streams.get(name) {
+            let mut provenance = stream.selection_qualifications.clone();
+            let value = match query {
+                HistoryRead::Count => {
+                    for record in &stream.occurrences {
+                        provenance.merge(&record.provenance)?;
+                    }
+                    stream.occurrences.len() as f64
+                }
+                HistoryRead::At(index) => {
+                    let record = stream.occurrences.get(index).ok_or_else(|| {
+                        format!("history index {index} is out of range for {name}")
+                    })?;
+                    provenance.merge(&record.provenance)?;
+                    record.value
+                }
+                HistoryRead::Latest => unreachable!(),
+            };
+            return Tracked::new(value, provenance);
+        }
+        if let Some(series) = self.decision_series.get(name) {
+            let mut provenance = series.selection_qualifications.clone();
+            let value = match query {
+                HistoryRead::Count => {
+                    for revision in &series.revisions {
+                        provenance.merge(&self.commitment_bases[&revision.id].provenance)?;
+                    }
+                    series.revisions.len() as f64
+                }
+                HistoryRead::At(index) => {
+                    let revision = series.revisions.get(index).ok_or_else(|| {
+                        format!("history index {index} is out of range for {name}")
+                    })?;
+                    let basis = &self.commitment_bases[&revision.id];
+                    provenance.merge(&basis.provenance)?;
+                    basis.value.ok_or_else(|| {
+                        format!("decision {} has no numeric using value", revision.id)
+                    })?
+                }
+                HistoryRead::Latest => unreachable!(),
+            };
+            return Tracked::new(value, provenance);
+        }
+        Err(format!("unknown history {name}"))
+    }
+
     fn latest(&self, name: &str) -> Result<Tracked<f64>, String> {
         if let Some(stream) = self.reading_streams.get(name) {
             let reading = stream
@@ -1175,7 +1228,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &BTreeMap<String, f64>,
     ) -> Result<Tracked<Value>, String> {
-        expression.evaluate_tracked_with_history(
+        expression.evaluate_tracked_with_histories(
             &|name| {
                 Ok(self.values.get(name).cloned().or_else(|| {
                     parameters
@@ -1187,7 +1240,7 @@ impl ReactiveSession {
             },
             &|kind, name| self.predicate_tracked(kind, name),
             &|evidence, caveats| self.qualify(evidence, caveats),
-            &|name| self.latest(name),
+            &|name, query| self.history_read(name, query),
         )
     }
 

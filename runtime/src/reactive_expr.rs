@@ -4,7 +4,7 @@
 //! epistemic graph. They cannot mutate state or invoke arbitrary host code.
 
 use crate::presentation::Number;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 const MAX_TOKENS: usize = 1024;
@@ -12,6 +12,19 @@ const MAX_NESTING: usize = 64;
 const MAX_SOURCE_BYTES: usize = 65_536;
 const MAX_FUNCTIONS: usize = 128;
 const MAX_EXPANDED_NODES: usize = 4096;
+const MAX_EVALUATED_NODES: usize = 65_536;
+const MAX_FOLD_RECORDS: usize = 256;
+const FOLD_ACC: &str = "$fold_acc";
+const FOLD_VALUE: &str = "$fold_value";
+type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), String> + 'a;
+
+/// Read-only requests against one immutable event snapshot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryRead {
+    Latest,
+    Count,
+    At(usize),
+}
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 pub const MAX_PROVENANCE_BYTES: usize = 65_536;
 pub const MAX_TEXT_BYTES: usize = 65_536;
@@ -178,6 +191,10 @@ enum Node {
     ExpandedCall(Vec<Expr>, Box<Expr>),
     Predicate(String, String),
     Latest(String),
+    HistoryCount(String),
+    HistoryAt(String, Box<Expr>),
+    Fold(String, Box<Expr>, String),
+    ExpandedFold(String, Box<Expr>, Box<Expr>),
     Qualified(Box<Expr>, String, Vec<String>),
     If(Box<Expr>, Box<Expr>, Box<Expr>),
     Require(Box<Expr>, Box<Expr>),
@@ -329,7 +346,11 @@ fn check_text_size(bytes: usize) -> Result<(), String> {
 impl Expr {
     fn new(node: Node) -> Result<Self, String> {
         let depth = match &node {
-            Node::Unary(_, child) | Node::Qualified(child, _, _) => child.depth + 1,
+            Node::Unary(_, child)
+            | Node::Qualified(child, _, _)
+            | Node::HistoryAt(_, child)
+            | Node::Fold(_, child, _) => child.depth + 1,
+            Node::ExpandedFold(_, initial, body) => initial.depth.max(body.depth) + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
             Node::Require(condition, value) => condition.depth.max(value.depth) + 1,
             Node::If(condition, yes, no) => condition.depth.max(yes.depth).max(no.depth) + 1,
@@ -370,8 +391,8 @@ impl Expr {
     fn validate_calls(
         &self,
         numeric: &HashSet<String>,
-        predicate: &impl Fn(&str, &str) -> Result<(), String>,
-        user_call: &impl Fn(&str, usize) -> Result<ValueType, String>,
+        predicate: &dyn Fn(&str, &str) -> Result<(), String>,
+        user_call: &dyn Fn(&str, usize) -> Result<ValueType, String>,
     ) -> Result<ValueType, String> {
         match &self.node {
             Node::Number(_) => Ok(ValueType::Number),
@@ -390,6 +411,38 @@ impl Expr {
             }
             Node::Latest(name) => {
                 predicate("numeric_history", name)?;
+                Ok(ValueType::Number)
+            }
+            Node::HistoryCount(name) => {
+                predicate("numeric_history", name)?;
+                Ok(ValueType::Number)
+            }
+            Node::HistoryAt(name, index) => {
+                predicate("numeric_history", name)?;
+                index
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Number)?;
+                Ok(ValueType::Number)
+            }
+            Node::Fold(name, initial, reducer) => {
+                predicate("numeric_history", name)?;
+                initial
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Number)?;
+                user_call(reducer, 2)?.require(ValueType::Number)?;
+                Ok(ValueType::Number)
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                predicate("numeric_history", name)?;
+                initial
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Number)?;
+                body.validate_calls(
+                    &HashSet::from([FOLD_ACC.into(), FOLD_VALUE.into()]),
+                    &|_, _| Err("fold reducer must be pure".into()),
+                    user_call,
+                )?
+                .require(ValueType::Number)?;
                 Ok(ValueType::Number)
             }
             Node::Qualified(value, evidence, caveats) => {
@@ -521,6 +574,25 @@ impl Expr {
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
         latest: &impl Fn(&str) -> Result<Tracked<f64>, String>,
     ) -> Result<Tracked<Value>, String> {
+        self.evaluate_tracked_with_histories(
+            numbers,
+            predicate,
+            qualify,
+            &|name, query| match query {
+                HistoryRead::Latest => latest(name),
+                _ => Err("history operation requires an indexed history host".into()),
+            },
+        )
+    }
+
+    /// Evaluate bounded history computations without exposing mutable archives.
+    pub fn evaluate_tracked_with_histories(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, String>,
+    ) -> Result<Tracked<Value>, String> {
         // The existing evaluator already visits precisely the operands that
         // contribute to this evaluation. Accumulating at those reads gives
         // identical propagation without copying full traces at every AST node.
@@ -540,12 +612,13 @@ impl Expr {
                 Ok(tracked.value)
             },
             &|evidence, caveats| provenance.borrow_mut().merge(&qualify(evidence, caveats)?),
-            &|name| {
-                let tracked = latest(name)?;
+            &|name, query| {
+                let tracked = history(name, query)?;
                 let value = finite(tracked.value)?;
                 provenance.borrow_mut().merge(&tracked.provenance)?;
                 Ok(value)
             },
+            &Cell::new(MAX_EVALUATED_NODES),
         )?;
         Ok(Tracked {
             value,
@@ -555,11 +628,19 @@ impl Expr {
 
     fn evaluate_values(
         &self,
-        numbers: &impl Fn(&str) -> Result<Option<f64>, String>,
-        predicate: &impl Fn(&str, &str) -> Result<bool, String>,
-        qualify: &impl Fn(&str, &[String]) -> Result<(), String>,
-        latest: &impl Fn(&str) -> Result<f64, String>,
+        numbers: &dyn Fn(&str) -> Result<Option<f64>, String>,
+        predicate: &dyn Fn(&str, &str) -> Result<bool, String>,
+        qualify: &QualificationSink<'_>,
+        history: &dyn Fn(&str, HistoryRead) -> Result<f64, String>,
+        remaining: &Cell<usize>,
     ) -> Result<Value, String> {
+        let budget = remaining.get();
+        if budget == 0 {
+            return Err(format!(
+                "expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes"
+            ));
+        }
+        remaining.set(budget - 1);
         match &self.node {
             Node::Number(value) => Ok(Value::Number(value.value())),
             Node::Bool(value) => Ok(Value::Bool(*value)),
@@ -573,32 +654,78 @@ impl Expr {
                 Ok(Value::Number(finite(value)?))
             }
             Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
-            Node::Latest(name) => Ok(Value::Number(finite(latest(name)?)?)),
+            Node::Latest(name) => Ok(Value::Number(finite(history(name, HistoryRead::Latest)?)?)),
+            Node::HistoryCount(name) => {
+                Ok(Value::Number(finite(history(name, HistoryRead::Count)?)?))
+            }
+            Node::HistoryAt(name, index) => {
+                let index = index
+                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .number()?;
+                if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
+                    return Err("history index must be an integer in 0..256".into());
+                }
+                Ok(Value::Number(finite(history(
+                    name,
+                    HistoryRead::At(index as usize),
+                )?)?))
+            }
+            Node::Fold(_, _, _) => Err("fold reducer must be expanded before evaluation".into()),
+            Node::ExpandedFold(name, initial, body) => {
+                let mut accumulator = initial
+                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .number()?;
+                let count = finite(history(name, HistoryRead::Count)?)?;
+                if count < 0.0 || count.fract() != 0.0 || count > MAX_FOLD_RECORDS as f64 {
+                    return Err("history fold count exceeds bounded history capacity".into());
+                }
+                for index in 0..count as usize {
+                    // Eager record reads retain provenance even if the reducer
+                    // ignores an argument or multiplies it by zero.
+                    let value = finite(history(name, HistoryRead::At(index))?)?;
+                    accumulator = body
+                        .evaluate_values(
+                            &|variable| {
+                                Ok(match variable {
+                                    FOLD_ACC => Some(accumulator),
+                                    FOLD_VALUE => Some(value),
+                                    _ => None,
+                                })
+                            },
+                            predicate,
+                            qualify,
+                            history,
+                            remaining,
+                        )?
+                        .number()?;
+                }
+                Ok(Value::Number(accumulator))
+            }
             Node::Qualified(value, evidence, caveats) => {
                 let value = value
-                    .evaluate_values(numbers, predicate, qualify, latest)?
+                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
                     .number()?;
                 qualify(evidence, caveats)?;
                 Ok(Value::Number(value))
             }
             Node::If(condition, yes, no) => {
                 if condition
-                    .evaluate_values(numbers, predicate, qualify, latest)?
+                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
                     .boolean()?
                 {
-                    yes.evaluate_values(numbers, predicate, qualify, latest)
+                    yes.evaluate_values(numbers, predicate, qualify, history, remaining)
                 } else {
-                    no.evaluate_values(numbers, predicate, qualify, latest)
+                    no.evaluate_values(numbers, predicate, qualify, history, remaining)
                 }
             }
             Node::Require(condition, value) => {
                 if !condition
-                    .evaluate_values(numbers, predicate, qualify, latest)?
+                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
                     .boolean()?
                 {
                     return Err("source expression requirement failed".into());
                 }
-                value.evaluate_values(numbers, predicate, qualify, latest)
+                value.evaluate_values(numbers, predicate, qualify, history, remaining)
             }
             Node::UserCall(name, _) => Err(format!(
                 "source function {name} must be expanded before evaluation"
@@ -606,13 +733,14 @@ impl Expr {
             Node::ExpandedCall(arguments, body) => {
                 for argument in arguments {
                     argument
-                        .evaluate_values(numbers, predicate, qualify, latest)?
+                        .evaluate_values(numbers, predicate, qualify, history, remaining)?
                         .number()?;
                 }
-                body.evaluate_values(numbers, predicate, qualify, latest)
+                body.evaluate_values(numbers, predicate, qualify, history, remaining)
             }
             Node::Unary(operator, child) => {
-                let value = child.evaluate_values(numbers, predicate, qualify, latest)?;
+                let value =
+                    child.evaluate_values(numbers, predicate, qualify, history, remaining)?;
                 match operator {
                     Unary::Positive => Ok(Value::Number(value.number()?)),
                     Unary::Negative => Ok(Value::Number(-value.number()?)),
@@ -620,13 +748,14 @@ impl Expr {
                 }
             }
             Node::Binary(operator, left, right) => {
-                let left = left.evaluate_values(numbers, predicate, qualify, latest)?;
+                let left = left.evaluate_values(numbers, predicate, qualify, history, remaining)?;
                 match operator {
                     Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
                     Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
                     _ => {}
                 }
-                let right = right.evaluate_values(numbers, predicate, qualify, latest)?;
+                let right =
+                    right.evaluate_values(numbers, predicate, qualify, history, remaining)?;
                 match operator {
                     Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
                     Binary::Equal | Binary::NotEqual => {
@@ -684,7 +813,7 @@ impl Expr {
                     .iter()
                     .map(|argument| {
                         argument
-                            .evaluate_values(numbers, predicate, qualify, latest)?
+                            .evaluate_values(numbers, predicate, qualify, history, remaining)?
                             .number()
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -1005,6 +1134,27 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after qualified value")?;
             return Ok(Node::Qualified(Box::new(value), evidence, caveats));
         }
+        if matches!(
+            name.as_str(),
+            "history_count" | "history_at" | "fold_history"
+        ) {
+            let history = self.graph_identifier("history")?;
+            let node = if name == "history_count" {
+                Node::HistoryCount(history)
+            } else {
+                self.expect(TokenKind::Comma, "',' after history")?;
+                let value = self.expression(0, nesting)?;
+                if name == "history_at" {
+                    Node::HistoryAt(history, Box::new(value))
+                } else {
+                    self.expect(TokenKind::Comma, "',' before source reducer")?;
+                    let reducer = self.graph_identifier("source reducer")?;
+                    Node::Fold(history, Box::new(value), reducer)
+                }
+            };
+            self.expect(TokenKind::RightParen, "')' after history operation")?;
+            return Ok(node);
+        }
         if name == "latest" {
             let history = self.graph_identifier("latest history")?;
             self.expect(TokenKind::RightParen, "')' after history identifier")?;
@@ -1158,7 +1308,16 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         }
         if Function::named(name).is_some()
             || predicate_name(name)
-            || matches!(name.as_str(), "qualified" | "if" | "require" | "latest")
+            || matches!(
+                name.as_str(),
+                "qualified"
+                    | "if"
+                    | "require"
+                    | "latest"
+                    | "history_count"
+                    | "history_at"
+                    | "fold_history"
+            )
         {
             return Err(format!(
                 "source function {name} shadows an intrinsic or predicate"
@@ -1194,7 +1353,17 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
 
 fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
     match &expression.node {
-        Node::Unary(_, child) | Node::Qualified(child, _, _) => collect_calls(child, calls),
+        Node::Unary(_, child) | Node::Qualified(child, _, _) | Node::HistoryAt(_, child) => {
+            collect_calls(child, calls)
+        }
+        Node::Fold(_, initial, reducer) => {
+            calls.push(reducer);
+            collect_calls(initial, calls);
+        }
+        Node::ExpandedFold(_, initial, body) => {
+            collect_calls(initial, calls);
+            collect_calls(body, calls);
+        }
         Node::Binary(_, left, right) => {
             collect_calls(left, calls);
             collect_calls(right, calls);
@@ -1312,6 +1481,46 @@ impl Expander<'_> {
                     return Err("pure source functions cannot query graph predicates".into());
                 }
                 Node::Predicate(name.clone(), target.clone())
+            }
+            Node::HistoryCount(name) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::HistoryCount(name.clone())
+            }
+            Node::HistoryAt(name, index) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::HistoryAt(name.clone(), Box::new(self.walk(index, None)?))
+            }
+            Node::Fold(name, initial, reducer) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                let initial = self.walk(initial, None)?;
+                let call = Expr::new(Node::UserCall(
+                    reducer.clone(),
+                    vec![
+                        Expr::new(Node::Variable(FOLD_ACC.into()))?,
+                        Expr::new(Node::Variable(FOLD_VALUE.into()))?,
+                    ],
+                ))?;
+                Node::ExpandedFold(
+                    name.clone(),
+                    Box::new(initial),
+                    Box::new(self.walk(&call, None)?),
+                )
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::ExpandedFold(
+                    name.clone(),
+                    Box::new(self.walk(initial, None)?),
+                    Box::new(self.walk(body, None)?),
+                )
             }
             Node::Latest(name) => {
                 if parameters.is_some() {
