@@ -372,13 +372,13 @@ impl World3D {
                     place: "stair_landing".into(),
                     position: Vec3::new(4.15, 1.55, -8.8),
                     heading_degrees: 90.0,
-                    pitch_degrees: -12.0,
+                    pitch_degrees: 15.0,
                 },
                 PlaceAnchor3D {
                     place: "stair_flight_down".into(),
                     position: Vec3::new(4.55, 1.05, -9.45),
                     heading_degrees: 90.0,
-                    pitch_degrees: -24.0,
+                    pitch_degrees: 45.0,
                 },
             ],
             passages: vec![
