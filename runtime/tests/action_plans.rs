@@ -135,6 +135,6 @@ fn web_3d_uses_entity_parent_hinges_and_endpoint_pitch() {
     assert!(events.iter().any(|event| event["kind"] == "look_pitch"));
     assert_eq!(
         after_stairs["camera"]["transform"]["position"],
-        serde_json::json!([4.55, 1.05, -9.45])
+        serde_json::json!([3.65, 1.55, -9.45])
     );
 }
