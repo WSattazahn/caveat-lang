@@ -226,6 +226,24 @@ impl CaveatMap {
                         via: via.clone(),
                     });
                 }
+                Statement::StartAt { place } => {
+                    if world.start_at.replace(place.clone()).is_some() {
+                        return Err("world can declare only one start_at".into());
+                    }
+                }
+                Statement::ActionPlan {
+                    action,
+                    from,
+                    to,
+                    requires_open,
+                    steps,
+                } => world.action_plans.push(MapActionPlan {
+                    action: action.clone(),
+                    from: from.clone(),
+                    to: to.clone(),
+                    requires_open: requires_open.clone(),
+                    steps: steps.iter().map(map_action_step).collect(),
+                }),
                 Statement::Claim { name } => symbols.push(MapSymbol {
                     name: name.clone(),
                     kind: "claim".into(),
