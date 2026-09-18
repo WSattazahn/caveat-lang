@@ -345,7 +345,7 @@ impl CaveatMap {
             }
         }
 
-        validate_world(&world)?;
+        validate_world(&world, &symbols, &choices, &investigations)?;
 
         for (name, id) in &evaluation.symbols {
             if matches!(
@@ -485,6 +485,13 @@ impl CaveatMap {
             .cloned()
             .collect();
 
+        let action_plan = self
+            .world
+            .action_plans
+            .iter()
+            .find(|plan| plan.action == subject)
+            .cloned();
+
         let outgoing = self
             .relations
             .iter()
@@ -549,6 +556,7 @@ impl CaveatMap {
             entity,
             connections,
             actions,
+            action_plan,
             outgoing,
             incoming,
             investigations,
