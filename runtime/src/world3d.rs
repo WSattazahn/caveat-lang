@@ -29,36 +29,36 @@ pub enum WorldEvent3D {
 
 impl World3D {
     pub fn the_door()->Self{
-        let t=|p,s|Transform3D::new(p,Vec3::new(0.,0.,0.),s);
-        let obj=|id:&str,p,s,parent:Option<&str>,interactive:Option<&str>,color,state|Object3D{id:id.into(),primitive:Primitive3D::Box,transform:t(p,s),parent:parent.map(Into::into),interactive:interactive.map(Into::into),material:Material3D::new(color,if state==EpistemicVisualState::Uncertain{.22}else{0.},1.,state),visible:true};
-        let mut w=Self{id:"evacuation_corridor".into(),camera:Camera3D{id:"player".into(),transform:t(Vec3::new(0.,1.7,5.),Vec3::new(1.,1.,1.)),fov:70.},objects:vec![
-            obj("floor",Vec3::new(0.,-.1,0.),Vec3::new(8.,.2,18.),None,None,Vec3::new(.065,.075,.095),EpistemicVisualState::Neutral),
-            obj("wall_left",Vec3::new(-3.3,1.5,-4.1),Vec3::new(4.2,3.,.3),None,None,Vec3::new(.18,.19,.21),EpistemicVisualState::Neutral),
-            obj("wall_right",Vec3::new(3.3,1.5,-4.1),Vec3::new(4.2,3.,.3),None,None,Vec3::new(.18,.19,.21),EpistemicVisualState::Neutral),
-            obj("header",Vec3::new(0.,3.15,-4.1),Vec3::new(2.4,.3,.3),None,None,Vec3::new(.18,.19,.21),EpistemicVisualState::Neutral),
-            obj("frame_left",Vec3::new(-1.25,1.5,-3.9),Vec3::new(.18,3.,.35),None,None,Vec3::new(.36,.37,.39),EpistemicVisualState::Neutral),
-            obj("frame_right",Vec3::new(1.25,1.5,-3.9),Vec3::new(.18,3.,.35),None,None,Vec3::new(.36,.37,.39),EpistemicVisualState::Neutral),
-            obj("door_hinge",Vec3::new(-1.12,1.5,-3.72),Vec3::new(.001,.001,.001),None,None,Vec3::new(.2,.2,.2),EpistemicVisualState::Neutral),
-            obj("door",Vec3::new(1.1,0.,0.),Vec3::new(2.2,2.8,.16),Some("door_hinge"),Some("open"),Vec3::new(.30,.055,.045),EpistemicVisualState::Uncertain),
-            obj("latch",Vec3::new(2.,0.,.13),Vec3::new(.14,.22,.12),Some("door_hinge"),Some("latch_sensor_recently_serviced"),Vec3::new(.55,.32,.06),EpistemicVisualState::Uncertain),
-            obj("security_camera",Vec3::new(-2.5,2.65,-2.5),Vec3::new(.32,.22,.5),None,Some("camera_has_blind_spot"),Vec3::new(.13,.28,.38),EpistemicVisualState::Uncertain),
-            obj("stair_door_hinge",Vec3::new(2.42,1.45,-8.8),Vec3::new(.001,.001,.001),None,None,Vec3::new(.2,.2,.2),EpistemicVisualState::Neutral),
-            obj("stair_door",Vec3::new(0.,0.,1.0),Vec3::new(.16,2.7,2.0),Some("stair_door_hinge"),Some("stairwell"),Vec3::new(.18,.22,.24),EpistemicVisualState::Neutral),
-            obj("stairwell",Vec3::new(4.6,1.2,-8.8),Vec3::new(.1,.1,.1),None,Some("stairwell"),Vec3::new(.08,.28,.20),EpistemicVisualState::Neutral),
-            obj("reopened_marker",Vec3::new(0.,3.45,-3.7),Vec3::new(.8,.07,.07),None,None,Vec3::new(.65,.08,.08),EpistemicVisualState::Reopened),
-        ],lights:vec![Light3D{id:"emergency".into(),kind:LightKind3D::Point,position:Vec3::new(0.,2.7,1.),intensity:.8},Light3D{id:"ambient".into(),kind:LightKind3D::Ambient,position:Vec3::new(0.,0.,0.),intensity:.18}],events:vec![]};
+        let t=|p,s|Transform3D::new(p,Vec3::new(0.0,0.0,0.0),s);
+        let obj=|id:&str,p,s,parent:Option<&str>,interactive:Option<&str>,color,state|Object3D{id:id.into(),primitive:Primitive3D::Box,transform:t(p,s),parent:parent.map(Into::into),interactive:interactive.map(Into::into),material:Material3D::new(color,if state==EpistemicVisualState::Uncertain{0.22}else{0.0},1.0,state),visible:true};
+        let mut w=Self{id:"evacuation_corridor".into(),camera:Camera3D{id:"player".into(),transform:t(Vec3::new(0.0,1.7,5.0),Vec3::new(1.0,1.0,1.0)),fov:70.0},objects:vec![
+            obj("floor",Vec3::new(0.0,-0.1,0.0),Vec3::new(8.0,0.2,18.0),None,None,Vec3::new(0.065,0.075,0.095),EpistemicVisualState::Neutral),
+            obj("wall_left",Vec3::new(-3.3,1.5,-4.1),Vec3::new(4.2,3.0,0.3),None,None,Vec3::new(0.18,0.19,0.21),EpistemicVisualState::Neutral),
+            obj("wall_right",Vec3::new(3.3,1.5,-4.1),Vec3::new(4.2,3.0,0.3),None,None,Vec3::new(0.18,0.19,0.21),EpistemicVisualState::Neutral),
+            obj("header",Vec3::new(0.0,3.15,-4.1),Vec3::new(2.4,0.3,0.3),None,None,Vec3::new(0.18,0.19,0.21),EpistemicVisualState::Neutral),
+            obj("frame_left",Vec3::new(-1.25,1.5,-3.9),Vec3::new(0.18,3.0,0.35),None,None,Vec3::new(0.36,0.37,0.39),EpistemicVisualState::Neutral),
+            obj("frame_right",Vec3::new(1.25,1.5,-3.9),Vec3::new(0.18,3.0,0.35),None,None,Vec3::new(0.36,0.37,0.39),EpistemicVisualState::Neutral),
+            obj("door_hinge",Vec3::new(-1.12,1.5,-3.72),Vec3::new(0.001,0.001,0.001),None,None,Vec3::new(0.2,0.2,0.2),EpistemicVisualState::Neutral),
+            obj("door",Vec3::new(1.1,0.0,0.0),Vec3::new(2.2,2.8,0.16),Some("door_hinge"),Some("open"),Vec3::new(0.30,0.055,0.045),EpistemicVisualState::Uncertain),
+            obj("latch",Vec3::new(2.0,0.0,0.13),Vec3::new(0.14,0.22,0.12),Some("door_hinge"),Some("latch_sensor_recently_serviced"),Vec3::new(0.55,0.32,0.06),EpistemicVisualState::Uncertain),
+            obj("security_camera",Vec3::new(-2.5,2.65,-2.5),Vec3::new(0.32,0.22,0.5),None,Some("camera_has_blind_spot"),Vec3::new(0.13,0.28,0.38),EpistemicVisualState::Uncertain),
+            obj("stair_door_hinge",Vec3::new(2.42,1.45,-8.8),Vec3::new(0.001,0.001,0.001),None,None,Vec3::new(0.2,0.2,0.2),EpistemicVisualState::Neutral),
+            obj("stair_door",Vec3::new(0.0,0.0,1.0),Vec3::new(0.16,2.7,2.0),Some("stair_door_hinge"),Some("stairwell"),Vec3::new(0.18,0.22,0.24),EpistemicVisualState::Neutral),
+            obj("stairwell",Vec3::new(4.6,1.2,-8.8),Vec3::new(0.1,0.1,0.1),None,Some("stairwell"),Vec3::new(0.08,0.28,0.20),EpistemicVisualState::Neutral),
+            obj("reopened_marker",Vec3::new(0.0,3.45,-3.7),Vec3::new(0.8,0.07,0.07),None,None,Vec3::new(0.65,0.08,0.08),EpistemicVisualState::Reopened),
+        ],lights:vec![Light3D{id:"emergency".into(),kind:LightKind3D::Point,position:Vec3::new(0.0,2.7,1.0),intensity:0.8},Light3D{id:"ambient".into(),kind:LightKind3D::Ambient,position:Vec3::new(0.0,0.0,0.0),intensity:0.18}],events:vec![]};
         if let Some(o)=w.objects.iter_mut().find(|o|o.id=="reopened_marker"){o.visible=false} w
     }
-    fn set_state(&mut self,id:&str,state:EpistemicVisualState){if let Some(o)=self.objects.iter_mut().find(|o|o.id==id){o.material.state=state;o.material.emissive=match state{EpistemicVisualState::Uncertain=>.22,EpistemicVisualState::Evidence=>.55,EpistemicVisualState::Retained=>.3,EpistemicVisualState::Reopened=>.8,EpistemicVisualState::Committed=>.15,EpistemicVisualState::Neutral=>0.};}self.events.push(WorldEvent3D::SetEpistemicState{object:id.into(),state});}
+    fn set_state(&mut self,id:&str,state:EpistemicVisualState){if let Some(o)=self.objects.iter_mut().find(|o|o.id==id){o.material.state=state;o.material.emissive=match state{EpistemicVisualState::Uncertain=>0.22,EpistemicVisualState::Evidence=>0.55,EpistemicVisualState::Retained=>0.3,EpistemicVisualState::Reopened=>0.8,EpistemicVisualState::Committed=>0.15,EpistemicVisualState::Neutral=>0.0};}self.events.push(WorldEvent3D::SetEpistemicState{object:id.into(),state});}
     pub fn apply_action(&mut self,action:&str,reopened:bool){match action{
         "latch_sensor_recently_serviced"=>self.set_state("latch",EpistemicVisualState::Evidence),
         "camera_has_blind_spot"=>self.set_state("security_camera",EpistemicVisualState::Evidence),
-        "open"=>{self.events.push(WorldEvent3D::RotateY{object:"door_hinge".into(),degrees:-92.,duration:1.});self.set_state("door",EpistemicVisualState::Retained);self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.,1.7,1.2),Vec3::new(0.,1.7,-4.6),Vec3::new(0.,1.7,-5.5)],duration:2.2});},
+        "open"=>{self.events.push(WorldEvent3D::RotateY{object:"door_hinge".into(),degrees:-92.0,duration:1.0});self.set_state("door",EpistemicVisualState::Retained);self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.0,1.7,1.2),Vec3::new(0.0,1.7,-4.6),Vec3::new(0.0,1.7,-5.5)],duration:2.2});},
         "wait"=>{self.set_state("door",EpistemicVisualState::Retained);},
-        "reroute"=>{self.events.push(WorldEvent3D::LookYaw{object:"player".into(),degrees:180.,duration:.55});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.,1.7,5.8),Vec3::new(-2.2,1.7,7.0)],duration:1.8});},
-        "continue"=>{self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.,1.7,-7.2),Vec3::new(0.,1.7,-11.8)],duration:2.});self.set_state("door",EpistemicVisualState::Committed);},
-        "retreat"=>{self.events.push(WorldEvent3D::LookYaw{object:"player".into(),degrees:180.,duration:.55});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.,1.7,-4.8),Vec3::new(0.,1.7,-2.6),Vec3::new(0.,1.7,3.5)],duration:2.4});self.set_state("door",EpistemicVisualState::Committed);},
-        "stairwell"=>{self.events.push(WorldEvent3D::LookYaw{object:"player".into(),degrees:-90.,duration:.55});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.,1.7,-8.8),Vec3::new(1.6,1.7,-8.8)],duration:1.5});self.events.push(WorldEvent3D::RotateY{object:"stair_door_hinge".into(),degrees:-92.,duration:.9});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(2.8,1.7,-8.8),Vec3::new(4.2,1.7,-8.8),Vec3::new(5.0,.9,-9.8)],duration:2.4});self.set_state("stairwell",EpistemicVisualState::Committed);},
+        "reroute"=>{self.events.push(WorldEvent3D::LookYaw{object:"player".into(),degrees:180.0,duration:0.55});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.0,1.7,5.8),Vec3::new(-2.2,1.7,7.0)],duration:1.8});},
+        "continue"=>{self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.0,1.7,-7.2),Vec3::new(0.0,1.7,-11.8)],duration:2.0});self.set_state("door",EpistemicVisualState::Committed);},
+        "retreat"=>{self.events.push(WorldEvent3D::LookYaw{object:"player".into(),degrees:180.0,duration:0.55});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.0,1.7,-4.8),Vec3::new(0.0,1.7,-2.6),Vec3::new(0.0,1.7,3.5)],duration:2.4});self.set_state("door",EpistemicVisualState::Committed);},
+        "stairwell"=>{self.events.push(WorldEvent3D::LookYaw{object:"player".into(),degrees:-90.0,duration:0.55});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(0.0,1.7,-8.8),Vec3::new(1.6,1.7,-8.8)],duration:1.5});self.events.push(WorldEvent3D::RotateY{object:"stair_door_hinge".into(),degrees:-92.0,duration:0.9});self.events.push(WorldEvent3D::MovePath{object:"player".into(),points:vec![Vec3::new(2.8,1.7,-8.8),Vec3::new(4.2,1.7,-8.8),Vec3::new(5.0,0.9,-9.8)],duration:2.4});self.set_state("stairwell",EpistemicVisualState::Committed);},
         _=>{}
     }if reopened{self.set_state("door",EpistemicVisualState::Reopened);if let Some(o)=self.objects.iter_mut().find(|o|o.id=="reopened_marker"){o.visible=true}self.events.push(WorldEvent3D::SetVisible{object:"reopened_marker".into(),visible:true});}}
     pub fn to_json(&self)->String{format!("{{\"schema\":4,\"id\":{},\"camera\":{},\"objects\":[{}],\"lights\":[{}],\"events\":[{}]}}",json_string(&self.id),camera_json(&self.camera),self.objects.iter().map(object_json).collect::<Vec<_>>().join(","),self.lights.iter().map(light_json).collect::<Vec<_>>().join(","),self.events.iter().map(event_json).collect::<Vec<_>>().join(","))}
