@@ -17,6 +17,67 @@ use std::sync::Arc;
 
 const LIMIT: f64 = 1_000_000_000_000.0;
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
+pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
+
+/// Compile the standard library through the same parser and function checker
+/// as application source. Nothing in the host implements these algorithms.
+pub(crate) fn prelude_functions() -> Result<BTreeMap<String, FunctionDef>, String> {
+    source_functions(REACTIVE_PRELUDE_SOURCE)
+}
+
+fn source_functions(source: &str) -> Result<BTreeMap<String, FunctionDef>, String> {
+    let mut functions = BTreeMap::new();
+    for statement in crate::parser::parse(source)?.statements {
+        let Statement::Reactive(Directive::Function(function)) = statement else {
+            return Err("reactive prelude may contain only pure function definitions".into());
+        };
+        let name = function.name.clone();
+        if functions.insert(name.clone(), function).is_some() {
+            return Err(format!("duplicate prelude function {name}"));
+        }
+    }
+    reactive_expr::validate_functions(&functions)?;
+    Ok(functions)
+}
+
+#[cfg(test)]
+mod prelude_tests {
+    use super::*;
+
+    #[test]
+    fn changing_only_prelude_source_changes_numeric_and_formatting_algorithms() {
+        let evaluate = |source: &str, expression: &str| {
+            let functions = source_functions(source).unwrap();
+            let expression = reactive_expr::expand(
+                &reactive_expr::parse_unresolved(expression).unwrap(),
+                &functions,
+            )
+            .unwrap();
+            expression
+                .evaluate(&|_| None, &|_, _| Err("pure library has no graph".into()))
+                .unwrap()
+        };
+        let alternative = REACTIVE_PRELUDE_SOURCE
+            .replace(
+                "fn abs(value) = if(value < 0, -value, value + 0);",
+                "fn abs(value) = value * value;",
+            )
+            .replace("text(round(value))", "text(floor(value))");
+        assert_eq!(
+            evaluate(REACTIVE_PRELUDE_SOURCE, "abs(-8)"),
+            Value::Number(8.0)
+        );
+        assert_eq!(evaluate(&alternative, "abs(-8)"), Value::Number(64.0));
+        assert_eq!(
+            evaluate(REACTIVE_PRELUDE_SOURCE, "number_text(12.6)"),
+            Value::Text("13".into())
+        );
+        assert_eq!(
+            evaluate(&alternative, "number_text(12.6)"),
+            Value::Text("12".into())
+        );
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Parameter {
@@ -324,14 +385,17 @@ impl ReactiveSession {
                 }
             }
         }
-        let mut functions = BTreeMap::new();
+        let mut functions = prelude_functions()?;
         for directive in &directives {
             if let Directive::Function(function) = directive {
                 if functions
                     .insert(function.name.clone(), function.clone())
                     .is_some()
                 {
-                    return Err(format!("duplicate reactive function {}", function.name));
+                    return Err(format!(
+                        "duplicate reactive function {} (standard library names are reserved)",
+                        function.name
+                    ));
                 }
             }
         }
@@ -686,6 +750,7 @@ impl ReactiveSession {
                     match value.validate(&numeric, &validate_predicate)? {
                         ValueType::Number => "number",
                         ValueType::Bool => "boolean",
+                        ValueType::Text => "text",
                     }
                 }
             };
@@ -729,6 +794,7 @@ impl ReactiveSession {
                     let primitive = match value.value {
                         Value::Number(value) => BindingValue::Number(value),
                         Value::Bool(value) => BindingValue::Bool(value),
+                        Value::Text(value) => BindingValue::Text(value),
                     };
                     Tracked::new(primitive, value.provenance)?
                 }
@@ -1407,8 +1473,58 @@ fn bounds(min: &str, max: &str) -> Result<(Number, Number), String> {
     Ok((min, max))
 }
 
+/// Split declaration syntax without changing whitespace inside text values.
+fn syntax_words(input: &str) -> Vec<&str> {
+    let mut words = Vec::new();
+    let mut start = None;
+    let mut quoted = false;
+    let mut escaped = false;
+    for (index, ch) in input.char_indices() {
+        if !quoted && ch.is_whitespace() {
+            if let Some(start) = start.take() {
+                words.push(&input[start..index]);
+            }
+            continue;
+        }
+        start.get_or_insert(index);
+        if escaped {
+            escaped = false;
+        } else if quoted && ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            quoted = !quoted;
+        }
+    }
+    if let Some(start) = start {
+        words.push(&input[start..]);
+    }
+    words
+}
+
+fn expression_depth_delta(input: &str) -> i64 {
+    let mut depth = 0;
+    let mut quoted = false;
+    let mut escaped = false;
+    for ch in input.chars() {
+        if escaped {
+            escaped = false;
+        } else if quoted && ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            quoted = !quoted;
+        } else if !quoted {
+            if ch == '(' {
+                depth += 1;
+            } else if ch == ')' {
+                depth -= 1;
+            }
+        }
+    }
+    depth
+}
+
 pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
-    let words = line.split_whitespace().collect::<Vec<_>>();
+    let words = syntax_words(line);
     let keyword = words.first().copied()?;
     if !matches!(
         keyword,
@@ -1450,7 +1566,7 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
                 .trim()
                 .split_once('=')
                 .ok_or("state declaration requires NAME = EXPRESSION")?;
-            let tokens = initial.split_whitespace().collect::<Vec<_>>();
+            let tokens = syntax_words(initial);
             let (end, min, max) = if tokens.len() >= 5
                 && tokens[tokens.len() - 4] == "min"
                 && tokens[tokens.len() - 2] == "max"
@@ -1514,8 +1630,7 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
                 {
                     candidates.push(index);
                 }
-                depth += token.chars().filter(|ch| *ch == '(').count() as i64;
-                depth -= token.chars().filter(|ch| *ch == ')').count() as i64;
+                depth += expression_depth_delta(token);
             }
             let effect_index = candidates
                 .iter()
@@ -1627,11 +1742,7 @@ fn parse_binding(line: &str) -> Result<Directive, String> {
         identifier(segment)?;
     }
     let (value, condition) = binding_parts(value)?;
-    let value = if value.starts_with('"') {
-        BindingExpression::Text(crate::parser::quoted(value)?)
-    } else {
-        BindingExpression::Expression(reactive_expr::parse_unresolved(value)?)
-    };
+    let value = BindingExpression::Expression(reactive_expr::parse_unresolved(value)?);
     Ok(Directive::Binding(Binding {
         target,
         property: property.into(),
@@ -1812,8 +1923,7 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                             boundary = Some(index);
                             break;
                         }
-                        depth += token.chars().filter(|ch| *ch == '(').count() as i64;
-                        depth -= token.chars().filter(|ch| *ch == ')').count() as i64;
+                        depth += expression_depth_delta(token);
                     }
                     let end = boundary.unwrap_or(expression.len());
                     let using = reactive_expr::parse_unresolved(&expression[..end].join(" "))?;

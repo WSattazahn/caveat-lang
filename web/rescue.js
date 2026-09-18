@@ -5,14 +5,12 @@ const $ = selector => document.querySelector(selector);
 const app = $('#app'), canvas = $('#world');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const keys = new Set(), bindingCache = new WeakMap(), flashTimers = new Map();
+const keys = new Set(), bindingCache = new WeakMap();
 let source, session, snapshot, world, pointer = null, lastPointer = { x: 0, z: 0 };
-let lastFrame = 0, accumulator = 0, toastTimer, audioContext, soundEnabled = true;
+let lastFrame = 0, accumulator = 0, audioContext, soundEnabled = true;
 let cueSequence = null, focusTarget = null;
 const recentCues = [];
-const announce = message => { $('#announcer').textContent = message; };
 const running = () => Boolean(snapshot?.bindings?.app?.running);
-const time = seconds => { const total = Math.ceil(Math.max(0, Number(seconds) || 0)); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; };
 
 function unlockSound() {
   if (!soundEnabled) return;
@@ -45,14 +43,6 @@ function soundCue(cue) {
   oscillator.addEventListener('ended', () => { oscillator.disconnect(); gain.disconnect(); }, { once: true });
 }
 
-function showToast(text, duration) {
-  clearTimeout(toastTimer);
-  $('#toast').textContent = String(text ?? '');
-  $('#toast').hidden = false;
-  toastTimer = setTimeout(() => { $('#toast').hidden = true; }, Math.max(0, Number(duration) || 0) * 1000);
-  announce(String(text ?? ''));
-}
-
 function playCues() {
   if (cueSequence === snapshot.sequence) return;
   cueSequence = snapshot.sequence;
@@ -60,23 +50,9 @@ function playCues() {
     recentCues.push({ ...cue, sequence: snapshot.sequence });
     if (recentCues.length > 32) recentCues.shift();
     if (cue.kind === 'sound') soundCue(cue);
-    else if (cue.kind === 'toast') showToast(cue.text, cue.duration);
-    else if (cue.kind === 'flash') {
-      const node = document.getElementById(cue.target);
-      if (!node) continue;
-      clearTimeout(flashTimers.get(node));
-      node.classList.add('cue-active');
-      flashTimers.set(node, setTimeout(() => { node.classList.remove('cue-active'); flashTimers.delete(node); }, Math.max(0, Number(cue.duration) || 0) * 1000));
-    }
     // World-space cues belong to the renderer, which receives the same snapshot.
+    // Toast visibility and screen flashes are ordinary source-owned bindings.
   }
-}
-
-function formatValue(value, format) {
-  if (format === 'time') return time(value);
-  if (format === 'percent') return `${Math.round(Number(value) * 100)}%`;
-  if (format === 'number') return Math.round(Number(value)).toLocaleString();
-  return String(value ?? '');
 }
 
 // A property adapter, not a game-state interpreter. CAVEAT chooses the value,
@@ -95,17 +71,10 @@ function renderBindings() {
     if ('text' in binding) node.textContent = String(binding.text ?? '');
     if ('value' in binding) {
       const value = binding.value;
-      if (node.dataset.format === 'pips') {
-        const maximum = Math.max(0, Math.round(Number(binding.max) || 0));
-        node.replaceChildren(...Array.from({ length: maximum }, (_, index) => {
-          const pip = document.createElement('i');
-          if (index >= Number(value)) pip.className = 'lost';
-          return pip;
-        }));
-      } else if (node.dataset.valueStyle) {
+      if (node.dataset.valueStyle) {
         const property = node.dataset.valueStyle;
         if (['width', 'left'].includes(property)) node.style[property] = `${clamp(Number(value) || 0, 0, 1) * 100}%`;
-      } else node.textContent = formatValue(value, node.dataset.format);
+      } else node.textContent = String(value ?? '');
     }
     if ('progress' in binding) node.style.width = `${clamp(Number(binding.progress) || 0, 0, 1) * 100}%`;
     for (const [property, value] of Object.entries(binding)) {
@@ -151,9 +120,7 @@ function runControl(name, payload = {}) {
     clearInput();
     session?.free(); session = new WebReactiveSession(source);
     cueSequence = null; focusTarget = null; accumulator = 0; lastFrame = performance.now();
-    clearTimeout(toastTimer); $('#toast').hidden = true;
-    for (const [node, timer] of flashTimers) { clearTimeout(timer); node.classList.remove('cue-active'); }
-    flashTimers.clear(); recentCues.length = 0;
+    $('#runtime-error').hidden = true; recentCues.length = 0;
     accept(JSON.parse(session.snapshot()));
   }
   dispatch(control.event, payload);
@@ -209,7 +176,8 @@ function frame(now) {
   } catch (error) {
     console.error(error);
     try { runControl('pause'); } catch { clearInput(); }
-    showToast('The game paused. Try starting over.', 3);
+    $('#runtime-error').textContent = 'The game could not continue. Try starting over.';
+    $('#runtime-error').hidden = false;
   }
   requestAnimationFrame(frame);
 }

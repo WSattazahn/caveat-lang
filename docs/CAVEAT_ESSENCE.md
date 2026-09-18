@@ -38,13 +38,17 @@ The current's physical field is calculated from actual strength, position, and t
 
 The regression test compares legitimate input histories, checks the persistent graph, and separates external force from navigation compensation. It must fail if observation merely changes a journal flag or rewrites physical reality.
 
+The storm crossing makes the distinction playable. A visible weather change can reopen the old steering commitment without supplying a perfect new measurement. The player may keep correcting that old plan manually, or hold the light over the current to take a fresh sample while the ferry keeps moving. The fresh sample supports a separate revised commitment; neither the first measured number nor its frozen decision basis is overwritten. Both readings retain the caveat that conditions can change again.
+
 This separation is a design invariant enforced by the game's source and regression tests. The language does not independently decide which authored numeric variables represent external physics.
 
 ## Honest boundaries
 
 The reactive runtime still uses Rust for parsing, validation, expression execution, transactions, and the graph. JavaScript still connects browser input, graphics, audio, and DOM elements to generic program outputs. Adding functions and source-authored presentation does not make Caveat self-hosting.
 
-The qualified-value increment develops the Rust interpreter further so Caveat programs can express these semantics directly. Replacing that interpreter with Caveat remains future work; no reduction in Rust implementation size is claimed for this increment.
+The source-defined prelude moves the algorithms for `abs`, `min`, `max`, and `clamp` out of Rust and into Caveat functions. Formatting policies for clocks, rounded numbers, and percentages also live in Caveat. A lazy conditional retains the condition and the branch actually evaluated; ordinary function arguments still contribute their dependencies even when the function body ignores them. Turning a qualified number into display text must preserve its qualification metadata.
+
+Supporting text and conditional expressions extends the Rust evaluator, so moving those algorithms does not imply a net reduction in Rust lines. Parsing, transactions, graph storage, primitive numeric/text operations, and WebAssembly remain Rust. General modules, a compiler written in Caveat, and repeated observation occurrence identities remain future work.
 
 The success criterion is that a new behavior and its feedback can be authored in Caveat while preserving the invariants above. More `.cav` lines, fewer JavaScript lines, or a Rust-like surface syntax are not evidence of epistemic correctness by themselves.
 

@@ -14,6 +14,7 @@ const MAX_FUNCTIONS: usize = 128;
 const MAX_EXPANDED_NODES: usize = 4096;
 pub const MAX_PROVENANCE_IDENTIFIERS: usize = 1024;
 pub const MAX_PROVENANCE_BYTES: usize = 65_536;
+pub const MAX_TEXT_BYTES: usize = 65_536;
 
 /// Dependencies of an evaluated value, not an assertion that evidence is true
 /// or that a caveat is discharged. The host resolves and types graph names.
@@ -153,7 +154,7 @@ pub struct Expr {
     depth: usize,
 }
 
-/// A pure numeric source function. Definitions may refer to other functions
+/// A pure source function with numeric parameters. Definitions may refer to other functions
 /// in any declaration order, but cannot capture state or graph predicates.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionDef {
@@ -166,6 +167,7 @@ pub struct FunctionDef {
 enum Node {
     Number(Number),
     Bool(bool),
+    Text(String),
     Variable(String),
     Unary(Unary, Box<Expr>),
     Binary(Binary, Box<Expr>, Box<Expr>),
@@ -176,6 +178,8 @@ enum Node {
     ExpandedCall(Vec<Expr>, Box<Expr>),
     Predicate(String, String),
     Qualified(Box<Expr>, String, Vec<String>),
+    If(Box<Expr>, Box<Expr>, Box<Expr>),
+    Require(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -203,63 +207,64 @@ enum Binary {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Function {
-    Abs,
-    Min,
-    Max,
-    Clamp,
     Sin,
     Cos,
     Sqrt,
     Atan2,
+    Floor,
+    Ceil,
+    Round,
+    Text,
 }
 
 impl Function {
     fn named(name: &str) -> Option<Self> {
         match name {
-            "abs" => Some(Self::Abs),
-            "min" => Some(Self::Min),
-            "max" => Some(Self::Max),
-            "clamp" => Some(Self::Clamp),
             "sin" => Some(Self::Sin),
             "cos" => Some(Self::Cos),
             "sqrt" => Some(Self::Sqrt),
             "atan2" => Some(Self::Atan2),
+            "floor" => Some(Self::Floor),
+            "ceil" => Some(Self::Ceil),
+            "round" => Some(Self::Round),
+            "text" => Some(Self::Text),
             _ => None,
         }
     }
 
     fn name(self) -> &'static str {
         match self {
-            Self::Abs => "abs",
-            Self::Min => "min",
-            Self::Max => "max",
-            Self::Clamp => "clamp",
             Self::Sin => "sin",
             Self::Cos => "cos",
             Self::Sqrt => "sqrt",
             Self::Atan2 => "atan2",
+            Self::Floor => "floor",
+            Self::Ceil => "ceil",
+            Self::Round => "round",
+            Self::Text => "text",
         }
     }
 
     fn arity(self) -> usize {
         match self {
-            Self::Abs | Self::Sin | Self::Cos | Self::Sqrt => 1,
-            Self::Min | Self::Max | Self::Atan2 => 2,
-            Self::Clamp => 3,
+            Self::Atan2 => 2,
+            _ => 1,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Number(f64),
     Bool(bool),
+    Text(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValueType {
     Number,
     Bool,
+    Text,
 }
 
 impl ValueType {
@@ -267,6 +272,7 @@ impl ValueType {
         match self {
             Self::Number => "number",
             Self::Bool => "boolean",
+            Self::Text => "text",
         }
     }
 
@@ -284,17 +290,19 @@ impl ValueType {
 }
 
 impl Value {
-    fn number(self) -> Result<f64, String> {
+    fn number(&self) -> Result<f64, String> {
         match self {
-            Self::Number(value) => finite(value),
+            Self::Number(value) => finite(*value),
             Self::Bool(_) => Err("expression requires number, found boolean".into()),
+            Self::Text(_) => Err("expression requires number, found text".into()),
         }
     }
 
-    fn boolean(self) -> Result<bool, String> {
+    fn boolean(&self) -> Result<bool, String> {
         match self {
-            Self::Bool(value) => Ok(value),
+            Self::Bool(value) => Ok(*value),
             Self::Number(_) => Err("expression requires boolean, found number".into()),
+            Self::Text(_) => Err("expression requires boolean, found text".into()),
         }
     }
 }
@@ -307,11 +315,23 @@ fn finite(value: f64) -> Result<f64, String> {
     }
 }
 
+fn check_text_size(bytes: usize) -> Result<(), String> {
+    if bytes > MAX_TEXT_BYTES {
+        Err(format!(
+            "expression text exceeds limit {MAX_TEXT_BYTES} bytes"
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 impl Expr {
     fn new(node: Node) -> Result<Self, String> {
         let depth = match &node {
             Node::Unary(_, child) | Node::Qualified(child, _, _) => child.depth + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
+            Node::Require(condition, value) => condition.depth.max(value.depth) + 1,
+            Node::If(condition, yes, no) => condition.depth.max(yes.depth).max(no.depth) + 1,
             Node::Function(_, children) | Node::UserCall(_, children) => {
                 children.iter().map(|child| child.depth).max().unwrap_or(0) + 1
             }
@@ -350,11 +370,12 @@ impl Expr {
         &self,
         numeric: &HashSet<String>,
         predicate: &impl Fn(&str, &str) -> Result<(), String>,
-        user_call: &impl Fn(&str, usize) -> Result<(), String>,
+        user_call: &impl Fn(&str, usize) -> Result<ValueType, String>,
     ) -> Result<ValueType, String> {
         match &self.node {
             Node::Number(_) => Ok(ValueType::Number),
             Node::Bool(_) => Ok(ValueType::Bool),
+            Node::Text(_) => Ok(ValueType::Text),
             Node::Variable(name) => {
                 if numeric.contains(name) {
                     Ok(ValueType::Number)
@@ -375,6 +396,21 @@ impl Expr {
                     predicate("qualification_caveat", caveat)?;
                 }
                 Ok(ValueType::Number)
+            }
+            Node::If(condition, yes, no) => {
+                condition
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Bool)?;
+                let kind = yes.validate_calls(numeric, predicate, user_call)?;
+                no.validate_calls(numeric, predicate, user_call)?
+                    .require(kind)?;
+                Ok(kind)
+            }
+            Node::Require(condition, value) => {
+                condition
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(ValueType::Bool)?;
+                value.validate_calls(numeric, predicate, user_call)
             }
             Node::Unary(operator, child) => {
                 let expected = match operator {
@@ -399,11 +435,18 @@ impl Expr {
                         right_type.require(left_type)?;
                         Ok(ValueType::Bool)
                     }
+                    Binary::Add => {
+                        if !matches!(left_type, ValueType::Number | ValueType::Text) {
+                            return Err("addition requires two numbers or two texts".into());
+                        }
+                        right_type.require(left_type)?;
+                        Ok(left_type)
+                    }
                     _ => {
                         left_type.require(ValueType::Number)?;
                         right_type.require(ValueType::Number)?;
                         match operator {
-                            Binary::Add | Binary::Subtract | Binary::Multiply | Binary::Divide => {
+                            Binary::Subtract | Binary::Multiply | Binary::Divide => {
                                 Ok(ValueType::Number)
                             }
                             _ => Ok(ValueType::Bool),
@@ -420,13 +463,13 @@ impl Expr {
                         .require(ValueType::Number)?;
                 }
                 match &self.node {
-                    Node::UserCall(name, _) => user_call(name, arguments.len())?,
-                    Node::ExpandedCall(_, body) => body
-                        .validate_calls(numeric, predicate, user_call)?
-                        .require(ValueType::Number)?,
-                    _ => {}
+                    Node::UserCall(name, _) => user_call(name, arguments.len()),
+                    Node::ExpandedCall(_, body) => {
+                        body.validate_calls(numeric, predicate, user_call)
+                    }
+                    Node::Function(Function::Text, _) => Ok(ValueType::Text),
+                    _ => Ok(ValueType::Number),
                 }
-                Ok(ValueType::Number)
             }
         }
     }
@@ -491,6 +534,10 @@ impl Expr {
         match &self.node {
             Node::Number(value) => Ok(Value::Number(value.value())),
             Node::Bool(value) => Ok(Value::Bool(*value)),
+            Node::Text(value) => {
+                check_text_size(value.len())?;
+                Ok(Value::Text(value.clone()))
+            }
             Node::Variable(name) => {
                 let value =
                     numbers(name)?.ok_or_else(|| format!("unknown numeric identifier {name}"))?;
@@ -504,6 +551,25 @@ impl Expr {
                 qualify(evidence, caveats)?;
                 Ok(Value::Number(value))
             }
+            Node::If(condition, yes, no) => {
+                if condition
+                    .evaluate_values(numbers, predicate, qualify)?
+                    .boolean()?
+                {
+                    yes.evaluate_values(numbers, predicate, qualify)
+                } else {
+                    no.evaluate_values(numbers, predicate, qualify)
+                }
+            }
+            Node::Require(condition, value) => {
+                if !condition
+                    .evaluate_values(numbers, predicate, qualify)?
+                    .boolean()?
+                {
+                    return Err("source expression requirement failed".into());
+                }
+                value.evaluate_values(numbers, predicate, qualify)
+            }
             Node::UserCall(name, _) => Err(format!(
                 "source function {name} must be expanded before evaluation"
             )),
@@ -513,10 +579,7 @@ impl Expr {
                         .evaluate_values(numbers, predicate, qualify)?
                         .number()?;
                 }
-                Ok(Value::Number(
-                    body.evaluate_values(numbers, predicate, qualify)?
-                        .number()?,
-                ))
+                body.evaluate_values(numbers, predicate, qualify)
             }
             Node::Unary(operator, child) => {
                 let value = child.evaluate_values(numbers, predicate, qualify)?;
@@ -540,6 +603,7 @@ impl Expr {
                         let equal = match (left, right) {
                             (Value::Number(left), Value::Number(right)) => left == right,
                             (Value::Bool(left), Value::Bool(right)) => left == right,
+                            (Value::Text(left), Value::Text(right)) => left == right,
                             _ => return Err("equality requires operands of the same type".into()),
                         };
                         Ok(Value::Bool(if *operator == Binary::Equal {
@@ -548,11 +612,25 @@ impl Expr {
                             !equal
                         }))
                     }
+                    Binary::Add => match (left, right) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(finite(left + right)?))
+                        }
+                        (Value::Text(mut left), Value::Text(right)) => {
+                            check_text_size(
+                                left.len()
+                                    .checked_add(right.len())
+                                    .ok_or("expression text size overflow")?,
+                            )?;
+                            left.push_str(&right);
+                            Ok(Value::Text(left))
+                        }
+                        _ => Err("addition requires two numbers or two texts".into()),
+                    },
                     _ => {
                         let left = left.number()?;
                         let right = right.number()?;
                         let result = match operator {
-                            Binary::Add => left + right,
                             Binary::Subtract => left - right,
                             Binary::Multiply => left * right,
                             Binary::Divide => {
@@ -581,15 +659,6 @@ impl Expr {
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 let result = match function {
-                    Function::Abs => arguments[0].abs(),
-                    Function::Min => arguments[0].min(arguments[1]),
-                    Function::Max => arguments[0].max(arguments[1]),
-                    Function::Clamp => {
-                        if arguments[1] > arguments[2] {
-                            return Err("clamp minimum must not exceed maximum".into());
-                        }
-                        arguments[0].max(arguments[1]).min(arguments[2])
-                    }
                     Function::Sin => arguments[0].sin(),
                     Function::Cos => arguments[0].cos(),
                     Function::Sqrt => {
@@ -599,6 +668,16 @@ impl Expr {
                         arguments[0].sqrt()
                     }
                     Function::Atan2 => arguments[0].atan2(arguments[1]),
+                    Function::Floor => arguments[0].floor(),
+                    Function::Ceil => arguments[0].ceil(),
+                    Function::Round => arguments[0].round(),
+                    Function::Text => {
+                        return Ok(Value::Text(if arguments[0] == 0.0 {
+                            "0".into()
+                        } else {
+                            arguments[0].to_string()
+                        }))
+                    }
                 };
                 Ok(Value::Number(finite(result)?))
             }
@@ -611,6 +690,7 @@ enum TokenKind {
     Number(Number),
     Identifier(String),
     Bool(bool),
+    Text(String),
     Plus,
     Minus,
     Star,
@@ -661,7 +741,29 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             return Err(format!("expression exceeds token limit {MAX_TOKENS}"));
         }
         let start = offset;
-        let kind = if identifier_start(byte) {
+        let kind = if byte == b'"' {
+            offset += 1;
+            let mut escaped = false;
+            let mut closed = false;
+            while offset < bytes.len() {
+                let current = bytes[offset];
+                offset += 1;
+                if escaped {
+                    escaped = false;
+                } else if current == b'\\' {
+                    escaped = true;
+                } else if current == b'"' {
+                    closed = true;
+                    break;
+                }
+            }
+            if !closed {
+                return Err(format!("unterminated expression text at byte {start}"));
+            }
+            let value = crate::parser::quoted(&input[start..offset])?;
+            check_text_size(value.len())?;
+            TokenKind::Text(value)
+        } else if identifier_start(byte) {
             offset += 1;
             while offset < bytes.len() && identifier_continue(bytes[offset]) {
                 offset += 1;
@@ -801,6 +903,7 @@ impl Parser {
         let node = match self.take() {
             Some(TokenKind::Number(number)) => Node::Number(number),
             Some(TokenKind::Bool(value)) => Node::Bool(value),
+            Some(TokenKind::Text(value)) => Node::Text(value),
             Some(TokenKind::Identifier(name)) => {
                 if self.peek() == Some(&TokenKind::LeftParen) {
                     self.cursor += 1;
@@ -842,6 +945,23 @@ impl Parser {
     fn call(&mut self, name: String, nesting: usize) -> Result<Node, String> {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
+        }
+        if matches!(name.as_str(), "if" | "require") {
+            let condition = self.expression(0, nesting)?;
+            self.expect(TokenKind::Comma, "',' after condition")?;
+            let value = self.expression(0, nesting)?;
+            let node = if name == "if" {
+                self.expect(TokenKind::Comma, "',' before alternative")?;
+                Node::If(
+                    Box::new(condition),
+                    Box::new(value),
+                    Box::new(self.expression(0, nesting)?),
+                )
+            } else {
+                Node::Require(Box::new(condition), Box::new(value))
+            };
+            self.expect(TokenKind::RightParen, "')' after conditional expression")?;
+            return Ok(node);
         }
         if name == "qualified" {
             let value = self.expression(0, nesting)?;
@@ -989,9 +1109,9 @@ fn check_arity(definition: &FunctionDef, supplied: usize) -> Result<(), String> 
     }
 }
 
-/// Validate every definition, including unused functions. Functions return
-/// numbers, accept numeric arguments, capture no state or graph data, and may
-/// not recurse. Numeric constants in bodies are literal constants; callers
+/// Validate every definition, including unused functions. Functions accept
+/// numeric arguments and infer a number, boolean, or text result. They capture
+/// no state or graph data and may not recurse. Constants are literals; callers
 /// pass named coordinates explicitly as arguments.
 pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(), String> {
     if functions.len() > MAX_FUNCTIONS {
@@ -1001,7 +1121,10 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         if name != &definition.name || !plain_identifier(name) {
             return Err(format!("invalid source function name {}", definition.name));
         }
-        if Function::named(name).is_some() || predicate_name(name) || name == "qualified" {
+        if Function::named(name).is_some()
+            || predicate_name(name)
+            || matches!(name.as_str(), "qualified" | "if" | "require")
+        {
             return Err(format!(
                 "source function {name} shadows an intrinsic or predicate"
             ));
@@ -1019,25 +1142,11 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
                 ));
             }
         }
-        definition
-            .body
-            .validate_calls(
-                &parameters,
-                &|_, _| Err("pure source functions cannot query graph predicates".into()),
-                &|called, arity| {
-                    let callee = functions
-                        .get(called)
-                        .ok_or_else(|| format!("unknown source function {called}"))?;
-                    check_arity(callee, arity)
-                },
-            )
-            .and_then(|kind| kind.require(ValueType::Number))
-            .map_err(|error| format!("source function {name}: {error}"))?;
     }
-    let mut visited = HashSet::new();
+    let mut result_types = BTreeMap::new();
     let mut active = HashSet::new();
     for name in functions.keys() {
-        visit_function(name, functions, &mut visited, &mut active)?;
+        infer_function(name, functions, &mut result_types, &mut active)?;
     }
     // Check expansion limits for unused definitions as well. Each body is
     // checked separately, so a large unused macro cannot escape validation.
@@ -1054,6 +1163,15 @@ fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
         Node::Binary(_, left, right) => {
             collect_calls(left, calls);
             collect_calls(right, calls);
+        }
+        Node::Require(condition, value) => {
+            collect_calls(condition, calls);
+            collect_calls(value, calls);
+        }
+        Node::If(condition, yes, no) => {
+            collect_calls(condition, calls);
+            collect_calls(yes, calls);
+            collect_calls(no, calls);
         }
         Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
             if let Node::UserCall(name, _) = &expression.node {
@@ -1073,27 +1191,48 @@ fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
     }
 }
 
-fn visit_function(
+fn infer_function(
     name: &str,
     functions: &BTreeMap<String, FunctionDef>,
-    visited: &mut HashSet<String>,
+    result_types: &mut BTreeMap<String, ValueType>,
     active: &mut HashSet<String>,
-) -> Result<(), String> {
+) -> Result<ValueType, String> {
     if active.contains(name) {
         return Err(format!("recursive source function cycle involving {name}"));
     }
-    if visited.contains(name) {
-        return Ok(());
+    if let Some(kind) = result_types.get(name) {
+        return Ok(*kind);
     }
+    let definition = functions
+        .get(name)
+        .ok_or_else(|| format!("unknown source function {name}"))?;
     active.insert(name.into());
     let mut calls = Vec::new();
-    collect_calls(&functions[name].body, &mut calls);
+    collect_calls(&definition.body, &mut calls);
     for callee in calls {
-        visit_function(callee, functions, visited, active)?;
+        infer_function(callee, functions, result_types, active)?;
     }
+    let parameters = definition.parameters.iter().cloned().collect();
+    let kind = definition
+        .body
+        .validate_calls(
+            &parameters,
+            &|_, _| Err("pure source functions cannot query graph predicates".into()),
+            &|called, arity| {
+                let callee = functions
+                    .get(called)
+                    .ok_or_else(|| format!("unknown source function {called}"))?;
+                check_arity(callee, arity)?;
+                result_types
+                    .get(called)
+                    .copied()
+                    .ok_or_else(|| format!("source function {called} has no inferred result type"))
+            },
+        )
+        .map_err(|error| format!("source function {name}: {error}"))?;
     active.remove(name);
-    visited.insert(name.into());
-    Ok(())
+    result_types.insert(name.into(), kind);
+    Ok(kind)
 }
 
 struct Expander<'a> {
@@ -1121,6 +1260,7 @@ impl Expander<'_> {
         let node = match &expression.node {
             Node::Number(number) => Node::Number(number.clone()),
             Node::Bool(value) => Node::Bool(*value),
+            Node::Text(value) => Node::Text(value.clone()),
             Node::Variable(name) => {
                 if let Some(parameters) = parameters {
                     let argument = parameters
@@ -1157,6 +1297,15 @@ impl Expander<'_> {
                 *operator,
                 Box::new(self.walk(left, parameters)?),
                 Box::new(self.walk(right, parameters)?),
+            ),
+            Node::Require(condition, value) => Node::Require(
+                Box::new(self.walk(condition, parameters)?),
+                Box::new(self.walk(value, parameters)?),
+            ),
+            Node::If(condition, yes, no) => Node::If(
+                Box::new(self.walk(condition, parameters)?),
+                Box::new(self.walk(yes, parameters)?),
+                Box::new(self.walk(no, parameters)?),
             ),
             Node::Function(function, arguments) => Node::Function(
                 *function,
@@ -1231,6 +1380,15 @@ mod tests {
     use super::*;
     use std::cell::Cell;
 
+    // Tests exercising the standard library expand its actual Caveat source.
+    // The public strict parser intentionally recognizes primitives only.
+    fn parse(input: &str) -> Result<Expr, String> {
+        expand(
+            &parse_unresolved(input)?,
+            &crate::reactive::prelude_functions()?,
+        )
+    }
+
     fn eval(input: &str) -> Result<Value, String> {
         parse(input)?.evaluate(&|_| None, &|_, _| Err("unexpected predicate".into()))
     }
@@ -1260,6 +1418,251 @@ mod tests {
             caveats.iter().map(|name| (*name).to_string()),
         )
         .unwrap()
+    }
+
+    #[test]
+    fn text_literals_concatenation_and_numeric_conversion_are_typed() {
+        assert_eq!(
+            eval(r#""a  b" + "\n\t\"\\é""#),
+            Ok(Value::Text("a  b\n\t\"\\é".into()))
+        );
+        assert_eq!(eval(r#""same" == "same""#), Ok(Value::Bool(true)));
+        assert_eq!(eval(r#""left" != "right""#), Ok(Value::Bool(true)));
+        assert_eq!(eval("text(-0)"), Ok(Value::Text("0".into())));
+        assert_eq!(eval("text(1.25)"), Ok(Value::Text("1.25".into())));
+        assert_eq!(eval("text(1e12)"), Ok(Value::Text("1000000000000".into())));
+        assert_eq!(eval("floor(-1.2)"), Ok(Value::Number(-2.0)));
+        assert_eq!(eval("ceil(-1.2)"), Ok(Value::Number(-1.0)));
+        assert_eq!(eval("round(2.5)"), Ok(Value::Number(3.0)));
+        assert_eq!(eval("round(-2.5)"), Ok(Value::Number(-3.0)));
+        for source in [
+            r#""1" + 2"#,
+            r#"1 + "2""#,
+            r#""1" - "2""#,
+            r#""a" < "b""#,
+            "text(true)",
+            r#"floor("1")"#,
+            r#""a" == 1"#,
+        ] {
+            let expression = parse(source).unwrap();
+            assert!(
+                expression
+                    .validate(&HashSet::new(), &|_, _| Ok(()))
+                    .is_err(),
+                "{source}"
+            );
+            assert!(
+                expression.evaluate(&|_| None, &|_, _| Ok(false)).is_err(),
+                "{source}"
+            );
+        }
+        for source in [r#""unterminated"#, r#""bad\q""#, r#""trailing\"#] {
+            assert!(super::parse(source).is_err(), "{source}");
+        }
+    }
+
+    #[test]
+    fn if_and_require_are_lazy_with_static_branch_types() {
+        assert_eq!(eval("if(true, 7, 1 / 0)"), Ok(Value::Number(7.0)));
+        assert_eq!(eval("if(false, 1 / 0, 9)"), Ok(Value::Number(9.0)));
+        assert_eq!(
+            eval(r#"if(false, "first", "second")"#),
+            Ok(Value::Text("second".into()))
+        );
+        assert_eq!(eval("if(true, false, true)"), Ok(Value::Bool(false)));
+        assert_eq!(
+            eval(r#"require(true, "ready")"#),
+            Ok(Value::Text("ready".into()))
+        );
+        assert_eq!(eval("require(true, false)"), Ok(Value::Bool(false)));
+        let calls = Cell::new(0);
+        let result = parse("require(false, missing)").unwrap().evaluate(
+            &|_| {
+                calls.set(calls.get() + 1);
+                None
+            },
+            &|_, _| Ok(false),
+        );
+        assert!(result.unwrap_err().contains("requirement failed"));
+        assert_eq!(calls.get(), 0);
+        for source in ["if(1, 2, 3)", r#"if(true, 1, "two")"#, "require(1, 2)"] {
+            assert!(
+                parse(source)
+                    .unwrap()
+                    .validate(&HashSet::new(), &|_, _| Ok(()))
+                    .is_err(),
+                "{source}"
+            );
+        }
+        for source in [
+            "if(true, 1)",
+            "if(true, 1, 2, 3)",
+            "require(true)",
+            "require(true, 1, 2)",
+        ] {
+            assert!(super::parse(source).is_err(), "{source}");
+        }
+    }
+
+    #[test]
+    fn lazy_text_results_keep_condition_and_selected_branch_provenance() {
+        for source in [
+            "if(qualified(flag, condition, caution) > 0, text(qualified(value, selected, risk)), text(qualified(missing, skipped)))",
+            "require(qualified(flag, condition, caution) > 0, text(qualified(value, selected, risk)))",
+        ] {
+            let result = parse(source).unwrap().evaluate_tracked(&|name| match name {
+                "flag" => Ok(Some(Tracked::plain(1.0))),
+                "value" => Ok(Some(Tracked::plain(7.0))),
+                _ => Err("unselected branch was evaluated".into()),
+            }, &|_, _| Ok(Tracked::plain(false)), &|evidence, caveats| {
+                Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+            }).unwrap();
+            assert_eq!(result.value, Value::Text("7".into()));
+            assert_eq!(result.provenance, provenance(&["condition", "selected"], &["caution", "risk"]));
+        }
+        let result = parse(r#""Speed " + text(qualified(2, reading, risk))"#)
+            .unwrap()
+            .evaluate_tracked(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|evidence, caveats| {
+                    Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+                },
+            )
+            .unwrap();
+        assert_eq!(result.value, Value::Text("Speed 2".into()));
+        assert_eq!(result.provenance, provenance(&["reading"], &["risk"]));
+    }
+
+    #[test]
+    fn source_functions_infer_forward_boolean_and_text_results() {
+        let functions = definitions(&[
+            (
+                "report",
+                &["x"],
+                r#"if(positive(x), "positive", "nonpositive") + ": " + text(x)"#,
+            ),
+            ("positive", &["x"], "x > 0"),
+            ("forward", &["x"], "report(x)"),
+            ("constant_text", &["ignored"], r#""constant""#),
+        ]);
+        validate_functions(&functions).unwrap();
+        let expression = expand(&parse_unresolved("forward(3)").unwrap(), &functions).unwrap();
+        assert_eq!(
+            expression.validate(&HashSet::new(), &|_, _| Ok(())),
+            Ok(ValueType::Text)
+        );
+        assert_eq!(
+            expression.evaluate(&|_| None, &|_, _| Ok(false)),
+            Ok(Value::Text("positive: 3".into()))
+        );
+        let expression = expand(&parse_unresolved("positive(3)").unwrap(), &functions).unwrap();
+        assert_eq!(
+            expression.validate(&HashSet::new(), &|_, _| Ok(())),
+            Ok(ValueType::Bool)
+        );
+        assert_eq!(
+            expression.evaluate(&|_| None, &|_, _| Ok(false)),
+            Ok(Value::Bool(true))
+        );
+        let ignored = expand(
+            &parse_unresolved("constant_text(qualified(3, reading, risk))").unwrap(),
+            &functions,
+        )
+        .unwrap()
+        .evaluate_tracked(
+            &|_| Ok(None),
+            &|_, _| Ok(Tracked::plain(false)),
+            &|evidence, caveats| {
+                Provenance::from_names([evidence.to_string()], caveats.iter().cloned())
+            },
+        )
+        .unwrap();
+        assert_eq!(ignored.value, Value::Text("constant".into()));
+        assert_eq!(ignored.provenance, provenance(&["reading"], &["risk"]));
+        for source in [
+            r#"forward("three")"#,
+            "forward(positive(3))",
+            "forward(3) + 1",
+        ] {
+            assert!(
+                expand(&parse_unresolved(source).unwrap(), &functions)
+                    .unwrap()
+                    .validate(&HashSet::new(), &|_, _| Ok(()))
+                    .is_err(),
+                "{source}"
+            );
+        }
+        let invalid = definitions(&[("mixed", &["x"], r#"if(x > 0, "yes", 0)"#)]);
+        assert!(validate_functions(&invalid).is_err());
+    }
+
+    #[test]
+    fn source_prelude_owns_standard_math_and_formatting_policy() {
+        let mut functions = crate::reactive::prelude_functions().unwrap();
+        validate_functions(&functions).unwrap();
+        for name in [
+            "abs",
+            "min",
+            "max",
+            "clamp",
+            "number_text",
+            "percent_text",
+            "time_text",
+        ] {
+            assert!(
+                Function::named(name).is_none(),
+                "{name} must be source-defined"
+            );
+        }
+        assert!(super::parse("max(1, 2)").is_err());
+        assert_eq!(eval("number_text(1.6)"), Ok(Value::Text("2".into())));
+        assert_eq!(eval("percent_text(0.875)"), Ok(Value::Text("88%".into())));
+        assert_eq!(eval("time_text(61.2)"), Ok(Value::Text("1:02".into())));
+        assert_eq!(eval("time_text(-1)"), Ok(Value::Text("0:00".into())));
+        assert_eq!(
+            eval("time_text(floor(61.9))"),
+            Ok(Value::Text("1:01".into()))
+        );
+        assert!(eval("clamp(1, 2, 0)")
+            .unwrap_err()
+            .contains("requirement failed"));
+        assert!(eval("min(1, sqrt(-1))").is_err());
+        assert_eq!(eval("max(2, 9)"), Ok(Value::Number(9.0)));
+        // Editing an ordinary source function changes the result without any
+        // primitive implementation switch or special session override.
+        functions.get_mut("max").unwrap().body = parse_unresolved("left").unwrap();
+        validate_functions(&functions).unwrap();
+        let modified = expand(&parse_unresolved("max(2, 9)").unwrap(), &functions).unwrap();
+        assert_eq!(
+            modified.evaluate(&|_| None, &|_, _| Ok(false)),
+            Ok(Value::Number(2.0))
+        );
+    }
+
+    #[test]
+    fn text_result_limits_reject_overflow_without_truncation() {
+        let chunk = format!("\"{}\"", "é".repeat(MAX_TEXT_BYTES / 4));
+        let functions = definitions(&[
+            ("chunk", &[], &chunk),
+            ("pair", &[], "chunk() + chunk()"),
+            ("too_large", &[], r#"pair() + "x""#),
+        ]);
+        validate_functions(&functions).unwrap();
+        let expression = expand(&parse_unresolved("pair()").unwrap(), &functions).unwrap();
+        let Value::Text(value) = expression.evaluate(&|_| None, &|_, _| Ok(false)).unwrap() else {
+            panic!("expected source text");
+        };
+        assert_eq!(value.len(), MAX_TEXT_BYTES);
+        let overflow = expand(&parse_unresolved("too_large()").unwrap(), &functions).unwrap();
+        assert!(overflow
+            .evaluate(&|_| None, &|_, _| Ok(false))
+            .unwrap_err()
+            .contains("text exceeds limit"));
+        let oversized_literal = Expr::new(Node::Text("x".repeat(MAX_TEXT_BYTES + 1))).unwrap();
+        assert!(oversized_literal
+            .evaluate(&|_| None, &|_, _| Ok(false))
+            .is_err());
     }
 
     #[test]
@@ -1767,14 +2170,16 @@ mod tests {
             .unwrap_err()
             .contains("duplicate parameter"));
         for name in [
-            "abs",
-            "min",
-            "max",
-            "clamp",
             "sin",
             "cos",
             "sqrt",
             "atan2",
+            "floor",
+            "ceil",
+            "round",
+            "text",
+            "if",
+            "require",
             "observed",
             "examined",
             "committed",
@@ -1810,14 +2215,12 @@ mod tests {
     }
 
     #[test]
-    fn pure_functions_cannot_capture_state_coordinates_graph_or_boolean_values() {
+    fn pure_functions_cannot_capture_state_coordinates_or_graph() {
         for body in [
             "heat + x",
             "reef_one.x + x",
             "observed(signal)",
             "examined(risk)",
-            "true",
-            "x > 0",
             "max(x, false)",
         ] {
             let functions = definitions(&[("impure", &["x"], body)]);

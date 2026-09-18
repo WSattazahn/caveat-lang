@@ -1,0 +1,13 @@
+# Reactive standard library. These are ordinary pure Caveat functions;
+# the Rust interpreter supplies only primitive arithmetic, control, and text.
+fn abs(value) = if(value < 0, -value, value + 0);
+fn min(left, right) = if(left < right, left, right);
+fn max(left, right) = if(left > right, left, right);
+fn clamp(value, lower, upper) = require(lower <= upper, min(max(value, lower), upper));
+
+# Formatting policy lives here rather than in the browser host.
+fn number_text(value) = text(round(value));
+fn percent_text(fraction) = number_text(fraction * 100) + "%";
+fn time_second_text(seconds) = if(seconds < 10, "0", "") + text(seconds);
+fn time_total_text(total) = text(floor(total / 60)) + ":" + time_second_text(total - floor(total / 60) * 60);
+fn time_text(seconds) = time_total_text(ceil(max(0, seconds)));

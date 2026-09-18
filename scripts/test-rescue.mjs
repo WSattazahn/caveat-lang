@@ -129,6 +129,20 @@ async function pointerController(context, page, mobile, browser) {
   };
 }
 
+async function assertSamplingProgress(page, before, name) {
+  const partial = await read(page);
+  assert(partial.values.sample_charge > 0 && partial.values.sample_charge < partial.values.sample_duration,
+    'A short held beam should show progress, not instantly produce a reading');
+  assert(partial.values.boat_z < before.values.boat_z, 'The ferry froze while attention was spent sampling');
+  assert.equal(await page.locator('#sample-panel').isVisible(), true);
+  assert.match(await page.locator('#sample-status').innerText(), /READING CURRENT/i);
+  const progress = Number(await page.locator('#sample-progress').getAttribute('aria-valuenow'));
+  assert(Math.abs(progress - partial.values.sample_charge / partial.values.sample_duration) < 1e-8);
+  assert.equal(await fits(page), true);
+  await screenshot(page, name);
+  return partial;
+}
+
 async function pointerRoute(browser, options = {}, name = 'desktop') {
   const { context, page, errors } = await fresh(browser, options);
   const mobile = Boolean(options.isMobile);
@@ -136,15 +150,48 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     const pointer = await pointerController(context, page, mobile, browser);
     await screenshot(page, `${name}-ready`);
     const initial = await begin(page);
+    await pointer.move(-3.8, 33.5);
+    await page.clock.runFor(500);
+    await assertSamplingProgress(page, initial, `${name}-first-reading-progress`);
+    await page.clock.runFor(600);
+    assert.equal((await read(page)).values.measurement_ready, 1, 'A continuous one-second hold did not measure the first current');
     await pointer.move(5.5, initial.values.boat_z - 8);
     let previousHitCount = 0;
     let midCaptured = false;
     let currentCaptured = false;
     let observedBasis;
+    let stormCaptured = false;
+    let revisedBasis;
     let end;
     for (let step = 0; step < 95; step++) {
       const before = await read(page);
       if (before.values.phase !== 1) { end = before; break; }
+      if (!stormCaptured && before.values.storm_changed === 1) {
+        assert.equal(before.values.current_strength, -1.2);
+        assert.equal(before.values.resample_ready, 0, 'The storm warning must not silently provide an exact new measurement');
+        assert.deepEqual(before.commitment_bases.counter_steer, observedBasis);
+        assert(before.commitments.some(entry => entry.action === 'counter_steer' && entry.open));
+        assert.match(await page.locator('#sample-status').innerText(), /FLOW CHANGED.*RESAMPLE/i);
+        await screenshot(page, `${name}-storm-stale-reading`);
+        stormCaptured = true;
+        if (mobile) {
+          await pointer.move(-3.8, 33.5);
+          await page.clock.runFor(500);
+          await assertSamplingProgress(page, before, `${name}-storm-reading-progress`);
+          await page.clock.runFor(600);
+          const revised = await read(page);
+          assert.equal(revised.values.resample_ready, 1);
+          assert.deepEqual(revised.commitment_bases.counter_steer, observedBasis, 'Resampling rewrote the first decision');
+          revisedBasis = revised.commitment_bases.revised_counter_steer;
+          assert(Math.abs(revisedBasis.value - 0.78) < 1e-10);
+          assert(revisedBasis.provenance.evidence.includes('storm_reading'));
+          assert(revisedBasis.provenance.caveats.includes('reading_may_age'));
+          assert(revised.relations.some(edge => edge.from === 'crosscurrent_reading' && edge.relation === 'supports' && edge.to === 'current_eastward'));
+          assert(revised.relations.some(edge => edge.from === 'storm_reading' && edge.relation === 'opposes' && edge.to === 'current_eastward'));
+          await screenshot(page, `${name}-storm-reading-revised`);
+          continue;
+        }
+      }
       const z = before.values.boat_z;
       await pointer.move(z > 41 ? 5.5 : z > 32 ? -4 : 5.3, z - 8);
       await page.clock.runFor(1000);
@@ -180,6 +227,10 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     assert.equal(end.values.hull, 3, 'The open-water route should be steerable without taking damage');
     assert.equal(end.values.current_seen, 1, 'This route should discover and account for the crosscurrent');
     assert.deepEqual(end.commitment_bases.counter_steer, observedBasis, 'Continued play rewrote the historical observation-based command');
+    assert(stormCaptured, 'The complete route never encountered the storm');
+    assert.equal(end.values.resample_ready, mobile ? 1 : 0);
+    if (mobile) assert.deepEqual(end.commitment_bases.revised_counter_steer, revisedBasis);
+    else assert(!end.commitment_bases.revised_counter_steer, 'The manually steered route must not receive an unrequested new estimate');
     assert(end.values.elapsed >= 50 && end.values.elapsed <= 90, `Unexpected run duration ${end.values.elapsed}`);
     assert.equal(await fits(page), true);
     await page.getByRole('button', { name: /^Try again\b/i }).waitFor();
@@ -196,8 +247,8 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     assert.equal(restarted.values.rescued, 0);
     assert(restarted.values.elapsed < 1);
     assert.deepEqual(errors, [], `Browser errors in ${name}`);
-    report.routes.push({ name, input: pointer.kind, rescued: end.values.rescued, hull: end.values.hull, seconds: end.values.elapsed, hitCount: end.values.hit_count });
-    console.log(`PASS ${name}: ${pointer.kind} rescued 32 in ${end.values.elapsed.toFixed(1)}s with ${end.values.hull} hull`);
+    report.routes.push({ name, input: pointer.kind, currentPolicy: mobile ? 'held resample after storm' : 'manual steering with stale reading', rescued: end.values.rescued, hull: end.values.hull, seconds: end.values.elapsed, hitCount: end.values.hit_count });
+    console.log(`PASS ${name}: ${pointer.kind}, ${mobile ? 'fresh storm reading' : 'manual stale reading'}, rescued 32 in ${end.values.elapsed.toFixed(1)}s with ${end.values.hull} hull`);
   } catch (error) {
     await screenshot(page, `${name}-failure`).catch(() => {});
     throw error;
@@ -221,12 +272,32 @@ async function keyboardAndFailure(browser) {
     assert(right.values.boat_x > left.values.boat_x + 1, 'ArrowRight did not turn the ferry back');
     await screenshot(page, 'keyboard-steering');
     report.checks.push('keyboard arrows steer the actual Caveat simulation');
+    await page.keyboard.down(' ');
+    for (const [field, target, negative, positive] of [
+      ['aim_x', -3.8, 'ArrowLeft', 'ArrowRight'], ['aim_z', 33.5, 'ArrowUp', 'ArrowDown'],
+    ]) {
+      const current = await read(page);
+      const difference = target - current.values[field];
+      const key = difference < 0 ? negative : positive;
+      await page.keyboard.down(key);
+      await page.clock.runFor(Math.round(Math.abs(difference) / current.values.aim_speed * 1000));
+      await page.keyboard.up(key);
+    }
+    const holding = await read(page);
+    assert(Math.hypot(holding.values.aim_x + 3.8, holding.values.aim_z - 33.5) < holding.values.sample_radius,
+      'Keyboard arrows could not aim at the current marker');
+    await page.clock.runFor(500);
+    await assertSamplingProgress(page, holding, 'keyboard-reading-progress');
+    await page.clock.runFor(600);
+    await page.keyboard.up(' ');
+    assert.equal((await read(page)).values.measurement_ready, 1, 'Space did not keep the beam steady for a real sample');
+    report.checks.push('keyboard arrows plus held Space complete a moving-ferry current measurement');
     await page.getByRole('button', { name: /^Pause game$/i }).click();
     const paused = await read(page);
     assert.equal(paused.values.paused, 1);
     await page.clock.runFor(2000);
     const waiting = await read(page);
-    for (const key of ['boat_x', 'boat_z', 'boat_vx', 'elapsed', 'hull']) {
+    for (const key of ['boat_x', 'boat_z', 'boat_vx', 'elapsed', 'hull', 'sample_charge', 'notice_remaining']) {
       assert.equal(waiting.values[key], paused.values[key], `${key} changed while the source was paused`);
     }
     assert.deepEqual(waiting.relations, paused.relations);
@@ -276,6 +347,7 @@ async function sourceOnlyPresentation(browser) {
   const addition = `
 // This variant is delivered as Caveat source; the host JavaScript is untouched.
 bind passengers_label.text = "SOURCE VARIANT CREW" when forecast_drift == 0;
+bind time.text = "SOURCE CLOCK " + number_text(floor(elapsed));
 bind crosscurrent_marker.scale = 1.5;
 bind crosscurrent_marker.ring.color = "#ff00ff" when forecast_drift == 0;
 bind crosscurrent_marker.visible = true;
@@ -294,6 +366,7 @@ on start when forecast_drift == 0 emit qa_source_tone;
     assert(sourceIntercepted, 'The test must change the served Caveat source itself');
     const state = await begin(page);
     assert.equal(state.bindings.passengers_label.text, 'SOURCE VARIANT CREW');
+    assert.equal(await page.locator('#time').innerText(), 'SOURCE CLOCK 0', 'The host replaced source-authored formatted text');
     for (const [target, property] of [['passengers_label', 'text'], ['crosscurrent_marker', 'ring.color']]) {
       const basis = state.binding_qualifications[target][property];
       assert(basis.evidence.includes('morning_forecast'), 'The rendered primitive lost its source selection basis');
@@ -315,6 +388,8 @@ on start when forecast_drift == 0 emit qa_source_tone;
     assert.equal(consumed.filter(cue => cue.id === 'qa_source_tone').length, 1, 'A cue replayed without a new source event');
     assert.equal(state.values.hull, 3);
     assert.equal(state.values.rescued, 0);
+    await page.clock.runFor(1200);
+    assert.equal(await page.locator('#time').innerText(), 'SOURCE CLOCK 1', 'The source text function did not update the real HUD');
     await screenshot(page, 'source-only-presentation');
     assert.deepEqual(errors, []);
     report.checks.push('Caveat-only HTTP variant changes real HUD, mesh/material, and consumed sound cue without modifying JavaScript');

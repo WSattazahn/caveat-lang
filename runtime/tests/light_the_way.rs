@@ -41,26 +41,59 @@ fn aim(session: &mut ReactiveSession, x: f64, z: f64) -> ReactiveSnapshot {
     dispatch(session, "aim", &[("x", x), ("z", z), ("active", 1.0)])
 }
 
+fn sample_current(session: &mut ReactiveSession) -> ReactiveSnapshot {
+    let field = if value(&session.snapshot(), "storm_changed") == 1.0 {
+        "resample_ready"
+    } else {
+        "measurement_ready"
+    };
+    aim(session, -3.8, 33.5);
+    for _ in 0..40 {
+        let state = tick(session);
+        if value(&state, field) == 1.0 {
+            return state;
+        }
+    }
+    panic!("a continuously held beam did not finish its one-second sample");
+}
+
+fn pilot(session: &mut ReactiveSession, resample: bool) {
+    let before = session.snapshot();
+    if resample && value(&before, "storm_changed") == 1.0 && value(&before, "resample_ready") == 0.0
+    {
+        aim(session, -3.8, 33.5);
+    } else {
+        let z = value(&before, "boat_z");
+        aim(
+            session,
+            if z > 41.0 {
+                5.5
+            } else if z > 32.0 {
+                -4.0
+            } else {
+                5.3
+            },
+            z - 8.0,
+        );
+    }
+}
+
 // This is a player input script, not a state mutation or an alternate simulator.
 // It steers right, left, then right through the three visible reef rows.
 fn guided_run(session: &mut ReactiveSession) -> ReactiveSnapshot {
+    guided_run_with_resampling(session, false)
+}
+
+fn guided_run_with_resampling(session: &mut ReactiveSession, resample: bool) -> ReactiveSnapshot {
     for frame in 0..(30 * 92) {
         let before = session.snapshot();
         if value(&before, "phase") != 1.0 {
             return before;
         }
-        let z = value(&before, "boat_z");
-        let x = if z > 41.0 {
-            5.5
-        } else if z > 32.0 {
-            -4.0
-        } else {
-            5.3
-        };
         if frame % 30 == 0 {
             // The browser test uses the same once-per-second steering policy;
             // every intervening 30 Hz simulation tick still runs in Caveat.
-            aim(session, x, z - 8.0);
+            pilot(session, resample);
         }
         tick(session);
     }
@@ -87,6 +120,7 @@ fn opening_moves_immediately_and_gives_five_seconds_without_damage() {
 #[test]
 fn steering_through_open_water_rescues_everyone_in_one_short_run() {
     let mut session = started(SOURCE);
+    sample_current(&mut session);
     let end = guided_run(&mut session);
     assert_eq!(
         value(&end, "phase"),
@@ -112,6 +146,234 @@ fn steering_through_open_water_rescues_everyone_in_one_short_run() {
         "success must happen at the harbor"
     );
     assert!((value(&end, "boat_x") - 5.3).abs() < 2.9);
+    assert_eq!(value(&end, "measurement_ready"), 1.0);
+    assert_eq!(value(&end, "storm_changed"), 1.0);
+    assert_eq!(
+        value(&end, "resample_ready"),
+        0.0,
+        "skilled manual steering should remain possible with the stale plan"
+    );
+}
+
+#[test]
+fn sampling_requires_continuous_attention_while_motion_and_pause_remain_honest() {
+    let mut game = started(SOURCE);
+    let opening = game.snapshot();
+    aim(&mut game, -3.8, 33.5);
+    for _ in 0..15 {
+        tick(&mut game);
+    }
+    let partial = game.snapshot();
+    assert!((value(&partial, "sample_charge") - 0.5).abs() < 1e-10);
+    assert_eq!(value(&partial, "measurement_ready"), 0.0);
+    assert!(value(&partial, "boat_z") < value(&opening, "boat_z"));
+    assert_eq!(
+        partial.bindings["sample_panel"]["visible"].as_bool(),
+        Some(true)
+    );
+    aim(&mut game, 5.5, 50.0);
+    let cancelled = tick(&mut game);
+    assert_eq!(value(&cancelled, "sample_charge"), 0.0);
+    assert!(!cancelled
+        .relations
+        .iter()
+        .any(|edge| edge.from == "crosscurrent_reading" && edge.relation == "opposes"));
+    aim(&mut game, -3.8, 33.5);
+    for _ in 0..15 {
+        tick(&mut game);
+    }
+    let paused = dispatch(&mut game, "pause", &[]);
+    for _ in 0..60 {
+        tick(&mut game);
+    }
+    let waiting = game.snapshot();
+    for field in [
+        "sample_charge",
+        "notice_remaining",
+        "elapsed",
+        "boat_x",
+        "boat_z",
+    ] {
+        assert_eq!(
+            value(&waiting, field),
+            value(&paused, field),
+            "{field} advanced while paused"
+        );
+    }
+    dispatch(&mut game, "resume", &[]);
+    assert_eq!(
+        value(&tick(&mut game), "sample_charge"),
+        0.0,
+        "the released beam must not continue a partial reading"
+    );
+    let complete = sample_current(&mut game);
+    assert_eq!(value(&complete, "measurement_ready"), 1.0);
+    assert_eq!(value(&complete, "hull"), 3.0);
+    assert!(value(&complete, "notice_remaining") > 0.0);
+    let noticed = dispatch(&mut game, "pause", &[]);
+    for _ in 0..30 {
+        tick(&mut game);
+    }
+    assert_eq!(
+        value(&game.snapshot(), "notice_remaining"),
+        value(&noticed, "notice_remaining")
+    );
+    dispatch(&mut game, "resume", &[]);
+    let resumed = tick(&mut game);
+    assert!(value(&resumed, "notice_remaining") < value(&noticed, "notice_remaining"));
+    assert_eq!(resumed.commitment_bases, complete.commitment_bases);
+}
+
+#[test]
+fn storm_resampling_preserves_history_and_reduces_real_drift_before_rescue() {
+    let mut fresh = started(SOURCE);
+    let sampled = sample_current(&mut fresh);
+    let first_basis = sampled.commitment_bases["counter_steer"].clone();
+    for frame in 0..(30 * 40) {
+        if frame % 30 == 0 {
+            pilot(&mut fresh, false);
+        }
+        if value(&tick(&mut fresh), "storm_changed") == 1.0 {
+            break;
+        }
+    }
+    let storm = fresh.snapshot();
+    assert!((value(&storm, "elapsed") - 34.0).abs() <= FRAME + 1e-9);
+    assert_eq!(value(&storm, "current_strength"), -1.2);
+    assert_eq!(storm.commitment_bases["counter_steer"], first_basis);
+    assert!(
+        storm
+            .commitments
+            .iter()
+            .find(|entry| entry.action == "counter_steer")
+            .unwrap()
+            .open
+    );
+    assert_eq!(value(&storm, "resample_ready"), 0.0);
+    assert!(!storm.commitment_bases.contains_key("revised_counter_steer"));
+    assert!(storm
+        .relations
+        .iter()
+        .any(|edge| edge.from == "crosscurrent_reading"
+            && edge.relation == "supports"
+            && edge.to == "current_eastward"));
+    assert!(storm
+        .relations
+        .iter()
+        .any(|edge| edge.from == "storm_warning"
+            && edge.relation == "opposes"
+            && edge.to == "current_eastward"));
+    let mut stale = fresh.clone();
+    // Equal steering x means equal physical motion until the new reading lands.
+    // Only the beam's z differs, so one navigator samples while the other steers.
+    aim(&mut fresh, -3.8, 33.5);
+    aim(&mut stale, -3.8, 60.0);
+    let mut revised = fresh.snapshot();
+    let mut old = stale.snapshot();
+    for _ in 0..40 {
+        revised = tick(&mut fresh);
+        old = tick(&mut stale);
+        if value(&revised, "resample_ready") == 1.0 {
+            break;
+        }
+        assert_eq!(value(&revised, "boat_x"), value(&old, "boat_x"));
+        assert_eq!(value(&revised, "boat_z"), value(&old, "boat_z"));
+    }
+    assert_eq!(value(&revised, "resample_ready"), 1.0);
+    let sampled_at = value(&revised, "elapsed");
+    // The warning gives time to resample before the ferry reaches the field.
+    // Continue identical steering to its first physical influence.
+    aim(&mut fresh, -3.8, 60.0);
+    for _ in 0..90 {
+        if value(&old, "current_force") != 0.0 {
+            break;
+        }
+        assert_eq!(value(&revised, "boat_x"), value(&old, "boat_x"));
+        revised = tick(&mut fresh);
+        old = tick(&mut stale);
+    }
+    let force = value(&old, "current_force");
+    assert!(force < 0.0, "the storm field never reached the ferry");
+    assert_eq!(
+        value(&revised, "current_force"),
+        force,
+        "observation changed the physical field at matched position/time"
+    );
+    assert!(
+        value(&old, "compensation") * force > 0.0,
+        "the old east-flow plan should now worsen westward drift"
+    );
+    assert!(value(&revised, "compensation") * force < 0.0);
+    assert!(
+        (force + value(&revised, "compensation")).abs()
+            < (force + value(&old, "compensation")).abs()
+    );
+    assert_eq!(revised.commitment_bases["counter_steer"], first_basis);
+    assert!(
+        (revised.commitment_bases["revised_counter_steer"]
+            .value
+            .unwrap()
+            - 0.78)
+            .abs()
+            < 1e-10
+    );
+    assert!(revised.commitment_bases["revised_counter_steer"]
+        .provenance
+        .evidence
+        .contains("storm_reading"));
+    assert!(revised.commitment_bases["revised_counter_steer"]
+        .provenance
+        .caveats
+        .contains("reading_may_age"));
+    for field in ["observed_foam", "estimated_peak", "steering_plan"] {
+        assert_eq!(value(&revised, field), value(&sampled, field));
+    }
+    aim(&mut fresh, -3.8, 60.0);
+    for _ in 0..90 {
+        tick(&mut fresh);
+        tick(&mut stale);
+    }
+    let fresh_error = (value(&fresh.snapshot(), "boat_x") + 3.8).abs();
+    let stale_error = (value(&stale.snapshot(), "boat_x") + 3.8).abs();
+    eprintln!("storm handling: sampled at {sampled_at:.2}s, field entry {:.2}s; matched force {force:.3}, first net stale {:.3}, fresh {:.3}; lateral error after 3 seconds stale {stale_error:.3}, fresh {fresh_error:.3}", value(&old, "elapsed"), force + value(&old, "compensation"), force + value(&revised, "compensation"));
+    assert!(
+        stale_error > fresh_error + 0.1,
+        "revision changed metadata without a meaningful handling benefit"
+    );
+    let end = guided_run(&mut fresh);
+    assert_eq!(value(&end, "phase"), 2.0);
+    assert_eq!(value(&end, "rescued"), 32.0);
+    assert_eq!(value(&end, "hull"), 3.0);
+    assert_eq!(end.commitment_bases["counter_steer"], first_basis);
+    assert_eq!(
+        end.commitment_bases["revised_counter_steer"],
+        revised.commitment_bases["revised_counter_steer"]
+    );
+}
+
+#[test]
+fn a_first_sample_after_the_storm_does_not_invent_an_earlier_observation() {
+    let source = SOURCE.replace("state storm_at = 34;", "state storm_at = 1;");
+    let mut game = started(&source);
+    for _ in 0..31 {
+        tick(&mut game);
+    }
+    let sampled = sample_current(&mut game);
+    assert_eq!(value(&sampled, "measurement_ready"), 0.0);
+    assert_eq!(value(&sampled, "resample_ready"), 1.0);
+    assert!(!sampled.commitment_bases.contains_key("counter_steer"));
+    assert!(sampled
+        .commitment_bases
+        .contains_key("revised_counter_steer"));
+    assert!(!sampled
+        .relations
+        .iter()
+        .any(|edge| edge.from == "crosscurrent_reading"
+            && matches!(edge.relation.as_str(), "supports" | "opposes")));
+    assert!(sampled
+        .relations
+        .iter()
+        .any(|edge| edge.from == "storm_reading" && edge.relation == "opposes"));
 }
 
 #[test]
@@ -317,10 +579,18 @@ fn pausing_keeps_the_live_evidence_and_commitments_then_resumes_motion() {
 
 #[test]
 fn discovering_the_current_revises_navigation_without_changing_physical_truth() {
-    let mut informed = started(SOURCE);
-    let mut uninformed = started(SOURCE);
+    // Isolate the first estimate here; the real storm/revision is tested below.
+    let calm_source = SOURCE.replace("state storm_at = 34;", "state storm_at = 100;");
+    let mut informed = started(&calm_source);
+    let mut uninformed = started(&calm_source);
     aim(&mut informed, -3.8, 33.5);
-    let observed = dispatch(&mut informed, "tick", &[("dt", 0.0)]);
+    aim(&mut uninformed, -3.8, 60.0);
+    for _ in 0..31 {
+        tick(&mut informed);
+        tick(&mut uninformed);
+    }
+    let observed = informed.snapshot();
+    assert_eq!(value(&observed, "measurement_ready"), 1.0);
     assert!(observed.relations.iter().any(|edge| {
         edge.from == "morning_forecast"
             && edge.relation == "supports"
@@ -392,9 +662,6 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
                 value(&known, "current_strength"),
                 value(&unknown, "current_strength")
             );
-            assert!(known.qualified_values["current_strength"]
-                .provenance
-                .is_empty());
             assert!(
                 (value(&known, "current_force") - force).abs() < 0.000_001,
                 "knowledge changed the current itself rather than the response to it"
@@ -433,10 +700,10 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
 fn a_later_physical_change_cannot_silently_refresh_the_observed_navigation_plan() {
     // The additional event is authored in this Caveat fixture. No host-side
     // mutation, alternate simulator, or production testing hook is involved.
-    let source = format!("{SOURCE}\nevent change_current strength min 0 max 2;\non change_current set current_strength = strength;");
+    let calm_source = SOURCE.replace("state storm_at = 34;", "state storm_at = 100;");
+    let source = format!("{calm_source}\nevent change_current strength min 0 max 2;\non change_current set current_strength = strength;");
     let mut game = started(&source);
-    aim(&mut game, -3.8, 33.5);
-    let measured = dispatch(&mut game, "tick", &[("dt", 0.0)]);
+    let measured = sample_current(&mut game);
     assert_eq!(value(&measured, "measurement_ready"), 1.0);
     assert!((value(&measured, "estimated_peak") - 0.9).abs() < 1e-10);
     let frozen_basis = measured.commitment_bases["counter_steer"].clone();
@@ -556,11 +823,15 @@ fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
         .collect::<Vec<_>>();
     assert_eq!(points.len(), 7);
     for (x, z) in points {
-        aim(&mut session, x, z);
-        dispatch(&mut session, "tick", &[("dt", 0.0)]);
+        if (x + 3.8).abs() < 0.01 && (z - 33.5).abs() < 0.01 {
+            sample_current(&mut session);
+        } else {
+            aim(&mut session, x, z);
+            dispatch(&mut session, "tick", &[("dt", 0.0)]);
+        }
     }
     let known = session.snapshot();
-    assert_eq!(known.budget.as_ref().unwrap().remaining, 0);
+    assert_eq!(known.budget.as_ref().unwrap().remaining, 1);
     assert_eq!(known.symbols.iter().filter(|entry| entry.kind == "caveat" && entry.attention.as_deref() == Some("examined")).count(), 7);
     let qualifications = known
         .relations
@@ -580,7 +851,7 @@ fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
         .relations
         .iter()
         .any(|edge| edge.relation == "opposes" && edge.to == "clear_course"));
-    let end = guided_run(&mut session);
+    let end = guided_run_with_resampling(&mut session, true);
     assert_eq!(
         value(&end, "phase"),
         2.0,
@@ -591,7 +862,12 @@ fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
     assert!(qualifications
         .iter()
         .all(|edge| end.relations.contains(edge)));
-    assert_eq!(end.commitments, known.commitments);
+    assert_eq!(end.budget.as_ref().unwrap().remaining, 0);
+    assert_eq!(end.symbols.iter().filter(|entry| entry.kind == "caveat" && entry.attention.as_deref() == Some("examined")).count(), 8);
+    assert_eq!(
+        end.commitment_bases["counter_steer"],
+        known.commitment_bases["counter_steer"]
+    );
 }
 
 #[test]

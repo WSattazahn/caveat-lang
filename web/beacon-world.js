@@ -186,37 +186,43 @@ export function createBeaconWorld(canvas, options = {}) {
   rim.position.set(20, 12, -35);
   scene.add(ambient, moonlight, rim);
 
-  const waterUniforms = { time: { value: 0 }, cameraPositionWorld: { value: camera.position }, lightDirection: { value: v(-0.45, 0.8, 0.3) }, shoreCenter: { value: new THREE.Vector2() }, shoreRadius: { value: new THREE.Vector2(16, 14) } };
+  const waterUniforms = {
+    time: { value: 0 }, cameraPositionWorld: { value: camera.position }, lightDirection: { value: v(-0.45, 0.8, 0.3) },
+    shoreCenter: { value: new THREE.Vector2() }, shoreRadius: { value: new THREE.Vector2(16, 14) },
+    waveHeight: { value: 1 }, deepColor: { value: new THREE.Color(0.018, 0.10, 0.13) },
+    shallowColor: { value: new THREE.Color(0.12, 0.25, 0.29) }, foamColor: { value: new THREE.Color(0.26, 0.44, 0.43) },
+  };
   const water = mesh(new THREE.PlaneGeometry(550, 550, 120, 120), new THREE.ShaderMaterial({
     uniforms: waterUniforms,
     transparent: false,
     vertexShader: `
-      uniform float time; varying vec3 vWorld; varying vec3 vNormal; varying float vWave;
+      uniform float time; uniform float waveHeight; varying vec3 vWorld; varying vec3 vNormal; varying float vWave;
       void main(){
         vec3 p=position; vec4 w=modelMatrix*vec4(p,1.);
         float a=sin(w.x*.31+time*.8+w.z*.12);
         float b=sin(w.z*.44-time*.57+w.x*.16);
         float c=sin(w.x*.85+w.z*.71+time*.9);
-        float wave=a*.16+b*.11+c*.035;
+        float wave=(a*.16+b*.11+c*.035)*waveHeight;
         w.y+=wave; vWorld=w.xyz; vWave=wave;
-        vNormal=normalize(vec3(-cos(w.x*.31+time*.8+w.z*.12)*.0496-cos(w.z*.44-time*.57+w.x*.16)*.0176,1.,-cos(w.x*.31+time*.8+w.z*.12)*.0192-cos(w.z*.44-time*.57+w.x*.16)*.0484));
+        vNormal=normalize(vec3((-cos(w.x*.31+time*.8+w.z*.12)*.0496-cos(w.z*.44-time*.57+w.x*.16)*.0176)*waveHeight,1.,(-cos(w.x*.31+time*.8+w.z*.12)*.0192-cos(w.z*.44-time*.57+w.x*.16)*.0484)*waveHeight));
         gl_Position=projectionMatrix*viewMatrix*w;
       }`,
     fragmentShader: `
       uniform float time; uniform vec3 cameraPositionWorld; uniform vec3 lightDirection; uniform vec2 shoreCenter; uniform vec2 shoreRadius;
+      uniform vec3 deepColor; uniform vec3 shallowColor; uniform vec3 foamColor;
       varying vec3 vWorld;varying vec3 vNormal;varying float vWave;
       void main(){
         vec3 N=normalize(vNormal);vec3 V=normalize(cameraPositionWorld-vWorld);
         float fresnel=pow(1.-max(dot(N,V),0.),3.);
         float sparkle=pow(max(dot(N,normalize(V+lightDirection)),0.),100.);
         float ripples=sin(vWorld.x*1.6+vWorld.z*.7+sin(vWorld.z*1.9-time)*.5+time)*.5+.5;
-        vec3 color=mix(vec3(.018,.10,.13),vec3(.12,.25,.29),fresnel);
+        vec3 color=mix(deepColor,shallowColor,fresnel);
         color+=vec3(.22,.38,.4)*sparkle*.7;
         color+=vec3(.025,.08,.08)*smoothstep(.91,1.,ripples)*smoothstep(-.1,.2,vWave);
         float shore=length((vWorld.xz-shoreCenter)/shoreRadius);
         float surf=pow(max(0.,sin(shore*32.-time*1.1+sin(atan(vWorld.z-shoreCenter.y,vWorld.x-shoreCenter.x)*9.)*.5)),16.);
         float edge=smoothstep(.91,1.05,shore)*(1.-smoothstep(1.15,1.45,shore));
-        color+=vec3(.26,.44,.43)*surf*edge*.46;
+        color+=foamColor*surf*edge*.46;
         float mist=1.-exp(-length(vWorld.xz-cameraPositionWorld.xz)*.006);
         color=mix(color,vec3(.075,.15,.19),mist*.7);
         gl_FragColor=vec4(color,1.);
@@ -322,6 +328,7 @@ export function createBeaconWorld(canvas, options = {}) {
   rainGeometry.setAttribute('position', new THREE.BufferAttribute(rainArray, 3));
   const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: 0x89a8b0, transparent: true, opacity: rescueMode ? 0.055 : 0.11, depthWrite: false }));
   world.add(rain);
+  let rainSpeed = 1;
 
   function makeRoof(parent, width, depth, y, height, color) {
     const geometry = new THREE.BufferGeometry();
@@ -471,7 +478,27 @@ export function createBeaconWorld(canvas, options = {}) {
         const disc = mesh(new THREE.CircleGeometry(0.96, 48), new THREE.MeshBasicMaterial({ color: 0xb9e4d2, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false, fog: false, toneMapped: false }), object, [0, 0.02, 0]);
         disc.rotation.x = -Math.PI / 2;
         ring.castShadow = disc.castShadow = false;
-        Object.assign(data, { ring, disc });
+        // Optional symbols are neutral presentation parts. Source chooses their
+        // direction, visibility and fill; the asset knows no hazard or timer.
+        const arrow = new THREE.Group(); object.add(arrow);
+        for (const x of [-0.42, 0, 0.42]) {
+          const shape = new THREE.Shape();
+          shape.moveTo(-0.18, -0.16); shape.lineTo(-0.035, -0.16);
+          shape.lineTo(0.17, 0); shape.lineTo(-0.035, 0.16);
+          shape.lineTo(-0.18, 0.16); shape.lineTo(0.035, 0); shape.closePath();
+          const chevron = mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: 0xb9e4d2, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthTest: false, depthWrite: false, fog: false, toneMapped: false }), arrow, [x, 0.095, 0]);
+          chevron.rotation.x = -Math.PI / 2;
+          chevron.castShadow = chevron.receiveShadow = false;
+          chevron.renderOrder = 3;
+        }
+        const progress = mesh(new THREE.RingGeometry(0.31, 0.38, 96, 1, -Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xffdfa0, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthTest: false, depthWrite: false, fog: false, toneMapped: false }), object, [0, 0.11, 0]);
+        progress.rotation.x = Math.PI / 2;
+        progress.castShadow = progress.receiveShadow = false;
+        progress.renderOrder = 4;
+        progress.userData.fillable = true;
+        progress.geometry.setDrawRange(0, 0);
+        arrow.visible = progress.visible = false;
+        Object.assign(data, { ring, disc, arrow, progress });
         break;
       }
       case 'ferry': {
@@ -726,6 +753,32 @@ export function createBeaconWorld(canvas, options = {}) {
   renderTargets.set('light_target', { object: aimSpot, ring: aimRing, disc: aimDisc, core: aimCore });
   renderTargets.set('light_beam', { object: lightCone, primitive: 'beam', from: v(), to: v(0, 1, 0), radius: 3.8 });
   renderTargets.set('guide_line', { object: routeHint, primitive: 'line', from: v(), to: v(0, 1, 0) });
+  // Explicit property adapters keep presentation parameters generic while
+  // retaining actual shader/light values for the read-only inspection API.
+  const colorProperty = color => ({ set: value => color.set(value), get: () => color.getHex() });
+  const numberProperty = (get, set) => ({ get, set: value => set(Number(value)) });
+  const atmosphere = {
+    object: new THREE.Group(), rain, stars, ambient, moonlight,
+    properties: {
+      water_deep: colorProperty(waterUniforms.deepColor.value),
+      water_shallow: colorProperty(waterUniforms.shallowColor.value),
+      water_foam: colorProperty(waterUniforms.foamColor.value),
+      sky_top: colorProperty(sky.material.uniforms.top.value),
+      sky_horizon: colorProperty(sky.material.uniforms.horizon.value),
+      fog_color: colorProperty(scene.fog.color),
+      fog_density: numberProperty(() => scene.fog.density, value => { scene.fog.density = Math.max(0, value); }),
+      exposure: numberProperty(() => renderer.toneMappingExposure, value => { renderer.toneMappingExposure = Math.max(0, value); }),
+      wave_height: numberProperty(() => waterUniforms.waveHeight.value, value => { waterUniforms.waveHeight.value = Math.max(0, value); }),
+      rain_speed: numberProperty(() => rainSpeed, value => { rainSpeed = Math.max(0, value); }),
+    },
+  };
+  const atmosphereDefaults = Object.fromEntries(Object.entries(atmosphere.properties).map(([property, adapter]) => [property, adapter.get()]));
+  Object.assign(atmosphereDefaults, {
+    'rain.opacity': rain.material.opacity, 'rain.color': rain.material.color.getHex(),
+    'rain.visible': true, 'rain.z': 0, 'stars.opacity': stars.material.opacity, 'stars.visible': true,
+    'ambient.intensity': ambient.intensity, 'moonlight.intensity': moonlight.intensity,
+  });
+  renderTargets.set('atmosphere', atmosphere);
   aimSpot.visible = lightCone.visible = routeHint.visible = false;
 
   function targetFor(id) { return entities.get(id) || renderTargets.get(id); }
@@ -765,6 +818,10 @@ export function createBeaconWorld(canvas, options = {}) {
   }
 
   function applyBinding(data, property, value) {
+    if (Object.prototype.hasOwnProperty.call(data.properties || {}, property)) {
+      data.properties[property].set(value);
+      return true;
+    }
     if (/^(from|to)_[xyz]$/.test(property) && data.primitive) {
       const [endpoint, axis] = property.split('_');
       data[endpoint][axis] = Number(value);
@@ -787,6 +844,12 @@ export function createBeaconWorld(canvas, options = {}) {
     if (/^scale_[xyz]$/.test(attribute)) { object.scale[attribute.at(-1)] = Number(value); return true; }
     if (attribute === 'scale') { object.scale.setScalar(Number(value)); return true; }
     if (attribute === 'visible') { object.visible = Boolean(value); return true; }
+    if (attribute === 'intensity' && object.isLight) { object.intensity = Number(value); return true; }
+    if (attribute === 'fill' && object.userData.fillable) {
+      const triangles = object.geometry.index.count / 3;
+      object.geometry.setDrawRange(0, Math.round(clamp(Number(value), 0, 1) * triangles) * 3);
+      return true;
+    }
     if (attribute === 'count') {
       const count = Math.max(0, Math.floor(Number(value)));
       object.children.forEach((child, index) => { child.visible = index < count; });
@@ -898,6 +961,10 @@ export function createBeaconWorld(canvas, options = {}) {
       if (!data) continue;
       const values = {};
       for (const property of properties) {
+        if (Object.prototype.hasOwnProperty.call(data.properties || {}, property)) {
+          values[property] = data.properties[property].get();
+          continue;
+        }
         if (/^(from|to)_[xyz]$/.test(property) && data.primitive) {
           const [endpoint, axis] = property.split('_');
           let point;
@@ -918,6 +985,8 @@ export function createBeaconWorld(canvas, options = {}) {
         else if (/^scale_[xyz]$/.test(attribute)) values[property] = object.scale[attribute.at(-1)];
         else if (attribute === 'scale') values[property] = object.scale.x;
         else if (attribute === 'visible') values[property] = object.visible;
+        else if (attribute === 'intensity' && object.isLight) values[property] = object.intensity;
+        else if (attribute === 'fill' && object.userData.fillable) values[property] = object.geometry.drawRange.count / object.geometry.index.count;
         else if (attribute === 'count') values[property] = object.children.filter(child => child.visible).length;
         else {
           let material;
@@ -1141,6 +1210,7 @@ export function createBeaconWorld(canvas, options = {}) {
     needsRender = true;
     resetGeneration++;
     clearCues(); appliedBindingValues.clear(); lastBindingSequence = -1; lastBindingSession = null;
+    for (const [property, value] of Object.entries(atmosphereDefaults)) applyBinding(atmosphere, property, value);
     for (const item of tweens) item.resolve();
     tweens.clear(); busy = false; immediatePlayback = false;
     cameraEye.copy(baseEye); cameraTarget.copy(baseTarget); yaw = pitch = 0; zoom = 1;
@@ -1272,8 +1342,8 @@ export function createBeaconWorld(canvas, options = {}) {
     if (!reducedMotion) {
       const p = rainGeometry.attributes.position.array;
       for (let i = 0; i < 390; i++) {
-        const n = i * 6, dy = dt * 10;
-        p[n] += dt * 1.4; p[n + 3] += dt * 1.4; p[n + 1] -= dy; p[n + 4] -= dy;
+        const n = i * 6, dy = dt * 10 * rainSpeed;
+        p[n] += dt * 1.4 * rainSpeed; p[n + 3] += dt * 1.4 * rainSpeed; p[n + 1] -= dy; p[n + 4] -= dy;
         if (p[n + 1] < -1) { p[n + 1] = 42; p[n + 4] = 42.6; p[n] -= 5.8; p[n + 3] -= 5.8; }
       }
       rainGeometry.attributes.position.needsUpdate = true;

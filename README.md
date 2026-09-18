@@ -14,7 +14,7 @@ The newest playable proof-of-use is **Light the Way**, a direct-control ferry re
 
 ## Light the Way — play immediately
 
-[Play Light the Way](https://last-beacon-caveat.w4ltr0n.chatgpt.site). Hold and drag the lighthouse beam, or use the arrow keys. Steer the ferry around reefs into the green harbor. A crossing takes about a minute; damage, progress, and rescued passengers appear directly in the scene. Retry immediately. No download or reading panels are required.
+[Play Light the Way](https://last-beacon-caveat.w4ltr0n.chatgpt.site). Hold and drag the lighthouse beam, or use the arrow keys. Steer the ferry around reefs into the green harbor. Hold the light over the current marker to take a reading while the ferry keeps moving. When the storm shifts, decide whether to correct the old plan manually or spend another second scouting. Damage, sampling progress, and rescued passengers appear directly in the scene. Retry immediately. No download or reading panels are required.
 
 The new [reactive language profile](spec/caveat-reactive-0.1.md) adds bounded numeric state, typed events, arithmetic, ordered conditional rules, and atomic event execution. The same rules can read and change CAVEAT's actual evidence graph. In [the game source](game/light_the_way.cav), spotting a reef records evidence, pays to examine the associated caveat, reopens the initial course commitment, and makes the ferry slow near the known danger. The original chart claim and contrary evidence both remain in the graph.
 
@@ -29,6 +29,10 @@ The [reactive 0.2 extension](spec/caveat-reactive-0.2.md) adds reusable numeric 
 [Reactive 0.3](spec/caveat-reactive-0.3.md) carries evidence and caveats through numeric values, arithmetic, function calls, comparisons, and conditional decisions. A commitment made `using` a derived value automatically retains its caveats and records a frozen numeric basis plus `relies_on` evidence edges. The crosscurrent's source-authored observation and steering functions exercise these semantics; the browser continues consuming ordinary rendering values.
 
 The crosscurrent demonstrates why that matters beyond moving code: a qualified forecast supports an initial navigation commitment; an opposing observation reopens it and leads to counter-steering while retaining the unresolved caveat. Observation changes the navigator's response, not the physical current. Both evidence histories remain inspectable. [Preserving Caveat's essence](docs/CAVEAT_ESSENCE.md) records the invariants and the remaining Rust/browser boundaries.
+
+The storm now reverses the current during the crossing. A previously measured steering correction keeps its old value until a fresh sample supports a revised plan. The first reading, its caveats, and the original decision basis remain recorded. Rescouting has an immediate cost: the same light must stay over the marker while the moving ferry still needs steering.
+
+[Reactive 0.4](spec/caveat-reactive-0.4.md) adds bounded text expressions and conditional expressions. The standard functions `abs`, `min`, `max`, and `clamp` are implemented in [Caveat source](runtime/prelude.cav), replacing their Rust algorithms. Source functions also format the game's clock, numbers, and percentages; source state owns notice lifetimes and hull indicators. Rust still implements the evaluator and browser bridge. This is a first source-defined standard library, not a self-hosted compiler.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
 
@@ -92,6 +96,7 @@ Reactive runtime tests check atomic rollback and malformed input, and rescue sim
 
 - `spec/` — versioned language specifications
 - `runtime/` — reference runtime
+- `runtime/prelude.cav` — source-defined standard math and display functions
 - `tests/` — canonical semantic tests
 - `examples/` — example CAVEAT programs
 - `game/` — playable CAVEAT scenarios, including The Last Beacon, Moon Garden, and The Door
