@@ -36,15 +36,16 @@ function architecture(P,V){
   part(P,V,-11.5,1.6,7,.16,3.2,3.2,wall);
 
   // Stair enclosure to the right of the cross-corridor.
-  part(P,V,4.8,-.12,-8.8,4.4,.18,4.2,concrete);
+  // The flight descends through an actual opening; the lower slab is the floor below.
+  part(P,V,4.8,-1.55,-8.8,4.4,.18,4.2,concrete);
   part(P,V,4.8,3.5,-8.8,4.4,.16,4.2,concrete);
-  part(P,V,6.9,1.7,-8.8,.16,3.6,4.2,concrete);
-  part(P,V,4.8,1.7,-10.85,4.4,3.6,.16,concrete);
-  part(P,V,4.8,1.7,-6.75,4.4,3.6,.16,concrete);
+  part(P,V,6.9,.9,-8.8,.16,5.2,4.2,concrete);
+  part(P,V,4.8,.9,-10.85,4.4,5.2,.16,concrete);
+  part(P,V,4.8,.9,-6.75,4.4,5.2,.16,concrete);
   part(P,V,2.62,2.95,-8.8,.18,1.0,4.2,concrete);
 
   // Landing and descending flight. Dark nosings make the tread sequence legible from first person.
-  part(P,V,4.0,.02,-8.8,2.4,.22,2.0,concrete);
+  part(P,V,3.55,.02,-8.8,1.8,.22,2.0,concrete);
   for(let i=0;i<8;i++){
     const x=4.8+i*.24,y=-.10-i*.14,step=i%2?[.48,.50,.50]:concrete;
     part(P,V,x,y,-9.45,.48,.18,1.15,step);
