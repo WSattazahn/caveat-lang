@@ -1,4 +1,5 @@
 use crate::graphics::CaveatScene;
+use crate::map::{to_json_pretty, CaveatMap};
 use crate::session::{CommitmentFeedback, Discovery, PendingInteraction, Session};
 use crate::world3d::World3D;
 #[cfg(target_arch = "wasm32")]
@@ -90,6 +91,34 @@ fn commitment_json(commitment: Option<&CommitmentFeedback>) -> String {
             )
         })
         .unwrap_or_else(|| "null".into())
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn caveat_map(source: &str) -> String {
+    CaveatMap::from_source(source)
+        .and_then(|map| map.to_json_pretty())
+        .unwrap_or_else(|error| error_json(&error))
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn caveat_inspect(source: &str, symbol: &str) -> String {
+    CaveatMap::from_source(source)
+        .and_then(|map| to_json_pretty(&map.inspect(symbol)))
+        .unwrap_or_else(|error| error_json(&error))
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn caveat_trace(source: &str, symbol: &str) -> String {
+    CaveatMap::from_source(source)
+        .and_then(|map| to_json_pretty(&map.trace(symbol)))
+        .unwrap_or_else(|error| error_json(&error))
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub fn caveat_actions(source: &str) -> String {
+    CaveatMap::from_source(source)
+        .and_then(|map| to_json_pretty(&map.actions))
+        .unwrap_or_else(|error| error_json(&error))
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
