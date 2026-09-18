@@ -127,6 +127,7 @@ jobs:
               await page.getByText('Find a useful clue').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
               const moon3dCanvas=page.locator('#c3d');
+              await page.waitForFunction(()=>{const c=document.querySelector('#c3d');return c&&c.width>300&&c.height>250});
               const moon3dStart=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-start.png',moon3dStart);
               if(variance(moon3dStart)<28) throw Error('Moon Garden 3D start lacks meaningful geometry');
               const click3d=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
