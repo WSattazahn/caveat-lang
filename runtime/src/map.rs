@@ -913,19 +913,20 @@ fn validate_world(
         }
     }
 
-    let offered = choices
-        .iter()
-        .flat_map(|choice| choice.options.iter())
-        .chain(
-            investigations
-                .iter()
-                .flat_map(|investigation| investigation.options.iter().map(|option| &option.symbol)),
-        )
-        .collect::<HashSet<_>>();
+    let offered =
+        choices
+            .iter()
+            .flat_map(|choice| choice.options.iter())
+            .chain(investigations.iter().flat_map(|investigation| {
+                investigation.options.iter().map(|option| &option.symbol)
+            }))
+            .collect::<HashSet<_>>();
 
     for action in offered {
         if !world.action_plans.iter().any(|plan| &plan.action == action) {
-            return Err(format!("player-facing action {action} has no world action plan"));
+            return Err(format!(
+                "player-facing action {action} has no world action plan"
+            ));
         }
     }
 
