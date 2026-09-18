@@ -277,7 +277,9 @@ impl CaveatMap {
                     selected: None,
                 }),
                 Statement::Select { choice, option } => {
-                    if let Some(found) = choices.iter_mut().find(|candidate| candidate.name == *choice)
+                    if let Some(found) = choices
+                        .iter_mut()
+                        .find(|candidate| candidate.name == *choice)
                     {
                         found.selected = Some(option.clone());
                     }
@@ -453,9 +455,7 @@ impl CaveatMap {
             .reveals
             .iter()
             .filter(|reveal| {
-                reveal.when_inspected == subject
-                    || reveal.from == subject
-                    || reveal.to == subject
+                reveal.when_inspected == subject || reveal.from == subject || reveal.to == subject
             })
             .map(|reveal| {
                 format!(
@@ -498,7 +498,11 @@ impl CaveatMap {
                 continue;
             }
 
-            for relation in self.relations.iter().filter(|relation| relation.from == symbol) {
+            for relation in self
+                .relations
+                .iter()
+                .filter(|relation| relation.from == symbol)
+            {
                 if visited.insert(relation.to.clone()) {
                     queue.push_back((
                         relation.to.clone(),
