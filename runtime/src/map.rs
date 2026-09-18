@@ -72,6 +72,7 @@ pub struct MapChoice {
     pub options: Vec<String>,
     pub retaining: Vec<String>,
     pub selected: Option<String>,
+    pub converging: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -324,7 +325,15 @@ impl CaveatMap {
                     options: options.clone(),
                     retaining: retaining.clone(),
                     selected: None,
+                    converging: false,
                 }),
+                Statement::Converge { choice } => {
+                    let found = choices
+                        .iter_mut()
+                        .find(|candidate| candidate.name == *choice)
+                        .ok_or_else(|| format!("converge references unknown choice {choice}"))?;
+                    found.converging = true;
+                }
                 Statement::Select { choice, option } => {
                     if let Some(found) = choices
                         .iter_mut()
@@ -931,6 +940,9 @@ fn validate_world(
     }
 
     for choice in choices {
+        if choice.converging {
+            continue;
+        }
         let mut destinations = HashSet::new();
         for option in &choice.options {
             let Some(plan) = world
