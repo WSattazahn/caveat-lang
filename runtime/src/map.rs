@@ -835,13 +835,15 @@ when_committed open reopen open because camera_gap;
             .any(|conditional| conditional.contains("reopen open")));
     }
 
-
     #[test]
     fn inspect_and_trace_include_world_topology() {
         let map = CaveatMap::from_source(SOURCE).expect("map should build");
         let inspection = map.inspect("door_a");
         assert_eq!(
-            inspection.entity.as_ref().map(|entity| entity.kind.as_str()),
+            inspection
+                .entity
+                .as_ref()
+                .map(|entity| entity.kind.as_str()),
             Some("fire_door")
         );
         assert_eq!(inspection.connections.len(), 1);
