@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod caveat_rs;
 pub mod eval;
 pub mod graphics;
 pub mod parser;
