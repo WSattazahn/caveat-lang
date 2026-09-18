@@ -47,7 +47,7 @@ function architecture(P,V){
   // Landing and descending flight. Dark nosings make the tread sequence legible from first person.
   part(P,V,3.55,.02,-8.8,1.8,.22,2.0,concrete);
   for(let i=0;i<8;i++){
-    const x=4.8+i*.24,y=-.10-i*.14,step=i%2?[.48,.50,.50]:concrete;
+    const x=4.8+i*.24,y=-.10-i*.14,step=i%2?[.62,.64,.64]:[.42,.44,.44];
     part(P,V,x,y,-9.45,.48,.18,1.15,step);
     part(P,V,x-.225,y+.10,-9.45,.035,.035,1.12,[.15,.16,.17])
   }
