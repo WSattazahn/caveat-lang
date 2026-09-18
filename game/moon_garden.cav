@@ -18,6 +18,12 @@ entity glass_door kind greenhouse_door at glasshouse;
 entity paper_lanterns kind lanterns at lantern_courtyard;
 start_at lantern_courtyard;
 
+display cat_near_bridge "Miso is near the moon bridge.";
+display cat_near_pond "Miso is still along the pond path.";
+display cat_near_greenhouse "Miso is inside the greenhouse.";
+display cat_near_pavilion "Miso is near the tea pavilion.";
+display garden_route_reliable "The current route is reliable.";
+
 display bell_echo_distorts_direction "Listen for Miso's bell.";
 display wet_stones_hide_tracks "Check the damp pawprints by the pond.";
 display greenhouse_glass_mirrors_movement "Watch the greenhouse glass for movement.";
