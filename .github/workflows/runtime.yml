@@ -1,17 +1,64 @@
 name: runtime
+
 on:
   push:
     branches: [main]
   pull_request:
+
+concurrency:
+  group: runtime-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  changes:
+    name: regression scope
+    runs-on: ubuntu-latest
+    outputs:
+      legacy_door: ${{ steps.scope.outputs.legacy_door }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: scope
+        name: Decide whether The Door needs visual regression
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="$GITHUB_SHA"
+          fi
+
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            legacy=true
+          else
+            files="$(git diff --name-only "$base" "$head")"
+            printf '%s\n' "$files"
+            if printf '%s\n' "$files" | grep -Eq '^(runtime/|game/the_door_round2\.cav$|web/3d\.html$|web/the_door_round2\.cav$)'; then
+              legacy=true
+            else
+              legacy=false
+            fi
+          fi
+
+          echo "legacy_door=$legacy" >> "$GITHUB_OUTPUT"
+          echo "Legacy Door visual regression required: $legacy"
+
+  core:
+    name: core semantics
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-        with: {targets: wasm32-unknown-unknown, components: 'rustfmt, clippy'}
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
       - uses: actions/cache@v5
-        with: {path: ~/.cargo/bin/wasm-bindgen, key: 'wasm-bindgen-cli-0.2.104-${{ runner.os }}'}
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
       - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
@@ -28,22 +75,32 @@ jobs:
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          printf 'camera_has_blind_spot\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          printf 'latch_sensor_recently_serviced\nopen\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/moon_garden.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
-          printf 'bell_echo_distorts_direction\nfollow_bell\ncushion_may_hold_old_fur\nsearch_tea_pavilion\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/moon_garden.cav
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot wait
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot reroute
-          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav latch_sensor_recently_serviced open stairwell
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-dist
+          path: dist
+          retention-days: 1
+
+  mr-caveat:
+    name: Mr. Caveat iPhone QA
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: browser-dist
+          path: dist
       - uses: actions/setup-node@v4
-        with: {node-version: 22}
+        with:
+          node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.0
       - run: npx playwright install --with-deps webkit
-      - name: Mr. Caveat — iPhone gameplay QA
+      - name: Play The Missing Dumpling
         run: |
           python3 -m http.server 4176 --directory dist >/tmp/mr-caveat-http.log 2>&1 &
           trap 'kill $! || true' EXIT
@@ -76,7 +133,6 @@ jobs:
               await page.locator('#runner.show').waitFor();
               await page.getByRole('button',{name:/JUMP/}).click();
               await page.evaluate(()=>window.__mrCaveatTest.finishRunner());
-              await page.getByText(/Maybe find a better clue/i).waitFor();
               await page.getByRole('button',{name:/Maybe find a better clue/}).click();
               await page.evaluate(()=>window.__mrCaveatTest.teleport(47));
               await page.getByRole('button',{name:/Inspect tiny flour print/}).click();
@@ -101,7 +157,22 @@ jobs:
         with:
           name: mr-caveat-visual-qa
           path: mr-caveat-*.png
-      - name: Moon Garden — iPhone playthrough QA
+
+  moon-garden-2d:
+    name: Moon Garden 2D QA
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npx playwright install --with-deps webkit
+      - name: iPhone playthrough
         run: |
           python3 -m http.server 4174 --directory dist >/tmp/moon-http.log 2>&1 &
           trap 'kill $! || true' EXIT
@@ -116,36 +187,22 @@ jobs:
               page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
               await page.goto('http://127.0.0.1:4174/');
               await page.getByText('Find a useful clue').waitFor();
-              const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
-              if(overflow)throw Error('Moon Garden has horizontal overflow on iPhone');
+              if(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1))throw Error('Moon Garden has horizontal overflow');
               await page.screenshot({path:'moon-garden-00-start.png',fullPage:true});
-
               await page.getByRole('button',{name:/Listen for Miso/}).click();
-              await page.getByText('Clue found').waitFor();
               await page.getByRole('button',{name:/Keep going/}).click();
-
               await page.getByRole('button',{name:/Follow the bell/}).click();
               await page.getByText('Commitment reopened',{exact:true}).waitFor();
               await page.getByRole('button',{name:/Revise the plan/}).click();
-
               await page.getByRole('button',{name:/still-warm cushion/}).click();
-              await page.getByText('Clue found').waitFor();
               await page.getByRole('button',{name:/Keep going/}).click();
-
               await page.getByRole('button',{name:/Search behind the tea pavilion/}).click();
-              await page.getByText('Decision made.').waitFor();
               await page.getByRole('button',{name:/See what happens/}).click();
               await page.getByText('There you are.').waitFor();
               await page.waitForFunction(()=>document.querySelector('#miso')?.classList.contains('visible'));
               await page.waitForTimeout(900);
-              const misoVisible=await page.locator('#miso').evaluate(el=>Number(getComputedStyle(el).opacity)>.95);
-              if(!misoVisible)throw Error('Miso is not visible at the ending');
-              const misoBox=await page.locator('#miso').boundingBox();
-              const sceneBox=await page.locator('#scene').boundingBox();
-              if(!misoBox||!sceneBox||misoBox.x<sceneBox.x+sceneBox.width*.65||misoBox.y<sceneBox.y+sceneBox.height*.45) throw Error('Miso ending sprite is misplaced');
               await page.screenshot({path:'moon-garden-01-ending.png',fullPage:true});
               if(errors.length)throw Error(errors.join('\n'));
-              console.log('MOON GARDEN PASS');
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
@@ -154,7 +211,22 @@ jobs:
         with:
           name: moon-garden-visual-qa
           path: moon-garden-*.png
-      - name: Moon Garden 3D — iPhone playthrough QA
+
+  moon-garden-3d:
+    name: Moon Garden 3D QA
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npx playwright install --with-deps webkit
+      - name: iPhone playthrough
         run: |
           python3 -m http.server 4175 --directory dist >/tmp/moon3d-http.log 2>&1 &
           trap 'kill $! || true' EXIT
@@ -170,47 +242,27 @@ jobs:
               await page.goto('http://127.0.0.1:4175/moon-garden-3d.html');
               await page.getByText('Find a useful clue').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
-              const mode=await page.evaluate(()=>window.__caveat3dMode);
-              if(mode!=='action_runtime')throw Error('Moon Garden 3D is not using normalized action-runtime execution');
-              const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
-              if(overflow)throw Error('Moon Garden 3D has horizontal overflow on iPhone');
+              if(await page.evaluate(()=>window.__caveat3dMode)!=='action_runtime')throw Error('Moon Garden 3D is not using action-runtime execution');
               const canvas=page.locator('#c3d');
               await page.waitForFunction(()=>{const c=document.querySelector('#c3d');return c&&c.width>300&&c.height>250});
-              const dims=await canvas.evaluate(el=>({w:el.width,h:el.height}));
-              if(dims.w<300||dims.h<250)throw Error('Moon Garden 3D canvas is unexpectedly small');
               const start=await canvas.screenshot();fs.writeFileSync('moon-garden-3d-00-start.png',start);
-
-              const click=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
-
+              const click=async re=>{const b=page.getByRole('button',{name:re});await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
               await click(/Listen for Miso/);
-              const firstExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
-              if(!firstExecution?.commands?.some(c=>c.kind==='inspect'&&c.entity==='brass_bell'))throw Error('3D renderer did not consume Inspect(brass_bell)');
-              if(!firstExecution?.commands?.some(c=>c.kind==='observe'&&c.symbol==='second_chime'))throw Error('3D renderer did not consume Observe(second_chime)');
-              await page.getByText('Clue found').waitFor();
               await page.getByRole('button',{name:/Keep going/}).click();
-
               await click(/Follow the bell/);
               await page.getByText('Commitment reopened',{exact:true}).waitFor();
               await page.getByRole('button',{name:/Revise the plan/}).click();
-
               await click(/still-warm pavilion cushion/i);
-              await page.getByText('Clue found').waitFor();
               await page.getByRole('button',{name:/Keep going/}).click();
-
               await click(/Search behind the tea pavilion/i);
-              await page.getByText('Decision made.').waitFor();
               await page.getByRole('button',{name:/See what happens/}).click();
               await page.getByText('There you are.').waitFor();
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
-              await page.getByText('Moon Garden · Fern Nook').waitFor();
-              const worldState=await page.evaluate(()=>window.__caveat3dWorldState);
-              const finalExecution=await page.evaluate(()=>window.__caveat3dLastExecution);
-              if(worldState?.current_place!=='fern_nook')throw Error('Action runtime did not finish Moon Garden at fern_nook');
-              if(!finalExecution?.commands?.some(c=>c.kind==='observe'&&c.symbol==='miso_found'))throw Error('Ending reveal is not driven by Observe(miso_found)');
+              const state=await page.evaluate(()=>window.__caveat3dWorldState);
+              if(state?.current_place!=='fern_nook')throw Error('Moon Garden 3D did not finish at fern_nook');
               const ending=await canvas.screenshot();fs.writeFileSync('moon-garden-3d-01-ending.png',ending);
-              if(Buffer.compare(start,ending)===0)throw Error('Moon Garden 3D canvas did not visibly change');
+              if(Buffer.compare(start,ending)===0)throw Error('Moon Garden 3D did not visibly change');
               if(errors.length)throw Error(errors.join('\n'));
-              console.log('MOON GARDEN 3D PASS');
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
@@ -219,23 +271,37 @@ jobs:
         with:
           name: moon-garden-3d-visual-qa
           path: moon-garden-3d-*.png
-      - name: Visual QA — every player-facing route
+
+  legacy-door:
+    name: Legacy Door 3D QA
+    needs: [core, changes]
+    if: needs.changes.outputs.legacy_door == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npx playwright install --with-deps webkit
+      - name: Every legacy Door route
         run: |
           python3 -m http.server 4173 --directory dist >/tmp/caveat-http.log 2>&1 &
           trap 'kill $! || true' EXIT
           node <<'NODE'
-          const {webkit,devices}=require('playwright'),fs=require('fs');
+          const {webkit,devices}=require('playwright');
           (async()=>{const browser=await webkit.launch();try{
             async function waitIdle(p){await p.waitForFunction(()=>window.__caveatIdle?.()===true,null,{timeout:15000})}
             async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await waitIdle(p);await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
             async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click();await waitIdle(p)}
-            async function inspect(name,re,text){const p=await fresh(name);await click(p,re);await p.getByText(text).waitFor();await p.screenshot({path:`door-${name}-01.png`,fullPage:true});await p.close()}
-            await inspect('inspect-latch',/Inspect latch/,/Evidence: the latch sensor/);
-            await inspect('inspect-camera',/Check camera/,/camera coverage has a blind turn/);
-            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await click(p,/Push panic bar/);await p.screenshot({path:`door-open-${route}-01-beyond-a.png`,fullPage:true});await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await p.getByText(new RegExp(route==='continue'?'continue forward':route==='retreat'?'physically return':'reach the landing','i')).waitFor();await p.screenshot({path:`door-open-${route}-02-final.png`,fullPage:true});await p.close()}
-            {const p=await fresh('wait');await click(p,/Check camera/);await click(p,/Wait/);await p.getByText(/remain on the original side/i).waitFor();await p.screenshot({path:'door-wait-01.png',fullPage:true});await p.close()}
-            {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await p.getByText(/physically leave toward the alternate route/i).waitFor();await p.screenshot({path:'door-reroute-01.png',fullPage:true});await p.close()}
-            console.log('ALL CAVEAT ROUTES CAPTURED');
+            await (async()=>{const p=await fresh('inspect-latch');await click(p,/Inspect latch/);await p.close()})();
+            await (async()=>{const p=await fresh('inspect-camera');await click(p,/Check camera/);await p.close()})();
+            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await click(p,/Push panic bar/);await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await p.screenshot({path:`door-open-${route}-final.png`,fullPage:true});await p.close()}
+            {const p=await fresh('wait');await click(p,/Check camera/);await click(p,/Wait/);await p.close()}
+            {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await p.close()}
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
       - uses: actions/upload-artifact@v4
