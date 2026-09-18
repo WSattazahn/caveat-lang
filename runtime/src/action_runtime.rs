@@ -35,6 +35,12 @@ pub struct ActionExecution {
     pub commands: Vec<WorldCommand>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WorldStateSnapshot {
+    pub current_place: String,
+    pub open_entities: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionRuntime {
     current_place: String,
@@ -61,6 +67,15 @@ impl ActionRuntime {
 
     pub fn is_open(&self, entity: &str) -> bool {
         self.open_entities.contains(entity)
+    }
+
+    pub fn snapshot(&self) -> WorldStateSnapshot {
+        let mut open_entities = self.open_entities.iter().cloned().collect::<Vec<_>>();
+        open_entities.sort();
+        WorldStateSnapshot {
+            current_place: self.current_place.clone(),
+            open_entities,
+        }
     }
 
     pub fn is_available(&self, map: &CaveatMap, action: &str) -> bool {
