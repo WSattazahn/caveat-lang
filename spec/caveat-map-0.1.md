@@ -53,6 +53,7 @@ caveat-map map FILE.cav
 caveat-map inspect FILE.cav SYMBOL
 caveat-map trace FILE.cav SYMBOL
 caveat-map actions FILE.cav
+caveat-map simulate FILE.cav ACTION [ACTION ...]
 caveat-map validate FILE.cav
 ```
 
@@ -85,9 +86,15 @@ Returns normalized action affordances from all choices, including:
 - uncertainty retained by that choice;
 - conditional effects triggered by committing that action.
 
+### simulate
+
+Executes a sequence of validated source-authored world actions without a renderer and returns structured JSON containing the generic command sequence, final logical place, and open barriers.
+
+This lets an AI ask what an action *would do* before editing code or launching visual QA.
+
 ### validate
 
-Parses, evaluates, and builds the map. Success means all CAVEAT 0.1/0.2 semantic references accepted by the runtime are coherent enough to map. Future CAVEAT 0.3 world invariants become part of this same operation.
+Parses, evaluates, and builds the map. Success means the epistemic graph, world topology, and CAVEAT 0.3 action-plan invariants are coherent enough to execute.
 
 ## AI contract
 
@@ -98,10 +105,11 @@ The expected workflow is:
 1. `validate`;
 2. `map` or `inspect` the affected symbols;
 3. `trace` dependencies before changing meaning;
-4. edit;
-5. `validate` again;
-6. compare map state before/after;
-7. only then run presentation/visual QA.
+4. `simulate` affected action sequences;
+5. edit;
+6. `validate` again;
+7. compare map and simulation state before/after;
+8. only then run presentation/visual QA.
 
 This makes the language's unknowns and dependencies explicit instead of relying on an AI to reconstruct them from unrelated Rust, JavaScript, and scenario files.
 
