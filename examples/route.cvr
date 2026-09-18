@@ -1,0 +1,9 @@
+fn route(sensor_ok: bool) -> provisional<bool> {
+    caveat stale_sensor;
+    caveat camera_gap;
+
+    let decision = commit sensor_ok retaining stale_sensor, camera_gap;
+    reopen decision because camera_gap;
+
+    return decision;
+}
