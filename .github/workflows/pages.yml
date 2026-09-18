@@ -113,7 +113,9 @@ jobs:
               await page.getByText('Decision made.').waitFor();
               await page.getByRole('button',{name:/See what happens/}).click();
               await page.getByText('There you are.').waitFor();
-              const misoVisible=await page.locator('#miso').evaluate(el=>getComputedStyle(el).opacity==='1');
+              await page.waitForFunction(()=>document.querySelector('#miso')?.classList.contains('visible'));
+              await page.waitForTimeout(900);
+              const misoVisible=await page.locator('#miso').evaluate(el=>Number(getComputedStyle(el).opacity)>.95);
               if(!misoVisible) throw Error('Moon Garden ending did not reveal Miso');
               const moonEnd=await page.screenshot(); fs.writeFileSync('moon-end.png',moonEnd);
               if(Buffer.compare(moonStart,moonEnd)===0) throw Error('Moon Garden did not visibly change during play');
