@@ -21,8 +21,8 @@ button{font:inherit}
 .case small{display:block;color:#efc77f;font-size:9px;letter-spacing:.14em;text-transform:uppercase}.case b{font-size:12px;line-height:1.25}
 .sparkbar{display:flex;gap:4px;justify-content:flex-end;margin-top:5px}.spark{width:8px;height:8px;border-radius:50%;background:#5f514c;box-shadow:0 0 0 1px rgba(255,255,255,.12)}.spark.on{background:#ff8a61;box-shadow:0 0 12px #ff6c4f}
 .ground{position:absolute;left:0;right:0;bottom:0;height:28%;z-index:4;background:linear-gradient(transparent,rgba(21,12,13,.06) 22%,rgba(13,8,9,.18));pointer-events:none}
-.avatar{position:absolute;z-index:10;bottom:18%;left:18%;width:88px;height:122px;transform:translateX(-50%);transition:filter .15s ease;filter:drop-shadow(0 12px 13px rgba(0,0,0,.45))}
-.avatar.walking{animation:bob .28s ease-in-out infinite alternate}.avatar.stumble{animation:stumble .28s ease}.avatar.jump{animation:none}
+.avatar{position:absolute;z-index:10;bottom:18%;left:18%;width:88px;height:122px;transform:translateX(-50%) rotate(var(--lean,0deg)) scaleY(var(--squash,1));transform-origin:50% 100%;transition:filter .15s ease;filter:drop-shadow(0 12px 13px rgba(0,0,0,.45))}
+.avatar.walking .leg.l{animation:stepL .22s ease-in-out infinite alternate}.avatar.walking .leg.r{animation:stepR .22s ease-in-out infinite alternate}.avatar.walking .arm.l{animation:armL .22s ease-in-out infinite alternate}.avatar.walking .arm.r{animation:armR .22s ease-in-out infinite alternate}.avatar.stumble{animation:stumble .28s ease}.avatar.jump .antenna{transform:translateY(-3px)}.avatar.land{animation:land .2s ease}
 .bot-head{position:absolute;left:8px;top:2px;width:72px;height:67px;border-radius:44% 48% 45% 46%;background:linear-gradient(145deg,#e9ddd0,#bba993 58%,#8d7867);border:2px solid #5d4a3c;box-shadow:inset 8px 7px 15px rgba(255,255,255,.3),inset -8px -8px 14px rgba(53,35,31,.28)}
 .bot-head:before{content:"";position:absolute;width:34px;height:11px;border-radius:50%;left:18px;top:-7px;background:#6b4b38;border:2px solid #3e3028;transform:rotate(-6deg)}
 .antenna{position:absolute;left:36px;top:-17px;width:4px;height:17px;background:#514239;border-radius:4px}.antenna:after{content:"";position:absolute;left:-5px;top:-7px;width:13px;height:13px;border-radius:50%;background:#ffd071;box-shadow:0 0 18px #ffb74f}
@@ -37,6 +37,20 @@ button{font:inherit}
 .thought.show{opacity:1;transform:translateX(-50%) scale(1)}.thought:after{content:"";position:absolute;left:34px;bottom:-9px;width:17px;height:17px;background:#fff4db;transform:rotate(45deg);border-radius:3px}
 .marker{position:absolute;z-index:8;bottom:31%;width:54px;height:54px;border-radius:50%;transform:translateX(-50%);border:2px solid rgba(255,224,145,.65);background:rgba(255,196,93,.13);box-shadow:0 0 28px rgba(255,190,75,.25);opacity:0;transition:.2s;pointer-events:none}.marker.near{opacity:1;animation:pulse 1s ease-in-out infinite}
 .marker:after{content:"!";position:absolute;inset:0;display:grid;place-items:center;color:#ffe1a0;font-size:24px;font-weight:900}
+.cast{position:absolute;inset:0;z-index:7;pointer-events:none}
+.npc{position:absolute;bottom:18%;left:var(--x);width:104px;height:132px;transform:translateX(-50%);transform-origin:50% 100%;filter:drop-shadow(0 11px 11px rgba(0,0,0,.42));transition:filter .18s ease,transform .18s ease}
+.npc .character{width:100%;height:100%;overflow:visible;animation:npcIdle 1.9s ease-in-out infinite alternate;transform-origin:50% 100%}
+.npc:nth-child(2) .character{animation-delay:-.6s}.npc:nth-child(3) .character{animation-delay:-1.1s}.npc:nth-child(4) .character{animation-delay:-1.5s}
+.npc.near{filter:drop-shadow(0 0 16px rgba(255,206,112,.6)) drop-shadow(0 11px 11px rgba(0,0,0,.42))}
+.npc.react .character{animation:npcStartle .42s ease}.npc.angry .character{animation:npcAngry .22s ease-in-out 4 alternate}
+.npc .blink{transform-origin:center;animation:blink 5.1s infinite}.npc:nth-child(3) .blink{animation-delay:-2.4s}
+.npc-tag{position:absolute;left:50%;bottom:-19px;transform:translateX(-50%);white-space:nowrap;padding:3px 7px;border-radius:999px;background:rgba(21,13,15,.66);border:1px solid rgba(255,255,255,.1);font-size:9px;font-weight:850;letter-spacing:.02em;color:#f7e6ce;opacity:.72}
+.npc.near .npc-tag{opacity:1;background:rgba(72,42,25,.84)}
+.market-prop{position:absolute;z-index:8;left:var(--x);bottom:19%;transform:translateX(-50%);font-size:38px;filter:drop-shadow(0 7px 8px rgba(0,0,0,.45));pointer-events:none;transform-origin:50% 100%}
+.market-prop.bop{animation:propBop .48s ease}.market-prop.ring{animation:bellRing .65s ease}
+.dust{position:absolute;z-index:8;width:7px;height:7px;border-radius:50%;background:#c9a988;opacity:.7;pointer-events:none;animation:dust .45s ease-out forwards}
+.scatter-cat{position:absolute;z-index:12;bottom:19%;font-size:31px;left:-12%;animation:catScatter 1.35s cubic-bezier(.2,.75,.25,1) forwards;filter:drop-shadow(0 5px 6px rgba(0,0,0,.45))}
+.action:disabled{visibility:hidden;pointer-events:none}
 .dialogue{position:absolute;z-index:30;left:50%;bottom:calc(max(94px,env(safe-area-inset-bottom) + 82px));width:min(690px,calc(100% - 28px));transform:translateX(-50%);padding:15px 16px;border-radius:20px;background:rgba(18,11,13,.91);border:1px solid rgba(255,255,255,.15);box-shadow:0 20px 60px rgba(0,0,0,.45);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:.22s}
 .dialogue.show{opacity:1;pointer-events:auto}.speaker{color:#ffc86b;font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px}.line{font-size:15px;line-height:1.4;color:#fff2dc}.choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.choices button,.dialogue .continue{border:1px solid rgba(255,255,255,.14);border-radius:13px;padding:10px 12px;background:rgba(255,255,255,.08);color:#fff0d7;font-weight:750}.dialogue .continue{width:100%;margin-top:12px;background:#f3c56e;color:#2a1d16;border:0}
 .controls{position:absolute;z-index:25;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none}
@@ -48,13 +62,17 @@ button{font:inherit}
 .obstacle{position:absolute;z-index:2;bottom:17%;font-size:42px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.4))}
 .runnerHud{position:absolute;z-index:5;left:50%;top:max(70px,calc(env(safe-area-inset-top) + 55px));transform:translateX(-50%);width:min(560px,calc(100% - 30px));display:flex;gap:10px;align-items:center}.runnerBar{flex:1;height:10px;border-radius:99px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);overflow:hidden}.runnerBar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#ffc66a,#ff735c);border-radius:99px}.runnerText{font-size:11px;font-weight:850;text-shadow:0 2px 8px #000}
 .jumpBtn{position:absolute;z-index:6;right:18px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:0;border-radius:22px;background:#f4c66e;color:#291b16;font-weight:900;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.dodgeBtn{position:absolute;z-index:6;right:114px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:1px solid rgba(255,255,255,.17);border-radius:22px;background:rgba(31,23,31,.82);color:#fff0d7;font-weight:900;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.runnerBot.lane1{left:32%}.obstacle.lane1{bottom:28%}
 .splash{position:absolute;z-index:60;inset:0;display:grid;place-items:end center;padding:18px 18px max(22px,env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent 15%,rgba(9,5,8,.08) 42%,rgba(9,5,8,.92) 88%),url('./assets/moon-market.svg') center/cover no-repeat}
 .splashCard{width:min(720px,100%);padding:18px;border:1px solid rgba(255,255,255,.14);border-radius:22px;background:rgba(17,11,13,.84);backdrop-filter:blur(14px);box-shadow:0 20px 70px rgba(0,0,0,.45)}
 .splashCard h1{margin:0;font-size:clamp(34px,9vw,64px);line-height:.92;letter-spacing:-.055em}.splashCard h1 small{display:block;font-size:.34em;letter-spacing:.02em;color:#f6c976;margin-bottom:6px}.splashCard p{margin:10px 0 15px;color:#e1d1c0;line-height:1.45;max-width:560px}.start{width:100%;min-height:52px;border:0;border-radius:15px;background:#f4c66e;color:#261914;font-weight:900;font-size:15px}
 .end{position:absolute;z-index:60;inset:0;display:none;place-items:end center;padding:18px;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(8,4,6,.9)),url('./assets/moon-market-run.svg') center/cover no-repeat}.end.show{display:grid}.endCard{width:min(700px,100%);padding:18px;border-radius:22px;background:rgba(16,10,12,.89);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}.endCard h2{margin:0 0 8px;font-size:32px}.endCard p{margin:0 0 13px;color:#decfc0;line-height:1.45}.endCard button{width:100%;min-height:50px;border:0;border-radius:14px;background:#f4c66e;color:#251914;font-weight:900}
 .brain{position:absolute;z-index:70;right:11px;top:82px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(17,11,13,.65);color:#d8c8b7;font-size:14px}.brainPanel{position:absolute;z-index:69;right:12px;top:125px;width:min(350px,calc(100% - 24px));max-height:52vh;overflow:auto;padding:12px;border-radius:15px;background:rgba(12,8,10,.94);border:1px solid rgba(255,255,255,.12);display:none;font-size:11px;line-height:1.45;color:#c8b8aa}.brainPanel.show{display:block}.brainPanel b{color:#f0c878}
 .toast{position:absolute;z-index:50;top:46%;left:50%;transform:translate(-50%,-50%) scale(.94);padding:11px 15px;border-radius:16px;background:rgba(16,10,12,.9);border:1px solid rgba(255,255,255,.14);font-weight:850;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-@keyframes bob{to{transform:translateX(-50%) translateY(-4px) rotate(-1deg)}}@keyframes stumble{30%{transform:translateX(-50%) rotate(-12deg)}70%{transform:translateX(-50%) rotate(9deg)}}@keyframes chaseBob{to{transform:translateY(-5px) rotate(-2deg)}}@keyframes pulse{50%{transform:translateX(-50%) scale(1.12);box-shadow:0 0 40px rgba(255,190,75,.4)}}
+@keyframes stepL{to{transform:translate(-4px,2px) rotate(24deg)}}@keyframes stepR{to{transform:translate(4px,1px) rotate(-24deg)}}@keyframes armL{to{transform:rotate(-24deg)}}@keyframes armR{to{transform:rotate(24deg)}}@keyframes land{45%{transform:translateX(-50%) rotate(var(--lean,0deg)) scaleY(.84) scaleX(1.08)}}
+@keyframes stumble{30%{transform:translateX(-50%) rotate(-12deg)}70%{transform:translateX(-50%) rotate(9deg)}}@keyframes chaseBob{to{transform:translateY(-5px) rotate(-2deg)}}@keyframes pulse{50%{transform:translateX(-50%) scale(1.12);box-shadow:0 0 40px rgba(255,190,75,.4)}}
+@keyframes npcIdle{to{transform:translateY(-5px) rotate(.8deg)}}@keyframes npcStartle{25%{transform:translateY(-15px) scale(1.05)}55%{transform:translateX(8px) rotate(4deg)}80%{transform:translateX(-5px) rotate(-3deg)}}@keyframes npcAngry{to{transform:translateX(5px) rotate(2deg)}}@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.08)}}@keyframes propBop{35%{transform:translateX(-50%) translateY(-15px) rotate(-8deg)}70%{transform:translateX(-50%) translateY(2px) rotate(5deg)}}@keyframes bellRing{25%{transform:translateX(-50%) rotate(-24deg)}50%{transform:translateX(-50%) rotate(20deg)}75%{transform:translateX(-50%) rotate(-13deg)}}@keyframes dust{to{transform:translate(var(--dx),-22px) scale(.25);opacity:0}}@keyframes catScatter{to{left:112%;transform:translateY(-30px) rotate(8deg)}}
 @media(max-width:700px){.avatar{width:76px;height:108px}.bot-head{transform:scale(.88);transform-origin:top left}.bot-body,.arm,.leg{transform:scale(.88);transform-origin:top left}.dialogue{bottom:calc(max(84px,env(safe-area-inset-bottom) + 76px));padding:13px}.line{font-size:14px}.ctrl{width:56px;height:56px}.action{min-width:104px}.case{max-width:52%}.logo span{display:none}.world{background-size:auto 100%;background-position:66% 50%}}
 </style>
 </head>
@@ -77,6 +95,17 @@ button{font:inherit}
   <div class="thought" id="thought">Extremely suspicious.</div>
   <div class="marker" id="marker"></div>
 
+  <div class="cast" id="cast" aria-label="Moon Market characters">
+    <div class="npc vendor" id="npc-bao" data-x="15" style="--x:15%"><svg class="character" viewBox="0 0 110 135" aria-hidden="true"><ellipse cx="55" cy="124" rx="43" ry="9" fill="#120d0e" opacity=".42"/><circle cx="55" cy="48" r="36" fill="#c99b67"/><path d="M26 27q14-29 28-7M84 27q-14-29-28-7" fill="#936146"/><ellipse class="blink" cx="43" cy="46" rx="6" ry="8" fill="#2d211d"/><ellipse class="blink" cx="67" cy="46" rx="6" ry="8" fill="#2d211d"/><path d="M49 61q7 7 13 0" fill="none" stroke="#51332a" stroke-width="4" stroke-linecap="round"/><rect x="31" y="78" width="48" height="46" rx="19" fill="#a95735"/><path d="M28 80q28 13 55 0" fill="none" stroke="#dfa555" stroke-width="7"/><ellipse cx="55" cy="15" rx="26" ry="11" fill="#ba3e32"/></svg><span class="npc-tag">Bao</span></div>
+    <div class="npc" id="npc-sauce" data-x="37" style="--x:37%"><svg class="character" viewBox="0 0 110 135" aria-hidden="true"><ellipse cx="55" cy="125" rx="43" ry="9" fill="#120d0e" opacity=".42"/><ellipse cx="55" cy="48" rx="38" ry="42" fill="#f1e2c9"/><path d="M24 23l4-25 19 18M86 23l-5-25-19 18" fill="#f1e2c9"/><ellipse class="blink" cx="42" cy="43" rx="5" ry="7" fill="#34251f"/><ellipse class="blink" cx="68" cy="43" rx="5" ry="7" fill="#34251f"/><g fill="#e4563d"><circle cx="38" cy="62" r="6"/><circle cx="49" cy="70" r="5"/><path d="M60 64q14 5 17 16" stroke="#e4563d" stroke-width="5" fill="none"/></g><ellipse cx="55" cy="99" rx="33" ry="27" fill="#f0dfc6"/><ellipse cx="55" cy="101" rx="29" ry="11" fill="#75472c"/><path d="M30 98q22-13 50 0" stroke="#d2a13e" stroke-width="5"/></svg><span class="npc-tag">Sauce Face</span></div>
+    <div class="npc" id="npc-chop" data-x="57" style="--x:57%"><svg class="character" viewBox="0 0 110 135" aria-hidden="true"><ellipse cx="55" cy="125" rx="41" ry="9" fill="#120d0e" opacity=".42"/><ellipse cx="55" cy="49" rx="36" ry="40" fill="#526071"/><ellipse cx="55" cy="53" rx="25" ry="28" fill="#e4ded2"/><ellipse class="blink" cx="44" cy="45" rx="4.5" ry="6" fill="#232129"/><ellipse class="blink" cx="66" cy="45" rx="4.5" ry="6" fill="#232129"/><ellipse cx="55" cy="58" rx="8" ry="5" fill="#e0a34d"/><ellipse cx="55" cy="98" rx="29" ry="25" fill="#48586b"/><path d="M47 88L37 41M62 88l13-51" stroke="#b88650" stroke-width="4" stroke-linecap="round"/><ellipse cx="55" cy="10" rx="23" ry="8" fill="#6d8a57"/><path d="M37 10q17-18 36 0" fill="#7ca15f"/></svg><span class="npc-tag">Chopsticks</span></div>
+    <div class="npc" id="npc-innocent" data-x="77" style="--x:77%"><svg class="character" viewBox="0 0 110 135" aria-hidden="true"><ellipse cx="55" cy="125" rx="41" ry="9" fill="#120d0e" opacity=".42"/><ellipse cx="55" cy="53" rx="37" ry="42" fill="#efd3cb"/><path d="M28 29L18-6q21 6 28 31M82 29L92-6q-21 6-28 31" fill="#e6b9b5"/><ellipse class="blink" cx="43" cy="49" rx="5" ry="7" fill="#392b2b"/><ellipse class="blink" cx="67" cy="49" rx="5" ry="7" fill="#392b2b"/><path d="M49 64q6 6 12 0" fill="none" stroke="#a15d5b" stroke-width="4"/><ellipse cx="55" cy="101" rx="31" ry="25" fill="#edcfc8"/><path d="M34 92q20 24 42 0" fill="none" stroke="#d49892" stroke-width="8"/></svg><span class="npc-tag">Innocent...?</span></div>
+  </div>
+  <div class="market-prop" id="prop-steamer" data-x="22" style="--x:22%">♨️</div>
+  <div class="market-prop" id="prop-bell" data-x="29" style="--x:29%">🔔</div>
+  <div class="market-prop" id="prop-basket" data-x="82" style="--x:82%">🧺</div>
+  <div class="market-prop" id="prop-crate" data-x="7" style="--x:7%">📦</div>
+
   <div class="dialogue" id="dialogue"><div class="speaker" id="speaker">Mr. Caveat</div><div class="line" id="line"></div><div class="choices" id="dialogueChoices"></div></div>
 
   <div class="controls" id="controls">
@@ -89,6 +118,7 @@ button{font:inherit}
     <div class="runnerHud"><span class="runnerText" id="runnerText">RUN</span><div class="runnerBar"><i id="runnerProgress"></i></div></div>
     <div class="runnerBot" id="runnerBot"><div class="bot-head"><i class="antenna"></i><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><div class="bot-body"></div><i class="arm l"></i><i class="arm r"></i><i class="leg l"></i><i class="leg r"></i></div>
     <div class="chaser" id="chaser">😾</div>
+    <button class="dodgeBtn" id="runnerDodge">DODGE</button>
     <button class="jumpBtn" id="runnerJump">JUMP</button>
   </div>
 
@@ -107,7 +137,9 @@ import init,{WebSession}from'./pkg/caveat_runtime.js';
 
 const $=s=>document.querySelector(s);
 const world=$('#world'),avatar=$('#avatar'),shadow=$('#shadow'),thought=$('#thought'),marker=$('#marker'),actionBtn=$('#action'),dialogue=$('#dialogue'),speaker=$('#speaker'),line=$('#line'),choiceBox=$('#dialogueChoices'),objective=$('#objective'),phaseLabel=$('#phaseLabel'),runner=$('#runner'),runnerBot=$('#runnerBot'),chaser=$('#chaser'),runnerProgress=$('#runnerProgress'),runnerText=$('#runnerText'),toast=$('#toast');
-let session,phase='intro',x=18,y=0,vy=0,moving=0,trouble=0,lastTarget=null,brain=[],loop=0,locked=false;
+const npcEls={sauce:$('#npc-sauce'),chop:$('#npc-chop'),innocent:$('#npc-innocent'),bao:$('#npc-bao')};
+const propEls=[...document.querySelectorAll('.market-prop')];
+let session,phase='intro',x=18,y=0,vy=0,moveInput=0,vx=0,lastFrame=performance.now(),trouble=0,lastTarget=null,brain=[],loop=0,locked=false;
 const suspects={
   sauce:{x:37,label:'Sauce Face',inspect:'sauce_might_be_noodles',lead:'follow_sauce_face',emoji:'😾'},
   chop:{x:57,label:'Chopsticks',inspect:'chopsticks_are_common',lead:'question_chopsticks',emoji:'🐧'},
@@ -155,24 +187,62 @@ function updateObjective(){
 }
 function activeTargets(){return phase==='suspect'||phase==='lead'?suspects:phase==='second'?second:phase==='hunt'?finals:{}}
 function nearest(){let best=null,d=999;for(const [key,t] of Object.entries(activeTargets())){const q=Math.abs(x-t.x);if(q<d){d=q;best={key,...t,d}}}return best&&best.d<9?best:null}
-function updateTarget(){const t=nearest();lastTarget=t;if(t){marker.style.left=t.x+'%';marker.classList.add('near');actionBtn.disabled=false;actionBtn.textContent=phase==='suspect'?'Look closer':phase==='lead'?'Accuse '+t.label:phase==='second'?'Inspect '+t.label:t.label}else{marker.classList.remove('near');actionBtn.disabled=true;actionBtn.textContent='Nothing nearby'}}
-function runtimeSelect(id){const p=JSON.parse(session.pending());if(!(p.options||[]).includes(id))throw Error('Story/runtime desync: '+id);session.apply(id);const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());note(id+(discoveries.length?' → '+discoveries.map(d=>d.evidence).join(', '):commitment?' → acted':' → ok'));return{discoveries,commitment}}
-function moveFrame(){
-  if(!locked&&moving){x=Math.max(4,Math.min(96,x+moving*.24));avatar.classList.add('walking')}else avatar.classList.remove('walking');
-  if(y>0||vy!==0){y=Math.max(0,y+vy);vy-=.12;if(y<=0){y=0;vy=0}}
-  avatar.style.left=x+'%';shadow.style.left=x+'%';avatar.style.bottom='calc(18% + '+y+'px)';thought.style.left=x+'%';
-  const pan=38+(x/100)*48;world.style.backgroundPosition=pan+'% 50%';updateTarget();loop=requestAnimationFrame(moveFrame)
+function updateTarget(){
+  const t=nearest();lastTarget=t;
+  Object.values(npcEls).forEach(el=>el?.classList.remove('near'));
+  if(t){
+    marker.style.left=t.x+'%';marker.classList.add('near');actionBtn.disabled=false;
+    actionBtn.textContent=phase==='suspect'?'Look closer':phase==='lead'?'Accuse '+t.label:phase==='second'?'Inspect '+t.label:t.label;
+    npcEls[t.key]?.classList.add('near');
+  }else{marker.classList.remove('near');actionBtn.disabled=true;actionBtn.textContent='Nothing nearby'}
 }
-function jump(){if(y===0&&!locked){vy=3.4;avatar.classList.add('jump');setTimeout(()=>avatar.classList.remove('jump'),450)}}
+function reactNpc(key,mode='react',ms=650){
+  const el=npcEls[key];if(!el)return;
+  el.classList.remove('react','angry');void el.offsetWidth;el.classList.add(mode);
+  setTimeout(()=>el.classList.remove(mode),ms);
+}
+function nearestProp(){
+  let best=null,d=999;for(const el of propEls){const px=Number(el.dataset.x),q=Math.abs(x-px);if(q<d){d=q;best={el,x:px,d}}}return best&&best.d<8?best:null
+}
+function dustBurst(){
+  for(let i=0;i<4;i++){const d=document.createElement('i');d.className='dust';d.style.left=(x+(Math.random()*3-1.5))+'%';d.style.bottom=(18+Math.random()*2)+'%';d.style.setProperty('--dx',(Math.random()*32-16)+'px');$('#game').appendChild(d);setTimeout(()=>d.remove(),500)}
+}
+function scatterCat(){
+  const cat=document.createElement('div');cat.className='scatter-cat';cat.textContent='🐈‍⬛';$('#game').appendChild(cat);setTimeout(()=>cat.remove(),1500)
+}
+function runtimeSelect(id){const p=JSON.parse(session.pending());if(!(p.options||[]).includes(id))throw Error('Story/runtime desync: '+id);session.apply(id);const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());note(id+(discoveries.length?' → '+discoveries.map(d=>d.evidence).join(', '):commitment?' → acted':' → ok'));return{discoveries,commitment}}
+function moveFrame(now){
+  const dt=Math.min(2.2,(now-lastFrame)/16.67||1);lastFrame=now;
+  const oldV=vx;
+  if(locked){vx*=Math.pow(.72,dt)}
+  else{
+    vx+=moveInput*.038*dt;
+    if(!moveInput)vx*=Math.pow(.82,dt);
+    vx=Math.max(-.48,Math.min(.48,vx));
+    if(moveInput&&Math.sign(oldV)&&Math.sign(oldV)!==Math.sign(moveInput)&&Math.abs(oldV)>.22)dustBurst();
+  }
+  x=Math.max(4,Math.min(96,x+vx*dt));
+  if(x===4||x===96)vx*=.25;
+  avatar.classList.toggle('walking',Math.abs(vx)>.08&&y===0);
+  avatar.style.setProperty('--lean',(Math.max(-5,Math.min(5,vx*12)))+'deg');
+  const wasAir=y>0;
+  if(y>0||vy!==0){y=Math.max(0,y+vy*dt);vy-=.13*dt;if(y<=0){y=0;vy=0;if(wasAir){avatar.classList.add('land');dustBurst();setTimeout(()=>avatar.classList.remove('land'),210)}}}
+  avatar.style.left=x+'%';shadow.style.left=x+'%';avatar.style.bottom='calc(18% + '+y+'px)';thought.style.left=x+'%';
+  shadow.style.transform='translateX(-50%) scale('+(1-Math.min(.35,y/180))+')';
+  const pan=40+(x/100)*40;world.style.backgroundPosition=pan+'% 50%';
+  Object.entries(npcEls).forEach(([key,el])=>{if(!el)return;const nx=Number(el.dataset.x);el.style.setProperty('--watch',x<nx?-1:1)});
+  updateTarget();loop=requestAnimationFrame(moveFrame)
+}
+function jump(){if(y===0&&!locked){vy=3.65;avatar.classList.add('jump');setTimeout(()=>avatar.classList.remove('jump'),420)}}
 function begin(){document.querySelector('#splash').style.display='none';setPhase('suspect');think('Three suspects. Excellent.');note('Bao reports one missing moon dumpling.')}
 async function interact(){
   if(locked||!lastTarget)return;
   locked=true;
   try{
     if(phase==='suspect'){
-      const id=lastTarget.inspect;runtimeSelect(id);setFace('suspicious');const [who,text]=inspectLines[id];say(who,text,[{label:'That complicates things.',on:()=>{closeSay();setFace('');setPhase('lead')}}])
+      const id=lastTarget.inspect;runtimeSelect(id);reactNpc(lastTarget.key);setFace('suspicious');const [who,text]=inspectLines[id];say(who,text,[{label:'That complicates things.',on:()=>{closeSay();setFace('');setPhase('lead')}}])
     }else if(phase==='lead'){
-      const id=lastTarget.lead;const target={...lastTarget};runtimeSelect(id);setFace('panicked');const [who,text]=leadLines[id];say(who,text,[{label:'Run.',on:()=>{closeSay();startRunner('escape',target)}}])
+      const id=lastTarget.lead;const target={...lastTarget};runtimeSelect(id);reactNpc(lastTarget.key,'angry',1100);setFace('panicked');setTrouble(trouble+1);const [who,text]=leadLines[id];say(who,text,[{label:'Run.',on:()=>{closeSay();startRunner('escape',target)}}])
     }else if(phase==='second'){
       const id=lastTarget.select;runtimeSelect(id);const [who,text]=secondLines[id];say(who,text,[{label:'Follow it.',on:()=>{closeSay();setFace('');setPhase('hunt')}}])
     }else if(phase==='hunt'){
@@ -181,48 +251,74 @@ async function interact(){
   }catch(e){say('Something broke',e.message,[{label:'Reset',on:()=>location.reload()}])}
 }
 function poke(){
-  if(locked)return;const t=nearest();setTrouble(trouble+1);
-  if(t&&t.key==='sauce'){think('poke.');pop('Noodles wobble dangerously.')}
-  else if(t&&t.key==='chop'){think('scientific poke.');pop('Three chopsticks hit the ground.')}
-  else if(t&&t.key==='innocent'){think('basket inspection!');pop('An offended squeak.')}
-  else{think('Probably evidence.');pop(['Lantern rung.','Pebble kicked.','Crate investigated.'][Math.floor(Math.random()*3)])}
-  if(trouble===2)think('I sense consequences.',1200)
+  if(locked)return;const t=nearest(),p=nearestProp();setTrouble(trouble+1);
+  if(t&&npcEls[t.key]){
+    reactNpc(t.key);dustBurst();
+    if(t.key==='sauce'){think('poke.');pop('Sauce Face nearly loses the noodles.')}
+    else if(t.key==='chop'){think('scientific poke.');pop('Chopsticks drops a chopstick.')}
+    else if(t.key==='innocent'){think('basket inspection!');pop('The rabbit has filed a complaint.')}
+  }else if(p){
+    const id=p.el.id;p.el.classList.remove('bop','ring');void p.el.offsetWidth;
+    p.el.classList.add(id==='prop-bell'?'ring':'bop');
+    if(id==='prop-bell'){pop('CLANG. Every cat in Moon Market looks up.');scatterCat()}
+    else if(id==='prop-steamer')pop('The dumplings wobble. Bao notices.');
+    else if(id==='prop-basket')pop('Herbs everywhere. Outstanding police work.');
+    else pop('The crate contains: another crate.');
+  }else{think('Probably evidence.');dustBurst();pop('Mr. Caveat pokes the night market.')}
+  if(trouble===2){think('I sense consequences.',1200);reactNpc('bao','angry',900)}
+  if(trouble>=3){scatterCat();pop('Bao: STOP HELPING.')}
 }
-function bindHold(el,dir){const on=e=>{e.preventDefault();moving=dir;el.classList.add('on')},off=()=>{if(moving===dir)moving=0;el.classList.remove('on')};el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('pointerleave',off)}
+function bindHold(el,dir){const on=e=>{e.preventDefault();moveInput=dir;el.classList.add('on')},off=()=>{if(moveInput===dir)moveInput=0;el.classList.remove('on')};el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointercancel',off);el.addEventListener('pointerleave',off)}
 bindHold($('#left'),-1);bindHold($('#right'),1);$('#jump').onclick=jump;$('#action').onclick=interact;$('#poke').onclick=poke;
-addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')moving=-1;if(e.key==='ArrowRight'||e.key==='d')moving=1;if(e.key==='ArrowUp'||e.key==='w'||e.key===' ')jump();if(e.key==='e'||e.key==='Enter')interact();if(e.key==='p')poke()});
-addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','d'].includes(e.key))moving=0});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')moveInput=-1;if(e.key==='ArrowRight'||e.key==='d')moveInput=1;if(e.key==='ArrowUp'||e.key==='w'||e.key===' ')jump();if(e.key==='e'||e.key==='Enter')interact();if(e.key==='p')poke()});
+addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','d'].includes(e.key))moveInput=0});
 
-let runnerKind='',runnerStart=0,runnerY=0,runnerVy=0,obstacles=[],runnerRAF=0;
+let runnerKind='',runnerStart=0,runnerLast=0,runnerY=0,runnerVy=0,runnerLane=0,runnerScore=0,runnerDanger=0,nextSpawn=0,obstacles=[],runnerRAF=0;
 function startRunner(kind,target){
-  locked=true;runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerY=0;runnerVy=0;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH THE DUMPLING THIEF':'BAD ACCUSATION. RUN.';chaser.textContent=kind==='miso'?'🐈‍⬛':target.emoji||'😾';chaser.classList.toggle('cat',kind==='miso');spawnObstacle(104);spawnObstacle(146);spawnObstacle(188);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
+  locked=true;runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerLast=runnerStart;runnerY=0;runnerVy=0;runnerLane=0;runnerScore=0;runnerDanger=0;nextSpawn=runnerStart+1050;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH MISO':'LOSE '+target.label.toUpperCase();chaser.textContent=kind==='miso'?'🐈‍⬛':target.emoji||'😾';chaser.classList.toggle('cat',kind==='miso');runnerBot.classList.remove('lane1');spawnObstacle(108);spawnObstacle(150);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
 }
-function spawnObstacle(xp){const e=document.createElement('div');e.className='obstacle';e.textContent=Math.random()>.5?'🧺':'📦';e.dataset.x=xp;runner.appendChild(e);obstacles.push(e)}
+function spawnObstacle(xp=105){const e=document.createElement('div');e.className='obstacle';e.textContent=Math.random()>.5?'🧺':'📦';e.dataset.x=xp;e.dataset.lane=Math.random()>.5?1:0;e.classList.toggle('lane1',e.dataset.lane==='1');runner.appendChild(e);obstacles.push(e)}
 function runnerJump(){if(runnerY===0)runnerVy=6.1}
-$('#runnerJump').onclick=runnerJump;
+function runnerDodge(){runnerLane=runnerLane?0:1;runnerBot.classList.toggle('lane1',runnerLane===1);pop(runnerLane?'UPPER PATH':'LOWER PATH')}
+$('#runnerJump').onclick=runnerJump;$('#runnerDodge').onclick=runnerDodge;
 function runnerTick(t){
-  const duration=runnerKind==='miso'?7200:6000,p=Math.min(1,(t-runnerStart)/duration);runnerProgress.style.width=(p*100)+'%';
-  runnerY=Math.max(0,runnerY+runnerVy);runnerVy-=.28;if(runnerY<=0){runnerY=0;runnerVy=0}runnerBot.style.bottom='calc(18% + '+runnerY+'px)';
-  const speed=runnerKind==='miso'?1.15:1.0;
-  for(const o of obstacles){let ox=Number(o.dataset.x)-speed;o.dataset.x=ox;o.style.left=ox+'%';if(ox>15&&ox<26&&runnerY<34&&!o.dataset.hit){o.dataset.hit='1';runnerBot.classList.add('stumble');setTimeout(()=>runnerBot.classList.remove('stumble'),300);pop('BONK')}}
-  if(p>=1){finishRunner();return}runnerRAF=requestAnimationFrame(runnerTick)
+  const dt=Math.min(34,t-runnerLast||16);runnerLast=t;
+  runnerScore=Math.min(100,runnerScore+dt*(runnerKind==='miso'?.0125:.014));
+  runnerProgress.style.width=runnerScore+'%';
+  runnerY=Math.max(0,runnerY+runnerVy*(dt/16.67));runnerVy-=.28*(dt/16.67);if(runnerY<=0){runnerY=0;runnerVy=0}
+  runnerBot.style.bottom='calc('+(runnerLane?28:18)+'% + '+runnerY+'px)';
+  const speed=(runnerKind==='miso'?1.15:1.05)*(dt/16.67);
+  if(t>=nextSpawn){spawnObstacle(105);nextSpawn=t+900+Math.random()*700}
+  for(const o of [...obstacles]){
+    let ox=Number(o.dataset.x)-speed;o.dataset.x=ox;o.style.left=ox+'%';
+    const sameLane=Number(o.dataset.lane)===runnerLane;
+    if(ox>15&&ox<27&&sameLane&&runnerY<34&&!o.dataset.hit){
+      o.dataset.hit='1';runnerScore=Math.max(0,runnerScore-16);runnerDanger++;runnerBot.classList.add('stumble');setTimeout(()=>runnerBot.classList.remove('stumble'),300);pop(runnerKind==='miso'?'MISO GAINS GROUND':'TOO CLOSE');navigator.vibrate?.(35)
+    }
+    if(ox<-12){o.remove();obstacles.splice(obstacles.indexOf(o),1)}
+  }
+  if(runnerKind==='escape')chaser.style.left=Math.min(16,4+runnerDanger*2.3)+'%';
+  else chaser.style.right=Math.max(3,13-runnerScore*.075)+'%';
+  if(runnerKind==='escape'&&runnerDanger>=4){runnerScore=100;pop('CAUGHT. AWKWARD.');finishRunner(true);return}
+  if(runnerScore>=100){finishRunner(false);return}runnerRAF=requestAnimationFrame(runnerTick)
 }
-function finishRunner(){
+function finishRunner(caught=false){
   for(const o of obstacles)o.remove();obstacles=[];runner.classList.remove('show');locked=false;
-  if(runnerKind==='escape'){setTrouble(Math.max(1,trouble));say('Mr. Caveat','I have revised my position from “definitely guilty” to “strongly motivated to chase me.”',[{label:'Maybe find a better clue.',on:()=>{closeSay();setPhase('second')}}])}
+  if(runnerKind==='escape'){setTrouble(Math.max(1,trouble));say('Mr. Caveat',caught?'I have been physically informed that my accusation requires revision.':'I have revised my position from “definitely guilty” to “strongly motivated to chase me.”',[{label:'Maybe find a better clue.',on:()=>{closeSay();setPhase('second')}}])}
   else{document.querySelector('#end').classList.add('show');phase='end';objective.textContent='Case solved. Bao would like his dumpling back.';think('...caveat.',2400)}
 }
 $('#start').onclick=begin;$('#again').onclick=()=>location.reload();
 $('#brainBtn').onclick=()=>$('#brainPanel').classList.toggle('show');
 
 window.__mrCaveatTest={
-  teleport(v){x=v;updateTarget()},
+  teleport(v){x=v;vx=0;updateTarget()},
   get phase(){return phase},
   get target(){return lastTarget?.key||null},
   interact(){return interact()},
+  poke(){return poke()},
   select(id){return runtimeSelect(id)},
-  finishRunner(){finishRunner()},
-  state(){return{x,phase,trouble,brain:[...brain]}}
+  finishRunner(){finishRunner(false)},
+  state(){return{x,vx,phase,trouble,brain:[...brain],runnerLane,runnerScore}}
 };
 
 try{await init();const response=await fetch('./missing_dumpling.cav');if(!response.ok)throw Error('case file missing');session=new WebSession(await response.text());requestAnimationFrame(moveFrame)}catch(e){document.querySelector('#start').disabled=true;document.querySelector('#start').textContent='Case failed to load';console.error(e)}
