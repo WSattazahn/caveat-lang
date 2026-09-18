@@ -87,10 +87,14 @@ export function createBeaconWorld(canvas, options = {}) {
   let needsRender = true;
   let presentation = {};
   let authoredPositions = new Map();
-  let rescueState = null;
-  let previousHull = null;
-  let previousPhase = null;
-  let impactTime = 0;
+  const renderTargets = new Map();
+  const activeCues = [];
+  const seenCues = new Set();
+  const boundProperties = new Map();
+  const appliedBindingValues = new Map();
+  const isolatedMaterials = new WeakSet();
+  let lastBindingSequence = -1;
+  let lastBindingSession = null;
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
@@ -459,8 +463,17 @@ export function createBeaconWorld(canvas, options = {}) {
     const authored = authoredPositions.get(def.id);
     if (authored) object.position.copy(v(...authored).sub(anchor.position));
     else object.position.set(Math.cos(index * 2.4) * 1.5, 0, Math.sin(index * 2.4) * 1.5);
-    const data = { id: def.id, kind: def.kind, place: def.at, object, activated: false, open: false, time: 0, initial: object.position.clone() };
+    const data = { id: def.id, kind: def.kind, place: def.at, object, activated: false, open: false, time: 0, labelHeight: 0.3, initial: object.position.clone() };
     switch (def.kind) {
+      case 'ring': {
+        const ring = mesh(new THREE.TorusGeometry(1, 0.055, 5, 64), new THREE.MeshBasicMaterial({ color: 0xb9e4d2, transparent: true, opacity: 0.8, depthWrite: false, fog: false, toneMapped: false }), object, [0, 0.04, 0]);
+        ring.rotation.x = Math.PI / 2;
+        const disc = mesh(new THREE.CircleGeometry(0.96, 48), new THREE.MeshBasicMaterial({ color: 0xb9e4d2, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false, fog: false, toneMapped: false }), object, [0, 0.02, 0]);
+        disc.rotation.x = -Math.PI / 2;
+        ring.castShadow = disc.castShadow = false;
+        Object.assign(data, { ring, disc });
+        break;
+      }
       case 'ferry': {
         const hullShape = new THREE.Shape();
         hullShape.moveTo(-1.25, -3.25); hullShape.lineTo(1.25, -3.25);
@@ -492,7 +505,7 @@ export function createBeaconWorld(canvas, options = {}) {
           arc.rotation.set(Math.PI / 2, 0, Math.PI * 0.15);
         }
         object.rotation.y = Math.PI;
-        Object.assign(data, { body, halo, wake, displayPosition: object.position.clone(), targetPosition: object.position.clone(), targetHeading: Math.PI });
+        Object.assign(data, { body, halo, wake, labelHeight: 3.8 });
         animated.push(data);
         break;
       }
@@ -507,7 +520,7 @@ export function createBeaconWorld(canvas, options = {}) {
         foam.rotation.x = -Math.PI / 2;
         const reveal = mesh(new THREE.RingGeometry(2.55, 2.65, 32), new THREE.MeshBasicMaterial({ color: 0xf4c16c, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }), object, [0, 0.23, 0]);
         reveal.rotation.x = -Math.PI / 2;
-        Object.assign(data, { foam, reveal, revealed: false, revealTime: 0 }); animated.push(data);
+        Object.assign(data, { foam, reveal });
         break;
       }
       case 'harbor_goal': {
@@ -689,7 +702,7 @@ export function createBeaconWorld(canvas, options = {}) {
   selection.rotation.x = -Math.PI / 2;
   marker.visible = !rescueMode;
 
-  const rescueEffects = new THREE.Group(); scene.add(rescueEffects); rescueEffects.visible = rescueMode;
+  const rescueEffects = new THREE.Group(); scene.add(rescueEffects);
   const aimSpot = new THREE.Group(); rescueEffects.add(aimSpot);
   const aimDisc = mesh(new THREE.CircleGeometry(3.1, 48), new THREE.MeshBasicMaterial({ color: 0xffdc8b, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }), aimSpot);
   aimDisc.rotation.x = -Math.PI / 2;
@@ -708,95 +721,215 @@ export function createBeaconWorld(canvas, options = {}) {
   routeGeometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3));
   const routeHint = new THREE.Line(routeGeometry, new THREE.LineDashedMaterial({ color: 0xa6e6c5, transparent: true, opacity: 0.7, dashSize: 0.55, gapSize: 0.48, depthWrite: false, fog: false, toneMapped: false }));
   rescueEffects.add(routeHint);
-  const impactWave = mesh(new THREE.RingGeometry(0.9, 1.05, 48), new THREE.MeshBasicMaterial({ color: 0xff8663, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }), rescueEffects);
-  impactWave.rotation.x = -Math.PI / 2;
+  // Host primitives implement geometry only. All poses, visibility, colors and
+  // part animation values below are supplied by evaluated CAVEAT bindings.
+  renderTargets.set('light_target', { object: aimSpot, ring: aimRing, disc: aimDisc, core: aimCore });
+  renderTargets.set('light_beam', { object: lightCone, primitive: 'beam', from: v(), to: v(0, 1, 0), radius: 3.8 });
+  renderTargets.set('guide_line', { object: routeHint, primitive: 'line', from: v(), to: v(0, 1, 0) });
+  aimSpot.visible = lightCone.visible = routeHint.visible = false;
 
-  function setRescueState(snapshot) {
-    const values = snapshot?.values || snapshot;
-    if (!values || typeof values.boat_x !== 'number' || typeof values.boat_z !== 'number') return;
-    const first = rescueState === null || (Number(rescueState.phase) >= 2 && Number(values.phase) <= 1);
-    if (first) { impactTime = 0; previousHull = null; }
-    rescueState = { ...values };
-    const phase = Number(values.phase || 0);
-    if (previousHull !== null && values.hull < previousHull) {
-      impactTime = 1;
-      impactWave.position.set(values.boat_x, 0.25, values.boat_z);
+  function targetFor(id) { return entities.get(id) || renderTargets.get(id); }
+
+  function bindingPart(data, property) {
+    const segments = property.split('.');
+    const attribute = segments.pop();
+    let object = data.object;
+    if (segments.length) {
+      let candidate = data;
+      for (const segment of segments) {
+        if (!Object.prototype.hasOwnProperty.call(candidate, segment)) return null;
+        candidate = candidate[segment];
+        if (!candidate || typeof candidate !== 'object') return null;
+      }
+      if (!candidate.isObject3D) return null;
+      object = candidate;
     }
-    if (phase === 0 && previousPhase !== 0) impactTime = 0;
-    previousHull = values.hull;
-    previousPhase = phase;
-    for (const data of entities.values()) {
-      if (data.kind === 'ferry') {
-        const anchor = places.get(data.place);
-        const y = authoredPositions.get(data.id)?.[1] ?? 0.6;
-        const target = v(values.boat_x, y, values.boat_z).sub(anchor.position);
-        const difference = target.clone().sub(data.targetPosition);
-        if (first || phase === 0) data.targetHeading = Math.PI;
-        else if (difference.lengthSq() > 0.000001) data.targetHeading = Math.atan2(difference.x, difference.z);
-        data.targetPosition.copy(target);
-        if (first || phase === 0 || reducedMotion) {
-          data.object.position.copy(target);
-          data.object.rotation.y = first || phase === 0 ? Math.PI : data.targetHeading;
+    return { object, attribute, root: object === data.object };
+  }
+
+  function setMaterialProperty(object, property, value) {
+    let changed = false;
+    object.traverse(child => {
+      if (!child.material) return;
+      if (!isolatedMaterials.has(child)) {
+        child.material = Array.isArray(child.material) ? child.material.map(item => item.clone()) : child.material.clone();
+        isolatedMaterials.add(child);
+      }
+      for (const material of Array.isArray(child.material) ? child.material : [child.material]) {
+        if (property === 'color' && material.color) { material.color.set(typeof value === 'string' ? value : Number(value)); changed = true; }
+        if (property === 'opacity') { material.opacity = clamp(Number(value), 0, 1); material.transparent = material.opacity < 1; changed = true; }
+        if (property === 'emissive' && 'emissiveIntensity' in material) { material.emissiveIntensity = Number(value); changed = true; }
+      }
+    });
+    return changed;
+  }
+
+  function applyBinding(data, property, value) {
+    if (/^(from|to)_[xyz]$/.test(property) && data.primitive) {
+      const [endpoint, axis] = property.split('_');
+      data[endpoint][axis] = Number(value);
+      return true;
+    }
+    if (property === 'radius' && data.primitive === 'beam') { data.radius = Number(value); return true; }
+    const part = bindingPart(data, property);
+    if (!part) return false;
+    const { object, attribute, root } = part;
+    if (['x', 'y', 'z'].includes(attribute)) {
+      if (root) {
+        const position = object.getWorldPosition(v());
+        position[attribute] = Number(value);
+        if (object.parent) object.parent.worldToLocal(position);
+        object.position.copy(position);
+      } else object.position[attribute] = Number(value);
+      return true;
+    }
+    if (/^rotation_[xyz]$/.test(attribute)) { object.rotation[attribute.at(-1)] = Number(value); return true; }
+    if (/^scale_[xyz]$/.test(attribute)) { object.scale[attribute.at(-1)] = Number(value); return true; }
+    if (attribute === 'scale') { object.scale.setScalar(Number(value)); return true; }
+    if (attribute === 'visible') { object.visible = Boolean(value); return true; }
+    if (attribute === 'count') {
+      const count = Math.max(0, Math.floor(Number(value)));
+      object.children.forEach((child, index) => { child.visible = index < count; });
+      return true;
+    }
+    if (['color', 'opacity', 'emissive'].includes(attribute)) return setMaterialProperty(object, attribute, value);
+    return false;
+  }
+
+  function updateBoundGeometry(data) {
+    if (data.primitive === 'beam') {
+      const middle = data.from.clone().add(data.to).multiplyScalar(0.5);
+      if (data.object.parent) data.object.parent.worldToLocal(middle);
+      data.object.position.copy(middle);
+      data.object.scale.set(data.radius / 3.8, data.from.distanceTo(data.to), data.radius / 3.8);
+      const direction = data.from.clone().sub(data.to);
+      if (direction.lengthSq() > 0) data.object.quaternion.setFromUnitVectors(UP, direction.normalize());
+    } else if (data.primitive === 'line') {
+      const start = data.from.clone(), end = data.to.clone();
+      data.object.worldToLocal(start); data.object.worldToLocal(end);
+      const positions = data.object.geometry.attributes.position;
+      positions.setXYZ(0, start.x, start.y, start.z); positions.setXYZ(1, end.x, end.y, end.z);
+      positions.needsUpdate = true;
+      data.object.computeLineDistances();
+    }
+  }
+
+  function clearCues() {
+    for (const cue of activeCues) { cue.object.removeFromParent(); cue.object.geometry.dispose(); cue.object.material.dispose(); }
+    activeCues.length = 0;
+    seenCues.clear();
+  }
+
+  function playCue(cue) {
+    if (cue.kind !== 'ring') return;
+    const target = targetFor(cue.target);
+    if (!target || !(Number(cue.duration) > 0)) return;
+    const radius = Number(cue.radius) > 0 ? Number(cue.radius) : 1;
+    const ring = mesh(new THREE.RingGeometry(radius * 0.9, radius * 1.05, 48), new THREE.MeshBasicMaterial({
+      color: cue.color, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, fog: false, toneMapped: false,
+    }), scene);
+    ring.castShadow = ring.receiveShadow = false;
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.copy(target.object.getWorldPosition(v())).add(v(0, 0.2, 0));
+    activeCues.push({ object: ring, age: 0, duration: Number(cue.duration) });
+  }
+
+  function setBindings(snapshot) {
+    if (!snapshot) return;
+    const sequence = Number(snapshot.sequence ?? 0);
+    const session = snapshot.session_id ?? snapshot.source_id ?? null;
+    if (sequence < lastBindingSequence || session !== lastBindingSession) {
+      clearCues(); appliedBindingValues.clear();
+    }
+    lastBindingSequence = sequence;
+    lastBindingSession = session;
+    for (const [id, properties] of Object.entries(snapshot.bindings || {})) {
+      const target = targetFor(id);
+      if (!target || !properties || typeof properties !== 'object') continue;
+      if (!boundProperties.has(id)) boundProperties.set(id, new Set());
+      if (!appliedBindingValues.has(id)) appliedBindingValues.set(id, new Map());
+      const cache = appliedBindingValues.get(id), entries = Object.entries(properties);
+      const changed = entries.filter(([property, value]) => !cache.has(property) || !Object.is(cache.get(property), value));
+      let geometryChanged = false;
+      for (const [property, value] of entries) {
+        // A group material binding can overwrite a child's material binding;
+        // retain their ordering when an overlapping property changes.
+        const segments = property.split('.'), attribute = segments.pop(), prefix = segments.join('.');
+        const overlap = changed.some(([other]) => {
+          const parts = other.split('.'), otherAttribute = parts.pop(), otherPrefix = parts.join('.');
+          if (['color', 'opacity', 'emissive'].includes(attribute) && attribute === otherAttribute) {
+            return !prefix || !otherPrefix || prefix === otherPrefix || prefix.startsWith(`${otherPrefix}.`) || otherPrefix.startsWith(`${prefix}.`);
+          }
+          return prefix === otherPrefix && (attribute === 'scale' || otherAttribute === 'scale') && attribute.startsWith('scale') && otherAttribute.startsWith('scale');
+        });
+        if (cache.has(property) && Object.is(cache.get(property), value) && !overlap) continue;
+        if (applyBinding(target, property, value)) {
+          cache.set(property, value);
+          boundProperties.get(id).add(property);
+          if (/^(from|to)_[xyz]$/.test(property) || property === 'radius' || /^(x|y|z|rotation_[xyz]|scale(_[xyz])?)$/.test(property)) geometryChanged = true;
         }
-        data.wake.visible = phase === 1;
-        data.halo.material.color.setHex(phase === 3 ? 0xdf7654 : 0xffd791);
-        data.halo.material.opacity = phase === 3 ? 0.35 : 0.88;
       }
-      if (data.kind === 'reef') {
-        const revealed = Number(values[`${data.id}_seen`] || 0) > 0;
-        if (revealed && !data.revealed) data.revealTime = 1.5;
-        if (!revealed) data.revealTime = 0;
-        data.revealed = revealed;
-      }
-      if (data.kind === 'harbor_goal') {
-        const count = Math.max(0, Math.floor(Number(values.rescued || 0)));
-        data.passengers.children.forEach((person, index) => { person.visible = index < count; });
-        data.ring.material.color.setHex(phase === 2 ? 0xd0ffd8 : 0x83f1bd);
-      }
+      if (geometryChanged) updateBoundGeometry(target);
+    }
+    for (const [index, cue] of (snapshot.cues || []).entries()) {
+      const key = `${session}:${sequence}:${index}:${cue.id}`;
+      if (!seenCues.has(key)) { seenCues.add(key); playCue(cue); }
     }
     needsRender = true;
   }
 
-  function updateRescue(dt) {
-    if (!rescueMode || !rescueState) return;
-    const state = rescueState, phase = Number(state.phase || 0);
-    const ferry = [...entities.values()].find(entity => entity.kind === 'ferry');
-    const beacon = [...entities.values()].find(entity => entity.kind === 'beacon');
-    const aim = v(Number(state.aim_x || 0), 0.23, Number(state.aim_z || 0));
-    const active = Number(state.light_on || 0) > 0;
-    // The ready-state ghost shows the gesture; it never feeds values back to
-    // the source runtime or moves the real ferry.
-    if (phase === 0) aim.set(Number(state.boat_x) + Math.sin(elapsed * 0.7) * 7, 0.23, Number(state.boat_z) - 8);
-    aimSpot.position.copy(aim);
-    aimSpot.visible = phase < 2;
-    aimDisc.material.opacity = active || phase === 0 ? 0.18 : 0.035;
-    aimRing.material.opacity = active || phase === 0 ? 0.95 : 0.5;
-    aimCore.material.opacity = active || phase === 0 ? 0.75 : 0.25;
-    aimRing.scale.setScalar(1 + Math.sin(elapsed * 3) * 0.045);
-    lightCone.visible = Boolean(beacon) && (active || phase === 0 || phase === 2);
-    if (beacon) {
-      const origin = beacon.object.getWorldPosition(v()).add(v(0, 0.8, 0));
-      lightCone.position.copy(origin).add(aim).multiplyScalar(0.5);
-      lightCone.scale.y = origin.distanceTo(aim);
-      lightCone.quaternion.setFromUnitVectors(UP, origin.clone().sub(aim).normalize());
-      beacon.sweep.visible = false;
-      beacon.lens.material.emissiveIntensity = active || phase === 2 ? 3.6 : 0.4;
-      beacon.halo.material.opacity = active || phase === 2 ? 0.9 : 0.3;
-      beacon.halo.scale.setScalar(active || phase === 2 ? 8 : 4);
+  function updateCues(dt) {
+    for (let index = activeCues.length - 1; index >= 0; index--) {
+      const cue = activeCues[index];
+      cue.age = Math.min(cue.duration, cue.age + dt);
+      const progress = cue.age / cue.duration;
+      cue.object.material.opacity = (1 - progress) * 0.85;
+      cue.object.scale.setScalar(reducedMotion ? 2.4 : 1 + progress * 5);
+      if (progress >= 1) {
+        cue.object.removeFromParent(); cue.object.geometry.dispose(); cue.object.material.dispose(); activeCues.splice(index, 1);
+      }
     }
-    routeHint.visible = phase === 1 && Boolean(ferry);
-    if (ferry) {
-      const point = ferry.object.getWorldPosition(v());
-      const position = routeGeometry.attributes.position;
-      position.setXYZ(0, point.x, 0.22, point.z); position.setXYZ(1, aim.x, 0.22, aim.z); position.needsUpdate = true;
-      routeHint.computeLineDistances();
-      routeHint.material.color.setHex(Number(state.warning) >= 2 ? 0xff805a : Number(state.warning) === 1 ? 0xffcd76 : 0x9ce8c2);
+  }
+
+  function getBindingPresentation() {
+    const result = {};
+    for (const [id, properties] of boundProperties) {
+      const data = targetFor(id);
+      if (!data) continue;
+      const values = {};
+      for (const property of properties) {
+        if (/^(from|to)_[xyz]$/.test(property) && data.primitive) {
+          const [endpoint, axis] = property.split('_');
+          let point;
+          if (data.primitive === 'beam') point = data.object.localToWorld(v(0, endpoint === 'from' ? 0.5 : -0.5, 0));
+          else {
+            const positions = data.object.geometry.attributes.position;
+            point = data.object.localToWorld(v().fromBufferAttribute(positions, endpoint === 'from' ? 0 : 1));
+          }
+          values[property] = point[axis];
+          continue;
+        }
+        if (property === 'radius' && data.primitive === 'beam') { values[property] = data.object.scale.x * 3.8; continue; }
+        const part = bindingPart(data, property);
+        if (!part) continue;
+        const { object, attribute, root } = part;
+        if (['x', 'y', 'z'].includes(attribute)) values[property] = (root ? object.getWorldPosition(v()) : object.position)[attribute];
+        else if (/^rotation_[xyz]$/.test(attribute)) values[property] = object.rotation[attribute.at(-1)];
+        else if (/^scale_[xyz]$/.test(attribute)) values[property] = object.scale[attribute.at(-1)];
+        else if (attribute === 'scale') values[property] = object.scale.x;
+        else if (attribute === 'visible') values[property] = object.visible;
+        else if (attribute === 'count') values[property] = object.children.filter(child => child.visible).length;
+        else {
+          let material;
+          object.traverse(child => { if (!material && child.material) material = Array.isArray(child.material) ? child.material[0] : child.material; });
+          if (attribute === 'color' && material?.color) values[property] = material.color.getHex();
+          if (attribute === 'opacity' && material) values[property] = material.opacity;
+          if (attribute === 'emissive' && material) values[property] = material.emissiveIntensity;
+        }
+      }
+      result[id] = values;
     }
-    if (impactTime > 0) {
-      impactTime = Math.max(0, impactTime - dt);
-      impactWave.material.opacity = impactTime * 0.8;
-      impactWave.scale.setScalar(1 + (1 - impactTime) * 5);
-    } else impactWave.material.opacity = 0;
+    return { bindings: result, activeCues: activeCues.length };
   }
 
   function clearGraph() {
@@ -806,6 +939,8 @@ export function createBeaconWorld(canvas, options = {}) {
       landscape.remove(child);
     }
     places.clear(); entities.clear(); routes.clear(); animated.length = 0; clicks.length = 0; lamps.length = 0;
+    boundProperties.clear(); appliedBindingValues.clear(); clearCues(); lastBindingSequence = -1;
+    for (const data of renderTargets.values()) data.object.visible = false;
   }
 
   function instanceStaticArchitecture() {
@@ -1005,7 +1140,7 @@ export function createBeaconWorld(canvas, options = {}) {
   function reset() {
     needsRender = true;
     resetGeneration++;
-    rescueState = null; previousHull = null; previousPhase = null; impactTime = 0;
+    clearCues(); appliedBindingValues.clear(); lastBindingSequence = -1; lastBindingSession = null;
     for (const item of tweens) item.resolve();
     tweens.clear(); busy = false; immediatePlayback = false;
     cameraEye.copy(baseEye); cameraTarget.copy(baseTarget); yaw = pitch = 0; zoom = 1;
@@ -1085,7 +1220,7 @@ export function createBeaconWorld(canvas, options = {}) {
     const wallTime = Math.max(0, (now - lastTime) / 1000);
     const dt = Math.min(0.06, wallTime);
     lastTime = now;
-    if (reducedMotion && !needsRender && tweens.size === 0) {
+    if (reducedMotion && !needsRender && tweens.size === 0 && activeCues.length === 0) {
       raf = requestAnimationFrame(frame);
       return;
     }
@@ -1109,26 +1244,8 @@ export function createBeaconWorld(canvas, options = {}) {
     markerRing.material.opacity = 0.67 + Math.sin(elapsed * 2.5) * 0.18;
     playerGlow.material.opacity = 0.6 + Math.sin(elapsed * 3.3) * 0.08;
     for (const lamp of lamps) lamp.halo.material.opacity = 0.64 + Math.sin(elapsed * 2.3 + lamp.phase) * 0.055;
-    for (const data of animated) {
+    for (const data of rescueMode ? [] : animated) {
       data.time += dt;
-      if (data.kind === 'ferry') {
-        data.object.position.lerp(data.targetPosition, 1 - Math.exp(-Math.min(wallTime, 0.5) * 12));
-        const difference = THREE.MathUtils.euclideanModulo(data.targetHeading - data.object.rotation.y + Math.PI, TAU) - Math.PI;
-        data.object.rotation.y += difference * (1 - Math.exp(-dt * 7));
-        data.body.position.y = reducedMotion ? 0 : Math.sin(elapsed * 1.5) * 0.055;
-        data.body.rotation.z = Number(rescueState?.phase) === 3 ? -0.19 : Math.sin(elapsed * 1.3) * 0.018;
-        data.wake.scale.setScalar(1 + Math.sin(elapsed * 2) * 0.05);
-      }
-      if (data.kind === 'reef') {
-        data.foam.material.opacity = (data.revealed ? 0.48 : 0.25) + Math.sin(elapsed * 1.3 + data.initial.x) * 0.035;
-        if (data.revealTime > 0) data.revealTime = Math.max(0, data.revealTime - dt);
-        data.reveal.material.opacity = data.revealTime > 0 ? data.revealTime / 1.5 * 0.95 : data.revealed ? 0.25 : 0;
-        data.reveal.scale.setScalar(data.revealTime > 0 ? 1 + (1 - data.revealTime / 1.5) * 0.8 : 1);
-      }
-      if (data.kind === 'harbor_goal') {
-        data.ring.material.opacity = 0.68 + Math.sin(elapsed * 2.6) * 0.2;
-        data.inner.material.opacity = Number(rescueState?.phase) === 2 ? 0.3 : 0.09;
-      }
       if (data.kind === 'beacon' && data.activated) data.sweep.rotation.y += dt * 0.3;
       if (data.kind === 'transmitter' && data.activated) {
         const phase = (elapsed * 0.65) % 1;
@@ -1151,7 +1268,7 @@ export function createBeaconWorld(canvas, options = {}) {
         }
       }
     }
-    updateRescue(dt);
+    updateCues(wallTime);
     if (!reducedMotion) {
       const p = rainGeometry.attributes.position.array;
       for (let i = 0; i < 390; i++) {
@@ -1166,7 +1283,7 @@ export function createBeaconWorld(canvas, options = {}) {
   }
 
   function dispose() {
-    alive = false; cancelAnimationFrame(raf); resizeObserver.disconnect();
+    alive = false; cancelAnimationFrame(raf); resizeObserver.disconnect(); clearCues();
     for (const item of tweens) item.resolve(); tweens.clear();
     canvas.removeEventListener('pointerdown', onDown); canvas.removeEventListener('pointermove', onMove);
     canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onCancel); canvas.removeEventListener('wheel', onWheel);
@@ -1181,7 +1298,7 @@ export function createBeaconWorld(canvas, options = {}) {
   if (options.model) setModel(options.model);
   raf = requestAnimationFrame(frame);
   return {
-    play, reset, setModel, setWorld, setRescueState, focus, resize, dispose,
+    play, reset, setModel, setWorld, setBindings, setRescueState: setBindings, getBindingPresentation, focus, resize, dispose,
     setReducedMotion(value) { reducedMotion = Boolean(value); needsRender = true; },
     get currentPlace() { return currentPlace; },
     get idle() { return !busy && tweens.size === 0; },
@@ -1189,7 +1306,7 @@ export function createBeaconWorld(canvas, options = {}) {
     getScreenPosition(id) {
       const entity = entities.get(id), place = places.get(id);
       if (!entity && !place) return null;
-      const position = entity ? entity.object.getWorldPosition(v()).add(v(0, entity.kind === 'ferry' ? 3.8 : 0.3, 0)) : place.position.clone().add(v(0, 1.5, 0));
+      const position = entity ? entity.object.getWorldPosition(v()).add(v(0, entity.labelHeight, 0)) : place.position.clone().add(v(0, 1.5, 0));
       const p = position.project(camera);
       return { x: (p.x + 1) * 0.5, y: (1 - p.y) * 0.5, visible: p.z > -1 && p.z < 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 };
     },

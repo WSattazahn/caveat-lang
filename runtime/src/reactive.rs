@@ -8,7 +8,7 @@ use crate::eval::ResourceLedger;
 use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
-use crate::reactive_expr::{self, Expr, Value, ValueType};
+use crate::reactive_expr::{self, Expr, FunctionDef, Value, ValueType};
 use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -26,6 +26,9 @@ pub struct Parameter {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
+    Emit {
+        name: String,
+    },
     Set {
         name: String,
         value: Expr,
@@ -59,6 +62,14 @@ pub struct Rule {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
+    Function(FunctionDef),
+    Binding(Binding),
+    Cue(Cue),
+    Control {
+        name: String,
+        control: Control,
+    },
+    Clock(Clock),
     State {
         name: String,
         initial: Expr,
@@ -70,6 +81,109 @@ pub enum Directive {
         parameters: Vec<Parameter>,
     },
     Rule(Rule),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BindingExpression {
+    Expression(Expr),
+    Text(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Binding {
+    pub target: String,
+    pub property: String,
+    pub value: BindingExpression,
+    pub condition: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum BindingValue {
+    Number(f64),
+    Bool(bool),
+    Text(String),
+}
+
+impl BindingValue {
+    pub fn as_number(&self) -> Option<f64> {
+        if let Self::Number(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+    pub fn as_bool(&self) -> Option<bool> {
+        if let Self::Bool(value) = self {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+    pub fn as_str(&self) -> Option<&str> {
+        if let Self::Text(value) = self {
+            Some(value)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(untagged)]
+pub enum CueColor {
+    Number(u32),
+    Text(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Cue {
+    Sound {
+        id: String,
+        frequency: Number,
+        duration: Number,
+        gain: Number,
+    },
+    Toast {
+        id: String,
+        text: String,
+        duration: Number,
+    },
+    Flash {
+        id: String,
+        target: String,
+        duration: Number,
+    },
+    Ring {
+        id: String,
+        target: String,
+        color: CueColor,
+        duration: Number,
+    },
+}
+
+impl Cue {
+    pub fn id(&self) -> &str {
+        match self {
+            Self::Sound { id, .. }
+            | Self::Toast { id, .. }
+            | Self::Flash { id, .. }
+            | Self::Ring { id, .. } => id,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Control {
+    pub event: String,
+    pub reset: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Clock {
+    pub event: String,
+    pub step: Number,
 }
 
 #[derive(Debug, Clone)]
@@ -108,6 +222,10 @@ pub struct ReactiveSnapshot {
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub events: Vec<EventSignature>,
+    pub bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    pub cues: Vec<Cue>,
+    pub controls: BTreeMap<String, Control>,
+    pub clock: Option<Clock>,
     pub world: MapWorld,
     pub scenes: Vec<String>,
     pub labels: BTreeMap<String, String>,
@@ -134,6 +252,12 @@ pub struct ReactiveSession {
     constants: BTreeMap<String, f64>,
     events: BTreeMap<String, Vec<Parameter>>,
     rules: Arc<Vec<Rule>>,
+    binding_rules: Arc<Vec<Binding>>,
+    bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    cue_definitions: Arc<BTreeMap<String, Cue>>,
+    cues: Vec<Cue>,
+    controls: BTreeMap<String, Control>,
+    clock: Option<Clock>,
     graph: EpistemicGraph,
     symbols: HashMap<String, NodeId>,
     resources: Option<ResourceLedger>,
@@ -175,6 +299,38 @@ impl ReactiveSession {
                 }
             }
         }
+        let mut functions = BTreeMap::new();
+        for directive in &directives {
+            if let Directive::Function(function) = directive {
+                if functions
+                    .insert(function.name.clone(), function.clone())
+                    .is_some()
+                {
+                    return Err(format!("duplicate reactive function {}", function.name));
+                }
+            }
+        }
+        reactive_expr::validate_functions(&functions)?;
+        for directive in &mut directives {
+            match directive {
+                Directive::State { initial, .. } => {
+                    *initial = reactive_expr::expand(initial, &functions)?
+                }
+                Directive::Rule(rule) => {
+                    rule.condition = reactive_expr::expand(&rule.condition, &functions)?;
+                    if let Effect::Set { value, .. } = &mut rule.effect {
+                        *value = reactive_expr::expand(value, &functions)?;
+                    }
+                }
+                Directive::Binding(binding) => {
+                    binding.condition = reactive_expr::expand(&binding.condition, &functions)?;
+                    if let BindingExpression::Expression(value) = &mut binding.value {
+                        *value = reactive_expr::expand(value, &functions)?;
+                    }
+                }
+                _ => {}
+            }
+        }
         let declarations = Program::new(declarations);
         let map = CaveatMap::build(&declarations)?;
         let evaluation = crate::eval::evaluate(&declarations)?;
@@ -193,6 +349,12 @@ impl ReactiveSession {
             constants,
             events: BTreeMap::new(),
             rules: Arc::new(Vec::new()),
+            binding_rules: Arc::new(Vec::new()),
+            bindings: BTreeMap::new(),
+            cue_definitions: Arc::new(BTreeMap::new()),
+            cues: Vec::new(),
+            controls: BTreeMap::new(),
+            clock: None,
             graph: evaluation.graph,
             symbols: evaluation.symbols,
             resources: evaluation.resources,
@@ -203,6 +365,45 @@ impl ReactiveSession {
         };
         for directive in &directives {
             match directive {
+                Directive::Function(_) => {}
+                Directive::Binding(binding) => {
+                    Arc::make_mut(&mut session.binding_rules).push(binding.clone())
+                }
+                Directive::Cue(cue) => {
+                    if Arc::make_mut(&mut session.cue_definitions)
+                        .insert(cue.id().into(), cue.clone())
+                        .is_some()
+                    {
+                        return Err(format!("duplicate cue {}", cue.id()));
+                    }
+                    if let Cue::Ring { target, .. } = cue {
+                        if !session
+                            .world
+                            .entities
+                            .iter()
+                            .any(|entity| entity.id == *target)
+                        {
+                            return Err(format!(
+                                "ring cue {} references unknown entity {target}",
+                                cue.id()
+                            ));
+                        }
+                    }
+                }
+                Directive::Control { name, control } => {
+                    if session
+                        .controls
+                        .insert(name.clone(), control.clone())
+                        .is_some()
+                    {
+                        return Err(format!("duplicate control {name}"));
+                    }
+                }
+                Directive::Clock(clock) => {
+                    if session.clock.replace(clock.clone()).is_some() {
+                        return Err("reactive program can declare only one clock".into());
+                    }
+                }
                 Directive::State {
                     name,
                     initial,
@@ -293,7 +494,34 @@ impl ReactiveSession {
                 }
             }
         }
+        for (name, control) in &session.controls {
+            if !session.events.contains_key(&control.event) {
+                return Err(format!(
+                    "control {name} references undeclared event {}",
+                    control.event
+                ));
+            }
+        }
+        if let Some(clock) = &session.clock {
+            let parameters = session
+                .events
+                .get(&clock.event)
+                .ok_or_else(|| format!("clock references undeclared event {}", clock.event))?;
+            if parameters.len() != 1 || parameters[0].name != "dt" {
+                return Err("clock event must declare only a dt parameter".into());
+            }
+            if clock.step.value() <= 0.0 {
+                return Err("clock step must be positive".into());
+            }
+            check_range(
+                "clock step",
+                clock.step.value(),
+                parameters[0].min.value(),
+                parameters[0].max.value(),
+            )?;
+        }
         session.validate_rules()?;
+        session.bindings = session.evaluate_bindings()?;
         Ok(session)
     }
 
@@ -346,6 +574,11 @@ impl ReactiveSession {
                 return Err(format!("rule {} condition must be boolean", index + 1));
             }
             match &rule.effect {
+                Effect::Emit { name } => {
+                    if !self.cue_definitions.contains_key(name) {
+                        return Err(format!("emit references undeclared cue {name}"));
+                    }
+                }
                 Effect::Set { name, value } => {
                     if !self.values.contains_key(name) {
                         return Err(format!("set references undeclared state {name}"));
@@ -383,7 +616,71 @@ impl ReactiveSession {
                 }
             }
         }
+        let numeric = self
+            .values
+            .keys()
+            .chain(self.constants.keys())
+            .cloned()
+            .collect();
+        let mut types = BTreeMap::new();
+        for binding in self.binding_rules.iter() {
+            if binding.condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
+                return Err(format!(
+                    "binding {}.{} condition must be boolean",
+                    binding.target, binding.property
+                ));
+            }
+            let kind = match &binding.value {
+                BindingExpression::Text(_) => "text",
+                BindingExpression::Expression(value) => {
+                    match value.validate(&numeric, &validate_predicate)? {
+                        ValueType::Number => "number",
+                        ValueType::Bool => "boolean",
+                    }
+                }
+            };
+            if let Some(previous) = types.insert((&binding.target, &binding.property), kind) {
+                if previous != kind {
+                    return Err(format!(
+                        "binding {}.{} changes type from {previous} to {kind}",
+                        binding.target, binding.property
+                    ));
+                }
+            }
+        }
         Ok(())
+    }
+
+    fn evaluate_bindings(
+        &self,
+    ) -> Result<BTreeMap<String, BTreeMap<String, BindingValue>>, String> {
+        let mut bindings = BTreeMap::<String, BTreeMap<String, BindingValue>>::new();
+        let parameters = BTreeMap::new();
+        for binding in self.binding_rules.iter() {
+            let context = || format!("binding {}.{}", binding.target, binding.property);
+            if self
+                .evaluate(&binding.condition, &parameters)
+                .map_err(|error| format!("{}: {error}", context()))?
+                != Value::Bool(true)
+            {
+                continue;
+            }
+            let value = match &binding.value {
+                BindingExpression::Text(value) => BindingValue::Text(value.clone()),
+                BindingExpression::Expression(expression) => match self
+                    .evaluate(expression, &parameters)
+                    .map_err(|error| format!("{}: {error}", context()))?
+                {
+                    Value::Number(value) => BindingValue::Number(value),
+                    Value::Bool(value) => BindingValue::Bool(value),
+                },
+            };
+            bindings
+                .entry(binding.target.clone())
+                .or_default()
+                .insert(binding.property.clone(), value);
+        }
+        Ok(bindings)
     }
 
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
@@ -445,6 +742,7 @@ impl ReactiveSession {
         }
         let mut next = self.clone();
         next.effects.clear();
+        next.cues.clear();
         for (index, rule) in self
             .rules
             .iter()
@@ -465,6 +763,8 @@ impl ReactiveSession {
             .checked_add(1)
             .ok_or("reactive event sequence exhausted")?;
         next.last_event = Some(event.into());
+        // Binding failures roll back the same numeric/graph/cue transaction.
+        next.bindings = next.evaluate_bindings()?;
         let snapshot = next.snapshot();
         *self = next;
         Ok(snapshot)
@@ -525,6 +825,7 @@ impl ReactiveSession {
         parameters: &BTreeMap<String, f64>,
     ) -> Result<(), String> {
         match effect {
+            Effect::Emit { name } => self.cues.push(self.cue_definitions[name].clone()),
             Effect::Set { name, value } => {
                 let Value::Number(value) = self.evaluate(value, parameters)? else {
                     return Err("numeric state expression returned a boolean".into());
@@ -672,6 +973,10 @@ impl ReactiveSession {
             });
         }
         ReactiveSnapshot {
+            bindings: self.bindings.clone(),
+            cues: self.cues.clone(),
+            controls: self.controls.clone(),
+            clock: self.clock.clone(),
             schema: REACTIVE_SCHEMA.into(),
             source_id: self.source_id.clone(),
             sequence: self.sequence,
@@ -766,10 +1071,40 @@ fn bounds(min: &str, max: &str) -> Result<(Number, Number), String> {
 pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
     let words = line.split_whitespace().collect::<Vec<_>>();
     let keyword = words.first().copied()?;
-    if !matches!(keyword, "state" | "event" | "on") {
+    if !matches!(
+        keyword,
+        "state" | "event" | "on" | "fn" | "bind" | "cue" | "control" | "clock"
+    ) {
         return None;
     }
     Some((|| match keyword {
+        "fn" => parse_function(line),
+        "bind" => parse_binding(line),
+        "cue" => parse_cue(line),
+        "control" => match words.as_slice() {
+            ["control", name, "=", event] => Ok(Directive::Control {
+                name: identifier(name)?,
+                control: Control {
+                    event: identifier(event)?,
+                    reset: false,
+                },
+            }),
+            ["control", name, "=", event, "reset"] => Ok(Directive::Control {
+                name: identifier(name)?,
+                control: Control {
+                    event: identifier(event)?,
+                    reset: true,
+                },
+            }),
+            _ => Err("control expects NAME = EVENT [reset]".into()),
+        },
+        "clock" => match words.as_slice() {
+            ["clock", event, "every", step] => Ok(Directive::Clock(Clock {
+                event: identifier(event)?,
+                step: Number::parse(step)?,
+            })),
+            _ => Err("clock expects EVENT every STEP".into()),
+        },
         "state" => {
             let (name, initial) = line
                 .trim_start_matches("state")
@@ -792,7 +1127,7 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
             };
             Ok(Directive::State {
                 name: identifier(name.trim())?,
-                initial: reactive_expr::parse(&tokens[..end].join(" "))?,
+                initial: reactive_expr::parse_unresolved(&tokens[..end].join(" "))?,
                 min,
                 max,
             })
@@ -833,7 +1168,10 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
             let mut candidates = Vec::new();
             for (index, token) in words.iter().enumerate().skip(2) {
                 if depth == 0
-                    && matches!(*token, "set" | "reveal" | "examine" | "commit" | "reopen")
+                    && matches!(
+                        *token,
+                        "set" | "reveal" | "examine" | "commit" | "reopen" | "emit"
+                    )
                 {
                     candidates.push(index);
                 }
@@ -845,11 +1183,11 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
                 .copied()
                 .find(|index| parse_effect(&words[*index..]).is_ok())
                 .or_else(|| candidates.last().copied())
-                .ok_or("on rule requires set, reveal, examine, commit, or reopen effect")?;
+                .ok_or("on rule requires set, reveal, examine, commit, reopen, or emit effect")?;
             let condition = if effect_index == 2 {
                 reactive_expr::parse("true")?
             } else if words.get(2) == Some(&"when") {
-                reactive_expr::parse(&words[3..effect_index].join(" "))?
+                reactive_expr::parse_unresolved(&words[3..effect_index].join(" "))?
             } else {
                 return Err("on rule requires when CONDITION before its effect".into());
             };
@@ -864,11 +1202,231 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
     })())
 }
 
+fn parse_function(line: &str) -> Result<Directive, String> {
+    let rest = line.strip_prefix("fn").unwrap().trim();
+    let (header, body) = rest
+        .split_once('=')
+        .ok_or("fn expects NAME(PARAMETERS) = EXPRESSION")?;
+    let (name, parameters) = header
+        .trim()
+        .split_once('(')
+        .ok_or("fn requires a parameter list")?;
+    let parameters = parameters
+        .trim()
+        .strip_suffix(')')
+        .ok_or("fn parameter list requires closing parenthesis")?;
+    let parameters = if parameters.trim().is_empty() {
+        Vec::new()
+    } else {
+        parameters
+            .split(',')
+            .map(|parameter| identifier(parameter.trim()))
+            .collect::<Result<Vec<_>, _>>()?
+    };
+    Ok(Directive::Function(FunctionDef {
+        name: identifier(name.trim())?,
+        parameters,
+        body: reactive_expr::parse_unresolved(body.trim())?,
+    }))
+}
+
+/// Locate a trailing `when` outside strings and expression parentheses.
+fn binding_parts(value: &str) -> Result<(&str, Option<&str>), String> {
+    let mut quoted = false;
+    let mut escaped = false;
+    let mut depth = 0_i64;
+    let mut separator = None;
+    for (index, ch) in value.char_indices() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+        } else if ch == '"' {
+            quoted = true;
+        } else if ch == '(' {
+            depth += 1;
+        } else if ch == ')' {
+            depth -= 1;
+        } else if depth == 0
+            && value[index..].starts_with("when")
+            && index > 0
+            && value[..index].ends_with(char::is_whitespace)
+            && value[index + 4..].starts_with(char::is_whitespace)
+        {
+            separator = Some(index);
+        }
+    }
+    if let Some(index) = separator {
+        let expression = value[..index].trim();
+        let condition = value[index + 4..].trim();
+        if expression.is_empty() || condition.is_empty() {
+            return Err("bind requires a value and a condition after when".into());
+        }
+        Ok((expression, Some(condition)))
+    } else {
+        Ok((value.trim(), None))
+    }
+}
+
+fn parse_binding(line: &str) -> Result<Directive, String> {
+    let (path, value) = line
+        .strip_prefix("bind")
+        .unwrap()
+        .trim()
+        .split_once('=')
+        .ok_or("bind expects TARGET.PROPERTY = VALUE [when CONDITION]")?;
+    let (target, property) = path
+        .trim()
+        .split_once('.')
+        .ok_or("bind requires TARGET.PROPERTY")?;
+    let target = identifier(target)?;
+    for segment in property.split('.') {
+        identifier(segment)?;
+    }
+    let (value, condition) = binding_parts(value)?;
+    let value = if value.starts_with('"') {
+        BindingExpression::Text(crate::parser::quoted(value)?)
+    } else {
+        BindingExpression::Expression(reactive_expr::parse_unresolved(value)?)
+    };
+    Ok(Directive::Binding(Binding {
+        target,
+        property: property.into(),
+        value,
+        condition: reactive_expr::parse_unresolved(condition.unwrap_or("true"))?,
+    }))
+}
+
+fn quoted_prefix(value: &str) -> Result<(String, &str), String> {
+    let value = value.trim_start();
+    if !value.starts_with('"') {
+        return Err("expected quoted text".into());
+    }
+    let mut escaped = false;
+    for (index, ch) in value.char_indices().skip(1) {
+        if escaped {
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            return Ok((
+                crate::parser::quoted(&value[..index + 1])?,
+                value[index + 1..].trim(),
+            ));
+        }
+    }
+    Err("unterminated quoted text".into())
+}
+
+fn cue_number(name: &str, value: &str, min: f64, max: f64) -> Result<Number, String> {
+    let number = Number::parse(value)?;
+    check_range(name, number.value(), min, max)?;
+    Ok(number)
+}
+
+fn duration(value: &str) -> Result<Number, String> {
+    let value = cue_number("cue duration", value, 0.0, 30.0)?;
+    if value.value() == 0.0 {
+        return Err("cue duration must be positive".into());
+    }
+    Ok(value)
+}
+
+fn parse_cue(line: &str) -> Result<Directive, String> {
+    let mut rest = line;
+    let mut header = Vec::new();
+    for _ in 0..3 {
+        rest = rest.trim_start();
+        let end = rest.find(char::is_whitespace).unwrap_or(rest.len());
+        header.push(&rest[..end]);
+        rest = &rest[end..];
+    }
+    let id = identifier(header[1])?;
+    let rest = rest.trim();
+    let cue = match header[2] {
+        "sound" => {
+            let tokens = rest.split_whitespace().collect::<Vec<_>>();
+            let [frequency, seconds, gain] = tokens.as_slice() else {
+                return Err("sound cue expects FREQUENCY DURATION GAIN".into());
+            };
+            Cue::Sound {
+                id,
+                frequency: cue_number("sound frequency", frequency, 20.0, 20_000.0)?,
+                duration: duration(seconds)?,
+                gain: cue_number("sound gain", gain, 0.0, 1.0)?,
+            }
+        }
+        "toast" => {
+            let (text, seconds) = quoted_prefix(rest)?;
+            Cue::Toast {
+                id,
+                text,
+                duration: duration(seconds)?,
+            }
+        }
+        "flash" => {
+            let tokens = rest.split_whitespace().collect::<Vec<_>>();
+            let [target, seconds] = tokens.as_slice() else {
+                return Err("flash cue expects TARGET DURATION".into());
+            };
+            Cue::Flash {
+                id,
+                target: identifier(target)?,
+                duration: duration(seconds)?,
+            }
+        }
+        "ring" => {
+            let (target, rest) = rest
+                .split_once(char::is_whitespace)
+                .ok_or("ring cue expects TARGET COLOR DURATION")?;
+            let rest = rest.trim();
+            let (color, seconds) = if rest.starts_with('"') {
+                let (color, seconds) = quoted_prefix(rest)?;
+                let digits = color
+                    .strip_prefix('#')
+                    .ok_or("ring color must be quoted #RGB or #RRGGBB")?;
+                if !matches!(digits.len(), 3 | 6)
+                    || !digits.chars().all(|ch| ch.is_ascii_hexdigit())
+                {
+                    return Err("ring color must be quoted #RGB or #RRGGBB".into());
+                }
+                (CueColor::Text(color), seconds)
+            } else {
+                let (color, seconds) = rest
+                    .split_once(char::is_whitespace)
+                    .ok_or("ring cue expects COLOR DURATION")?;
+                let color = color
+                    .parse::<u32>()
+                    .map_err(|_| "numeric ring color must be an integer in 0..16777215")?;
+                if color > 0xff_ffff {
+                    return Err("numeric ring color must be an integer in 0..16777215".into());
+                }
+                (CueColor::Number(color), seconds.trim())
+            };
+            Cue::Ring {
+                id,
+                target: identifier(target)?,
+                color,
+                duration: duration(seconds)?,
+            }
+        }
+        _ => return Err("cue kind must be sound, toast, flash, or ring".into()),
+    };
+    Ok(Directive::Cue(cue))
+}
+
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     match words {
+        ["emit", name] => Ok(Effect::Emit {
+            name: identifier(name)?,
+        }),
         ["set", name, "=", rest @ ..] if !rest.is_empty() => Ok(Effect::Set {
             name: identifier(name)?,
-            value: reactive_expr::parse(&rest.join(" "))?,
+            value: reactive_expr::parse_unresolved(&rest.join(" "))?,
         }),
         ["reveal", evidence, relation, claim] if matches!(*relation, "supports" | "opposes") => {
             Ok(Effect::Reveal {

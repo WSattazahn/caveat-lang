@@ -3,16 +3,16 @@ import { createRescueWorld } from './rescue-world.js';
 
 const $ = selector => document.querySelector(selector);
 const app = $('#app'), canvas = $('#world');
-const step = 1 / 30;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const keys = new Set();
-let source, session, snapshot, world, paused = false, pointer = null;
-let lastFrame = 0, accumulator = 0, maxHull = 3, toastTimer, impactTimer;
-let audioContext, hum, humGain, soundEnabled = true, best = 0, lastUi = '';
-const label = (key, fallback = '') => snapshot?.labels?.[key] || fallback;
+const keys = new Set(), bindingCache = new WeakMap(), flashTimers = new Map();
+let source, session, snapshot, world, pointer = null, lastPointer = { x: 0, z: 0 };
+let lastFrame = 0, accumulator = 0, toastTimer, audioContext, soundEnabled = true;
+let cueSequence = null, focusTarget = null;
+const recentCues = [];
 const announce = message => { $('#announcer').textContent = message; };
-const time = seconds => { const total = Math.ceil(Math.max(0, seconds)); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; };
+const running = () => Boolean(snapshot?.bindings?.app?.running);
+const time = seconds => { const total = Math.ceil(Math.max(0, Number(seconds) || 0)); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; };
 
 function unlockSound() {
   if (!soundEnabled) return;
@@ -21,155 +21,167 @@ function unlockSound() {
       const Audio = window.AudioContext || window.webkitAudioContext;
       if (!Audio) return;
       audioContext = new Audio();
-      hum = audioContext.createOscillator(); hum.type = 'sine'; hum.frequency.value = 82;
-      humGain = audioContext.createGain(); humGain.gain.value = 0;
-      hum.connect(humGain); humGain.connect(audioContext.destination); hum.start();
     }
     audioContext.resume().catch(() => {});
   } catch { soundEnabled = false; }
 }
 
-function tone(kind) {
+// Sound parameters and timing are emitted by the source; the host supplies
+// only the audio device, its user preference, and a reusable oscillator.
+function soundCue(cue) {
   if (!soundEnabled || !audioContext) return;
+  const duration = Math.max(0.01, Number(cue.duration) || 0.01);
+  const frequency = Number(cue.frequency), level = clamp(Number(cue.gain) || 0, 0, 1);
+  if (!Number.isFinite(frequency) || frequency <= 0 || level <= 0) return;
   const now = audioContext.currentTime;
-  const notes = kind === 'win' ? [330, 440, 554, 660] : kind === 'hit' ? [95] : kind === 'reef' ? [440, 550] : [220, 330];
-  notes.forEach((frequency, i) => {
-    const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
-    oscillator.type = kind === 'hit' ? 'triangle' : 'sine';
-    oscillator.frequency.setValueAtTime(frequency, now + i * 0.11);
-    gain.gain.setValueAtTime(0, now + i * 0.11);
-    gain.gain.linearRampToValueAtTime(0.07, now + i * 0.11 + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.22);
-    oscillator.connect(gain); gain.connect(audioContext.destination);
-    oscillator.start(now + i * 0.11); oscillator.stop(now + i * 0.11 + 0.25);
-  });
+  const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+  oscillator.type = ['sine', 'triangle', 'square', 'sawtooth'].includes(cue.waveform) ? cue.waveform : 'sine';
+  oscillator.frequency.setValueAtTime(frequency, now);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(level, now + Math.min(0.015, duration / 4));
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  oscillator.connect(gain); gain.connect(audioContext.destination);
+  oscillator.start(now); oscillator.stop(now + duration);
+  oscillator.addEventListener('ended', () => { oscillator.disconnect(); gain.disconnect(); }, { once: true });
 }
 
-function toast(message, toneName = 'reef') {
+function showToast(text, duration) {
   clearTimeout(toastTimer);
-  $('#toast').textContent = message;
-  $('#toast').dataset.tone = toneName;
+  $('#toast').textContent = String(text ?? '');
   $('#toast').hidden = false;
-  toastTimer = setTimeout(() => { $('#toast').hidden = true; }, toneName === 'hit' ? 1500 : 950);
-  announce(message);
+  toastTimer = setTimeout(() => { $('#toast').hidden = true; }, Math.max(0, Number(duration) || 0) * 1000);
+  announce(String(text ?? ''));
 }
 
-function accept(next, feedback = true) {
-  const before = snapshot?.values;
-  snapshot = next;
-  world?.setRescueState(snapshot);
-  if (feedback && before && next.values.phase === 1) {
-    if (next.values.hull < before.hull) {
-      toast('Hull hit!', 'hit'); tone('hit');
-      clearTimeout(impactTimer); $('#impact').classList.add('hit');
-      impactTimer = setTimeout(() => $('#impact').classList.remove('hit'), 220);
-    } else if ((next.values.reefs_seen || 0) > (before.reefs_seen || 0)) {
-      toast('Reef spotted'); tone('reef');
+function playCues() {
+  if (cueSequence === snapshot.sequence) return;
+  cueSequence = snapshot.sequence;
+  for (const cue of snapshot.cues || []) {
+    recentCues.push({ ...cue, sequence: snapshot.sequence });
+    if (recentCues.length > 32) recentCues.shift();
+    if (cue.kind === 'sound') soundCue(cue);
+    else if (cue.kind === 'toast') showToast(cue.text, cue.duration);
+    else if (cue.kind === 'flash') {
+      const node = document.getElementById(cue.target);
+      if (!node) continue;
+      clearTimeout(flashTimers.get(node));
+      node.classList.add('cue-active');
+      flashTimers.set(node, setTimeout(() => { node.classList.remove('cue-active'); flashTimers.delete(node); }, Math.max(0, Number(cue.duration) || 0) * 1000));
+    }
+    // World-space cues belong to the renderer, which receives the same snapshot.
+  }
+}
+
+function formatValue(value, format) {
+  if (format === 'time') return time(value);
+  if (format === 'percent') return `${Math.round(Number(value) * 100)}%`;
+  if (format === 'number') return Math.round(Number(value)).toLocaleString();
+  return String(value ?? '');
+}
+
+// A property adapter, not a game-state interpreter. CAVEAT chooses the value,
+// visibility, labels and screen; HTML chooses how a value is presented.
+function renderBindings() {
+  for (const node of document.querySelectorAll('[data-caveat]')) {
+    const properties = snapshot.bindings?.[node.dataset.caveat];
+    if (!properties) continue;
+    const selected = node.dataset.caveatProperties?.split(',');
+    const binding = selected ? Object.fromEntries(Object.entries(properties).filter(([key]) => selected.includes(key))) : properties;
+    const signature = JSON.stringify(binding);
+    if (bindingCache.get(node) === signature) continue;
+    bindingCache.set(node, signature);
+    if ('visible' in binding) node.hidden = !binding.visible;
+    if ('screen' in binding) node.dataset.screen = String(binding.screen);
+    if ('text' in binding) node.textContent = String(binding.text ?? '');
+    if ('value' in binding) {
+      const value = binding.value;
+      if (node.dataset.format === 'pips') {
+        const maximum = Math.max(0, Math.round(Number(binding.max) || 0));
+        node.replaceChildren(...Array.from({ length: maximum }, (_, index) => {
+          const pip = document.createElement('i');
+          if (index >= Number(value)) pip.className = 'lost';
+          return pip;
+        }));
+      } else if (node.dataset.valueStyle) {
+        const property = node.dataset.valueStyle;
+        if (['width', 'left'].includes(property)) node.style[property] = `${clamp(Number(value) || 0, 0, 1) * 100}%`;
+      } else node.textContent = formatValue(value, node.dataset.format);
+    }
+    if ('progress' in binding) node.style.width = `${clamp(Number(binding.progress) || 0, 0, 1) * 100}%`;
+    for (const [property, value] of Object.entries(binding)) {
+      if (['visible', 'screen', 'text', 'value', 'max', 'progress'].includes(property)) continue;
+      if (property === 'disabled') node.disabled = Boolean(value);
+      else if (property === 'title' || property.startsWith('aria_')) node.setAttribute(property.replaceAll('_', '-'), String(value));
+      else node.setAttribute(`data-${property.replaceAll('_', '-')}`, String(value));
     }
   }
-  if (before?.phase === 1 && [2, 3].includes(next.values.phase)) finish();
-  renderHud();
+  const nextFocus = snapshot.bindings?.focus?.target;
+  if (nextFocus !== focusTarget) {
+    focusTarget = nextFocus;
+    const node = typeof nextFocus === 'string' ? document.getElementById(nextFocus) : null;
+    if (node && !node.closest('[hidden]')) node.focus({ preventScroll: true });
+  }
+}
+
+function clearInput() {
+  keys.clear();
+  const captured = pointer;
+  pointer = null;
+  if (captured !== null && canvas.hasPointerCapture(captured)) canvas.releasePointerCapture(captured);
+}
+
+function accept(next) {
+  snapshot = next;
+  world?.setRescueState(snapshot);
+  renderBindings();
+  if (!running()) { clearInput(); accumulator = 0; }
+  playCues();
 }
 
 function dispatch(event, payload = {}) {
+  if (!session || !event) return;
   accept(JSON.parse(session.dispatch(event, JSON.stringify(payload))));
 }
 
-function aim(x, z, active) {
-  if (!session || snapshot.values.phase !== 1 || paused) return;
-  const values = snapshot.values;
-  const definition = snapshot.events?.find(event => event.name === 'aim');
-  const bounds = name => definition?.parameters?.find(parameter => parameter.name === name);
-  const bx = bounds('x'), bz = bounds('z');
-  const a = clamp(x, bx?.min ?? values.aim_x_min, bx?.max ?? values.aim_x_max);
-  const b = clamp(z, bz?.min ?? values.aim_z_min, bz?.max ?? values.aim_z_max);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return;
-  dispatch('aim', { x: a, z: b, active: active ? 1 : 0 });
-}
-
-function releaseControls() {
-  keys.clear(); pointer = null;
-  if (snapshot?.values.phase === 1 && !paused) aim(snapshot.values.aim_x, snapshot.values.aim_z, false);
-}
-
-function start() {
-  releaseControls();
-  session?.free(); session = new WebReactiveSession(source);
-  snapshot = JSON.parse(session.snapshot());
-  maxHull = snapshot.values.hull;
-  paused = false; accumulator = 0; lastFrame = performance.now(); lastUi = '';
-  $('#intro').hidden = true; $('#demo-cue').hidden = true; $('#ending').hidden = true;
-  $('#pause-panel').hidden = true; $('#hud').hidden = false; $('#play-footer').hidden = false;
-  $('#pause').hidden = false; $('#toast').hidden = true; $('#impact').classList.remove('hit');
-  clearTimeout(toastTimer); clearTimeout(impactTimer);
-  app.dataset.screen = 'playing';
-  dispatch('start');
-  unlockSound(); tone('start');
-  canvas.focus({ preventScroll: true });
-  announce('Guide the ferry to the green harbor. Hold and drag the light, or use the arrow keys.');
-}
-
-function setPaused(value) {
-  if (!snapshot || snapshot.values.phase !== 1 || paused === value) return;
-  releaseControls(); paused = value; accumulator = 0; lastFrame = performance.now();
-  app.dataset.screen = value ? 'paused' : 'playing';
-  $('#pause-panel').hidden = !value;
-  $('#pause').setAttribute('aria-label', value ? 'Resume game' : 'Pause game');
-  if (value) $('#resume').focus(); else canvas.focus({ preventScroll: true });
-  if (humGain) humGain.gain.setTargetAtTime(0, audioContext.currentTime, .1);
-}
-
-function finish() {
-  keys.clear(); pointer = null; paused = false;
-  const values = snapshot.values, won = values.phase === 2;
-  app.dataset.screen = won ? 'won' : 'lost';
-  $('#ending').hidden = false; $('#pause').hidden = true; $('#play-footer').hidden = true;
-  $('#toast').hidden = true; clearTimeout(toastTimer);
-  $('#ending-eyebrow').textContent = won ? 'HOME AT LAST' : 'ONE MORE TRY';
-  $('#ending-title').textContent = won ? `${Math.round(values.rescued)} safe.` : label('loss_title', 'Ferry lost.');
-  $('#ending-note').textContent = won ? label('win_body', 'You brought them home.') : label(`loss_${values.failure_reason}`, 'The ferry hit the reefs. Try a different line.');
-  const score = Math.round(values.score || 0);
-  if (won && score > best) {
-    best = score;
-    try { localStorage.setItem('caveat:light-the-way:best:v1', String(best)); } catch { /* A run remains playable without storage. */ }
+function runControl(name, payload = {}) {
+  const control = snapshot?.controls?.[name];
+  if (!control) return;
+  unlockSound();
+  if (control.reset) {
+    clearInput();
+    session?.free(); session = new WebReactiveSession(source);
+    cueSequence = null; focusTarget = null; accumulator = 0; lastFrame = performance.now();
+    clearTimeout(toastTimer); $('#toast').hidden = true;
+    for (const [node, timer] of flashTimers) { clearTimeout(timer); node.classList.remove('cue-active'); }
+    flashTimers.clear(); recentCues.length = 0;
+    accept(JSON.parse(session.snapshot()));
   }
-  $('#result-stats').innerHTML = won
-    ? `<div><strong>${score.toLocaleString()}</strong><span>KEEPER SCORE</span></div><div><strong>${time(values.elapsed)}</strong><span>CROSSING</span></div><div><strong>${best.toLocaleString()}</strong><span>BEST</span></div>`
-    : `<div><strong>${Math.round((values.progress || 0) * 100)}%</strong><span>OF THE WAY</span></div><div><strong>${time(values.elapsed)}</strong><span>AT SEA</span></div>`;
-  tone(won ? 'win' : 'hit');
-  $('#retry').focus({ preventScroll: true });
-  announce(`${$('#ending-title').textContent} ${$('#ending-note').textContent}`);
+  dispatch(control.event, payload);
 }
 
-function renderHud() {
-  if (!snapshot) return;
-  const values = snapshot.values;
-  const seconds = Math.ceil(Math.max(0, values.time_limit - values.elapsed));
-  const signature = `${values.hull}:${seconds}:${values.phase}:${values.light_on}:${values.rescued}`;
-  if (signature !== lastUi) {
-    lastUi = signature;
-    $('#passengers').textContent = Math.round(values.phase === 2 ? values.rescued : values.total_passengers);
-    $('.passengers span').textContent = values.phase === 2 ? 'PEOPLE SAFE' : 'PEOPLE ABOARD';
-    $('#time').textContent = time(seconds);
-    $('.time-status span').textContent = values.phase > 1 ? 'TIME LEFT' : 'TO GET HOME';
-    $('#hull').innerHTML = Array.from({ length: maxHull }, (_, i) => `<i class="${i >= values.hull ? 'lost' : ''}"></i>`).join('');
-    $('#hull').setAttribute('aria-label', `${values.hull} hull remaining`);
-    $('#hull').dataset.low = String(values.hull === 1);
-    $('#control-hint').textContent = values.light_on ? 'GUIDE THEM HOME' : 'HOLD + DRAG THE LIGHT';
+function sendPointer(point, active) {
+  if (!running() || !point || !Number.isFinite(point.x) || !Number.isFinite(point.z)) return;
+  lastPointer = { x: point.x, z: point.z };
+  const payload = { ...lastPointer, active: active ? 1 : 0 };
+  const event = snapshot.events?.find(item => item.name === snapshot.controls?.pointer?.event);
+  // Projection can extend beyond the playable world on wide screens. Honor
+  // the declared input contract before dispatch; source owns gameplay bounds.
+  for (const parameter of event?.parameters || []) {
+    if (Number.isFinite(payload[parameter.name]) && Number.isFinite(parameter.min) && Number.isFinite(parameter.max)) {
+      payload[parameter.name] = clamp(payload[parameter.name], parameter.min, parameter.max);
+    }
   }
-  const progress = clamp(values.progress || 0, 0, 1);
-  $('#progress-fill').style.width = `${progress * 100}%`;
-  $('#progress-ship').style.left = `${progress * 100}%`;
-  if (humGain) humGain.gain.setTargetAtTime(soundEnabled && values.phase === 1 && values.light_on && !paused ? .014 : 0, audioContext.currentTime, .07);
+  runControl('pointer', payload);
 }
 
 function placeLabels() {
   if (!world) return;
   const rect = canvas.getBoundingClientRect();
-  for (const [id, selector, lift] of [['harbor_goal', '#goal-label', 14], ['ferry', '#boat-label', 20]]) {
-    const point = world.getScreenPosition(id), node = $(selector);
-    node.hidden = !point?.visible || ['paused', 'won', 'lost'].includes(app.dataset.screen);
-    if (point) { node.style.left = `${point.x * rect.width}px`; node.style.top = `${point.y * rect.height - lift}px`; }
+  for (const node of document.querySelectorAll('[data-world-label]')) {
+    const point = world.getScreenPosition(node.dataset.worldLabel);
+    const visible = snapshot.bindings?.[node.dataset.caveat]?.visible;
+    node.hidden = !point?.visible || visible === false || visible === 0;
+    if (point) { node.style.left = `${point.x * rect.width}px`; node.style.top = `${point.y * rect.height - Number(node.dataset.labelLift || 0)}px`; }
   }
 }
 
@@ -177,63 +189,70 @@ function frame(now) {
   const dt = lastFrame ? Math.min(.1, Math.max(0, (now - lastFrame) / 1000)) : 0;
   lastFrame = now;
   try {
-    if (snapshot?.values.phase === 1 && !paused && !document.hidden) {
-      if (keys.size) {
-        const values = snapshot.values, speed = values.aim_speed || 12;
-        const dx = (keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0);
-        const dz = (keys.has('ArrowDown') || keys.has('s') ? 1 : 0) - (keys.has('ArrowUp') || keys.has('w') ? 1 : 0);
-        aim(values.aim_x + dx * speed * dt, values.aim_z + dz * speed * dt, true);
+    if (running() && !document.hidden) {
+      const clock = snapshot.clock;
+      const step = Number(clock?.step);
+      if (clock?.event && Number.isFinite(step) && step > 0) {
+        accumulator = Math.min(Math.max(.1, step), accumulator + dt);
+        while (accumulator >= step && running()) {
+          if (keys.size) {
+            const dx = (keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0);
+            const dz = (keys.has('ArrowDown') || keys.has('s') ? 1 : 0) - (keys.has('ArrowUp') || keys.has('w') ? 1 : 0);
+            runControl('keyboard', { dx, dz, active: 1, dt: step });
+          }
+          accumulator -= step;
+          if (running()) dispatch(clock.event, { dt: step });
+        }
       }
-      accumulator = Math.min(.1, accumulator + dt);
-      while (accumulator >= step && snapshot.values.phase === 1) { dispatch('tick', { dt: step }); accumulator -= step; }
     }
     placeLabels();
   } catch (error) {
-    console.error(error); setPaused(true); toast('The rescue paused. Try starting over.', 'hit');
+    console.error(error);
+    try { runControl('pause'); } catch { clearInput(); }
+    showToast('The game paused. Try starting over.', 3);
   }
   requestAnimationFrame(frame);
 }
 
 canvas.addEventListener('pointerdown', event => {
-  if (event.button !== 0 || snapshot?.values.phase !== 1 || paused) return;
+  if (event.button !== 0 || !running()) return;
   event.preventDefault(); pointer = event.pointerId; keys.clear();
   canvas.setPointerCapture(pointer); canvas.focus({ preventScroll: true }); unlockSound();
-  const point = world.pointFromScreen(event.clientX, event.clientY);
-  if (point) aim(point.x, point.z, true);
+  sendPointer(world.pointFromScreen(event.clientX, event.clientY), true);
 });
 canvas.addEventListener('pointermove', event => {
   if (event.pointerId !== pointer) return;
   event.preventDefault();
-  const point = world.pointFromScreen(event.clientX, event.clientY);
-  if (point) aim(point.x, point.z, true);
+  sendPointer(world.pointFromScreen(event.clientX, event.clientY), true);
 });
 for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(name, event => {
   if (event.pointerId !== pointer) return;
   pointer = null;
-  if (snapshot?.values.phase === 1 && !paused) aim(snapshot.values.aim_x, snapshot.values.aim_z, false);
+  sendPointer(lastPointer, false);
 });
 window.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && snapshot?.values.phase === 1) { event.preventDefault(); setPaused(!paused); return; }
+  if (event.key === 'Escape' && session) { event.preventDefault(); runControl(running() ? 'pause' : 'resume'); return; }
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  if (snapshot?.values.phase === 1 && !paused && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','s','d','w',' '].includes(key)) {
+  if (running() && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','s','d','w',' '].includes(key)) {
     event.preventDefault(); keys.add(key); pointer = null; unlockSound();
   }
 });
 window.addEventListener('keyup', event => {
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
   if (!keys.delete(key)) return;
-  if (!keys.size && snapshot?.values.phase === 1 && !paused) aim(snapshot.values.aim_x, snapshot.values.aim_z, false);
+  if (!keys.size && running()) runControl('keyboard', { dx: 0, dz: 0, active: 0, dt: 0 });
 });
-window.addEventListener('blur', () => { if (snapshot?.values.phase === 1) setPaused(true); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && snapshot?.values.phase === 1) setPaused(true); });
-$('#pause').addEventListener('click', () => setPaused(!paused));
-$('#resume').addEventListener('click', () => setPaused(false));
-$('#restart-paused').addEventListener('click', start); $('#retry').addEventListener('click', start);
+window.addEventListener('blur', () => { if (session) runControl('pause'); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && session) runControl('pause'); });
+document.addEventListener('click', event => {
+  const control = event.target.closest('[data-control]');
+  if (control && !control.disabled) runControl(control.dataset.control);
+});
 $('#sound').addEventListener('click', () => {
   soundEnabled = !soundEnabled;
   $('#sound').setAttribute('aria-pressed', String(soundEnabled));
   $('#sound').setAttribute('aria-label', soundEnabled ? 'Turn sound off' : 'Turn sound on');
-  if (soundEnabled) unlockSound(); else if (humGain) humGain.gain.setTargetAtTime(0, audioContext.currentTime, .03);
+  if (soundEnabled) unlockSound(); else audioContext?.suspend().catch(() => {});
 });
 
 async function boot() {
@@ -243,16 +262,14 @@ async function boot() {
   await init();
   session = new WebReactiveSession(source); snapshot = JSON.parse(session.snapshot());
   world = createRescueWorld(canvas, { model: snapshot.world, labels: snapshot.labels });
-  world.setRescueState(snapshot); maxHull = snapshot.values.hull;
-  try { best = Math.max(0, Number(localStorage.getItem('caveat:light-the-way:best:v1')) || 0); } catch { /* Optional local score. */ }
-  $('#instruction').textContent = label('instruction', 'Drag the light left or right. Reach the green harbor.');
-  $('#start-actions').innerHTML = '<button class="primary" id="start-rescue">Start rescue <span aria-hidden="true">→</span></button>';
-  $('#start-rescue').addEventListener('click', start);
+  $('#start-actions').innerHTML = '<button class="primary" id="start-rescue" data-control="start"><span class="button-label" data-caveat="start_label">Start rescue</span><span aria-hidden="true">→</span></button>';
   $('#sound').setAttribute('aria-pressed', String(soundEnabled));
   $('#sound').setAttribute('aria-label', soundEnabled ? 'Turn sound off' : 'Turn sound on');
-  app.dataset.screen = 'ready';
+  accept(snapshot);
   Object.defineProperty(window, '__rescue', { value: Object.freeze({
     snapshot: () => JSON.parse(session.snapshot()),
+    recentCues: () => structuredClone(recentCues),
+    presentation: () => structuredClone(world.getBindingPresentation()),
     get rendered() { return Boolean(world); }, get screen() { return app.dataset.screen; },
     projected(x, z) { const p = world.projected(x, z), r = canvas.getBoundingClientRect(); return p ? { x: r.left + p.x * r.width, y: r.top + p.y * r.height, visible: p.visible } : null; },
   }) });

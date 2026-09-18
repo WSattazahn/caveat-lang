@@ -276,7 +276,7 @@ fn parse_investigate(words: &[&str], line: &str) -> Result<Statement, String> {
     }
 }
 
-fn quoted(value: &str) -> Result<String, String> {
+pub(crate) fn quoted(value: &str) -> Result<String, String> {
     let mut chars = value.chars();
     if chars.next() != Some('"') {
         return Err(format!("expected quoted text: {value}"));

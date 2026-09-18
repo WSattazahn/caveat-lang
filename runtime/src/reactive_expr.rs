@@ -4,17 +4,28 @@
 //! epistemic graph. They cannot mutate state or invoke arbitrary host code.
 
 use crate::presentation::Number;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
 const MAX_SOURCE_BYTES: usize = 65_536;
+const MAX_FUNCTIONS: usize = 128;
+const MAX_EXPANDED_NODES: usize = 4096;
 
 /// A parsed expression with finite, canonical number literals.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
     node: Node,
     depth: usize,
+}
+
+/// A pure numeric source function. Definitions may refer to other functions
+/// in any declaration order, but cannot capture state or graph predicates.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionDef {
+    pub name: String,
+    pub parameters: Vec<String>,
+    pub body: Expr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -25,6 +36,10 @@ enum Node {
     Unary(Unary, Box<Expr>),
     Binary(Binary, Box<Expr>, Box<Expr>),
     Function(Function, Vec<Expr>),
+    UserCall(String, Vec<Expr>),
+    // Keep arguments even when the body ignores them: function arguments are
+    // numeric and evaluated eagerly, so `constant(1 / 0)` must still fail.
+    ExpandedCall(Vec<Expr>, Box<Expr>),
     Predicate(String, String),
 }
 
@@ -60,6 +75,7 @@ enum Function {
     Sin,
     Cos,
     Sqrt,
+    Atan2,
 }
 
 impl Function {
@@ -72,6 +88,7 @@ impl Function {
             "sin" => Some(Self::Sin),
             "cos" => Some(Self::Cos),
             "sqrt" => Some(Self::Sqrt),
+            "atan2" => Some(Self::Atan2),
             _ => None,
         }
     }
@@ -85,13 +102,14 @@ impl Function {
             Self::Sin => "sin",
             Self::Cos => "cos",
             Self::Sqrt => "sqrt",
+            Self::Atan2 => "atan2",
         }
     }
 
     fn arity(self) -> usize {
         match self {
             Self::Abs | Self::Sin | Self::Cos | Self::Sqrt => 1,
-            Self::Min | Self::Max => 2,
+            Self::Min | Self::Max | Self::Atan2 => 2,
             Self::Clamp => 3,
         }
     }
@@ -159,8 +177,17 @@ impl Expr {
         let depth = match &node {
             Node::Unary(_, child) => child.depth + 1,
             Node::Binary(_, left, right) => left.depth.max(right.depth) + 1,
-            Node::Function(_, children) => {
+            Node::Function(_, children) | Node::UserCall(_, children) => {
                 children.iter().map(|child| child.depth).max().unwrap_or(0) + 1
+            }
+            Node::ExpandedCall(arguments, body) => {
+                arguments
+                    .iter()
+                    .map(|argument| argument.depth)
+                    .max()
+                    .unwrap_or(0)
+                    .max(body.depth)
+                    + 1
             }
             _ => 1,
         };
@@ -176,6 +203,19 @@ impl Expr {
         &self,
         numeric: &HashSet<String>,
         predicate: &impl Fn(&str, &str) -> Result<(), String>,
+    ) -> Result<ValueType, String> {
+        self.validate_calls(numeric, predicate, &|name, _| {
+            Err(format!(
+                "source function {name} must be expanded before validation"
+            ))
+        })
+    }
+
+    fn validate_calls(
+        &self,
+        numeric: &HashSet<String>,
+        predicate: &impl Fn(&str, &str) -> Result<(), String>,
+        user_call: &impl Fn(&str, usize) -> Result<(), String>,
     ) -> Result<ValueType, String> {
         match &self.node {
             Node::Number(_) => Ok(ValueType::Number),
@@ -196,12 +236,14 @@ impl Expr {
                     Unary::Not => ValueType::Bool,
                     _ => ValueType::Number,
                 };
-                child.validate(numeric, predicate)?.require(expected)?;
+                child
+                    .validate_calls(numeric, predicate, user_call)?
+                    .require(expected)?;
                 Ok(expected)
             }
             Node::Binary(operator, left, right) => {
-                let left_type = left.validate(numeric, predicate)?;
-                let right_type = right.validate(numeric, predicate)?;
+                let left_type = left.validate_calls(numeric, predicate, user_call)?;
+                let right_type = right.validate_calls(numeric, predicate, user_call)?;
                 match operator {
                     Binary::And | Binary::Or => {
                         left_type.require(ValueType::Bool)?;
@@ -224,11 +266,20 @@ impl Expr {
                     }
                 }
             }
-            Node::Function(_, arguments) => {
+            Node::Function(_, arguments)
+            | Node::UserCall(_, arguments)
+            | Node::ExpandedCall(arguments, _) => {
                 for argument in arguments {
                     argument
-                        .validate(numeric, predicate)?
+                        .validate_calls(numeric, predicate, user_call)?
                         .require(ValueType::Number)?;
+                }
+                match &self.node {
+                    Node::UserCall(name, _) => user_call(name, arguments.len())?,
+                    Node::ExpandedCall(_, body) => body
+                        .validate_calls(numeric, predicate, user_call)?
+                        .require(ValueType::Number)?,
+                    _ => {}
                 }
                 Ok(ValueType::Number)
             }
@@ -251,6 +302,15 @@ impl Expr {
                 Ok(Value::Number(finite(value)?))
             }
             Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
+            Node::UserCall(name, _) => Err(format!(
+                "source function {name} must be expanded before evaluation"
+            )),
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.evaluate(numbers, predicate)?.number()?;
+                }
+                Ok(Value::Number(body.evaluate(numbers, predicate)?.number()?))
+            }
             Node::Unary(operator, child) => {
                 let value = child.evaluate(numbers, predicate)?;
                 match operator {
@@ -327,6 +387,7 @@ impl Expr {
                         }
                         arguments[0].sqrt()
                     }
+                    Function::Atan2 => arguments[0].atan2(arguments[1]),
                 };
                 Ok(Value::Number(finite(result)?))
             }
@@ -492,6 +553,7 @@ struct Parser {
     tokens: Vec<Token>,
     cursor: usize,
     end: usize,
+    allow_user_functions: bool,
 }
 
 impl Parser {
@@ -588,12 +650,15 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after predicate target")?;
             return Ok(Node::Predicate(name, target));
         }
-        let function =
-            Function::named(&name).ok_or_else(|| format!("unknown expression function {name}"))?;
+        let function = Function::named(&name);
+        if function.is_none() && (!self.allow_user_functions || !plain_identifier(&name)) {
+            return Err(format!("unknown expression function {name}"));
+        }
         let mut arguments = Vec::new();
         if self.peek() != Some(&TokenKind::RightParen) {
             loop {
-                if arguments.len() == function.arity() {
+                if function.is_some_and(|function| arguments.len() == function.arity()) {
+                    let function = function.unwrap();
                     return Err(format!(
                         "{} requires {} arguments",
                         function.name(),
@@ -608,14 +673,18 @@ impl Parser {
             }
         }
         self.expect(TokenKind::RightParen, "')' after function arguments")?;
-        if arguments.len() != function.arity() {
-            return Err(format!(
-                "{} requires {} arguments",
-                function.name(),
-                function.arity()
-            ));
+        if let Some(function) = function {
+            if arguments.len() != function.arity() {
+                return Err(format!(
+                    "{} requires {} arguments",
+                    function.name(),
+                    function.arity()
+                ));
+            }
+            Ok(Node::Function(function, arguments))
+        } else {
+            Ok(Node::UserCall(name, arguments))
         }
-        Ok(Node::Function(function, arguments))
     }
 }
 
@@ -641,16 +710,275 @@ fn binary(token: &TokenKind) -> Option<(Binary, u8)> {
 /// Numeric names may contain dotted ASCII identifier segments, such as
 /// `reef_one.x`; predicate targets are plain graph identifiers.
 pub fn parse(input: &str) -> Result<Expr, String> {
+    parse_mode(input, false)
+}
+
+/// Parse an expression before all source function declarations are known.
+/// Call `expand` before ordinary validation or evaluation.
+pub fn parse_unresolved(input: &str) -> Result<Expr, String> {
+    parse_mode(input, true)
+}
+
+fn parse_mode(input: &str, allow_user_functions: bool) -> Result<Expr, String> {
     let mut parser = Parser {
         tokens: tokenize(input)?,
         cursor: 0,
         end: input.len(),
+        allow_user_functions,
     };
     let expression = parser.expression(0, 0)?;
     if parser.peek().is_some() {
         return Err(format!("unexpected token at byte {}", parser.offset()));
     }
     Ok(expression)
+}
+
+fn plain_identifier(name: &str) -> bool {
+    let mut bytes = name.bytes();
+    bytes.next().is_some_and(identifier_start)
+        && bytes.all(identifier_continue)
+        && !matches!(name, "true" | "false" | "and" | "or" | "not")
+}
+
+fn predicate_name(name: &str) -> bool {
+    matches!(name, "observed" | "examined" | "committed" | "reopened")
+}
+
+fn check_arity(definition: &FunctionDef, supplied: usize) -> Result<(), String> {
+    if definition.parameters.len() == supplied {
+        Ok(())
+    } else {
+        Err(format!(
+            "source function {} requires {} arguments, found {supplied}",
+            definition.name,
+            definition.parameters.len()
+        ))
+    }
+}
+
+/// Validate every definition, including unused functions. Functions return
+/// numbers, accept numeric arguments, capture no state or graph data, and may
+/// not recurse. Numeric constants in bodies are literal constants; callers
+/// pass named coordinates explicitly as arguments.
+pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(), String> {
+    if functions.len() > MAX_FUNCTIONS {
+        return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
+    }
+    for (name, definition) in functions {
+        if name != &definition.name || !plain_identifier(name) {
+            return Err(format!("invalid source function name {}", definition.name));
+        }
+        if Function::named(name).is_some() || predicate_name(name) {
+            return Err(format!(
+                "source function {name} shadows an intrinsic or predicate"
+            ));
+        }
+        let mut parameters = HashSet::new();
+        for parameter in &definition.parameters {
+            if !plain_identifier(parameter) {
+                return Err(format!(
+                    "invalid parameter {parameter} in source function {name}"
+                ));
+            }
+            if !parameters.insert(parameter.clone()) {
+                return Err(format!(
+                    "duplicate parameter {parameter} in source function {name}"
+                ));
+            }
+        }
+        definition
+            .body
+            .validate_calls(
+                &parameters,
+                &|_, _| Err("pure source functions cannot query graph predicates".into()),
+                &|called, arity| {
+                    let callee = functions
+                        .get(called)
+                        .ok_or_else(|| format!("unknown source function {called}"))?;
+                    check_arity(callee, arity)
+                },
+            )
+            .and_then(|kind| kind.require(ValueType::Number))
+            .map_err(|error| format!("source function {name}: {error}"))?;
+    }
+    let mut visited = HashSet::new();
+    let mut active = HashSet::new();
+    for name in functions.keys() {
+        visit_function(name, functions, &mut visited, &mut active)?;
+    }
+    // Check expansion limits for unused definitions as well. Each body is
+    // checked separately, so a large unused macro cannot escape validation.
+    for (name, definition) in functions {
+        expand(&definition.body, functions)
+            .map_err(|error| format!("source function {name}: {error}"))?;
+    }
+    Ok(())
+}
+
+fn collect_calls<'a>(expression: &'a Expr, calls: &mut Vec<&'a str>) {
+    match &expression.node {
+        Node::Unary(_, child) => collect_calls(child, calls),
+        Node::Binary(_, left, right) => {
+            collect_calls(left, calls);
+            collect_calls(right, calls);
+        }
+        Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+            if let Node::UserCall(name, _) = &expression.node {
+                calls.push(name);
+            }
+            for argument in arguments {
+                collect_calls(argument, calls);
+            }
+        }
+        Node::ExpandedCall(arguments, body) => {
+            for argument in arguments {
+                collect_calls(argument, calls);
+            }
+            collect_calls(body, calls);
+        }
+        _ => {}
+    }
+}
+
+fn visit_function(
+    name: &str,
+    functions: &BTreeMap<String, FunctionDef>,
+    visited: &mut HashSet<String>,
+    active: &mut HashSet<String>,
+) -> Result<(), String> {
+    if active.contains(name) {
+        return Err(format!("recursive source function cycle involving {name}"));
+    }
+    if visited.contains(name) {
+        return Ok(());
+    }
+    active.insert(name.into());
+    let mut calls = Vec::new();
+    collect_calls(&functions[name].body, &mut calls);
+    for callee in calls {
+        visit_function(callee, functions, visited, active)?;
+    }
+    active.remove(name);
+    visited.insert(name.into());
+    Ok(())
+}
+
+struct Expander<'a> {
+    functions: &'a BTreeMap<String, FunctionDef>,
+    active: Vec<String>,
+    remaining: usize,
+}
+
+impl Expander<'_> {
+    fn build(&mut self, node: Node) -> Result<Expr, String> {
+        if self.remaining == 0 {
+            return Err(format!(
+                "expression exceeds expansion limit {MAX_EXPANDED_NODES} nodes"
+            ));
+        }
+        self.remaining -= 1;
+        Expr::new(node)
+    }
+
+    fn walk(
+        &mut self,
+        expression: &Expr,
+        parameters: Option<&BTreeMap<String, Expr>>,
+    ) -> Result<Expr, String> {
+        let node = match &expression.node {
+            Node::Number(number) => Node::Number(number.clone()),
+            Node::Bool(value) => Node::Bool(*value),
+            Node::Variable(name) => {
+                if let Some(parameters) = parameters {
+                    let argument = parameters
+                        .get(name)
+                        .ok_or_else(|| format!("pure source function cannot capture {name}"))?;
+                    // The argument is already expanded in its caller's scope.
+                    // Do not substitute again if a caller name matches a formal.
+                    return self.walk(argument, None);
+                }
+                Node::Variable(name.clone())
+            }
+            Node::Predicate(name, target) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot query graph predicates".into());
+                }
+                Node::Predicate(name.clone(), target.clone())
+            }
+            Node::Unary(operator, child) => {
+                Node::Unary(*operator, Box::new(self.walk(child, parameters)?))
+            }
+            Node::Binary(operator, left, right) => Node::Binary(
+                *operator,
+                Box::new(self.walk(left, parameters)?),
+                Box::new(self.walk(right, parameters)?),
+            ),
+            Node::Function(function, arguments) => Node::Function(
+                *function,
+                arguments
+                    .iter()
+                    .map(|argument| self.walk(argument, parameters))
+                    .collect::<Result<_, _>>()?,
+            ),
+            Node::ExpandedCall(arguments, body) => Node::ExpandedCall(
+                arguments
+                    .iter()
+                    .map(|argument| self.walk(argument, parameters))
+                    .collect::<Result<_, _>>()?,
+                Box::new(self.walk(body, parameters)?),
+            ),
+            Node::UserCall(name, arguments) => {
+                let functions = self.functions;
+                let definition = functions
+                    .get(name)
+                    .ok_or_else(|| format!("unknown source function {name}"))?;
+                check_arity(definition, arguments.len())?;
+                if self.active.contains(name) {
+                    return Err(format!("recursive source function cycle involving {name}"));
+                }
+                if self.active.len() >= MAX_NESTING {
+                    return Err(format!(
+                        "source function expansion exceeds nesting limit {MAX_NESTING}"
+                    ));
+                }
+                // Expand call arguments before entering the callee: f(f(x))
+                // is ordinary composition, not recursive function definition.
+                let arguments = arguments
+                    .iter()
+                    .map(|argument| self.walk(argument, parameters))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let bindings = definition
+                    .parameters
+                    .iter()
+                    .cloned()
+                    .zip(arguments.iter().cloned())
+                    .collect();
+                self.active.push(name.clone());
+                let body = self.walk(&definition.body, Some(&bindings));
+                self.active.pop();
+                Node::ExpandedCall(arguments, Box::new(body?))
+            }
+        };
+        self.build(node)
+    }
+}
+
+/// Expand pure source calls into a bounded, closed expression before the host
+/// supplies state types. Call `validate_functions` once for the registry first;
+/// expansion also checks used calls for arity, captures, cycles and limits.
+pub fn expand(
+    expression: &Expr,
+    functions: &BTreeMap<String, FunctionDef>,
+) -> Result<Expr, String> {
+    if functions.len() > MAX_FUNCTIONS {
+        return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
+    }
+    Expander {
+        functions,
+        active: Vec::new(),
+        remaining: MAX_EXPANDED_NODES,
+    }
+    .walk(expression, None)
 }
 
 #[cfg(test)]
@@ -660,6 +988,305 @@ mod tests {
 
     fn eval(input: &str) -> Result<Value, String> {
         parse(input)?.evaluate(&|_| None, &|_, _| Err("unexpected predicate".into()))
+    }
+
+    fn definitions(items: &[(&str, &[&str], &str)]) -> BTreeMap<String, FunctionDef> {
+        items
+            .iter()
+            .map(|(name, parameters, body)| {
+                (
+                    (*name).into(),
+                    FunctionDef {
+                        name: (*name).into(),
+                        parameters: parameters
+                            .iter()
+                            .map(|parameter| (*parameter).into())
+                            .collect(),
+                        body: parse_unresolved(body).unwrap(),
+                    },
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn atan2_uses_y_x_order_and_retains_finite_argument_checks() {
+        assert_eq!(
+            eval("atan2(1, 0)"),
+            Ok(Value::Number(std::f64::consts::FRAC_PI_2))
+        );
+        assert_eq!(
+            eval("atan2(0, -1)"),
+            Ok(Value::Number(std::f64::consts::PI))
+        );
+        assert_eq!(
+            eval("atan2(-1, 0)"),
+            Ok(Value::Number(-std::f64::consts::FRAC_PI_2))
+        );
+        assert_eq!(
+            eval("atan2(1e308, 1e308)"),
+            Ok(Value::Number(std::f64::consts::FRAC_PI_4))
+        );
+        assert_eq!(eval("atan2(0, 0)"), Ok(Value::Number(0.0)));
+        assert!(parse("atan2(1)").is_err());
+        assert!(parse("atan2(1, 2, 3)").is_err());
+        assert!(eval("atan2(1 / 0, 1)").is_err());
+        assert!(parse("atan2(x, 1)")
+            .unwrap()
+            .evaluate(&|_| Some(f64::INFINITY), &|_, _| Ok(false))
+            .is_err());
+    }
+
+    #[test]
+    fn source_functions_expand_forward_calls_and_explicit_world_coordinates() {
+        let functions = definitions(&[
+            (
+                "distance",
+                &["ax", "az", "bx", "bz"],
+                "sqrt(square(ax-bx) + square(az-bz))",
+            ),
+            ("square", &["x"], "x*x"),
+        ]);
+        validate_functions(&functions).unwrap();
+        assert!(parse("distance(1, 2, 3, 4)").is_err());
+        let expression =
+            parse_unresolved("distance(ship_x, ship_z, reef_one.x, reef_one.z)").unwrap();
+        assert!(expression
+            .validate(&HashSet::new(), &|_, _| Ok(()))
+            .is_err());
+        assert!(expression
+            .evaluate(&|_| Some(1.0), &|_, _| Ok(false))
+            .is_err());
+        let expression = expand(&expression, &functions).unwrap();
+        let names = ["ship_x", "ship_z", "reef_one.x", "reef_one.z"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        assert_eq!(
+            expression.validate(&names, &|_, _| Ok(())),
+            Ok(ValueType::Number)
+        );
+        assert_eq!(
+            expression.evaluate(
+                &|name| match name {
+                    "ship_x" => Some(7.0),
+                    "ship_z" => Some(9.0),
+                    "reef_one.x" => Some(4.0),
+                    "reef_one.z" => Some(5.0),
+                    _ => None,
+                },
+                &|_, _| Ok(false)
+            ),
+            Ok(Value::Number(5.0))
+        );
+    }
+
+    #[test]
+    fn function_substitution_preserves_caller_scope_and_allows_composition() {
+        let functions = definitions(&[
+            ("subtract", &["x", "y"], "x-y"),
+            ("shift", &["x"], "x+1"),
+            ("quarter_turn", &[], "atan2(1, 0)"),
+        ]);
+        validate_functions(&functions).unwrap();
+        let expression = expand(&parse_unresolved("subtract(y, x)").unwrap(), &functions).unwrap();
+        assert_eq!(
+            expression.evaluate(
+                &|name| match name {
+                    "x" => Some(2.0),
+                    "y" => Some(7.0),
+                    _ => None,
+                },
+                &|_, _| Ok(false)
+            ),
+            Ok(Value::Number(5.0))
+        );
+        let expression = expand(&parse_unresolved("shift(shift(2))").unwrap(), &functions).unwrap();
+        assert_eq!(
+            expression.evaluate(&|_| None, &|_, _| Ok(false)),
+            Ok(Value::Number(4.0))
+        );
+        let expression = expand(&parse_unresolved("quarter_turn()").unwrap(), &functions).unwrap();
+        assert_eq!(
+            expression.evaluate(&|_| None, &|_, _| Ok(false)),
+            Ok(Value::Number(std::f64::consts::FRAC_PI_2))
+        );
+    }
+
+    #[test]
+    fn functions_reject_duplicate_parameters_shadowing_bad_names_and_arity() {
+        let duplicate = definitions(&[("duplicate", &["x", "x"], "x")]);
+        assert!(validate_functions(&duplicate)
+            .unwrap_err()
+            .contains("duplicate parameter"));
+        for name in [
+            "abs",
+            "min",
+            "max",
+            "clamp",
+            "sin",
+            "cos",
+            "sqrt",
+            "atan2",
+            "observed",
+            "examined",
+            "committed",
+            "reopened",
+        ] {
+            let functions = definitions(&[(name, &[], "1")]);
+            assert!(
+                validate_functions(&functions)
+                    .unwrap_err()
+                    .contains("shadows"),
+                "{name}"
+            );
+        }
+        for name in ["a.b", "1name", "and", "true", ""] {
+            assert!(validate_functions(&definitions(&[(name, &[], "1")])).is_err());
+            assert!(validate_functions(&definitions(&[("valid", &[name], "1")])).is_err());
+        }
+        let mut mismatch = definitions(&[("valid", &[], "1")]);
+        mismatch.get_mut("valid").unwrap().name = "different".into();
+        assert!(validate_functions(&mismatch).is_err());
+        let functions = definitions(&[("square", &["x"], "x*x")]);
+        for source in ["square()", "square(1, 2)", "unknown(1)"] {
+            assert!(
+                expand(&parse_unresolved(source).unwrap(), &functions).is_err(),
+                "{source}"
+            );
+        }
+        for body in ["square()", "square(1, 2)", "unknown(1)"] {
+            let functions = definitions(&[("square", &["x"], "x*x"), ("unused", &[], body)]);
+            assert!(validate_functions(&functions).is_err(), "{body}");
+        }
+        assert!(parse_unresolved("source.function(1)").is_err());
+    }
+
+    #[test]
+    fn pure_functions_cannot_capture_state_coordinates_graph_or_boolean_values() {
+        for body in [
+            "heat + x",
+            "reef_one.x + x",
+            "observed(signal)",
+            "examined(risk)",
+            "true",
+            "x > 0",
+            "max(x, false)",
+        ] {
+            let functions = definitions(&[("impure", &["x"], body)]);
+            assert!(validate_functions(&functions).is_err(), "{body}");
+        }
+        let functions = definitions(&[("ignore", &["x"], "1"), ("capture", &[], "ignore(heat)")]);
+        assert!(validate_functions(&functions).is_err());
+        let functions = definitions(&[("capture", &["x"], "x + heat")]);
+        assert!(expand(&parse_unresolved("capture(1)").unwrap(), &functions)
+            .unwrap_err()
+            .contains("cannot capture"));
+    }
+
+    #[test]
+    fn unused_function_arguments_are_still_numeric_and_eagerly_checked() {
+        let functions = definitions(&[("constant", &["ignored"], "2")]);
+        validate_functions(&functions).unwrap();
+        let boolean = expand(&parse_unresolved("constant(true)").unwrap(), &functions).unwrap();
+        assert!(boolean.validate(&HashSet::new(), &|_, _| Ok(())).is_err());
+        assert!(boolean.evaluate(&|_| None, &|_, _| Ok(false)).is_err());
+        let unknown = expand(&parse_unresolved("constant(missing)").unwrap(), &functions).unwrap();
+        assert!(unknown.validate(&HashSet::new(), &|_, _| Ok(())).is_err());
+        let division = expand(&parse_unresolved("constant(1 / 0)").unwrap(), &functions).unwrap();
+        assert!(division
+            .evaluate(&|_| None, &|_, _| Ok(false))
+            .unwrap_err()
+            .contains("division by zero"));
+    }
+
+    #[test]
+    fn unused_direct_and_indirect_recursive_functions_are_rejected() {
+        for functions in [
+            definitions(&[("valid", &[], "1"), ("recursive", &["x"], "recursive(x)")]),
+            definitions(&[
+                ("valid", &[], "1"),
+                ("first", &["x"], "second(x)"),
+                ("second", &["x"], "first(x)"),
+            ]),
+        ] {
+            assert!(validate_functions(&functions)
+                .unwrap_err()
+                .contains("cycle"));
+        }
+        let functions = definitions(&[("recursive", &["x"], "recursive(x)")]);
+        assert!(
+            expand(&parse_unresolved("recursive(1)").unwrap(), &functions)
+                .unwrap_err()
+                .contains("cycle")
+        );
+    }
+
+    #[test]
+    fn function_count_expanded_nodes_and_depth_are_bounded() {
+        let mut functions = BTreeMap::new();
+        for index in 0..MAX_FUNCTIONS {
+            let name = format!("constant_{index}");
+            functions.insert(
+                name.clone(),
+                FunctionDef {
+                    name,
+                    parameters: Vec::new(),
+                    body: parse("1").unwrap(),
+                },
+            );
+        }
+        validate_functions(&functions).unwrap();
+        functions.insert(
+            "excess".into(),
+            FunctionDef {
+                name: "excess".into(),
+                parameters: Vec::new(),
+                body: parse("1").unwrap(),
+            },
+        );
+        assert!(validate_functions(&functions)
+            .unwrap_err()
+            .contains("function limit"));
+        assert!(expand(&parse("1").unwrap(), &functions)
+            .unwrap_err()
+            .contains("function limit"));
+
+        let mut expanding = definitions(&[("f0", &["x"], "x+x")]);
+        for index in 1..=12 {
+            let name = format!("f{index}");
+            expanding.insert(
+                name.clone(),
+                FunctionDef {
+                    name,
+                    parameters: vec!["x".into()],
+                    body: parse_unresolved(&format!("f{}(x)+f{}(x)", index - 1, index - 1))
+                        .unwrap(),
+                },
+            );
+        }
+        assert!(validate_functions(&expanding)
+            .unwrap_err()
+            .contains("expansion limit"));
+        assert!(expand(&parse_unresolved("f12(1)").unwrap(), &expanding)
+            .unwrap_err()
+            .contains("expansion limit"));
+
+        let mut deep = definitions(&[("f0", &["x"], "x")]);
+        for index in 1..=MAX_NESTING {
+            let name = format!("f{index}");
+            deep.insert(
+                name.clone(),
+                FunctionDef {
+                    name,
+                    parameters: vec!["x".into()],
+                    body: parse_unresolved(&format!("f{}(x)", index - 1)).unwrap(),
+                },
+            );
+        }
+        assert!(validate_functions(&deep)
+            .unwrap_err()
+            .contains("nesting limit"));
     }
 
     #[test]

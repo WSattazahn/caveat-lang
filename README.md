@@ -24,6 +24,10 @@ event tick dt min 0 max 0.1;
 on tick when phase == 1 set boat_z = boat_z - boat_speed * dt;
 ```
 
+The [reactive 0.2 extension](spec/caveat-reactive-0.2.md) adds reusable numeric functions, evaluated presentation bindings, explicit sound/visual cues, source-declared controls, and a source-declared clock. The rescue's screen transitions, feedback, visual state, and keyboard steering now live in the Caveat program. Cues publish only when their event commits; a failed calculation rolls back its graph changes and feedback together.
+
+The crosscurrent demonstrates why that matters beyond moving code: a qualified forecast supports an initial navigation commitment; an opposing observation reopens it and leads to counter-steering while retaining the unresolved caveat. Observation changes the navigator's response, not the physical current. Both evidence histories remain inspectable. [Preserving Caveat's essence](docs/CAVEAT_ESSENCE.md) records the invariants and the remaining Rust/browser boundaries.
+
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
 
 ## The Last Beacon — story experiment

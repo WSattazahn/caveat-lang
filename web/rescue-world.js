@@ -1,7 +1,7 @@
 import { createBeaconWorld } from './beacon-world.js';
 
-/** The rescue camera and effects are presentation only. CAVEAT owns every
- * position update, collision, discovery, damage event and winning condition. */
+/** A fixed-camera presentation profile. Evaluated source bindings control all
+ * entity poses and parts; source cues request transient geometric effects. */
 export function createRescueWorld(canvas, options = {}) {
   return createBeaconWorld(canvas, { ...options, mode: 'rescue', interactiveCamera: false });
 }

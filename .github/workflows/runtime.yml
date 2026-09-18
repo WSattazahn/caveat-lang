@@ -115,10 +115,14 @@ jobs:
           path: test-results/
 
   light-the-way:
-    name: Light the Way action game QA
+    name: Light the Way (${{ matrix.browser }})
     needs: core
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
@@ -130,13 +134,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Steer the ferry with mouse, keyboard and touch
-        run: BROWSERS=chromium,webkit npm run test:rescue
+        run: npm run test:rescue
+        env:
+          BROWSERS: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: light-the-way-browser-qa
+          name: light-the-way-${{ matrix.browser }}-qa
           path: test-results/rescue-*
 
   mr-caveat:

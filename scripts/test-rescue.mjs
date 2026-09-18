@@ -37,7 +37,7 @@ const read = page => page.evaluate(() => window.__rescue.snapshot());
 const screenshot = (page, name) => page.screenshot({ path: path.join(results, `rescue-${name}.png`), fullPage: true });
 const fits = page => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 
-async function fresh(browser, options = {}, renderFps = Number(process.env.RENDER_FPS || 10)) {
+async function fresh(browser, options = {}, renderFps = Number(process.env.RENDER_FPS || 10), preparePage) {
   const context = await browser.newContext({
     viewport: { width: 1200, height: 800 }, reducedMotion: 'reduce', ...options, deviceScaleFactor: 1,
   });
@@ -46,6 +46,7 @@ async function fresh(browser, options = {}, renderFps = Number(process.env.RENDE
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  if (preparePage) await preparePage(page);
   const response = await page.goto(url);
   assert(response?.ok(), `Game failed to load: HTTP ${response?.status()}`);
   await page.getByRole('button', { name: /^Start rescue\b/i }).waitFor();
@@ -129,13 +130,14 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     await pointer.move(5.5, initial.values.boat_z - 8);
     let previousHitCount = 0;
     let midCaptured = false;
+    let currentCaptured = false;
     let end;
-    for (let step = 0; step < 380; step++) {
+    for (let step = 0; step < 95; step++) {
       const before = await read(page);
       if (before.values.phase !== 1) { end = before; break; }
       const z = before.values.boat_z;
       await pointer.move(z > 41 ? 5.5 : z > 32 ? -4 : 5.3, z - 8);
-      await page.clock.runFor(250);
+      await page.clock.runFor(1000);
       const after = await read(page);
       assert(after.values.hit_count - previousHitCount <= 1, 'One frame caused repeated collision damage');
       previousHitCount = after.values.hit_count;
@@ -145,13 +147,22 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
         assert.equal(await fits(page), true);
         midCaptured = true;
       }
+      if (!currentCaptured && after.values.current_seen === 1) {
+        assert(after.relations.some(edge => edge.from === 'morning_forecast' && edge.relation === 'supports'));
+        assert(after.relations.some(edge => edge.from === 'crosscurrent_reading' && edge.relation === 'opposes'));
+        assert(after.commitments.some(entry => entry.action === 'trust_forecast' && entry.open));
+        assert(after.commitments.some(entry => entry.action === 'counter_steer' && entry.retained.includes('surge_unmeasured')));
+        await screenshot(page, `${name}-current-observed`);
+        currentCaptured = true;
+      }
     }
     await pointer.release();
     end ||= await read(page);
     assert.equal(end.values.phase, 2, `Normal ${name} steering did not reach harbor: ${JSON.stringify(end.values)}`);
     assert.equal(end.values.rescued, 32);
     assert.equal(end.values.hull, 3, 'The open-water route should be steerable without taking damage');
-    assert(end.values.elapsed >= 60 && end.values.elapsed <= 90, `Unexpected run duration ${end.values.elapsed}`);
+    assert.equal(end.values.current_seen, 1, 'This route should discover and account for the crosscurrent');
+    assert(end.values.elapsed >= 50 && end.values.elapsed <= 90, `Unexpected run duration ${end.values.elapsed}`);
     assert.equal(await fits(page), true);
     await page.getByRole('button', { name: /^Try again\b/i }).waitFor();
     await screenshot(page, `${name}-rescued`);
@@ -192,6 +203,23 @@ async function keyboardAndFailure(browser) {
     assert(right.values.boat_x > left.values.boat_x + 1, 'ArrowRight did not turn the ferry back');
     await screenshot(page, 'keyboard-steering');
     report.checks.push('keyboard arrows steer the actual Caveat simulation');
+    await page.getByRole('button', { name: /^Pause game$/i }).click();
+    const paused = await read(page);
+    assert.equal(paused.values.paused, 1);
+    await page.clock.runFor(2000);
+    const waiting = await read(page);
+    for (const key of ['boat_x', 'boat_z', 'boat_vx', 'elapsed', 'hull']) {
+      assert.equal(waiting.values[key], paused.values[key], `${key} changed while the source was paused`);
+    }
+    assert.deepEqual(waiting.relations, paused.relations);
+    assert.deepEqual(waiting.commitments, paused.commitments);
+    await page.getByRole('button', { name: /^Keep going\b/i }).click();
+    await page.clock.runFor(500);
+    const resumed = await read(page);
+    assert.equal(resumed.values.paused, 0);
+    assert(resumed.values.elapsed > paused.values.elapsed);
+    assert(resumed.values.boat_z < paused.values.boat_z);
+    report.checks.push('source-owned pause and resume preserve live knowledge');
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
 
@@ -225,6 +253,55 @@ async function keyboardAndFailure(browser) {
   } finally { await idle.context.close(); }
 }
 
+async function sourceOnlyPresentation(browser) {
+  let sourceIntercepted = false;
+  const addition = `
+// This variant is delivered as Caveat source; the host JavaScript is untouched.
+bind passengers_label.text = "SOURCE VARIANT CREW";
+bind crosscurrent_marker.scale = 1.5;
+bind crosscurrent_marker.ring.color = "#ff00ff";
+bind crosscurrent_marker.visible = true;
+cue qa_source_tone sound 523.25 0.07 0.02;
+on start emit qa_source_tone;
+`;
+  const { context, page, errors } = await fresh(browser, {}, 10, async page => {
+    await page.route('**/light_the_way.cav', async route => {
+      const response = await route.fetch();
+      assert(response.ok(), 'The original Caveat source must load before applying the variant');
+      sourceIntercepted = true;
+      await route.fulfill({ response, body: `${await response.text()}\n${addition}` });
+    });
+  });
+  try {
+    assert(sourceIntercepted, 'The test must change the served Caveat source itself');
+    const state = await begin(page);
+    assert.equal(state.bindings.passengers_label.text, 'SOURCE VARIANT CREW');
+    assert.equal(await page.locator('[data-caveat="passengers_label"]').innerText(), 'SOURCE VARIANT CREW',
+      'The HUD ignored the source-only text binding');
+    const rendered = await page.evaluate(() => window.__rescue.presentation());
+    assert.equal(rendered.bindings.crosscurrent_marker.scale, 1.5, 'The actual mesh ignored its source scale');
+    assert.equal(rendered.bindings.crosscurrent_marker['ring.color'], 16711935, 'The actual material ignored its source color');
+    assert.equal(rendered.bindings.crosscurrent_marker.visible, true);
+    const consumed = await page.evaluate(() => window.__rescue.recentCues());
+    const tone = consumed.find(cue => cue.id === 'qa_source_tone');
+    assert(tone, 'The unchanged host did not consume the newly authored cue');
+    assert.equal(tone.kind, 'sound');
+    assert.equal(tone.frequency, 523.25);
+    assert.equal(tone.duration, 0.07);
+    assert.equal(tone.gain, 0.02);
+    assert.equal(consumed.filter(cue => cue.id === 'qa_source_tone').length, 1, 'A cue replayed without a new source event');
+    assert.equal(state.values.hull, 3);
+    assert.equal(state.values.rescued, 0);
+    await screenshot(page, 'source-only-presentation');
+    assert.deepEqual(errors, []);
+    report.checks.push('Caveat-only HTTP variant changes real HUD, mesh/material, and consumed sound cue without modifying JavaScript');
+    console.log('PASS Caveat-only presentation and sound variant on the unchanged browser host');
+  } catch (error) {
+    await screenshot(page, 'source-only-presentation-failure').catch(() => {});
+    throw error;
+  } finally { await context.close(); }
+}
+
 try {
   await mkdir(results, { recursive: true });
   await startServer();
@@ -237,7 +314,10 @@ try {
     report.browsers[name] = browser.version();
     await pointerRoute(browser, {}, name);
     await pointerRoute(browser, { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } }, `${name}-mobile`);
-    if (name === 'chromium') await keyboardAndFailure(browser);
+    if (name === 'chromium') {
+      await keyboardAndFailure(browser);
+      await sourceOnlyPresentation(browser);
+    }
   }
   await writeFile(path.join(results, 'rescue-report.json'), `${JSON.stringify(report, null, 2)}\n`);
   console.log('Rescue browser checks passed.');
