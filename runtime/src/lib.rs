@@ -2,6 +2,7 @@ pub mod ast;
 pub mod caveat_rs;
 pub mod eval;
 pub mod graphics;
+pub mod map;
 pub mod parser;
 pub mod session;
 pub mod web;
