@@ -35,7 +35,7 @@ class Renderer3D{
     this.manifest=manifest;this.objects=new Map();this.meshes={cube:cubeMesh(),sphere:sphereMesh(),cylinder:cylinderMesh()};
     this.camera={position:[...(manifest.camera?.position||[0,4,14])],target:[...(manifest.camera?.target||[0,1,0])],fov:manifest.camera?.fov||58};
     this.cameraTween=null;this.userYaw=0;this.userPitch=0;this.drag=null;this.last=performance.now();
-    this.initGL();this.loadObjects(manifest.objects||[]);this.bindPointers();requestAnimationFrame(t=>this.frame(t));
+    this.initGL();this.loadObjects(manifest.objects||[]);this.bindPointers();this.draw();requestAnimationFrame(t=>this.frame(t));
   }
   initGL(){
     const gl=this.gl;
