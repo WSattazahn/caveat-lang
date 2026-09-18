@@ -1,1 +1,491 @@
-<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>The Door — CAVEAT</title><style>body{margin:0;background:#111;color:#eee;font:17px system-ui,-apple-system,sans-serif}.wrap{max-width:640px;margin:auto;padding:28px 20px 60px}h1{font-size:38px;margin:12px 0 4px}.tag,.budget,.muted{color:#999}.card{margin-top:28px;padding:20px;border:1px solid #444;border-radius:18px;background:#191919}.discovery,.commit{border-left:3px solid #ddd;padding:4px 0 4px 16px;margin:16px 0}.reopened{border:1px solid #888;border-radius:12px;padding:14px;margin-top:18px}.kicker{display:block;font-size:13px;letter-spacing:.12em;color:#aaa;margin-bottom:7px}.trail{margin-top:22px;padding-top:16px;border-top:1px solid #333}.trail div{font-size:14px;color:#aaa;margin:8px 0}.trail b{color:#ddd}button{display:block;width:100%;text-align:left;margin:12px 0;padding:17px;border:1px solid #666;border-radius:14px;background:#222;color:#fff;font:inherit}button:active{background:#444}.error{color:#ff9d9d}.graphics-link{display:block;margin-top:20px;color:#9fc2ff}</style></head><body><main class="wrap"><div class="tag">A game executed by the CAVEAT runtime</div><h1>The Door</h1><p>Emergency lights pulse red. The evacuation corridor is behind a sealed door, and the building systems disagree about whether opening it is safe.</p><p><a class="graphics-link" href="./graphics.html">Explore the CAVEAT Graphics prototype →</a></p><section id="game" class="card">Loading CAVEAT…</section><section id="trail" class="trail"><span class="kicker">DECISION TRAIL</span></section></main><script type="module">import init,{WebSession}from'./pkg/caveat_runtime.js';const L={latch_sensor_recently_serviced:'the latch sensor was recently serviced',camera_has_blind_spot:'the camera has a blind spot',maintenance_record:'Maintenance log: the latch sensor failed calibration twice after servicing.',coverage_test:'Camera diagnostic: a blind turn hides the final twelve meters of corridor.',corridor_clear:'the corridor is clear',latch_alarm_reliable:'the latch alarm is reliable',door_unsafe:'the door may be unsafe',open:'Open the sealed door.',wait:'Wait for more information.',reroute:'Abandon this corridor and reroute.',continue:'Continue with the earlier plan.',retreat:'Retreat from the corridor.',stairwell:'Take the alternate stairwell.'};const label=x=>L[x]||x.replaceAll('_',' '),el=document.querySelector('#game'),trail=document.querySelector('#trail');let game,step=0;function log(kind,text){step++;let d=document.createElement('div');d.innerHTML='<b>'+step+'. '+kind+'</b> — '+text;trail.appendChild(d)}async function boot(){try{await init();game=new WebSession(await fetch('./the_door_round2.cav').then(r=>r.text()));render()}catch(e){fail(e)}}function fail(e){el.innerHTML='<div class="error">'+e+'</div>'}function button(text,fn){let b=document.createElement('button');b.textContent=text;b.onclick=fn;el.appendChild(b)}function render(){let p;try{p=JSON.parse(game.pending())}catch(e){return fail(e)}if(p.kind==='complete'){el.innerHTML='<h2>Decision record complete</h2><p class="muted">The trail below records how the decision changed as evidence arrived.</p>';button('Play again',()=>location.reload());return}el.innerHTML='<div class="budget">Attention remaining: '+p.budget+(p.kind==='investigate'?' · investigation costs '+p.cost:'')+'</div><h2>'+(p.kind==='investigate'?'What do you investigate?':'What do you do?')+'</h2>';p.options.forEach(o=>button(label(o),()=>act(o,p.kind)))}function act(o,kind){try{if(kind==='investigate')log('INVESTIGATED',label(o));game.apply(o);let d=JSON.parse(game.discoveries()),c=JSON.parse(game.commitment());if(c){log('COMMITTED',label(c.action));c.retained.forEach(x=>log('RETAINED',label(x)));c.reopened_by.forEach(x=>log('REOPENED','because '+label(x)));showCommit(c);return}if(d.length){d.forEach(x=>log('DISCOVERED',label(x.evidence)+' '+x.relation+' '+label(x.target)));showDiscovery(d);return}render()}catch(e){fail(e)}}function showDiscovery(ds){el.innerHTML='<h2>You discovered something.</h2>';ds.forEach(d=>{let x=document.createElement('div');x.className='discovery';x.innerHTML='<span class="kicker">DISCOVERED</span>'+label(d.evidence)+'<p>This evidence <b>'+d.relation+'</b> '+label(d.target)+'.</p>';el.appendChild(x)});button('Continue',render)}function showCommit(c){el.innerHTML='<span class="kicker">YOU COMMITTED</span><h2>'+label(c.action)+'</h2>';let x=document.createElement('div');x.className='commit';x.innerHTML='<span class="kicker">UNCERTAINTY RETAINED</span><p>You acted without resolving:</p>'+c.retained.map(r=>'<p>• '+label(r)+'</p>').join('');el.appendChild(x);if(c.reopened_by.length){let r=document.createElement('div');r.className='reopened';r.innerHTML='<span class="kicker">COMMITMENT REOPENED</span><b>Your earlier decision is no longer treated as settled.</b><p class="muted">Triggered by: '+c.reopened_by.map(label).join(', ')+'.</p>';el.appendChild(r)}button(c.reopened_by.length?'Reconsider':'Continue',render)}boot();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111a24">
+  <title>Moon Garden — a CAVEAT story</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --ink:#f7f0e3;
+      --muted:#b8b4ad;
+      --panel:rgba(17,25,35,.92);
+      --panel2:rgba(26,36,47,.88);
+      --line:rgba(255,255,255,.12);
+      --gold:#f3ca72;
+      --mint:#9ad7bf;
+      --rose:#dca0a9;
+      --shadow:0 22px 70px rgba(0,0,0,.35)
+    }
+    *{box-sizing:border-box}
+    html{background:#0f1822}
+    body{
+      margin:0;
+      min-height:100%;
+      background:
+        radial-gradient(circle at 50% -12%,rgba(72,97,115,.35),transparent 38rem),
+        linear-gradient(#111b25,#0d151d 68%,#0b1118);
+      color:var(--ink);
+      font-family:ui-rounded,"SF Pro Rounded","Avenir Next",system-ui,-apple-system,sans-serif;
+      -webkit-font-smoothing:antialiased
+    }
+    button{font:inherit}
+    button:focus-visible,summary:focus-visible{outline:3px solid #f3ca72;outline-offset:3px}
+    .app{width:min(100%,960px);margin:0 auto;padding:18px 14px calc(28px + env(safe-area-inset-bottom))}
+    .mast{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      padding:2px 4px 12px
+    }
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .mark{
+      width:34px;height:34px;border:1px solid rgba(255,255,255,.18);border-radius:11px;
+      display:grid;place-items:center;background:rgba(255,255,255,.055);flex:0 0 auto
+    }
+    .brand strong{font-size:13px;letter-spacing:.18em;text-transform:uppercase}
+    .brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+    .status-pill{
+      border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 10px;
+      color:#d9d5ce;background:rgba(0,0,0,.16);font-size:12px;white-space:nowrap
+    }
+    .stage{
+      position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.12);
+      border-radius:28px;background:#101b25;box-shadow:var(--shadow)
+    }
+    .scene-wrap{position:relative;aspect-ratio:16/10;min-height:330px;overflow:hidden}
+    #scene{display:block;width:100%;height:100%}
+    .scene-vignette{
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(transparent 45%,rgba(7,12,17,.22) 70%,rgba(7,12,17,.78));
+      box-shadow:inset 0 0 90px rgba(1,6,12,.38)
+    }
+    .scene-caption{
+      position:absolute;left:18px;right:18px;bottom:16px;display:flex;
+      align-items:flex-end;justify-content:space-between;gap:10px;pointer-events:none
+    }
+    .scene-caption .place{
+      font-size:12px;text-transform:uppercase;letter-spacing:.17em;color:#e9dfcc;
+      text-shadow:0 2px 14px #000
+    }
+    .scene-caption .weather{font-size:12px;color:#d3d0c9;text-shadow:0 2px 14px #000}
+    .panel{padding:20px 18px 18px;background:linear-gradient(180deg,rgba(14,22,31,.97),rgba(12,18,26,.995))}
+    .eyebrow{
+      color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.16em;
+      text-transform:uppercase;margin-bottom:7px
+    }
+    h1,h2,p{margin-top:0}
+    h1{font-size:clamp(28px,6vw,46px);line-height:1.02;margin-bottom:8px;letter-spacing:-.035em}
+    h2{font-size:clamp(22px,5vw,30px);line-height:1.15;margin-bottom:8px;letter-spacing:-.02em}
+    .lede{font-size:15px;line-height:1.55;color:#d7d2c9;margin-bottom:15px;max-width:720px}
+    .meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+    .chip{
+      display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 9px;
+      border:1px solid var(--line);border-radius:999px;color:#d9d5ce;
+      background:rgba(255,255,255,.035);font-size:12px
+    }
+    .chip.gold{border-color:rgba(243,202,114,.35);color:#f5d895;background:rgba(243,202,114,.08)}
+    .choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .choice{
+      min-height:94px;border:1px solid rgba(255,255,255,.14);border-radius:17px;
+      background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+      color:var(--ink);padding:14px;text-align:left;cursor:pointer;
+      transition:transform .16s ease,border-color .16s ease,background .16s ease
+    }
+    .choice strong{display:block;font-size:14px;line-height:1.3}
+    .choice span{display:block;color:#aaa9a4;font-size:12px;line-height:1.35;margin-top:7px}
+    .choice:active{transform:scale(.985)}
+    .choice[disabled]{opacity:.45;cursor:default}
+    @media(hover:hover){.choice:hover{transform:translateY(-2px);border-color:rgba(243,202,114,.55);background:rgba(243,202,114,.08)}}
+    .feedback{
+      border:1px solid rgba(255,255,255,.12);border-radius:19px;padding:16px;
+      background:linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,.025))
+    }
+    .feedback.clue{border-color:rgba(154,215,191,.3)}
+    .feedback.reopen{border-color:rgba(243,202,114,.36);background:linear-gradient(150deg,rgba(243,202,114,.09),rgba(255,255,255,.025))}
+    .feedback p{color:#d2cec7;line-height:1.52;margin-bottom:11px}
+    .feedback .quote{
+      color:#fff;font-size:17px;line-height:1.45;padding-left:13px;border-left:2px solid var(--mint)
+    }
+    .primary{
+      width:100%;min-height:48px;border:0;border-radius:14px;margin-top:12px;
+      background:#f0d08e;color:#1c2024;font-weight:850;cursor:pointer
+    }
+    .primary:active{transform:translateY(1px)}
+    .caveat-box{
+      margin-top:11px;padding:10px 12px;border-radius:13px;
+      background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.09)
+    }
+    .caveat-box b{display:block;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#f1cf8d;margin-bottom:4px}
+    .caveat-box span{font-size:12px;line-height:1.45;color:#c9c5bd}
+    .ending{
+      text-align:center;padding:6px 2px 2px
+    }
+    .ending .cat-medal{
+      width:58px;height:58px;border-radius:50%;display:grid;place-items:center;margin:0 auto 10px;
+      background:rgba(243,202,114,.12);border:1px solid rgba(243,202,114,.4);font-size:28px
+    }
+    .ending p{max-width:620px;margin:0 auto 14px;color:#d5d1c9;line-height:1.55}
+    .trail{
+      margin-top:14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;
+      background:rgba(7,12,17,.35);overflow:hidden
+    }
+    .trail summary{
+      cursor:pointer;padding:13px 14px;color:#c9c5bd;font-size:12px;letter-spacing:.08em;text-transform:uppercase
+    }
+    .trail-list{padding:0 14px 12px}
+    .trail-row{display:flex;gap:10px;padding:9px 0;border-top:1px solid rgba(255,255,255,.07)}
+    .trail-n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.07);font-size:11px;flex:0 0 auto}
+    .trail-row div{font-size:12px;line-height:1.42;color:#bcb8b1}
+    .trail-row strong{color:#ece7de}
+    .error{padding:15px;border:1px solid rgba(255,127,127,.35);border-radius:14px;color:#ffd2d2;background:rgba(130,35,35,.18)}
+    .devlinks{display:flex;justify-content:center;gap:14px;margin:14px 0 0;font-size:12px}
+    .devlinks a{color:#9fb5c8;text-decoration:none}
+    .devlinks a:hover{text-decoration:underline}
+    .lantern-flame{transform-box:fill-box;transform-origin:center;animation:flicker 2.4s ease-in-out infinite}
+    .firefly{animation:drift 4.8s ease-in-out infinite alternate}
+    .firefly:nth-of-type(2){animation-delay:-1.2s}.firefly:nth-of-type(3){animation-delay:-2.4s}
+    .route-glow{opacity:.08;transition:opacity .6s ease}
+    .route-glow.active{opacity:.75}
+    #miso{opacity:0;transform:translate(0,12px);transition:opacity .8s ease,transform .8s ease}
+    #miso.visible{opacity:1;transform:translate(0,0)}
+    @keyframes flicker{0%,100%{opacity:.74;transform:scale(.96)}50%{opacity:1;transform:scale(1.05)}}
+    @keyframes drift{from{transform:translate(-4px,2px);opacity:.35}to{transform:translate(7px,-7px);opacity:.9}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+    @media(max-width:700px){
+      .app{padding:10px 9px calc(20px + env(safe-area-inset-bottom))}
+      .mast{padding:4px 3px 9px}
+      .brand small{display:none}
+      .stage{border-radius:22px}
+      .scene-wrap{aspect-ratio:4/3;min-height:300px}
+      .panel{padding:17px 14px 15px}
+      .choices{grid-template-columns:1fr}
+      .choice{min-height:74px}
+      .scene-caption{left:13px;right:13px;bottom:12px}
+    }
+  </style>
+</head>
+<body>
+<main class="app">
+  <header class="mast">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">◐</div>
+      <div><strong>CAVEAT</strong><small>worlds that remember uncertainty</small></div>
+    </div>
+    <div class="status-pill" id="engineStatus">Loading story…</div>
+  </header>
+
+  <section class="stage" aria-label="Moon Garden game">
+    <div class="scene-wrap">
+      <svg id="scene" viewBox="0 0 1000 625" role="img" aria-label="A moonlit garden with a pond, bridge, tea pavilion and greenhouse">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17293a"/><stop offset="1" stop-color="#243840"/></linearGradient>
+          <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c493f"/><stop offset="1" stop-color="#142b29"/></linearGradient>
+          <linearGradient id="water" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c4654"/><stop offset="1" stop-color="#102d38"/></linearGradient>
+          <radialGradient id="moonGlow"><stop offset="0" stop-color="#fff6d8" stop-opacity=".8"/><stop offset="1" stop-color="#fff6d8" stop-opacity="0"/></radialGradient>
+          <filter id="blur"><feGaussianBlur stdDeviation="10"/></filter>
+        </defs>
+        <rect width="1000" height="625" fill="url(#sky)"/>
+        <circle cx="790" cy="102" r="82" fill="url(#moonGlow)" opacity=".6" filter="url(#blur)"/>
+        <circle cx="790" cy="102" r="38" fill="#f6ecd0"/>
+        <g fill="#c8d8d4" opacity=".6">
+          <circle cx="105" cy="76" r="2"/><circle cx="173" cy="122" r="1.5"/><circle cx="249" cy="64" r="1.8"/>
+          <circle cx="345" cy="104" r="1.3"/><circle cx="585" cy="74" r="2"/><circle cx="692" cy="139" r="1.6"/>
+          <circle cx="885" cy="62" r="1.8"/><circle cx="938" cy="137" r="1.3"/>
+        </g>
+
+        <path d="M0 300 Q160 245 310 288 T625 275 T1000 290 V625 H0Z" fill="url(#ground)"/>
+        <g opacity=".9">
+          <path d="M0 334 Q86 270 166 314 Q212 346 270 308 Q307 286 348 324 V625 H0Z" fill="#19382f"/>
+          <path d="M693 315 Q750 265 808 310 Q863 352 1000 295 V625 H695Z" fill="#18362e"/>
+        </g>
+
+        <ellipse cx="354" cy="467" rx="268" ry="107" fill="url(#water)" stroke="#416f6d" stroke-width="3"/>
+        <path d="M92 475 Q228 427 412 449 Q515 461 622 429" fill="none" stroke="#6c8f7c" stroke-width="18" stroke-linecap="round" opacity=".38"/>
+        <path id="pondGlow" class="route-glow" d="M103 467 Q252 405 422 439 Q520 458 623 418" fill="none" stroke="#f3ca72" stroke-width="9" stroke-linecap="round"/>
+
+        <g id="bridge" transform="translate(545 348)">
+          <path d="M0 92 Q74 4 153 92" fill="none" stroke="#6e4c3c" stroke-width="26" stroke-linecap="round"/>
+          <path d="M-4 88 Q76 13 157 88" fill="none" stroke="#b48363" stroke-width="5"/>
+          <g stroke="#8c6046" stroke-width="5"><path d="M21 69v54"/><path d="M48 44v61"/><path d="M78 31v63"/><path d="M108 42v63"/><path d="M136 65v56"/></g>
+        </g>
+        <path id="bridgeGlow" class="route-glow" d="M545 440 Q619 352 698 440" fill="none" stroke="#f3ca72" stroke-width="11" stroke-linecap="round"/>
+
+        <g id="pavilion" transform="translate(702 269)">
+          <path d="M-20 70 L94 0 L211 70 Z" fill="#673c34"/>
+          <path d="M-2 68 L94 13 L192 68 Z" fill="#8c5747"/>
+          <rect x="19" y="72" width="151" height="117" rx="3" fill="#4e3c34"/>
+          <rect x="35" y="88" width="46" height="69" fill="#e1c58e" opacity=".35"/>
+          <rect x="109" y="88" width="46" height="69" fill="#e1c58e" opacity=".35"/>
+          <rect x="7" y="184" width="176" height="14" rx="6" fill="#342a25"/>
+          <g fill="#1e302a"><ellipse cx="184" cy="177" rx="53" ry="23"/><ellipse cx="205" cy="158" rx="42" ry="26"/></g>
+        </g>
+        <ellipse id="pavilionGlow" class="route-glow" cx="824" cy="466" rx="122" ry="60" fill="#f3ca72" opacity=".1"/>
+
+        <g id="glasshouse" transform="translate(92 267)">
+          <path d="M0 86 L73 5 L147 86" fill="#19373c" stroke="#6a9190" stroke-width="5"/>
+          <rect x="9" y="86" width="128" height="104" fill="#24474a" stroke="#6a9190" stroke-width="5"/>
+          <path d="M73 7V190M10 120h126M43 86v104M103 86v104" stroke="#6a9190" stroke-width="3" opacity=".78"/>
+          <g fill="#99c7a1" opacity=".55"><circle cx="33" cy="166" r="15"/><circle cx="109" cy="155" r="19"/><circle cx="79" cy="173" r="12"/></g>
+        </g>
+        <rect id="glassGlow" class="route-glow" x="93" y="348" width="148" height="111" rx="10" fill="#a9e0c0"/>
+
+        <g id="lanterns">
+          <g transform="translate(476 240)"><path d="M0 0v47" stroke="#34261f" stroke-width="4"/><rect x="-17" y="43" width="34" height="42" rx="8" fill="#b54e42"/><ellipse class="lantern-flame" cx="0" cy="64" rx="7" ry="10" fill="#ffd98a"/></g>
+          <g transform="translate(638 210)"><path d="M0 0v55" stroke="#34261f" stroke-width="4"/><rect x="-15" y="51" width="30" height="38" rx="8" fill="#c7853f"/><ellipse class="lantern-flame" cx="0" cy="70" rx="6" ry="9" fill="#ffe3a4"/></g>
+          <g transform="translate(314 226)"><path d="M0 0v49" stroke="#34261f" stroke-width="4"/><rect x="-14" y="45" width="28" height="36" rx="7" fill="#a84c47"/><ellipse class="lantern-flame" cx="0" cy="63" rx="5" ry="8" fill="#ffd98a"/></g>
+        </g>
+
+        <g fill="#cfe99f">
+          <circle class="firefly" cx="431" cy="359" r="3"/><circle class="firefly" cx="751" cy="388" r="2.5"/><circle class="firefly" cx="850" cy="348" r="2"/>
+        </g>
+
+        <g id="miso" transform="translate(835 422)" aria-label="Miso the cat">
+          <ellipse cx="0" cy="37" rx="32" ry="24" fill="#17191c"/>
+          <circle cx="-16" cy="13" r="20" fill="#17191c"/>
+          <path d="M-31 3l4-25 16 20M-6 0l15-20 2 27" fill="#17191c"/>
+          <path d="M28 37 Q62 36 61 9 Q60 -7 47 0" fill="none" stroke="#17191c" stroke-width="10" stroke-linecap="round"/>
+          <circle cx="-22" cy="10" r="2.7" fill="#e9d77e"/><circle cx="-10" cy="10" r="2.7" fill="#e9d77e"/>
+          <path d="M-18 17q4 4 8 0" fill="none" stroke="#d7b9a2" stroke-width="2"/>
+          <circle cx="-3" cy="30" r="5" fill="#c05249"/><path d="M-3 35v11" stroke="#d1a464" stroke-width="2"/>
+        </g>
+      </svg>
+      <div class="scene-vignette"></div>
+      <div class="scene-caption">
+        <div class="place" id="placeLabel">Moon Garden · Lantern Court</div>
+        <div class="weather" id="sceneNote">closing time · light wind</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div id="game">
+        <div class="eyebrow">A CAVEAT story</div>
+        <h1>Moon Garden</h1>
+        <p class="lede">Miso slipped past the tea pavilion just before closing. Three clues point in three directions, and every clue has a catch.</p>
+      </div>
+    </div>
+  </section>
+
+  <details class="trail">
+    <summary>Decision trail · what CAVEAT remembered</summary>
+    <div id="trail" class="trail-list"><div class="trail-row"><div class="trail-n">0</div><div><strong>Story loaded.</strong> No decisions yet.</div></div></div>
+  </details>
+
+  <nav class="devlinks" aria-label="Other CAVEAT demos">
+    <a href="./door.html">The Door</a>
+    <a href="./3d.html">3D runtime</a>
+  </nav>
+</main>
+
+<script type="module">
+  import init,{WebSession,caveat_map} from './pkg/caveat_runtime.js';
+
+  const gameEl=document.querySelector('#game');
+  const statusEl=document.querySelector('#engineStatus');
+  const trailEl=document.querySelector('#trail');
+  const miso=document.querySelector('#miso');
+  const bridgeGlow=document.querySelector('#bridgeGlow');
+  const pondGlow=document.querySelector('#pondGlow');
+  const glassGlow=document.querySelector('#glassGlow');
+  const pavilionGlow=document.querySelector('#pavilionGlow');
+  const placeLabel=document.querySelector('#placeLabel');
+  const sceneNote=document.querySelector('#sceneNote');
+
+  let source='';
+  let session=null;
+  let map=null;
+  let displays=new Map();
+  let history=[];
+  let finalChoice=null;
+
+  const HINTS={
+    bell_echo_distorts_direction:'A clear sound, but stone and water can throw it around.',
+    wet_stones_hide_tracks:'Physical evidence, though the path is wet and busy.',
+    greenhouse_glass_mirrors_movement:'You saw something move behind warm glass.',
+    follow_bell:'Fastest route toward the sound you heard.',
+    follow_tracks:'Trust the ground instead of the sound.',
+    check_greenhouse:'Check the warmest hiding place first.',
+    bridge_water_masks_sound:'Stop moving and separate the water from the quiet sounds.',
+    cushion_may_hold_old_fur:'Look for a clue that is close, warm and ordinary.',
+    moths_follow_heat_not_cats:'Use the lantern insects as indirect evidence.',
+    cross_moon_bridge:'Search the willow bank beyond the bridge.',
+    search_tea_pavilion:'Follow the converging clues behind the pavilion.',
+    open_glasshouse:'Search the warm planters and benches.'
+  };
+
+  const CAVEATS={
+    bell_echo_distorts_direction:'The bell can echo between stone walls and water, so its direction is uncertain.',
+    wet_stones_hide_tracks:'Wet stone preserves some marks and erases others; the trail may be incomplete.',
+    greenhouse_glass_mirrors_movement:'Lanterns and people reflect in the greenhouse glass, so movement may not be inside.',
+    bridge_water_masks_sound:'Running water can hide a soft purr.',
+    cushion_may_hold_old_fur:'A black hair could be fresh, or it could have been there earlier.',
+    moths_follow_heat_not_cats:'Moths react to heat and light; their movement is only indirect evidence.'
+  };
+
+  const FEEDBACK={
+    follow_bell:'The chime repeats — then an owl lifts from the lantern line. That sound was real, but not necessarily Miso.',
+    follow_tracks:'The fountain splashes across the stones. The path you trusted is suddenly less readable.',
+    check_greenhouse:'A lantern swings. The moving shape repeats in the glass. Some of what you saw was reflection.'
+  };
+
+  const ENDINGS={
+    search_tea_pavilion:{
+      title:'There you are.',
+      text:'Behind the tea pavilion, the ferns rustle once. Miso answers with a tiny purr and steps out wearing the most innocent expression in the garden.',
+      place:'Moon Garden · Fern Nook',
+      note:'Miso found · commitment held'
+    },
+    cross_moon_bridge:{
+      title:'A detour, then a purr.',
+      text:'The willow bank is empty — but the quieter side of the bridge lets you hear Miso clearly. She trots out from the pavilion path as if she planned the whole thing.',
+      place:'Moon Garden · Moon Bridge',
+      note:'Miso found · route revised'
+    },
+    open_glasshouse:{
+      title:'Not inside. Right outside.',
+      text:'The greenhouse is warm and empty. When the door clicks shut, Miso appears on the path behind you, tail high, apparently satisfied that you checked.',
+      place:'Moon Garden · Glasshouse',
+      note:'Miso found · false lead resolved'
+    }
+  };
+
+  function safe(text){
+    return String(text??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]});
+  }
+
+  function pretty(id){
+    const found=displays.get(id);
+    if(found)return found;
+    return String(id).replaceAll('_',' ').replace(/\b\w/g,function(x){return x.toUpperCase()});
+  }
+
+  function setGlow(id){
+    bridgeGlow.classList.toggle('active',id==='follow_bell'||id==='cross_moon_bridge');
+    pondGlow.classList.toggle('active',id==='follow_tracks');
+    glassGlow.classList.toggle('active',id==='check_greenhouse'||id==='open_glasshouse');
+    pavilionGlow.classList.toggle('active',id==='search_tea_pavilion'||id==='cushion_may_hold_old_fur');
+  }
+
+  function log(kind,text){
+    history.push({kind:kind,text:text});
+    trailEl.innerHTML='';
+    history.forEach(function(item,index){
+      const row=document.createElement('div');
+      row.className='trail-row';
+      row.innerHTML='<div class="trail-n">'+(index+1)+'</div><div><strong>'+safe(item.kind)+'</strong> '+safe(item.text)+'</div>';
+      trailEl.appendChild(row);
+    });
+  }
+
+  function pendingCopy(name){
+    if(name==='first_clue')return ['Find a useful clue','You have time to check one thing carefully before choosing a direction.'];
+    if(name==='first_move')return ['What do you trust?','You know a little more now, but none of the routes is fully certain.'];
+    if(name==='second_clue')return ['The first move had a catch','Don’t pretend the caveat disappeared. Check one more signal before you commit again.'];
+    if(name==='final_move')return ['Make the revised call','You have enough evidence to act. The remaining uncertainty stays on the record.'];
+    return ['Choose your next move','The garden is waiting.'];
+  }
+
+  function render(){
+    let p;
+    try{p=JSON.parse(session.pending())}catch(e){return fail(e)}
+    if(p.kind==='error')return fail(p.message);
+    if(p.kind==='complete')return showEnding();
+
+    const copy=pendingCopy(p.name);
+    const investigate=p.kind==='investigate';
+    const meta='<div class="meta"><span class="chip gold">Attention '+p.budget+'</span><span class="chip">'+(investigate?'Investigate · cost '+p.cost:'Commit under uncertainty')+'</span></div>';
+    let buttons='';
+    (p.options||[]).forEach(function(id){
+      buttons+='<button class="choice" type="button" data-id="'+safe(id)+'"><strong>'+safe(pretty(id))+'</strong><span>'+safe(HINTS[id]||'')+'</span></button>';
+    });
+
+    gameEl.innerHTML='<div class="eyebrow">'+(investigate?'Investigation':'Decision')+'</div><h2>'+safe(copy[0])+'</h2><p class="lede">'+safe(copy[1])+'</p>'+meta+'<div class="choices">'+buttons+'</div>';
+    gameEl.querySelectorAll('.choice').forEach(function(button){
+      button.addEventListener('click',function(){apply(button.dataset.id,p.kind)});
+    });
+    statusEl.textContent='CAVEAT · '+(history.length+1)+'/4';
+  }
+
+  function apply(id,kind){
+    gameEl.querySelectorAll('button').forEach(function(b){b.disabled=true});
+    try{
+      session.apply(id);
+      setGlow(id);
+      log(kind==='investigate'?'Investigated':'Committed',pretty(id));
+      const discoveries=JSON.parse(session.discoveries());
+      const commitment=JSON.parse(session.commitment());
+      if(kind==='choice') finalChoice=id;
+      if(discoveries.length)return showDiscovery(id,discoveries);
+      if(commitment)return showCommitment(id,commitment);
+      render();
+    }catch(e){fail(e)}
+  }
+
+  function showDiscovery(id,discoveries){
+    const d=discoveries[0];
+    const evidence=pretty(d.evidence);
+    const target=pretty(d.target);
+    const relation=d.relation==='opposes'?'weakens':'supports';
+    gameEl.innerHTML='<div class="eyebrow">Clue found</div><div class="feedback clue"><h2>'+safe(evidence)+'</h2><p class="quote">'+safe(evidence)+'</p><p>This '+safe(relation)+' the idea that '+safe(target).replace(/\.$/,'').toLowerCase()+'.</p><div class="caveat-box"><b>Caveat examined</b><span>'+safe(CAVEATS[id]||'The clue is informative, not absolute.')+'</span></div></div><button class="primary" type="button" id="continue">Keep going</button>';
+    document.querySelector('#continue').addEventListener('click',render);
+    sceneNote.textContent='clue checked · uncertainty reduced';
+    statusEl.textContent='CAVEAT · clue recorded';
+  }
+
+  function showCommitment(id,c){
+    const reopened=(c.reopened_by||[]).length>0;
+    const cause=reopened?c.reopened_by[0]:null;
+    const explain=cause?CAVEATS[cause]:'The choice still retains unresolved uncertainty.';
+    const body=reopened?(FEEDBACK[id]||'New evidence makes the earlier move worth reconsidering.'):'CAVEAT keeps the unresolved caveats attached to this commitment instead of pretending they vanished.';
+    gameEl.innerHTML='<div class="eyebrow">'+(reopened?'Commitment reopened':'Commitment recorded')+'</div><div class="feedback '+(reopened?'reopen':'')+'"><h2>'+(reopened?'That changes things.':'Decision made.')+'</h2><p>'+safe(body)+'</p><div class="caveat-box"><b>'+(reopened?'Why it reopened':'Caveats retained')+'</b><span>'+safe(explain)+'</span></div></div><button class="primary" type="button" id="continue">'+(reopened?'Revise the plan':'See what happens')+'</button>';
+    document.querySelector('#continue').addEventListener('click',render);
+    log(reopened?'Reopened':'Retained',reopened?pretty(cause):((c.retained||[]).length+' caveat(s) stayed attached to the decision.'));
+    sceneNote.textContent=reopened?'new evidence · commitment reopened':'decision recorded';
+    statusEl.textContent=reopened?'CAVEAT · reopened':'CAVEAT · commitment held';
+  }
+
+  function showEnding(){
+    const ending=ENDINGS[finalChoice]||ENDINGS.search_tea_pavilion;
+    setGlow(finalChoice);
+    miso.classList.add('visible');
+    placeLabel.textContent=ending.place;
+    sceneNote.textContent=ending.note;
+    statusEl.textContent='CAVEAT · complete';
+    gameEl.innerHTML='<div class="ending"><div class="cat-medal" aria-hidden="true">🐈‍⬛</div><div class="eyebrow">Story complete</div><h2>'+safe(ending.title)+'</h2><p>'+safe(ending.text)+'</p><div class="meta" style="justify-content:center"><span class="chip gold">Miso found</span><span class="chip">uncertainty preserved, then revised</span></div><button class="primary" type="button" id="again">Play again</button></div>';
+    document.querySelector('#again').addEventListener('click',reset);
+    log('Resolved','Miso was found. The trail still shows what was uncertain and when the plan changed.');
+  }
+
+  function reset(){
+    session=new WebSession(source);
+    history=[];
+    finalChoice=null;
+    miso.classList.remove('visible');
+    [bridgeGlow,pondGlow,glassGlow,pavilionGlow].forEach(function(x){x.classList.remove('active')});
+    placeLabel.textContent='Moon Garden · Lantern Court';
+    sceneNote.textContent='closing time · light wind';
+    trailEl.innerHTML='<div class="trail-row"><div class="trail-n">0</div><div><strong>Story loaded.</strong> No decisions yet.</div></div>';
+    render();
+  }
+
+  function fail(e){
+    statusEl.textContent='CAVEAT · error';
+    gameEl.innerHTML='<div class="error"><strong>The story could not continue.</strong><br>'+safe(e&&e.message?e.message:e)+'</div>';
+  }
+
+  try{
+    await init();
+    const response=await fetch('./moon_garden.cav');
+    if(!response.ok)throw new Error('Moon Garden source HTTP '+response.status);
+    source=await response.text();
+    const rawMap=JSON.parse(caveat_map(source));
+    if(rawMap.kind==='error')throw new Error(rawMap.message);
+    map=rawMap;
+    map.symbols.forEach(function(s){if(s.display)displays.set(s.name,s.display)});
+    map.actions.forEach(function(a){if(a.display)displays.set(a.id,a.display)});
+    session=new WebSession(source);
+    statusEl.textContent='CAVEAT · live';
+    render();
+  }catch(e){fail(e)}
+</script>
+</body>
+</html>
