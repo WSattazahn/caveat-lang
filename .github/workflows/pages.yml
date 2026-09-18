@@ -117,6 +117,9 @@ jobs:
               await page.waitForTimeout(900);
               const misoVisible=await page.locator('#miso').evaluate(el=>Number(getComputedStyle(el).opacity)>.95);
               if(!misoVisible) throw Error('Moon Garden ending did not reveal Miso');
+              const misoBox=await page.locator('#miso').boundingBox();
+              const sceneBox=await page.locator('#scene').boundingBox();
+              if(!misoBox||!sceneBox||misoBox.x<sceneBox.x+sceneBox.width*.65||misoBox.y<sceneBox.y+sceneBox.height*.45) throw Error('Miso ending sprite is misplaced');
               const moonEnd=await page.screenshot(); fs.writeFileSync('moon-end.png',moonEnd);
               if(Buffer.compare(moonStart,moonEnd)===0) throw Error('Moon Garden did not visibly change during play');
               const response=await page.goto(new URL('3d.html',base).toString());
