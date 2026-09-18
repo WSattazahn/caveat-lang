@@ -73,7 +73,9 @@ jobs:
               await page.getByText('Decision made.').waitFor();
               await page.getByRole('button',{name:/See what happens/}).click();
               await page.getByText('There you are.').waitFor();
-              const misoVisible=await page.locator('#miso').evaluate(el=>getComputedStyle(el).opacity==='1');
+              await page.waitForFunction(()=>document.querySelector('#miso')?.classList.contains('visible'));
+              await page.waitForTimeout(900);
+              const misoVisible=await page.locator('#miso').evaluate(el=>Number(getComputedStyle(el).opacity)>.95);
               if(!misoVisible)throw Error('Miso is not visible at the ending');
               await page.screenshot({path:'moon-garden-01-ending.png',fullPage:true});
               if(errors.length)throw Error(errors.join('\n'));
