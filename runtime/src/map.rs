@@ -669,7 +669,45 @@ pub fn to_json_pretty<T: Serialize>(value: &T) -> Result<String, String> {
     serde_json::to_string_pretty(value).map_err(|error| error.to_string())
 }
 
-fn validate_world(world: &MapWorld) -> Result<(), String> {
+fn map_action_step(step: &ActionStep) -> MapActionStep {
+    match step {
+        ActionStep::Inspect { entity } => MapActionStep {
+            kind: "inspect".into(),
+            target: Some(entity.clone()),
+        },
+        ActionStep::Operate { entity } => MapActionStep {
+            kind: "operate".into(),
+            target: Some(entity.clone()),
+        },
+        ActionStep::Open { entity } => MapActionStep {
+            kind: "open".into(),
+            target: Some(entity.clone()),
+        },
+        ActionStep::Through { entity } => MapActionStep {
+            kind: "through".into(),
+            target: Some(entity.clone()),
+        },
+        ActionStep::Move { place } => MapActionStep {
+            kind: "move".into(),
+            target: Some(place.clone()),
+        },
+        ActionStep::Observe { symbol } => MapActionStep {
+            kind: "observe".into(),
+            target: Some(symbol.clone()),
+        },
+        ActionStep::Stay => MapActionStep {
+            kind: "stay".into(),
+            target: None,
+        },
+    }
+}
+
+fn validate_world(
+    world: &MapWorld,
+    symbols: &[MapSymbol],
+    choices: &[MapChoice],
+    investigations: &[MapInvestigation],
+) -> Result<(), String> {
     let mut identifiers = HashSet::new();
     let places = world
         .places
@@ -680,6 +718,10 @@ fn validate_world(world: &MapWorld) -> Result<(), String> {
         .entities
         .iter()
         .map(|entity| entity.id.as_str())
+        .collect::<HashSet<_>>();
+    let symbol_names = symbols
+        .iter()
+        .map(|symbol| symbol.name.as_str())
         .collect::<HashSet<_>>();
 
     for place in &world.places {
@@ -697,6 +739,12 @@ fn validate_world(world: &MapWorld) -> Result<(), String> {
                 "entity {} references unknown place {}",
                 entity.id, entity.at
             ));
+        }
+    }
+
+    if let Some(start) = &world.start_at {
+        if !places.contains(start.as_str()) {
+            return Err(format!("start_at references unknown place {start}"));
         }
     }
 
@@ -753,7 +801,210 @@ fn validate_world(world: &MapWorld) -> Result<(), String> {
         }
     }
 
+    if world.action_plans.is_empty() {
+        return Ok(());
+    }
+
+    let Some(_) = &world.start_at else {
+        return Err("world action plans require start_at".into());
+    };
+
+    let mut plan_names = HashSet::new();
+    for plan in &world.action_plans {
+        if !plan_names.insert(plan.action.as_str()) {
+            return Err(format!("duplicate action plan: {}", plan.action));
+        }
+        if !places.contains(plan.from.as_str()) {
+            return Err(format!(
+                "action {} starts at unknown place {}",
+                plan.action, plan.from
+            ));
+        }
+        if !places.contains(plan.to.as_str()) {
+            return Err(format!(
+                "action {} ends at unknown place {}",
+                plan.action, plan.to
+            ));
+        }
+
+        let mut current = plan.from.clone();
+        let mut open = plan
+            .requires_open
+            .iter()
+            .map(String::as_str)
+            .collect::<HashSet<_>>();
+
+        for entity in &plan.requires_open {
+            validate_openable_entity(world, entity)?;
+        }
+
+        for step in &plan.steps {
+            let target = step.target.as_deref();
+            match step.kind.as_str() {
+                "inspect" | "operate" => {
+                    let entity = target.expect("mapped entity step must have target");
+                    validate_entity_access(world, &current, entity)?;
+                }
+                "open" => {
+                    let entity = target.expect("mapped open step must have target");
+                    validate_entity_access(world, &current, entity)?;
+                    validate_openable_entity(world, entity)?;
+                    open.insert(entity);
+                }
+                "through" => {
+                    let entity = target.expect("mapped through step must have target");
+                    if !open.contains(entity) {
+                        return Err(format!(
+                            "action {} traverses closed barrier {} without opening it or declaring requires_open",
+                            plan.action, entity
+                        ));
+                    }
+                    current = connected_other_side(world, &current, entity).ok_or_else(|| {
+                        format!(
+                            "action {} cannot traverse {} from {}",
+                            plan.action, entity, current
+                        )
+                    })?;
+                }
+                "move" => {
+                    let place = target.expect("mapped move step must have target");
+                    if !places.contains(place) {
+                        return Err(format!(
+                            "action {} moves to unknown place {}",
+                            plan.action, place
+                        ));
+                    }
+                    if !world.connections.iter().any(|connection| {
+                        connection.via.is_none()
+                            && ((connection.from == current && connection.to == place)
+                                || (connection.to == current && connection.from == place))
+                    }) {
+                        return Err(format!(
+                            "action {} has no direct open connection from {} to {}",
+                            plan.action, current, place
+                        ));
+                    }
+                    current = place.to_string();
+                }
+                "observe" => {
+                    let symbol = target.expect("mapped observe step must have target");
+                    if !symbol_names.contains(symbol) {
+                        return Err(format!(
+                            "action {} observes unknown symbol {}",
+                            plan.action, symbol
+                        ));
+                    }
+                }
+                "stay" => {}
+                other => {
+                    return Err(format!(
+                        "action {} contains unknown mapped step {}",
+                        plan.action, other
+                    ));
+                }
+            }
+        }
+
+        if current != plan.to {
+            return Err(format!(
+                "action {} declares destination {} but its steps finish at {}",
+                plan.action, plan.to, current
+            ));
+        }
+    }
+
+    let offered = choices
+        .iter()
+        .flat_map(|choice| choice.options.iter())
+        .chain(
+            investigations
+                .iter()
+                .flat_map(|investigation| investigation.options.iter().map(|option| &option.symbol)),
+        )
+        .collect::<HashSet<_>>();
+
+    for action in offered {
+        if !world.action_plans.iter().any(|plan| &plan.action == action) {
+            return Err(format!("player-facing action {action} has no world action plan"));
+        }
+    }
+
+    for choice in choices {
+        let mut destinations = HashSet::new();
+        for option in &choice.options {
+            let Some(plan) = world
+                .action_plans
+                .iter()
+                .find(|plan| plan.action == *option)
+            else {
+                continue;
+            };
+            if !destinations.insert(plan.to.as_str()) {
+                return Err(format!(
+                    "choice {} has multiple actions ending at {} without explicit convergence",
+                    choice.name, plan.to
+                ));
+            }
+        }
+    }
+
     Ok(())
+}
+
+fn validate_entity_access(world: &MapWorld, place: &str, entity_id: &str) -> Result<(), String> {
+    let entity = world
+        .entities
+        .iter()
+        .find(|entity| entity.id == entity_id)
+        .ok_or_else(|| format!("action references unknown entity {entity_id}"))?;
+
+    let connected_here = world.connections.iter().any(|connection| {
+        connection.via.as_deref() == Some(entity_id)
+            && (connection.from == place || connection.to == place)
+    });
+
+    if entity.at == place || connected_here {
+        Ok(())
+    } else {
+        Err(format!(
+            "entity {} is not accessible from place {}",
+            entity_id, place
+        ))
+    }
+}
+
+fn validate_openable_entity(world: &MapWorld, entity_id: &str) -> Result<(), String> {
+    let entity = world
+        .entities
+        .iter()
+        .find(|entity| entity.id == entity_id)
+        .ok_or_else(|| format!("action references unknown entity {entity_id}"))?;
+
+    if matches!(entity.kind.as_str(), "door" | "fire_door" | "gate")
+        || entity.kind.ends_with("_door")
+    {
+        Ok(())
+    } else {
+        Err(format!(
+            "entity {} of kind {} is not openable",
+            entity.id, entity.kind
+        ))
+    }
+}
+
+fn connected_other_side(world: &MapWorld, place: &str, entity_id: &str) -> Option<String> {
+    world.connections.iter().find_map(|connection| {
+        if connection.via.as_deref() != Some(entity_id) {
+            return None;
+        }
+        if connection.from == place {
+            Some(connection.to.clone())
+        } else if connection.to == place {
+            Some(connection.from.clone())
+        } else {
+            None
+        }
+    })
 }
 
 fn map_conditional(action: &str, then: &ConditionalAction) -> MapConditional {
