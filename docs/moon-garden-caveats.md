@@ -94,18 +94,28 @@ No reliable preference profile for Simone exists in the repository or available 
 
 **Status:** gated by CI and artifact review before merge.
 
-## Caveat: CAVEAT 3D 0.1 still keys some choreography by action id
+## Caveat: CAVEAT 3D 0.1 keyed choreography by action id
 
 **Consequence:** material.
 
-The semantic transition is real CAVEAT, but the presentation manifest currently says things such as “when `follow_bell` succeeds, frame the bridge.” That is a useful separation from game logic, but it is not yet the final generic graphics contract.
+The 0.1 manifest said things such as “when `follow_bell` succeeds, frame the bridge.” That kept semantics out of WebGL code, but still duplicated part of the physical meaning in presentation data.
 
-**Response:** record the limitation instead of pretending it is solved. The next engine phase should bind choreography to normalized places, entities, and action-runtime commands such as Move, Inspect, Open, and Observe.
+**Response:** CAVEAT 3D 0.2 now previews the selected sequence through the Rust action runtime and consumes its normalized `Move`, `Inspect`, `Operate`, `Open`, `Observe`, and `Stay` commands. The Moon Garden manifest binds places, entities, and observed symbols to presentation objects; it no longer contains normal per-action camera routes.
 
-**Status:** open, explicitly scoped as the next CAVEAT 3D engine problem.
+**Status:** resolved and regression-tested.
+
+## Caveat: semantic bindings still do not invent good art direction
+
+**Consequence:** material.
+
+The engine now knows *what* place, entity, or symbol is being acted on, but semantics alone do not determine an attractive camera angle, prop composition, material palette, or model.
+
+**Response:** keep this boundary explicit. CAVEAT 3D can automate semantic choreography without pretending it can derive finished art direction from logic. Reusable scene kits, camera-composition heuristics, and asset templates are the next graphics problem.
+
+**Status:** open.
 
 ## Remaining architectural caveat
 
-Moon Garden now proves that one CAVEAT program can drive both a polished 2D presentation and a reusable WebGL presentation layer. The remaining architectural caveat has narrowed: the 3D scene manifest is reusable infrastructure, but some choreography still binds directly to option/action identifiers instead of normalized world/action commands.
+Moon Garden now proves that one CAVEAT program can drive both a polished 2D presentation and a reusable WebGL presentation layer, with physical choreography coming from the normalized action runtime rather than action-specific camera instructions.
 
-That limitation is not allowed to become an excuse for ugly output. Generalization happens behind a player-facing quality bar.
+The remaining architectural caveat is presentation authorship: places, entities, and symbols still need intentional visual bindings. That limitation is not allowed to become an excuse for ugly output. Generalization happens behind a player-facing quality bar.
