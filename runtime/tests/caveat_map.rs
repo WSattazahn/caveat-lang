@@ -74,7 +74,6 @@ fn map_json_is_stable_machine_readable_json() {
     assert!(value["world"]["places"].is_array());
 }
 
-
 #[test]
 fn world_trace_reaches_stairwell_through_declared_topology() {
     let map = CaveatMap::from_source(DOOR).expect("The Door should map");
