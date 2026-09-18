@@ -346,11 +346,11 @@ impl World3D {
                 },
                 PlaceAnchor3D {
                     place: "continuation_corridor".into(),
-                    position: Vec3::new(0.0, 1.7, -11.8),
+                    position: Vec3::new(0.0, 1.7, -12.0),
                 },
                 PlaceAnchor3D {
                     place: "alternate_route".into(),
-                    position: Vec3::new(-2.2, 1.7, 7.0),
+                    position: Vec3::new(-5.0, 1.7, 7.0),
                 },
                 PlaceAnchor3D {
                     place: "stair_landing".into(),
@@ -358,7 +358,7 @@ impl World3D {
                 },
                 PlaceAnchor3D {
                     place: "stair_flight_down".into(),
-                    position: Vec3::new(5.0, 0.9, -9.8),
+                    position: Vec3::new(4.85, 1.45, -8.9),
                 },
             ],
             passages: vec![
