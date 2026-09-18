@@ -152,9 +152,32 @@ jobs:
               const npcCount=await page.locator('.npc').count();
               if(npcCount<4)throw Error('Moon Market cast is not rendered as live actors');
               const x0=(await page.evaluate(()=>window.__mrCaveatTest.state())).x;
-              await page.keyboard.down('ArrowRight');await page.waitForTimeout(260);await page.keyboard.up('ArrowRight');
-              const moved=await page.evaluate(()=>window.__mrCaveatTest.state());
-              if(moved.x<=x0||moved.vx<=0)throw Error('Mr. Caveat lacks inertial movement');
+              await page.keyboard.down('ArrowRight');
+              await page.waitForFunction(start=>{
+                const state=window.__mrCaveatTest.state();
+                return state.x>start+.1&&state.vx>=.15;
+              },x0,{timeout:5000});
+              await page.evaluate(()=>{
+                const samples=window.__mrCaveatInertia=[];
+                addEventListener('keyup',function released(event){
+                  if(event.key!=='ArrowRight')return;
+                  removeEventListener('keyup',released);
+                  samples.push(window.__mrCaveatTest.state());
+                  function frame(){
+                    samples.push(window.__mrCaveatTest.state());
+                    if(samples.length<4)requestAnimationFrame(frame);
+                  }
+                  requestAnimationFrame(frame);
+                });
+              });
+              await page.keyboard.up('ArrowRight');
+              await page.waitForFunction(()=>window.__mrCaveatInertia.length===4,null,{timeout:5000});
+              const samples=await page.evaluate(()=>window.__mrCaveatInertia);
+              for(let i=1;i<samples.length;i++){
+                const before=samples[i-1],after=samples[i];
+                if(after.x<=before.x||after.vx<=0||after.vx>=before.vx)
+                  throw Error('Mr. Caveat must keep moving and decelerate after key release: '+JSON.stringify(samples));
+              }
               await page.evaluate(()=>window.__mrCaveatTest.teleport(37));
               await page.evaluate(()=>window.__mrCaveatTest.poke());
               const poked=await page.evaluate(()=>window.__mrCaveatTest.state());
