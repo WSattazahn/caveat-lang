@@ -41,16 +41,16 @@ jobs:
           trap 'kill $! || true' EXIT
           node <<'NODE'
           const {webkit,devices}=require('playwright'),fs=require('fs');
-          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
           (async()=>{const browser=await webkit.launch();try{
-            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
+            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await p.waitForFunction(()=>window.__caveatAnimationIdle?.());await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
             async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click()}
-            async function inspect(name,re,text){const p=await fresh(name);await click(p,re);await sleep(350);await p.getByText(text).waitFor();await p.screenshot({path:`door-${name}-01.png`,fullPage:true});await p.close()}
+            async function idle(p){await p.waitForFunction(()=>window.__caveatAnimationIdle?.(),null,{timeout:15000})}
+            async function inspect(name,re,text){const p=await fresh(name);await click(p,re);await idle(p);await p.getByText(text).waitFor();await p.screenshot({path:`door-${name}-01.png`,fullPage:true});await p.close()}
             await inspect('inspect-latch',/Inspect latch/,/Evidence: the latch sensor/);
             await inspect('inspect-camera',/Check camera/,/camera coverage has a blind turn/);
-            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await click(p,/Push panic bar/);await sleep(2600);await p.screenshot({path:`door-open-${route}-01-beyond-a.png`,fullPage:true});await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await sleep(route==='stairwell'?5200:3200);await p.getByText(new RegExp(route==='continue'?'continue forward':route==='retreat'?'physically return':'reach the landing','i')).waitFor();await p.screenshot({path:`door-open-${route}-02-final.png`,fullPage:true});await p.close()}
-            {const p=await fresh('wait');await click(p,/Check camera/);await click(p,/Wait/);await sleep(500);await p.getByText(/remain on the original side/i).waitFor();await p.screenshot({path:'door-wait-01.png',fullPage:true});await p.close()}
-            {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await sleep(2600);await p.getByText(/physically leave toward the alternate route/i).waitFor();await p.screenshot({path:'door-reroute-01.png',fullPage:true});await p.close()}
+            for(const route of ['continue','retreat','stairwell']){const p=await fresh(`open-${route}`);await click(p,/Inspect latch/);await idle(p);await click(p,/Push panic bar/);await idle(p);await p.screenshot({path:`door-open-${route}-01-beyond-a.png`,fullPage:true});await click(p,new RegExp(route==='continue'?'Continue forward':route==='retreat'?'Retreat':'Use stairwell','i'));await idle(p);await p.getByText(new RegExp(route==='continue'?'continue forward':route==='retreat'?'physically return':'reach the landing','i')).waitFor();await p.screenshot({path:`door-open-${route}-02-final.png`,fullPage:true});await p.close()}
+            {const p=await fresh('wait');await click(p,/Check camera/);await idle(p);await click(p,/Wait/);await idle(p);await p.getByText(/remain on the original side/i).waitFor();await p.screenshot({path:'door-wait-01.png',fullPage:true});await p.close()}
+            {const p=await fresh('reroute');await click(p,/Check camera/);await idle(p);await click(p,/Reroute/);await idle(p);await p.getByText(/physically leave toward the alternate route/i).waitFor();await p.screenshot({path:'door-reroute-01.png',fullPage:true});await p.close()}
             console.log('ALL CAVEAT ROUTES CAPTURED');
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
