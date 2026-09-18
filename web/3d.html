@@ -16,4 +16,78 @@ part(P,V,4.0,.02,-8.8,2.4,.22,2.0,concrete);for(let i=0;i<8;i++){const x=4.8+i*.
 // Alternate-route opening behind/left of starting position.
 part(P,V,-2.7,1.5,7.4,.18,3.0,3.0,wall);part(P,V,-4.1,1.5,7.4,.18,3.0,3.0,wall)}
 function doorHardware(P,V,id='door_hinge'){const H=node(id),q=(x,y,z,sx,sy,sz,col)=>box(mul(P,mul(V,mul(H,mul(tr(x,y,z),sc(sx/2,sy/2,sz/2))))),col);q(1.10,-.10,.13,1.68,.075,.075,[.72,.74,.74]);q(.27,-.10,.14,.18,.25,.12,[.27,.29,.30]);q(1.93,-.10,.14,.18,.25,.12,[.27,.29,.30]);q(1.12,1.12,.11,.62,.11,.10,[.48,.50,.51])}
-function draw(){tick(.016);const d=Math.min(devicePixelRatio||1,2),w=c.clientWidth*d,h=c.clientHeight*d;if(c.width!==w||c.height!==h){c.width=w;c.height=h}gl.viewport(0,0,w,h);gl.enable(gl.DEPTH_TEST);gl.clearColor(.10,.12,.13,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);const P=persp(world.camera?.fov||70,w/h,.1,100),V=view();architecture(P,V);for(const o of world.objects){if(o.visible===false||['door_hinge','stair_door_hinge','latch_sensor','floor','stairwell','reopened_marker'].includes(o.id))continue;const m=o.material||{color:[.2,.2,.2],emissive:0};box(mul(P,mul(V,node(o.id))),m.color,m.emissive||0)}doorHardware(P,V);project(exitA,[0,3.22,-
+function draw(){
+  tick(.016);
+  const d=Math.min(devicePixelRatio||1,2),w=c.clientWidth*d,h=c.clientHeight*d;
+  if(c.width!==w||c.height!==h){c.width=w;c.height=h}
+  gl.viewport(0,0,w,h);
+  gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(.10,.12,.13,1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  const P=persp(world.camera?.fov||70,w/h,.1,100),V=view();
+  architecture(P,V);
+  for(const o of world.objects){
+    if(o.visible===false||['door_hinge','stair_door_hinge','latch_sensor','floor','stairwell','reopened_marker'].includes(o.id))continue;
+    const m=o.material||{color:[.2,.2,.2],emissive:0};
+    box(mul(P,mul(V,node(o.id))),m.color,m.emissive||0)
+  }
+  doorHardware(P,V);
+  project(exitA,[0,3.22,-3.7],P,V);
+  project(stairs,[2.75,2.75,-8.8],P,V);
+  requestAnimationFrame(draw)
+}
+function refresh(){
+  const n=JSON.parse(game.world()),old=new Map((world?.objects||[]).map(o=>[o.id,o]));
+  for(const o of n.objects){
+    const p=old.get(o.id);
+    if(p&&p._ry!==undefined)o._ry=p._ry
+  }
+  world=n;
+  enqueueEvents();
+  ui()
+}
+function ui(){
+  const p=JSON.parse(game.pending());
+  status.textContent=p.kind==='complete'
+    ?'This route is complete. Remaining uncertainty is still recorded.'
+    :`Attention remaining: ${p.budget}`;
+  learned.textContent=last?learn[last]:'What do you want to do?';
+  choices.innerHTML='';
+  for(const o of p.options||[]){
+    const[a,d]=labels[o]||[o,''];
+    const x=document.createElement('button');
+    x.innerHTML=`${a}<small>${d}</small>`;
+    x.onclick=()=>{
+      try{
+        last=o;
+        game.apply(o);
+        refresh()
+      }catch(error){
+        status.textContent=`CAVEAT error: ${error}`
+      }
+    };
+    choices.appendChild(x)
+  }
+}
+c.onpointerdown=e=>{drag=true;lx=e.clientX};
+c.onpointermove=e=>{if(!drag)return;yaw+=(e.clientX-lx)*.004;lx=e.clientX};
+c.onpointerup=()=>drag=false;
+c.onpointercancel=()=>drag=false;
+try{
+  await init();
+  const source=await fetch('./the_door_round2.cav').then(r=>{
+    if(!r.ok)throw Error(`scenario HTTP ${r.status}`);
+    return r.text()
+  });
+  game=new Web3DSession(source);
+  world=JSON.parse(game.world());
+  const initial=world.camera?.transform?.position;
+  if(Array.isArray(initial)&&initial.length===3)cam=[...initial];
+  enqueueEvents();
+  ui();
+  draw()
+}catch(error){
+  status.textContent=`CAVEAT failed to initialize: ${error}`;
+  console.error(error)
+}
+</script></body></html>
