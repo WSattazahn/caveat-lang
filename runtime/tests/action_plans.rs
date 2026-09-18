@@ -104,7 +104,6 @@ fn web_session_stops_offering_impossible_revised_routes_after_wait() {
     assert_eq!(session.pending(), "{\"kind\":\"complete\"}");
 }
 
-
 #[test]
 fn web_3d_uses_entity_parent_hinges_and_endpoint_pitch() {
     let mut session = Web3DSession::new(DOOR).expect("Web3D session should initialize");
@@ -116,9 +115,9 @@ fn web_3d_uses_entity_parent_hinges_and_endpoint_pitch() {
     let after_open: serde_json::Value =
         serde_json::from_str(&session.world()).expect("world JSON should parse");
     assert!(after_open["events"].as_array().is_some_and(|events| {
-        events.iter().any(|event| {
-            event["kind"] == "rotate_y" && event["object"] == "door_hinge"
-        })
+        events
+            .iter()
+            .any(|event| event["kind"] == "rotate_y" && event["object"] == "door_hinge")
     }));
 
     session
@@ -130,9 +129,9 @@ fn web_3d_uses_entity_parent_hinges_and_endpoint_pitch() {
         .as_array()
         .expect("world events should be an array");
 
-    assert!(events.iter().any(|event| {
-        event["kind"] == "rotate_y" && event["object"] == "stair_door_hinge"
-    }));
+    assert!(events
+        .iter()
+        .any(|event| { event["kind"] == "rotate_y" && event["object"] == "stair_door_hinge" }));
     assert!(events.iter().any(|event| event["kind"] == "look_pitch"));
     assert_eq!(
         after_stairs["camera"]["transform"]["position"],
