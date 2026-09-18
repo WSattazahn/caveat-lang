@@ -110,6 +110,7 @@ jobs:
               const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
               if(overflow)throw Error('Moon Garden 3D has horizontal overflow on iPhone');
               const canvas=page.locator('#c3d');
+              await page.waitForFunction(()=>{const c=document.querySelector('#c3d');return c&&c.width>300&&c.height>250});
               const dims=await canvas.evaluate(el=>({w:el.width,h:el.height}));
               if(dims.w<300||dims.h<250)throw Error('Moon Garden 3D canvas is unexpectedly small');
               const start=await canvas.screenshot();fs.writeFileSync('moon-garden-3d-00-start.png',start);
