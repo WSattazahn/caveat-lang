@@ -42,7 +42,7 @@ jobs:
           rm -rf dist
           mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
-          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
+          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav web/caveat3d.js web/moon-garden-3d.js web/moon-garden-3d.html dist/
           cp game/moon_garden.cav dist/moon_garden.cav
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
@@ -122,6 +122,32 @@ jobs:
               if(!misoBox||!sceneBox||misoBox.x<sceneBox.x+sceneBox.width*.65||misoBox.y<sceneBox.y+sceneBox.height*.45) throw Error('Miso ending sprite is misplaced');
               const moonEnd=await page.screenshot(); fs.writeFileSync('moon-end.png',moonEnd);
               if(Buffer.compare(moonStart,moonEnd)===0) throw Error('Moon Garden did not visibly change during play');
+              const moon3dResponse=await page.goto(new URL('moon-garden-3d.html',base).toString());
+              if(!moon3dResponse||!moon3dResponse.ok()) throw Error('Moon Garden 3D HTTP failure');
+              await page.getByText('Find a useful clue').waitFor();
+              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              const moon3dCanvas=page.locator('#c3d');
+              const moon3dStart=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-start.png',moon3dStart);
+              if(variance(moon3dStart)<28) throw Error('Moon Garden 3D start lacks meaningful geometry');
+              const click3d=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
+              await click3d(/Listen for Miso/);
+              await page.getByText('Clue found').waitFor();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await click3d(/Follow the bell/);
+              await page.getByText('Commitment reopened',{exact:true}).waitFor();
+              await page.getByRole('button',{name:/Revise the plan/}).click();
+              await click3d(/still-warm pavilion cushion/i);
+              await page.getByText('Clue found').waitFor();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await click3d(/Search behind the tea pavilion/i);
+              await page.getByText('Decision made.').waitFor();
+              await page.getByRole('button',{name:/See what happens/}).click();
+              await page.getByText('There you are.').waitFor();
+              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              await page.getByText('Moon Garden · Fern Nook').waitFor();
+              const moon3dEnd=await moon3dCanvas.screenshot(); fs.writeFileSync('moon3d-end.png',moon3dEnd);
+              if(Buffer.compare(moon3dStart,moon3dEnd)===0) throw Error('Moon Garden 3D did not visibly change during play');
+              if(variance(moon3dEnd)<28) throw Error('Moon Garden 3D ending lacks meaningful geometry');
               const response=await page.goto(new URL('3d.html',base).toString());
               if(!response||!response.ok()) throw Error('HTTP failure');
               await page.getByText('Emergency alarm. Leave this floor.').waitFor();
@@ -153,3 +179,4 @@ jobs:
           path: |
             door-*.png
             moon-*.png
+            moon3d-*.png
