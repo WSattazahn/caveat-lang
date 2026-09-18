@@ -22,13 +22,15 @@ jobs:
           rm -rf dist && mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
           cp web/index.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
-      - name: CLI branch playthroughs
+      - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           printf 'camera_has_blind_spot\nopen\nretreat\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
           printf 'latch_sensor_recently_serviced\nopen\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          printf 'camera_has_blind_spot\nwait\nstairwell\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
-          printf 'camera_has_blind_spot\nreroute\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_door_round2.cav
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot wait
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav camera_has_blind_spot reroute
+          cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/the_door_round2.cav latch_sensor_recently_serviced open stairwell
       - uses: actions/setup-node@v4
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0
