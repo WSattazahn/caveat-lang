@@ -21,7 +21,7 @@ jobs:
         run: |
           rm -rf dist && mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
-          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
+          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav web/caveat3d.js web/moon-garden-3d.js web/moon-garden-3d.html dist/
           cp game/moon_garden.cav dist/moon_garden.cav
       - name: CLI and CAVEAT Map playthroughs
         run: |
@@ -91,6 +91,62 @@ jobs:
         with:
           name: moon-garden-visual-qa
           path: moon-garden-*.png
+      - name: Moon Garden 3D — iPhone playthrough QA
+        run: |
+          python3 -m http.server 4175 --directory dist >/tmp/moon3d-http.log 2>&1 &
+          trap 'kill $! || true' EXIT
+          node <<'NODE'
+          const {webkit,devices}=require('playwright'),fs=require('fs');
+          (async()=>{
+            const browser=await webkit.launch();
+            try{
+              const page=await browser.newPage({...devices['iPhone 13']});
+              const errors=[];
+              page.on('pageerror',e=>errors.push(e.message));
+              page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+              await page.goto('http://127.0.0.1:4175/moon-garden-3d.html');
+              await page.getByText('Find a useful clue').waitFor();
+              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
+              if(overflow)throw Error('Moon Garden 3D has horizontal overflow on iPhone');
+              const canvas=page.locator('#c3d');
+              await page.waitForFunction(()=>{const c=document.querySelector('#c3d');return c&&c.width>300&&c.height>250});
+              const dims=await canvas.evaluate(el=>({w:el.width,h:el.height}));
+              if(dims.w<300||dims.h<250)throw Error('Moon Garden 3D canvas is unexpectedly small');
+              const start=await canvas.screenshot();fs.writeFileSync('moon-garden-3d-00-start.png',start);
+
+              const click=async re=>{const b=page.getByRole('button',{name:re});await b.waitFor();await b.click();await page.waitForFunction(()=>window.__caveat3dIdle?.()===true)};
+
+              await click(/Listen for Miso/);
+              await page.getByText('Clue found').waitFor();
+              await page.getByRole('button',{name:/Keep going/}).click();
+
+              await click(/Follow the bell/);
+              await page.getByText('Commitment reopened',{exact:true}).waitFor();
+              await page.getByRole('button',{name:/Revise the plan/}).click();
+
+              await click(/still-warm pavilion cushion/i);
+              await page.getByText('Clue found').waitFor();
+              await page.getByRole('button',{name:/Keep going/}).click();
+
+              await click(/Search behind the tea pavilion/i);
+              await page.getByText('Decision made.').waitFor();
+              await page.getByRole('button',{name:/See what happens/}).click();
+              await page.getByText('There you are.').waitFor();
+              await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
+              await page.getByText('Moon Garden · Fern Nook').waitFor();
+              const ending=await canvas.screenshot();fs.writeFileSync('moon-garden-3d-01-ending.png',ending);
+              if(Buffer.compare(start,ending)===0)throw Error('Moon Garden 3D canvas did not visibly change');
+              if(errors.length)throw Error(errors.join('\n'));
+              console.log('MOON GARDEN 3D PASS');
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moon-garden-3d-visual-qa
+          path: moon-garden-3d-*.png
       - name: Visual QA — every player-facing route
         run: |
           python3 -m http.server 4173 --directory dist >/tmp/caveat-http.log 2>&1 &

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#081116">
+  <title>Moon Garden 3D — CAVEAT</title>
+  <style>
+    :root{color-scheme:dark;--ink:#f6f0e5;--muted:#b7b3aa;--line:rgba(255,255,255,.13);--gold:#f0ca7a;--panel:rgba(8,14,20,.91)}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:#081116;color:var(--ink);font-family:ui-rounded,"SF Pro Rounded","Avenir Next",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+    body{overflow-x:hidden}
+    button{font:inherit}
+    button:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+    .app{position:relative;min-height:100vh;background:linear-gradient(#09151d,#071015)}
+    .world{position:relative;height:min(64vh,650px);min-height:390px;overflow:hidden;background:#081116}
+    #c3d{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;background:#081116}
+    .vignette{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(3,8,12,.10),transparent 42%,rgba(3,8,12,.84));box-shadow:inset 0 0 120px rgba(0,0,0,.45)}
+    .topbar{position:absolute;left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+    .brand,.status{border:1px solid var(--line);background:rgba(5,10,15,.66);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:999px;padding:8px 11px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;box-shadow:0 8px 28px rgba(0,0,0,.24)}
+    .brand{color:#f4dca8;font-weight:800}.status{color:#d4d2cd;letter-spacing:.04em;text-transform:none}
+    .place{position:absolute;left:18px;bottom:18px;max-width:70%;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#eee5d5;text-shadow:0 2px 14px #000;pointer-events:none}
+    .hint-look{position:absolute;right:18px;bottom:18px;color:#bcb8ae;font-size:11px;text-shadow:0 2px 14px #000;pointer-events:none}
+    .panel{position:relative;margin-top:-2px;padding:20px 18px calc(22px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(8,14,20,.98),#081016);border-top:1px solid rgba(255,255,255,.09)}
+    .content{width:min(900px,100%);margin:0 auto}
+    .eyebrow{color:var(--gold);font-size:11px;font-weight:850;letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px}
+    h1{font-size:clamp(28px,7vw,42px);line-height:1.02;letter-spacing:-.035em;margin:0 0 9px}
+    p{margin:0 0 14px;color:#d1cdc5;line-height:1.5;font-size:15px;max-width:720px}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 15px}.meta span,.ending-chip{border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:#cfcbc2;background:rgba(255,255,255,.035);font-size:12px}.meta span:first-child{border-color:rgba(240,202,122,.34);color:#f3d697;background:rgba(240,202,122,.07)}
+    .choices3d{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .choice3d{min-height:88px;border:1px solid rgba(255,255,255,.15);border-radius:17px;padding:13px 14px;text-align:left;color:var(--ink);background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.03));cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+    .choice3d b{display:block;font-size:14px;line-height:1.3}.choice3d small{display:block;color:#aaa8a2;line-height:1.35;margin-top:6px;font-size:12px}.choice3d:active{transform:scale(.985)}.choice3d[disabled]{opacity:.45}
+    @media(hover:hover){.choice3d:hover{transform:translateY(-2px);border-color:rgba(240,202,122,.6);background:rgba(240,202,122,.075)}}
+    .findings{display:grid;gap:7px;margin:12px 0}.finding{padding:9px 10px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.035);font-size:12px;color:#c8c4bc}.finding b{color:#f0ebe2}
+    .caveat{margin:12px 0;padding:11px 12px;border:1px solid rgba(240,202,122,.22);border-radius:13px;background:rgba(240,202,122,.055);color:#cac5bc;font-size:12px;line-height:1.45}.caveat b{display:block;color:#f0cf8c;font-size:10px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}
+    .primary{width:100%;min-height:48px;border:0;border-radius:14px;background:#edcd8c;color:#1a2023;font-weight:850;cursor:pointer;margin-top:8px}.primary:active{transform:translateY(1px)}
+    .trail{width:min(900px,calc(100% - 28px));margin:13px auto 0;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(0,0,0,.13);overflow:hidden}.trail summary{cursor:pointer;padding:12px 14px;color:#aaa8a2;font-size:11px;letter-spacing:.09em;text-transform:uppercase}.trail-body{padding:0 14px 10px}.trail-row{display:flex;gap:9px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12px;color:#aba8a1;line-height:1.4}.trail-row>span{width:22px;height:22px;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;background:rgba(255,255,255,.06);font-size:10px}.trail-row b{color:#e8e2d8}
+    .back{display:block;width:max-content;margin:13px auto 0;color:#8799a4;text-decoration:none;font-size:11px}.back:hover{text-decoration:underline}
+    .error{padding:14px;border:1px solid rgba(255,120,120,.34);border-radius:14px;background:rgba(100,20,20,.17);color:#ffd0d0}
+    @media(max-width:700px){.world{height:55vh;min-height:365px}.panel{padding:17px 13px calc(17px + env(safe-area-inset-bottom))}.choices3d{grid-template-columns:1fr}.choice3d{min-height:72px}.hint-look{display:none}.place{left:13px;bottom:13px;font-size:10px;max-width:90%}.topbar{left:10px;right:10px;top:max(10px,env(safe-area-inset-top))}.brand,.status{padding:7px 9px;font-size:10px}.trail{width:calc(100% - 18px)}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <section class="world" aria-label="3D Moon Garden">
+    <canvas id="c3d" aria-label="Interactive 3D Moon Garden. Drag to look around."></canvas>
+    <div class="vignette"></div>
+    <div class="topbar"><div class="brand">CAVEAT · Moon Garden 3D</div><div class="status" id="status3d">Loading world…</div></div>
+    <div class="place" id="place3d">Moon Garden · Lantern Court</div>
+    <div class="hint-look">drag to look</div>
+  </section>
+  <section class="panel"><div class="content" id="game3d"><div class="eyebrow">CAVEAT 3D</div><h1>Moon Garden</h1><p>Building the world from CAVEAT state…</p></div></section>
+  <details class="trail"><summary>Decision trail · what CAVEAT remembered</summary><div class="trail-body" id="trail3d"><div class="trail-row"><span>0</span><div><b>Story loaded.</b> No decisions yet.</div></div></div></details>
+  <a class="back" href="./">2D Moon Garden</a>
+</main>
+<script type="module">
+  import {bootCaveat3D} from './caveat3d.js';
+  import {moonGarden3D} from './moon-garden-3d.js';
+  bootCaveat3D(moonGarden3D).catch(error=>{
+    const status=document.querySelector('#status3d');
+    const game=document.querySelector('#game3d');
+    if(status)status.textContent='CAVEAT · error';
+    if(game)game.innerHTML='<div class="error"><b>Moon Garden 3D failed to initialize.</b><br>'+String(error)+'</div>';
+    console.error(error);
+  });
+</script>
+</body>
+</html>

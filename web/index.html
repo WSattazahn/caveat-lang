@@ -167,7 +167,8 @@
       .scene-caption .place{max-width:100%;font-size:10.5px}
       .scene-caption .weather{display:none}
     }
-  </style>
+  .mode-switch{display:flex;align-items:center;gap:8px}.mode-link{display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;border:1px solid rgba(243,202,114,.35);border-radius:999px;background:rgba(243,202,114,.07);color:#f5d895;text-decoration:none;font-size:12px;white-space:nowrap}.mode-link:focus-visible{outline:3px solid #f3ca72;outline-offset:3px}@media(max-width:700px){.mode-switch{gap:6px}.mode-link{min-height:30px;padding:5px 8px;font-size:11px}}
+</style>
 </head>
 <body>
 <main class="app">
@@ -176,7 +177,7 @@
       <div class="mark" aria-hidden="true">◐</div>
       <div><strong>CAVEAT</strong><small>worlds that remember uncertainty</small></div>
     </div>
-    <div class="status-pill" id="engineStatus">Loading story…</div>
+    <div class="mode-switch"><a class="mode-link" href="./moon-garden-3d.html">3D garden</a><div class="status-pill" id="engineStatus">Loading story…</div></div>
   </header>
 
   <section class="stage" aria-label="Moon Garden game">

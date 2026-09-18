@@ -70,8 +70,42 @@ No reliable preference profile for Simone exists in the repository or available 
 
 **Status:** requires Simone’s playtest. The software caveats above should be resolved before asking her to judge the game itself.
 
+## Caveat: “make it 3D” could contaminate CAVEAT semantics with camera and mesh data
+
+**Consequence:** high.
+
+**Response:** CAVEAT 3D 0.1 keeps presentation in a separate manifest. The .cav source remains authoritative for evidence, caveats, investigations, choices, retained uncertainty, and reopening. The generic renderer consumes WebSession + CAVEAT Map and only runs presentation choreography after the real CAVEAT transition succeeds.
+
+**Status:** resolved by the CAVEAT 3D presentation contract.
+
+## Caveat: a second 3D game could still just be another giant one-off page
+
+**Consequence:** high.
+
+**Response:** Moon Garden 3D uses a reusable `web/caveat3d.js` renderer. Its scene is a manifest composed from generic cube, sphere, and cylinder primitives. The player shell imports the generic engine rather than containing a second bespoke WebGL implementation.
+
+**Status:** resolved for renderer reuse; the Moon Garden scene composition is intentionally scenario-specific presentation data.
+
+## Caveat: the new 3D renderer could look finished on desktop and fail on iPhone
+
+**Consequence:** high.
+
+**Response:** CI must execute a full Moon Garden 3D path in iPhone WebKit, capture start/end screenshots, assert the canvas changes, assert there is no horizontal overflow or console error, and keep the existing The Door 3D regression suite green.
+
+**Status:** gated by CI and artifact review before merge.
+
+## Caveat: CAVEAT 3D 0.1 still keys some choreography by action id
+
+**Consequence:** material.
+
+The semantic transition is real CAVEAT, but the presentation manifest currently says things such as “when `follow_bell` succeeds, frame the bridge.” That is a useful separation from game logic, but it is not yet the final generic graphics contract.
+
+**Response:** record the limitation instead of pretending it is solved. The next engine phase should bind choreography to normalized places, entities, and action-runtime commands such as Move, Inspect, Open, and Observe.
+
+**Status:** open, explicitly scoped as the next CAVEAT 3D engine problem.
+
 ## Remaining architectural caveat
 
-Moon Garden intentionally proves that the CAVEAT reasoning/session layer can drive a presentable game. Its garden illustration and scene choreography are still scenario-specific presentation code. The next engine milestone should extract those presentation primitives so a new .cav story can reuse them without another bespoke page.
+Moon Garden now proves that one CAVEAT program can drive both a polished 2D presentation and a reusable WebGL presentation layer. The remaining architectural caveat has narrowed: the 3D scene manifest is reusable infrastructure, but some choreography still binds directly to option/action identifiers instead of normalized world/action commands.
 
-This is not allowed to block Moon Garden from looking finished; it is an engine-generalization task, not a player-facing excuse.
+That limitation is not allowed to become an excuse for ugly output. Generalization happens behind a player-facing quality bar.
