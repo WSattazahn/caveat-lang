@@ -101,6 +101,10 @@ jobs:
               const mrStart=await page.screenshot(); fs.writeFileSync('mr-caveat-live-start.png',mrStart);
               if(variance(mrStart)<40) throw Error('Mr. Caveat start lacks meaningful visual detail');
               await page.getByRole('button',{name:/Cause a problem/}).click();
+              const mrBg=await page.locator('#world').evaluate(el=>getComputedStyle(el).backgroundImage);
+              if(!mrBg.includes('moon-market.svg')) throw Error('Live Mr. Caveat scene asset did not load');
+              const mrGameplay=await page.screenshot(); fs.writeFileSync('mr-caveat-live-gameplay.png',mrGameplay);
+              if(variance(mrGameplay)<40) throw Error('Mr. Caveat gameplay lacks meaningful visual detail');
               await page.evaluate(()=>window.__mrCaveatTest.teleport(37));
               await page.getByRole('button',{name:/Look closer/}).click();
               await page.getByRole('button',{name:/That complicates things/}).click();
