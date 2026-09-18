@@ -1,0 +1,120 @@
+scene "At closing time in the Moon Garden, Miso the little black cat slips past the tea pavilion and vanishes among the lanterns. The garden is safe, but the clues disagree about where she went.";
+place moon_gate kind garden_gate;
+place lantern_courtyard kind courtyard;
+place pond_path kind garden_path;
+place glasshouse kind greenhouse;
+place tea_pavilion kind pavilion;
+place moon_bridge kind bridge;
+place fern_nook kind garden_nook;
+connect moon_gate to lantern_courtyard;
+connect lantern_courtyard to pond_path;
+connect lantern_courtyard to glasshouse;
+connect lantern_courtyard to tea_pavilion;
+connect pond_path to moon_bridge;
+connect tea_pavilion to fern_nook;
+entity brass_bell kind bell at lantern_courtyard;
+entity mossy_stones kind path_marker at pond_path;
+entity glass_door kind greenhouse_door at glasshouse;
+entity paper_lanterns kind lanterns at lantern_courtyard;
+start_at lantern_courtyard;
+
+display cat_near_bridge "Miso is near the moon bridge.";
+display cat_near_pond "Miso is still along the pond path.";
+display cat_near_greenhouse "Miso is inside the greenhouse.";
+display cat_near_pavilion "Miso is near the tea pavilion.";
+display garden_route_reliable "The current route is reliable.";
+
+display bell_echo_distorts_direction "Listen for Miso's bell.";
+display wet_stones_hide_tracks "Check the damp pawprints by the pond.";
+display greenhouse_glass_mirrors_movement "Watch the greenhouse glass for movement.";
+display second_chime "A second bell note answers from farther right, not from the bridge.";
+display pressed_moss "Freshly pressed moss shows tiny paws left the wet stones toward the pavilion.";
+display warm_pawprint "A warm pawprint on the glass is real, but it is on the outside.";
+display follow_bell "Follow the bell toward the moon bridge.";
+display follow_tracks "Follow the pawprints along the pond path.";
+display check_greenhouse "Check the glowing greenhouse.";
+display owl_wingbeat "An owl brushes a hanging bell and makes the same bright chime.";
+display fountain_splash "The fountain washes the last clear pawprints away.";
+display reflected_lantern "A lantern reflection crosses the greenhouse glass like a moving animal.";
+display bridge_water_masks_sound "Pause under the bridge and listen again.";
+display cushion_may_hold_old_fur "Check the still-warm cushion at the tea pavilion.";
+display moths_follow_heat_not_cats "Watch where the lantern moths keep circling.";
+display tiny_purr "A tiny purr comes from the fern nook behind the pavilion.";
+display black_fur "One black hair is caught in the warm cushion seam.";
+display moths_avoid_fern "The moths avoid one dark patch of ferns, as if something is breathing there.";
+display cross_moon_bridge "Cross the moon bridge and search the willow side.";
+display search_tea_pavilion "Search behind the tea pavilion.";
+display open_glasshouse "Open the greenhouse and check the warm planters.";
+
+budget 4;
+
+claim cat_near_bridge;
+claim cat_near_pond;
+claim cat_near_greenhouse;
+claim cat_near_pavilion;
+claim garden_route_reliable;
+
+evidence bell_ping from "brass_bell";
+evidence damp_pawprints from "mossy_stones";
+evidence moving_shadow from "glass_door";
+evidence second_chime from "brass_bell";
+evidence pressed_moss from "pond_path";
+evidence warm_pawprint from "glass_door";
+
+bell_ping supports cat_near_bridge;
+damp_pawprints supports cat_near_pond;
+moving_shadow supports cat_near_greenhouse;
+
+caveat bell_echo_distorts_direction consequence material;
+caveat wet_stones_hide_tracks consequence material;
+caveat greenhouse_glass_mirrors_movement consequence material;
+
+bell_echo_distorts_direction qualifies bell_ping;
+wet_stones_hide_tracks qualifies damp_pawprints;
+greenhouse_glass_mirrors_movement qualifies moving_shadow;
+
+investigate first_clue options bell_echo_distorts_direction, wet_stones_hide_tracks, greenhouse_glass_mirrors_movement;
+inspect first_clue bell_echo_distorts_direction cost 1;
+reveal bell_echo_distorts_direction then second_chime opposes cat_near_bridge;
+reveal bell_echo_distorts_direction then second_chime supports cat_near_pavilion;
+reveal wet_stones_hide_tracks then pressed_moss opposes cat_near_pond;
+reveal wet_stones_hide_tracks then pressed_moss supports cat_near_pavilion;
+reveal greenhouse_glass_mirrors_movement then warm_pawprint opposes cat_near_greenhouse;
+reveal greenhouse_glass_mirrors_movement then warm_pawprint supports cat_near_pavilion;
+
+choice first_move options follow_bell, follow_tracks, check_greenhouse retaining bell_echo_distorts_direction, wet_stones_hide_tracks, greenhouse_glass_mirrors_movement;
+select first_move follow_bell;
+
+evidence owl_wingbeat from "garden_canopy";
+evidence fountain_splash from "stone_fountain";
+evidence reflected_lantern from "paper_lanterns";
+
+when_committed follow_bell owl_wingbeat opposes cat_near_bridge;
+when_committed follow_bell reopen follow_bell because bell_echo_distorts_direction;
+when_committed follow_tracks fountain_splash opposes cat_near_pond;
+when_committed follow_tracks reopen follow_tracks because wet_stones_hide_tracks;
+when_committed check_greenhouse reflected_lantern opposes cat_near_greenhouse;
+when_committed check_greenhouse reopen check_greenhouse because greenhouse_glass_mirrors_movement;
+
+evidence tiny_purr from "fern_nook";
+evidence black_fur from "tea_pavilion_cushion";
+evidence moths_avoid_fern from "paper_lanterns";
+tiny_purr supports cat_near_pavilion;
+black_fur supports cat_near_pavilion;
+moths_avoid_fern supports cat_near_pavilion;
+
+caveat bridge_water_masks_sound consequence low;
+caveat cushion_may_hold_old_fur consequence low;
+caveat moths_follow_heat_not_cats consequence low;
+bridge_water_masks_sound qualifies tiny_purr;
+cushion_may_hold_old_fur qualifies black_fur;
+moths_follow_heat_not_cats qualifies moths_avoid_fern;
+
+investigate second_clue options bridge_water_masks_sound, cushion_may_hold_old_fur, moths_follow_heat_not_cats;
+inspect second_clue bridge_water_masks_sound cost 1;
+reveal bridge_water_masks_sound then tiny_purr supports cat_near_pavilion;
+reveal cushion_may_hold_old_fur then black_fur supports cat_near_pavilion;
+reveal moths_follow_heat_not_cats then moths_avoid_fern supports cat_near_pavilion;
+
+choice final_move options cross_moon_bridge, search_tea_pavilion, open_glasshouse retaining bridge_water_masks_sound, cushion_may_hold_old_fur, moths_follow_heat_not_cats;
+select final_move search_tea_pavilion;

@@ -42,7 +42,8 @@ jobs:
           rm -rf dist
           mkdir -p dist/pkg
           wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
-          cp web/index.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
+          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav dist/
+          cp game/moon_garden.cav dist/moon_garden.cav
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
@@ -73,7 +74,7 @@ jobs:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
       - run: npx playwright install --with-deps webkit
-      - name: Capture and test door
+      - name: Capture and test Moon Garden and Door
         run: |
           node <<'NODE'
           const { webkit, devices } = require('playwright');
@@ -92,6 +93,35 @@ jobs:
               page.on('pageerror',e=>errors.push(e.message));
               page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
               const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
+              const moonResponse=await page.goto(base);
+              if(!moonResponse||!moonResponse.ok()) throw Error('Moon Garden HTTP failure');
+              await page.getByText('Find a useful clue').waitFor();
+              const moonStart=await page.screenshot(); fs.writeFileSync('moon-start.png',moonStart);
+              if(variance(moonStart)<40) throw Error('Moon Garden start lacks meaningful visual detail');
+              const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth+1);
+              if(overflow) throw Error('Moon Garden horizontally overflows iPhone viewport');
+              await page.getByRole('button',{name:/Listen for Miso/}).click();
+              await page.getByText('Clue found').waitFor();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await page.getByRole('button',{name:/Follow the bell/}).click();
+              await page.getByText('Commitment reopened',{exact:true}).waitFor();
+              await page.getByRole('button',{name:/Revise the plan/}).click();
+              await page.getByRole('button',{name:/still-warm cushion/}).click();
+              await page.getByText('Clue found').waitFor();
+              await page.getByRole('button',{name:/Keep going/}).click();
+              await page.getByRole('button',{name:/Search behind the tea pavilion/}).click();
+              await page.getByText('Decision made.').waitFor();
+              await page.getByRole('button',{name:/See what happens/}).click();
+              await page.getByText('There you are.').waitFor();
+              await page.waitForFunction(()=>document.querySelector('#miso')?.classList.contains('visible'));
+              await page.waitForTimeout(900);
+              const misoVisible=await page.locator('#miso').evaluate(el=>Number(getComputedStyle(el).opacity)>.95);
+              if(!misoVisible) throw Error('Moon Garden ending did not reveal Miso');
+              const misoBox=await page.locator('#miso').boundingBox();
+              const sceneBox=await page.locator('#scene').boundingBox();
+              if(!misoBox||!sceneBox||misoBox.x<sceneBox.x+sceneBox.width*.65||misoBox.y<sceneBox.y+sceneBox.height*.45) throw Error('Miso ending sprite is misplaced');
+              const moonEnd=await page.screenshot(); fs.writeFileSync('moon-end.png',moonEnd);
+              if(Buffer.compare(moonStart,moonEnd)===0) throw Error('Moon Garden did not visibly change during play');
               const response=await page.goto(new URL('3d.html',base).toString());
               if(!response||!response.ok()) throw Error('HTTP failure');
               await page.getByText('Emergency alarm. Leave this floor.').waitFor();
@@ -120,4 +150,6 @@ jobs:
         if: always()
         with:
           name: caveat-door-visual-inspection
-          path: door-*.png
+          path: |
+            door-*.png
+            moon-*.png
