@@ -406,7 +406,7 @@ impl Evaluator {
                     because_action: action.clone(),
                 });
             }
-            Statement::WhenCommitted { .. } => {}
+            Statement::WhenCommitted { .. } | Statement::Converge { .. } => {}
             Statement::Commit {
                 action,
                 reason,
