@@ -106,6 +106,9 @@
     .feedback .quote{
       color:#fff;font-size:17px;line-height:1.45;padding-left:13px;border-left:2px solid var(--mint)
     }
+    .findings{display:grid;gap:7px;margin:11px 0}
+    .finding{padding:9px 10px;border-radius:11px;background:rgba(0,0,0,.16);font-size:12px;line-height:1.4;color:#cac6bf}
+    .finding b{color:#f0ebe2}
     .primary{
       width:100%;min-height:48px;border:0;border-radius:14px;margin-top:12px;
       background:#f0d08e;color:#1c2024;font-weight:850;cursor:pointer
@@ -421,11 +424,12 @@
   }
 
   function showDiscovery(id,discoveries){
-    const d=discoveries[0];
-    const evidence=pretty(d.evidence);
-    const target=pretty(d.target);
-    const relation=d.relation==='opposes'?'weakens':'supports';
-    gameEl.innerHTML='<div class="eyebrow">Clue found</div><div class="feedback clue"><h2>'+safe(evidence)+'</h2><p class="quote">'+safe(evidence)+'</p><p>This '+safe(relation)+' the idea that '+safe(target).replace(/\.$/,'').toLowerCase()+'.</p><div class="caveat-box"><b>Caveat examined</b><span>'+safe(CAVEATS[id]||'The clue is informative, not absolute.')+'</span></div></div><button class="primary" type="button" id="continue">Keep going</button>';
+    const evidence=pretty(discoveries[0].evidence);
+    const findings=discoveries.map(function(d){
+      const relation=d.relation==='opposes'?'Weakens':'Supports';
+      return '<div class="finding"><b>'+relation+'</b> '+safe(pretty(d.target))+'</div>';
+    }).join('');
+    gameEl.innerHTML='<div class="eyebrow">Clue found</div><div class="feedback clue"><h2>'+safe(evidence)+'</h2><p class="quote">'+safe(evidence)+'</p><div class="findings">'+findings+'</div><div class="caveat-box"><b>Caveat examined</b><span>'+safe(CAVEATS[id]||'The clue is informative, not absolute.')+'</span></div></div><button class="primary" type="button" id="continue">Keep going</button>';
     document.querySelector('#continue').addEventListener('click',render);
     sceneNote.textContent='clue checked · uncertainty reduced';
     statusEl.textContent='CAVEAT · clue recorded';
