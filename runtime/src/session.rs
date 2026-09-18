@@ -162,7 +162,7 @@ impl Session {
                     from,
                     relation,
                     to,
-                } => self.last_discoveries.push(Discovery {
+                } if name(*because) == selection => self.last_discoveries.push(Discovery {
                     because: name(*because),
                     evidence: name(*from),
                     relation: format!("{relation:?}").to_lowercase(),
@@ -222,4 +222,53 @@ fn symbol_name(evaluation: &Evaluation, id: NodeId) -> String {
         .iter()
         .find_map(|(name, value)| (*value == id).then(|| name.clone()))
         .unwrap_or_else(|| id.to_string())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::Session;
+
+    const SOURCE: &str = r#"
+budget 2;
+claim cat_near_pavilion;
+evidence first_evidence from "first_source";
+evidence second_evidence from "second_source";
+caveat first_clue consequence material;
+caveat second_clue consequence low;
+investigate first_check options first_clue;
+inspect first_check first_clue cost 1;
+reveal first_clue then first_evidence supports cat_near_pavilion;
+choice route options go retaining first_clue;
+select route go;
+investigate second_check options second_clue;
+inspect second_check second_clue cost 1;
+reveal second_clue then second_evidence supports cat_near_pavilion;
+"#;
+
+    #[test]
+    fn feedback_reports_only_discoveries_from_the_current_interaction() {
+        let mut session = Session::from_source(SOURCE).expect("session should parse");
+
+        session.apply("first_clue").expect("first clue should apply");
+        assert_eq!(session.discoveries().len(), 1);
+        assert_eq!(session.discoveries()[0].because, "first_clue");
+
+        session.apply("go").expect("choice should apply");
+        assert!(
+            session.discoveries().is_empty(),
+            "a later choice must not replay an earlier discovery"
+        );
+        assert_eq!(
+            session
+                .commitment()
+                .expect("choice should report commitment")
+                .action,
+            "go"
+        );
+
+        session.apply("second_clue").expect("second clue should apply");
+        assert_eq!(session.discoveries().len(), 1);
+        assert_eq!(session.discoveries()[0].because, "second_clue");
+    }
 }
