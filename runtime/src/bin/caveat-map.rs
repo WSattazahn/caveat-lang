@@ -1,3 +1,4 @@
+use caveat_runtime::action_runtime::simulate;
 use caveat_runtime::map::{to_json_pretty, CaveatMap, MAP_SCHEMA};
 use std::{env, fs, process};
 
@@ -14,7 +15,7 @@ fn load(path: &str) -> CaveatMap {
 
 fn usage(program: &str) -> ! {
     eprintln!(
-        "usage:\n  {program} map FILE.cav\n  {program} inspect FILE.cav SYMBOL\n  {program} trace FILE.cav SYMBOL\n  {program} actions FILE.cav\n  {program} validate FILE.cav"
+        "usage:\n  {program} map FILE.cav\n  {program} inspect FILE.cav SYMBOL\n  {program} trace FILE.cav SYMBOL\n  {program} actions FILE.cav\n  {program} simulate FILE.cav ACTION [ACTION ...]\n  {program} validate FILE.cav"
     );
     process::exit(2)
 }
@@ -77,6 +78,20 @@ fn main() {
             println!(
                 "{}",
                 to_json_pretty(&map.actions)
+                    .unwrap_or_else(|error| fail(format!("JSON error: {error}")))
+            );
+        }
+        "simulate" => {
+            let actions = args.collect::<Vec<_>>();
+            if actions.is_empty() {
+                usage(&program);
+            }
+            let map = load(&path);
+            let result = simulate(&map, &actions)
+                .unwrap_or_else(|error| fail(format!("simulation error: {error}")));
+            println!(
+                "{}",
+                to_json_pretty(&result)
                     .unwrap_or_else(|error| fail(format!("JSON error: {error}")))
             );
         }
