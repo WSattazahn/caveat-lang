@@ -4,6 +4,7 @@ fn abs(value) = if(value < 0, -value, value + 0);
 fn min(left, right) = if(left < right, left, right);
 fn max(left, right) = if(left > right, left, right);
 fn clamp(value, lower, upper) = require(lower <= upper, min(max(value, lower), upper));
+fn wrap(value, period) = require(period > 0, value - floor(value / period) * period);
 
 # Formatting policy lives here rather than in the browser host.
 fn number_text(value) = text(round(value));

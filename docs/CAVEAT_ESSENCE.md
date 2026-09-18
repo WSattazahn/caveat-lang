@@ -28,7 +28,15 @@ A commitment made `using` such a value records the number and its provenance at 
 
 Conditional graph effects preserve their dependencies too. Revealing, examining, reopening, or deciding to skip one of those effects cannot be used as an intermediate step to erase a qualified condition. Query metadata records dependencies on absence without falsely marking unseen evidence as observed.
 
-This is dependency preservation, not a truth oracle. The author chooses how evidence informs a measurement, and repeated observations still use declared evidence identities. The runtime enforces observation availability and retained qualifications; it does not independently certify sensor accuracy or evidence quality.
+This is dependency preservation, not a truth oracle. The author chooses how evidence informs a measurement. The runtime enforces observation availability and retained qualifications; it does not independently certify sensor accuracy or evidence quality.
+
+## Repeated observations remain distinct
+
+[Reactive 0.5](../spec/caveat-reactive-0.5.md) gives each successful sample a fresh occurrence identity and frozen numeric value. A declared sensor is a source template; declaring it does not make it an observation. Equal-valued samples remain separate occurrences. Taking another reading never relabels the provenance already attached to a saved value or an earlier decision.
+
+A decision series can select a new revision only after its current decision has explicitly reopened. Every revision retains its numeric basis, caveats, predecessor, and actual evidence links. Reading the latest value selects a particular occurrence; it does not rewrite the archived record. A new decision can depend on the reason its predecessor reopened as well as its fresh measurement. Those are computational dependencies, not a statement that every earlier reading is still physically current.
+
+Skipped sampling and revision guards also affect which record remains current. Their dependencies belong to the current selection, separate from immutable archived values. A missing sample is still missing. Failed transactions consume no occurrence IDs and publish no partial history. Capacity limits reject an event atomically rather than evicting evidence silently.
 
 ## The crosscurrent example
 
@@ -38,7 +46,7 @@ The current's physical field is calculated from actual strength, position, and t
 
 The regression test compares legitimate input histories, checks the persistent graph, and separates external force from navigation compensation. It must fail if observation merely changes a journal flag or rewrites physical reality.
 
-The storm crossing makes the distinction playable. A visible weather change can reopen the old steering commitment without supplying a perfect new measurement. The player may keep correcting that old plan manually, or hold the light over the current to take a fresh sample while the ferry keeps moving. The fresh sample supports a separate revised commitment; neither the first measured number nor its frozen decision basis is overwritten. Both readings retain the caveat that conditions can change again.
+The storm crossing makes the distinction playable. Visible weather changes can reopen the current steering commitment without supplying perfect new measurements. The player may keep correcting an old plan manually, or hold the light over the current to take a fresh sample while the ferry keeps moving. One sampling procedure appends readings and one navigation series retains successive decisions. Faint last-reading arrows can disagree with the bright surface-flow arrows. Earlier numbers and decision bases remain intact, and later readings still retain the caveat that conditions can change again.
 
 This separation is a design invariant enforced by the game's source and regression tests. The language does not independently decide which authored numeric variables represent external physics.
 
@@ -48,7 +56,9 @@ The reactive runtime still uses Rust for parsing, validation, expression executi
 
 The source-defined prelude moves the algorithms for `abs`, `min`, `max`, and `clamp` out of Rust and into Caveat functions. Formatting policies for clocks, rounded numbers, and percentages also live in Caveat. A lazy conditional retains the condition and the branch actually evaluated; ordinary function arguments still contribute their dependencies even when the function body ignores them. Turning a qualified number into display text must preserve its qualification metadata.
 
-Supporting text and conditional expressions extends the Rust evaluator, so moving those algorithms does not imply a net reduction in Rust lines. Parsing, transactions, graph storage, primitive numeric/text operations, and WebAssembly remain Rust. General modules, a compiler written in Caveat, and repeated observation occurrence identities remain future work.
+Supporting text, conditional expressions, and history records extends the Rust evaluator, so moving source algorithms does not imply a net reduction in Rust lines. Parsing, transactions, graph storage, primitive numeric/text operations, and WebAssembly remain Rust. General modules and a compiler written in Caveat remain future work.
+
+The thermostat history example tests the same observation and revision facilities outside the game. It demonstrates reuse, but it does not establish that Caveat is broadly useful in production. That requires more applications, user experience, and measurement.
 
 The success criterion is that a new behavior and its feedback can be authored in Caveat while preserving the invariants above. More `.cav` lines, fewer JavaScript lines, or a Rust-like surface syntax are not evidence of epistemic correctness by themselves.
 

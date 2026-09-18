@@ -329,6 +329,29 @@ export function createBeaconWorld(canvas, options = {}) {
   const rain = new THREE.LineSegments(rainGeometry, new THREE.LineBasicMaterial({ color: 0x89a8b0, transparent: true, opacity: rescueMode ? 0.055 : 0.11, depthWrite: false }));
   world.add(rain);
   let rainSpeed = 1;
+  const rainSeeds = rainArray.slice();
+  const rainPeriod = 43;
+  const wrapRain = value => ((value % rainPeriod) + rainPeriod) % rainPeriod;
+  let sourceWaterTime = null;
+  let sourceRainTravel = null;
+
+  function placeRain(travel) {
+    // A fixed particle pattern translated through a repeating volume. Source
+    // supplies accumulated distance; rendering never integrates its clock.
+    const phase = wrapRain(travel);
+    for (let index = 0; index < rainSeeds.length; index += 6) {
+      const originY = wrapRain(rainSeeds[index + 1] + 1) - 1;
+      const y = wrapRain(originY + 1 - phase) - 1;
+      const x = rainSeeds[index] + (originY - y) * 0.14;
+      rainArray[index] = x;
+      rainArray[index + 1] = y;
+      rainArray[index + 2] = rainSeeds[index + 2];
+      rainArray[index + 3] = x + rainSeeds[index + 3] - rainSeeds[index];
+      rainArray[index + 4] = y + rainSeeds[index + 4] - rainSeeds[index + 1];
+      rainArray[index + 5] = rainSeeds[index + 5];
+    }
+    rainGeometry.attributes.position.needsUpdate = true;
+  }
 
   function makeRoof(parent, width, depth, y, height, color) {
     const geometry = new THREE.BufferGeometry();
@@ -770,9 +793,18 @@ export function createBeaconWorld(canvas, options = {}) {
       exposure: numberProperty(() => renderer.toneMappingExposure, value => { renderer.toneMappingExposure = Math.max(0, value); }),
       wave_height: numberProperty(() => waterUniforms.waveHeight.value, value => { waterUniforms.waveHeight.value = Math.max(0, value); }),
       rain_speed: numberProperty(() => rainSpeed, value => { rainSpeed = Math.max(0, value); }),
+      water_time: {
+        ...numberProperty(() => waterUniforms.time.value, value => { sourceWaterTime = value; waterUniforms.time.value = value; }),
+        sourceClock: true,
+      },
+      rain_travel: {
+        // Read the phase back from the actual first droplet, not the binding.
+        ...numberProperty(() => wrapRain(wrapRain(rainSeeds[1] + 1) - 1 - rainArray[1]), value => { sourceRainTravel = value; placeRain(value); }),
+        sourceClock: true,
+      },
     },
   };
-  const atmosphereDefaults = Object.fromEntries(Object.entries(atmosphere.properties).map(([property, adapter]) => [property, adapter.get()]));
+  const atmosphereDefaults = Object.fromEntries(Object.entries(atmosphere.properties).filter(([, adapter]) => !adapter.sourceClock).map(([property, adapter]) => [property, adapter.get()]));
   Object.assign(atmosphereDefaults, {
     'rain.opacity': rain.material.opacity, 'rain.color': rain.material.color.getHex(),
     'rain.visible': true, 'rain.z': 0, 'stars.opacity': stars.material.opacity, 'stars.visible': true,
@@ -1210,6 +1242,12 @@ export function createBeaconWorld(canvas, options = {}) {
     needsRender = true;
     resetGeneration++;
     clearCues(); appliedBindingValues.clear(); lastBindingSequence = -1; lastBindingSession = null;
+    sourceWaterTime = null;
+    if (sourceRainTravel !== null) {
+      rainArray.set(rainSeeds);
+      rainGeometry.attributes.position.needsUpdate = true;
+    }
+    sourceRainTravel = null;
     for (const [property, value] of Object.entries(atmosphereDefaults)) applyBinding(atmosphere, property, value);
     for (const item of tweens) item.resolve();
     tweens.clear(); busy = false; immediatePlayback = false;
@@ -1301,7 +1339,7 @@ export function createBeaconWorld(canvas, options = {}) {
       item.update(Math.min(1, item.age / item.duration));
       if (item.age >= item.duration) { tweens.delete(item); item.resolve(); }
     }
-    waterUniforms.time.value = elapsed;
+    if (sourceWaterTime === null) waterUniforms.time.value = elapsed;
     const view = cameraEye.clone().sub(cameraTarget);
     const spherical = new THREE.Spherical().setFromVector3(view);
     spherical.theta += yaw;
@@ -1339,7 +1377,7 @@ export function createBeaconWorld(canvas, options = {}) {
       }
     }
     updateCues(wallTime);
-    if (!reducedMotion) {
+    if (!reducedMotion && sourceRainTravel === null) {
       const p = rainGeometry.attributes.position.array;
       for (let i = 0; i < 390; i++) {
         const n = i * 6, dy = dt * 10 * rainSpeed;

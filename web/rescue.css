@@ -12,3 +12,12 @@
 .toast{max-width:min(470px,calc(100% - 38px));white-space:normal;text-align:center;line-height:1.4}
 @media(max-width:700px){.sample-panel{padding:10px 12px;margin-bottom:14px;gap:11px}.play-footer .sample-copy p{font-size:11px}.sample-target{flex-basis:24px;width:24px;height:24px}}
 @media(max-height:620px){.sample-panel{padding:8px 11px;margin-bottom:10px}.play-footer .sample-copy p{font-size:10px;margin-bottom:6px}.sample-target{flex-basis:22px;width:22px;height:22px}.sample-target:after{inset:6px}}
+/* Reading metadata reuses the existing footer height; the boat remains clear. */
+.sample-panel{padding-top:6px;padding-bottom:6px}
+.play-footer .sample-copy p{margin-bottom:6px}
+.reading-meta{display:flex;align-items:center;justify-content:space-between;gap:7px;min-height:12px;margin-top:6px;white-space:nowrap;font-size:8px;line-height:12px;letter-spacing:0;color:#b8cbc9}
+.reading-age{font-weight:700;font-variant-numeric:tabular-nums;color:var(--sample-color)}
+#flow-legend{font-size:8px;letter-spacing:0;color:#afc5c7}
+.play-footer #control-hint{margin-bottom:10px}
+@media(max-width:700px){.sample-panel{padding-top:6px;padding-bottom:6px}.reading-meta{gap:6px}}
+@media(max-height:620px){.sample-panel{padding-top:5px;padding-bottom:5px}.reading-meta{margin-top:4px}.play-footer #control-hint{margin-bottom:8px}}

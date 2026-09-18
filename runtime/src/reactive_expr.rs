@@ -177,6 +177,7 @@ enum Node {
     // numeric and evaluated eagerly, so `constant(1 / 0)` must still fail.
     ExpandedCall(Vec<Expr>, Box<Expr>),
     Predicate(String, String),
+    Latest(String),
     Qualified(Box<Expr>, String, Vec<String>),
     If(Box<Expr>, Box<Expr>, Box<Expr>),
     Require(Box<Expr>, Box<Expr>),
@@ -387,6 +388,10 @@ impl Expr {
                 predicate(name, target)?;
                 Ok(ValueType::Bool)
             }
+            Node::Latest(name) => {
+                predicate("numeric_history", name)?;
+                Ok(ValueType::Number)
+            }
             Node::Qualified(value, evidence, caveats) => {
                 value
                     .validate_calls(numeric, predicate, user_call)?
@@ -499,6 +504,23 @@ impl Expr {
         predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
     ) -> Result<Tracked<Value>, String> {
+        self.evaluate_tracked_with_history(numbers, predicate, qualify, &|name| {
+            Err(format!(
+                "latest({name}) requires a history-aware evaluation host"
+            ))
+        })
+    }
+
+    /// Read the latest immutable occurrence selected by the host, retaining
+    /// its numeric dependencies. Empty histories must be reported by the host
+    /// as errors; a stream name never silently becomes a numeric variable.
+    pub fn evaluate_tracked_with_history(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
+        latest: &impl Fn(&str) -> Result<Tracked<f64>, String>,
+    ) -> Result<Tracked<Value>, String> {
         // The existing evaluator already visits precisely the operands that
         // contribute to this evaluation. Accumulating at those reads gives
         // identical propagation without copying full traces at every AST node.
@@ -518,6 +540,12 @@ impl Expr {
                 Ok(tracked.value)
             },
             &|evidence, caveats| provenance.borrow_mut().merge(&qualify(evidence, caveats)?),
+            &|name| {
+                let tracked = latest(name)?;
+                let value = finite(tracked.value)?;
+                provenance.borrow_mut().merge(&tracked.provenance)?;
+                Ok(value)
+            },
         )?;
         Ok(Tracked {
             value,
@@ -530,6 +558,7 @@ impl Expr {
         numbers: &impl Fn(&str) -> Result<Option<f64>, String>,
         predicate: &impl Fn(&str, &str) -> Result<bool, String>,
         qualify: &impl Fn(&str, &[String]) -> Result<(), String>,
+        latest: &impl Fn(&str) -> Result<f64, String>,
     ) -> Result<Value, String> {
         match &self.node {
             Node::Number(value) => Ok(Value::Number(value.value())),
@@ -544,31 +573,32 @@ impl Expr {
                 Ok(Value::Number(finite(value)?))
             }
             Node::Predicate(name, target) => Ok(Value::Bool(predicate(name, target)?)),
+            Node::Latest(name) => Ok(Value::Number(finite(latest(name)?)?)),
             Node::Qualified(value, evidence, caveats) => {
                 let value = value
-                    .evaluate_values(numbers, predicate, qualify)?
+                    .evaluate_values(numbers, predicate, qualify, latest)?
                     .number()?;
                 qualify(evidence, caveats)?;
                 Ok(Value::Number(value))
             }
             Node::If(condition, yes, no) => {
                 if condition
-                    .evaluate_values(numbers, predicate, qualify)?
+                    .evaluate_values(numbers, predicate, qualify, latest)?
                     .boolean()?
                 {
-                    yes.evaluate_values(numbers, predicate, qualify)
+                    yes.evaluate_values(numbers, predicate, qualify, latest)
                 } else {
-                    no.evaluate_values(numbers, predicate, qualify)
+                    no.evaluate_values(numbers, predicate, qualify, latest)
                 }
             }
             Node::Require(condition, value) => {
                 if !condition
-                    .evaluate_values(numbers, predicate, qualify)?
+                    .evaluate_values(numbers, predicate, qualify, latest)?
                     .boolean()?
                 {
                     return Err("source expression requirement failed".into());
                 }
-                value.evaluate_values(numbers, predicate, qualify)
+                value.evaluate_values(numbers, predicate, qualify, latest)
             }
             Node::UserCall(name, _) => Err(format!(
                 "source function {name} must be expanded before evaluation"
@@ -576,13 +606,13 @@ impl Expr {
             Node::ExpandedCall(arguments, body) => {
                 for argument in arguments {
                     argument
-                        .evaluate_values(numbers, predicate, qualify)?
+                        .evaluate_values(numbers, predicate, qualify, latest)?
                         .number()?;
                 }
-                body.evaluate_values(numbers, predicate, qualify)
+                body.evaluate_values(numbers, predicate, qualify, latest)
             }
             Node::Unary(operator, child) => {
-                let value = child.evaluate_values(numbers, predicate, qualify)?;
+                let value = child.evaluate_values(numbers, predicate, qualify, latest)?;
                 match operator {
                     Unary::Positive => Ok(Value::Number(value.number()?)),
                     Unary::Negative => Ok(Value::Number(-value.number()?)),
@@ -590,13 +620,13 @@ impl Expr {
                 }
             }
             Node::Binary(operator, left, right) => {
-                let left = left.evaluate_values(numbers, predicate, qualify)?;
+                let left = left.evaluate_values(numbers, predicate, qualify, latest)?;
                 match operator {
                     Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
                     Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
                     _ => {}
                 }
-                let right = right.evaluate_values(numbers, predicate, qualify)?;
+                let right = right.evaluate_values(numbers, predicate, qualify, latest)?;
                 match operator {
                     Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
                     Binary::Equal | Binary::NotEqual => {
@@ -654,7 +684,7 @@ impl Expr {
                     .iter()
                     .map(|argument| {
                         argument
-                            .evaluate_values(numbers, predicate, qualify)?
+                            .evaluate_values(numbers, predicate, qualify, latest)?
                             .number()
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -975,10 +1005,12 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after qualified value")?;
             return Ok(Node::Qualified(Box::new(value), evidence, caveats));
         }
-        if matches!(
-            name.as_str(),
-            "observed" | "examined" | "committed" | "reopened"
-        ) {
+        if name == "latest" {
+            let history = self.graph_identifier("latest history")?;
+            self.expect(TokenKind::RightParen, "')' after history identifier")?;
+            return Ok(Node::Latest(history));
+        }
+        if predicate_name(&name) {
             let offset = self.offset();
             let Some(TokenKind::Identifier(target)) = self.take() else {
                 return Err(format!(
@@ -1094,7 +1126,10 @@ fn plain_identifier(name: &str) -> bool {
 }
 
 fn predicate_name(name: &str) -> bool {
-    matches!(name, "observed" | "examined" | "committed" | "reopened")
+    matches!(
+        name,
+        "observed" | "examined" | "committed" | "reopened" | "has_sample"
+    )
 }
 
 fn check_arity(definition: &FunctionDef, supplied: usize) -> Result<(), String> {
@@ -1123,7 +1158,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
         }
         if Function::named(name).is_some()
             || predicate_name(name)
-            || matches!(name.as_str(), "qualified" | "if" | "require")
+            || matches!(name.as_str(), "qualified" | "if" | "require" | "latest")
         {
             return Err(format!(
                 "source function {name} shadows an intrinsic or predicate"
@@ -1278,6 +1313,12 @@ impl Expander<'_> {
                 }
                 Node::Predicate(name.clone(), target.clone())
             }
+            Node::Latest(name) => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture numeric history".into());
+                }
+                Node::Latest(name.clone())
+            }
             Node::Qualified(value, evidence, caveats) => {
                 if parameters.is_some() {
                     return Err(
@@ -1418,6 +1459,237 @@ mod tests {
             caveats.iter().map(|name| (*name).to_string()),
         )
         .unwrap()
+    }
+
+    #[test]
+    fn history_reads_use_explicit_typed_hooks_and_exact_identifier_arity() {
+        let expression = parse("has_sample(readings) and latest(course) > 0").unwrap();
+        let calls = RefCell::new(Vec::new());
+        assert_eq!(
+            expression.validate(&HashSet::new(), &|kind, name| {
+                calls
+                    .borrow_mut()
+                    .push((kind.to_string(), name.to_string()));
+                Ok(())
+            }),
+            Ok(ValueType::Bool)
+        );
+        assert_eq!(
+            *calls.borrow(),
+            vec![
+                ("has_sample".into(), "readings".into()),
+                ("numeric_history".into(), "course".into()),
+            ]
+        );
+        assert!(expression
+            .validate(&HashSet::new(), &|kind, _| {
+                if kind == "has_sample" {
+                    Err("expected reading stream".into())
+                } else {
+                    Ok(())
+                }
+            })
+            .is_err());
+        assert!(parse("latest(readings)")
+            .unwrap()
+            .validate(&HashSet::new(), &|_, _| Err(
+                "unknown numeric history".into()
+            ))
+            .is_err());
+        assert!(parse("readings")
+            .unwrap()
+            .validate(&HashSet::new(), &|_, _| Ok(()))
+            .is_err());
+        for source in [
+            "latest()",
+            "latest(1)",
+            "latest(a, b)",
+            "latest(a.x)",
+            "latest(a + b)",
+            "has_sample()",
+            "has_sample(a, b)",
+            "has_sample(a.x)",
+        ] {
+            assert!(super::parse(source).is_err(), "{source}");
+        }
+    }
+
+    #[test]
+    fn latest_reads_merge_immutable_occurrence_dependencies_and_never_read_numeric_aliases() {
+        let expression = parse("latest(readings) + latest(course)").unwrap();
+        let current = Cell::new(1);
+        let read = |name: &str| {
+            let occurrence = format!("{name}#{}", current.get());
+            Tracked::new(
+                2.0,
+                Provenance::from_names([occurrence], ["uncertainty".into()])?,
+            )
+        };
+        let first = expression
+            .evaluate_tracked_with_history(
+                &|_| Err("latest must not use numeric variable callbacks".into()),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+                &read,
+            )
+            .unwrap();
+        current.set(2);
+        let second = expression
+            .evaluate_tracked_with_history(
+                &|_| Err("latest must not use numeric variable callbacks".into()),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+                &read,
+            )
+            .unwrap();
+        assert_eq!(first.value, Value::Number(4.0));
+        assert_eq!(
+            first.provenance,
+            provenance(&["course#1", "readings#1"], &["uncertainty"])
+        );
+        assert_eq!(
+            second.provenance,
+            provenance(&["course#2", "readings#2"], &["uncertainty"])
+        );
+        let qualified = parse("qualified(latest(readings), template)")
+            .unwrap()
+            .evaluate_tracked_with_history(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|evidence, _| Ok(provenance(&[evidence], &["explicit"])),
+                &read,
+            )
+            .unwrap();
+        assert_eq!(
+            qualified.provenance,
+            provenance(&["readings#2", "template"], &["uncertainty", "explicit"])
+        );
+    }
+
+    #[test]
+    fn guarded_absent_history_reads_short_circuit_without_fabricating_samples() {
+        let history_reads = Cell::new(0);
+        let expression = parse("if(has_sample(readings), latest(readings), 0)").unwrap();
+        let result = expression
+            .evaluate_tracked_with_history(
+                &|_| Ok(None),
+                &|kind, name| {
+                    assert_eq!((kind, name), ("has_sample", "readings"));
+                    Ok(Tracked::plain(false))
+                },
+                &|_, _| Ok(Provenance::default()),
+                &|_| {
+                    history_reads.set(history_reads.get() + 1);
+                    Err("history has no reached occurrence".into())
+                },
+            )
+            .unwrap();
+        assert_eq!(result.value, Value::Number(0.0));
+        assert!(result.provenance.is_empty());
+        assert_eq!(history_reads.get(), 0);
+        let unguarded = parse("latest(readings)").unwrap();
+        assert_eq!(
+            unguarded.evaluate_tracked_with_history(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+                &|_| Err("history has no reached occurrence".into()),
+            ),
+            Err("history has no reached occurrence".into())
+        );
+        assert!(unguarded
+            .evaluate_tracked(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default())
+            )
+            .unwrap_err()
+            .contains("history-aware evaluation host"));
+        assert!(unguarded
+            .evaluate(&|_| None, &|_, _| Ok(false))
+            .unwrap_err()
+            .contains("history-aware evaluation host"));
+        assert_eq!(
+            eval("if(false, latest(readings), 1)"),
+            Ok(Value::Number(1.0))
+        );
+    }
+
+    #[test]
+    fn history_values_are_eager_function_arguments_but_cannot_be_captured() {
+        let functions = definitions(&[("ignore", &["x"], "0")]);
+        let expression = expand(
+            &parse_unresolved("ignore(latest(readings))").unwrap(),
+            &functions,
+        )
+        .unwrap();
+        let result = expression
+            .evaluate_tracked_with_history(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+                &|_| Tracked::new(3.0, provenance(&["readings#2"], &["risk"])),
+            )
+            .unwrap();
+        assert_eq!(result.value, Value::Number(0.0));
+        assert_eq!(result.provenance, provenance(&["readings#2"], &["risk"]));
+        assert!(expression
+            .evaluate_tracked_with_history(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+                &|_| Err("history has no reached occurrence".into()),
+            )
+            .is_err());
+        for body in ["latest(readings) + x", "has_sample(readings)"] {
+            assert!(
+                validate_functions(&definitions(&[("capture", &["x"], body)])).is_err(),
+                "{body}"
+            );
+        }
+        let capture = definitions(&[("capture", &["x"], "latest(readings)")]);
+        assert!(expand(&parse_unresolved("capture(1)").unwrap(), &capture)
+            .unwrap_err()
+            .contains("cannot capture numeric history"));
+        for name in ["latest", "has_sample"] {
+            assert!(validate_functions(&definitions(&[(name, &["x"], "x")]))
+                .unwrap_err()
+                .contains("shadows"));
+        }
+    }
+
+    #[test]
+    fn history_callback_values_obey_finite_and_provenance_bounds() {
+        let expression = parse("latest(readings)").unwrap();
+        for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert!(expression
+                .evaluate_tracked_with_history(
+                    &|_| Ok(None),
+                    &|_, _| Ok(Tracked::plain(false)),
+                    &|_, _| Ok(Provenance::default()),
+                    &|_| Ok(Tracked::plain(value)),
+                )
+                .unwrap_err()
+                .contains("non-finite"));
+        }
+        let invalid = Provenance {
+            evidence: (0..=MAX_PROVENANCE_IDENTIFIERS)
+                .map(|index| format!("e{index}"))
+                .collect(),
+            caveats: BTreeSet::new(),
+        };
+        assert!(expression
+            .evaluate_tracked_with_history(
+                &|_| Ok(None),
+                &|_, _| Ok(Tracked::plain(false)),
+                &|_, _| Ok(Provenance::default()),
+                &|_| Ok(Tracked {
+                    value: 1.0,
+                    provenance: invalid.clone()
+                }),
+            )
+            .unwrap_err()
+            .contains("identifiers"));
     }
 
     #[test]

@@ -16,6 +16,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 const LIMIT: f64 = 1_000_000_000_000.0;
+const MAX_HISTORY_LIMIT: usize = 256;
+const MAX_DECLARED_HISTORY_CAPACITY: usize = 1024;
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
 
@@ -88,6 +90,12 @@ pub struct Parameter {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
+    Sample {
+        stream: String,
+        value: Expr,
+        relation: Relation,
+        claim: String,
+    },
     Emit {
         name: String,
     },
@@ -112,8 +120,14 @@ pub enum Effect {
     },
     Reopen {
         action: String,
-        because: String,
+        because: EvidenceSelector,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EvidenceSelector {
+    Named(String),
+    Latest(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,6 +139,15 @@ pub struct Rule {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
+    Readings {
+        name: String,
+        template: String,
+        limit: usize,
+    },
+    Decisions {
+        name: String,
+        limit: usize,
+    },
     Function(FunctionDef),
     Binding(Binding),
     Cue(Cue),
@@ -257,15 +280,60 @@ pub struct CommitmentBasis {
     pub provenance: Provenance,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReadingOccurrence {
+    pub id: String,
+    pub ordinal: u64,
+    pub sequence: u64,
+    pub event: String,
+    pub value: f64,
+    pub provenance: Provenance,
+    pub relation: String,
+    pub claim: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReadingStream {
+    pub template: String,
+    pub limit: usize,
+    pub current: Option<String>,
+    pub occurrences: Vec<ReadingOccurrence>,
+    pub selection_qualifications: Provenance,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DecisionRevision {
+    pub id: String,
+    pub previous: Option<String>,
+    pub ordinal: u64,
+    pub sequence: u64,
+    pub event: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct DecisionSeries {
+    pub limit: usize,
+    pub current: Option<String>,
+    pub revisions: Vec<DecisionRevision>,
+    pub selection_qualifications: Provenance,
+}
+
 #[derive(Debug, Clone)]
 struct StateRange {
     min: f64,
     max: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EffectReport {
+    Sample {
+        stream: String,
+        id: String,
+        value: f64,
+        relation: String,
+        target: String,
+    },
     Reveal {
         evidence: String,
         relation: String,
@@ -294,6 +362,8 @@ pub struct ReactiveSnapshot {
     pub values: BTreeMap<String, f64>,
     pub qualified_values: BTreeMap<String, QualifiedValue>,
     pub commitment_bases: BTreeMap<String, CommitmentBasis>,
+    pub reading_streams: BTreeMap<String, ReadingStream>,
+    pub decision_series: BTreeMap<String, DecisionSeries>,
     pub observation_qualifications: BTreeMap<String, Provenance>,
     pub examination_qualifications: BTreeMap<String, Provenance>,
     pub reopening_qualifications: BTreeMap<String, Provenance>,
@@ -328,6 +398,8 @@ pub struct ReactiveSession {
     last_event: Option<String>,
     values: BTreeMap<String, QualifiedValue>,
     commitment_bases: BTreeMap<String, CommitmentBasis>,
+    reading_streams: BTreeMap<String, ReadingStream>,
+    decision_series: BTreeMap<String, DecisionSeries>,
     observation_qualifications: BTreeMap<String, Provenance>,
     examination_qualifications: BTreeMap<String, Provenance>,
     reopening_qualifications: BTreeMap<String, Provenance>,
@@ -410,6 +482,9 @@ impl ReactiveSession {
                     if let Effect::Set { value, .. } = &mut rule.effect {
                         *value = reactive_expr::expand(value, &functions)?;
                     }
+                    if let Effect::Sample { value, .. } = &mut rule.effect {
+                        *value = reactive_expr::expand(value, &functions)?;
+                    }
                     if let Effect::Commit {
                         using: Some(value), ..
                     } = &mut rule.effect
@@ -441,6 +516,8 @@ impl ReactiveSession {
             last_event: None,
             values: BTreeMap::new(),
             commitment_bases: BTreeMap::new(),
+            reading_streams: BTreeMap::new(),
+            decision_series: BTreeMap::new(),
             observation_qualifications: BTreeMap::new(),
             examination_qualifications: BTreeMap::new(),
             reopening_qualifications: BTreeMap::new(),
@@ -465,9 +542,66 @@ impl ReactiveSession {
             scenes: map.scenes,
             effects: Vec::new(),
         };
+        let mut history_capacity = 0_usize;
+        for directive in &directives {
+            let (name, limit) = match directive {
+                Directive::Readings { name, limit, .. } | Directive::Decisions { name, limit } => {
+                    (name, *limit)
+                }
+                _ => continue,
+            };
+            if limit == 0 || limit > MAX_HISTORY_LIMIT {
+                return Err(format!(
+                    "history {name} limit must be in 1..{MAX_HISTORY_LIMIT}"
+                ));
+            }
+            history_capacity += limit;
+            if history_capacity > MAX_DECLARED_HISTORY_CAPACITY {
+                return Err(format!(
+                    "declared history capacity exceeds {MAX_DECLARED_HISTORY_CAPACITY}"
+                ));
+            }
+            if session.symbols.contains_key(name)
+                || session.symbols.keys().any(|symbol| symbol.starts_with(&format!("{name}@")))
+                || session.reading_streams.contains_key(name)
+                || session.decision_series.contains_key(name)
+                || directives.iter().any(|directive| matches!(directive, Directive::State { name: state, .. } if state == name))
+            {
+                return Err(format!("history {name} conflicts with another declared symbol"));
+            }
+            match directive {
+                Directive::Readings { template, .. } => {
+                    session.require_kind(template, "evidence")?;
+                    session.reading_streams.insert(
+                        name.clone(),
+                        ReadingStream {
+                            template: template.clone(),
+                            limit,
+                            current: None,
+                            occurrences: Vec::new(),
+                            selection_qualifications: Provenance::default(),
+                        },
+                    );
+                }
+                Directive::Decisions { .. } => {
+                    session.decision_series.insert(
+                        name.clone(),
+                        DecisionSeries {
+                            limit,
+                            current: None,
+                            revisions: Vec::new(),
+                            selection_qualifications: Provenance::default(),
+                        },
+                    );
+                }
+                _ => unreachable!(),
+            }
+        }
         for directive in &directives {
             match directive {
-                Directive::Function(_) => {}
+                Directive::Function(_)
+                | Directive::Readings { .. }
+                | Directive::Decisions { .. } => {}
                 Directive::Binding(binding) => {
                     Arc::make_mut(&mut session.binding_rules).push(binding.clone())
                 }
@@ -524,19 +658,22 @@ impl ReactiveSession {
                     if initial.validate(&numeric, &|kind, name| match kind {
                         "qualification_evidence" => session.require_kind(name, "evidence"),
                         "qualification_caveat" => session.require_kind(name, "caveat"),
+                        "numeric_history" => session.require_history(name),
+                        "has_sample" => session.require_readings(name),
                         _ => Err("state initializers cannot query live graph predicates".into()),
                     })? != ValueType::Number
                     {
                         return Err(format!("state {name} initializer must be numeric"));
                     }
-                    let value = initial.evaluate_tracked(
+                    let value = initial.evaluate_tracked_with_history(
                         &|name| {
                             Ok(session.values.get(name).cloned().or_else(|| {
                                 session.constants.get(name).copied().map(Tracked::plain)
                             }))
                         },
-                        &|_, _| Err("state initializer cannot query graph".into()),
+                        &|kind, name| session.predicate_tracked(kind, name),
                         &|evidence, caveats| session.qualify(evidence, caveats),
+                        &|name| session.latest(name),
                     )?;
                     let Value::Number(number) = value.value else {
                         unreachable!("validated number initializer")
@@ -639,8 +776,14 @@ impl ReactiveSession {
                     .then_some(name.clone())
             })
             .collect::<HashSet<_>>();
+        commitments.extend(self.decision_series.keys().cloned());
         for rule in self.rules.iter() {
             if let Effect::Commit { action, .. } = &rule.effect {
+                if self.reading_streams.contains_key(action) {
+                    return Err(format!(
+                        "commitment {action} conflicts with a reading stream"
+                    ));
+                }
                 if self.symbols.get(action).is_some_and(|id| {
                     !matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
                 }) {
@@ -657,6 +800,8 @@ impl ReactiveSession {
                 "examined" => self.require_kind(symbol, "caveat"),
                 "qualification_evidence" => self.require_kind(symbol, "evidence"),
                 "qualification_caveat" => self.require_kind(symbol, "caveat"),
+                "numeric_history" => self.require_history(symbol),
+                "has_sample" => self.require_readings(symbol),
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
                 _ => Err(format!("unknown epistemic predicate {kind}")),
@@ -681,6 +826,18 @@ impl ReactiveSession {
                 return Err(format!("rule {} condition must be boolean", index + 1));
             }
             match &rule.effect {
+                Effect::Sample {
+                    stream,
+                    value,
+                    claim,
+                    ..
+                } => {
+                    self.require_readings(stream)?;
+                    self.require_kind(claim, "claim")?;
+                    if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
+                        return Err(format!("sample {stream} requires a numeric expression"));
+                    }
+                }
                 Effect::Emit { name } => {
                     if !self.cue_definitions.contains_key(name) {
                         return Err(format!("emit references undeclared cue {name}"));
@@ -726,7 +883,10 @@ impl ReactiveSession {
                     if !commitments.contains(action) {
                         return Err(format!("unknown reactive commitment {action}"));
                     }
-                    self.require_kind(because, "evidence")?;
+                    match because {
+                        EvidenceSelector::Named(name) => self.require_kind(name, "evidence")?,
+                        EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
+                    }
                 }
             }
         }
@@ -838,6 +998,105 @@ impl ReactiveSession {
         }
     }
 
+    fn require_readings(&self, name: &str) -> Result<(), String> {
+        if self.reading_streams.contains_key(name) {
+            Ok(())
+        } else {
+            Err(format!("{name} must name a declared reading stream"))
+        }
+    }
+
+    fn require_history(&self, name: &str) -> Result<(), String> {
+        if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
+            Ok(())
+        } else {
+            Err(format!(
+                "{name} must name a declared reading or decision history"
+            ))
+        }
+    }
+
+    fn latest(&self, name: &str) -> Result<Tracked<f64>, String> {
+        if let Some(stream) = self.reading_streams.get(name) {
+            let reading = stream
+                .occurrences
+                .last()
+                .ok_or_else(|| format!("reading stream {name} has no reached sample"))?;
+            return Tracked::new(
+                reading.value,
+                reading.provenance.union(&stream.selection_qualifications)?,
+            );
+        }
+        if let Some(series) = self.decision_series.get(name) {
+            let current = series
+                .current
+                .as_ref()
+                .ok_or_else(|| format!("decision series {name} has no commitment"))?;
+            let basis = &self.commitment_bases[current];
+            let value = basis
+                .value
+                .ok_or_else(|| format!("current decision {current} has no numeric using value"))?;
+            return Tracked::new(
+                value,
+                basis.provenance.union(&series.selection_qualifications)?,
+            );
+        }
+        Err(format!("unknown history {name}"))
+    }
+
+    fn retain_skipped_effect(&mut self, effect: &Effect, guard: &Provenance) -> Result<(), String> {
+        if guard.is_empty() {
+            return Ok(());
+        }
+        let target = match effect {
+            Effect::Set { name, .. } => {
+                return self
+                    .values
+                    .get_mut(name)
+                    .expect("validated state")
+                    .provenance
+                    .merge(guard);
+            }
+            Effect::Sample { stream, .. } => {
+                return self
+                    .reading_streams
+                    .get_mut(stream)
+                    .expect("validated stream")
+                    .selection_qualifications
+                    .merge(guard);
+            }
+            Effect::Commit { action, .. } if self.decision_series.contains_key(action) => {
+                return self
+                    .decision_series
+                    .get_mut(action)
+                    .unwrap()
+                    .selection_qualifications
+                    .merge(guard);
+            }
+            Effect::Reveal { evidence, .. } => Some(("observed", evidence.clone())),
+            Effect::Examine { caveat, .. } => Some(("examined", caveat.clone())),
+            Effect::Commit { action, .. } => Some(("committed", action.clone())),
+            Effect::Reopen { action, .. } => {
+                let current = self
+                    .decision_series
+                    .get(action)
+                    .and_then(|series| series.current.as_ref())
+                    .unwrap_or(action);
+                Some(("reopened", current.clone()))
+            }
+            _ => None,
+        };
+        if let Some((kind, name)) = target {
+            self.predicate_qualifications
+                .entry(kind.into())
+                .or_default()
+                .entry(name)
+                .or_default()
+                .merge(guard)?;
+        }
+        Ok(())
+    }
+
     pub fn dispatch_json(
         &mut self,
         event: &str,
@@ -882,6 +1141,11 @@ impl ReactiveSession {
         next.effects.clear();
         next.cues.clear();
         next.cue_qualifications.clear();
+        next.sequence = next
+            .sequence
+            .checked_add(1)
+            .ok_or("reactive event sequence exhausted")?;
+        next.last_event = Some(event.into());
         for (index, rule) in self
             .rules
             .iter()
@@ -892,42 +1156,13 @@ impl ReactiveSession {
                 let condition = next.evaluate(&rule.condition, parameters)?;
                 if condition.value == Value::Bool(true) {
                     next.apply_effect(&rule.effect, parameters, &condition.provenance)?;
-                } else if let Effect::Set { name, .. } = &rule.effect {
-                    // Retaining a value after a failed qualified guard is itself
-                    // dependent on the guard; do not silently discard that basis.
-                    next.values
-                        .get_mut(name)
-                        .expect("validated state")
-                        .provenance
-                        .merge(&condition.provenance)?;
                 } else {
-                    let target = match &rule.effect {
-                        Effect::Reveal { evidence, .. } => Some(("observed", evidence)),
-                        Effect::Examine { caveat, .. } => Some(("examined", caveat)),
-                        Effect::Commit { action, .. } => Some(("committed", action)),
-                        Effect::Reopen { action, .. } => Some(("reopened", action)),
-                        _ => None,
-                    };
-                    if let Some((kind, name)) = target {
-                        if !condition.provenance.is_empty() {
-                            next.predicate_qualifications
-                                .entry(kind.into())
-                                .or_default()
-                                .entry(name.clone())
-                                .or_default()
-                                .merge(&condition.provenance)?;
-                        }
-                    }
+                    next.retain_skipped_effect(&rule.effect, &condition.provenance)?;
                 }
                 Ok::<_, String>(())
             })();
             result.map_err(|error| format!("event {event}, rule {}: {error}", index + 1))?;
         }
-        next.sequence = next
-            .sequence
-            .checked_add(1)
-            .ok_or("reactive event sequence exhausted")?;
-        next.last_event = Some(event.into());
         // Binding failures roll back the same numeric/graph/cue transaction.
         next.evaluate_bindings()?;
         let snapshot = next.snapshot();
@@ -940,7 +1175,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &BTreeMap<String, f64>,
     ) -> Result<Tracked<Value>, String> {
-        expression.evaluate_tracked(
+        expression.evaluate_tracked_with_history(
             &|name| {
                 Ok(self.values.get(name).cloned().or_else(|| {
                     parameters
@@ -952,6 +1187,7 @@ impl ReactiveSession {
             },
             &|kind, name| self.predicate_tracked(kind, name),
             &|evidence, caveats| self.qualify(evidence, caveats),
+            &|name| self.latest(name),
         )
     }
 
@@ -1059,6 +1295,34 @@ impl ReactiveSession {
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if kind == "has_sample" {
+            self.require_readings(name)?;
+            let stream = &self.reading_streams[name];
+            let provenance = if stream.current.is_some() {
+                self.latest(name)?.provenance
+            } else {
+                stream.selection_qualifications.clone()
+            };
+            return Tracked::new(stream.current.is_some(), provenance);
+        }
+        if matches!(kind, "committed" | "reopened") {
+            if let Some(series) = self.decision_series.get(name) {
+                let mut result = if let Some(current) = &series.current {
+                    self.predicate_tracked(kind, current)?
+                } else {
+                    Tracked::plain(false)
+                };
+                result.provenance.merge(&series.selection_qualifications)?;
+                if let Some(dependency) = self
+                    .predicate_qualifications
+                    .get(kind)
+                    .and_then(|targets| targets.get(name))
+                {
+                    result.provenance.merge(dependency)?;
+                }
+                return Ok(result);
+            }
+        }
         let value = self.predicate(kind, name)?;
         let mut provenance = match kind {
             "observed" if value => self.qualify(name, &[])?,
@@ -1149,6 +1413,85 @@ impl ReactiveSession {
         guard: &Provenance,
     ) -> Result<(), String> {
         match effect {
+            Effect::Sample {
+                stream,
+                value,
+                relation,
+                claim,
+            } => {
+                let readings = &self.reading_streams[stream];
+                if readings.occurrences.len() >= readings.limit {
+                    return Err(format!(
+                        "reading stream {stream} reached its history limit {}",
+                        readings.limit
+                    ));
+                }
+                let ordinal = readings.occurrences.len() as u64 + 1;
+                let name = format!("{stream}@{ordinal}");
+                if self.symbols.contains_key(&name) {
+                    return Err(format!("generated reading identity {name} already exists"));
+                }
+                let template = self.symbols[&readings.template];
+                let value = self.evaluate(value, parameters)?;
+                let Value::Number(number) = value.value else {
+                    return Err("sample requires a numeric value".into());
+                };
+                let NodeKind::Evidence {
+                    description,
+                    source,
+                } = self.graph.nodes[&template].clone()
+                else {
+                    unreachable!("validated evidence template")
+                };
+                let inherited = self
+                    .graph
+                    .edges
+                    .iter()
+                    .filter(|edge| edge.to == template && edge.relation == Relation::Qualifies)
+                    .filter(|edge| {
+                        matches!(
+                            self.graph.nodes.get(&edge.from),
+                            Some(NodeKind::Caveat { .. })
+                        )
+                    })
+                    .map(|edge| edge.from)
+                    .collect::<Vec<_>>();
+                let id = self.graph.add(NodeKind::Evidence {
+                    description: format!("{description} ({stream} reading {ordinal})"),
+                    source,
+                });
+                self.symbols.insert(name.clone(), id);
+                self.graph.relate(id, *relation, self.symbols[claim]);
+                for caveat in inherited {
+                    self.graph.relate(caveat, Relation::Qualifies, id);
+                }
+                self.observation_qualifications
+                    .insert(name.clone(), value.provenance.union(guard)?);
+                let provenance = self.qualify(&name, &[])?;
+                let readings = self.reading_streams.get_mut(stream).unwrap();
+                readings.current = Some(name.clone());
+                readings.selection_qualifications = Provenance::default();
+                readings.occurrences.push(ReadingOccurrence {
+                    id: name.clone(),
+                    ordinal,
+                    sequence: self.sequence,
+                    event: self
+                        .last_event
+                        .clone()
+                        .expect("sampling occurs during dispatch"),
+                    value: number,
+                    provenance,
+                    relation: relation_name(*relation).into(),
+                    claim: claim.clone(),
+                });
+                self.effects.push(EffectReport::Sample {
+                    stream: stream.clone(),
+                    id: name,
+                    value: number,
+                    relation: relation_name(*relation).into(),
+                    target: claim.clone(),
+                });
+            }
             Effect::Emit { name } => {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
@@ -1227,10 +1570,39 @@ impl ReactiveSession {
                 using,
                 retaining,
             } => {
+                let previous = self
+                    .decision_series
+                    .get(action)
+                    .and_then(|series| series.current.clone());
                 if self.symbols.contains_key(action) {
                     return Err(format!("commitment {action} already exists"));
                 }
                 let mut provenance = guard.clone();
+                let mut ordinal = None;
+                if let Some(series) = self.decision_series.get(action) {
+                    if series.revisions.len() >= series.limit {
+                        return Err(format!(
+                            "decision series {action} reached its history limit {}",
+                            series.limit
+                        ));
+                    }
+                    ordinal = Some(series.revisions.len() as u64 + 1);
+                    if previous.is_some() {
+                        let reopened = self.predicate_tracked("reopened", action)?;
+                        if !reopened.value {
+                            return Err(format!("current decision in {action} must be explicitly reopened before revision"));
+                        }
+                        provenance.merge(&reopened.provenance)?;
+                    }
+                }
+                let name = ordinal
+                    .map(|ordinal| format!("{action}@{ordinal}"))
+                    .unwrap_or_else(|| action.clone());
+                if self.symbols.contains_key(&name) {
+                    return Err(format!(
+                        "generated commitment identity {name} already exists"
+                    ));
+                }
                 let used_value = if let Some(expression) = using {
                     let value = self.evaluate(expression, parameters)?;
                     let Value::Number(number) = value.value else {
@@ -1253,9 +1625,12 @@ impl ReactiveSession {
                     .iter()
                     .map(|name| self.symbols[name])
                     .collect::<Vec<_>>();
-                let id = self.graph.commit_because(action, &retained, reason.clone());
+                let id = self.graph.commit_because(&name, &retained, reason.clone());
                 self.clear_predicate_dependency("committed", action);
-                self.symbols.insert(action.clone(), id);
+                if ordinal.is_some() {
+                    self.clear_predicate_dependency("reopened", action);
+                }
+                self.symbols.insert(name.clone(), id);
                 for evidence in &provenance.evidence {
                     self.require_kind(evidence, "evidence")?;
                     if !self.predicate("observed", evidence)? {
@@ -1267,39 +1642,72 @@ impl ReactiveSession {
                         .relate(id, Relation::ReliesOn, self.symbols[evidence]);
                 }
                 self.commitment_bases.insert(
-                    action.clone(),
+                    name.clone(),
                     CommitmentBasis {
                         value: used_value,
                         provenance,
                     },
                 );
+                if let Some(ordinal) = ordinal {
+                    let series = self.decision_series.get_mut(action).unwrap();
+                    series.current = Some(name.clone());
+                    series.selection_qualifications = Provenance::default();
+                    series.revisions.push(DecisionRevision {
+                        id: name.clone(),
+                        previous,
+                        ordinal,
+                        sequence: self.sequence,
+                        event: self
+                            .last_event
+                            .clone()
+                            .expect("revision occurs during dispatch"),
+                    });
+                }
                 self.effects.push(EffectReport::Commit {
-                    action: action.clone(),
+                    action: name,
                     retained: retained_names,
                 });
             }
             Effect::Reopen { action, because } => {
+                let current = self
+                    .decision_series
+                    .get(action)
+                    .and_then(|series| series.current.as_ref())
+                    .unwrap_or(action)
+                    .clone();
                 let id = *self
                     .symbols
-                    .get(action)
+                    .get(&current)
                     .ok_or_else(|| format!("cannot reopen uncommitted action {action}"))?;
-                if !self.predicate("observed", because)? {
-                    return Err(format!("cannot reopen from unobserved evidence {because}"));
-                }
-                let from = self.symbols[because];
+                let (because, cause) = match because {
+                    EvidenceSelector::Named(name) => (name.clone(), self.qualify(name, &[])?),
+                    EvidenceSelector::Latest(stream) => {
+                        let reading = self.latest(stream)?;
+                        let name = self.reading_streams[stream]
+                            .current
+                            .as_ref()
+                            .expect("latest required an occurrence")
+                            .clone();
+                        (name, reading.provenance)
+                    }
+                };
+                let from = self.symbols[&because];
                 if !self.graph.edges.iter().any(|edge| {
                     edge.from == from && edge.to == id && edge.relation == Relation::Reopens
                 }) {
-                    let basis = self.qualify(because, &[])?.union(guard)?;
-                    self.clear_predicate_dependency("reopened", action);
+                    let mut basis = cause.union(guard)?;
+                    if let Some(series) = self.decision_series.get(action) {
+                        basis.merge(&series.selection_qualifications)?;
+                    }
+                    self.clear_predicate_dependency("reopened", &current);
                     self.reopening_qualifications
-                        .entry(action.clone())
+                        .entry(current.clone())
                         .or_default()
                         .merge(&basis)?;
                     self.graph.reopen(id, from);
                     self.effects.push(EffectReport::Reopen {
-                        action: action.clone(),
-                        because: because.clone(),
+                        action: current,
+                        because,
                     });
                 }
             }
@@ -1371,6 +1779,8 @@ impl ReactiveSession {
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.values.clone(),
             commitment_bases: self.commitment_bases.clone(),
+            reading_streams: self.reading_streams.clone(),
+            decision_series: self.decision_series.clone(),
             observation_qualifications: self.observation_qualifications.clone(),
             examination_qualifications: self.examination_qualifications.clone(),
             reopening_qualifications: self.reopening_qualifications.clone(),
@@ -1528,12 +1938,40 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
     let keyword = words.first().copied()?;
     if !matches!(
         keyword,
-        "state" | "event" | "on" | "fn" | "bind" | "cue" | "control" | "clock"
+        "state"
+            | "event"
+            | "on"
+            | "fn"
+            | "bind"
+            | "cue"
+            | "control"
+            | "clock"
+            | "readings"
+            | "decisions"
     ) {
         return None;
     }
     Some((|| match keyword {
         "fn" => parse_function(line),
+        "readings" => match words.as_slice() {
+            ["readings", name, "from", template, "limit", limit] => Ok(Directive::Readings {
+                name: identifier(name)?,
+                template: identifier(template)?,
+                limit: limit
+                    .parse()
+                    .map_err(|_| "reading limit must be an unsigned integer")?,
+            }),
+            _ => Err("readings expects NAME from EVIDENCE limit CAPACITY".into()),
+        },
+        "decisions" => match words.as_slice() {
+            ["decisions", name, "limit", limit] => Ok(Directive::Decisions {
+                name: identifier(name)?,
+                limit: limit
+                    .parse()
+                    .map_err(|_| "decision limit must be an unsigned integer")?,
+            }),
+            _ => Err("decisions expects NAME limit CAPACITY".into()),
+        },
         "bind" => parse_binding(line),
         "cue" => parse_cue(line),
         "control" => match words.as_slice() {
@@ -1625,7 +2063,7 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
                 if depth == 0
                     && matches!(
                         *token,
-                        "set" | "reveal" | "examine" | "commit" | "reopen" | "emit"
+                        "set" | "reveal" | "examine" | "commit" | "reopen" | "emit" | "sample"
                     )
                 {
                     candidates.push(index);
@@ -1637,7 +2075,9 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
                 .copied()
                 .find(|index| parse_effect(&words[*index..]).is_ok())
                 .or_else(|| candidates.last().copied())
-                .ok_or("on rule requires set, reveal, examine, commit, reopen, or emit effect")?;
+                .ok_or(
+                    "on rule requires set, reveal, examine, commit, reopen, emit, or sample effect",
+                )?;
             let condition = if effect_index == 2 {
                 reactive_expr::parse("true")?
             } else if words.get(2) == Some(&"when") {
@@ -1871,6 +2311,20 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     match words {
+        ["sample", stream, "=", rest @ ..] if rest.len() >= 3 => {
+            let end = rest.len() - 2;
+            let relation = match rest[end] {
+                "supports" => Relation::Supports,
+                "opposes" => Relation::Opposes,
+                _ => return Err("sample requires supports CLAIM or opposes CLAIM".into()),
+            };
+            Ok(Effect::Sample {
+                stream: identifier(stream)?,
+                value: reactive_expr::parse_unresolved(&rest[..end].join(" "))?,
+                relation,
+                claim: identifier(rest[end + 1])?,
+            })
+        }
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),
@@ -1947,10 +2401,26 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 retaining,
             })
         }
-        ["reopen", action, "because", evidence] => Ok(Effect::Reopen {
-            action: identifier(action)?,
-            because: identifier(evidence)?,
-        }),
+        ["reopen", action, "because", selector @ ..] if !selector.is_empty() => {
+            let selector = selector.join(" ");
+            let because = if let Some(arguments) = selector
+                .strip_prefix("latest")
+                .map(str::trim)
+                .and_then(|rest| rest.strip_prefix('('))
+            {
+                let stream = arguments
+                    .trim()
+                    .strip_suffix(')')
+                    .ok_or("latest reading selector requires closing parenthesis")?;
+                EvidenceSelector::Latest(identifier(stream.trim())?)
+            } else {
+                EvidenceSelector::Named(identifier(&selector)?)
+            };
+            Ok(Effect::Reopen {
+                action: identifier(action)?,
+                because,
+            })
+        }
         _ => Err(format!("invalid reactive effect: {}", words.join(" "))),
     }
 }

@@ -1,4 +1,4 @@
-use caveat_runtime::reactive::{ReactiveSession, ReactiveSnapshot};
+use caveat_runtime::reactive::{CommitmentBasis, ReactiveSession, ReactiveSnapshot};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../game/light_the_way.cav");
@@ -41,16 +41,32 @@ fn aim(session: &mut ReactiveSession, x: f64, z: f64) -> ReactiveSnapshot {
     dispatch(session, "aim", &[("x", x), ("z", z), ("active", 1.0)])
 }
 
+fn flow_count(snapshot: &ReactiveSnapshot) -> usize {
+    snapshot.reading_streams["flow"].occurrences.len()
+}
+
+fn navigation_basis(snapshot: &ReactiveSnapshot) -> &CommitmentBasis {
+    &snapshot.commitment_bases[snapshot.decision_series["navigation"]
+        .current
+        .as_ref()
+        .unwrap()]
+}
+
+fn calm_source() -> String {
+    SOURCE
+        .replace("state first_shift_at = 34;", "state first_shift_at = 100;")
+        .replace(
+            "state second_shift_at = 40;",
+            "state second_shift_at = 200;",
+        )
+}
+
 fn sample_current(session: &mut ReactiveSession) -> ReactiveSnapshot {
-    let field = if value(&session.snapshot(), "storm_changed") == 1.0 {
-        "resample_ready"
-    } else {
-        "measurement_ready"
-    };
+    let previous = flow_count(&session.snapshot());
     aim(session, -3.8, 33.5);
     for _ in 0..40 {
         let state = tick(session);
-        if value(&state, field) == 1.0 {
+        if flow_count(&state) == previous + 1 {
             return state;
         }
     }
@@ -59,22 +75,25 @@ fn sample_current(session: &mut ReactiveSession) -> ReactiveSnapshot {
 
 fn pilot(session: &mut ReactiveSession, resample: bool) {
     let before = session.snapshot();
-    if resample && value(&before, "storm_changed") == 1.0 && value(&before, "resample_ready") == 0.0
-    {
+    if resample && value(&before, "reading_weather_phase") < value(&before, "weather_phase") {
         aim(session, -3.8, 33.5);
     } else {
         let z = value(&before, "boat_z");
-        aim(
-            session,
-            if z > 41.0 {
-                5.5
-            } else if z > 32.0 {
-                -4.0
-            } else {
-                5.3
-            },
-            z - 8.0,
-        );
+        let lane = if z > 41.0 {
+            5.5
+        } else if z > 32.0 {
+            -4.0
+        } else {
+            5.3
+        };
+        // Manual steering uses only visible boat position, never hidden force.
+        let target = if resample {
+            lane
+        } else {
+            lane + (lane - value(&before, "boat_x")) * 1.2
+        };
+        // The longer lead avoids unintentionally holding the sampling ring.
+        aim(session, target.clamp(-9.5, 13.0), (z - 12.0).max(19.0));
     }
 }
 
@@ -146,13 +165,13 @@ fn steering_through_open_water_rescues_everyone_in_one_short_run() {
         "success must happen at the harbor"
     );
     assert!((value(&end, "boat_x") - 5.3).abs() < 2.9);
-    assert_eq!(value(&end, "measurement_ready"), 1.0);
-    assert_eq!(value(&end, "storm_changed"), 1.0);
     assert_eq!(
-        value(&end, "resample_ready"),
-        0.0,
-        "skilled manual steering should remain possible with the stale plan"
+        flow_count(&end),
+        1,
+        "manual steering must not receive an unrequested measurement"
     );
+    assert_eq!(value(&end, "weather_phase"), 2.0);
+    assert_eq!(end.decision_series["navigation"].revisions.len(), 2);
 }
 
 #[test]
@@ -165,7 +184,7 @@ fn sampling_requires_continuous_attention_while_motion_and_pause_remain_honest()
     }
     let partial = game.snapshot();
     assert!((value(&partial, "sample_charge") - 0.5).abs() < 1e-10);
-    assert_eq!(value(&partial, "measurement_ready"), 0.0);
+    assert_eq!(flow_count(&partial), 0);
     assert!(value(&partial, "boat_z") < value(&opening, "boat_z"));
     assert_eq!(
         partial.bindings["sample_panel"]["visible"].as_bool(),
@@ -174,10 +193,7 @@ fn sampling_requires_continuous_attention_while_motion_and_pause_remain_honest()
     aim(&mut game, 5.5, 50.0);
     let cancelled = tick(&mut game);
     assert_eq!(value(&cancelled, "sample_charge"), 0.0);
-    assert!(!cancelled
-        .relations
-        .iter()
-        .any(|edge| edge.from == "crosscurrent_reading" && edge.relation == "opposes"));
+    assert_eq!(flow_count(&cancelled), 0);
     aim(&mut game, -3.8, 33.5);
     for _ in 0..15 {
         tick(&mut game);
@@ -207,7 +223,7 @@ fn sampling_requires_continuous_attention_while_motion_and_pause_remain_honest()
         "the released beam must not continue a partial reading"
     );
     let complete = sample_current(&mut game);
-    assert_eq!(value(&complete, "measurement_ready"), 1.0);
+    assert_eq!(flow_count(&complete), 1);
     assert_eq!(value(&complete, "hull"), 3.0);
     assert!(value(&complete, "notice_remaining") > 0.0);
     let noticed = dispatch(&mut game, "pause", &[]);
@@ -227,45 +243,26 @@ fn sampling_requires_continuous_attention_while_motion_and_pause_remain_honest()
 #[test]
 fn storm_resampling_preserves_history_and_reduces_real_drift_before_rescue() {
     let mut fresh = started(SOURCE);
-    let sampled = sample_current(&mut fresh);
-    let first_basis = sampled.commitment_bases["counter_steer"].clone();
-    for frame in 0..(30 * 40) {
-        if frame % 30 == 0 {
-            pilot(&mut fresh, false);
-        }
-        if value(&tick(&mut fresh), "storm_changed") == 1.0 {
+    sample_current(&mut fresh);
+    for frame in 0..(30 * 45) {
+        if value(&fresh.snapshot(), "weather_phase") == 2.0 {
             break;
         }
+        if frame % 30 == 0 {
+            pilot(&mut fresh, true);
+        }
+        tick(&mut fresh);
     }
     let storm = fresh.snapshot();
-    assert!((value(&storm, "elapsed") - 34.0).abs() <= FRAME + 1e-9);
-    assert_eq!(value(&storm, "current_strength"), -1.2);
-    assert_eq!(storm.commitment_bases["counter_steer"], first_basis);
-    assert!(
-        storm
-            .commitments
-            .iter()
-            .find(|entry| entry.action == "counter_steer")
-            .unwrap()
-            .open
-    );
-    assert_eq!(value(&storm, "resample_ready"), 0.0);
-    assert!(!storm.commitment_bases.contains_key("revised_counter_steer"));
-    assert!(storm
-        .relations
-        .iter()
-        .any(|edge| edge.from == "crosscurrent_reading"
-            && edge.relation == "supports"
-            && edge.to == "current_eastward"));
-    assert!(storm
-        .relations
-        .iter()
-        .any(|edge| edge.from == "storm_warning"
-            && edge.relation == "opposes"
-            && edge.to == "current_eastward"));
+    assert!((value(&storm, "elapsed") - 40.0).abs() <= FRAME + 1e-9);
+    assert_eq!(value(&storm, "current_strength"), 1.2);
+    assert_eq!(flow_count(&storm), 2);
+    assert_eq!(storm.decision_series["navigation"].revisions.len(), 3);
+    assert!((navigation_basis(&storm).value.unwrap() - 0.78).abs() < 1e-10);
+    let previous_readings = storm.reading_streams["flow"].occurrences.clone();
+    let previous_revisions = storm.decision_series["navigation"].revisions.clone();
     let mut stale = fresh.clone();
-    // Equal steering x means equal physical motion until the new reading lands.
-    // Only the beam's z differs, so one navigator samples while the other steers.
+    // Identical x steering and physical history; only deliberate sampling differs.
     aim(&mut fresh, -3.8, 33.5);
     aim(&mut stale, -3.8, 60.0);
     let mut revised = fresh.snapshot();
@@ -273,61 +270,57 @@ fn storm_resampling_preserves_history_and_reduces_real_drift_before_rescue() {
     for _ in 0..40 {
         revised = tick(&mut fresh);
         old = tick(&mut stale);
-        if value(&revised, "resample_ready") == 1.0 {
+        if flow_count(&revised) == 3 {
             break;
         }
         assert_eq!(value(&revised, "boat_x"), value(&old, "boat_x"));
         assert_eq!(value(&revised, "boat_z"), value(&old, "boat_z"));
     }
-    assert_eq!(value(&revised, "resample_ready"), 1.0);
-    let sampled_at = value(&revised, "elapsed");
-    // The warning gives time to resample before the ferry reaches the field.
-    // Continue identical steering to its first physical influence.
-    aim(&mut fresh, -3.8, 60.0);
-    for _ in 0..90 {
-        if value(&old, "current_force") != 0.0 {
-            break;
-        }
-        assert_eq!(value(&revised, "boat_x"), value(&old, "boat_x"));
-        revised = tick(&mut fresh);
-        old = tick(&mut stale);
-    }
+    assert_eq!(flow_count(&revised), 3);
     let force = value(&old, "current_force");
-    assert!(force < 0.0, "the storm field never reached the ferry");
+    assert!(
+        force > 0.1,
+        "the second shift must be encountered in the actual current field"
+    );
     assert_eq!(
         value(&revised, "current_force"),
         force,
-        "observation changed the physical field at matched position/time"
+        "observation changed physical truth at matched position/time"
     );
-    assert!(
-        value(&old, "compensation") * force > 0.0,
-        "the old east-flow plan should now worsen westward drift"
-    );
+    assert!(value(&old, "compensation") * force > 0.0);
     assert!(value(&revised, "compensation") * force < 0.0);
-    assert!(
-        (force + value(&revised, "compensation")).abs()
-            < (force + value(&old, "compensation")).abs()
+    assert!((navigation_basis(&revised).value.unwrap() + 0.78).abs() < 1e-10);
+    assert_eq!(
+        &revised.reading_streams["flow"].occurrences[..2],
+        previous_readings.as_slice()
     );
-    assert_eq!(revised.commitment_bases["counter_steer"], first_basis);
-    assert!(
-        (revised.commitment_bases["revised_counter_steer"]
-            .value
-            .unwrap()
-            - 0.78)
-            .abs()
-            < 1e-10
+    assert_eq!(
+        &revised.decision_series["navigation"].revisions[..3],
+        previous_revisions.as_slice()
     );
-    assert!(revised.commitment_bases["revised_counter_steer"]
+    for revision in &previous_revisions {
+        assert_eq!(
+            revised.commitment_bases[&revision.id],
+            storm.commitment_bases[&revision.id]
+        );
+    }
+    let last_reading = revised.reading_streams["flow"].occurrences.last().unwrap();
+    assert!(navigation_basis(&revised)
         .provenance
         .evidence
-        .contains("storm_reading"));
-    assert!(revised.commitment_bases["revised_counter_steer"]
+        .contains(&last_reading.id));
+    assert!(navigation_basis(&revised)
         .provenance
         .caveats
         .contains("reading_may_age"));
-    for field in ["observed_foam", "estimated_peak", "steering_plan"] {
-        assert_eq!(value(&revised, field), value(&sampled, field));
-    }
+    assert!(revised
+        .relations
+        .iter()
+        .any(|edge| edge.from == previous_readings[1].id && edge.relation == "opposes"));
+    assert!(revised
+        .relations
+        .iter()
+        .any(|edge| edge.from == last_reading.id && edge.relation == "supports"));
     aim(&mut fresh, -3.8, 60.0);
     for _ in 0..90 {
         tick(&mut fresh);
@@ -335,45 +328,44 @@ fn storm_resampling_preserves_history_and_reduces_real_drift_before_rescue() {
     }
     let fresh_error = (value(&fresh.snapshot(), "boat_x") + 3.8).abs();
     let stale_error = (value(&stale.snapshot(), "boat_x") + 3.8).abs();
-    eprintln!("storm handling: sampled at {sampled_at:.2}s, field entry {:.2}s; matched force {force:.3}, first net stale {:.3}, fresh {:.3}; lateral error after 3 seconds stale {stale_error:.3}, fresh {fresh_error:.3}", value(&old, "elapsed"), force + value(&old, "compensation"), force + value(&revised, "compensation"));
+    eprintln!("second-shift handling: matched force {force:.3}, net stale {:.3}, fresh {:.3}; 3s lateral error stale {stale_error:.3}, fresh {fresh_error:.3}", force + value(&old, "compensation"), force + value(&revised, "compensation"));
     assert!(
-        stale_error > fresh_error + 0.1,
-        "revision changed metadata without a meaningful handling benefit"
+        stale_error > fresh_error + 0.75,
+        "fresh evidence must yield a visibly meaningful handling benefit"
     );
-    let end = guided_run(&mut fresh);
+    let end = guided_run_with_resampling(&mut fresh, true);
     assert_eq!(value(&end, "phase"), 2.0);
     assert_eq!(value(&end, "rescued"), 32.0);
     assert_eq!(value(&end, "hull"), 3.0);
-    assert_eq!(end.commitment_bases["counter_steer"], first_basis);
+    assert_eq!(flow_count(&end), 3);
     assert_eq!(
-        end.commitment_bases["revised_counter_steer"],
-        revised.commitment_bases["revised_counter_steer"]
+        end.decision_series["navigation"].revisions.len(),
+        4,
+        "forecast plus three observed decisions"
     );
+    assert_eq!(
+        end.reading_streams["flow"].occurrences,
+        revised.reading_streams["flow"].occurrences
+    );
+    assert_eq!(end.commitment_bases, revised.commitment_bases);
 }
 
 #[test]
 fn a_first_sample_after_the_storm_does_not_invent_an_earlier_observation() {
-    let source = SOURCE.replace("state storm_at = 34;", "state storm_at = 1;");
+    let source = SOURCE
+        .replace("state first_shift_at = 34;", "state first_shift_at = 1;")
+        .replace("state second_shift_at = 40;", "state second_shift_at = 2;");
     let mut game = started(&source);
-    for _ in 0..31 {
+    for _ in 0..61 {
         tick(&mut game);
     }
     let sampled = sample_current(&mut game);
-    assert_eq!(value(&sampled, "measurement_ready"), 0.0);
-    assert_eq!(value(&sampled, "resample_ready"), 1.0);
-    assert!(!sampled.commitment_bases.contains_key("counter_steer"));
-    assert!(sampled
-        .commitment_bases
-        .contains_key("revised_counter_steer"));
-    assert!(!sampled
-        .relations
-        .iter()
-        .any(|edge| edge.from == "crosscurrent_reading"
-            && matches!(edge.relation.as_str(), "supports" | "opposes")));
-    assert!(sampled
-        .relations
-        .iter()
-        .any(|edge| edge.from == "storm_reading" && edge.relation == "opposes"));
+    assert_eq!(value(&sampled, "weather_phase"), 2.0);
+    assert_eq!(flow_count(&sampled), 1);
+    assert_eq!(sampled.reading_streams["weather"].occurrences.len(), 2);
+    assert_eq!(sampled.decision_series["navigation"].revisions.len(), 2);
+    assert_eq!(sampled.reading_streams["flow"].occurrences[0].ordinal, 1);
+    assert!((navigation_basis(&sampled).value.unwrap() + 0.78).abs() < 1e-10);
 }
 
 #[test]
@@ -579,10 +571,9 @@ fn pausing_keeps_the_live_evidence_and_commitments_then_resumes_motion() {
 
 #[test]
 fn discovering_the_current_revises_navigation_without_changing_physical_truth() {
-    // Isolate the first estimate here; the real storm/revision is tested below.
-    let calm_source = SOURCE.replace("state storm_at = 34;", "state storm_at = 100;");
-    let mut informed = started(&calm_source);
-    let mut uninformed = started(&calm_source);
+    let calm = calm_source();
+    let mut informed = started(&calm);
+    let mut uninformed = started(&calm);
     aim(&mut informed, -3.8, 33.5);
     aim(&mut uninformed, -3.8, 60.0);
     for _ in 0..31 {
@@ -590,56 +581,26 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
         tick(&mut uninformed);
     }
     let observed = informed.snapshot();
-    assert_eq!(value(&observed, "measurement_ready"), 1.0);
-    assert!(observed.relations.iter().any(|edge| {
-        edge.from == "morning_forecast"
-            && edge.relation == "supports"
-            && edge.to == "crosscurrent_mild"
-    }));
-    assert!(observed.relations.iter().any(|edge| {
-        edge.from == "crosscurrent_reading"
-            && edge.relation == "opposes"
-            && edge.to == "crosscurrent_mild"
-    }));
-    let earlier = observed
-        .commitments
-        .iter()
-        .find(|entry| entry.action == "trust_forecast")
-        .unwrap();
-    assert!(earlier.open, "the provisional forecast should reopen");
-    assert!(earlier
-        .retained
-        .iter()
-        .any(|symbol| symbol == "surge_unmeasured"));
-    let revised = observed
-        .commitments
-        .iter()
-        .find(|entry| entry.action == "counter_steer")
-        .unwrap();
-    assert!(revised
-        .retained
-        .iter()
-        .any(|symbol| symbol == "surge_unmeasured"));
-    assert_eq!(observed.commitment_bases["trust_forecast"].value, Some(0.0));
-    assert!((observed.commitment_bases["counter_steer"].value.unwrap() + 0.585).abs() < 1e-10);
-    for state in ["observed_foam", "estimated_peak", "steering_plan"] {
-        let provenance = &observed.qualified_values[state].provenance;
-        assert!(
-            provenance.evidence.contains("crosscurrent_reading"),
-            "{state} lost the observed sample"
-        );
-        assert!(
-            provenance.caveats.contains("surge_unmeasured"),
-            "{state} lost uncertainty through its source function"
-        );
-    }
+    assert_eq!(flow_count(&observed), 1);
+    let reading = observed.reading_streams["flow"].occurrences[0].clone();
+    assert_eq!(reading.relation, "supports");
+    assert_eq!(reading.claim, "current_eastward");
+    assert!(reading.provenance.caveats.contains("surge_unmeasured"));
+    assert!(reading.provenance.caveats.contains("reading_may_age"));
+    let revisions = &observed.decision_series["navigation"].revisions;
+    assert_eq!(revisions.len(), 2);
+    assert_eq!(observed.commitment_bases[&revisions[0].id].value, Some(0.0));
+    assert!((navigation_basis(&observed).value.unwrap() + 0.585).abs() < 1e-10);
+    assert!(navigation_basis(&observed)
+        .provenance
+        .evidence
+        .contains(&reading.id));
     assert!(observed
         .relations
         .iter()
-        .any(|edge| edge.from == "counter_steer"
+        .any(|edge| edge.from == revisions[1].id
             && edge.relation == "relies_on"
-            && edge.to == "crosscurrent_reading"));
-
+            && edge.to == reading.id));
     for _ in 0..(30 * 80) {
         let before = uninformed.snapshot();
         let z = value(&before, "boat_z");
@@ -650,8 +611,6 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
         } else {
             5.3
         };
-        // Identical legitimate steering inputs; keeping the light aft prevents
-        // the uninformed run from accidentally scouting the current later.
         aim(&mut informed, x, 60.0);
         aim(&mut uninformed, x, 60.0);
         let known = tick(&mut informed);
@@ -662,55 +621,39 @@ fn discovering_the_current_revises_navigation_without_changing_physical_truth() 
                 value(&known, "current_strength"),
                 value(&unknown, "current_strength")
             );
-            assert!(
-                (value(&known, "current_force") - force).abs() < 0.000_001,
-                "knowledge changed the current itself rather than the response to it"
-            );
+            assert!((value(&known, "current_force") - force).abs() < 0.000_001);
             assert_eq!(value(&unknown, "compensation"), 0.0);
-            assert!(
-                value(&known, "compensation") * force < 0.0,
-                "the revised commitment must counter the real current"
-            );
-            assert!(
-                (value(&known, "boat_x") - value(&unknown, "boat_x")).abs() > 0.000_000_1
-                    || (value(&known, "boat_vx") - value(&unknown, "boat_vx")).abs() > 0.000_000_1,
-                "the knowledge-based response never affected navigation"
-            );
-            assert!(unknown
-                .commitments
-                .iter()
-                .all(|entry| entry.action != "counter_steer"));
+            assert!(value(&known, "compensation") * force < 0.0);
+            assert!((value(&known, "boat_x") - value(&unknown, "boat_x")).abs() > 1e-7);
+            assert_eq!(unknown.decision_series["navigation"].revisions.len(), 1);
+            assert_eq!(known.reading_streams["flow"].occurrences[0], reading);
             assert!(known
                 .relations
                 .iter()
                 .any(|edge| edge.from == "morning_forecast" && edge.relation == "supports"));
-            assert!(known
-                .relations
-                .iter()
-                .any(|edge| edge.from == "crosscurrent_reading" && edge.relation == "opposes"));
             return;
         }
         assert_eq!(value(&known, "boat_x"), value(&unknown, "boat_x"));
         assert_eq!(value(&known, "boat_z"), value(&unknown, "boat_z"));
     }
-    panic!("the source-authored crosscurrent never affected the route");
+    panic!("the observed response never affected the running ferry");
 }
 
 #[test]
 fn a_later_physical_change_cannot_silently_refresh_the_observed_navigation_plan() {
-    // The additional event is authored in this Caveat fixture. No host-side
-    // mutation, alternate simulator, or production testing hook is involved.
-    let calm_source = SOURCE.replace("state storm_at = 34;", "state storm_at = 100;");
-    let source = format!("{calm_source}\nevent change_current strength min 0 max 2;\non change_current set current_strength = strength;");
+    let source = format!(
+        "{}
+event change_current strength min 0 max 2;
+on change_current set current_strength = strength;",
+        calm_source()
+    );
     let mut game = started(&source);
     let measured = sample_current(&mut game);
-    assert_eq!(value(&measured, "measurement_ready"), 1.0);
-    assert!((value(&measured, "estimated_peak") - 0.9).abs() < 1e-10);
-    let frozen_basis = measured.commitment_bases["counter_steer"].clone();
-    let mut changed = false;
+    assert_eq!(flow_count(&measured), 1);
+    let frozen_basis = navigation_basis(&measured).clone();
+    let frozen_readings = measured.reading_streams["flow"].occurrences.clone();
     for frame in 0..(30 * 80) {
-        let before = game.snapshot();
-        let z = value(&before, "boat_z");
+        let z = value(&game.snapshot(), "boat_z");
         if frame % 30 == 0 {
             aim(
                 &mut game,
@@ -726,37 +669,28 @@ fn a_later_physical_change_cannot_silently_refresh_the_observed_navigation_plan(
         }
         let near = tick(&mut game);
         if value(&near, "current_force") > 0.02 {
-            // Zero-duration ticks recompute the field at exactly the same
-            // source position/time, isolating physical strength from steering.
             let old = dispatch(&mut game, "tick", &[("dt", 0.0)]);
             dispatch(&mut game, "change_current", &[("strength", 1.8)]);
             let new = dispatch(&mut game, "tick", &[("dt", 0.0)]);
-            assert_eq!(value(&old, "boat_x"), value(&new, "boat_x"));
-            assert_eq!(value(&old, "boat_z"), value(&new, "boat_z"));
-            assert_eq!(value(&old, "elapsed"), value(&new, "elapsed"));
+            for field in ["boat_x", "boat_z", "elapsed"] {
+                assert_eq!(value(&old, field), value(&new, field));
+            }
             assert!(
                 (value(&new, "current_force") - value(&old, "current_force") * 2.0).abs() < 1e-10
             );
+            assert_eq!(value(&new, "compensation"), value(&old, "compensation"));
             assert_eq!(
-                value(&new, "compensation"),
-                value(&old, "compensation"),
-                "navigation cannot see an unmeasured change"
+                navigation_basis(&new),
+                &frozen_basis,
+                "current pulse/strength silently recomputed a historical command"
             );
-            for state in ["observed_foam", "estimated_peak", "steering_plan"] {
-                assert_eq!(
-                    value(&new, state),
-                    value(&measured, state),
-                    "{state} sampled the physical truth again without a new observation"
-                );
-            }
-            assert_eq!(new.commitment_bases["counter_steer"], frozen_basis);
+            assert_eq!(new.reading_streams["flow"].occurrences, frozen_readings);
             assert_eq!(new.relations, old.relations);
             assert_eq!(new.budget, old.budget);
-            changed = true;
-            break;
+            return;
         }
     }
-    assert!(changed, "the input route never reached the crosscurrent");
+    panic!("the route never entered the current field");
 }
 
 #[test]
@@ -831,18 +765,29 @@ fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
         }
     }
     let known = session.snapshot();
-    assert_eq!(known.budget.as_ref().unwrap().remaining, 1);
-    assert_eq!(known.symbols.iter().filter(|entry| entry.kind == "caveat" && entry.attention.as_deref() == Some("examined")).count(), 7);
+    assert_eq!(known.budget.as_ref().unwrap().remaining, 0);
+    assert_eq!(known.symbols.iter().filter(|entry| entry.kind == "caveat" && entry.attention.as_deref() == Some("examined")).count(), 8);
     let qualifications = known
         .relations
         .iter()
         .filter(|edge| edge.relation == "qualifies")
         .cloned()
         .collect::<Vec<_>>();
-    assert_eq!(
-        qualifications, initial_qualifications,
-        "examined caveats must remain actual graph edges"
+    assert!(
+        initial_qualifications
+            .iter()
+            .all(|edge| qualifications.contains(edge)),
+        "examining and sampling must preserve every original qualification"
     );
+    let first_reading = &known.reading_streams["flow"].occurrences[0];
+    for caveat in ["surge_unmeasured", "reading_may_age"] {
+        assert!(
+            qualifications
+                .iter()
+                .any(|edge| edge.from == caveat && edge.to == first_reading.id),
+            "new observation occurrence did not inherit its caveat as an actual graph edge"
+        );
+    }
     assert!(known
         .relations
         .iter()
@@ -864,10 +809,9 @@ fn fully_examined_uncertainty_stays_in_the_graph_and_still_allows_rescue() {
         .all(|edge| end.relations.contains(edge)));
     assert_eq!(end.budget.as_ref().unwrap().remaining, 0);
     assert_eq!(end.symbols.iter().filter(|entry| entry.kind == "caveat" && entry.attention.as_deref() == Some("examined")).count(), 8);
-    assert_eq!(
-        end.commitment_bases["counter_steer"],
-        known.commitment_bases["counter_steer"]
-    );
+    let first = &known.decision_series["navigation"].revisions[1].id;
+    assert_eq!(end.commitment_bases[first], known.commitment_bases[first]);
+    assert_eq!(flow_count(&end), 3);
 }
 
 #[test]
@@ -939,4 +883,48 @@ fn a_completed_rescue_does_not_keep_running_behind_the_result_screen() {
         assert_eq!(after.relations, end.relations);
         assert_eq!(after.commitments, end.commitments);
     }
+}
+
+#[test]
+fn a_held_completed_scan_is_one_occurrence_and_releasing_allows_a_new_reading() {
+    let mut game = started(SOURCE);
+    let first = sample_current(&mut game);
+    for _ in 0..90 {
+        tick(&mut game);
+    }
+    let held = game.snapshot();
+    assert_eq!(
+        held.reading_streams["flow"].occurrences,
+        first.reading_streams["flow"].occurrences
+    );
+    assert_eq!(
+        held.decision_series["navigation"].revisions,
+        first.decision_series["navigation"].revisions
+    );
+    assert_eq!(held.budget, first.budget);
+    dispatch(
+        &mut game,
+        "aim",
+        &[("x", -3.8), ("z", 33.5), ("active", 0.0)],
+    );
+    tick(&mut game);
+    let second = sample_current(&mut game);
+    assert_eq!(flow_count(&second), 2);
+    assert_eq!(
+        second.reading_streams["flow"].occurrences[0],
+        first.reading_streams["flow"].occurrences[0]
+    );
+    assert_ne!(
+        second.reading_streams["flow"].occurrences[0].id,
+        second.reading_streams["flow"].occurrences[1].id
+    );
+    assert!(
+        (navigation_basis(&second).value.unwrap() - navigation_basis(&first).value.unwrap()).abs()
+            < 1e-10,
+        "a later pulse should normalize to the same current estimate"
+    );
+    assert_eq!(
+        second.budget, first.budget,
+        "already examined caveats must not be charged every time the current is sampled"
+    );
 }

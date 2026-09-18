@@ -2,7 +2,7 @@
 
 **Drag the light left or right. Reach the green harbor.**
 
-Light the Way turns Saint Orin into a short, directly controlled rescue game. A visible ferry advances toward the island while the player guides it past six rocks and a crosscurrent that reverses in a storm. The green harbor ring rescues all thirty-two passengers. Three impacts, missing the harbor, or ninety seconds without arrival ends the attempt. A new session immediately restarts it.
+Light the Way turns Saint Orin into a short, directly controlled rescue game. A visible ferry advances toward the island while the player guides it past six rocks and a crosscurrent that shifts with two weather fronts. The green harbor ring rescues all thirty-two passengers. Three impacts, missing the harbor, or ninety seconds without arrival ends the attempt. A new session immediately restarts it.
 
 There are no required story decisions or reading panels. The earlier narrative game remains separately available as [The Last Beacon](THE_LAST_BEACON.md).
 
@@ -10,7 +10,7 @@ There are no required story decisions or reading panels. The earlier narrative g
 
 [`game/light_the_way.cav`](../game/light_the_way.cav) defines all simulation values, movement equations, steering acceleration, wind, discovery, collisions, cooldown, scoring, success, and failure. It also defines world coordinates, input mappings, the clock, UI screens and values, object poses and colors, and explicit feedback cues. The browser dispatches declared inputs, applies evaluated bindings, and presents emitted cues. It does not infer game meaning from variables such as `phase`, `hull`, or `boat_x`.
 
-The source's events, controls, and bindings follow the [CAVEAT reactive 0.2](../spec/caveat-reactive-0.2.md) presentation contract. [Reactive 0.3](../spec/caveat-reactive-0.3.md) adds qualified values that carry the epistemic graph's evidence and caveats through numeric computation. [Reactive 0.4](../spec/caveat-reactive-0.4.md) adds text expressions and a CAVEAT standard prelude that formats the HUD; source countdowns control notices. Pure functions are reusable expressions; bindings connect evaluated values to generic presentation targets:
+The source's events, controls, and bindings follow the [CAVEAT reactive 0.2](../spec/caveat-reactive-0.2.md) presentation contract. [Reactive 0.3](../spec/caveat-reactive-0.3.md) adds qualified values; [Reactive 0.4](../spec/caveat-reactive-0.4.md) adds text expressions and a CAVEAT standard prelude. [Reactive 0.5](../spec/caveat-reactive-0.5.md) adds recurring observations and decision histories. Together they carry evidence and caveats through calculation, revision, and presentation:
 
 ```caveat
 fn distance(ax, az, bx, bz) = sqrt((ax - bx) * (ax - bx) + (az - bz) * (az - bz));
@@ -29,7 +29,7 @@ Functions and UI bindings provide familiar programming facilities. Their values 
 
 The ferry moves forward automatically. Holding the light steers it laterally toward the light's horizontal position, with acceleration and a capped turn speed. The light's full position also scouts the water: shining near a rock reveals it. Releasing the light lets the ferry's lateral movement settle while it continues forward.
 
-Holding the light on the center of the current ring for one continuous second measures its flow. A small meter fills in the world and HUD. Moving the light away cancels an incomplete reading. The ferry keeps advancing and turning toward the light throughout: the reading costs actual control time as well as examination budget.
+Holding the light on the center of the current ring for one continuous second measures its flow. A small meter fills in the world and HUD. Moving the light away cancels an incomplete reading. The ferry keeps advancing and turning toward the light throughout: every reading costs actual control time, and the first examination of each relevant caveat also spends budget.
 
 The opening provides more than five seconds of unobstructed water. Six rocks form three paired barriers across the bounded channel, requiring a right, left, then right passage toward the harbor. Holding one edge cannot bypass the course. A successful trip takes roughly a minute to a minute and a half. The collision circle combines the source's rock radius and ferry radius. A hit reduces hull once, nudges the ferry sideways, and grants two seconds of collision immunity.
 
@@ -41,44 +41,50 @@ An old chart initially supports `clear_course`. Starting the rescue commits to `
 
 Each discovered rock examines its corresponding caveat once. The first contrary observation reopens the course commitment. Near a known rock, the source's `observed(...)` and `reopened(...)` predicates activate a warning and reduce forward speed from `0.6` to `0.42`, allowing more reaction time. Knowledge therefore changes motion; it is not only a journal entry. A collision is also evidence, including the final damaging frame.
 
-### A forecast can be useful and still need revision
+### One forecast, recurring observations
 
-The crosscurrent adds a second provisional decision. `morning_forecast`, with tidal-archive provenance, supports `crosscurrent_mild`. `surge_unmeasured` qualifies that evidence. Starting the rescue commits to `trust_forecast` while retaining the caveat.
+The crosscurrent adds a provisional navigation decision. `morning_forecast`, with tidal-archive provenance, supports `crosscurrent_mild`. `forecast_drift = qualified(0, morning_forecast)` carries that estimate and its unresolved surge caveat into the first `navigation` commitment.
 
-Completing a held-light sample before the storm yields `crosscurrent_reading`: measured foam drift opposes the forecast claim and supports the provisional claim that the current runs eastward. Examination costs one attention unit. The original supporting evidence is preserved. The observation reopens `trust_forecast`. A qualified measurement then passes through pure functions to produce the steering plan on which `counter_steer` relies.
+The source declares reusable histories instead of separate first and second observations:
 
-| Physical truth | Navigation response |
-| --- | --- |
-| `current_force` depends on the authored field, time pulse, and ferry's position within it. | The forecast supplies a qualified zero-drift estimate, so the original steering plan applies no compensation. |
-| Observing the current never weakens or removes it. | The revised policy counters 65% of the estimated current while continuing toward harbor. |
+```caveat
+readings flow from foam_sensor limit 128;
+readings weather from weather_front limit 8;
+decisions navigation limit 128;
+```
 
-The foam marker, force, opposing reading, warning, response, and cue all come from this source file. The renderer supplies a generic ring asset; it has no crosscurrent-specific behavior. There is no forced reading panel, and an objection does not automatically halt the ferry. The earlier forecast and retained caveat remain inspectable after revision.
+Each completed one-second scan creates an immutable `flow` occurrence containing the measured foam speed, source provenance, and inherited caveats. Its sign supports or opposes `current_eastward`. Later readings do not overwrite earlier supporting or contrary observations. `foam_sensor` is the source template; declaring it does not count as observing it.
 
-### The storm makes an old reading stale
+The same sampling block works throughout the crossing. The light must leave the ring or be released before another measurement can begin. Holding it there indefinitely produces one observation, not a stream of perfect telemetry. Each completed scan costs one second of actual steering attention. The source examines `surge_unmeasured` and `reading_may_age` once each; the total budget of eight covers those examinations and six rocks. Repeated sampling remains possible after that budget is spent, and uncertainty remains attached.
 
-At thirty-four seconds, the sea darkens, rain strengthens, and the current reverses from `+0.9` eastward to `-1.2` westward. The ring turns orange and its arrows reverse. This physical change occurs independently of any observation. A visible `storm_warning` reopens the old commitment without supplying an exact new measurement.
+### The weather changes twice
 
-The player can keep the old plan and steer manually, or hold the orange ring for a fresh one-second reading. The original plan continues acting until replaced; after reversal, its correction can worsen the drift. The ring lies beside the route's left-hand leg, giving a fair opportunity to resample while the ferry keeps moving.
+At thirty-four seconds, the sea darkens, rain strengthens, and the current reverses from `+0.9` eastward to `-1.2` westward. At forty seconds, another front turns it eastward at `+1.2`. These changes occur independently of the player's knowledge. A flat central flow with a 1.2-unit edge fade makes the difference between the old correction and a revised one visible.
 
-A completed second sample creates distinct `storm_reading` evidence and a `revised_counter_steer` commitment. It examines `reading_may_age` at a cost of one attention unit. The earlier supporting observation, contrary storm evidence, old number, and reopened commitment remain inspectable. If the player first samples after the storm, the source creates only the fresh storm reading; it does not invent an earlier observation. The total budget of eight covers six rocks and both readings, and spending it does not prevent continuing the rescue.
+Each front creates a separate `weather` observation containing only coarse direction, `-1` or `+1`. It can reopen the selected navigation revision without supplying an exact new force measurement.
 
-### The steering calculation carries its reasons
+The player can keep the old correction and steer manually, or hold the ring for another sample. The correction keeps acting until revised; after a reversal it can worsen drift. The target sits beside the left-hand leg, providing time to take a reading before the final turn toward harbor.
 
-`forecast_drift = qualified(0, morning_forecast)` is the initial working estimate. The constructor attaches the observed forecast and inherits `surge_unmeasured` from the graph. `trust_forecast` uses that value, retaining its caveat automatically.
+Bright arrows show visible flow direction. A faint arrow preserves the last measured direction, so their disagreement is visible in the world. The HUD shows `FORECAST` before a measurement and the reading's age afterward. Amber means the visible weather has changed since that reading; it is not a fabricated confidence percentage or a declaration that an older reading must be false.
 
-The light takes a simulated foam-speed sample when the held observation completes. `qualified(sample, crosscurrent_reading)` carries that reading and its qualifications into `observed_foam`. The pure functions `infer_peak()` and `counter_plan()` produce `estimated_peak` and `steering_plan` without stripping their metadata:
+### Every steering revision keeps its reasons
+
+When a scan completes, the source immediately computes `counter_plan(infer_peak(latest(flow), tidal_pulse(elapsed)), 0.65)`. The pure functions preserve that exact occurrence's evidence and caveats. It reopens the selected navigation revision if needed, then commits the new value. The earlier revision, its number, retained caveats, and reopening cause remain in history.
 
 ```caveat
 fn infer_peak(flow, phase) = flow / phase;
 fn counter_plan(peak, fraction) = -peak * fraction;
-fn current_field(peak, phase, separation, radius) = peak * phase * clamp(1 - separation / radius, 0, 1);
+fn current_field(peak, phase, separation, radius) = peak * phase * clamp((radius - separation) / 1.2, 0, 1);
 ```
 
-The first revised commitment says `commit counter_steer because enough using steering_plan`. Its evidence basis and retained caveats come from the derived value actually used, rather than another hand-authored `retaining` list. The command is approximately `-0.585` at peak. Its numeric value remains fixed after the observation.
+The resulting peak corrections are approximately `-0.585`, `+0.78`, and `-0.78` when those three physical phases are sampled. Subsequent motion projects the frozen `latest(navigation)` through the local pulse and field. It never recalculates an old foam observation against a later sampling time or quietly borrows actual strength as fresh navigation telemetry.
 
-After resampling, `storm_foam` passes through the same functions into `storm_peak` and `revised_plan`, approximately `+0.78` at peak. `revised_counter_steer` commits using that new value. `active_plan` selects the retained command that `current_field()` projects over the local pulse and distance on later ticks. The navigator does not keep borrowing the simulator's current strength as fresh telemetry. Both commitments retain unresolved caveats about later changes; examination has not erased them.
+| Physical truth | Navigation response |
+| --- | --- |
+| `current_force` depends on the authored field, weather, time pulse, and ferry position. | The selected decision counters 65% of its own estimated current. |
+| Observation does not weaken or reverse the external field. | A new reading can produce a different correction while old evidence remains. |
 
-`snapshot.values` remains a plain numeric projection for compatibility. `qualified_values` exposes the associated evidence and caveats; `commitment_bases` preserves the number and provenance used at each commitment. Metadata can also travel through a command into the resulting boat position and a position-dependent force calculation. That is computational lineage, not a declaration that observation changed the physical current or that every qualified value is false. At the same actual position and time, the external field still has the same numeric force.
+`snapshot.values` remains a plain numeric projection; qualified values and the histories preserve the associated evidence and caveats. Metadata can also travel through a command into boat position and a position-dependent force calculation. That records computational lineage. At the same actual position and time, the external field still has the same numeric force.
 
 ## Input and state contract
 
@@ -104,13 +110,12 @@ The following domain values remain available for inspection and testing. Hosts c
 | `elapsed`, `time_limit`, `progress` | Time and route progress |
 | `warning` | `0` clear, `1` light released, `2` known rock or impact, `3` current compensation |
 | `reef_one_seen` through `reef_six_seen` | Discovered-rock presentation |
-| `current_force`, `compensation`, `current_seen` | External current, revised response, and observation state |
-| `forecast_drift`, `observed_foam`, `estimated_peak`, `steering_plan` | Qualified forecast, measurement, inference, and command |
-| `measurement_ready` | Preserves the first sampled numeric steering plan |
-| `storm_at`, `storm_strength`, `storm_changed` | Authored timing and physical change |
-| `sample_charge`, `sample_duration`, `sample_in_range` | Continuous hold requirement and cancelable progress |
-| `storm_foam`, `storm_peak`, `revised_plan`, `active_plan` | Fresh qualified sample, inference, revision, and selected response |
-| `resample_ready` | Records completion of the storm reading |
+| `current_force`, `compensation` | External current and selected navigation response |
+| `forecast_drift` | Qualified forecast used before the first held reading |
+| `first_shift_at`, `second_shift_at`, `weather_phase` | Authored weather timing and physical phase |
+| `sample_charge`, `sample_duration`, `sample_in_range`, `sample_armed` | Continuous hold requirement, cancellation, and release latch |
+| `last_read_at`, `reading_weather_phase` | Reading age and whether weather has changed since it |
+| `rain_speed`, `rain_travel` | Source-owned rain motion; water animation uses `elapsed` |
 | `notice_kind`, `notice_remaining` | Source-selected notice and simulation-time lifetime |
 | `failure_reason` | `1` hull lost, `2` missed harbor, `3` time expired |
 | `rescued`, `total_passengers`, `score` | Source-authoritative result |
@@ -119,6 +124,8 @@ The following domain values remain available for inspection and testing. Hosts c
 The score rewards remaining hull, time remaining, and discovered rocks. Its equation is authored in the source. CAVEAT's source prelude supplies `number_text`, `time_text`, and `percent_text`; the browser assigns their evaluated strings. Hull indicators also receive individual source bindings.
 
 Sounds and expanding rings are declared with `cue` and emitted by source rules. Observation guards prevent repeated discovery cues; terminal rules emit before changing phase so repeated ticks cannot replay an ending sound. Cue delivery is part of the event transaction, alongside graph and numeric changes. Toast visibility and impact flashes use source bindings and countdowns, so pausing also pauses their lifetime.
+
+The source supplies water time and integrated rain travel to generic rendering bindings. Pausing or replaying the simulation consequently preserves weather motion alongside the ferry, scan meter, and reading age.
 
 ## Verify
 
@@ -131,4 +138,4 @@ npm run serve
 
 Open `/rescue.html` on the local server. Build prerequisites are in the [README](../README.md).
 
-Runtime verification covers the safe opening, real-input rescue, unattended failure, impact immunity, observations and reopened knowledge, source tuning, pause, controls, and explicit cues. Storm checks cover continuous sampling, cancellation, paused timers, manual and revised routes, and preserved old commitments. Qualified-value checks follow both measurements through pure functions into their commands and commitment bases. Browser checks additionally exercise direct controls, a complete rescue, mobile presentation, and source-only changes to HUD text, an object binding, and a previously unknown cue.
+Runtime verification covers the safe opening, real-input rescue, unattended failure, impact immunity, observations and reopened knowledge, source tuning, pause, controls, and explicit cues. Weather checks cover continuous sampling, cancellation, release latching, paused timers, manual and repeatedly revised routes, and preserved histories. Qualified-value checks follow each immutable measurement through pure functions into its command and commitment basis. Browser checks additionally exercise direct controls, a complete rescue, mobile presentation, and source-only changes to HUD text, an object binding, and a previously unknown cue.

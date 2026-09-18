@@ -143,6 +143,18 @@ async function assertSamplingProgress(page, before, name) {
   return partial;
 }
 
+const flowReadings = state => state.reading_streams.flow.occurrences;
+const navigationBasis = state => state.commitment_bases[state.decision_series.navigation.current];
+function assertHistoryPrefix(earlier, later) {
+  const occurrences = flowReadings(earlier);
+  assert.deepEqual(flowReadings(later).slice(0, occurrences.length), occurrences, 'A later reading rewrote an earlier occurrence');
+  const revisions = earlier.decision_series.navigation.revisions;
+  assert.deepEqual(later.decision_series.navigation.revisions.slice(0, revisions.length), revisions, 'A later decision rewrote its history');
+  for (const revision of revisions) {
+    assert.deepEqual(later.commitment_bases[revision.id], earlier.commitment_bases[revision.id], 'A historical numeric basis was recomputed');
+  }
+}
+
 async function pointerRoute(browser, options = {}, name = 'desktop') {
   const { context, page, errors } = await fresh(browser, options);
   const mobile = Boolean(options.isMobile);
@@ -154,46 +166,67 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     await page.clock.runFor(500);
     await assertSamplingProgress(page, initial, `${name}-first-reading-progress`);
     await page.clock.runFor(600);
-    assert.equal((await read(page)).values.measurement_ready, 1, 'A continuous one-second hold did not measure the first current');
-    await pointer.move(5.5, initial.values.boat_z - 8);
+    let lastObserved = await read(page);
+    assert.equal(flowReadings(lastObserved).length, 1, 'One completed hold must produce exactly one occurrence');
+    assert.equal(lastObserved.decision_series.navigation.revisions.length, 2, 'Forecast plus first observed decision');
+    assert(Math.abs(navigationBasis(lastObserved).value + 0.585) < 1e-10);
+    const reading = flowReadings(lastObserved)[0];
+    assert(navigationBasis(lastObserved).provenance.evidence.includes(reading.id));
+    assert(reading.provenance.caveats.includes('reading_may_age'));
+    assert.match(await page.locator('#reading-age').innerText(), /^READ 0s AGO$/);
+    assert.match(await page.locator('#flow-legend').innerText(), /BRIGHT.*FLOW.*FAINT.*LAST READING/i);
     let previousHitCount = 0;
     let midCaptured = false;
-    let currentCaptured = false;
-    let observedBasis;
-    let stormCaptured = false;
-    let revisedBasis;
+    let handledWeather = 0;
     let end;
     for (let step = 0; step < 95; step++) {
       const before = await read(page);
       if (before.values.phase !== 1) { end = before; break; }
-      if (!stormCaptured && before.values.storm_changed === 1) {
-        assert.equal(before.values.current_strength, -1.2);
-        assert.equal(before.values.resample_ready, 0, 'The storm warning must not silently provide an exact new measurement');
-        assert.deepEqual(before.commitment_bases.counter_steer, observedBasis);
-        assert(before.commitments.some(entry => entry.action === 'counter_steer' && entry.open));
-        assert.match(await page.locator('#sample-status').innerText(), /FLOW CHANGED.*RESAMPLE/i);
-        await screenshot(page, `${name}-storm-stale-reading`);
-        stormCaptured = true;
+      if (before.values.weather_phase > handledWeather) {
+        const weather = before.values.weather_phase;
+        assert.equal(weather, handledWeather + 1);
+        assert.equal(before.values.current_strength, weather === 1 ? -1.2 : 1.2);
+        assert.equal(flowReadings(before).length, mobile ? weather : 1, 'Weather must not silently sample exact force');
+        assert.deepEqual(navigationBasis(before), navigationBasis(lastObserved));
+        assertHistoryPrefix(lastObserved, before);
+        assert(before.commitments.some(entry => entry.action === before.decision_series.navigation.current && entry.open));
+        assert.match(await page.locator('#reading-age').innerText(), /^READ [0-9]+s AGO$/);
+        const presentation = await page.evaluate(() => window.__rescue.presentation());
+        const flowDirection = presentation.bindings.crosscurrent_marker['arrow.rotation_y'];
+        const heldDirection = presentation.bindings.last_reading_marker['arrow.rotation_y'];
+        if (mobile || weather === 1) assert(Math.abs(flowDirection - heldDirection) > 3, 'Retained and actual directions should visibly disagree');
+        assert.equal(presentation.bindings.last_reading_marker['arrow.opacity'], 0.42);
+        await screenshot(page, `${name}-shift-${weather}-stale-reading`);
+        handledWeather = weather;
         if (mobile) {
           await pointer.move(-3.8, 33.5);
           await page.clock.runFor(500);
-          await assertSamplingProgress(page, before, `${name}-storm-reading-progress`);
+          await assertSamplingProgress(page, before, `${name}-shift-${weather}-reading-progress`);
           await page.clock.runFor(600);
           const revised = await read(page);
-          assert.equal(revised.values.resample_ready, 1);
-          assert.deepEqual(revised.commitment_bases.counter_steer, observedBasis, 'Resampling rewrote the first decision');
-          revisedBasis = revised.commitment_bases.revised_counter_steer;
-          assert(Math.abs(revisedBasis.value - 0.78) < 1e-10);
-          assert(revisedBasis.provenance.evidence.includes('storm_reading'));
-          assert(revisedBasis.provenance.caveats.includes('reading_may_age'));
-          assert(revised.relations.some(edge => edge.from === 'crosscurrent_reading' && edge.relation === 'supports' && edge.to === 'current_eastward'));
-          assert(revised.relations.some(edge => edge.from === 'storm_reading' && edge.relation === 'opposes' && edge.to === 'current_eastward'));
-          await screenshot(page, `${name}-storm-reading-revised`);
+          assert.equal(flowReadings(revised).length, weather + 1);
+          assert.equal(revised.decision_series.navigation.revisions.length, weather + 2);
+          assertHistoryPrefix(lastObserved, revised);
+          const newest = flowReadings(revised).at(-1);
+          assert.equal(newest.ordinal, weather + 1);
+          assert.equal(newest.relation, weather === 1 ? 'opposes' : 'supports');
+          assert.equal(newest.claim, 'current_eastward');
+          assert(Math.abs(navigationBasis(revised).value - (weather === 1 ? 0.78 : -0.78)) < 1e-10);
+          assert(navigationBasis(revised).provenance.evidence.includes(newest.id));
+          assert(navigationBasis(revised).provenance.caveats.includes('reading_may_age'));
+          assert.equal(await page.locator('#reading-age').innerText(), 'READ 0s AGO');
+          const actual = await page.evaluate(() => window.__rescue.presentation());
+          assert.equal(actual.bindings.crosscurrent_marker['arrow.rotation_y'], actual.bindings.last_reading_marker['arrow.rotation_y']);
+          lastObserved = revised;
+          await screenshot(page, `${name}-shift-${weather}-reading-revised`);
           continue;
         }
       }
       const z = before.values.boat_z;
-      await pointer.move(z > 41 ? 5.5 : z > 32 ? -4 : 5.3, z - 8);
+      const lane = z > 41 ? 5.5 : z > 32 ? -4 : 5.3;
+      // Adaptive manual steering responds only to the visible ferry position.
+      const target = mobile ? lane : lane + (lane - before.values.boat_x) * 1.2;
+      await pointer.move(Math.max(-9.5, Math.min(13, target)), Math.max(19, z - 12));
       await page.clock.runFor(1000);
       const after = await read(page);
       assert(after.values.hit_count - previousHitCount <= 1, 'One frame caused repeated collision damage');
@@ -204,34 +237,18 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
         assert.equal(await fits(page), true);
         midCaptured = true;
       }
-      if (!currentCaptured && after.values.current_seen === 1) {
-        assert(after.relations.some(edge => edge.from === 'morning_forecast' && edge.relation === 'supports'));
-        assert(after.relations.some(edge => edge.from === 'crosscurrent_reading' && edge.relation === 'opposes'));
-        assert(after.commitments.some(entry => entry.action === 'trust_forecast' && entry.open));
-        assert(after.commitments.some(entry => entry.action === 'counter_steer' && entry.retained.includes('surge_unmeasured')));
-        for (const name of ['observed_foam', 'estimated_peak', 'steering_plan', 'compensation']) {
-          assert(after.qualified_values[name].provenance.evidence.includes('crosscurrent_reading'), `${name} lost the observed sample`);
-          assert(after.qualified_values[name].provenance.caveats.includes('surge_unmeasured'), `${name} lost the current caveat`);
-        }
-        observedBasis = after.commitment_bases.counter_steer;
-        assert(Math.abs(observedBasis.value + 0.585) < 1e-10, 'The committed steering command must come from the source function');
-        assert(after.relations.some(edge => edge.from === 'counter_steer' && edge.relation === 'relies_on' && edge.to === 'crosscurrent_reading'));
-        await screenshot(page, `${name}-current-observed`);
-        currentCaptured = true;
-      }
     }
     await pointer.release();
     end ||= await read(page);
     assert.equal(end.values.phase, 2, `Normal ${name} steering did not reach harbor: ${JSON.stringify(end.values)}`);
     assert.equal(end.values.rescued, 32);
-    assert.equal(end.values.hull, 3, 'The open-water route should be steerable without taking damage');
-    assert.equal(end.values.current_seen, 1, 'This route should discover and account for the crosscurrent');
-    assert.deepEqual(end.commitment_bases.counter_steer, observedBasis, 'Continued play rewrote the historical observation-based command');
-    assert(stormCaptured, 'The complete route never encountered the storm');
-    assert.equal(end.values.resample_ready, mobile ? 1 : 0);
-    if (mobile) assert.deepEqual(end.commitment_bases.revised_counter_steer, revisedBasis);
-    else assert(!end.commitment_bases.revised_counter_steer, 'The manually steered route must not receive an unrequested new estimate');
-    assert(end.values.elapsed >= 50 && end.values.elapsed <= 90, `Unexpected run duration ${end.values.elapsed}`);
+    assert.equal(end.values.hull, 3, 'The route should be steerable without damage');
+    assert.equal(handledWeather, 2);
+    assert.equal(flowReadings(end).length, mobile ? 3 : 1);
+    assert.equal(end.decision_series.navigation.revisions.length, mobile ? 4 : 2);
+    assert.equal(end.reading_streams.weather.occurrences.length, 2);
+    assertHistoryPrefix(lastObserved, end);
+    assert(end.values.elapsed >= 50 && end.values.elapsed <= 90);
     assert.equal(await fits(page), true);
     await page.getByRole('button', { name: /^Try again\b/i }).waitFor();
     await screenshot(page, `${name}-rescued`);
@@ -241,14 +258,16 @@ async function pointerRoute(browser, options = {}, name = 'desktop') {
     await page.getByRole('button', { name: /^Try again\b/i }).click();
     await page.clock.runFor(100);
     const restarted = await read(page);
-    assert.equal(restarted.values.phase, 1, 'Retry should start playing immediately');
+    assert.equal(restarted.values.phase, 1);
     assert.equal(restarted.values.hull, 3);
     assert.equal(restarted.values.hit_count, 0);
     assert.equal(restarted.values.rescued, 0);
+    assert.equal(flowReadings(restarted).length, 0, 'Retry leaked the previous crossing history');
+    assert.equal(restarted.decision_series.navigation.revisions.length, 1);
     assert(restarted.values.elapsed < 1);
     assert.deepEqual(errors, [], `Browser errors in ${name}`);
-    report.routes.push({ name, input: pointer.kind, currentPolicy: mobile ? 'held resample after storm' : 'manual steering with stale reading', rescued: end.values.rescued, hull: end.values.hull, seconds: end.values.elapsed, hitCount: end.values.hit_count });
-    console.log(`PASS ${name}: ${pointer.kind}, ${mobile ? 'fresh storm reading' : 'manual stale reading'}, rescued 32 in ${end.values.elapsed.toFixed(1)}s with ${end.values.hull} hull`);
+    report.routes.push({ name, input: pointer.kind, currentPolicy: mobile ? 'three deliberate readings' : 'adaptive manual steering with first reading', readings: flowReadings(end).length, revisions: end.decision_series.navigation.revisions.length, rescued: end.values.rescued, hull: end.values.hull, seconds: end.values.elapsed, hitCount: end.values.hit_count });
+    console.log(`PASS ${name}: ${pointer.kind}, ${flowReadings(end).length} readings / ${end.decision_series.navigation.revisions.length} revisions, rescued 32 in ${end.values.elapsed.toFixed(1)}s with ${end.values.hull} hull`);
   } catch (error) {
     await screenshot(page, `${name}-failure`).catch(() => {});
     throw error;
@@ -290,24 +309,33 @@ async function keyboardAndFailure(browser) {
     await assertSamplingProgress(page, holding, 'keyboard-reading-progress');
     await page.clock.runFor(600);
     await page.keyboard.up(' ');
-    assert.equal((await read(page)).values.measurement_ready, 1, 'Space did not keep the beam steady for a real sample');
+    assert.equal(flowReadings(await read(page)).length, 1, 'Space did not keep the beam steady for a real sample');
     report.checks.push('keyboard arrows plus held Space complete a moving-ferry current measurement');
     await page.getByRole('button', { name: /^Pause game$/i }).click();
     const paused = await read(page);
+    const pausedPresentation = await page.evaluate(() => window.__rescue.presentation());
     assert.equal(paused.values.paused, 1);
     await page.clock.runFor(2000);
     const waiting = await read(page);
-    for (const key of ['boat_x', 'boat_z', 'boat_vx', 'elapsed', 'hull', 'sample_charge', 'notice_remaining']) {
+    for (const key of ['boat_x', 'boat_z', 'boat_vx', 'elapsed', 'hull', 'sample_charge', 'notice_remaining', 'rain_travel']) {
       assert.equal(waiting.values[key], paused.values[key], `${key} changed while the source was paused`);
     }
     assert.deepEqual(waiting.relations, paused.relations);
     assert.deepEqual(waiting.commitments, paused.commitments);
+    const waitingPresentation = await page.evaluate(() => window.__rescue.presentation());
+    for (const property of ['water_time', 'rain_travel']) {
+      assert.equal(waitingPresentation.bindings.atmosphere[property], pausedPresentation.bindings.atmosphere[property],
+        `Actual rendered ${property} moved while source time was paused`);
+    }
     await page.getByRole('button', { name: /^Keep going\b/i }).click();
     await page.clock.runFor(500);
     const resumed = await read(page);
     assert.equal(resumed.values.paused, 0);
     assert(resumed.values.elapsed > paused.values.elapsed);
     assert(resumed.values.boat_z < paused.values.boat_z);
+    const resumedPresentation = await page.evaluate(() => window.__rescue.presentation());
+    assert(resumedPresentation.bindings.atmosphere.water_time > pausedPresentation.bindings.atmosphere.water_time);
+    assert(Math.abs(resumedPresentation.bindings.atmosphere.rain_travel - pausedPresentation.bindings.atmosphere.rain_travel) > 0.01);
     report.checks.push('source-owned pause and resume preserve live knowledge');
     assert.deepEqual(errors, []);
   } finally { await context.close(); }

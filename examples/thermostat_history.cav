@@ -1,0 +1,22 @@
+scene "A thermostat can revise its heating decision without erasing earlier readings.";
+
+claim warm_enough;
+evidence thermistor from "room thermistor";
+caveat calibration_offset consequence material;
+calibration_offset qualifies thermistor;
+display calibration_offset "The thermistor may have a calibration offset.";
+
+readings temperature from thermistor limit 8;
+decisions heating limit 8;
+fn heating_demand(measured, target) = clamp((target - measured) / 4, 0, 1);
+
+event read value min 0 max 40;
+on read when value >= 21 sample temperature = value supports warm_enough;
+on read when value < 21 sample temperature = value opposes warm_enough;
+on read when committed(heating) and not reopened(heating) reopen heating because latest(temperature);
+on read commit heating because enough using heating_demand(latest(temperature), 21);
+
+bind temperature.text = "No reading";
+bind temperature.text = number_text(latest(temperature)) + " C" when has_sample(temperature);
+bind heating.text = "Awaiting a reading";
+bind heating.text = percent_text(latest(heating)) when committed(heating);
