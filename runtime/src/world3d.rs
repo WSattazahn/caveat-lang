@@ -128,6 +128,11 @@ pub enum WorldEvent3D {
         degrees: f32,
         duration: f32,
     },
+    LookPitch {
+        object: String,
+        degrees: f32,
+        duration: f32,
+    },
     SetVisible {
         object: String,
         visible: bool,
@@ -141,6 +146,8 @@ pub enum WorldEvent3D {
 pub struct PlaceAnchor3D {
     pub place: String,
     pub position: Vec3,
+    pub heading_degrees: f32,
+    pub pitch_degrees: f32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -159,6 +166,7 @@ pub struct World3D {
     pub anchors: Vec<PlaceAnchor3D>,
     pub passages: Vec<PassageAnchor3D>,
     heading_degrees: f32,
+    pitch_degrees: f32,
 }
 
 impl World3D {
@@ -339,26 +347,38 @@ impl World3D {
                 PlaceAnchor3D {
                     place: "start_corridor".into(),
                     position: Vec3::new(0.0, 1.7, 5.0),
+                    heading_degrees: 0.0,
+                    pitch_degrees: 0.0,
                 },
                 PlaceAnchor3D {
                     place: "cross_corridor".into(),
                     position: Vec3::new(0.0, 1.7, -5.5),
+                    heading_degrees: 0.0,
+                    pitch_degrees: 0.0,
                 },
                 PlaceAnchor3D {
                     place: "continuation_corridor".into(),
-                    position: Vec3::new(0.0, 1.7, -12.0),
+                    position: Vec3::new(0.0, 1.7, -10.4),
+                    heading_degrees: 0.0,
+                    pitch_degrees: 0.0,
                 },
                 PlaceAnchor3D {
                     place: "alternate_route".into(),
-                    position: Vec3::new(-5.0, 1.7, 7.0),
+                    position: Vec3::new(-2.2, 1.7, 6.6),
+                    heading_degrees: -90.0,
+                    pitch_degrees: 0.0,
                 },
                 PlaceAnchor3D {
                     place: "stair_landing".into(),
-                    position: Vec3::new(4.2, 1.7, -8.8),
+                    position: Vec3::new(4.15, 1.55, -8.8),
+                    heading_degrees: 90.0,
+                    pitch_degrees: 12.0,
                 },
                 PlaceAnchor3D {
                     place: "stair_flight_down".into(),
-                    position: Vec3::new(4.85, 1.45, -8.9),
+                    position: Vec3::new(4.55, 1.05, -9.45),
+                    heading_degrees: 90.0,
+                    pitch_degrees: 24.0,
                 },
             ],
             passages: vec![
@@ -372,6 +392,7 @@ impl World3D {
                 },
             ],
             heading_degrees: 0.0,
+            pitch_degrees: 0.0,
         };
         if let Some(o) = w.objects.iter_mut().find(|o| o.id == "reopened_marker") {
             o.visible = false
@@ -409,12 +430,12 @@ impl World3D {
                 }
                 WorldCommand::Operate { .. } | WorldCommand::Observe { .. } => {}
                 WorldCommand::Open { entity } => {
-                    let hinge = format!("{entity}_hinge");
-                    let target = if self.objects.iter().any(|object| object.id == hinge) {
-                        hinge
-                    } else {
-                        entity.clone()
-                    };
+                    let target = self
+                        .objects
+                        .iter()
+                        .find(|object| object.id == *entity)
+                        .and_then(|object| object.parent.clone())
+                        .unwrap_or_else(|| entity.clone());
                     self.events.push(WorldEvent3D::RotateY {
                         object: target,
                         degrees: -92.0,
@@ -457,11 +478,11 @@ impl World3D {
     }
 
     fn enqueue_move(&mut self, place: &str, via: Option<&str>) -> Result<(), String> {
-        let destination = self.anchor(place)?;
+        let destination = self.anchor(place)?.clone();
         let origin = self.camera.transform.position;
         let facing_target = via
             .and_then(|entity| self.passage_anchor(entity))
-            .unwrap_or(destination);
+            .unwrap_or(destination.position);
         self.face_toward(facing_target);
 
         let mut points = Vec::new();
@@ -470,7 +491,7 @@ impl World3D {
                 points.push(passage);
             }
         }
-        points.push(destination);
+        points.push(destination.position);
 
         let mut distance = 0.0;
         let mut previous = origin;
@@ -485,7 +506,9 @@ impl World3D {
             points,
             duration,
         });
-        self.camera.transform.position = destination;
+        self.camera.transform.position = destination.position;
+        self.face_heading(destination.heading_degrees);
+        self.face_pitch(destination.pitch_degrees);
         Ok(())
     }
 
@@ -498,6 +521,10 @@ impl World3D {
         }
 
         let desired = dx.atan2(-dz) * 180.0 / PI;
+        self.face_heading(desired);
+    }
+
+    fn face_heading(&mut self, desired: f32) {
         let delta = normalize_degrees(desired - self.heading_degrees);
         if delta.abs() >= 1.0 {
             self.events.push(WorldEvent3D::LookYaw {
@@ -509,11 +536,22 @@ impl World3D {
         self.heading_degrees = desired;
     }
 
-    fn anchor(&self, place: &str) -> Result<Vec3, String> {
+    fn face_pitch(&mut self, desired: f32) {
+        let delta = desired - self.pitch_degrees;
+        if delta.abs() >= 1.0 {
+            self.events.push(WorldEvent3D::LookPitch {
+                object: "player".into(),
+                degrees: delta,
+                duration: 0.35,
+            });
+        }
+        self.pitch_degrees = desired;
+    }
+
+    fn anchor(&self, place: &str) -> Result<&PlaceAnchor3D, String> {
         self.anchors
             .iter()
             .find(|anchor| anchor.place == place)
-            .map(|anchor| anchor.position)
             .ok_or_else(|| format!("3D presentation has no anchor for place {place}"))
     }
 
@@ -657,6 +695,16 @@ fn event_json(v: &WorldEvent3D) -> String {
             duration,
         } => format!(
             "{{\"kind\":\"look_yaw\",\"object\":{},\"degrees\":{:?},\"duration\":{:?}}}",
+            json_string(object),
+            degrees,
+            duration
+        ),
+        WorldEvent3D::LookPitch {
+            object,
+            degrees,
+            duration,
+        } => format!(
+            "{{\"kind\":\"look_pitch\",\"object\":{},\"degrees\":{:?},\"duration\":{:?}}}",
             json_string(object),
             degrees,
             duration
