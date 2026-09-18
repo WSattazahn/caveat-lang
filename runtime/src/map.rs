@@ -155,6 +155,9 @@ pub struct MapActionPlan {
 pub struct MapInspection {
     pub subject: String,
     pub symbol: Option<MapSymbol>,
+    pub place: Option<MapPlace>,
+    pub entity: Option<MapEntity>,
+    pub connections: Vec<MapConnection>,
     pub actions: Vec<MapAction>,
     pub outgoing: Vec<MapRelation>,
     pub incoming: Vec<MapRelation>,
@@ -190,11 +193,28 @@ impl CaveatMap {
         let mut rules = Vec::new();
         let mut choices = Vec::new();
         let mut conditionals = Vec::new();
+        let mut world = MapWorld::default();
 
         for statement in &program.statements {
             match statement {
                 Statement::Scene { text } => scenes.push(text.clone()),
                 Statement::Display { .. } => {}
+                Statement::Place { name, kind } => world.places.push(MapPlace {
+                    id: name.clone(),
+                    kind: kind.clone(),
+                }),
+                Statement::Entity { name, kind, at } => world.entities.push(MapEntity {
+                    id: name.clone(),
+                    kind: kind.clone(),
+                    at: at.clone(),
+                }),
+                Statement::Connect { from, to, via } => {
+                    world.connections.push(MapConnection {
+                        from: from.clone(),
+                        to: to.clone(),
+                        via: via.clone(),
+                    });
+                }
                 Statement::Claim { name } => symbols.push(MapSymbol {
                     name: name.clone(),
                     kind: "claim".into(),
@@ -296,6 +316,8 @@ impl CaveatMap {
             }
         }
 
+        validate_world(&world)?;
+
         for (name, id) in &evaluation.symbols {
             if matches!(
                 evaluation.graph.nodes.get(id),
@@ -385,7 +407,7 @@ impl CaveatMap {
                 commitments,
                 event_count: evaluation.history.len(),
             },
-            world: MapWorld::default(),
+            world,
         })
     }
 
@@ -400,6 +422,32 @@ impl CaveatMap {
             .iter()
             .find(|symbol| symbol.name == subject)
             .cloned();
+
+        let place = self
+            .world
+            .places
+            .iter()
+            .find(|place| place.id == subject)
+            .cloned();
+
+        let entity = self
+            .world
+            .entities
+            .iter()
+            .find(|entity| entity.id == subject)
+            .cloned();
+
+        let connections = self
+            .world
+            .connections
+            .iter()
+            .filter(|connection| {
+                connection.from == subject
+                    || connection.to == subject
+                    || connection.via.as_deref() == Some(subject)
+            })
+            .cloned()
+            .collect();
 
         let actions = self
             .actions
@@ -468,6 +516,9 @@ impl CaveatMap {
         MapInspection {
             subject: subject.into(),
             symbol,
+            place,
+            entity,
+            connections,
             actions,
             outgoing,
             incoming,
@@ -525,6 +576,45 @@ impl CaveatMap {
                     ));
                 }
             }
+
+            for connection in &self.world.connections {
+                let next = if connection.from == symbol {
+                    Some(connection.to.as_str())
+                } else if connection.to == symbol {
+                    Some(connection.from.as_str())
+                } else {
+                    None
+                };
+
+                if let Some(next) = next {
+                    if visited.insert(next.to_string()) {
+                        let route = connection
+                            .via
+                            .as_deref()
+                            .map(|via| format!("world:{via}"))
+                            .unwrap_or_else(|| "world:direct".into());
+                        queue.push_back((
+                            next.to_string(),
+                            depth + 1,
+                            Some(symbol.clone()),
+                            Some(route),
+                        ));
+                    }
+                }
+
+                if connection.via.as_deref() == Some(symbol.as_str()) {
+                    for endpoint in [&connection.from, &connection.to] {
+                        if visited.insert(endpoint.clone()) {
+                            queue.push_back((
+                                endpoint.clone(),
+                                depth + 1,
+                                Some(symbol.clone()),
+                                Some("world:connector".into()),
+                            ));
+                        }
+                    }
+                }
+            }
         }
 
         MapTrace {
@@ -540,6 +630,93 @@ impl CaveatMap {
 
 pub fn to_json_pretty<T: Serialize>(value: &T) -> Result<String, String> {
     serde_json::to_string_pretty(value).map_err(|error| error.to_string())
+}
+
+fn validate_world(world: &MapWorld) -> Result<(), String> {
+    let mut identifiers = HashSet::new();
+    let places = world
+        .places
+        .iter()
+        .map(|place| place.id.as_str())
+        .collect::<HashSet<_>>();
+    let entities = world
+        .entities
+        .iter()
+        .map(|entity| entity.id.as_str())
+        .collect::<HashSet<_>>();
+
+    for place in &world.places {
+        if !identifiers.insert(place.id.as_str()) {
+            return Err(format!("duplicate world identifier: {}", place.id));
+        }
+    }
+
+    for entity in &world.entities {
+        if !identifiers.insert(entity.id.as_str()) {
+            return Err(format!("duplicate world identifier: {}", entity.id));
+        }
+        if !places.contains(entity.at.as_str()) {
+            return Err(format!(
+                "entity {} references unknown place {}",
+                entity.id, entity.at
+            ));
+        }
+    }
+
+    let mut seen_connections = HashSet::new();
+    for connection in &world.connections {
+        if !places.contains(connection.from.as_str()) {
+            return Err(format!(
+                "connection references unknown place {}",
+                connection.from
+            ));
+        }
+        if !places.contains(connection.to.as_str()) {
+            return Err(format!(
+                "connection references unknown place {}",
+                connection.to
+            ));
+        }
+        if connection.from == connection.to {
+            return Err(format!(
+                "connection cannot connect {} to itself",
+                connection.from
+            ));
+        }
+
+        if let Some(via) = &connection.via {
+            if !entities.contains(via.as_str()) {
+                return Err(format!("connection references unknown entity {via}"));
+            }
+            let entity = world
+                .entities
+                .iter()
+                .find(|entity| entity.id == *via)
+                .expect("validated entity membership");
+            if entity.at != connection.from && entity.at != connection.to {
+                return Err(format!(
+                    "connector {} is not located at either endpoint {} or {}",
+                    via, connection.from, connection.to
+                ));
+            }
+        }
+
+        let mut endpoints = [connection.from.as_str(), connection.to.as_str()];
+        endpoints.sort_unstable();
+        let key = (
+            endpoints[0].to_string(),
+            endpoints[1].to_string(),
+            connection.via.clone(),
+        );
+        if !seen_connections.insert(key) {
+            return Err(format!(
+                "duplicate connection between {} and {}",
+                connection.from, connection.to
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn map_conditional(action: &str, then: &ConditionalAction) -> MapConditional {
@@ -609,6 +786,10 @@ mod tests {
     use super::{CaveatMap, MAP_SCHEMA};
 
     const SOURCE: &str = r#"
+place start kind corridor;
+place landing kind stairwell;
+entity door_a kind fire_door at start;
+connect start to landing via door_a;
 budget 2;
 claim route_clear;
 claim route_safe;
@@ -634,7 +815,8 @@ when_committed open reopen open because camera_gap;
             .iter()
             .any(|symbol| symbol.name == "camera_gap" && symbol.kind == "caveat"));
         assert_eq!(map.actions[0].id, "open");
-        assert_eq!(map.world.places.len(), 0);
+        assert_eq!(map.world.places.len(), 2);
+        assert_eq!(map.world.connections.len(), 1);
     }
 
     #[test]
@@ -651,6 +833,28 @@ when_committed open reopen open because camera_gap;
             .conditionals
             .iter()
             .any(|conditional| conditional.contains("reopen open")));
+    }
+
+
+    #[test]
+    fn inspect_and_trace_include_world_topology() {
+        let map = CaveatMap::from_source(SOURCE).expect("map should build");
+        let inspection = map.inspect("door_a");
+        assert_eq!(
+            inspection.entity.as_ref().map(|entity| entity.kind.as_str()),
+            Some("fire_door")
+        );
+        assert_eq!(inspection.connections.len(), 1);
+
+        let trace = map.trace("start");
+        assert!(trace.nodes.iter().any(|node| node.symbol == "landing"));
+    }
+
+    #[test]
+    fn invalid_world_reference_is_rejected() {
+        let source = "place start kind corridor; entity door_a kind fire_door at nowhere;";
+        let error = CaveatMap::from_source(source).expect_err("unknown place should fail");
+        assert!(error.contains("entity door_a references unknown place nowhere"));
     }
 
     #[test]
