@@ -1,0 +1,142 @@
+scene "Moon Market is closing when Bao the dumpling vendor discovers that one moon dumpling has vanished. Mr. Caveat has three suspicious bystanders, a busy market full of misleading clues, and exactly enough confidence to get himself into trouble.";
+
+place market_square kind night_market;
+place dumpling_stall kind food_stall;
+place bridge_edge kind bridge;
+place side_alley kind alley;
+connect market_square to dumpling_stall;
+connect market_square to bridge_edge;
+connect market_square to side_alley;
+start_at market_square;
+
+entity bao kind vendor at dumpling_stall;
+entity sauce_face kind suspect at market_square;
+entity chopsticks kind suspect at market_square;
+entity innocent kind suspect at market_square;
+entity flour_smudge kind trace at market_square;
+entity moon_steamer kind steamer at dumpling_stall;
+entity bridge_rail kind landmark at bridge_edge;
+entity empty_crate kind crate at side_alley;
+entity miso kind cat at bridge_edge;
+
+display sauce_face_took_it "Sauce Face took the dumpling.";
+display chopsticks_took_it "Chopsticks took the dumpling.";
+display innocent_took_it "Innocent...? took the dumpling.";
+display miso_took_it "Miso took the dumpling.";
+
+display sauce_might_be_noodles "Look at Sauce Face.";
+display chopsticks_are_common "Inspect the chopsticks.";
+display basket_could_be_delivery "Peek at Innocent's basket.";
+display spicy_noodles "The red sauce is from spicy noodles.";
+display spare_chopsticks "The stall gives chopsticks to everyone.";
+display herb_bundle "The basket is full of fresh herbs.";
+
+display follow_sauce_face "Follow Sauce Face.";
+display question_chopsticks "Question Chopsticks.";
+display peek_basket "Ask to see the basket.";
+display sauce_face_alibi "Sauce Face has a noodle receipt from before the dumpling vanished.";
+display chopsticks_alibi "Chopsticks is helping Bao close the stall.";
+display innocent_alibi "Innocent's delivery slip matches the herb bundle.";
+
+display tiny_print_could_be_shop_cat "Check the tiny flour print.";
+display roof_shadow_might_be_cat "Look up at the roofline.";
+display wrapper_smell_might_be_fish "Check the crumpled wrapper.";
+display tiny_pawprint "A tiny pawprint cuts through the flour toward the bridge.";
+display black_tail "A black tail flicks behind a roof lantern.";
+display fishy_wrapper "The wrapper smells strongly of dried fish.";
+
+display search_bridge "Check the bridge roof.";
+display search_under_stall "Look under the dumpling stall.";
+display search_alley "Search the side alley.";
+display miso_found "A black cat is sitting above the bridge with the missing dumpling.";
+
+budget 4;
+
+claim sauce_face_took_it;
+claim chopsticks_took_it;
+claim innocent_took_it;
+claim miso_took_it;
+
+evidence red_sauce from "sauce_face";
+evidence loose_chopsticks from "chopsticks";
+evidence woven_basket_fiber from "innocent";
+red_sauce supports sauce_face_took_it;
+loose_chopsticks supports chopsticks_took_it;
+woven_basket_fiber supports innocent_took_it;
+
+caveat sauce_might_be_noodles consequence material;
+caveat chopsticks_are_common consequence material;
+caveat basket_could_be_delivery consequence material;
+sauce_might_be_noodles qualifies red_sauce;
+chopsticks_are_common qualifies loose_chopsticks;
+basket_could_be_delivery qualifies woven_basket_fiber;
+
+evidence spicy_noodles from "sauce_face";
+evidence spare_chopsticks from "bao";
+evidence herb_bundle from "innocent";
+
+investigate suspect_check options sauce_might_be_noodles, chopsticks_are_common, basket_could_be_delivery;
+inspect suspect_check sauce_might_be_noodles cost 1;
+reveal sauce_might_be_noodles then spicy_noodles opposes sauce_face_took_it;
+reveal chopsticks_are_common then spare_chopsticks opposes chopsticks_took_it;
+reveal basket_could_be_delivery then herb_bundle opposes innocent_took_it;
+
+choice first_lead options follow_sauce_face, question_chopsticks, peek_basket retaining sauce_might_be_noodles, chopsticks_are_common, basket_could_be_delivery;
+converge first_lead;
+select first_lead follow_sauce_face;
+
+evidence sauce_face_alibi from "noodle_receipt";
+evidence chopsticks_alibi from "closing_shift";
+evidence innocent_alibi from "delivery_slip";
+when_committed follow_sauce_face sauce_face_alibi opposes sauce_face_took_it;
+when_committed follow_sauce_face reopen follow_sauce_face because sauce_might_be_noodles;
+when_committed question_chopsticks chopsticks_alibi opposes chopsticks_took_it;
+when_committed question_chopsticks reopen question_chopsticks because chopsticks_are_common;
+when_committed peek_basket innocent_alibi opposes innocent_took_it;
+when_committed peek_basket reopen peek_basket because basket_could_be_delivery;
+
+evidence flour_trace from "flour_smudge";
+evidence roof_movement from "bridge_rail";
+evidence wrapper_odor from "moon_steamer";
+caveat tiny_print_could_be_shop_cat consequence low;
+caveat roof_shadow_might_be_cat consequence low;
+caveat wrapper_smell_might_be_fish consequence low;
+tiny_print_could_be_shop_cat qualifies flour_trace;
+roof_shadow_might_be_cat qualifies roof_movement;
+wrapper_smell_might_be_fish qualifies wrapper_odor;
+
+evidence tiny_pawprint from "flour_smudge";
+evidence black_tail from "bridge_rail";
+evidence fishy_wrapper from "moon_steamer";
+tiny_pawprint supports miso_took_it;
+black_tail supports miso_took_it;
+fishy_wrapper supports miso_took_it;
+
+investigate second_clue options tiny_print_could_be_shop_cat, roof_shadow_might_be_cat, wrapper_smell_might_be_fish;
+inspect second_clue tiny_print_could_be_shop_cat cost 1;
+reveal tiny_print_could_be_shop_cat then tiny_pawprint supports miso_took_it;
+reveal roof_shadow_might_be_cat then black_tail supports miso_took_it;
+reveal wrapper_smell_might_be_fish then fishy_wrapper supports miso_took_it;
+
+choice final_search options search_bridge, search_under_stall, search_alley retaining tiny_print_could_be_shop_cat, roof_shadow_might_be_cat, wrapper_smell_might_be_fish;
+converge final_search;
+select final_search search_bridge;
+
+evidence miso_found from "miso";
+miso_found supports miso_took_it;
+
+action sauce_might_be_noodles from market_square to market_square steps inspect sauce_face, observe spicy_noodles;
+action chopsticks_are_common from market_square to market_square steps inspect chopsticks, observe spare_chopsticks;
+action basket_could_be_delivery from market_square to market_square steps inspect innocent, observe herb_bundle;
+
+action follow_sauce_face from market_square to market_square steps inspect sauce_face, observe sauce_face_alibi;
+action question_chopsticks from market_square to market_square steps inspect chopsticks, observe chopsticks_alibi;
+action peek_basket from market_square to market_square steps inspect innocent, observe innocent_alibi;
+
+action tiny_print_could_be_shop_cat from market_square to market_square steps inspect flour_smudge, observe tiny_pawprint;
+action roof_shadow_might_be_cat from market_square to market_square steps move bridge_edge, inspect bridge_rail, observe black_tail, move market_square;
+action wrapper_smell_might_be_fish from market_square to market_square steps move dumpling_stall, inspect moon_steamer, observe fishy_wrapper, move market_square;
+
+action search_bridge from market_square to bridge_edge steps move bridge_edge, observe miso_found;
+action search_under_stall from market_square to bridge_edge steps move dumpling_stall, inspect moon_steamer, move market_square, move bridge_edge, observe miso_found;
+action search_alley from market_square to bridge_edge steps move side_alley, inspect empty_crate, move market_square, move bridge_edge, observe miso_found;

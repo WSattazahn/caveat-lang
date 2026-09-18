@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#111827"/><stop offset=".6" stop-color="#29384a"/><stop offset="1" stop-color="#503037"/></linearGradient>
+ <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#315569"/><stop offset="1" stop-color="#112735"/></linearGradient>
+ <radialGradient id="lan"><stop stop-color="#ffe8a1"/><stop offset=".25" stop-color="#ffb954"/><stop offset=".8" stop-color="#d94c34"/><stop offset="1" stop-color="#822630"/></radialGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="16"/></filter><filter id="shadow"><feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#07070a" flood-opacity=".6"/></filter>
+</defs>
+<rect width="1600" height="900" fill="url(#sky)"/><circle cx="1290" cy="120" r="65" fill="#f7edc8"/><circle cx="1290" cy="120" r="125" fill="#fff0b9" opacity=".11" filter="url(#blur)"/>
+<path d="M0 510Q300 435 600 490T1160 470T1600 430V900H0Z" fill="#222329"/><path d="M0 590Q340 515 780 570T1600 525V900H0Z" fill="url(#water)"/>
+<!-- huge bridge -->
+<path d="M110 650Q745 170 1485 650" fill="none" stroke="#55494a" stroke-width="116" stroke-linecap="round" filter="url(#shadow)"/>
+<path d="M110 624Q745 205 1485 624" fill="none" stroke="#a78475" stroke-width="28" stroke-linecap="round"/>
+<path d="M145 658Q750 230 1450 658" fill="none" stroke="#dac5a9" stroke-width="8" opacity=".55"/>
+<g stroke="#7a625b" stroke-width="15"><path d="M250 560v170"/><path d="M390 438v210"/><path d="M555 330v245"/><path d="M745 280v248"/><path d="M940 320v250"/><path d="M1110 420v215"/><path d="M1290 545v175"/></g>
+<!-- lantern line -->
+<path d="M90 165Q760 80 1540 180" fill="none" stroke="#2a2021" stroke-width="7"/>
+<g filter="url(#shadow)">
+ <g transform="translate(180 145)"><path d="M0 0v62" stroke="#3d2925" stroke-width="6"/><ellipse cy="96" rx="34" ry="46" fill="url(#lan)"/></g>
+ <g transform="translate(420 112)"><path d="M0 0v58" stroke="#3d2925" stroke-width="6"/><ellipse cy="91" rx="30" ry="42" fill="url(#lan)"/></g>
+ <g transform="translate(700 96)"><path d="M0 0v62" stroke="#3d2925" stroke-width="6"/><ellipse cy="96" rx="33" ry="45" fill="url(#lan)"/></g>
+ <g transform="translate(990 105)"><path d="M0 0v60" stroke="#3d2925" stroke-width="6"/><ellipse cy="94" rx="31" ry="43" fill="url(#lan)"/></g>
+ <g transform="translate(1260 133)"><path d="M0 0v58" stroke="#3d2925" stroke-width="6"/><ellipse cy="90" rx="30" ry="42" fill="url(#lan)"/></g>
+</g>
+<!-- background roofs -->
+<g opacity=".62"><path d="M0 380l250-130 280 125-45 37H35Z" fill="#1d252e"/><path d="M1070 380l250-130 280 120-40 36h-455Z" fill="#1e2730"/><g fill="#6b372e"><rect x="50" y="382" width="410" height="170"/><rect x="1120" y="376" width="420" height="176"/></g></g>
+<g fill="#ffc966"><circle cx="330" cy="318" r="6"/><circle cx="490" cy="265" r="4"/><circle cx="810" cy="236" r="5"/><circle cx="1140" cy="280" r="5"/><circle cx="1410" cy="345" r="6"/></g>
+<!-- motion streaks -->
+<g opacity=".18" stroke="#ffd995" stroke-linecap="round"><path d="M0 760h330" stroke-width="13"/><path d="M1200 800h400" stroke-width="12"/><path d="M80 700h180" stroke-width="7"/><path d="M1320 720h230" stroke-width="8"/></g>
+</svg>
