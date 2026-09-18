@@ -182,6 +182,7 @@ impl Evaluator {
             Statement::Display { symbol, text } => {
                 self.display.insert(symbol.clone(), text.clone());
             }
+            Statement::Place { .. } | Statement::Entity { .. } | Statement::Connect { .. } => {}
             Statement::Budget { units } => {
                 self.resources = Some(ResourceLedger {
                     initial: *units,
