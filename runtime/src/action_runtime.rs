@@ -41,6 +41,28 @@ pub struct WorldStateSnapshot {
     pub open_entities: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SimulationResult {
+    pub executions: Vec<ActionExecution>,
+    pub state: WorldStateSnapshot,
+}
+
+pub fn simulate(map: &CaveatMap, actions: &[String]) -> Result<SimulationResult, String> {
+    let mut runtime = ActionRuntime::new(map)?;
+    let mut executions = Vec::new();
+
+    for action in actions {
+        let (next, execution) = runtime.preview(map, action)?;
+        runtime = next;
+        executions.push(execution);
+    }
+
+    Ok(SimulationResult {
+        executions,
+        state: runtime.snapshot(),
+    })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionRuntime {
     current_place: String,
