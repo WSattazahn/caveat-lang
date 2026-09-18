@@ -693,6 +693,7 @@ bind crosscurrent_marker.arrow.rotation_y = 3.141592653589793 when current_stren
 bind crosscurrent_marker.arrow.color = "#88e8f2";
 bind crosscurrent_marker.arrow.color = "#ffad70" when weather_phase > 0;
 bind crosscurrent_marker.arrow.opacity = 0.75 + pulse(elapsed, 3) * 0.2;
+bind crosscurrent_marker.arrow.x = -1.4;
 bind crosscurrent_marker.arrow.z = -0.48;
 bind crosscurrent_marker.progress.visible = phase == 1;
 bind crosscurrent_marker.progress.fill = sample_charge / sample_duration;
@@ -706,6 +707,7 @@ bind last_reading_marker.scale = current_radius * (0.94 + current_pulse * 0.06);
 bind last_reading_marker.ring.opacity = 0;
 bind last_reading_marker.disc.opacity = 0;
 bind last_reading_marker.arrow.visible = true;
+bind last_reading_marker.arrow.x = -1.4;
 bind last_reading_marker.arrow.z = 0.48;
 bind last_reading_marker.arrow.rotation_y = 0;
 bind last_reading_marker.arrow.rotation_y = 3.141592653589793 when has_sample(flow) and latest(flow) < 0;
