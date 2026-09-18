@@ -1,4 +1,4 @@
-use crate::ast::{ConditionalAction, Program, Statement};
+use crate::ast::{ActionStep, ConditionalAction, Program, Statement};
 use crate::eval;
 use crate::{NodeKind, Relation};
 use serde::Serialize;
@@ -119,6 +119,7 @@ pub struct MapCommitment {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
 pub struct MapWorld {
+    pub start_at: Option<String>,
     pub places: Vec<MapPlace>,
     pub entities: Vec<MapEntity>,
     pub connections: Vec<MapConnection>,
@@ -148,7 +149,16 @@ pub struct MapConnection {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MapActionPlan {
     pub action: String,
-    pub steps: Vec<String>,
+    pub from: String,
+    pub to: String,
+    pub requires_open: Vec<String>,
+    pub steps: Vec<MapActionStep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MapActionStep {
+    pub kind: String,
+    pub target: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -159,6 +169,7 @@ pub struct MapInspection {
     pub entity: Option<MapEntity>,
     pub connections: Vec<MapConnection>,
     pub actions: Vec<MapAction>,
+    pub action_plan: Option<MapActionPlan>,
     pub outgoing: Vec<MapRelation>,
     pub incoming: Vec<MapRelation>,
     pub investigations: Vec<String>,
