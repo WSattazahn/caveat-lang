@@ -29,8 +29,13 @@
       <h1 id="title">The Last<br><em>Beacon.</em></h1>
       <p class="intro-deck">A light gone dark.<br>Three stories. One crossing.</p>
       <p class="intro-description" id="intro-description">The ferry is out there, somewhere. Every signal tells a different story. Before dawn, you must decide which one to trust.</p>
-      <div id="start-actions" class="start-actions"><p role="status" id="loading-status">Preparing the island…</p></div>
-      <div class="intro-details"><span>6 DECISIONS</span><i></i><span>3 ENDINGS</span><i></i><span>YOUR REASONS MATTER</span></div>
+      <div id="start-actions" class="start-actions">
+        <p role="status" id="loading-status">Preparing the island…</p>
+        <p class="launch-help">If this screen stays here, open the game in Safari, Chrome, or Firefox.</p>
+        <a class="secondary" id="launch-hosted" href="https://last-beacon-caveat.purple-puppy-8296.chatgpt.site" target="_blank" rel="noopener">Open the game in your browser ↗</a>
+        <noscript><p class="error-box">This preview cannot run the game because JavaScript is disabled. Open the game in your browser with JavaScript enabled.</p></noscript>
+      </div>
+      <div class="intro-details"><span>6 DECISIONS</span><i></i><span>9 OUTCOMES</span><i></i><span>YOUR REASONS MATTER</span></div>
     </section>
     <div class="intro-footer" id="intro-footer"><span>ACT WITH DOUBT. REVISE WITH EVIDENCE.</span><span>DRAG TO EXPLORE THE ISLAND <b>↗</b></span></div>
     <section class="watch-hud" id="watch-hud" hidden aria-label="Watch progress">
@@ -57,6 +62,7 @@
     <div class="journal-backdrop" id="journal-backdrop" hidden></div>
     <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
   </main>
+  <script src="./beacon-bootstrap.js"></script>
   <script type="module" src="./last-beacon.js"></script>
 </body>
 </html>

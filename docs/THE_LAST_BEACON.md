@@ -1,101 +1,96 @@
 # The Last Beacon
 
-The Last Beacon is a complete six-decision CAVEAT mystery set on the stormbound island of Saint Orin. A ferry with thirty-two people is approaching a failing lighthouse. The player must decide which evidence to examine, which provisional plan to try, and which cost to accept before dawn.
+The Last Beacon is a six-decision mystery on stormbound Saint Orin. Thirty-two ferry passengers are approaching a failing lighthouse. The player investigates, tests provisional plans, and decides which uncertainties to carry into a final order. Earlier knowledge changes both available actions and how that order turns out.
 
-The authoritative game is [`game/the_last_beacon.cav`](../game/the_last_beacon.cav). Its claims, caveats, investigations, commitments, reopening, world topology, action plans, and player-facing narrative all live in that file. Rust evaluates the source and executes its generic world commands. The browser presents the resulting state and animates the commands.
+[`game/the_last_beacon.cav`](../game/the_last_beacon.cav) owns the game: evidence, attention, requirements, commitments, reopening, outcome rules, prose, world topology, coordinates, cameras, and traversal paths. Rust evaluates that source. The browser draws semantic templates and animates generic commands. The same program can run in the native terminal without a browser.
 
-## Play contract
+This scenario uses the implemented features described in the [CAVEAT 0.4 draft](../spec/caveat-0.4-draft.md), [game-session contract](../spec/game-session-0.1.md), and [presentation specification](../spec/presentation.md). It demonstrates an executable epistemic language, not a claim that CAVEAT is already a general-purpose replacement for Rust or JavaScript.
 
-There are three watches of attention. Each watch permits one investigation costing one unit, followed by one commitment. The six interactions each offer three options, for 729 complete playthroughs. Attention is a discrete investigation budget, not a real-time countdown. Reading the journal or rotating the island does not spend it.
+## The decision structure
 
-The first two commitments lead to a concrete action and reveal a reason to reopen that commitment. Returning to the keeper's court is an explicit journey in the source. It does not erase evidence or undo a decision. The final commitment retains all nine caveats: three examined and six unexamined.
+Three watches provide three units of attention. Each watch buys one investigation, then one commitment. Reading the journal and rotating the scene are free: this is an attention budget, not a real-time countdown.
 
-An examined caveat is not automatically a resolved caveat. For example, the reserve test establishes available voltage while leaving endurance uncertain. Supporting evidence can coexist with opposing evidence. The player sees that history rather than a synthetic certainty percentage.
-
-| Interaction | Player's question | Source options |
+| Interaction | What changes | Available options |
 | --- | --- | --- |
-| `first_watch` | Which old assurance needs checking? | `lens_salt`, `chart_age`, `radio_echo` |
-| `first_signal` | Which assurance will I put to the test? | `trust_beam`, `trust_chart`, `trust_radio` |
-| `changed_water` | What can the current conditions support? | `tide_lag`, `reserve_unknown`, `bearing_drift` |
-| `revised_plan` | Which solution should I prepare? | `bridge_reserve`, `mark_channel`, `establish_contact` |
-| `final_watch` | Which remaining uncertainty most changes my decision? | `beam_heat`, `shoal_depth`, `anchor_hold` |
-| `final_signal` | Which cost will I accept? | `relight_beacon`, `launch_pilot`, `hold_offshore` |
+| `first_watch` | Observe a defect in the lens, chart, or radio | Three investigations |
+| `first_signal` | Pursue the observed defect or compare records at the court | One unlocked test plus `compare_records` |
+| `changed_water` | Investigate the tide, reserve, or ferry position | Three investigations |
+| `revised_plan` | Prepare the supported solution or preserve equipment | One unlocked preparation plus `preserve_options` |
+| `final_watch` | Check cooling, channel clearance, or anchorage | Three investigations |
+| `final_signal` | Activate the beacon, dispatch the pilot, or transmit a hold | Three orders with nine possible outcomes |
 
-## The island
+There are **324 legal complete sequences**: `3 × 2 × 3 × 2 × 3 × 3`. The source declares four options at each provisional choice, but requirements leave two available on any particular playthrough. Unavailable actions explain which observation is missing.
 
-All connections are bidirectional. Every journey starts at the keeper's court until the final decision. The lighthouse route includes the tower base and the elevated lantern room; the breakwater route passes through the harbor. There are no implied teleports or closed barriers.
+Both provisional commitments reopen after new evidence, including the cautious alternatives. Reopening preserves the action and its retained doubts; it does not undo the world. The final commitment retains all nine caveats, with exactly three examined and six unexamined. Examination does not imply resolution: the reserve can produce voltage while still overheating under load.
 
-| Place | Kind | Direct neighbors |
-| --- | --- | --- |
-| `keeper_court` | `courtyard` | Lighthouse base, observatory, tidal archive, harbor |
-| `lighthouse_base` | `lighthouse` | Keeper's court, lantern room |
-| `lantern_room` | `lantern_room` | Lighthouse base |
-| `observatory` | `observatory` | Keeper's court |
-| `tidal_archive` | `archive` | Keeper's court |
-| `harbor` | `harbor` | Keeper's court, breakwater |
-| `breakwater` | `breakwater` | Harbor |
+## Knowledge changes behavior
 
-The browser may assign coordinates and visual templates to these semantic kinds. Source action plans determine where the player travels, what is inspected or operated, what is observed, and where the action ends. The renderer must show a continuous ascent between the lighthouse base and lantern room.
+The language, rather than browser conditionals, determines availability:
 
-## Evidence and reopening
-
-The initial evidence is plausible but stale: the log's safe sector, an old channel chart, and a recorded radio call. An investigation exposes only the chosen flaw. No unselected inspection silently runs in the background.
-
-The first commitment exposes a second observation through action. Sighting the beam reveals its second sector on a reef. Walking the charted route reveals a submerged marker. Challenging the radio call exposes relay feedback. Each observation opposes its corresponding assurance and reopens the selected commitment because of a retained caveat.
-
-The second watch finds a viable direction: a strip of water for the shallow launch, a short reserve for the lamp, or room beyond the shoal for the ferry to hold. Preparation then exposes a limitation: cable heat, moving sand, or engine failure. The revised commitment reopens with that limitation still recorded.
-
-The final investigation can support one solution more strongly without certifying all of them. The source deliberately does not turn unexamined caveats into automatic death rolls. It models a choice among different sacrifices, with an honest record of the information available when the player acted.
-
-## Three endings
-
-| Action | Physical contract | Resolution and cost |
-| --- | --- | --- |
-| `relight_beacon` | Walk to the tower, operate the reserve, ascend, clean the lens, operate the beacon. End in `lantern_room`. | Meridian enters the harbor under manually controlled pulses. All thirty-two disembark. The keeper remains at the breaker and spends the reserve. |
-| `launch_pilot` | Walk to the harbor, inspect the tide gauge, release the pilot launch. End in `harbor`. | The pilot transfers the passengers to the sheltered beach. The beacon stays dark; the ship and cargo await salvage. |
-| `hold_offshore` | Walk to the observatory, check the telescope, transmit the hold. End in `observatory`. | The ferry anchors offshore under a bearing watch. The crossing is canceled and a daylight tow is arranged. |
-
-These are authored outcomes with distinct destinations, operations, claims, and consequences. There is no hidden numerical win score. Earlier choices determine what the player knows and what their decision record can justify. The final choice determines the outcome. This distinction is intentional and visible in the source.
-
-The first two choices explicitly declare `converge` because all their routes return to the court. The final choice does not converge, and the compiler validates its three distinct endpoints.
-
-## Presentation contract
-
-All interaction titles, descriptions, action labels, tradeoffs, feedback, place labels, and ending prose are `display` declarations. The browser reads these conventions:
-
-| Label | Meaning |
-| --- | --- |
-| `game_title`, `game_subtitle`, `game_intro` | Opening presentation |
-| `<interaction>` and `<interaction>_body` | Current decision heading and situation |
-| `<action>` and `<action>_hint` | Option label and tradeoff |
-| `<action>_result` | Narrative after that action actually executes |
-| `<final_action>_title` | Ending heading |
-| `<caveat>_uncertainty` | The uncertainty preserved in the journal |
-| `<place>`, `<entity>`, `<evidence>`, `<claim>` | Source-authored names and descriptions |
-
-Only the final `relight_beacon` action operates the beacon, only `launch_pilot` operates the boat, and only `hold_offshore` operates the transmitter. Interim actions inspect those systems or prepare their supporting equipment. Generic renderer effects can therefore follow `operate` commands without inventing ending logic.
-
-Full label metadata is available to the renderer at initialization. That does not make future evidence discovered: the live epistemic snapshot and observed world commands are authoritative for what has happened.
-
-## Verification
-
-Run the scenario tests from the repository root:
-
-```sh
-cargo test --manifest-path runtime/Cargo.toml --test the_last_beacon
-cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_last_beacon.cav
+```caveat
+require trust_beam observed salt_seam;
+require bridge_reserve observed reserve_charge;
 ```
 
-The route matrix exhausts all 729 complete sequences and checks:
+Merely declaring evidence does not satisfy these requirements. An observation must have an active support or opposition relation in the executed graph. A missing observation remains missing even when its descriptive label is present in static presentation data.
 
-- Every offered action remains physically available and every route completes.
-- Investigation costs produce exactly three spent attention units.
-- The first five journeys return to the court through valid source paths.
-- Both provisional commitments remain reopened in the history.
-- The final commitment preserves all nine caveats, including six unexamined ones.
-- Exactly one of the three outcome claims receives supporting evidence.
-- Each ending has its own destination and observation, with 243 routes reaching each.
+Final results are ordered source rules evaluated against the state **before** the final action:
 
-Additional tests check that initialization does not run future investigations, each first investigation reveals only its selected evidence, save restoration preserves the decision record and completed world, and every visible option has narrative feedback and a physical action plan.
+```caveat
+resolve relight_beacon as beacon_guided when observed measured_pulses;
+resolve relight_beacon as beacon_limited when observed hot_cable;
+resolve relight_beacon as beacon_limited when observed split_beam;
+resolve relight_beacon as beacon_unverified otherwise;
+```
 
-The automated route matrix verifies language and simulation behavior. Visual review must also inspect the tower ascent, breakwater journey, all three final destinations, and their corresponding operated objects.
+The cooling check enables a complete approach. Either preparation evidence or a targeted first test permits a limited attempt. Without those observations, lighting the lamp does not convince the captain to approach. The same final button therefore has materially different consequences. Both earlier commitments matter: pursuing the field test or preparing the system yields observations that the cautious alternatives do not.
+
+There are no hidden random death rolls or certainty scores. Contradictory support and opposition remain visible. The final graph records the operation actually performed—beacon activated, pilot dispatched, or hold transmitted—while the resolved outcome records whether it achieved its purpose. It never asserts a successful rescue solely because an order was issued.
+
+## Three orders, nine outcomes
+
+| Order and destination | Verified final check | Relevant earlier test or preparation | Neither available |
+| --- | --- | --- | --- |
+| `relight_beacon` → `lantern_room` | `beacon_guided`: all passengers arrive under measured pulses | `beacon_limited`: partial approach, daylight tow, emergency fuel cost | `beacon_unverified`: captain refuses the approach; rescue unresolved |
+| `launch_pilot` → `harbor` | `pilot_rescue`: passenger transfer completed before dawn | `pilot_delayed`: transfer begins but the falling tide strands the remaining passengers aboard | `pilot_stalled`: launch cannot establish a safe passage; no transfer completed |
+| `hold_offshore` → `observatory` | `hold_verified`: confirmed anchorage and arranged tow | `hold_repositioned`: search finds holding ground at the cost of engine damage | `hold_unlocated`: no confirmed holding ground; rescue support requested |
+
+For each final order, the legal decision tree contains 36 verified, 22 partial, and 50 unsupported outcomes. The outcome basis identifies the actual observation that matched; an `otherwise` result has no supporting basis.
+
+For example, these two routes differ at only the preparation:
+
+```text
+radio_echo → compare_records → reserve_unknown → bridge_reserve → anchor_hold → relight_beacon
+  = beacon_limited, because the bypass exposed hot_cable
+
+radio_echo → compare_records → reserve_unknown → preserve_options → anchor_hold → relight_beacon
+  = beacon_unverified, because no relevant test or preparation established the approach
+```
+
+Changing that last investigation to `beam_heat` instead produces `beacon_guided`. A final check can repair an earlier information gap, but attention spent elsewhere cannot silently perform it.
+
+## Physical and presentation contracts
+
+Seven places form one connected island. The court connects to the lighthouse base, observatory, tidal archive, and harbor. The base connects to the elevated lantern room; the harbor connects to the breakwater. The first two choices explicitly `converge` at the court. Their action plans walk back, or explicitly stay there when comparing records. Final actions reach three different destinations.
+
+The source contains seventeen absolute positions, seven camera views, an overview, and six authored paths, including the tower ascent. Changing a source coordinate or waypoint changes the scene without editing JavaScript. Place and entity kinds choose reusable visual templates; the renderer still owns geometry construction, materials, lighting, and animation mechanics.
+
+Only `relight_beacon` operates the beacon, only `launch_pilot` operates the boat, and only `hold_offshore` operates the transmitter. Those physical commands describe issuing the order, not an inferred successful outcome. Narrative resolution uses `snapshot.outcome.id`; the renderer must not derive it from an action name.
+
+Story prose is authored with `display`: interaction headings and `_body`, action labels and `_hint`/`_result`, caveat `_uncertainty`, and outcome labels with `_title`, `_result`, and `_epilogue`. Outcomes explain both what happened and what the missing or observed evidence cost.
+
+## Run and verify
+
+From the repository root:
+
+```sh
+cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --game game/the_last_beacon.cav
+cargo test --manifest-path runtime/Cargo.toml --test the_last_beacon
+cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/the_last_beacon.cav
+npm run build
+npm run test:beacon
+```
+
+The native mode accepts a numbered option or its source identifier. The [README](../README.md) supplies browser build prerequisites.
+
+Automated verification explores the actual pending options, checks requirements and attention, retains both reopened commitments, verifies outcome basis and destinations, and exercises save restoration. Browser QA covers the WebAssembly boundary, blocked-action feedback, source-resolved endings, and mobile layout. Screenshot review remains necessary for tower traversal, route geometry, and the three final viewpoints.

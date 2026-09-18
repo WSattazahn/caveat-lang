@@ -1,4 +1,4 @@
-use crate::ast::{ActionStep, ConditionalAction, Program, Statement};
+use crate::ast::{ActionStep, ConditionalAction, EpistemicCondition, Program, Statement};
 use crate::{Attention, Consequence, Relation, StopReason};
 
 /// Parse CAVEAT source. Diagnostics use one-based Unicode character positions.
@@ -99,6 +99,9 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
 }
 
 fn parse_statement(line: &str) -> Result<Statement, String> {
+    if let Some(directive) = crate::presentation::parse_directive(line) {
+        return directive.map(Statement::Presentation);
+    }
     let words: Vec<&str> = line.split_whitespace().collect();
     let statement = if words.first() == Some(&"scene") {
         Statement::Scene {
@@ -120,6 +123,20 @@ fn parse_statement(line: &str) -> Result<Statement, String> {
         parse_action(line)?
     } else {
         match words.as_slice() {
+            ["require", action, kind, symbol] => Statement::Require {
+                action: (*action).into(),
+                condition: epistemic_condition(kind, symbol)?,
+            },
+            ["resolve", action, "as", outcome, "when", kind, symbol] => Statement::Resolve {
+                action: (*action).into(),
+                outcome: (*outcome).into(),
+                condition: Some(epistemic_condition(kind, symbol)?),
+            },
+            ["resolve", action, "as", outcome, "otherwise"] => Statement::Resolve {
+                action: (*action).into(),
+                outcome: (*outcome).into(),
+                condition: None,
+            },
             ["budget", amount] => Statement::Budget {
                 units: number(amount)?,
             },
@@ -211,6 +228,20 @@ fn relation(from: &str, relation: Relation, to: &str) -> Statement {
         from: from.into(),
         relation,
         to: to.into(),
+    }
+}
+
+fn epistemic_condition(kind: &str, symbol: &str) -> Result<EpistemicCondition, String> {
+    match kind {
+        "observed" => Ok(EpistemicCondition::Observed {
+            symbol: symbol.into(),
+        }),
+        "examined" => Ok(EpistemicCondition::Examined {
+            symbol: symbol.into(),
+        }),
+        _ => Err(format!(
+            "unknown epistemic condition {kind}; expected observed or examined"
+        )),
     }
 }
 

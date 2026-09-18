@@ -104,6 +104,10 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - name: Play desktop and mobile routes
         run: npm run test:beacon
+      - name: Verify launch failures and recovery
+        run: |
+          npm run package:game
+          npm run test:launch
       - uses: actions/upload-artifact@v4
         if: always()
         with:

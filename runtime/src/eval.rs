@@ -200,9 +200,12 @@ impl Evaluator {
                 self.display.insert(symbol.clone(), text.clone());
             }
             Statement::Place { .. }
+            | Statement::Presentation(_)
             | Statement::Entity { .. }
             | Statement::Connect { .. }
             | Statement::StartAt { .. }
+            | Statement::Require { .. }
+            | Statement::Resolve { .. }
             | Statement::ActionPlan { .. } => {}
             Statement::Budget { units } => {
                 self.resources = Some(ResourceLedger {

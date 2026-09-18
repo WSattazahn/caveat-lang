@@ -5,11 +5,11 @@
 //! and publishes only the state reached by actual player selections.
 
 use crate::action_runtime::{ActionExecution, ActionRuntime, WorldStateSnapshot};
-use crate::ast::{Program, Statement};
+use crate::ast::{EpistemicCondition, Program, Statement};
 use crate::eval::Evaluation;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::session::{Discovery, PendingInteraction, Session};
-use crate::{NodeId, NodeKind, Relation};
+use crate::{Attention, NodeId, NodeKind, Relation};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -66,6 +66,24 @@ pub struct GameSnapshot {
     pub discoveries: Vec<Discovery>,
     pub selections: Vec<String>,
     pub last_execution: Option<ActionExecution>,
+    pub blocked_actions: Vec<BlockedAction>,
+    pub outcome: Option<GameOutcome>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct BlockedAction {
+    pub action: String,
+    pub reasons: Vec<EpistemicCondition>,
+}
+
+/// The source rule selected at the moment an action commits. Later knowledge
+/// cannot rewrite its basis; replay recomputes the same result from source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GameOutcome {
+    pub action: String,
+    pub id: String,
+    pub basis: Vec<EpistemicCondition>,
+    pub turn: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,6 +107,7 @@ pub struct GameSession {
     selections: Vec<String>,
     discoveries: Vec<Discovery>,
     last_execution: Option<ActionExecution>,
+    outcome: Option<GameOutcome>,
 }
 
 impl GameSession {
@@ -148,6 +167,7 @@ impl GameSession {
             selections: Vec::new(),
             discoveries: Vec::new(),
             last_execution: None,
+            outcome: None,
         };
         result.snapshot()?;
         Ok(result)
@@ -176,12 +196,18 @@ impl GameSession {
                 budget,
             });
         }
-        let options = self.actions.available_actions(&self.map, &options);
+        let evaluation = self.session.current_evaluation()?;
+        let options = self
+            .actions
+            .available_actions(&self.map, &options)
+            .into_iter()
+            .filter(|action| self.unmet_requirements(action, &evaluation).is_empty())
+            .collect::<Vec<_>>();
         if options.is_empty() {
             return Ok(GamePending::Blocked {
                 name,
                 options,
-                reason: "no action is available from the current world state".into(),
+                reason: "no action is available from the current world or knowledge state".into(),
                 budget,
             });
         }
@@ -219,6 +245,20 @@ impl GameSession {
         next.actions = actions;
         next.last_execution = Some(execution);
         next.selections.push(selection.into());
+        if let Some(rule) = self.map.resolutions.iter().find(|rule| {
+            rule.action == selection
+                && rule
+                    .condition
+                    .as_ref()
+                    .is_none_or(|condition| condition_holds(condition, &before))
+        }) {
+            next.outcome = Some(GameOutcome {
+                action: selection.into(),
+                id: rule.outcome.clone(),
+                basis: rule.condition.iter().cloned().collect(),
+                turn: next.selections.len(),
+            });
+        }
 
         for discovery in next.session.discoveries() {
             if !next.discoveries.contains(discovery) {
@@ -353,7 +393,35 @@ impl GameSession {
             discoveries: self.discoveries.clone(),
             selections: self.selections.clone(),
             last_execution: self.last_execution.clone(),
+            blocked_actions: self.blocked_actions(&evaluation)?,
+            outcome: self.outcome.clone(),
         })
+    }
+
+    fn unmet_requirements(&self, action: &str, evaluation: &Evaluation) -> Vec<EpistemicCondition> {
+        self.map
+            .requirements
+            .iter()
+            .filter(|rule| rule.action == action && !condition_holds(&rule.condition, evaluation))
+            .map(|rule| rule.condition.clone())
+            .collect()
+    }
+
+    fn blocked_actions(&self, evaluation: &Evaluation) -> Result<Vec<BlockedAction>, String> {
+        let options = match self.session.pending()? {
+            PendingInteraction::Investigate { options, .. }
+            | PendingInteraction::Choice { options, .. } => options,
+            PendingInteraction::Complete => return Ok(Vec::new()),
+        };
+        // Describe epistemic blockers only for the current interaction; future
+        // scripted selections and future outcome rules never become live facts.
+        Ok(options
+            .into_iter()
+            .filter_map(|action| {
+                let reasons = self.unmet_requirements(&action, evaluation);
+                (!reasons.is_empty()).then_some(BlockedAction { action, reasons })
+            })
+            .collect())
     }
 
     pub fn save(&self) -> String {
@@ -389,12 +457,15 @@ fn is_declaration(statement: &Statement) -> bool {
     matches!(
         statement,
         Statement::Scene { .. }
+            | Statement::Presentation(_)
             | Statement::Display { .. }
             | Statement::Place { .. }
             | Statement::Entity { .. }
             | Statement::Connect { .. }
             | Statement::StartAt { .. }
             | Statement::ActionPlan { .. }
+            | Statement::Require { .. }
+            | Statement::Resolve { .. }
             | Statement::Claim { .. }
             | Statement::Evidence { .. }
             | Statement::Caveat { .. }
@@ -402,6 +473,29 @@ fn is_declaration(statement: &Statement) -> bool {
             | Statement::Choice { .. }
             | Statement::Converge { .. }
     )
+}
+
+fn condition_holds(condition: &EpistemicCondition, evaluation: &Evaluation) -> bool {
+    let Some(id) = evaluation.symbols.get(condition.symbol()) else {
+        return false;
+    };
+    match condition {
+        EpistemicCondition::Observed { .. } => {
+            matches!(
+                evaluation.graph.nodes.get(id),
+                Some(NodeKind::Evidence { .. })
+            ) && evaluation.graph.edges.iter().any(|edge| {
+                edge.from == *id && matches!(edge.relation, Relation::Supports | Relation::Opposes)
+            })
+        }
+        EpistemicCondition::Examined { .. } => matches!(
+            evaluation.graph.nodes.get(id),
+            Some(NodeKind::Caveat {
+                attention: Attention::Examined,
+                ..
+            })
+        ),
+    }
 }
 
 fn symbol_name(evaluation: &Evaluation, id: NodeId) -> String {

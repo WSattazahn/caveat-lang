@@ -1,4 +1,4 @@
-use crate::ast::{ActionStep, ConditionalAction, Program, Statement};
+use crate::ast::{ActionStep, ConditionalAction, EpistemicCondition, Program, Statement};
 use crate::eval;
 use crate::{NodeKind, Relation};
 use serde::Serialize;
@@ -20,6 +20,21 @@ pub struct CaveatMap {
     pub actions: Vec<MapAction>,
     pub execution: MapExecution,
     pub world: MapWorld,
+    pub requirements: Vec<MapRequirement>,
+    pub resolutions: Vec<MapResolution>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MapRequirement {
+    pub action: String,
+    pub condition: EpistemicCondition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MapResolution {
+    pub action: String,
+    pub outcome: String,
+    pub condition: Option<EpistemicCondition>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -125,6 +140,8 @@ pub struct MapWorld {
     pub entities: Vec<MapEntity>,
     pub connections: Vec<MapConnection>,
     pub action_plans: Vec<MapActionPlan>,
+    #[serde(skip_serializing_if = "crate::presentation::Presentation::is_empty")]
+    pub presentation: crate::presentation::Presentation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -177,6 +194,8 @@ pub struct MapInspection {
     pub choices: Vec<String>,
     pub conditionals: Vec<String>,
     pub reveals: Vec<String>,
+    pub requirements: Vec<MapRequirement>,
+    pub resolutions: Vec<MapResolution>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -206,9 +225,26 @@ impl CaveatMap {
         let mut choices = Vec::new();
         let mut conditionals = Vec::new();
         let mut world = MapWorld::default();
+        let mut requirements = Vec::new();
+        let mut resolutions = Vec::new();
+        let mut presentation = Vec::new();
 
         for statement in &program.statements {
             match statement {
+                Statement::Presentation(directive) => presentation.push(directive.clone()),
+                Statement::Require { action, condition } => requirements.push(MapRequirement {
+                    action: action.clone(),
+                    condition: condition.clone(),
+                }),
+                Statement::Resolve {
+                    action,
+                    outcome,
+                    condition,
+                } => resolutions.push(MapResolution {
+                    action: action.clone(),
+                    outcome: outcome.clone(),
+                    condition: condition.clone(),
+                }),
                 Statement::Scene { text } => scenes.push(text.clone()),
                 Statement::Display { .. } => {}
                 Statement::Place { name, kind } => world.places.push(MapPlace {
@@ -355,6 +391,8 @@ impl CaveatMap {
         }
 
         validate_world(&world, &symbols, &choices, &investigations)?;
+        world.presentation = crate::presentation::build_presentation(&presentation, &world)?;
+        validate_epistemic_actions(&world, &symbols, &requirements, &resolutions)?;
 
         for (name, id) in &evaluation.symbols {
             if matches!(
@@ -430,6 +468,8 @@ impl CaveatMap {
         symbols.sort_by(|left, right| left.name.cmp(&right.name));
 
         Ok(Self {
+            requirements,
+            resolutions,
             schema: MAP_SCHEMA.into(),
             scenes,
             symbols,
@@ -559,6 +599,25 @@ impl CaveatMap {
             .collect();
 
         MapInspection {
+            requirements: self
+                .requirements
+                .iter()
+                .filter(|rule| rule.action == subject || rule.condition.symbol() == subject)
+                .cloned()
+                .collect(),
+            resolutions: self
+                .resolutions
+                .iter()
+                .filter(|rule| {
+                    rule.action == subject
+                        || rule.outcome == subject
+                        || rule
+                            .condition
+                            .as_ref()
+                            .is_some_and(|condition| condition.symbol() == subject)
+                })
+                .cloned()
+                .collect(),
             subject: subject.into(),
             symbol,
             place,
@@ -709,6 +768,77 @@ fn map_action_step(step: &ActionStep) -> MapActionStep {
             target: None,
         },
     }
+}
+
+fn validate_epistemic_actions(
+    world: &MapWorld,
+    symbols: &[MapSymbol],
+    requirements: &[MapRequirement],
+    resolutions: &[MapResolution],
+) -> Result<(), String> {
+    let validate_action = |action: &str| {
+        if world.action_plans.iter().any(|plan| plan.action == action) {
+            Ok(())
+        } else {
+            Err(format!("epistemic rule references unknown action {action}"))
+        }
+    };
+    let validate_condition = |condition: &EpistemicCondition| {
+        let (name, kind) = match condition {
+            EpistemicCondition::Observed { symbol } => (symbol, "evidence"),
+            EpistemicCondition::Examined { symbol } => (symbol, "caveat"),
+        };
+        match symbols.iter().find(|symbol| symbol.name == *name) {
+            Some(symbol) if symbol.kind == kind => Ok(()),
+            Some(_) => Err(format!("epistemic condition requires {kind} {name}")),
+            None => Err(format!(
+                "epistemic condition references unknown {kind} {name}"
+            )),
+        }
+    };
+    for (index, requirement) in requirements.iter().enumerate() {
+        validate_action(&requirement.action)?;
+        validate_condition(&requirement.condition)?;
+        if requirements[..index].contains(requirement) {
+            return Err(format!(
+                "duplicate requirement for action {}",
+                requirement.action
+            ));
+        }
+    }
+    let mut actions = HashSet::new();
+    let mut fallback_seen = HashSet::new();
+    for (index, resolution) in resolutions.iter().enumerate() {
+        validate_action(&resolution.action)?;
+        actions.insert(resolution.action.as_str());
+        if fallback_seen.contains(resolution.action.as_str()) {
+            return Err(format!(
+                "otherwise must be the final resolution for action {}",
+                resolution.action
+            ));
+        }
+        if let Some(condition) = &resolution.condition {
+            validate_condition(condition)?;
+            if resolutions[..index].iter().any(|previous| {
+                previous.action == resolution.action && previous.condition == resolution.condition
+            }) {
+                return Err(format!(
+                    "duplicate resolution condition for action {}",
+                    resolution.action
+                ));
+            }
+        } else {
+            fallback_seen.insert(resolution.action.as_str());
+        }
+    }
+    for action in actions {
+        if !fallback_seen.contains(action) {
+            return Err(format!(
+                "action {action} requires exactly one otherwise resolution"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn validate_world(

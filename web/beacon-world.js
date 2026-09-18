@@ -13,15 +13,7 @@ const clamp = THREE.MathUtils.clamp;
 const smooth = t => t * t * (3 - 2 * t);
 const v = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const UP = v(0, 1, 0);
-const PRESENTATIONS = {
-  courtyard: { position: [0, 3.15, 2], camera: [21, 23, 34], target: [0, 6, 2] },
-  lighthouse: { position: [-6.4, 6.1, -5.8], camera: [9, 19, 17], target: [-6.4, 11, -5.8] },
-  lantern_room: { position: [-6.4, 20, -5.8], camera: [5.5, 27, 10], target: [-6.4, 21, -5.8] },
-  observatory: { position: [9.5, 5.2, -3.8], camera: [26, 16, 14], target: [9.5, 6.6, -3.8] },
-  archive: { position: [-10.8, 2.8, 6], camera: [3, 13, 24], target: [-10.8, 4, 6] },
-  harbor: { position: [5.3, 1.2, 12.2], camera: [24, 13, 32], target: [5.3, 2.4, 12.2] },
-  breakwater: { position: [15.5, 1.1, 14.9], camera: [30, 13, 32], target: [15.5, 1.6, 14.9] },
-};
+
 
 function seeded(seed = 81733) {
   return () => {
@@ -57,15 +49,16 @@ export function createBeaconWorld(canvas, options = {}) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 750);
-  const baseEye = v(35, 30, 46);
-  const baseTarget = v(0, 6.4, 1.5);
+  const baseEye = v(30, 25, 35);
+  const baseTarget = v(0, 0, 0);
   const cameraEye = baseEye.clone();
   const cameraTarget = baseTarget.clone();
   camera.position.copy(baseEye);
   camera.lookAt(baseTarget);
   const world = new THREE.Group();
   const graph = new THREE.Group();
-  scene.add(world, graph);
+  const landscape = new THREE.Group();
+  scene.add(world, graph, landscape);
   const glowTexture = radialTexture();
   const materialCache = new Map();
   const geometryCache = new Map();
@@ -90,6 +83,9 @@ export function createBeaconWorld(canvas, options = {}) {
   let resetGeneration = 0;
   let reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches || false;
   let immediatePlayback = false;
+  let needsRender = true;
+  let presentation = {};
+  let authoredPositions = new Map();
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
@@ -181,7 +177,7 @@ export function createBeaconWorld(canvas, options = {}) {
   rim.position.set(20, 12, -35);
   scene.add(ambient, moonlight, rim);
 
-  const waterUniforms = { time: { value: 0 }, cameraPositionWorld: { value: camera.position }, lightDirection: { value: v(-0.45, 0.8, 0.3) } };
+  const waterUniforms = { time: { value: 0 }, cameraPositionWorld: { value: camera.position }, lightDirection: { value: v(-0.45, 0.8, 0.3) }, shoreCenter: { value: new THREE.Vector2() }, shoreRadius: { value: new THREE.Vector2(16, 14) } };
   const water = mesh(new THREE.PlaneGeometry(550, 550, 120, 120), new THREE.ShaderMaterial({
     uniforms: waterUniforms,
     transparent: false,
@@ -198,7 +194,7 @@ export function createBeaconWorld(canvas, options = {}) {
         gl_Position=projectionMatrix*viewMatrix*w;
       }`,
     fragmentShader: `
-      uniform float time; uniform vec3 cameraPositionWorld; uniform vec3 lightDirection;
+      uniform float time; uniform vec3 cameraPositionWorld; uniform vec3 lightDirection; uniform vec2 shoreCenter; uniform vec2 shoreRadius;
       varying vec3 vWorld;varying vec3 vNormal;varying float vWave;
       void main(){
         vec3 N=normalize(vNormal);vec3 V=normalize(cameraPositionWorld-vWorld);
@@ -208,8 +204,8 @@ export function createBeaconWorld(canvas, options = {}) {
         vec3 color=mix(vec3(.018,.10,.13),vec3(.12,.25,.29),fresnel);
         color+=vec3(.22,.38,.4)*sparkle*.7;
         color+=vec3(.025,.08,.08)*smoothstep(.91,1.,ripples)*smoothstep(-.1,.2,vWave);
-        float shore=length(vec2(vWorld.x/17.5,(vWorld.z-1.)/14.5));
-        float surf=pow(max(0.,sin(shore*32.-time*1.1+sin(atan(vWorld.z-1.,vWorld.x)*9.)*.5)),16.);
+        float shore=length((vWorld.xz-shoreCenter)/shoreRadius);
+        float surf=pow(max(0.,sin(shore*32.-time*1.1+sin(atan(vWorld.z-shoreCenter.y,vWorld.x-shoreCenter.x)*9.)*.5)),16.);
         float edge=smoothstep(.91,1.05,shore)*(1.-smoothstep(1.15,1.45,shore));
         color+=vec3(.26,.44,.43)*surf*edge*.46;
         float mist=1.-exp(-length(vWorld.xz-cameraPositionWorld.xz)*.006);
@@ -251,38 +247,62 @@ export function createBeaconWorld(canvas, options = {}) {
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geometry.computeVertexNormals();
-    mesh(geometry, material(0xffffff, { vertexColors: true, flatShading: true }), world);
+    mesh(geometry, material(0xffffff, { vertexColors: true, flatShading: true }), landscape);
   }
-  rockTerrace(0, 1, 17.2, 14.1, -1.8, 1.25, 101, 0x304843);
-  rockTerrace(-1, 0, 15.4, 11.4, 0.4, 2.55, 111, 0x344f46);
-  rockTerrace(-2.5, -3, 11.5, 8.4, 2.1, 3.05, 144, 0x38594a);
-  rockTerrace(-6.4, -5.8, 6.6, 5.8, 2.4, 4.8, 455, 0x3b564e);
-  rockTerrace(-6.4, -5.8, 5.4, 4.9, 4.2, 6, 467, 0x3c5d50);
-  rockTerrace(9.5, -3.8, 5.9, 5.3, 1.2, 3.8, 452, 0x3b5749);
-  rockTerrace(9.5, -3.8, 4.7, 4.1, 3.2, 5.1, 422, 0x3b574f);
-  rockTerrace(-10.8, 6, 5.5, 4.6, 0.2, 2.7, 558, 0x39544b);
-
-  // Instanced coastal boulders and grass keep the draw budget modest on phones.
-  const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), material(0x4a6060, { flatShading: true }), 116);
-  const dummy = new THREE.Object3D();
-  for (let i = 0; i < 116; i++) {
-    const a = i / 116 * TAU, r = 0.98 + random() * 0.16;
-    dummy.position.set(Math.cos(a) * 17 * r, -0.2 + random() * 0.5, 1 + Math.sin(a) * 14 * r);
-    dummy.rotation.set(random(), random(), random());
-    const s = 0.45 + random() * 1.3;
-    dummy.scale.set(s, s * (0.65 + random()), s * 0.8);
-    dummy.updateMatrix(); rocks.setMatrixAt(i, dummy.matrix);
+  function buildLandscape() {
+    // Reusable terrain follows source placement; no scenario landmark has a
+    // coordinate in this renderer. Seaward piers and upper rooms don't expand
+    // the main island's ground footprint.
+    const ground = [...places.values()].filter(p => !['lantern_room', 'harbor', 'breakwater'].includes(p.kind));
+    if (!ground.length) return;
+    const minX = Math.min(...ground.map(p => p.position.x)), maxX = Math.max(...ground.map(p => p.position.x));
+    const minZ = Math.min(...ground.map(p => p.position.z)), maxZ = Math.max(...ground.map(p => p.position.z));
+    const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
+    const rx = Math.max(8, (maxX - minX) / 2 + 7), rz = Math.max(7, (maxZ - minZ) / 2 + 8);
+    const low = Math.max(0.5, Math.min(...ground.map(p => p.position.y)) - 0.25);
+    rockTerrace(cx, cz, rx, rz, -1.8, low * 0.49, 101, 0x304843);
+    rockTerrace(cx, cz, rx * 0.9, rz * 0.84, low * 0.16, low, 111, 0x344f46);
+    const radii = { courtyard: 4.5, lighthouse: 6.6, observatory: 5.9, archive: 5.5 };
+    ground.forEach((place, i) => {
+      const radius = radii[place.kind] || 4;
+      const [x, y, z] = place.position.toArray();
+      const top = y - 0.1;
+      if (top - low > 1) {
+        rockTerrace(x, z, radius, radius * 0.88, low * 0.85, top - 1.2, 450 + i * 13, 0x3b564e);
+        rockTerrace(x, z, radius * 0.82, radius * 0.76, top - 1.8, top, 467 + i * 11, 0x3c5d50);
+      } else {
+        rockTerrace(x, z, radius, radius * 0.84, low * 0.5, top, 558 + i * 17, 0x39544b);
+      }
+    });
+    waterUniforms.shoreCenter.value.set(cx, cz);
+    waterUniforms.shoreRadius.value.set(rx * 1.02, rz * 1.02);
+    const rng = seeded(8417), dummy = new THREE.Object3D();
+    const rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), material(0x4a6060, { flatShading: true }), 116);
+    for (let i = 0; i < 116; i++) {
+      const a = i / 116 * TAU, r = 0.98 + rng() * 0.16;
+      dummy.position.set(cx + Math.cos(a) * rx * r, -0.2 + rng() * 0.5, cz + Math.sin(a) * rz * r);
+      dummy.rotation.set(rng(), rng(), rng());
+      const size = 0.45 + rng() * 1.3;
+      dummy.scale.set(size, size * (0.65 + rng()), size * 0.8);
+      dummy.updateMatrix(); rocks.setMatrixAt(i, dummy.matrix);
+    }
+    rocks.castShadow = rocks.receiveShadow = true; landscape.add(rocks);
+    const grass = new THREE.InstancedMesh(new THREE.ConeGeometry(0.16, 0.72, 3), material(0x5a8070, { flatShading: true }), 300);
+    for (let i = 0; i < 300; i++) {
+      const a = rng() * TAU, r = 0.75 + rng() * 0.17;
+      dummy.position.set(cx + Math.cos(a) * rx * 0.84 * r, low + 0.24, cz + Math.sin(a) * rz * 0.79 * r);
+      dummy.rotation.set((rng() - 0.5) * 0.4, rng() * TAU, (rng() - 0.5) * 0.4);
+      const size = 0.6 + rng() * 0.8; dummy.scale.set(size, size, size); dummy.updateMatrix(); grass.setMatrixAt(i, dummy.matrix);
+    }
+    grass.receiveShadow = true; landscape.add(grass);
+    if (!presentation.overview) {
+      baseTarget.set(cx, low + 3, cz);
+      baseEye.set(cx + rx * 2.1, low + Math.max(rx, rz) * 1.6, cz + rz * 3.2);
+    }
+    moonlight.position.set(cx - 32, 55, cz + 18);
+    moonlight.target.position.set(cx, low, cz);
+    scene.add(moonlight.target);
   }
-  rocks.castShadow = rocks.receiveShadow = true;
-  world.add(rocks);
-  const grass = new THREE.InstancedMesh(new THREE.ConeGeometry(0.16, 0.72, 3), material(0x5a8070, { flatShading: true }), 360);
-  for (let i = 0; i < 360; i++) {
-    const a = random() * TAU, r = 0.75 + random() * 0.21;
-    dummy.position.set(-1 + Math.cos(a) * 14 * r, 2.85, Math.sin(a) * 10.6 * r);
-    dummy.rotation.set((random() - 0.5) * 0.4, random() * TAU, (random() - 0.5) * 0.4);
-    const s = 0.6 + random() * 0.8; dummy.scale.set(s, s, s); dummy.updateMatrix(); grass.setMatrixAt(i, dummy.matrix);
-  }
-  grass.receiveShadow = true; world.add(grass);
 
   const rainArray = new Float32Array(390 * 6);
   for (let i = 0; i < 390; i++) {
@@ -358,21 +378,6 @@ export function createBeaconWorld(canvas, options = {}) {
     box(parent, 0, 1.13, 2.09, 1.02, 2.25, 0.17, 0x253d40);
     box(parent, 0, 1.14, 2.2, 0.7, 1.87, 0.04, 0x785f43);
     lantern(parent, 1.45, 0.32, 2.0, 1.9);
-    // The continuous spiral gives declared tower moves a physical route.
-    const points = [];
-    for (let i = 0; i <= 140; i++) {
-      const t = i / 140, a = t * TAU * 2.25 + Math.PI / 2, r = 2.34 - t * 0.38;
-      points.push(v(Math.cos(a) * r, 0.5 + t * 13, Math.sin(a) * r));
-      if (i % 2 === 0) {
-        const step = box(parent, Math.cos(a) * r, 0.35 + t * 13, Math.sin(a) * r, 0.68, 0.09, 0.29, 0x668080);
-        step.rotation.y = -a;
-      }
-    }
-    const rail = new THREE.CatmullRomCurve3(points.map(p => p.clone().add(v(0, 0.84, 0))));
-    mesh(new THREE.TubeGeometry(rail, 110, 0.04, 5, false), material(0x6f9590), parent);
-    for (let i = 0; i < points.length; i += 8) {
-      const p = points[i]; beam(parent, p.toArray(), p.clone().add(v(0, 0.85, 0)).toArray(), 0.032, 0x6f9590);
-    }
   }
 
   function observatory(parent) {
@@ -446,12 +451,9 @@ export function createBeaconWorld(canvas, options = {}) {
     const object = new THREE.Group();
     const parent = anchor.object;
     parent.add(object);
-    const offsets = {
-      beacon: [0, 0.13, 0], optic: [0.5, 0.12, 1.15], telescope: [0, 4.75, 0],
-      transmitter: [3, 0.2, -0.7], generator: [-2.8, 0.25, 0], chart: [1.35, 0.2, 2.8],
-      gauge: [-2.65, -0.5, 1.5], buoy: [3.4, -0.8, 1.4], boat: [3.7, -0.76, 4.5],
-    };
-    object.position.set(...(offsets[def.kind] || [1.5 + index * 0.35, 0.5, 1.5]));
+    const authored = authoredPositions.get(def.id);
+    if (authored) object.position.copy(v(...authored).sub(anchor.position));
+    else object.position.set(Math.cos(index * 2.4) * 1.5, 0, Math.sin(index * 2.4) * 1.5);
     const data = { id: def.id, kind: def.kind, place: def.at, object, activated: false, open: false, time: 0, initial: object.position.clone() };
     switch (def.kind) {
       case 'beacon': {
@@ -560,33 +562,11 @@ export function createBeaconWorld(canvas, options = {}) {
   function routeCurve(from, to) {
     const a = places.get(from), b = places.get(to);
     if (!a || !b) return null;
-    const start = a.position.clone(), end = b.position.clone();
-    if ((a.kind === 'lighthouse' && b.kind === 'lantern_room') || (b.kind === 'lighthouse' && a.kind === 'lantern_room')) {
-      const base = a.kind === 'lighthouse' ? a : b;
-      const points = [];
-      for (let i = 0; i <= 100; i++) {
-        const t = i / 100, angle = t * TAU * 2.25 + Math.PI / 2, r = 2.34 - t * 0.38;
-        points.push(base.position.clone().add(v(Math.cos(angle) * r, 0.5 + t * 13, Math.sin(angle) * r)));
-      }
-      const room = a.kind === 'lantern_room' ? a : b;
-      points.push(room.position.clone());
-      if (b.kind === 'lighthouse') points.reverse();
-      return new THREE.CatmullRomCurve3(points);
-    }
-    if ((a.kind === 'courtyard' && b.kind === 'harbor') || (a.kind === 'harbor' && b.kind === 'courtyard')) {
-      const court = a.kind === 'courtyard' ? a : b, port = a.kind === 'harbor' ? a : b;
-      const points = [court.position.clone(), v(2, 3.18, 7.5), v(3.5, 2.75, 9.7), v(4.3, 1.9, 11), port.position.clone()];
-      if (a.kind === 'harbor') points.reverse();
-      return new THREE.CatmullRomCurve3(points);
-    }
-    const mid = start.clone().lerp(end, 0.5);
-    const direction = end.clone().sub(start);
-    mid.add(v(-direction.z, 0, direction.x).normalize().multiplyScalar(0.5));
-    // The ground path lies on the upper terraces until its descending steps.
-    if (a.kind === 'courtyard' || b.kind === 'courtyard') mid.y = Math.max(3.15, mid.y);
-    if (a.kind === 'lighthouse' || b.kind === 'lighthouse') mid.y = Math.max(6.18, mid.y);
-    if (a.kind === 'observatory' || b.kind === 'observatory') mid.y = Math.max(5.26, mid.y);
-    return new THREE.CatmullRomCurve3([start, mid, end]);
+    const authored = (presentation.routes || []).find(route =>
+      (route.from === from && route.to === to) || (route.from === to && route.to === from));
+    const intermediate = (authored?.points || []).map(point => v(...point));
+    if (authored && authored.from !== from) intermediate.reverse();
+    return new THREE.CatmullRomCurve3([a.position.clone(), ...intermediate, b.position.clone()]);
   }
 
   function drawConnection(connection) {
@@ -596,15 +576,26 @@ export function createBeaconWorld(canvas, options = {}) {
     const reversePoints = curve.getPoints(60).reverse();
     routes.set(`${connection.to}:${connection.from}`, new THREE.CatmullRomCurve3(reversePoints));
     const a = places.get(connection.from), b = places.get(connection.to);
-    if (a.kind === 'lantern_room' || b.kind === 'lantern_room') return;
+    const elevated = Math.abs(a.position.y - b.position.y) > 6;
     const length = curve.getLength(), steps = Math.max(6, Math.floor(length / 0.43));
     for (let i = 1; i < steps; i++) {
       const t = i / steps, p = curve.getPoint(t), tangent = curve.getTangent(t);
-      const step = box(graph, p.x, p.y - 0.02, p.z, 1.2, 0.14, 0.35, i % 4 ? 0x68796c : 0x809081);
+      const step = box(graph, p.x, p.y - 0.02, p.z, elevated ? 0.78 : 1.2, 0.14, 0.35, i % 4 ? 0x68796c : 0x809081);
       step.rotation.y = Math.atan2(tangent.x, tangent.z);
-      if (Math.abs(tangent.y) > 0.18) box(graph, p.x, p.y - 0.3, p.z, 1.25, 0.55, 0.45, 0x53675e).rotation.y = step.rotation.y;
+      if (!elevated && Math.abs(tangent.y) > 0.18) box(graph, p.x, p.y - 0.3, p.z, 1.25, 0.55, 0.45, 0x53675e).rotation.y = step.rotation.y;
     }
-    for (const t of [0.23, 0.73]) {
+    if (elevated) {
+      const railPoints = [];
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps, p = curve.getPoint(t), tangent = curve.getTangent(t);
+        const side = v(-tangent.z, 0, tangent.x).normalize().multiplyScalar(0.43);
+        const foot = p.clone().add(side), top = foot.clone().add(v(0, 0.84, 0));
+        railPoints.push(top);
+        if (i % 5 === 0) beam(graph, foot.toArray(), top.toArray(), 0.032, 0x6f9590);
+      }
+      mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railPoints), steps, 0.04, 5, false), material(0x6f9590), graph);
+    }
+    for (const t of elevated ? [] : [0.23, 0.73]) {
       const p = curve.getPoint(t), tangent = curve.getTangent(t);
       const side = v(-tangent.z, 0, tangent.x).normalize().multiplyScalar(0.9);
       lantern(graph, p.x + side.x, p.y, p.z + side.z, 1.25);
@@ -626,6 +617,10 @@ export function createBeaconWorld(canvas, options = {}) {
 
   function clearGraph() {
     for (const child of [...graph.children]) if (child !== marker && child !== selection) graph.remove(child);
+    for (const child of [...landscape.children]) {
+      child.traverse(object => object.geometry?.dispose());
+      landscape.remove(child);
+    }
     places.clear(); entities.clear(); routes.clear(); animated.length = 0; clicks.length = 0; lamps.length = 0;
   }
 
@@ -656,22 +651,27 @@ export function createBeaconWorld(canvas, options = {}) {
     clearGraph();
     model = input?.world || input;
     if (!model?.places) return;
+    presentation = model.presentation || {};
+    authoredPositions = new Map((presentation.positions || []).map(item => [item.target, item.position]));
+    const authoredCameras = new Map((presentation.cameras || []).map(item => [item.place, item]));
+    if (presentation.overview) {
+      baseEye.set(...presentation.overview.position);
+      baseTarget.set(...presentation.overview.target);
+    }
     const templates = { courtyard, lighthouse, observatory, archive, harbor, breakwater };
-    const seenKinds = new Map();
     model.places.forEach((def, index) => {
-      const spec = PRESENTATIONS[def.kind];
-      const position = spec ? v(...spec.position) : v(Math.cos(index * 2.4) * 9, 3.2, Math.sin(index * 2.4) * 8);
-      const n = seenKinds.get(def.kind) || 0;
-      seenKinds.set(def.kind, n + 1);
-      if (n) position.x += n * 7;
+      const spec = authoredCameras.get(def.id);
+      const authored = authoredPositions.get(def.id);
+      const position = authored ? v(...authored) : v(Math.cos(index * 2.4) * 9, 3.2, Math.sin(index * 2.4) * 8);
       const object = new THREE.Group(); object.position.copy(position); graph.add(object);
-      const anchor = { id: def.id, kind: def.kind, position, object, camera: spec?.camera, target: spec?.target };
+      const anchor = { id: def.id, kind: def.kind, position, object, camera: spec?.position, target: spec?.target };
       places.set(def.id, anchor);
       if (templates[def.kind]) templates[def.kind](object);
       else if (def.kind !== 'lantern_room') cylinder(object, 0, 0, 0, 2.2, 2.3, 0.3, 0x688273, 16);
       const hit = mesh(new THREE.SphereGeometry(def.kind === 'lighthouse' ? 3.4 : 2.7, 10, 8), new THREE.MeshBasicMaterial({ visible: false }), object, [0, def.kind === 'lighthouse' ? 5 : 1.6, 0]);
       hit.userData.place = def.id; clicks.push(hit);
     });
+    buildLandscape();
     for (const connection of model.connections || []) drawConnection(connection);
     instanceStaticArchitecture();
     for (const [index, def] of (model.entities || []).entries()) {
@@ -685,6 +685,7 @@ export function createBeaconWorld(canvas, options = {}) {
 
   function tween(duration, update) {
     if (!alive) return Promise.resolve();
+    needsRender = true;
     if (reducedMotion || immediatePlayback) { update(1); return Promise.resolve(); }
     return new Promise(resolve => { tweens.add({ duration, age: 0, update, resolve }); });
   }
@@ -804,6 +805,7 @@ export function createBeaconWorld(canvas, options = {}) {
   function setWorld(snapshot) {
     const state = snapshot?.world || snapshot?.state || snapshot;
     if (!state) return;
+    needsRender = true;
     if (places.has(state.current_place)) {
       currentPlace = state.current_place;
       marker.position.copy(places.get(currentPlace).position).add(v(0, 0.17, 0));
@@ -817,6 +819,7 @@ export function createBeaconWorld(canvas, options = {}) {
   }
 
   function reset() {
+    needsRender = true;
     resetGeneration++;
     for (const item of tweens) item.resolve();
     tweens.clear(); busy = false; immediatePlayback = false;
@@ -839,6 +842,7 @@ export function createBeaconWorld(canvas, options = {}) {
   }
 
   function resize() {
+    needsRender = true;
     const width = Math.max(1, canvas.clientWidth || canvas.parentElement?.clientWidth || 1);
     const height = Math.max(1, canvas.clientHeight || canvas.parentElement?.clientHeight || 1);
     const dpr = Math.min(window.devicePixelRatio || 1, 1.7);
@@ -858,6 +862,7 @@ export function createBeaconWorld(canvas, options = {}) {
   }
   function onMove(event) {
     if (!drag || busy) return;
+    needsRender = true;
     yaw += (event.clientX - drag.x) * 0.004;
     pitch = clamp(pitch + (event.clientY - drag.y) * 0.003, -0.22, 0.48);
     drag.x = event.clientX; drag.y = event.clientY;
@@ -876,6 +881,7 @@ export function createBeaconWorld(canvas, options = {}) {
   function onCancel() { drag = null; }
   function onWheel(event) {
     event.preventDefault();
+    needsRender = true;
     if (!busy) zoom = clamp(zoom + event.deltaY * 0.0005, 0.7, 1.65);
   }
   canvas.addEventListener('pointerdown', onDown);
@@ -887,10 +893,17 @@ export function createBeaconWorld(canvas, options = {}) {
 
   function frame(now) {
     if (!alive) return;
-    const dt = Math.min(0.06, (now - lastTime) / 1000);
-    lastTime = now; elapsed += dt;
+    const wallTime = Math.max(0, (now - lastTime) / 1000);
+    const dt = Math.min(0.06, wallTime);
+    lastTime = now;
+    if (reducedMotion && !needsRender && tweens.size === 0) {
+      raf = requestAnimationFrame(frame);
+      return;
+    }
+    needsRender = false;
+    elapsed += dt;
     for (const item of [...tweens]) {
-      item.age += dt;
+      item.age += wallTime;
       item.update(Math.min(1, item.age / item.duration));
       if (item.age >= item.duration) { tweens.delete(item); item.resolve(); }
     }
@@ -961,7 +974,7 @@ export function createBeaconWorld(canvas, options = {}) {
   raf = requestAnimationFrame(frame);
   return {
     play, reset, setModel, setWorld, focus, resize, dispose,
-    setReducedMotion(value) { reducedMotion = Boolean(value); },
+    setReducedMotion(value) { reducedMotion = Boolean(value); needsRender = true; },
     get currentPlace() { return currentPlace; },
     get idle() { return !busy && tweens.size === 0; },
     getPlaces: () => [...places.values()].map(p => ({ id: p.id, kind: p.kind, position: p.position.toArray() })),
@@ -970,6 +983,12 @@ export function createBeaconWorld(canvas, options = {}) {
       const p = place.position.clone().add(v(0, 1.5, 0)).project(camera);
       return { x: (p.x + 1) * 0.5, y: (1 - p.y) * 0.5, visible: p.z > -1 && p.z < 1 };
     },
+    getPresentation: () => ({
+      places: [...places.values()].map(p => ({ id: p.id, position: p.position.toArray(), camera: p.camera, target: p.target })),
+      entities: [...entities.values()].map(e => ({ id: e.id, position: e.object.getWorldPosition(v()).toArray() })),
+      overview: { position: baseEye.toArray(), target: baseTarget.toArray() },
+      routes: [...routes.entries()].map(([id, curve]) => ({ id, points: curve.points.map(p => p.toArray()) })),
+    }),
     getStats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, places: places.size, entities: entities.size, routes: routes.size / 2 }),
   };
 }

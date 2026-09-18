@@ -6,6 +6,7 @@ pub mod game_session;
 pub mod graphics;
 pub mod map;
 pub mod parser;
+pub mod presentation;
 pub mod session;
 pub mod web;
 pub mod world3d;

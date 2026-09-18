@@ -12,6 +12,7 @@
     "assemble": "node scripts/build-web.mjs --assemble-only",
     "serve": "node scripts/serve.mjs",
     "test:beacon": "node scripts/test-beacon.mjs",
+    "test:launch": "node scripts/test-launch.mjs",
     "package:game": "node scripts/package-standalone.mjs"
   },
   "dependencies": {

@@ -18,6 +18,7 @@ const imports = {'#three-core':moduleURL(core),'#three':moduleURL(three),'#runti
 let html = await read('last-beacon.html');
 html = html.replace('<link rel="stylesheet" href="./last-beacon.css">', `<style>${await read('last-beacon.css')}</style>`);
 html = html.replace('href="./" aria-label="Caveat games"', 'href="#" aria-label="The Last Beacon"');
+html = html.replace('<script src="./beacon-bootstrap.js"></script>', `<script>${await read('beacon-bootstrap.js')}</script>`);
 html = html.replace('<script type="module" src="./last-beacon.js"></script>', `<script type="importmap">${JSON.stringify({imports})}</script><script type="module">import '#main';</script>`);
 const license = (await read('vendor/THREE-LICENSE.txt')).replaceAll('--', '—');
 html = html.replace('</body>', `<!-- Three.js license\n${license}\n-->\n</body>`);

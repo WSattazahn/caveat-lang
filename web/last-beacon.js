@@ -122,7 +122,9 @@ function renderChoices() {
   $('#phase-meta').textContent = pending.kind === 'investigate' ? `Costs ${pending.cost} attention` : 'A provisional commitment';
   $('#decision-title').textContent = label(pending.name).replace(/^[IVX]+\s*\/\s*/, '');
   $('#decision-body').textContent = text(`${pending.name}_body`);
-  $('#decision-content').innerHTML = `<div class="choices">${pending.options.map((id, i) => `<button class="choice" data-selection="${escape(id)}"><span class="number">0${i+1}</span><span class="choice-copy"><b>${escape(label(id))}</b><small>${escape(text(`${id}_hint`))}</small></span><span class="arrow" aria-hidden="true">↗</span></button>`).join('')}</div>`;
+  const blocked = snapshot.blocked_actions || [];
+  const unavailable = blocked.length ? `<details class="unavailable"><summary>${blocked.length} other ${blocked.length === 1 ? 'plan needs' : 'plans need'} more investigation</summary>${blocked.map(item => `<div class="unavailable-plan" data-locked-action="${escape(item.action)}"><b>${escape(label(item.action))}</b>${item.reasons.map(reason => `<small>${reason.kind === 'examined' ? 'Examine the uncertainty' : 'Find the observation'}: ${escape(label(reason.symbol))}</small>`).join('')}</div>`).join('')}<p>You can still act with the knowledge you have.</p></details>` : '';
+  $('#decision-content').innerHTML = `<div class="choices">${pending.options.map((id, i) => `<button class="choice" data-selection="${escape(id)}"><span class="number">0${i+1}</span><span class="choice-copy"><b>${escape(label(id))}</b><small>${escape(text(`${id}_hint`))}</small></span><span class="arrow" aria-hidden="true">↗</span></button>`).join('')}</div>${unavailable}`;
   document.querySelectorAll('[data-selection]').forEach(node => node.addEventListener('click', () => choose(node.dataset.selection)));
 }
 
@@ -140,7 +142,7 @@ async function choose(selection) {
     catch (error) { console.warn('The island animation was interrupted.', error); world?.setWorld(snapshot.state); }
     ping(commitment?.reopened_by?.length ? 'doubt' : 'discovery');
     render();
-    announce(text(`${selection}_result`, label(selection)));
+    announce(text(`${snapshot.outcome?.action === selection ? snapshot.outcome.id : selection}_result`, label(selection)));
   } catch (error) {
     const errorBox = document.createElement('p');
     errorBox.className = 'error-box';
@@ -155,7 +157,7 @@ function renderFeedback() {
   $('#phase-label').textContent = reopened ? 'NEW EVIDENCE · COMMITMENT REOPENED' : commitment ? 'DECISION RECORDED' : 'FIELD OBSERVATION';
   $('#phase-meta').textContent = `Watch ${Math.ceil(snapshot.turn / 2)} of 3`;
   $('#decision-title').textContent = reopened ? 'A reason to reconsider.' : commitment ? 'The choice is yours.' : 'The signal has a catch.';
-  $('#decision-body').textContent = text(`${selection}_result`, label(selection));
+  $('#decision-body').textContent = text(`${snapshot.outcome?.action === selection ? snapshot.outcome.id : selection}_result`, label(selection));
   let details = '';
   if (reopened) details = `<div class="feedback reopened"><span class="eyebrow">YOUR EARLIER REASONING IS STILL HERE</span>${commitment.reopened_by.map(id => `<span class="doubt">${escape(text(`${id}_uncertainty`, label(id)))}</span>`).join('')}<span class="doubt">The next decision starts with what you learned.</span></div>`;
   else if (discoveries.length) details = `<div class="feedback"><span class="eyebrow">ADDED TO YOUR FIELD JOURNAL</span>${[...new Set(discoveries.map(item => item.evidence))].map(id => `<div>${escape(label(id))}</div>`).join('')}</div>`;
@@ -167,13 +169,17 @@ function renderEnding() {
   app.dataset.screen = 'ending';
   $('#decision-panel').classList.add('ending');
   const final = snapshot.selections.at(-1);
+  const outcome = snapshot.outcome?.action === final ? snapshot.outcome : null;
+  const ending = outcome?.id || final;
   const examined = snapshot.symbols.filter(symbol => symbol.kind === 'caveat' && symbol.attention === 'examined').length;
   const reopened = snapshot.commitments.filter(commitment => commitment.reopened_by.length).length;
   $('#phase-label').textContent = 'DAWN AT SAINT ORIN';
   $('#phase-meta').textContent = 'Your watch is complete';
-  $('#decision-title').textContent = text(`${final}_title`, label(final));
-  $('#decision-body').textContent = text(`${final}_result`);
-  $('#decision-content').innerHTML = `<div class="end-summary"><div><strong>${examined}</strong><span>UNCERTAINTIES EXAMINED</span></div><div><strong>${reopened}</strong><span>COMMITMENTS REOPENED</span></div><div><strong>${snapshot.commitments.find(commitment => commitment.action === final)?.retained.length || 0}</strong><span>CAVEATS REMEMBERED</span></div></div><div class="ending-actions"><button class="primary" id="ending-journal">Read your record <span class="arrow">↗</span></button><button class="secondary" id="ending-replay">Take another watch</button></div>`;
+  $('#decision-title').textContent = text(`${ending}_title`, label(ending));
+  $('#decision-body').textContent = text(`${ending}_result`);
+  const basis = outcome?.basis?.length ? `<div class="feedback"><span class="eyebrow">THE KNOWLEDGE THAT CHANGED THIS CROSSING</span>${outcome.basis.map(reason => `<div>${escape(label(reason.symbol))}</div>`).join('')}</div>` : '';
+  const epilogue = text(`${ending}_epilogue`);
+  $('#decision-content').innerHTML = `${basis}${epilogue ? `<p class="decision-body epilogue">${escape(epilogue)}</p>` : ''}<div class="end-summary"><div><strong>${examined}</strong><span>UNCERTAINTIES EXAMINED</span></div><div><strong>${reopened}</strong><span>COMMITMENTS REOPENED</span></div><div><strong>${snapshot.commitments.find(commitment => commitment.action === final)?.retained.length || 0}</strong><span>CAVEATS REMEMBERED</span></div></div><div class="ending-actions"><button class="primary" id="ending-journal">Read your record <span class="arrow">↗</span></button><button class="secondary" id="ending-replay">Take another watch</button></div>`;
   $('#ending-journal').addEventListener('click', () => openJournal('decisions'));
   $('#ending-replay').addEventListener('click', () => begin(false));
   ping('ending');
@@ -200,7 +206,7 @@ function renderJournal() {
   }).join('');
   $('#page-evidence').innerHTML = evidence || '<p class="empty">No observations recorded yet. Start the watch to examine the island’s first signals.</p>';
   const commitments = snapshot.selections.map(selection => snapshot.commitments.find(commitment => commitment.action === selection)).filter(Boolean);
-  $('#page-decisions').innerHTML = commitments.length ? commitments.map(commitment => `<article class="decision-entry"><h3>${escape(label(commitment.action))}</h3>${commitment.reopened_by.length ? '<span class="reopened-label">REOPENED BY NEW EVIDENCE</span>' : '<span class="reopened-label">PROVISIONAL COMMITMENT</span>'}<p>${escape(text(`${commitment.action}_result`))}</p><p>Uncertainty carried forward:</p><ul>${commitment.retained.map(id => `<li>${escape(text(`${id}_uncertainty`, label(id)))}</li>`).join('')}</ul></article>`).join('') : '<p class="empty">No commitments yet. When you act, your reasons and unresolved caveats stay in this record.</p>';
+  $('#page-decisions').innerHTML = commitments.length ? commitments.map(commitment => `<article class="decision-entry"><h3>${escape(label(commitment.action))}</h3>${commitment.reopened_by.length ? '<span class="reopened-label">REOPENED BY NEW EVIDENCE</span>' : '<span class="reopened-label">PROVISIONAL COMMITMENT</span>'}<p>${escape(text(`${snapshot.outcome?.action === commitment.action ? snapshot.outcome.id : commitment.action}_result`))}</p><p>Uncertainty carried forward:</p><ul>${commitment.retained.map(id => `<li>${escape(text(`${id}_uncertainty`, label(id)))}</li>`).join('')}</ul></article>`).join('') : '<p class="empty">No commitments yet. When you act, your reasons and unresolved caveats stay in this record.</p>';
   const places = snapshot.world.places;
   const nodes = new Map(places.map((place,i) => [place.id, {x:150 + Math.cos(i / places.length * Math.PI * 2 - Math.PI / 2) * 115, y:88 + Math.sin(i / places.length * Math.PI * 2 - Math.PI / 2) * 67}]));
   $('#page-chart').innerHTML = `<svg class="chart-svg" viewBox="0 0 300 176" role="img" aria-label="Declared routes connecting the island's seven locations">${snapshot.world.connections.map(link => {const a=nodes.get(link.from),b=nodes.get(link.to);return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#7fb3b466" stroke-width="1"/>`;}).join('')}${places.map((place,i)=>{const p=nodes.get(place.id);return `<circle cx="${p.x}" cy="${p.y}" r="${place.id===snapshot.state.current_place?7:4}" fill="${place.id===snapshot.state.current_place?'#ead3a0':'#8bbaba'}"/><text x="${p.x+9}" y="${p.y+4}" font-size="9" fill="#c9d9d3">${i+1}</text>`;}).join('')}</svg><div class="chart-list">${places.map((place,i) => `<button class="chart-button" data-focus="${escape(place.id)}" aria-current="${place.id === snapshot.state.current_place}"><span>0${i+1} &nbsp; ${escape(label(place.id))}</span><small>${place.id === snapshot.state.current_place ? 'YOU ARE HERE' : 'LOOK ↗'}</small></button>`).join('')}</div><p class="chart-legend">Look around without spending attention. Travel and investigations happen when you choose an action.</p>`;
