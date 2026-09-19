@@ -52,6 +52,10 @@ and steer during source ticks. The browser forwards those input facts. A
 source-only remapping changes the playable controls; observing, examining,
 and reopening still follow the same qualified event rules.
 
+Pure Caveat functions are callable through the [source library API](spec/source-library-0.1.md) from Rust and WebAssembly. The Door's movement timing and turning policy now live in its Caveat source, and The Last Beacon's feedback classification and copy use source functions. The same compiled evaluator serves both hosts. Full program validation and host transaction boundaries remain explicit.
+
+For headless authoring, `caveat-reactive validate` checks a reactive program and `caveat-reactive replay` executes JSONL event histories with qualified snapshots. The [authoring guide](docs/AI_AUTHORING.md) includes commands and a thermostat input fixture. [Development insights](docs/DEVELOPMENT_INSIGHTS.md) separates demonstrated behavior from hypotheses about broader usefulness and AI adoption.
+
 ## The Last Beacon — story experiment
 
 On stormbound Saint Orin, thirty-two ferry passengers are approaching a failing lighthouse. Spend three watches investigating uncertain evidence, try provisional plans, reopen them when the world disagrees, and choose between restoring the light, sending the island pilot, or holding the ferry offshore until daylight. Six interactions produce 324 legal decision sequences and nine outcomes across three final destinations. Earlier investigations unlock targeted preparations; performing those preparations changes what the same final order accomplishes. See the [game design and action contracts](docs/THE_LAST_BEACON.md).
