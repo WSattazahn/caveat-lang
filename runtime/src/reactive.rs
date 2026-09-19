@@ -18,6 +18,11 @@ use std::sync::Arc;
 const LIMIT: f64 = 1_000_000_000_000.0;
 const MAX_HISTORY_LIMIT: usize = 256;
 const MAX_DECLARED_HISTORY_CAPACITY: usize = 1024;
+const MAX_PROCEDURES: usize = 128;
+const MAX_PROCEDURE_PARAMETERS: usize = 32;
+const MAX_PROCEDURE_STEPS: usize = 4096;
+const MAX_PROCEDURE_DEPTH: usize = 64;
+const MAX_EVENT_STEPS: usize = 4096;
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
 
@@ -90,6 +95,10 @@ pub struct Parameter {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Effect {
+    Call {
+        name: String,
+        arguments: Vec<Expr>,
+    },
     Sample {
         stream: String,
         value: Expr,
@@ -137,8 +146,71 @@ pub struct Rule {
     pub effect: Effect,
 }
 
+/// An ordered effect program. Parameters are frozen numeric values; global
+/// state and graph reads observe earlier effects in the same transaction.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Procedure {
+    pub name: String,
+    pub parameters: Vec<String>,
+    pub body: Vec<GuardedEffect>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuardedEffect {
+    pub condition: Expr,
+    pub effect: Effect,
+}
+
+fn expand_effect(
+    effect: &mut Effect,
+    functions: &BTreeMap<String, FunctionDef>,
+) -> Result<(), String> {
+    match effect {
+        Effect::Set { value, .. }
+        | Effect::Sample { value, .. }
+        | Effect::Commit {
+            using: Some(value), ..
+        } => {
+            *value = reactive_expr::expand(value, functions)?;
+        }
+        Effect::Call { arguments, .. } => {
+            for argument in arguments {
+                *argument = reactive_expr::expand(argument, functions)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+struct ExecutionBudget {
+    remaining: usize,
+    depth: usize,
+}
+
+impl ExecutionBudget {
+    fn spend(&mut self) -> Result<(), String> {
+        self.remaining = self
+            .remaining
+            .checked_sub(1)
+            .ok_or_else(|| format!("event exceeds work limit {MAX_EVENT_STEPS}"))?;
+        Ok(())
+    }
+
+    fn enter(&mut self) -> Result<(), String> {
+        if self.depth >= MAX_PROCEDURE_DEPTH {
+            return Err(format!(
+                "procedure exceeds call depth limit {MAX_PROCEDURE_DEPTH}"
+            ));
+        }
+        self.depth += 1;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
+    Procedure(Procedure),
     Readings {
         name: String,
         template: String,
@@ -408,6 +480,7 @@ pub struct ReactiveSession {
     constants: BTreeMap<String, f64>,
     events: BTreeMap<String, Vec<Parameter>>,
     rules: Arc<Vec<Rule>>,
+    procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
@@ -479,17 +552,12 @@ impl ReactiveSession {
                 }
                 Directive::Rule(rule) => {
                     rule.condition = reactive_expr::expand(&rule.condition, &functions)?;
-                    if let Effect::Set { value, .. } = &mut rule.effect {
-                        *value = reactive_expr::expand(value, &functions)?;
-                    }
-                    if let Effect::Sample { value, .. } = &mut rule.effect {
-                        *value = reactive_expr::expand(value, &functions)?;
-                    }
-                    if let Effect::Commit {
-                        using: Some(value), ..
-                    } = &mut rule.effect
-                    {
-                        *value = reactive_expr::expand(value, &functions)?;
+                    expand_effect(&mut rule.effect, &functions)?;
+                }
+                Directive::Procedure(procedure) => {
+                    for step in &mut procedure.body {
+                        step.condition = reactive_expr::expand(&step.condition, &functions)?;
+                        expand_effect(&mut step.effect, &functions)?;
                     }
                 }
                 Directive::Binding(binding) => {
@@ -526,6 +594,7 @@ impl ReactiveSession {
             constants,
             events: BTreeMap::new(),
             rules: Arc::new(Vec::new()),
+            procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
@@ -599,6 +668,20 @@ impl ReactiveSession {
         }
         for directive in &directives {
             match directive {
+                Directive::Procedure(procedure) => {
+                    if functions.contains_key(&procedure.name) {
+                        return Err(format!(
+                            "procedure {} shadows a source function",
+                            procedure.name
+                        ));
+                    }
+                    if Arc::make_mut(&mut session.procedures)
+                        .insert(procedure.name.clone(), procedure.clone())
+                        .is_some()
+                    {
+                        return Err(format!("duplicate procedure {}", procedure.name));
+                    }
+                }
                 Directive::Function(_)
                 | Directive::Readings { .. }
                 | Directive::Decisions { .. } => {}
@@ -762,9 +845,104 @@ impl ReactiveSession {
                 parameters[0].max.value(),
             )?;
         }
+        session.validate_procedures()?;
         session.validate_rules()?;
         session.evaluate_bindings()?;
         Ok(session)
+    }
+
+    fn validate_procedures(&self) -> Result<(), String> {
+        if self.procedures.len() > MAX_PROCEDURES {
+            return Err(format!("source exceeds procedure limit {MAX_PROCEDURES}"));
+        }
+        let mut declared_steps = 0_usize;
+        for procedure in self.procedures.values() {
+            if procedure.parameters.len() > MAX_PROCEDURE_PARAMETERS {
+                return Err(format!(
+                    "procedure {} exceeds parameter limit {MAX_PROCEDURE_PARAMETERS}",
+                    procedure.name
+                ));
+            }
+            declared_steps = declared_steps
+                .checked_add(procedure.body.len())
+                .ok_or("procedure step count overflow")?;
+            if declared_steps > MAX_PROCEDURE_STEPS {
+                return Err(format!(
+                    "source exceeds procedure step limit {MAX_PROCEDURE_STEPS}"
+                ));
+            }
+            let mut names = HashSet::new();
+            for parameter in &procedure.parameters {
+                if !names.insert(parameter) {
+                    return Err(format!(
+                        "duplicate parameter {parameter} for procedure {}",
+                        procedure.name
+                    ));
+                }
+                if self.values.contains_key(parameter) || self.constants.contains_key(parameter) {
+                    return Err(format!(
+                        "procedure {} parameter {parameter} shadows state or a coordinate",
+                        procedure.name
+                    ));
+                }
+            }
+        }
+        // Check every definition, even unused ones. Memoized expanded work
+        // counts stop acyclic fanout from creating unbounded execution.
+        let mut costs = BTreeMap::new();
+        let mut active = Vec::new();
+        for name in self.procedures.keys() {
+            self.procedure_cost(name, &mut costs, &mut active)?;
+        }
+        Ok(())
+    }
+
+    fn procedure_cost(
+        &self,
+        name: &str,
+        costs: &mut BTreeMap<String, (usize, usize)>,
+        active: &mut Vec<String>,
+    ) -> Result<(usize, usize), String> {
+        if active.iter().any(|parent| parent == name) {
+            return Err(format!("recursive procedure cycle involving {name}"));
+        }
+        if active.len() >= MAX_PROCEDURE_DEPTH {
+            return Err(format!(
+                "procedure exceeds call depth limit {MAX_PROCEDURE_DEPTH}"
+            ));
+        }
+        if let Some(&(cost, depth)) = costs.get(name) {
+            if active.len() + depth > MAX_PROCEDURE_DEPTH {
+                return Err(format!(
+                    "procedure exceeds call depth limit {MAX_PROCEDURE_DEPTH}"
+                ));
+            }
+            return Ok((cost, depth));
+        }
+        let procedure = self
+            .procedures
+            .get(name)
+            .ok_or_else(|| format!("unknown procedure {name}"))?;
+        active.push(name.into());
+        let mut cost = 0_usize;
+        let mut depth = 1;
+        for step in &procedure.body {
+            cost += 1;
+            if let Effect::Call { name, .. } = &step.effect {
+                let (nested_cost, nested_depth) = self.procedure_cost(name, costs, active)?;
+                cost += nested_cost;
+                depth = depth.max(nested_depth + 1);
+            }
+            if cost > MAX_EVENT_STEPS {
+                return Err(format!(
+                    "procedure {} exceeds expanded work limit {MAX_EVENT_STEPS}",
+                    procedure.name
+                ));
+            }
+        }
+        active.pop();
+        costs.insert(name.into(), (cost, depth));
+        Ok((cost, depth))
     }
 
     fn validate_rules(&self) -> Result<(), String> {
@@ -777,8 +955,12 @@ impl ReactiveSession {
             })
             .collect::<HashSet<_>>();
         commitments.extend(self.decision_series.keys().cloned());
-        for rule in self.rules.iter() {
-            if let Effect::Commit { action, .. } = &rule.effect {
+        for effect in self.rules.iter().map(|rule| &rule.effect).chain(
+            self.procedures
+                .values()
+                .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
+        ) {
+            if let Effect::Commit { action, .. } = effect {
                 if self.reading_streams.contains_key(action) {
                     return Err(format!(
                         "commitment {action} conflicts with a reading stream"
@@ -807,6 +989,7 @@ impl ReactiveSession {
                 _ => Err(format!("unknown epistemic predicate {kind}")),
             }
         };
+        let mut steps = Vec::new();
         for (index, rule) in self.rules.iter().enumerate() {
             let parameters = self.events.get(&rule.event).ok_or_else(|| {
                 format!(
@@ -815,17 +998,56 @@ impl ReactiveSession {
                     rule.event
                 )
             })?;
+            steps.push((
+                format!("rule {}", index + 1),
+                &rule.condition,
+                &rule.effect,
+                parameters
+                    .iter()
+                    .map(|parameter| parameter.name.as_str())
+                    .collect::<Vec<_>>(),
+            ));
+        }
+        for procedure in self.procedures.values() {
+            for (index, step) in procedure.body.iter().enumerate() {
+                steps.push((
+                    format!("procedure {}, step {}", procedure.name, index + 1),
+                    &step.condition,
+                    &step.effect,
+                    procedure.parameters.iter().map(String::as_str).collect(),
+                ));
+            }
+        }
+        for (context, condition, effect, parameters) in steps {
             let numeric = self
                 .values
                 .keys()
                 .chain(self.constants.keys())
                 .cloned()
-                .chain(parameters.iter().map(|parameter| parameter.name.clone()))
+                .chain(parameters.into_iter().map(str::to_owned))
                 .collect();
-            if rule.condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
-                return Err(format!("rule {} condition must be boolean", index + 1));
+            if condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
+                return Err(format!("{context} condition must be boolean"));
             }
-            match &rule.effect {
+            match effect {
+                Effect::Call { name, arguments } => {
+                    let procedure = self
+                        .procedures
+                        .get(name)
+                        .ok_or_else(|| format!("unknown procedure {name}"))?;
+                    if arguments.len() != procedure.parameters.len() {
+                        return Err(format!(
+                            "procedure {name} requires {} arguments, got {}",
+                            procedure.parameters.len(),
+                            arguments.len()
+                        ));
+                    }
+                    for argument in arguments {
+                        if argument.validate(&numeric, &validate_predicate)? != ValueType::Number {
+                            return Err(format!("procedure {name} requires numeric arguments"));
+                        }
+                    }
+                }
                 Effect::Sample {
                     stream,
                     value,
@@ -1097,7 +1319,22 @@ impl ReactiveSession {
         Err(format!("unknown history {name}"))
     }
 
-    fn retain_skipped_effect(&mut self, effect: &Effect, guard: &Provenance) -> Result<(), String> {
+    fn retain_skipped_effect(
+        &mut self,
+        effect: &Effect,
+        guard: &Provenance,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), String> {
+        if let Effect::Call { name, .. } = effect {
+            budget.enter()?;
+            let procedures = Arc::clone(&self.procedures);
+            for step in &procedures[name].body {
+                budget.spend()?;
+                self.retain_skipped_effect(&step.effect, guard, budget)?;
+            }
+            budget.depth -= 1;
+            return Ok(());
+        }
         if guard.is_empty() {
             return Ok(());
         }
@@ -1199,21 +1436,27 @@ impl ReactiveSession {
             .checked_add(1)
             .ok_or("reactive event sequence exhausted")?;
         next.last_event = Some(event.into());
+        let parameters = parameters
+            .iter()
+            .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
+            .collect();
+        let mut budget = ExecutionBudget {
+            remaining: MAX_EVENT_STEPS,
+            depth: 0,
+        };
         for (index, rule) in self
             .rules
             .iter()
             .enumerate()
             .filter(|(_, rule)| rule.event == event)
         {
-            let result = (|| {
-                let condition = next.evaluate(&rule.condition, parameters)?;
-                if condition.value == Value::Bool(true) {
-                    next.apply_effect(&rule.effect, parameters, &condition.provenance)?;
-                } else {
-                    next.retain_skipped_effect(&rule.effect, &condition.provenance)?;
-                }
-                Ok::<_, String>(())
-            })();
+            let result = next.execute_guarded_effect(
+                &rule.condition,
+                &rule.effect,
+                &parameters,
+                &Provenance::default(),
+                &mut budget,
+            );
             result.map_err(|error| format!("event {event}, rule {}: {error}", index + 1))?;
         }
         // Binding failures roll back the same numeric/graph/cue transaction.
@@ -1223,19 +1466,36 @@ impl ReactiveSession {
         Ok(snapshot)
     }
 
+    fn execute_guarded_effect(
+        &mut self,
+        condition: &Expr,
+        effect: &Effect,
+        parameters: &BTreeMap<String, Tracked<f64>>,
+        inherited: &Provenance,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), String> {
+        budget.spend()?;
+        let condition = self.evaluate(condition, parameters)?;
+        let guard = inherited.union(&condition.provenance)?;
+        if condition.value == Value::Bool(true) {
+            self.apply_effect(effect, parameters, &guard, budget)
+        } else {
+            self.retain_skipped_effect(effect, &guard, budget)
+        }
+    }
+
     fn evaluate(
         &self,
         expression: &Expr,
-        parameters: &BTreeMap<String, f64>,
+        parameters: &BTreeMap<String, Tracked<f64>>,
     ) -> Result<Tracked<Value>, String> {
         expression.evaluate_tracked_with_histories(
             &|name| {
                 Ok(self.values.get(name).cloned().or_else(|| {
                     parameters
                         .get(name)
-                        .or_else(|| self.constants.get(name))
-                        .copied()
-                        .map(Tracked::plain)
+                        .cloned()
+                        .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
                 }))
             },
             &|kind, name| self.predicate_tracked(kind, name),
@@ -1462,10 +1722,40 @@ impl ReactiveSession {
     fn apply_effect(
         &mut self,
         effect: &Effect,
-        parameters: &BTreeMap<String, f64>,
+        parameters: &BTreeMap<String, Tracked<f64>>,
         guard: &Provenance,
+        budget: &mut ExecutionBudget,
     ) -> Result<(), String> {
         match effect {
+            Effect::Call { name, arguments } => {
+                let procedures = Arc::clone(&self.procedures);
+                let procedure = &procedures[name];
+                let mut locals = BTreeMap::new();
+                let mut inherited = guard.clone();
+                // Freeze all arguments before the first body effect, including
+                // unused arguments. Their qualifications cannot be laundered
+                // by selecting a constant result or skipping a nested effect.
+                for (parameter, argument) in procedure.parameters.iter().zip(arguments) {
+                    let value = self.evaluate(argument, parameters)?;
+                    let Value::Number(number) = value.value else {
+                        return Err(format!("procedure {name} requires numeric arguments"));
+                    };
+                    inherited.merge(&value.provenance)?;
+                    locals.insert(parameter.clone(), Tracked::new(number, value.provenance)?);
+                }
+                budget.enter()?;
+                for (index, step) in procedure.body.iter().enumerate() {
+                    self.execute_guarded_effect(
+                        &step.condition,
+                        &step.effect,
+                        &locals,
+                        &inherited,
+                        budget,
+                    )
+                    .map_err(|error| format!("procedure {name}, step {}: {error}", index + 1))?;
+                }
+                budget.depth -= 1;
+            }
             Effect::Sample {
                 stream,
                 value,
@@ -1987,6 +2277,13 @@ fn expression_depth_delta(input: &str) -> i64 {
 }
 
 pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
+    parse_directive_at(line, crate::parser::Position { line: 1, column: 1 })
+}
+
+pub(crate) fn parse_directive_at(
+    line: &str,
+    position: crate::parser::Position,
+) -> Option<Result<Directive, String>> {
     let words = syntax_words(line);
     let keyword = words.first().copied()?;
     if !matches!(
@@ -2001,10 +2298,12 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
             | "clock"
             | "readings"
             | "decisions"
+            | "proc"
     ) {
         return None;
     }
     Some((|| match keyword {
+        "proc" => parse_procedure(line, position),
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
             ["readings", name, "from", template, "limit", limit] => Ok(Directive::Readings {
@@ -2107,38 +2406,7 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
         }
         "on" => {
             let event = identifier(words.get(1).ok_or("on requires an event name")?)?;
-            // Effect words may also be identifiers, including inside spaced
-            // graph predicates. Find a syntactically complete effect outside
-            // expression parentheses, rather than splitting at the first word.
-            let mut depth = 0_i64;
-            let mut candidates = Vec::new();
-            for (index, token) in words.iter().enumerate().skip(2) {
-                if depth == 0
-                    && matches!(
-                        *token,
-                        "set" | "reveal" | "examine" | "commit" | "reopen" | "emit" | "sample"
-                    )
-                {
-                    candidates.push(index);
-                }
-                depth += expression_depth_delta(token);
-            }
-            let effect_index = candidates
-                .iter()
-                .copied()
-                .find(|index| parse_effect(&words[*index..]).is_ok())
-                .or_else(|| candidates.last().copied())
-                .ok_or(
-                    "on rule requires set, reveal, examine, commit, reopen, emit, or sample effect",
-                )?;
-            let condition = if effect_index == 2 {
-                reactive_expr::parse("true")?
-            } else if words.get(2) == Some(&"when") {
-                reactive_expr::parse_unresolved(&words[3..effect_index].join(" "))?
-            } else {
-                return Err("on rule requires when CONDITION before its effect".into());
-            };
-            let effect = parse_effect(&words[effect_index..])?;
+            let GuardedEffect { condition, effect } = parse_guarded_effect(&words[2..])?;
             Ok(Directive::Rule(Rule {
                 event,
                 condition,
@@ -2147,6 +2415,81 @@ pub fn parse_directive(line: &str) -> Option<Result<Directive, String>> {
         }
         _ => unreachable!(),
     })())
+}
+
+fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
+    // Effect words are legal identifiers inside expressions. Select a complete
+    // effect outside parentheses, rather than splitting at the first keyword.
+    let mut depth = 0_i64;
+    let mut candidates = Vec::new();
+    for (index, token) in words.iter().enumerate() {
+        if depth == 0
+            && matches!(
+                *token,
+                "set" | "reveal" | "examine" | "commit" | "reopen" | "emit" | "sample" | "call"
+            )
+        {
+            candidates.push(index);
+        }
+        depth += expression_depth_delta(token);
+    }
+    let effect_index = candidates
+        .iter()
+        .copied()
+        .find(|index| parse_effect(&words[*index..]).is_ok())
+        .or_else(|| candidates.last().copied())
+        .ok_or(
+            "rule requires set, reveal, examine, commit, reopen, emit, sample, or call effect",
+        )?;
+    let condition = if effect_index == 0 {
+        reactive_expr::parse("true")?
+    } else if words.first() == Some(&"when") {
+        reactive_expr::parse_unresolved(&words[1..effect_index].join(" "))?
+    } else {
+        return Err("rule requires when CONDITION before its effect".into());
+    };
+    Ok(GuardedEffect {
+        condition,
+        effect: parse_effect(&words[effect_index..])?,
+    })
+}
+
+fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<Directive, String> {
+    let open = line.find('{').ok_or("proc requires a braced body")?;
+    let header = line[4..open].trim();
+    let (name, parameters) = header
+        .split_once('(')
+        .ok_or("proc expects NAME(PARAMETERS) { EFFECTS }")?;
+    let parameters = parameters
+        .trim()
+        .strip_suffix(')')
+        .ok_or("proc parameter list requires closing parenthesis")?;
+    let parameters = if parameters.trim().is_empty() {
+        Vec::new()
+    } else {
+        parameters
+            .split(',')
+            .map(|name| identifier(name.trim()))
+            .collect::<Result<_, _>>()?
+    };
+    let body = line[open + 1..]
+        .trim_end()
+        .strip_suffix('}')
+        .ok_or("proc requires a closing brace")?;
+    for ch in line[..open + 1].chars() {
+        position.advance(ch);
+    }
+    let body = crate::parser::scan_statements_at(body, position)?
+        .into_iter()
+        .map(|(step, position)| {
+            parse_guarded_effect(&syntax_words(step.trim())).map_err(|error| position.error(error))
+        })
+        .collect::<Result<_, _>>()?;
+    Ok(Directive::Procedure(Procedure {
+        name: identifier(name.trim())?,
+        parameters,
+        body,
+    }))
 }
 
 fn parse_function(line: &str) -> Result<Directive, String> {
@@ -2364,6 +2707,10 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     match words {
+        ["call", rest @ ..] if !rest.is_empty() => {
+            let (name, arguments) = reactive_expr::parse_procedure_call(&rest.join(" "))?;
+            Ok(Effect::Call { name, arguments })
+        }
         ["sample", stream, "=", rest @ ..] if rest.len() >= 3 => {
             let end = rest.len() - 2;
             let relation = match rest[end] {

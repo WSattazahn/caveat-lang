@@ -1254,6 +1254,34 @@ pub fn parse_unresolved(input: &str) -> Result<Expr, String> {
     parse_mode(input, true)
 }
 
+/// Parse a procedure call with the expression tokenizer, keeping nested commas,
+/// quoted text and delimiter errors consistent with ordinary expressions.
+pub(crate) fn parse_procedure_call(input: &str) -> Result<(String, Vec<Expr>), String> {
+    let mut parser = Parser {
+        tokens: tokenize(input)?,
+        cursor: 0,
+        end: input.len(),
+        allow_user_functions: true,
+    };
+    let name = parser.graph_identifier("procedure call")?;
+    parser.expect(TokenKind::LeftParen, "'(' after procedure name")?;
+    let mut arguments = Vec::new();
+    if parser.peek() != Some(&TokenKind::RightParen) {
+        loop {
+            arguments.push(parser.expression(0, 0)?);
+            if parser.peek() != Some(&TokenKind::Comma) {
+                break;
+            }
+            parser.cursor += 1;
+        }
+    }
+    parser.expect(TokenKind::RightParen, "')' after procedure arguments")?;
+    if parser.peek().is_some() {
+        return Err(format!("unexpected token at byte {}", parser.offset()));
+    }
+    Ok((name, arguments))
+}
+
 fn parse_mode(input: &str, allow_user_functions: bool) -> Result<Expr, String> {
     let mut parser = Parser {
         tokens: tokenize(input)?,

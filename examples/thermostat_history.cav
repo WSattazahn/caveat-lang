@@ -19,14 +19,21 @@ state recorded_high = 0;
 state change = 0;
 
 event read value min 0 max 40;
-on read when value >= 21 sample temperature = value supports warm_enough;
-on read when value < 21 sample temperature = value opposes warm_enough;
-on read set recorded_mean = fold_history(temperature, 0, add_reading) / history_count(temperature);
-on read set recorded_low = fold_history(temperature, latest(temperature), min);
-on read set recorded_high = fold_history(temperature, latest(temperature), max);
-on read when history_count(temperature) >= 2 set change = latest(temperature) - history_at(temperature, history_count(temperature) - 2);
-on read when committed(heating) and not reopened(heating) reopen heating because latest(temperature);
-on read commit heating because enough using heating_demand(latest(temperature), 21);
+
+// One source procedure handles every new reading. Body guards see the history
+// reached by earlier steps; measurement is frozen at the call boundary.
+proc record_temperature(measurement) {
+    when measurement >= 21 sample temperature = measurement supports warm_enough;
+    when measurement < 21 sample temperature = measurement opposes warm_enough;
+    set recorded_mean = fold_history(temperature, 0, add_reading) / history_count(temperature);
+    set recorded_low = fold_history(temperature, latest(temperature), min);
+    set recorded_high = fold_history(temperature, latest(temperature), max);
+    when history_count(temperature) >= 2 set change = latest(temperature) - history_at(temperature, history_count(temperature) - 2);
+    when committed(heating) and not reopened(heating) reopen heating because latest(temperature);
+    commit heating because enough using heating_demand(latest(temperature), 21);
+};
+
+on read call record_temperature(value);
 
 bind temperature.text = "No reading";
 bind temperature.text = number_text(latest(temperature)) + " C" when has_sample(temperature);

@@ -28,3 +28,13 @@ histories, and failures after partial event work. The thermostat changes policy
 through a source edit while preserving the same sensor archive. Game feedback
 compares measured historical directions in Caveat; browser verification checks
 the reversal message and the evidence attached to it during an actual crossing.
+
+The source-input and procedure revision checks physical-key aliases, held-key
+repeats, pause, pointer takeover, and a Caveat-only key remapping in the browser.
+Native procedure tests verify frozen arguments, retained qualifications on
+unused and skipped effects, frame isolation, bounded work, and rollback after
+graph changes and final binding failures. Game and thermostat consumers exercise
+the same mechanism. Refactoring a group of rules requires checking whether
+their guards must still reevaluate between effects; a procedure's outer guard
+is evaluated once. The browser build and complete rescue routes verify that the
+language change also works through WebAssembly and the existing input adapter.

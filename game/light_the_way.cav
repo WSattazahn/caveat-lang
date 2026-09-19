@@ -352,6 +352,30 @@ cue reef_three_ring ring reef_three "#ffe3a0" 0.75;
 cue reef_two_ring ring reef_two "#ffe3a0" 0.75;
 cue reef_one_ring ring reef_one "#ffe3a0" 0.75;
 
+// Reusable effects keep source control policy separate from device delivery.
+proc clear_keyboard() {
+    set key_left = 0;
+    set key_right = 0;
+    set key_up = 0;
+    set key_down = 0;
+    set key_a = 0;
+    set key_d = 0;
+    set key_w = 0;
+    set key_s = 0;
+    set key_space = 0;
+    set keyboard_active = 0;
+};
+
+proc hold_keyboard(next_active) {
+    set keyboard_active = next_active;
+    set light_on = keyboard_active;
+};
+
+proc move_aim(horizontal, vertical, step) {
+    set aim_x = clamp(aim_x + horizontal * aim_speed * step, aim_x_min, aim_x_max);
+    set aim_z = clamp(aim_z + vertical * aim_speed * step, aim_z_min, aim_z_max);
+};
+
 on start when phase == 0 emit depart;
 on start when phase == 0 and not committed(navigation) commit navigation because enough using forecast_drift;
 on start when phase == 0 and not committed(follow_light) commit follow_light because enough retaining reef_one_shadow, reef_two_shadow, reef_three_shadow, reef_four_shadow, reef_five_shadow, reef_six_shadow;
@@ -361,98 +385,42 @@ on pause when phase == 1 set light_on = 0;
 on resume when phase == 1 set paused = 0;
 on toggle_pause when phase == 1 and active > 0 set paused = if(paused == 0, 1, 0);
 on toggle_pause when phase == 1 and active > 0 and paused == 1 set light_on = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_left = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_right = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_up = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_down = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_a = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_d = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_w = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_s = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set key_space = 0;
-on toggle_pause when phase == 1 and active > 0 and paused == 1 set keyboard_active = 0;
-on steer when phase < 2 and paused == 0 set aim_x = clamp(aim_x + dx * aim_speed * dt, aim_x_min, aim_x_max);
-on steer when phase < 2 and paused == 0 set aim_z = clamp(aim_z + dz * aim_speed * dt, aim_z_min, aim_z_max);
+on toggle_pause when phase == 1 and active > 0 and paused == 1 call clear_keyboard();
+on steer when phase < 2 and paused == 0 call move_aim(dx, dz, dt);
 on steer when phase < 2 and paused == 0 set light_on = active;
 on aim when phase < 2 and paused == 0 set aim_x = clamp(x, aim_x_min, aim_x_max);
 on aim when phase < 2 and paused == 0 set aim_z = clamp(z, aim_z_min, aim_z_max);
 on aim when phase < 2 and paused == 0 set light_on = active;
 
 // Physical key facts stay independent: releasing A does not release Left.
-on key_left_input when phase == 1 and paused == 0 and (active > 0 or key_left > 0) set keyboard_active = held_keys(if(active > 0, 1, 0), key_right, key_up, key_down, key_a, key_d, key_w, key_s, key_space);
-on key_left_input when phase == 1 and paused == 0 and (active > 0 or key_left > 0) set light_on = keyboard_active;
+on key_left_input when phase == 1 and paused == 0 and (active > 0 or key_left > 0) call hold_keyboard(held_keys(if(active > 0, 1, 0), key_right, key_up, key_down, key_a, key_d, key_w, key_s, key_space));
 on key_left_input when phase == 1 and paused == 0 and (active > 0 or key_left > 0) set key_left = if(active > 0, 1, 0);
-on key_right_input when phase == 1 and paused == 0 and (active > 0 or key_right > 0) set keyboard_active = held_keys(key_left, if(active > 0, 1, 0), key_up, key_down, key_a, key_d, key_w, key_s, key_space);
-on key_right_input when phase == 1 and paused == 0 and (active > 0 or key_right > 0) set light_on = keyboard_active;
+on key_right_input when phase == 1 and paused == 0 and (active > 0 or key_right > 0) call hold_keyboard(held_keys(key_left, if(active > 0, 1, 0), key_up, key_down, key_a, key_d, key_w, key_s, key_space));
 on key_right_input when phase == 1 and paused == 0 and (active > 0 or key_right > 0) set key_right = if(active > 0, 1, 0);
-on key_up_input when phase == 1 and paused == 0 and (active > 0 or key_up > 0) set keyboard_active = held_keys(key_left, key_right, if(active > 0, 1, 0), key_down, key_a, key_d, key_w, key_s, key_space);
-on key_up_input when phase == 1 and paused == 0 and (active > 0 or key_up > 0) set light_on = keyboard_active;
+on key_up_input when phase == 1 and paused == 0 and (active > 0 or key_up > 0) call hold_keyboard(held_keys(key_left, key_right, if(active > 0, 1, 0), key_down, key_a, key_d, key_w, key_s, key_space));
 on key_up_input when phase == 1 and paused == 0 and (active > 0 or key_up > 0) set key_up = if(active > 0, 1, 0);
-on key_down_input when phase == 1 and paused == 0 and (active > 0 or key_down > 0) set keyboard_active = held_keys(key_left, key_right, key_up, if(active > 0, 1, 0), key_a, key_d, key_w, key_s, key_space);
-on key_down_input when phase == 1 and paused == 0 and (active > 0 or key_down > 0) set light_on = keyboard_active;
+on key_down_input when phase == 1 and paused == 0 and (active > 0 or key_down > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, if(active > 0, 1, 0), key_a, key_d, key_w, key_s, key_space));
 on key_down_input when phase == 1 and paused == 0 and (active > 0 or key_down > 0) set key_down = if(active > 0, 1, 0);
-on key_a_input when phase == 1 and paused == 0 and (active > 0 or key_a > 0) set keyboard_active = held_keys(key_left, key_right, key_up, key_down, if(active > 0, 1, 0), key_d, key_w, key_s, key_space);
-on key_a_input when phase == 1 and paused == 0 and (active > 0 or key_a > 0) set light_on = keyboard_active;
+on key_a_input when phase == 1 and paused == 0 and (active > 0 or key_a > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, if(active > 0, 1, 0), key_d, key_w, key_s, key_space));
 on key_a_input when phase == 1 and paused == 0 and (active > 0 or key_a > 0) set key_a = if(active > 0, 1, 0);
-on key_d_input when phase == 1 and paused == 0 and (active > 0 or key_d > 0) set keyboard_active = held_keys(key_left, key_right, key_up, key_down, key_a, if(active > 0, 1, 0), key_w, key_s, key_space);
-on key_d_input when phase == 1 and paused == 0 and (active > 0 or key_d > 0) set light_on = keyboard_active;
+on key_d_input when phase == 1 and paused == 0 and (active > 0 or key_d > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, if(active > 0, 1, 0), key_w, key_s, key_space));
 on key_d_input when phase == 1 and paused == 0 and (active > 0 or key_d > 0) set key_d = if(active > 0, 1, 0);
-on key_w_input when phase == 1 and paused == 0 and (active > 0 or key_w > 0) set keyboard_active = held_keys(key_left, key_right, key_up, key_down, key_a, key_d, if(active > 0, 1, 0), key_s, key_space);
-on key_w_input when phase == 1 and paused == 0 and (active > 0 or key_w > 0) set light_on = keyboard_active;
+on key_w_input when phase == 1 and paused == 0 and (active > 0 or key_w > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, key_d, if(active > 0, 1, 0), key_s, key_space));
 on key_w_input when phase == 1 and paused == 0 and (active > 0 or key_w > 0) set key_w = if(active > 0, 1, 0);
-on key_s_input when phase == 1 and paused == 0 and (active > 0 or key_s > 0) set keyboard_active = held_keys(key_left, key_right, key_up, key_down, key_a, key_d, key_w, if(active > 0, 1, 0), key_space);
-on key_s_input when phase == 1 and paused == 0 and (active > 0 or key_s > 0) set light_on = keyboard_active;
+on key_s_input when phase == 1 and paused == 0 and (active > 0 or key_s > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, key_d, key_w, if(active > 0, 1, 0), key_space));
 on key_s_input when phase == 1 and paused == 0 and (active > 0 or key_s > 0) set key_s = if(active > 0, 1, 0);
-on key_space_input when phase == 1 and paused == 0 and (active > 0 or key_space > 0) set keyboard_active = held_keys(key_left, key_right, key_up, key_down, key_a, key_d, key_w, key_s, if(active > 0, 1, 0));
-on key_space_input when phase == 1 and paused == 0 and (active > 0 or key_space > 0) set light_on = keyboard_active;
+on key_space_input when phase == 1 and paused == 0 and (active > 0 or key_space > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, key_d, key_w, key_s, if(active > 0, 1, 0)));
 on key_space_input when phase == 1 and paused == 0 and (active > 0 or key_space > 0) set key_space = if(active > 0, 1, 0);
 
 // Pointer/scripted steering, pause and transport cancellation end keyboard ownership.
 on release_keys when keyboard_active == 1 set light_on = 0;
-on release_keys set key_left = 0;
-on release_keys set key_right = 0;
-on release_keys set key_up = 0;
-on release_keys set key_down = 0;
-on release_keys set key_a = 0;
-on release_keys set key_d = 0;
-on release_keys set key_w = 0;
-on release_keys set key_s = 0;
-on release_keys set key_space = 0;
-on release_keys set keyboard_active = 0;
-on pause when phase == 1 set key_left = 0;
-on pause when phase == 1 set key_right = 0;
-on pause when phase == 1 set key_up = 0;
-on pause when phase == 1 set key_down = 0;
-on pause when phase == 1 set key_a = 0;
-on pause when phase == 1 set key_d = 0;
-on pause when phase == 1 set key_w = 0;
-on pause when phase == 1 set key_s = 0;
-on pause when phase == 1 set key_space = 0;
-on pause when phase == 1 set keyboard_active = 0;
-on aim when phase < 2 and paused == 0 set key_left = 0;
-on aim when phase < 2 and paused == 0 set key_right = 0;
-on aim when phase < 2 and paused == 0 set key_up = 0;
-on aim when phase < 2 and paused == 0 set key_down = 0;
-on aim when phase < 2 and paused == 0 set key_a = 0;
-on aim when phase < 2 and paused == 0 set key_d = 0;
-on aim when phase < 2 and paused == 0 set key_w = 0;
-on aim when phase < 2 and paused == 0 set key_s = 0;
-on aim when phase < 2 and paused == 0 set key_space = 0;
-on aim when phase < 2 and paused == 0 set keyboard_active = 0;
-on steer when phase < 2 and paused == 0 set key_left = 0;
-on steer when phase < 2 and paused == 0 set key_right = 0;
-on steer when phase < 2 and paused == 0 set key_up = 0;
-on steer when phase < 2 and paused == 0 set key_down = 0;
-on steer when phase < 2 and paused == 0 set key_a = 0;
-on steer when phase < 2 and paused == 0 set key_d = 0;
-on steer when phase < 2 and paused == 0 set key_w = 0;
-on steer when phase < 2 and paused == 0 set key_s = 0;
-on steer when phase < 2 and paused == 0 set key_space = 0;
-on steer when phase < 2 and paused == 0 set keyboard_active = 0;
+on release_keys call clear_keyboard();
+on pause when phase == 1 call clear_keyboard();
+on aim when phase < 2 and paused == 0 call clear_keyboard();
+on steer when phase < 2 and paused == 0 call clear_keyboard();
 
 // Keyboard policy runs in the same transaction, before scouting and motion.
-on tick when phase == 1 and paused == 0 and keyboard_active == 1 set aim_x = clamp(aim_x + key_axis(key_right, key_d, key_left, key_a) * aim_speed * dt, aim_x_min, aim_x_max);
-on tick when phase == 1 and paused == 0 and keyboard_active == 1 set aim_z = clamp(aim_z + key_axis(key_down, key_s, key_up, key_w) * aim_speed * dt, aim_z_min, aim_z_max);
+on tick when phase == 1 and paused == 0 and keyboard_active == 1 call move_aim(key_axis(key_right, key_d, key_left, key_a), key_axis(key_down, key_s, key_up, key_w), dt);
 
 // Scouting reveals actual contradictory evidence. The old chart support is retained.
 on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_one.x, reef_one.z) <= beam_radius and not observed(reef_one_reading) emit reef_one_ring;
@@ -642,16 +610,7 @@ on tick when phase == 1 and paused == 0 and elapsed >= time_limit emit failure_s
 on tick when phase == 1 and paused == 0 and elapsed >= time_limit set phase = 3;
 
 // Finishing a run releases controls before the terminal snapshot is published.
-on tick when phase >= 2 set key_left = 0;
-on tick when phase >= 2 set key_right = 0;
-on tick when phase >= 2 set key_up = 0;
-on tick when phase >= 2 set key_down = 0;
-on tick when phase >= 2 set key_a = 0;
-on tick when phase >= 2 set key_d = 0;
-on tick when phase >= 2 set key_w = 0;
-on tick when phase >= 2 set key_s = 0;
-on tick when phase >= 2 set key_space = 0;
-on tick when phase >= 2 set keyboard_active = 0;
+on tick when phase >= 2 call clear_keyboard();
 on tick when phase >= 2 set light_on = 0;
 
 // Presentation is evaluated by CAVEAT. Hosts apply these values without interpreting game states.

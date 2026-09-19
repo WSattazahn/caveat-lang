@@ -111,6 +111,14 @@ repeats and release input on focus loss. The existing numeric `steer` event
 remains available to native callers. Changing a raw-key control declaration
 changes browser behavior without editing JavaScript or Rust.
 
+[Reactive 0.7 procedures](../spec/caveat-reactive-0.7.md) share this behavior:
+`clear_keyboard()` releases held keys across pause, pointer, scripted steering,
+and terminal paths; `hold_keyboard(next_active)` updates the aggregate and light;
+`move_aim(horizontal, vertical, step)` handles both numeric steering and raw-key
+ticks. The final physical key-bit write remains after aggregate calculation,
+so stale release guards preserve pointer takeover. Each call shares the input
+or tick transaction, and ticks still move the aim before scouting.
+
 The following domain values remain available for inspection and testing. Hosts consume their resulting `bindings`, not a fixed list of domain-state identifiers:
 
 | Source values | Presentation purpose |

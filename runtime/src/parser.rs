@@ -6,24 +6,24 @@ pub fn parse(source: &str) -> Result<Program, String> {
     let statements = scan_statements(source)?
         .into_iter()
         .map(|(line, position)| {
-            parse_statement(line.trim()).map_err(|message| position.error(message))
+            parse_statement(line.trim(), position).map_err(|message| position.error(message))
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Program::new(statements))
 }
 
 #[derive(Clone, Copy)]
-struct Position {
-    line: usize,
-    column: usize,
+pub(crate) struct Position {
+    pub(crate) line: usize,
+    pub(crate) column: usize,
 }
 
 impl Position {
-    fn error(self, message: impl std::fmt::Display) -> String {
+    pub(crate) fn error(self, message: impl std::fmt::Display) -> String {
         format!("line {}, column {}: {message}", self.line, self.column)
     }
 
-    fn advance(&mut self, ch: char) {
+    pub(crate) fn advance(&mut self, ch: char) {
         if ch == '\n' {
             self.line += 1;
             self.column = 1;
@@ -36,13 +36,20 @@ impl Position {
 /// Semicolons and comment markers are syntax only outside quoted text.
 /// Keeping comment boundaries as whitespace also prevents adjacent tokens merging.
 fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
+    scan_statements_at(source, Position { line: 1, column: 1 })
+}
+
+pub(crate) fn scan_statements_at(
+    source: &str,
+    mut position: Position,
+) -> Result<Vec<(String, Position)>, String> {
     let mut statements = Vec::new();
     let mut text = String::new();
     let mut start = None;
     let mut string_start = None;
     let mut escape_start: Option<Position> = None;
     let mut comment = false;
-    let mut position = Position { line: 1, column: 1 };
+    let mut braces = Vec::new();
     let mut chars = source.chars().peekable();
 
     while let Some(ch) = chars.next() {
@@ -50,6 +57,9 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
             if ch == '\n' {
                 comment = false;
                 text.push(ch);
+            } else {
+                // Preserve Unicode columns for diagnostics inside procedures.
+                text.push(' ');
             }
         } else if string_start.is_some() {
             text.push(ch);
@@ -65,7 +75,7 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
         } else if ch == '#' || (ch == '/' && chars.peek() == Some(&'/')) {
             comment = true;
             text.push(' ');
-        } else if ch == ';' {
+        } else if ch == ';' && braces.is_empty() {
             if let Some(statement_start) = start.take() {
                 statements.push((std::mem::take(&mut text), statement_start));
             } else {
@@ -77,6 +87,16 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
             }
             if ch == '"' {
                 string_start = Some(position);
+            } else if ch == '{' && text.split_whitespace().next() == Some("proc") {
+                if braces.len() >= 64 {
+                    return Err(position.error("source exceeds brace nesting limit 64"));
+                }
+                braces.push(position);
+            } else if ch == '}'
+                && text.split_whitespace().next() == Some("proc")
+                && braces.pop().is_none()
+            {
+                return Err(position.error("unmatched closing brace"));
             }
             text.push(ch);
         }
@@ -91,6 +111,9 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
         };
         return Err(quote.error(detail));
     }
+    if let Some(brace) = braces.first() {
+        return Err(brace.error("unterminated procedure body"));
+    }
     // The original parser permitted an omitted final semicolon; retain that API.
     if let Some(statement_start) = start {
         statements.push((text, statement_start));
@@ -98,8 +121,8 @@ fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
     Ok(statements)
 }
 
-fn parse_statement(line: &str) -> Result<Statement, String> {
-    if let Some(directive) = crate::reactive::parse_directive(line) {
+fn parse_statement(line: &str, position: Position) -> Result<Statement, String> {
+    if let Some(directive) = crate::reactive::parse_directive_at(line, position) {
         return directive.map(Statement::Reactive);
     }
     if let Some(directive) = crate::presentation::parse_directive(line) {

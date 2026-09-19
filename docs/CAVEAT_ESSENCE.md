@@ -58,6 +58,22 @@ caveats, turn past observations into present truth, or erase conflicting edges.
 The thermostat tests demonstrate that changing only a Caveat policy can change
 the control decision without altering the observations it was based on.
 
+## Qualifications survive reusable effects
+
+[Reactive 0.7](../spec/caveat-reactive-0.7.md) extends reuse to effect procedures.
+A call freezes its entry arguments and guard, retaining all their evidence and
+caveats through descendant effects even when an argument is ignored. Body
+guards can respond to earlier effects, but cannot shed the call's inherited
+basis. A skipped call retains the evaluated guard's reasons on possible effect
+targets without evaluating untaken arguments, inventing observations, or
+spending attention. Nested calls share one event transaction and work budget.
+Any late failure rolls back history, graph changes, cues, and occurrence IDs.
+
+The game uses this facility for ordinary control policy; the thermostat uses
+it for observation, archive computation, and explicit decision revision. The
+same mechanism serves both without an application-specific Rust operation.
+It does not independently determine whether an authored policy is warranted.
+
 ## The crosscurrent example
 
 The rescue source defines a morning forecast with provenance and a caveat about an unmeasured surge. The initial navigation decision retains that caveat. A later observation can oppose the forecast and reopen the earlier decision. The revised counter-steering commitment also retains uncertainty.
