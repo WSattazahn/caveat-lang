@@ -1,0 +1,101 @@
+{
+  "schema": "caveat-squeeze-fixtures/1",
+  "captured": "2026-09-19",
+  "source": {
+    "project": "Vessel",
+    "path": "public/scenes/SlimeWorld1.json",
+    "git_head": "8eb43f5df7a1beff954bdbc0d03f3b48cead7fb1",
+    "sha256": "58db2d80a3c1d371ab3de25db58791fb89e006ac9a8b090759e6a6ba17e7c764",
+    "scene_file_clean_at_capture": true
+  },
+  "derivation": "Both objects are primitive cubes with unit half-extents 0.5 and zero local mesh center. Half-extents are abs(scale)*0.5. Rotation is copied and must be zero within 1e-8 for this exploratory policy. These are authored volumes, not measured clear openings.",
+  "probe_origin": "Synthetic positions and intended segments chosen around the copied bounds; not live Vessel telemetry.",
+  "fixtures": [
+    {
+      "kind": 1,
+      "object": {
+        "id": "obj_1777325963031_f11zyeq",
+        "name": "Cave Squeeze Box",
+        "assetId": "primitives/cube",
+        "role": "squeeze",
+        "physics": {
+          "type": "fixed",
+          "collider": {
+            "shape": "convexHull"
+          }
+        },
+        "position": [
+          26.143588524394932,
+          -1.5832143335212954,
+          51.43325808126911
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          0.8021998120900852,
+          0.8309168413528486,
+          1.369062471266489
+        ]
+      },
+      "passage_payload": {
+        "kind": 1,
+        "cx": 26.143588524394932,
+        "cy": -1.5832143335212954,
+        "cz": 51.43325808126911,
+        "hx": 0.4010999060450426,
+        "hy": 0.4154584206764243,
+        "hz": 0.6845312356332445,
+        "rx": 0,
+        "ry": 0,
+        "rz": 0,
+        "profile": 1
+      }
+    },
+    {
+      "kind": 2,
+      "object": {
+        "id": "obj_1773020162497_z1ud2bg",
+        "name": "SqueezeBox",
+        "assetId": "primitives/cube",
+        "role": "squeeze",
+        "physics": {
+          "type": "fixed",
+          "collider": {
+            "shape": "convexHull"
+          }
+        },
+        "position": [
+          21.0876661629936,
+          -1.1864100893204368,
+          18.91965043800465
+        ],
+        "rotation": [
+          0,
+          32.477603615619394,
+          0
+        ],
+        "scale": [
+          0.47301093662618465,
+          0.7927187815882756,
+          1.6751727189074725
+        ]
+      },
+      "passage_payload": {
+        "kind": 2,
+        "cx": 21.0876661629936,
+        "cy": -1.1864100893204368,
+        "cz": 18.91965043800465,
+        "hx": 0.23650546831309233,
+        "hy": 0.3963593907941378,
+        "hz": 0.8375863594537363,
+        "rx": 0,
+        "ry": 32.477603615619394,
+        "rz": 0,
+        "profile": 1
+      }
+    }
+  ]
+}
