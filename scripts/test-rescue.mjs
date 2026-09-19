@@ -375,6 +375,178 @@ async function keyboardAndFailure(browser) {
   } finally { await idle.context.close(); }
 }
 
+async function keyboardSourcePolicy(browser) {
+  const heldFields = ['key_left', 'key_right', 'key_up', 'key_down', 'key_a', 'key_d', 'key_w', 'key_s', 'key_space', 'keyboard_active'];
+  const released = (state, label) => {
+    for (const field of heldFields) assert.equal(state.values[field], 0, `${label}: ${field} stayed held`);
+  };
+  const { context, page, errors } = await fresh(browser);
+  try {
+    const initial = await begin(page);
+    await page.keyboard.down('a');
+    await page.keyboard.down('ArrowLeft');
+    await page.clock.runFor(100);
+    const aliases = await read(page);
+    assert(aliases.values.aim_x < initial.values.aim_x);
+    assert.equal(aliases.values.key_a, 1);
+    assert.equal(aliases.values.key_left, 1);
+    await page.keyboard.up('a');
+    const oneHeld = await read(page);
+    assert.equal(oneHeld.values.key_a, 0);
+    assert.equal(oneHeld.values.key_left, 1);
+    assert.equal(oneHeld.values.light_on, 1, 'Releasing one alias released the other held key');
+    await page.clock.runFor(100);
+    const left = await read(page);
+    assert(left.values.aim_x < oneHeld.values.aim_x);
+
+    await page.keyboard.down('ArrowRight');
+    await page.clock.runFor(100);
+    const opposed = await read(page);
+    assert.equal(opposed.values.aim_x, left.values.aim_x, 'Opposite directions did not cancel in Caveat');
+    assert.equal(opposed.values.light_on, 1, 'Opposing movement keys should still hold the light');
+    await page.keyboard.up('ArrowLeft');
+    await page.clock.runFor(100);
+    const right = await read(page);
+    assert(right.values.aim_x > opposed.values.aim_x);
+    await page.keyboard.down('ArrowRight');
+    assert.equal((await read(page)).sequence, right.sequence, 'A repeated keydown was published as a new source input');
+    await page.keyboard.up('ArrowRight');
+    const noKeys = await read(page);
+    released(noKeys, 'last key release');
+    assert.equal(noKeys.values.light_on, 0, 'Last key release did not stop the light immediately');
+
+    // Pointer takeover clears source and transport state. A repeat/release from
+    // the still-physically-held key must not steal or switch off the beam.
+    await page.keyboard.down('ArrowLeft');
+    const target = await projected(page, 4, 50);
+    await page.mouse.move(target.x, target.y);
+    await page.mouse.down();
+    const pointer = await read(page);
+    released(pointer, 'pointer takeover');
+    assert.equal(pointer.values.light_on, 1);
+    await page.keyboard.down('ArrowLeft');
+    await page.clock.runFor(100);
+    const repeated = await read(page);
+    released(repeated, 'repeat after pointer takeover');
+    assert.equal(repeated.values.aim_x, pointer.values.aim_x, 'A held-key repeat reclaimed pointer steering');
+    await page.keyboard.up('ArrowLeft');
+    assert.equal((await read(page)).values.light_on, 1, 'An old key release switched off the pointer beam');
+    await page.mouse.up();
+    assert.equal((await read(page)).values.light_on, 0);
+
+    await page.mouse.down();
+    await page.keyboard.down('ArrowRight');
+    const keyboard = await read(page);
+    assert.equal(keyboard.values.key_right, 1);
+    await page.mouse.up();
+    assert.equal((await read(page)).values.light_on, 1, 'An old pointer release switched off keyboard input');
+    await page.clock.runFor(100);
+    assert((await read(page)).values.aim_x > keyboard.values.aim_x);
+    await page.keyboard.up('ArrowRight');
+
+    await page.keyboard.down('a');
+    await page.getByRole('button', { name: /^Pause game$/i }).click();
+    const paused = await read(page);
+    released(paused, 'pause');
+    assert.equal(paused.values.light_on, 0);
+    await page.getByRole('button', { name: /^Keep going\b/i }).click();
+    await page.keyboard.down('a');
+    await page.clock.runFor(100);
+    const resumed = await read(page);
+    released(resumed, 'repeat after resume');
+    assert.equal(resumed.values.aim_x, paused.values.aim_x);
+    assert.equal(resumed.values.light_on, 0, 'Resume reused a physically held key without a fresh press');
+    await page.keyboard.up('a');
+
+    await page.keyboard.down('a');
+    await page.keyboard.down('Escape');
+    const escaped = await read(page);
+    released(escaped, 'source Escape pause');
+    assert.equal(escaped.values.paused, 1);
+    await page.keyboard.down('Escape');
+    assert.equal((await read(page)).values.paused, 1, 'An Escape repeat resumed the paused game');
+    await page.keyboard.up('Escape');
+    await page.keyboard.down('ArrowRight');
+    await page.keyboard.up('ArrowRight');
+    released(await read(page), 'movement input while paused');
+    await page.keyboard.down('Escape');
+    await page.keyboard.up('Escape');
+    assert.equal((await read(page)).values.paused, 0, 'A new source Escape press did not resume');
+    await page.keyboard.down('a');
+    released(await read(page), 'held key after source Escape resume');
+    await page.keyboard.up('a');
+
+    await page.keyboard.down('w');
+    // Exercise the browser lifecycle notification; no Caveat state is mutated.
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    const blurred = await read(page);
+    released(blurred, 'window blur');
+    assert.equal(blurred.values.paused, 1);
+    assert.equal(blurred.values.light_on, 0);
+    await page.getByRole('button', { name: /^Start over$/i }).click();
+    await page.keyboard.down('w');
+    await page.clock.runFor(100);
+    const restarted = await read(page);
+    released(restarted, 'repeat after retry');
+    assert.equal(restarted.values.phase, 1);
+    assert.equal(restarted.values.aim_x, initial.values.aim_x);
+    assert.equal(restarted.values.aim_z, initial.values.aim_z);
+    assert.equal(restarted.values.light_on, 0);
+    await page.keyboard.up('w');
+    await screenshot(page, 'source-keyboard-release');
+    assert.deepEqual(errors, []);
+    report.checks.push('source keyboard aliases, opposing directions, immediate releases, pointer takeover, Escape/pause, blur, retry, and repeated-key suppression');
+  } finally { await context.close(); }
+
+  let sourceIntercepted = false;
+  const mapped = await fresh(browser, {}, 10, async page => {
+    await page.route('**/light_the_way.cav', async route => {
+      const response = await route.fetch();
+      assert(response.ok());
+      const original = await response.text();
+      const remapped = original.replace('control key_KeyA = key_a_input;', 'control key_KeyJ = key_a_input;')
+        .replace('control key_Escape = toggle_pause;', 'control key_KeyP = toggle_pause;')
+        .replace('max(positive, positive_alias) - max(negative, negative_alias)', 'max(negative, negative_alias) - max(positive, positive_alias)');
+      assert.notEqual(remapped, original, 'The source-only control policy must change');
+      sourceIntercepted = true;
+      await route.fulfill({ response, body: remapped });
+    });
+  });
+  try {
+    assert(sourceIntercepted);
+    const initial = await begin(mapped.page);
+    assert.equal(initial.controls.key_KeyA, undefined);
+    assert.equal(initial.controls.key_KeyJ.event, 'key_a_input');
+    await mapped.page.keyboard.down('a');
+    await mapped.page.clock.runFor(100);
+    await mapped.page.keyboard.up('a');
+    const removed = await read(mapped.page);
+    released(removed, 'source-removed key');
+    assert.equal(removed.values.aim_x, initial.values.aim_x, 'The host retained its former A-key behavior');
+    assert.equal(removed.values.light_on, 0);
+    await mapped.page.keyboard.down('j');
+    await mapped.page.clock.runFor(300);
+    const changed = await read(mapped.page);
+    assert.equal(changed.values.key_a, 1, 'The host did not deliver the newly source-declared physical key');
+    assert(changed.values.aim_x > removed.values.aim_x, 'The unchanged host overrode source-reversed steering');
+    await mapped.page.keyboard.up('j');
+    const end = await read(mapped.page);
+    released(end, 'source-remapped key release');
+    assert.equal(end.values.light_on, 0);
+    assertHistoryPrefix(initial, end);
+    await mapped.page.keyboard.press('Escape');
+    assert.equal((await read(mapped.page)).values.paused, 0, 'The host retained an undeclared Escape shortcut');
+    await mapped.page.keyboard.press('p');
+    assert.equal((await read(mapped.page)).values.paused, 1, 'The new source pause key was ignored');
+    await mapped.page.keyboard.press('p');
+    assert.equal((await read(mapped.page)).values.paused, 0, 'The source pause key could not resume');
+    await screenshot(mapped.page, 'source-keyboard-remap');
+    assert.deepEqual(mapped.errors, []);
+    report.checks.push('Caveat-only HTTP variant remaps A to J and Escape to P, and reverses steering on the unchanged browser host');
+    console.log('PASS source-authored keyboard policy, physical-key lifecycle, and Caveat-only remapping');
+  } finally { await mapped.context.close(); }
+}
+
 async function sourceOnlyPresentation(browser) {
   let sourceIntercepted = false;
   const addition = `
@@ -484,6 +656,7 @@ try {
     await pointerRoute(browser, {}, name);
     await pointerRoute(browser, { ...devices['iPhone 13'], viewport: { width: 390, height: 844 } }, `${name}-mobile`);
     if (name === 'chromium') {
+      await keyboardSourcePolicy(browser);
       await keyboardAndFailure(browser);
       await sourceOnlyPresentation(browser);
     }

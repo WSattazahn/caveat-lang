@@ -20,6 +20,14 @@ Coordinates, geometry, audio frequencies, and interface layout can be ordinary d
 
 Bindings display the state reached by the program. Emitted cues describe the effects of a successfully committed event. Neither form may mutate the evidence graph from browser code.
 
+Physical key presses are ordinary input facts. Light the Way now interprets
+their aliases, held states, opposing directions, and steering in Caveat source.
+The browser forwards declared press/release events; it does not decide what a
+key means. Holding Space still requires a complete source-timed observation
+before a reading exists. Releasing input or pausing clears held keys without
+erasing observations, retained caveats, or earlier commitment bases. This moves
+application policy into Caveat without treating every input as epistemic evidence.
+
 ## Qualifications survive computation
 
 [Reactive 0.3](../spec/caveat-reactive-0.3.md) makes qualified numeric values part of execution. Arithmetic and reusable functions carry their evidence and caveats. Comparisons preserve those dependencies, and conditional writes retain the qualifications involved in choosing the result. Multiplying by zero or passing an argument to a function that ignores it cannot silently erase its evaluated dependency.

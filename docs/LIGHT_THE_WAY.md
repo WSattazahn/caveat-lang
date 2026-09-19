@@ -93,10 +93,23 @@ The resulting peak corrections are approximately `-0.585`, `+0.78`, and `-0.78` 
 | `start` | None | Start the rescue and commit to the course |
 | `aim` | `x`, `z`, `active` | Move the light and hold/release it |
 | `steer` | `dx`, `dz`, `active`, `dt` | Move the target through source rules for keyboard input |
+| Source-declared raw key events | `active`, between `0` and `1` | Retain a physical press or release; source rules determine its meaning |
 | `tick` | `dt`, between `0` and `0.1` seconds | Advance the source simulation |
 | `pause`, `resume` | None | Change the source pause state |
 
 Source `controls` map pointer, keyboard, start, pause, resume, and retry to these events. Start and retry construct a new session. The source clock specifies the tick interval. Pausing releases the light; event guards freeze physics and reject steering changes even if a host submits ticks or inputs while paused.
+
+The browser forwards physical key codes through source-declared controls such
+as `key_ArrowLeft`, `key_KeyA`, and `key_Space`. Each alias has an independent
+held state in Caveat. Source tick rules combine those states into steering:
+two left aliases move at the same speed as one, opposite directions cancel,
+and Space holds the beam without moving its target. Releasing one alias cannot
+release another held alias. Source pause and pointer takeover clear held keys.
+Escape's pause/resume toggle is also a declared source control.
+The browser retains only the key-delivery bookkeeping needed to suppress
+repeats and release input on focus loss. The existing numeric `steer` event
+remains available to native callers. Changing a raw-key control declaration
+changes browser behavior without editing JavaScript or Rust.
 
 The following domain values remain available for inspection and testing. Hosts consume their resulting `bindings`, not a fixed list of domain-state identifiers:
 

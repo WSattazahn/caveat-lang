@@ -5,7 +5,9 @@ const $ = selector => document.querySelector(selector);
 const app = $('#app'), canvas = $('#world');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const keys = new Set(), bindingCache = new WeakMap();
+// Track physical deliveries so repeats/releases reach the source once. The
+// source controls choose which keys matter and own their held state and policy.
+const pressedKeys = new Map(), bindingCache = new WeakMap();
 let source, session, snapshot, world, pointer = null, lastPointer = { x: 0, z: 0 };
 let lastFrame = 0, accumulator = 0, audioContext, soundEnabled = true;
 let cueSequence = null, focusTarget = null;
@@ -93,7 +95,7 @@ function renderBindings() {
 }
 
 function clearInput() {
-  keys.clear();
+  pressedKeys.clear();
   const captured = pointer;
   pointer = null;
   if (captured !== null && canvas.hasPointerCapture(captured)) canvas.releasePointerCapture(captured);
@@ -162,11 +164,6 @@ function frame(now) {
       if (clock?.event && Number.isFinite(step) && step > 0) {
         accumulator = Math.min(Math.max(.1, step), accumulator + dt);
         while (accumulator >= step && running()) {
-          if (keys.size) {
-            const dx = (keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0);
-            const dz = (keys.has('ArrowDown') || keys.has('s') ? 1 : 0) - (keys.has('ArrowUp') || keys.has('w') ? 1 : 0);
-            runControl('keyboard', { dx, dz, active: 1, dt: step });
-          }
           accumulator -= step;
           if (running()) dispatch(clock.event, { dt: step });
         }
@@ -184,7 +181,9 @@ function frame(now) {
 
 canvas.addEventListener('pointerdown', event => {
   if (event.button !== 0 || !running()) return;
-  event.preventDefault(); pointer = event.pointerId; keys.clear();
+  event.preventDefault();
+  if (pressedKeys.size) { pressedKeys.clear(); runControl('release_keys'); }
+  pointer = event.pointerId;
   canvas.setPointerCapture(pointer); canvas.focus({ preventScroll: true }); unlockSound();
   sendPointer(world.pointFromScreen(event.clientX, event.clientY), true);
 });
@@ -199,16 +198,21 @@ for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.
   sendPointer(lastPointer, false);
 });
 window.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && session) { event.preventDefault(); runControl(running() ? 'pause' : 'resume'); return; }
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  if (running() && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','s','d','w',' '].includes(key)) {
-    event.preventDefault(); keys.add(key); pointer = null; unlockSound();
-  }
+  const control = `key_${event.code}`;
+  if (!snapshot?.controls?.[control]) return;
+  event.preventDefault();
+  if (event.repeat || pressedKeys.has(event.code)) return;
+  pressedKeys.set(event.code, control);
+  const captured = pointer;
+  pointer = null;
+  if (captured !== null && canvas.hasPointerCapture(captured)) canvas.releasePointerCapture(captured);
+  runControl(control, { active: 1 });
 });
 window.addEventListener('keyup', event => {
-  const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
-  if (!keys.delete(key)) return;
-  if (!keys.size && running()) runControl('keyboard', { dx: 0, dz: 0, active: 0, dt: 0 });
+  const control = pressedKeys.get(event.code);
+  if (!control) return;
+  pressedKeys.delete(event.code);
+  runControl(control, { active: 0 });
 });
 window.addEventListener('blur', () => { if (session) runControl('pause'); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && session) runControl('pause'); });

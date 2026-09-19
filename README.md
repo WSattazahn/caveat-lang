@@ -44,6 +44,12 @@ Water time and accumulated rain travel now come from Caveat state too. The sourc
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
 
+Keyboard policy also lives in Caveat: source-declared physical-key controls
+retain independent presses and releases, combine aliases and opposing keys,
+and steer during source ticks. The browser forwards those input facts. A
+source-only remapping changes the playable controls; observing, examining,
+and reopening still follow the same qualified event rules.
+
 ## The Last Beacon — story experiment
 
 On stormbound Saint Orin, thirty-two ferry passengers are approaching a failing lighthouse. Spend three watches investigating uncertain evidence, try provisional plans, reopen them when the world disagrees, and choose between restoring the light, sending the island pilot, or holding the ferry offshore until daylight. Six interactions produce 324 legal decision sequences and nine outcomes across three final destinations. Earlier investigations unlock targeted preparations; performing those preparations changes what the same final order accomplishes. See the [game design and action contracts](docs/THE_LAST_BEACON.md).

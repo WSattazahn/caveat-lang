@@ -139,6 +139,26 @@ name. Names must be unique, and events must be declared. The host maps its
 pointer, keyboard, or UI action to the named control and supplies precisely the
 event's declared numeric payload. This metadata does not bypass event bounds.
 
+The rescue browser's raw-key convention is `key_` followed by a physical
+`KeyboardEvent.code`, for example `control key_KeyA = left_key;`. Its event
+declares one numeric `active` parameter in 0..1. A press forwards 1, a release
+forwards 0, and repeated keydown notifications do not repeat a press. A key
+without a declared control is ignored. The browser does not infer a direction
+from the code: source events retain held states, and source tick rules combine
+aliases and opposing inputs. `control release_keys = EVENT` is the optional
+no-argument input-release hook for input-device handover. Focus loss dispatches
+the program's pause control, whose source rules clear held keys.
+
+The same convention handles Escape: the rescue declares `key_Escape` for a
+source event that toggles pause on press. Declared key events can be delivered
+while paused or at other screens; source guards decide whether to act. The
+browser does not supply a hardcoded Escape action or a gameplay eligibility rule.
+
+These are host conventions over existing controls, not new interpreter syntax.
+Programs remain responsible for clearing their held states on pause and
+pointer takeover, including when a native host dispatches those events directly.
+Releases clear input state; they do not retract evidence or reset commitments.
+
 For a control with `reset: true`, the host constructs a fresh session from the
 same source **before** dispatching the control's event. Reset is a host protocol;
 dispatching the event directly does not reset the existing session.
