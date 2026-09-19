@@ -1,6 +1,8 @@
 use crate::action_runtime::{simulate, ActionRuntime};
+use crate::game_session::GameSession;
 use crate::graphics::CaveatScene;
 use crate::map::{to_json_pretty, CaveatMap};
+use crate::reactive::ReactiveSession;
 use crate::session::{CommitmentFeedback, Discovery, PendingInteraction, Session};
 use crate::world3d::World3D;
 #[cfg(target_arch = "wasm32")]
@@ -30,6 +32,33 @@ fn error_json(message: &str) -> String {
         "{{\"kind\":\"error\",\"message\":{}}}",
         json_string(message)
     )
+}
+
+/// A generic event bridge: arithmetic, collisions, and epistemic effects all
+/// execute in CAVEAT source. The host supplies only bounded event parameters.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub struct WebReactiveSession {
+    inner: ReactiveSession,
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+impl WebReactiveSession {
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen(constructor))]
+    pub fn new(source: &str) -> Result<WebReactiveSession, String> {
+        Ok(Self {
+            inner: ReactiveSession::from_source(source)?,
+        })
+    }
+
+    pub fn snapshot(&self) -> String {
+        to_json_pretty(&self.inner.snapshot()).expect("finite reactive snapshot")
+    }
+
+    pub fn dispatch(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        self.inner
+            .dispatch_json(event, payload_json)
+            .and_then(|snapshot| to_json_pretty(&snapshot))
+    }
 }
 
 fn pending_json(pending: PendingInteraction) -> String {
@@ -150,6 +179,46 @@ pub fn evaluate_summary(source: &str) -> String {
     }
 }
 
+/// Generic game bridge. Unlike the legacy presentation-specific wrappers, it
+/// contains no scene, action-name or renderer behavior.
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+pub struct WebGameSession {
+    inner: GameSession,
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
+impl WebGameSession {
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen(constructor))]
+    pub fn new(source: &str) -> Result<WebGameSession, String> {
+        Ok(Self {
+            inner: GameSession::from_source(source)?,
+        })
+    }
+
+    pub fn snapshot(&self) -> String {
+        self.inner
+            .snapshot()
+            .and_then(|snapshot| to_json_pretty(&snapshot))
+            .unwrap_or_else(|error| error_json(&error))
+    }
+
+    pub fn apply(&mut self, selection: &str) -> Result<String, String> {
+        self.inner
+            .apply(selection)
+            .and_then(|snapshot| to_json_pretty(&snapshot))
+    }
+
+    pub fn save(&self) -> String {
+        self.inner.save()
+    }
+
+    pub fn restore(source: &str, save: &str) -> Result<WebGameSession, String> {
+        Ok(Self {
+            inner: GameSession::restore(source, save)?,
+        })
+    }
+}
+
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct WebSession {
     inner: Session,
@@ -175,7 +244,7 @@ impl WebSession {
         commitment_json(self.inner.commitment())
     }
     pub fn summary(&self) -> String {
-        match crate::eval::evaluate(self.inner.program()) {
+        match self.inner.current_evaluation() {
             Ok(evaluation) => {
                 let budget = evaluation
                     .resources
@@ -245,7 +314,7 @@ impl Web3DSession {
             inner: Session::from_source(source)?,
             map,
             actions,
-            world: World3D::the_door(),
+            world: World3D::the_door_from_source(source)?,
         })
     }
     pub fn pending(&self) -> String {

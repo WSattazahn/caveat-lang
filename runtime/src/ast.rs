@@ -1,4 +1,21 @@
 use crate::{Attention, Consequence, Relation, StopReason};
+use serde::Serialize;
+
+/// A condition about knowledge actually reached by the running program.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum EpistemicCondition {
+    Observed { symbol: String },
+    Examined { symbol: String },
+}
+
+impl EpistemicCondition {
+    pub fn symbol(&self) -> &str {
+        match self {
+            Self::Observed { symbol } | Self::Examined { symbol } => symbol,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
@@ -31,6 +48,17 @@ pub enum ConditionalAction {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
+    Reactive(crate::reactive::Directive),
+    Presentation(crate::presentation::Directive),
+    Require {
+        action: String,
+        condition: EpistemicCondition,
+    },
+    Resolve {
+        action: String,
+        outcome: String,
+        condition: Option<EpistemicCondition>,
+    },
     Scene {
         text: String,
     },

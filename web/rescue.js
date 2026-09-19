@@ -1,0 +1,255 @@
+import init, { WebReactiveSession } from './pkg/caveat_runtime.js';
+import { createRescueWorld } from './rescue-world.js';
+
+const $ = selector => document.querySelector(selector);
+const app = $('#app'), canvas = $('#world');
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Track physical deliveries so repeats/releases reach the source once. The
+// source controls choose which keys matter and own their held state and policy.
+const pressedKeys = new Map(), bindingCache = new WeakMap();
+let source, session, snapshot, world, pointer = null, lastPointer = { x: 0, z: 0 };
+let lastFrame = 0, accumulator = 0, audioContext, soundEnabled = true;
+let cueSequence = null, focusTarget = null;
+const recentCues = [];
+const running = () => Boolean(snapshot?.bindings?.app?.running);
+
+function unlockSound() {
+  if (!soundEnabled) return;
+  try {
+    if (!audioContext) {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      audioContext = new Audio();
+    }
+    audioContext.resume().catch(() => {});
+  } catch { soundEnabled = false; }
+}
+
+// Sound parameters and timing are emitted by the source; the host supplies
+// only the audio device, its user preference, and a reusable oscillator.
+function soundCue(cue) {
+  if (!soundEnabled || !audioContext) return;
+  const duration = Math.max(0.01, Number(cue.duration) || 0.01);
+  const frequency = Number(cue.frequency), level = clamp(Number(cue.gain) || 0, 0, 1);
+  if (!Number.isFinite(frequency) || frequency <= 0 || level <= 0) return;
+  const now = audioContext.currentTime;
+  const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+  oscillator.type = ['sine', 'triangle', 'square', 'sawtooth'].includes(cue.waveform) ? cue.waveform : 'sine';
+  oscillator.frequency.setValueAtTime(frequency, now);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(level, now + Math.min(0.015, duration / 4));
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  oscillator.connect(gain); gain.connect(audioContext.destination);
+  oscillator.start(now); oscillator.stop(now + duration);
+  oscillator.addEventListener('ended', () => { oscillator.disconnect(); gain.disconnect(); }, { once: true });
+}
+
+function playCues() {
+  if (cueSequence === snapshot.sequence) return;
+  cueSequence = snapshot.sequence;
+  for (const cue of snapshot.cues || []) {
+    recentCues.push({ ...cue, sequence: snapshot.sequence });
+    if (recentCues.length > 32) recentCues.shift();
+    if (cue.kind === 'sound') soundCue(cue);
+    // World-space cues belong to the renderer, which receives the same snapshot.
+    // Toast visibility and screen flashes are ordinary source-owned bindings.
+  }
+}
+
+// A property adapter, not a game-state interpreter. CAVEAT chooses the value,
+// visibility, labels and screen; HTML chooses how a value is presented.
+function renderBindings() {
+  for (const node of document.querySelectorAll('[data-caveat]')) {
+    const properties = snapshot.bindings?.[node.dataset.caveat];
+    if (!properties) continue;
+    const selected = node.dataset.caveatProperties?.split(',');
+    const binding = selected ? Object.fromEntries(Object.entries(properties).filter(([key]) => selected.includes(key))) : properties;
+    const signature = JSON.stringify(binding);
+    if (bindingCache.get(node) === signature) continue;
+    bindingCache.set(node, signature);
+    if ('visible' in binding) node.hidden = !binding.visible;
+    if ('screen' in binding) node.dataset.screen = String(binding.screen);
+    if ('text' in binding) node.textContent = String(binding.text ?? '');
+    if ('value' in binding) {
+      const value = binding.value;
+      if (node.dataset.valueStyle) {
+        const property = node.dataset.valueStyle;
+        if (['width', 'left'].includes(property)) node.style[property] = `${clamp(Number(value) || 0, 0, 1) * 100}%`;
+      } else node.textContent = String(value ?? '');
+    }
+    if ('progress' in binding) node.style.width = `${clamp(Number(binding.progress) || 0, 0, 1) * 100}%`;
+    for (const [property, value] of Object.entries(binding)) {
+      if (['visible', 'screen', 'text', 'value', 'max', 'progress'].includes(property)) continue;
+      if (property === 'disabled') node.disabled = Boolean(value);
+      else if (property === 'title' || property.startsWith('aria_')) node.setAttribute(property.replaceAll('_', '-'), String(value));
+      else node.setAttribute(`data-${property.replaceAll('_', '-')}`, String(value));
+    }
+  }
+  const nextFocus = snapshot.bindings?.focus?.target;
+  if (nextFocus !== focusTarget) {
+    focusTarget = nextFocus;
+    const node = typeof nextFocus === 'string' ? document.getElementById(nextFocus) : null;
+    if (node && !node.closest('[hidden]')) node.focus({ preventScroll: true });
+  }
+}
+
+function clearInput() {
+  pressedKeys.clear();
+  const captured = pointer;
+  pointer = null;
+  if (captured !== null && canvas.hasPointerCapture(captured)) canvas.releasePointerCapture(captured);
+}
+
+function accept(next) {
+  snapshot = next;
+  world?.setRescueState(snapshot);
+  renderBindings();
+  if (!running()) { clearInput(); accumulator = 0; }
+  playCues();
+}
+
+function dispatch(event, payload = {}) {
+  if (!session || !event) return;
+  accept(JSON.parse(session.dispatch(event, JSON.stringify(payload))));
+}
+
+function runControl(name, payload = {}) {
+  const control = snapshot?.controls?.[name];
+  if (!control) return;
+  unlockSound();
+  if (control.reset) {
+    clearInput();
+    session?.free(); session = new WebReactiveSession(source);
+    cueSequence = null; focusTarget = null; accumulator = 0; lastFrame = performance.now();
+    $('#runtime-error').hidden = true; recentCues.length = 0;
+    accept(JSON.parse(session.snapshot()));
+  }
+  dispatch(control.event, payload);
+}
+
+function sendPointer(point, active) {
+  if (!running() || !point || !Number.isFinite(point.x) || !Number.isFinite(point.z)) return;
+  lastPointer = { x: point.x, z: point.z };
+  const payload = { ...lastPointer, active: active ? 1 : 0 };
+  const event = snapshot.events?.find(item => item.name === snapshot.controls?.pointer?.event);
+  // Projection can extend beyond the playable world on wide screens. Honor
+  // the declared input contract before dispatch; source owns gameplay bounds.
+  for (const parameter of event?.parameters || []) {
+    if (Number.isFinite(payload[parameter.name]) && Number.isFinite(parameter.min) && Number.isFinite(parameter.max)) {
+      payload[parameter.name] = clamp(payload[parameter.name], parameter.min, parameter.max);
+    }
+  }
+  runControl('pointer', payload);
+}
+
+function placeLabels() {
+  if (!world) return;
+  const rect = canvas.getBoundingClientRect();
+  for (const node of document.querySelectorAll('[data-world-label]')) {
+    const point = world.getScreenPosition(node.dataset.worldLabel);
+    const visible = snapshot.bindings?.[node.dataset.caveat]?.visible;
+    node.hidden = !point?.visible || visible === false || visible === 0;
+    if (point) { node.style.left = `${point.x * rect.width}px`; node.style.top = `${point.y * rect.height - Number(node.dataset.labelLift || 0)}px`; }
+  }
+}
+
+function frame(now) {
+  const dt = lastFrame ? Math.min(.1, Math.max(0, (now - lastFrame) / 1000)) : 0;
+  lastFrame = now;
+  try {
+    if (running() && !document.hidden) {
+      const clock = snapshot.clock;
+      const step = Number(clock?.step);
+      if (clock?.event && Number.isFinite(step) && step > 0) {
+        accumulator = Math.min(Math.max(.1, step), accumulator + dt);
+        while (accumulator >= step && running()) {
+          accumulator -= step;
+          if (running()) dispatch(clock.event, { dt: step });
+        }
+      }
+    }
+    placeLabels();
+  } catch (error) {
+    console.error(error);
+    try { runControl('pause'); } catch { clearInput(); }
+    $('#runtime-error').textContent = 'The game could not continue. Try starting over.';
+    $('#runtime-error').hidden = false;
+  }
+  requestAnimationFrame(frame);
+}
+
+canvas.addEventListener('pointerdown', event => {
+  if (event.button !== 0 || !running()) return;
+  event.preventDefault();
+  if (pressedKeys.size) { pressedKeys.clear(); runControl('release_keys'); }
+  pointer = event.pointerId;
+  canvas.setPointerCapture(pointer); canvas.focus({ preventScroll: true }); unlockSound();
+  sendPointer(world.pointFromScreen(event.clientX, event.clientY), true);
+});
+canvas.addEventListener('pointermove', event => {
+  if (event.pointerId !== pointer) return;
+  event.preventDefault();
+  sendPointer(world.pointFromScreen(event.clientX, event.clientY), true);
+});
+for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(name, event => {
+  if (event.pointerId !== pointer) return;
+  pointer = null;
+  sendPointer(lastPointer, false);
+});
+window.addEventListener('keydown', event => {
+  const control = `key_${event.code}`;
+  if (!snapshot?.controls?.[control]) return;
+  event.preventDefault();
+  if (event.repeat || pressedKeys.has(event.code)) return;
+  pressedKeys.set(event.code, control);
+  const captured = pointer;
+  pointer = null;
+  if (captured !== null && canvas.hasPointerCapture(captured)) canvas.releasePointerCapture(captured);
+  runControl(control, { active: 1 });
+});
+window.addEventListener('keyup', event => {
+  const control = pressedKeys.get(event.code);
+  if (!control) return;
+  pressedKeys.delete(event.code);
+  runControl(control, { active: 0 });
+});
+window.addEventListener('blur', () => { if (session) runControl('pause'); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && session) runControl('pause'); });
+document.addEventListener('click', event => {
+  const control = event.target.closest('[data-control]');
+  if (control && !control.disabled) runControl(control.dataset.control);
+});
+$('#sound').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  $('#sound').setAttribute('aria-pressed', String(soundEnabled));
+  $('#sound').setAttribute('aria-label', soundEnabled ? 'Turn sound off' : 'Turn sound on');
+  if (soundEnabled) unlockSound(); else audioContext?.suspend().catch(() => {});
+});
+
+async function boot() {
+  const response = await fetch('./light_the_way.cav');
+  if (!response.ok) throw new Error('The game source could not load.');
+  source = await response.text();
+  await init();
+  session = new WebReactiveSession(source); snapshot = JSON.parse(session.snapshot());
+  world = createRescueWorld(canvas, { model: snapshot.world, labels: snapshot.labels });
+  $('#start-actions').innerHTML = '<button class="primary" id="start-rescue" data-control="start"><span class="button-label" data-caveat="start_label">Start rescue</span><span aria-hidden="true">→</span></button>';
+  $('#sound').setAttribute('aria-pressed', String(soundEnabled));
+  $('#sound').setAttribute('aria-label', soundEnabled ? 'Turn sound off' : 'Turn sound on');
+  accept(snapshot);
+  Object.defineProperty(window, '__rescue', { value: Object.freeze({
+    snapshot: () => JSON.parse(session.snapshot()),
+    recentCues: () => structuredClone(recentCues),
+    presentation: () => structuredClone(world.getBindingPresentation()),
+    get rendered() { return Boolean(world); }, get screen() { return app.dataset.screen; },
+    projected(x, z) { const p = world.projected(x, z), r = canvas.getBoundingClientRect(); return p ? { x: r.left + p.x * r.width, y: r.top + p.y * r.height, visible: p.visible } : null; },
+  }) });
+  requestAnimationFrame(frame);
+}
+
+boot().catch(error => {
+  console.error(error); app.dataset.screen = 'error';
+  $('#start-actions').innerHTML = `<div class="error-box">The rescue could not start. ${escape(error.message || error)}<br><button class="secondary" id="reload">Try again</button></div>`;
+  $('#reload').addEventListener('click', () => location.reload());
+});

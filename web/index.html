@@ -34,10 +34,10 @@
     button:focus-visible,summary:focus-visible{outline:3px solid #f3ca72;outline-offset:3px}
     .app{width:min(100%,960px);margin:0 auto;padding:18px 14px calc(28px + env(safe-area-inset-bottom))}
     .mast{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;
       padding:2px 4px 12px
     }
-    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .brand{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:0}
     .mark{
       width:34px;height:34px;border:1px solid rgba(255,255,255,.18);border-radius:11px;
       display:grid;place-items:center;background:rgba(255,255,255,.055);flex:0 0 auto
@@ -167,7 +167,7 @@
       .scene-caption .place{max-width:100%;font-size:10.5px}
       .scene-caption .weather{display:none}
     }
-  .mode-switch{display:flex;align-items:center;gap:8px}.mode-link{display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;border:1px solid rgba(243,202,114,.35);border-radius:999px;background:rgba(243,202,114,.07);color:#f5d895;text-decoration:none;font-size:12px;white-space:nowrap}.mode-link:focus-visible{outline:3px solid #f3ca72;outline-offset:3px}@media(max-width:700px){.mode-switch{gap:6px}.mode-link{min-height:30px;padding:5px 8px;font-size:11px}}
+  .mode-switch{display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:100%}.mode-link{display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;border:1px solid rgba(243,202,114,.35);border-radius:999px;background:rgba(243,202,114,.07);color:#f5d895;text-decoration:none;font-size:12px;white-space:nowrap}.mode-link:focus-visible{outline:3px solid #f3ca72;outline-offset:3px}@media(max-width:700px){.mode-switch{flex-basis:100%;gap:6px}.mode-link{min-height:30px;padding:5px 8px;font-size:11px}}
 </style>
 </head>
 <body>
@@ -177,7 +177,7 @@
       <div class="mark" aria-hidden="true">◐</div>
       <div><strong>CAVEAT</strong><small>worlds that remember uncertainty</small></div>
     </div>
-    <div class="mode-switch"><a class="mode-link" href="./mr-caveat.html">Play Mr. Caveat</a><a class="mode-link" href="./moon-garden-3d.html">3D garden</a><div class="status-pill" id="engineStatus">Loading story…</div></div>
+    <div class="mode-switch"><a class="mode-link" href="./rescue.html">Light the Way · play</a><a class="mode-link" href="./mr-caveat.html">Play Mr. Caveat</a><a class="mode-link" href="./moon-garden-3d.html">3D garden</a><div class="status-pill" id="engineStatus">Loading story…</div></div>
   </header>
 
   <section class="stage" aria-label="Moon Garden game">

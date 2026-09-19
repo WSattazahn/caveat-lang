@@ -2,11 +2,17 @@ pub mod action_runtime;
 pub mod ast;
 pub mod caveat_rs;
 pub mod eval;
+pub mod game_session;
 pub mod graphics;
 pub mod map;
 pub mod parser;
+pub mod presentation;
+pub mod reactive;
+mod reactive_expr;
 pub mod session;
+pub mod source_library;
 pub mod web;
+pub mod web_source_library;
 pub mod world3d;
 
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -76,6 +82,8 @@ pub enum Relation {
     InContext,
     Retains,
     Reopens,
+    /// A decision used this evidence as a basis; this does not assert truth.
+    ReliesOn,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Edge {
@@ -90,7 +98,7 @@ pub struct QualificationImpact {
     pub affected: Vec<NodeId>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct EpistemicGraph {
     next_id: NodeId,
     pub nodes: HashMap<NodeId, NodeKind>,
@@ -184,12 +192,15 @@ impl EpistemicGraph {
                 if !seen.insert(node) {
                     continue;
                 }
-                for next in self
-                    .edges
-                    .iter()
-                    .filter(|edge| edge.from == node && edge.relation == Relation::Supports)
-                    .map(|edge| edge.to)
-                {
+                for next in self.edges.iter().filter_map(|edge| {
+                    if edge.from == node && edge.relation == Relation::Supports {
+                        Some(edge.to)
+                    } else if edge.to == node && edge.relation == Relation::ReliesOn {
+                        Some(edge.from)
+                    } else {
+                        None
+                    }
+                }) {
                     queue.push_back(next);
                 }
             }

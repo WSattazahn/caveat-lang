@@ -147,6 +147,20 @@ impl Evaluator {
             .copied()
             .ok_or_else(|| format!("unknown symbol: {name}"))
     }
+    fn resolve_caveat(&self, name: &str, context: &str) -> Result<NodeId, String> {
+        let id = self.resolve(name)?;
+        if !matches!(self.graph.nodes.get(&id), Some(NodeKind::Caveat { .. })) {
+            return Err(format!("{context} target must be a caveat: {name}"));
+        }
+        Ok(id)
+    }
+    fn resolve_commitment(&self, name: &str) -> Result<NodeId, String> {
+        let id = self.resolve(name)?;
+        if !matches!(self.graph.nodes.get(&id), Some(NodeKind::Commitment { .. })) {
+            return Err(format!("reopen target must be a commitment: {name}"));
+        }
+        Ok(id)
+    }
     fn define(&mut self, name: &str, id: NodeId) -> Result<(), String> {
         if self.symbols.insert(name.into(), id).is_some() {
             Err(format!("duplicate symbol: {name}"))
@@ -162,7 +176,10 @@ impl Evaluator {
         }
     }
     fn charge(&mut self, caveat: &str, cost: u64, context: &str) -> Result<(NodeId, u64), String> {
-        let id = self.resolve(caveat)?;
+        // Validate the target before charging attention. The graph's mutation
+        // methods assume correctly typed nodes; source errors must return Err,
+        // rather than panic or trap the browser's WebAssembly instance.
+        let id = self.resolve_caveat(caveat, context)?;
         let ledger = self
             .resources
             .as_mut()
@@ -183,9 +200,13 @@ impl Evaluator {
                 self.display.insert(symbol.clone(), text.clone());
             }
             Statement::Place { .. }
+            | Statement::Reactive(_)
+            | Statement::Presentation(_)
             | Statement::Entity { .. }
             | Statement::Connect { .. }
             | Statement::StartAt { .. }
+            | Statement::Require { .. }
+            | Statement::Resolve { .. }
             | Statement::ActionPlan { .. } => {}
             Statement::Budget { units } => {
                 self.resources = Some(ResourceLedger {
@@ -219,7 +240,7 @@ impl Evaluator {
                 self.graph.relate(from, *relation, to);
             }
             Statement::Attention { caveat, state } => {
-                let id = self.resolve(caveat)?;
+                let id = self.resolve_caveat(caveat, "attention")?;
                 self.graph.set_attention(id, *state);
             }
             Statement::Examine { caveat, cost } => {
@@ -388,7 +409,7 @@ impl Evaluator {
                         commitment,
                         because,
                     } => {
-                        let commitment = self.resolve(commitment)?;
+                        let commitment = self.resolve_commitment(commitment)?;
                         let because = self.resolve(because)?;
                         self.graph.reopen(commitment, because);
                         self.event(EventKind::Reopened {
@@ -430,7 +451,7 @@ impl Evaluator {
                 commitment,
                 because,
             } => {
-                let commitment = self.resolve(commitment)?;
+                let commitment = self.resolve_commitment(commitment)?;
                 let because = self.resolve(because)?;
                 self.graph.reopen(commitment, because);
                 self.event(EventKind::Reopened {
