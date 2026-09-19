@@ -10,7 +10,9 @@ pub mod presentation;
 pub mod reactive;
 mod reactive_expr;
 pub mod session;
+pub mod source_library;
 pub mod web;
+pub mod web_source_library;
 pub mod world3d;
 
 use std::collections::{HashMap, HashSet, VecDeque};

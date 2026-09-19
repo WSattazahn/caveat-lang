@@ -271,7 +271,8 @@ impl Function {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[serde(untagged)]
 pub enum Value {
     Number(f64),
     Bool(bool),
@@ -344,6 +345,66 @@ fn check_text_size(bytes: usize) -> Result<(), String> {
 }
 
 impl Expr {
+    /// Count retained AST nodes and owned string bytes after expansion. The
+    /// shared source library uses this in addition to per-expression bounds.
+    pub(crate) fn storage_usage(&self) -> (usize, usize) {
+        let mut nodes = 1;
+        let mut bytes = 0;
+        let mut visit = |child: &Expr| {
+            let (child_nodes, child_bytes) = child.storage_usage();
+            nodes += child_nodes;
+            bytes += child_bytes;
+        };
+        match &self.node {
+            Node::Unary(_, child) | Node::HistoryAt(_, child) => visit(child),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                visit(left);
+                visit(right);
+            }
+            Node::If(condition, yes, no) => {
+                visit(condition);
+                visit(yes);
+                visit(no);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    visit(argument);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    visit(argument);
+                }
+                visit(body);
+            }
+            Node::Fold(_, initial, _) => visit(initial),
+            Node::ExpandedFold(_, initial, body) => {
+                visit(initial);
+                visit(body);
+            }
+            Node::Qualified(value, _, _) => visit(value),
+            _ => {}
+        }
+        match &self.node {
+            Node::Number(number) => bytes += number.value().to_string().len(),
+            Node::Text(text)
+            | Node::Variable(text)
+            | Node::Latest(text)
+            | Node::HistoryCount(text)
+            | Node::UserCall(text, _)
+            | Node::HistoryAt(text, _)
+            | Node::ExpandedFold(text, _, _) => bytes += text.len(),
+            Node::Predicate(kind, name) | Node::Fold(kind, _, name) => {
+                bytes += kind.len() + name.len()
+            }
+            Node::Qualified(_, evidence, caveats) => {
+                bytes += evidence.len() + caveats.iter().map(String::len).sum::<usize>();
+            }
+            _ => {}
+        }
+        (nodes, bytes)
+    }
+
     fn new(node: Node) -> Result<Self, String> {
         let depth = match &node {
             Node::Unary(_, child)

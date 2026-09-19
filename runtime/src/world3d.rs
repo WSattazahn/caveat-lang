@@ -1,6 +1,37 @@
 use crate::action_runtime::{ActionExecution, WorldCommand};
+use crate::source_library::{FunctionValue, SourceLibrary};
 use std::f32::consts::PI;
 use std::fmt::Write as _;
+use std::sync::OnceLock;
+
+const DOOR_SOURCE: &str = include_str!("../../game/the_door_round2.cav");
+static DEFAULT_MOTION: OnceLock<SourceLibrary> = OnceLock::new();
+
+fn motion_library(source: &str) -> Result<SourceLibrary, String> {
+    let library = SourceLibrary::from_source(source)?;
+    let signatures = library.signatures();
+    for (name, arity, result_type) in [
+        ("door_move_duration", 1, "number"),
+        ("door_face_target", 2, "boolean"),
+        ("door_turn_delta", 1, "number"),
+        ("door_animate_turn", 1, "boolean"),
+        ("door_yaw_duration", 0, "number"),
+        ("door_pitch_duration", 0, "number"),
+        ("door_open_degrees", 0, "number"),
+        ("door_open_duration", 0, "number"),
+    ] {
+        let signature = signatures
+            .iter()
+            .find(|signature| signature.name == name)
+            .ok_or_else(|| format!("3D source requires motion function {name}"))?;
+        if signature.parameters.len() != arity || signature.result_type != result_type {
+            return Err(format!(
+                "3D motion function {name} requires {arity} numeric arguments and a {result_type} result"
+            ));
+        }
+    }
+    Ok(library)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec3 {
@@ -167,10 +198,24 @@ pub struct World3D {
     pub passages: Vec<PassageAnchor3D>,
     heading_degrees: f32,
     pitch_degrees: f32,
+    motion: SourceLibrary,
 }
 
 impl World3D {
     pub fn the_door() -> Self {
+        let motion = DEFAULT_MOTION.get_or_init(|| {
+            motion_library(DOOR_SOURCE).expect("bundled Door motion must validate")
+        });
+        Self::door_with_motion(motion.clone())
+    }
+
+    /// The scene still uses its existing geometry and materials. Its motion
+    /// policy is compiled from the same source as the logical action program.
+    pub fn the_door_from_source(source: &str) -> Result<Self, String> {
+        Ok(Self::door_with_motion(motion_library(source)?))
+    }
+
+    fn door_with_motion(motion: SourceLibrary) -> Self {
         let t = |p, s| Transform3D::new(p, Vec3::new(0.0, 0.0, 0.0), s);
         let obj =
             |id: &str, p, s, parent: Option<&str>, interactive: Option<&str>, color, state| {
@@ -393,6 +438,7 @@ impl World3D {
             ],
             heading_degrees: 0.0,
             pitch_degrees: 0.0,
+            motion,
         };
         if let Some(o) = w.objects.iter_mut().find(|o| o.id == "reopened_marker") {
             o.visible = false
@@ -421,6 +467,20 @@ impl World3D {
         execution: &ActionExecution,
         reopened: bool,
     ) -> Result<(), String> {
+        // Source policies can reject a later command after earlier commands
+        // have produced events or changed objects. Publish the whole action
+        // only after every command succeeds, including for native callers.
+        let mut next = self.clone();
+        next.apply_execution_in_place(execution, reopened)?;
+        *self = next;
+        Ok(())
+    }
+
+    fn apply_execution_in_place(
+        &mut self,
+        execution: &ActionExecution,
+        reopened: bool,
+    ) -> Result<(), String> {
         let mut opened = Vec::new();
 
         for command in &execution.commands {
@@ -438,8 +498,8 @@ impl World3D {
                         .unwrap_or_else(|| entity.clone());
                     self.events.push(WorldEvent3D::RotateY {
                         object: target,
-                        degrees: -92.0,
-                        duration: 0.9,
+                        degrees: self.motion_number("door_open_degrees", &[])?,
+                        duration: self.motion_duration("door_open_duration", &[])?,
                     });
                     self.set_state(entity, EpistemicVisualState::Retained);
                     opened.push(entity.clone());
@@ -483,7 +543,7 @@ impl World3D {
         let facing_target = via
             .and_then(|entity| self.passage_anchor(entity))
             .unwrap_or(destination.position);
-        self.face_toward(facing_target);
+        self.face_toward(facing_target)?;
 
         let mut points = Vec::new();
         if let Some(entity) = via {
@@ -499,7 +559,7 @@ impl World3D {
             distance += vec3_distance(previous, *point);
             previous = *point;
         }
-        let duration = (distance / 3.0).clamp(0.45, 2.8);
+        let duration = self.motion_duration("door_move_duration", &[distance])?;
 
         self.events.push(WorldEvent3D::MovePath {
             object: "player".into(),
@@ -507,45 +567,91 @@ impl World3D {
             duration,
         });
         self.camera.transform.position = destination.position;
-        self.face_heading(destination.heading_degrees);
-        self.face_pitch(destination.pitch_degrees);
+        self.face_heading(destination.heading_degrees)?;
+        self.face_pitch(destination.pitch_degrees)?;
         Ok(())
     }
 
-    fn face_toward(&mut self, target: Vec3) {
+    fn face_toward(&mut self, target: Vec3) -> Result<(), String> {
         let origin = self.camera.transform.position;
         let dx = target.x - origin.x;
         let dz = target.z - origin.z;
-        if dx.abs() < 0.001 && dz.abs() < 0.001 {
-            return;
+        if !self.motion_bool("door_face_target", &[dx, dz])? {
+            return Ok(());
         }
 
+        // Keep coordinate geometry in the renderer's existing f32 precision.
+        // Source chooses when and how long to turn, and wraps the angle.
         let desired = dx.atan2(-dz) * 180.0 / PI;
-        self.face_heading(desired);
+        self.face_heading(desired)
     }
 
-    fn face_heading(&mut self, desired: f32) {
-        let delta = normalize_degrees(desired - self.heading_degrees);
-        if delta.abs() >= 1.0 {
+    fn face_heading(&mut self, desired: f32) -> Result<(), String> {
+        let delta = self.motion_number("door_turn_delta", &[desired - self.heading_degrees])?;
+        if self.motion_bool("door_animate_turn", &[delta])? {
             self.events.push(WorldEvent3D::LookYaw {
                 object: "player".into(),
                 degrees: delta,
-                duration: 0.45,
+                duration: self.motion_duration("door_yaw_duration", &[])?,
             });
         }
         self.heading_degrees = desired;
+        Ok(())
     }
 
-    fn face_pitch(&mut self, desired: f32) {
+    fn face_pitch(&mut self, desired: f32) -> Result<(), String> {
         let delta = desired - self.pitch_degrees;
-        if delta.abs() >= 1.0 {
+        if self.motion_bool("door_animate_turn", &[delta])? {
             self.events.push(WorldEvent3D::LookPitch {
                 object: "player".into(),
                 degrees: delta,
-                duration: 0.35,
+                duration: self.motion_duration("door_pitch_duration", &[])?,
             });
         }
         self.pitch_degrees = desired;
+        Ok(())
+    }
+
+    fn motion_number(&self, name: &str, arguments: &[f32]) -> Result<f32, String> {
+        // These are ordinary world coordinates, not projections of qualified
+        // evidence. The library retains tracked inputs for epistemic callers.
+        let arguments = arguments
+            .iter()
+            .map(|value| f64::from(*value))
+            .collect::<Vec<_>>();
+        let result = self.motion.call_numbers(name, &arguments)?;
+        let FunctionValue::Number(number) = result.value else {
+            return Err(format!("3D motion function {name} must return a number"));
+        };
+        let number = number as f32;
+        if !number.is_finite() {
+            return Err(format!(
+                "3D motion function {name} exceeds finite f32 range"
+            ));
+        }
+        Ok(number)
+    }
+
+    fn motion_bool(&self, name: &str, arguments: &[f32]) -> Result<bool, String> {
+        let arguments = arguments
+            .iter()
+            .map(|value| f64::from(*value))
+            .collect::<Vec<_>>();
+        let result = self.motion.call_numbers(name, &arguments)?;
+        let FunctionValue::Bool(value) = result.value else {
+            return Err(format!("3D motion function {name} must return a boolean"));
+        };
+        Ok(value)
+    }
+
+    fn motion_duration(&self, name: &str, arguments: &[f32]) -> Result<f32, String> {
+        let duration = self.motion_number(name, arguments)?;
+        if duration <= 0.0 {
+            return Err(format!(
+                "3D motion function {name} requires a positive duration"
+            ));
+        }
+        Ok(duration)
     }
 
     fn anchor(&self, place: &str) -> Result<&PlaceAnchor3D, String> {
@@ -571,16 +677,6 @@ fn vec3_distance(a: Vec3, b: Vec3) -> f32 {
     let dy = b.y - a.y;
     let dz = b.z - a.z;
     (dx * dx + dy * dy + dz * dz).sqrt()
-}
-
-fn normalize_degrees(mut degrees: f32) -> f32 {
-    while degrees > 180.0 {
-        degrees -= 360.0;
-    }
-    while degrees < -180.0 {
-        degrees += 360.0;
-    }
-    degrees
 }
 
 fn vec3_json(v: Vec3) -> String {

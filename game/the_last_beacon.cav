@@ -1,5 +1,13 @@
 scene "03:40. The storm has cut Saint Orin off from the mainland. Offshore, the ferry Meridian carries thirty-two people toward a light that no longer turns. You are the island's last keeper. Find a way to bring them through the night, and keep an honest account of what you do not know.";
 
+// Feedback policy consumes facts from the committed watch record. These pure
+// display functions neither create evidence nor revise a commitment.
+fn feedback_kind(is_reopened, has_commitment) = if(is_reopened > 0, 2, if(has_commitment > 0, 1, 0));
+fn feedback_eyebrow(kind) = if(kind == 2, "NEW EVIDENCE · COMMITMENT REOPENED", if(kind == 1, "DECISION RECORDED", "FIELD OBSERVATION"));
+fn feedback_heading(kind) = if(kind == 2, "A reason to reconsider.", if(kind == 1, "The choice is yours.", "The signal has a catch."));
+fn feedback_watch(turn) = "Watch " + text(ceil(turn / 2)) + " of 3";
+fn feedback_continue(is_complete) = if(is_complete > 0, "See the dawn", "Continue the watch");
+
 place keeper_court kind courtyard;
 place lighthouse_base kind lighthouse;
 place lantern_room kind lantern_room;

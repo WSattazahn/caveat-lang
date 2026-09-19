@@ -88,6 +88,19 @@ This separation is a design invariant enforced by the game's source and regressi
 
 ## Honest boundaries
 
+The [source function library](../spec/source-library-0.1.md) lets native Rust
+and browser hosts call the same compiled Caveat functions. All numeric inputs
+are checked, and native tracked inputs retain their qualifications even when
+ignored. Caller-supplied provenance is not automatically authenticated evidence.
+The library's function validation also does not validate an entire surrounding
+game; each program still needs its corresponding session checks.
+
+Host transactions remain explicit. Door motion policy is inside its staged
+action, so a failed call publishes no partial movement. Last Beacon feedback
+is display policy applied after a committed action. If that display fails,
+the interface must preserve and accurately report the recorded action instead
+of replaying it or claiming that it rolled back.
+
 The reactive runtime still uses Rust for parsing, validation, expression execution, transactions, and the graph. JavaScript still connects browser input, graphics, audio, and DOM elements to generic program outputs. Adding functions and source-authored presentation does not make Caveat self-hosting.
 
 The source-defined prelude moves the algorithms for `abs`, `min`, `max`, and `clamp` out of Rust and into Caveat functions. Formatting policies for clocks, rounded numbers, and percentages also live in Caveat. A lazy conditional retains the condition and the branch actually evaluated; ordinary function arguments still contribute their dependencies even when the function body ignores them. Turning a qualified number into display text must preserve its qualification metadata.

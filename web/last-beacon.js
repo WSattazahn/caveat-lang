@@ -1,4 +1,4 @@
-import init, { WebGameSession } from './pkg/caveat_runtime.js';
+import init, { WebGameSession, WebSourceLibrary } from './pkg/caveat_runtime.js';
 import { createBeaconWorld } from './beacon-world.js';
 
 const $ = selector => document.querySelector(selector);
@@ -6,11 +6,19 @@ const app = $('#app');
 const saveKey = 'caveat:last-beacon:watch:v1';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const human = id => String(id).replaceAll('_', ' ');
-let source, session, snapshot, world, saved = null, busy = false, started = false, feedback = null;
+let source, session, sourceLibrary, snapshot, world, saved = null, busy = false, started = false, feedback = null;
 let sound = null, soundEnabled = false, audioContext = null, journalFocus = null, storageAvailable = true;
 const label = id => snapshot?.labels[id] || human(id);
 const text = (id, fallback = '') => snapshot?.labels[id] || fallback;
 const announce = message => { $('#announcer').textContent = message; };
+
+function displayValue(name, args, type) {
+  // Only presentation consumes these primitive values. GameSession remains the
+  // authority for evidence, commitments, action availability, and outcomes.
+  const result = JSON.parse(sourceLibrary.call(name, JSON.stringify(args)));
+  if (typeof result.value !== type) throw new Error(`${name} must return ${type}`);
+  return result.value;
+}
 
 function setBusy(value) {
   busy = value;
@@ -154,14 +162,38 @@ async function choose(selection) {
 function renderFeedback() {
   const {selection, commitment, discoveries} = feedback;
   const reopened = commitment?.reopened_by?.length > 0;
-  $('#phase-label').textContent = reopened ? 'NEW EVIDENCE · COMMITMENT REOPENED' : commitment ? 'DECISION RECORDED' : 'FIELD OBSERVATION';
-  $('#phase-meta').textContent = `Watch ${Math.ceil(snapshot.turn / 2)} of 3`;
-  $('#decision-title').textContent = reopened ? 'A reason to reconsider.' : commitment ? 'The choice is yours.' : 'The signal has a catch.';
+  let presentation;
+  try {
+    const kind = displayValue('feedback_kind', [Number(reopened), Number(Boolean(commitment))], 'number');
+    presentation = {
+      eyebrow: displayValue('feedback_eyebrow', [kind], 'string'),
+      heading: displayValue('feedback_heading', [kind], 'string'),
+      watch: displayValue('feedback_watch', [snapshot.turn], 'string'),
+      next: displayValue('feedback_continue', [Number(snapshot.pending.kind === 'complete')], 'string'),
+    };
+  } catch (error) {
+    // The action already committed. A display-function error cannot undo it,
+    // so continuing reads the current record rather than resubmitting a choice.
+    $('#phase-label').textContent = 'WATCH RECORD UPDATED';
+    $('#phase-meta').textContent = '';
+    $('#decision-title').textContent = 'Your choice is recorded.';
+    $('#decision-body').textContent = 'Its feedback could not be displayed. You can continue from your current record.';
+    $('#decision-content').innerHTML = `<p class="error-box" role="alert">${escape(error.message || error)}</p><button class="primary continue-button" data-continue>Continue<span class="arrow" aria-hidden="true">→</span></button>`;
+    wireContinue();
+    return;
+  }
+  $('#phase-label').textContent = presentation.eyebrow;
+  $('#phase-meta').textContent = presentation.watch;
+  $('#decision-title').textContent = presentation.heading;
   $('#decision-body').textContent = text(`${snapshot.outcome?.action === selection ? snapshot.outcome.id : selection}_result`, label(selection));
   let details = '';
   if (reopened) details = `<div class="feedback reopened"><span class="eyebrow">YOUR EARLIER REASONING IS STILL HERE</span>${commitment.reopened_by.map(id => `<span class="doubt">${escape(text(`${id}_uncertainty`, label(id)))}</span>`).join('')}<span class="doubt">The next decision starts with what you learned.</span></div>`;
   else if (discoveries.length) details = `<div class="feedback"><span class="eyebrow">ADDED TO YOUR FIELD JOURNAL</span>${[...new Set(discoveries.map(item => item.evidence))].map(id => `<div>${escape(label(id))}</div>`).join('')}</div>`;
-  $('#decision-content').innerHTML = `${details}<button class="primary continue-button" data-continue>${snapshot.pending.kind === 'complete' ? 'See the dawn' : 'Continue the watch'}<span class="arrow" aria-hidden="true">→</span></button>`;
+  $('#decision-content').innerHTML = `${details}<button class="primary continue-button" data-continue>${escape(presentation.next)}<span class="arrow" aria-hidden="true">→</span></button>`;
+  wireContinue();
+}
+
+function wireContinue() {
   $('[data-continue]').addEventListener('click', () => { if (busy) return; feedback = null; render(); announce($('#decision-title').textContent); });
 }
 
@@ -290,12 +322,16 @@ document.addEventListener('keydown',event=>{
   if(!busy&&started&&!feedback&&['1','2','3'].includes(event.key)){const selection=snapshot.pending.options?.[Number(event.key)-1];if(selection){event.preventDefault();choose(selection);}}
 });
 document.addEventListener('visibilitychange',()=>{if(audioContext){if(document.hidden)audioContext.suspend().catch(()=>{});else if(soundEnabled)audioContext.resume().catch(()=>{});}});
+window.addEventListener('pagehide', event => {
+  if (!event.persisted) { sourceLibrary?.free(); sourceLibrary = null; }
+});
 
 async function boot() {
   const response = await fetch('./the_last_beacon.cav');
   if(!response.ok)throw new Error('The story source could not be loaded.');
   source=await response.text();
   await init();
+  sourceLibrary=new WebSourceLibrary(source);
   session=new WebGameSession(source);
   snapshot=JSON.parse(session.snapshot());
   try {
@@ -313,6 +349,8 @@ async function boot() {
 }
 
 boot().catch(error=>{
+  sourceLibrary?.free();
+  sourceLibrary=null;
   console.error(error);
   $('#loading-status')?.remove();
   $('#start-actions').innerHTML=`<div class="error-box">The watch could not load. ${escape(error.message||error)}<br><button class="secondary" id="retry">Try again</button></div>`;

@@ -39,7 +39,7 @@ const read = page => page.evaluate(() => window.__beacon.snapshot());
 const idle = page => page.waitForFunction(() => window.__beacon && !window.__beacon.busy);
 const screenshot = (page, name) => page.screenshot({ path: path.join(results, `${name}.png`), fullPage: true });
 
-async function fresh(browser, options = {}) {
+async function fresh(browser, options = {}, preparePage) {
   // A CSS-sized render target keeps software GPU CI representative and fast;
   // high-DPI screenshot density is not needed to verify mobile layout.
   const context = await browser.newContext({ viewport: { width: 1100, height: 760 }, reducedMotion: 'reduce', ...options, deviceScaleFactor: 1 });
@@ -48,6 +48,7 @@ async function fresh(browser, options = {}) {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+  await preparePage?.(page);
   const response = await page.goto(url);
   assert(response?.ok(), `Game HTTP failed: ${response?.status()}`);
   await page.getByRole('button', { name: /Begin the watch/ }).waitFor();
@@ -259,6 +260,87 @@ async function animationLock(browser) {
   } finally { await context.close(); }
 }
 
+function replaceSource(source, before, after) {
+  assert.equal(source.split(before).length, 2, `Expected one source fixture: ${before}`);
+  return source.replace(before, after);
+}
+
+const withSource = rewrite => async page => {
+  await page.route('**/the_last_beacon.cav', async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, body: rewrite(await response.text()) });
+  });
+};
+
+function watchRecord(snapshot) {
+  const { source_id, ...record } = snapshot;
+  assert.equal(typeof source_id, 'string');
+  return record;
+}
+
+async function sourceFeedbackPolicy(browser) {
+  const records = [];
+  const alteredSource = withSource(source => {
+    source = replaceSource(source,
+      'fn feedback_kind(is_reopened, has_commitment) = if(is_reopened > 0, 2, if(has_commitment > 0, 1, 0));',
+      'fn feedback_kind(is_reopened, has_commitment) = if(has_commitment > 0, 1, 0);');
+    source = replaceSource(source, '"The choice is yours."', '"An altered presentation."');
+    source = replaceSource(source, 'text(ceil(turn / 2))', 'text(turn)');
+    return replaceSource(source, '"Continue the watch"', '"Keep the record <open>"');
+  });
+  for (const changed of [false, true]) {
+    const { context, page, errors } = await fresh(browser, {}, changed ? alteredSource : undefined);
+    try {
+      await begin(page);
+      const turns = [];
+      for (const selection of ['lens_salt', 'trust_beam']) {
+        await page.locator(`[data-selection="${selection}"]`).click();
+        await idle(page);
+        await page.locator('[data-continue]').waitFor();
+        const state = await read(page);
+        turns.push(watchRecord(state));
+        assert.equal(await page.locator('[data-continue]').textContent(), changed ? 'Keep the record <open>→' : 'Continue the watch→');
+        assert.equal(await page.locator('[data-continue] open').count(), 0, 'Source display text must not become markup');
+        if (selection === 'trust_beam') {
+          assert.equal(state.commitments[0].reopened_by.length, 1, 'Display classification must leave the actual reopening intact');
+          assert.equal(await page.locator('#phase-label').innerText(), changed ? 'DECISION RECORDED' : 'NEW EVIDENCE · COMMITMENT REOPENED');
+          assert.equal(await page.locator('#decision-title').innerText(), changed ? 'An altered presentation.' : 'A reason to reconsider.');
+          assert.equal(await page.locator('#phase-meta').innerText(), changed ? 'Watch 2 of 3' : 'Watch 1 of 3');
+          assert.equal(await page.locator('.feedback.reopened .doubt').count(), 2, 'Reopening details must still come from the committed record');
+          if (changed) await screenshot(page, 'desktop-source-feedback');
+        }
+        await continueWatch(page);
+        assert.deepEqual(await read(page), state, 'Continuing from feedback must not execute an action or alter knowledge');
+      }
+      records.push(turns);
+      assert.deepEqual(errors, []);
+    } finally { await context.close(); }
+  }
+  assert.deepEqual(records[1], records[0], 'Source display policy must not change any committed state, evidence, caveats, selections, or outcomes');
+
+  const failingSource = withSource(source => replaceSource(source,
+    'fn feedback_watch(turn) = "Watch " + text(ceil(turn / 2)) + " of 3";',
+    'fn feedback_watch(turn) = require(turn < 0, "Unreachable watch");'));
+  const { context, page, errors } = await fresh(browser, {}, failingSource);
+  try {
+    await begin(page);
+    await page.locator('[data-selection="lens_salt"]').click();
+    await idle(page);
+    assert.equal(await page.locator('#decision-title').innerText(), 'Your choice is recorded.');
+    assert.match(await page.locator('#decision-body').innerText(), /feedback could not be displayed/);
+    assert.equal(await page.locator('[role="alert"]').count(), 1);
+    assert.equal(await page.locator('[data-selection]').count(), 0, 'A display error must not leave the committed choice available for resubmission');
+    const committed = await read(page);
+    assert.deepEqual(watchRecord(committed), records[0][0], 'A presentation error must preserve the successfully committed action');
+    await continueWatch(page);
+    assert.deepEqual(await read(page), committed, 'Recovering from presentation failure must not replay the choice');
+    assert.equal(await page.locator('[data-selection="trust_beam"]').isVisible(), true);
+    assert.deepEqual(errors, []);
+  } finally { await context.close(); }
+  report.checks.push('source-only feedback classification, wording, and watch numbering preserve the authoritative graph', 'display-function failure preserves the committed choice and continues without replay');
+  console.log('PASS source feedback: policy-only changes preserve the watch record; display failure recovers without replay');
+}
+
 try {
   await mkdir(results, { recursive: true });
   await startServer();
@@ -269,6 +351,7 @@ try {
   const beaconOutcomes = report.routes.filter(route => route.action === 'relight_beacon').map(route => route.outcome);
   assert.deepEqual(new Set(beaconOutcomes), new Set(['beacon_guided', 'beacon_limited', 'beacon_unverified']));
   report.checks.push('knowledge-gated actions and explicit missing-evidence explanations', 'same final order resolves to three outcomes from earlier evidence');
+  await sourceFeedbackPolicy(chrome);
   await animationLock(chrome);
   await playRoute(chrome, routes[1], { ...devices['iPhone 13'], defaultBrowserType: undefined }, 'mobile-chromium');
   let safari;

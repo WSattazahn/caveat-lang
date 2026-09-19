@@ -314,7 +314,7 @@ impl Web3DSession {
             inner: Session::from_source(source)?,
             map,
             actions,
-            world: World3D::the_door(),
+            world: World3D::the_door_from_source(source)?,
         })
     }
     pub fn pending(&self) -> String {
