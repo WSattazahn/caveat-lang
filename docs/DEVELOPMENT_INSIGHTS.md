@@ -101,6 +101,23 @@ measure comparative efficiency, general authoring reliability, or adoption.
 The recovered decision's inherited outage reasons also make the need to
 distinguish historical dependencies from present conditions more concrete.
 
+## A learning receipt need not archive every control press
+
+The first Slime glow policy separates one qualified acquisition from repeated
+ordinary ability toggles. The learning commitment retains the absorption report
+and its qualification; turning the ability off and on preserves that basis
+without creating new evidence for each button press. Ten thousand and one
+toggles in both native and real WebAssembly tests leave the graph at six symbols
+and five relations. No history eviction or new interpreter feature was needed.
+
+This resolves a practical integration concern: persistent evidence does not
+require treating all player input as accumulating observations. The author must
+still decide what genuinely constitutes new evidence. A round reset is a new
+session, not deletion of inconvenient qualifications from the same history.
+The [policy contract](SLIME_GLOW_ABILITY.md) distinguishes interpreter atomicity
+from the host's inventory/absorption transaction. These tests do not establish
+the appearance or game feel of the eventual Vessel consumer.
+
 ## What we have not established
 
 - That unfamiliar AI agents can author Caveat reliably across varied tasks.

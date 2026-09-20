@@ -45,6 +45,7 @@ try {
       await cp(path.join(root, 'game', entry.name), path.join(dist, entry.name));
     }
   }
+  await cp(path.join(root, 'examples/slime_glow_ability.cav'), path.join(dist, 'slime_glow_ability.cav'));
   await mkdir(path.join(dist, 'vendor'), { recursive: true });
   for (const name of ['three.module.js', 'three.core.js']) {
     await cp(path.join(root, 'node_modules/three/build', name), path.join(dist, 'vendor', name));

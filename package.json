@@ -14,7 +14,8 @@
     "test:beacon": "node scripts/test-beacon.mjs",
     "test:launch": "node scripts/test-launch.mjs",
     "package:game": "node scripts/package-standalone.mjs",
-    "test:rescue": "node scripts/test-rescue.mjs"
+    "test:rescue": "node scripts/test-rescue.mjs",
+    "test:slime-glow": "node scripts/test-slime-glow.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

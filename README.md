@@ -56,6 +56,13 @@ Pure Caveat functions are callable through the [source library API](spec/source-
 
 For headless authoring, `caveat-reactive validate` checks a reactive program and `caveat-reactive replay` executes JSONL event histories with qualified snapshots. The [authoring guide](docs/AI_AUTHORING.md) includes commands and a thermostat input fixture. [Development insights](docs/DEVELOPMENT_INSIGHTS.md) separates demonstrated behavior from hypotheses about broader usefulness and AI adoption.
 
+The [Slime glow ability policy](docs/SLIME_GLOW_ABILITY.md) is a small host-integration
+consumer: a reported mushroom absorption creates one qualified learning receipt,
+and ordinary ability toggles retain that basis without growing a per-input
+history. Native and real WebAssembly tests exercise 10,001 toggles, early
+discovery, duplicate absorption, reset and source-only policy variation. Vessel's
+world contact, inventory transaction and visible glow remain host responsibilities.
+
 ## The Last Beacon — story experiment
 
 On stormbound Saint Orin, thirty-two ferry passengers are approaching a failing lighthouse. Spend three watches investigating uncertain evidence, try provisional plans, reopen them when the world disagrees, and choose between restoring the light, sending the island pilot, or holding the ferry offshore until daylight. Six interactions produce 324 legal decision sequences and nine outcomes across three final destinations. Earlier investigations unlock targeted preparations; performing those preparations changes what the same final order accomplishes. See the [game design and action contracts](docs/THE_LAST_BEACON.md).

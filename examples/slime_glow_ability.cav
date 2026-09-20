@@ -1,0 +1,47 @@
+scene "The first cave mushroom teaches glow; ordinary toggles keep the original learning receipt.";
+
+claim cave_entered;
+claim glow_acquired;
+evidence cave_threshold from "Vessel's completed authored cave threshold, reported by the host";
+evidence first_mushroom from "Vessel's first authored cave mushroom absorption, reported by the host";
+caveat single_absorption consequence material;
+single_absorption qualifies first_mushroom;
+display single_absorption "This first absorption does not establish the effects of other mushrooms.";
+
+state learned = 0 min 0 max 1;
+state active = 0 min 0 max 1;
+
+event cave_entered;
+event absorb_mushroom;
+event toggle_glow;
+
+// Ordinary input is not an endless reading/decision archive. Only learning
+// creates an epistemic receipt; each toggle retains that receipt's basis.
+proc learn_glow() {
+    reveal first_mushroom supports glow_acquired;
+    set learned = qualified(1, first_mushroom);
+    set active = learned;
+    commit keep_glow because enough using learned;
+};
+
+on cave_entered when not observed(cave_threshold) reveal cave_threshold supports cave_entered;
+// Verified contact is enough. The cave story threshold is context, not an
+// artificial prerequisite for a player who discovers the mushroom early.
+on absorb_mushroom when not observed(first_mushroom) call learn_glow();
+on toggle_glow when learned == 1 set active = 1 - active;
+
+bind ability.name = "Glow";
+bind ability.learned = learned == 1;
+bind ability.active = active == 1;
+bind ability.text = "Not learned";
+bind ability.text = if(active == 1, "Glow on", "Glow off") when learned == 1;
+bind item.consumed = learned == 1;
+bind item.available = learned == 0;
+bind objective.complete = learned == 1;
+bind objective.text = "Find shelter in the cave.";
+bind objective.text = "Absorb the cave mushroom." when observed(cave_threshold);
+bind objective.text = "Glow learned." when learned == 1;
+bind journal.visible = learned == 1;
+bind journal.text = "";
+bind journal.text = "Your body holds the mushroom's light. You can turn Glow on and off." when learned == 1;
+bind journal.qualification = "This first absorption does not establish the effects of other mushrooms.";
