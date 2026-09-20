@@ -9,6 +9,11 @@ input toggles it; repeated absorption cannot enable it again. Discovering the
 mushroom before the cave story threshold still counts. Cave entry changes the
 objective, not permission to discover.
 
+The optional authored ruin scene instead asks the player to find a way out.
+Only a verified crossing into its garden completes that objective; the mushroom
+remains an optional discovery. Leaving a squeeze zone or absorbing food is not
+by itself evidence of escape.
+
 This is a policy consumer of the existing reactive interpreter. No language
 syntax, Rust evaluator behavior, material value, or shader is added. The
 runtime does not authenticate contact with a world object or prove a visible
@@ -16,12 +21,13 @@ glow was rendered; those are host responsibilities.
 
 ## Source and host contract
 
-The five declared events accept exactly `{}`:
+The six declared events accept exactly `{}`:
 
 | Event | Host report | Source decision |
 | --- | --- | --- |
 | `cave_entered` | Existing authored cave threshold completed | Change the unfinished objective to absorbing the mushroom |
-| `clearing_started` | Explicit authored free-start clearing profile selected | Show the clearing's squeeze-and-absorb guidance until learned |
+| `clearing_started` | Explicit authored free-start ruin/garden profile selected | Ask the player to find a way out of the ruined room |
+| `ruin_escaped` | Player crossed from the room, through the named passage, beyond its garden boundary | Complete the authored ruin objective, retaining the context and crossing evidence |
 | `absorb_mushroom` | The exact authored first mushroom was reached and accepted for absorption | Record discovery once, retain its qualified receipt, consume the item; activate only with renderer capability |
 | `glow_renderer_ready` | The host implemented and verified the rendered Glow effect | Expose Glow labels and allow toggles after acquisition; do not grant discovery or silently activate an existing discovery |
 | `toggle_glow` | Player requested the ability toggle | Toggle only after acquisition and verified renderer capability |
@@ -32,14 +38,24 @@ machine. A host cannot replace this verification by sending an arbitrary object
 ID to Caveat: this small source has no dynamic inventory or entity-ID API.
 
 The optional clearing context does not award Glow or change its learning basis.
-It records the host's authored-scene report and replaces unfinished guidance with
-"Squeeze through the gap. Approach the mushroom and press E to absorb it."
-Re-reporting context is idempotent. Hosts that omit this event retain the original
-cave objective. A fresh round has no context; the host must report its selected
-scene again, including when it stages a pre-learning acquisition candidate.
+It records the host's authored-scene report and sets guidance to "Find a way out
+of the ruined room." Only `ruin_escaped` in that context completes the objective
+as "You escaped into the garden." The qualified `escaped` value inherits both
+`clearing_context` and `ruin_exit`. The host checks actual post-collision positions:
+inside the room, then within `obj_clearing_squeeze`, then beyond its positive-Z
+garden boundary. Spawning outside, backing out, skipping the corridor and leaving
+through a side do not count. The source cannot establish these geometric facts
+from an empty event payload. An unqualified squeeze-exit notification is inadequate.
 
-Without the renderer capability, absorption completes the objective as
-"Mushroom absorbed." (or "Mushroom absorbed. Clearing complete."). The ability
+Re-reporting context or escape is idempotent. Hosts that omit the scene context
+retain the original cave objective; an escape event there does nothing. A fresh
+round has no context or escape. Hosts re-report the selected scene on reset and
+preserve a verified crossing during async loading. When staging a pre-learning
+acquisition candidate, replay the current scene context and any verified escape.
+Mushroom acquisition must neither erase nor create the escape result.
+
+Without the renderer capability, absorption completes the original cave objective
+as "Mushroom absorbed." It does not complete the authored ruin objective. The ability
 is named "Mushroom discovery", remains inactive, and offers no toggle. Its
 journal says "You absorbed one mushroom. Its effects are not yet established."
 The host must consume `ability.toggleAvailable` when displaying controls and
@@ -73,7 +89,7 @@ when exposing its basis; a boolean UI projection is not a replacement for it.
 
 The wrapper [`SlimeGlowPolicy`](../web/slime-glow-policy.js) forwards events and
 returns the full snapshots. Its exports are `new SlimeGlowPolicy(source)`,
-`snapshot()`, `caveEntered()`, `clearingStarted()`, `glowRendererReady()`,
+`snapshot()`, `caveEntered()`, `clearingStarted()`, `ruinEscaped()`, `glowRendererReady()`,
 `absorbMushroom()`, `toggleGlow()`, `reset()` and
 `free()`. Initialize the generated WASM module first. `free()` is idempotent;
 other calls after free throw. `reset()` creates a fresh session from the same
@@ -131,8 +147,9 @@ integrity check. The build command is the provenance for generated artifacts.
 
 ## Evidence and limits
 
-Nine native tests and the real WASM wrapper test cover locked input, authored
-clearing context and its reset, unchanged old-scene guidance, early
+Ten native tests and the real WASM wrapper test cover locked input, authored
+clearing context and its reset, context-qualified escape independent of mushroom
+acquisition, unchanged old-scene guidance, early
 discovery, one-time qualified acquisition, duplicate absorption after disabling,
 10,001 ready toggles, factual unready discovery, capability before/after discovery,
 new-round reset, malformed input and late atomic failure.
@@ -140,14 +157,18 @@ Changing only `set active = learned * renderer_ready` to
 `set active = learned * renderer_ready * 0` changes
 automatic activation without changing the learned ability or its receipt.
 
-After 10,001 ready toggles the graph still has ten symbols and six relations, with
+After 10,001 ready toggles the graph still has twelve symbols and six relations, with
 unchanged commitment bases and empty reading/decision histories. Snapshot size
 varies only with fields such as event name, temporary effects and sequence
 digits; it does not archive every toggle. These tests establish the bounded
 policy and bridge independently of the host integration below. An additional
-1,001 unready inputs with both scene contexts observed keep ten symbols and six
+1,001 unready inputs with both scene contexts observed keep twelve symbols and six
 relations without changing any bindings. Another 1,001 ready toggles after a
-late capability report keep ten symbols, seven relations and the same receipt.
+late capability report keep twelve symbols, seven relations and the same receipt.
+Another 1,001 duplicate escape reports preserve the same graph and bindings;
+the first crossing adds one fixed evidence relation rather than a frame history.
+These policy checks establish no claim about how narrow, convincing or enjoyable
+the host's passage looks. That requires inspection of the actual authored scene.
 
 ## First live Vessel integration — 2026-09-19
 

@@ -53,9 +53,7 @@ fn clearing_context_changes_only_unfinished_guidance_and_resets_with_the_round()
     assert!(clearing.commitment_bases.is_empty());
     assert_eq!(
         clearing.bindings["objective"]["text"],
-        BindingValue::Text(
-            "Squeeze through the gap. Approach the mushroom and press E to absorb it.".into()
-        )
+        BindingValue::Text("Find a way out of the ruined room.".into())
     );
     let duplicate = dispatch(&mut session, "clearing_started");
     assert_eq!(duplicate.relations, clearing.relations);
@@ -69,7 +67,7 @@ fn clearing_context_changes_only_unfinished_guidance_and_resets_with_the_round()
     );
     assert_eq!(
         acquired.bindings["objective"]["text"],
-        BindingValue::Text("Mushroom absorbed. Clearing complete.".into())
+        BindingValue::Text("Find a way out of the ruined room.".into())
     );
     let after_learning = dispatch(&mut session, "clearing_started");
     assert_eq!(after_learning.bindings, acquired.bindings);
@@ -78,6 +76,63 @@ fn clearing_context_changes_only_unfinished_guidance_and_resets_with_the_round()
     assert_eq!(
         reset.bindings["objective"]["text"],
         BindingValue::Text("Find shelter in the cave.".into())
+    );
+}
+
+#[test]
+fn ruin_escape_requires_scene_context_and_completes_without_a_mushroom() {
+    let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+    let initial = session.snapshot();
+    let ignored = dispatch(&mut session, "ruin_escaped");
+    assert_eq!(ignored.bindings, initial.bindings);
+    dispatch(&mut session, "clearing_started");
+    let escaped = dispatch(&mut session, "ruin_escaped");
+    assert_eq!(
+        escaped.bindings["objective"]["complete"],
+        BindingValue::Bool(true)
+    );
+    assert_eq!(
+        escaped.bindings["objective"]["text"],
+        BindingValue::Text("You escaped into the garden.".into())
+    );
+    assert_eq!(
+        escaped.bindings["ability"]["learned"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        escaped.bindings["item"]["available"],
+        BindingValue::Bool(true)
+    );
+    assert_eq!(
+        escaped.bindings["journal"]["visible"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        serde_json::to_value(&escaped.qualified_values["escaped"].provenance).unwrap(),
+        json!({"evidence": ["clearing_context", "ruin_exit"], "caveats": []})
+    );
+    for _ in 0..1_001 {
+        let duplicate = dispatch(&mut session, "ruin_escaped");
+        assert_eq!(duplicate.bindings, escaped.bindings);
+        assert_eq!(duplicate.relations, escaped.relations);
+        assert_eq!(duplicate.symbols, escaped.symbols);
+    }
+    let mushroom = dispatch(&mut session, "absorb_mushroom");
+    assert_eq!(
+        mushroom.bindings["objective"],
+        escaped.bindings["objective"]
+    );
+    assert!(mushroom.commitment_bases.contains_key("keep_glow"));
+    let mut new_round = ReactiveSession::from_source(SOURCE).unwrap();
+    dispatch(&mut new_round, "clearing_started");
+    let mushroom_first = dispatch(&mut new_round, "absorb_mushroom");
+    assert_eq!(
+        mushroom_first.bindings["objective"]["complete"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        mushroom_first.bindings["objective"]["text"],
+        BindingValue::Text("Find a way out of the ruined room.".into())
     );
 }
 

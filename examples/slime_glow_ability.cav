@@ -1,11 +1,13 @@
-scene "Record the first mushroom discovery; expose Glow only when the host verifies its renderer.";
+scene "Record authored ruin escape and mushroom discovery; expose Glow only when the host verifies its renderer.";
 
 claim cave_entered;
 claim clearing_started;
+claim ruin_escaped;
 claim mushroom_discovered;
 claim glow_renderer_ready;
 evidence cave_threshold from "Vessel's completed authored cave threshold, reported by the host";
 evidence clearing_context from "Vessel's explicit free-start clearing scene profile, reported by the host";
+evidence ruin_exit from "Vessel's verified inside-to-corridor-to-garden crossing of the authored ruin passage";
 evidence first_mushroom from "Vessel's first authored cave mushroom absorption, reported by the host";
 evidence glow_renderer from "Vessel's implemented and verified Glow renderer, reported by the host";
 caveat single_absorption consequence material;
@@ -15,15 +17,17 @@ display single_absorption "This first absorption does not establish the effects 
 state learned = 0 min 0 max 1;
 state active = 0 min 0 max 1;
 state renderer_ready = 0 min 0 max 1;
+state escaped = 0 min 0 max 1;
 
 event cave_entered;
 event clearing_started;
+event ruin_escaped;
 event absorb_mushroom;
 event toggle_glow;
 event glow_renderer_ready;
 
-// Ordinary input is not an endless reading/decision archive. Only learning
-// creates an epistemic receipt; each toggle retains that receipt's basis.
+// Ordinary input is not an endless reading/decision archive. Learning and
+// escape retain their evidence; each toggle preserves the learning receipt.
 proc learn_glow() {
     reveal first_mushroom supports mushroom_discovered;
     set learned = qualified(1, first_mushroom);
@@ -36,8 +40,14 @@ proc enable_glow_renderer() {
     set renderer_ready = qualified(1, glow_renderer);
 };
 
+proc record_ruin_escape() {
+    reveal ruin_exit supports ruin_escaped;
+    set escaped = qualified(1, ruin_exit);
+};
+
 on cave_entered when not observed(cave_threshold) reveal cave_threshold supports cave_entered;
 on clearing_started when not observed(clearing_context) reveal clearing_context supports clearing_started;
+on ruin_escaped when observed(clearing_context) and not observed(ruin_exit) call record_ruin_escape();
 on glow_renderer_ready when not observed(glow_renderer) call enable_glow_renderer();
 // Verified contact is enough. The cave story threshold is context, not an
 // artificial prerequisite for a player who discovers the mushroom early.
@@ -56,12 +66,13 @@ bind ability.text = if(active == 1, "Glow on", "Glow off") when learned == 1 and
 bind item.consumed = learned == 1;
 bind item.available = learned == 0;
 bind objective.complete = learned == 1;
+bind objective.complete = escaped == 1 when observed(clearing_context);
 bind objective.text = "Find shelter in the cave.";
 bind objective.text = "Absorb the cave mushroom." when observed(cave_threshold);
-bind objective.text = "Squeeze through the gap. Approach the mushroom and press E to absorb it." when observed(clearing_context);
 bind objective.text = "Mushroom absorbed." when learned == 1;
-bind objective.text = "Mushroom absorbed. Clearing complete." when learned == 1 and observed(clearing_context);
 bind objective.text = "Glow learned." when learned == 1 and renderer_ready == 1;
+bind objective.text = "Find a way out of the ruined room." when observed(clearing_context);
+bind objective.text = "You escaped into the garden." when observed(clearing_context) and escaped == 1;
 bind journal.visible = learned == 1;
 bind journal.text = "";
 bind journal.text = "You absorbed one mushroom. Its effects are not yet established." when learned == 1;

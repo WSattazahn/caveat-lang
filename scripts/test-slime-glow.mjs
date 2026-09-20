@@ -62,12 +62,13 @@ assert.deepEqual(policy.reset(), initial, 'A new round must start without old ev
 const clearing = policy.clearingStarted();
 assert.deepEqual(clearing.bindings.ability, initial.bindings.ability);
 assert.deepEqual(clearing.commitment_bases, {});
-assert.equal(clearing.bindings.objective.text, 'Squeeze through the gap. Approach the mushroom and press E to absorb it.');
+assert.equal(clearing.bindings.objective.text, 'Find a way out of the ruined room.');
 assert.deepEqual(policy.clearingStarted().relations, clearing.relations, 'Repeated scene context does not grow history');
 assert.deepEqual(policy.caveEntered().bindings.objective, clearing.bindings.objective, 'Clearing guidance survives a cave event');
 const clearingLearned = policy.absorbMushroom();
 assert.deepEqual(clearingLearned.commitment_bases, acquired.commitment_bases, 'Scene context cannot contaminate the learning receipt');
-assert.equal(policy.clearingStarted().bindings.objective.text, 'Mushroom absorbed. Clearing complete.');
+assert.equal(policy.clearingStarted().bindings.objective.text, 'Find a way out of the ruined room.');
+assert.equal(clearingLearned.bindings.objective.complete, false, 'A mushroom cannot complete escape');
 assert.equal(clearingLearned.bindings.ability.name, 'Mushroom discovery');
 assert.equal(clearingLearned.bindings.ability.active, false);
 assert.equal(clearingLearned.bindings.ability.toggleAvailable, false);
@@ -83,7 +84,7 @@ for (let index = 0; index < 1_001; index += 1) {
 const clearingReady = policy.glowRendererReady();
 assert.equal(clearingReady.bindings.ability.toggleAvailable, true);
 assert.equal(clearingReady.bindings.ability.active, false, 'Late capability does not silently activate');
-assert.equal(clearingReady.bindings.objective.text, 'Glow learned.');
+assert.equal(clearingReady.bindings.objective.text, 'Find a way out of the ruined room.');
 assert.deepEqual(clearingReady.commitment_bases, acquired.commitment_bases);
 for (let index = 0; index < 1_001; index += 1) {
   const next = policy.toggleGlow();
@@ -94,6 +95,24 @@ for (let index = 0; index < 1_001; index += 1) {
   assert(JSON.stringify(next).length < JSON.stringify(clearingReady).length + 128);
 }
 assert.deepEqual(policy.reset(), initial, 'Reset removes clearing context as well as learning');
+assert.deepEqual(policy.ruinEscaped().bindings, initial.bindings, 'An escape report outside this scene context does nothing');
+policy.clearingStarted();
+const escaped = policy.ruinEscaped();
+assert.equal(escaped.bindings.objective.text, 'You escaped into the garden.');
+assert.equal(escaped.bindings.objective.complete, true);
+assert.equal(escaped.bindings.ability.learned, false);
+assert.equal(escaped.bindings.item.available, true);
+assert.equal(escaped.bindings.journal.visible, false);
+assert.deepEqual(escaped.qualified_values.escaped.provenance, { evidence: ['clearing_context', 'ruin_exit'], caveats: [] });
+for (let index = 0; index < 1_001; index += 1) {
+  const duplicate = policy.ruinEscaped();
+  assert.deepEqual(duplicate.bindings, escaped.bindings);
+  assert.deepEqual(duplicate.symbols, escaped.symbols);
+  assert.deepEqual(duplicate.relations, escaped.relations);
+  assert(JSON.stringify(duplicate).length < JSON.stringify(escaped).length + 128);
+}
+assert.deepEqual(policy.absorbMushroom().bindings.objective, escaped.bindings.objective, 'Optional discovery cannot replace escape progress');
+assert.deepEqual(policy.reset(), initial, 'A new round forgets escape evidence');
 const early = policy.absorbMushroom();
 assert.equal(early.bindings.ability.learned, true, 'Contact can teach glow before the story threshold');
 assert.equal(early.bindings.ability.active, false, 'Reset removes the host capability report');
@@ -150,7 +169,7 @@ const report = {
   clearing_context_relations: clearingLearned.relations.length,
   clearing_ready_toggles: 1_001,
   clearing_ready_relations: clearingReady.relations.length,
-  checks: ['locked input', 'authored clearing context', 'factual unready discovery', 'verified renderer capability', 'early discovery', 'one qualified learning receipt', 'repeatable bounded toggles', 'duplicate absorption', 'reset/free', 'source variation', 'atomic failure', 'malformed input'],
+  checks: ['locked input', 'authored clearing context', 'qualified escape independent of mushroom', 'factual unready discovery', 'verified renderer capability', 'early discovery', 'one qualified learning receipt', 'repeatable bounded toggles', 'duplicate absorption', 'reset/free', 'source variation', 'atomic failure', 'malformed input'],
 };
 await mkdir(new URL('test-results/', root), { recursive: true });
 await writeFile(new URL('test-results/slime-glow-wasm.json', root), `${JSON.stringify(report, null, 2)}\n`);

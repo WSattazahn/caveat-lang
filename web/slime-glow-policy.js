@@ -32,6 +32,10 @@ export class SlimeGlowPolicy {
     return this.#dispatch('clearing_started');
   }
 
+  ruinEscaped() {
+    return this.#dispatch('ruin_escaped');
+  }
+
   glowRendererReady() {
     return this.#dispatch('glow_renderer_ready');
   }

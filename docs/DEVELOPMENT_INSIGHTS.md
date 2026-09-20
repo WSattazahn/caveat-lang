@@ -107,7 +107,7 @@ The first Slime glow policy separates one qualified acquisition from repeated
 ordinary ability toggles. The learning commitment retains the absorption report
 and its qualification; turning the ability off and on preserves that basis
 without creating new evidence for each button press. Ten thousand and one
-ready toggles in both native and real WebAssembly tests leave the graph at ten
+ready toggles in both native and real WebAssembly tests leave the graph at twelve
 symbols and six relations (seven when both scene contexts are observed). No
 history eviction or new interpreter feature was needed.
 
@@ -142,7 +142,7 @@ The first integration also exposed an actual mismatch: its UI said the body held
 light and offered a Glow toggle while no rendered effect had been implemented.
 A correct policy transition does not make that presentation true. The source now
 separates discovery from a host-verified renderer capability. Until that report,
-it records the absorbed mushroom, completes the objective, and says its effects
+it records the absorbed mushroom, completes the original cave objective, and says its effects
 are not yet established; it offers no Glow toggle. The existing qualified
 learning receipt is retained without claiming to prove a visual effect. This
 distinction belongs in the source contract as well as host UI, so sending a raw
@@ -158,6 +158,20 @@ an empty event payload. The optional `clearing_started` context changes guidance
 without changing acquisition permission or contaminating its learning receipt.
 The source and WASM tests establish this context contract; the host's new scene
 and interaction still require their own runtime review.
+
+The clearing then exposed a more fundamental mismatch: a technically valid
+pickup did not make a meaningful objective, and a wide opening did not demonstrate
+the slime's ability to squeeze. The bounded replacement gives the existing
+passage a purpose: leave a ruined room and reach the garden. Caveat now completes
+that scene objective only from an explicit verified escape report, qualified by
+the scene context and crossing evidence. Mushroom discovery remains optional;
+its receipt cannot stand in for an escape. The host must observe the player on
+the interior side, inside the authored corridor, and beyond the garden boundary
+after collision resolution. A generic exit event, proximity or a changed HUD
+label proves none of that. This is a practical limit of qualified language state:
+it can preserve the asserted reason for completion, but cannot make an unconvincing
+passage convincing or authenticate the host's geometry. The physical scene and
+the player's experience require their own runtime review.
 
 ## What we have not established
 
