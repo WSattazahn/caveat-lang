@@ -113,6 +113,48 @@ automatic activation without changing the learned ability or its receipt.
 After 10,001 toggles the graph still has six symbols and five relations, with
 unchanged commitment bases and empty reading/decision histories. Snapshot size
 varies only with fields such as event name, temporary effects and sequence
-digits; it does not archive every toggle. This demonstrates the bounded policy
-and bridge. It does not verify Vessel integration, visible lighting, browser
-frame time, authored placement or controller feel; those require the real game.
+digits; it does not archive every toggle. These tests establish the bounded
+policy and bridge independently of the host integration below.
+
+## First live Vessel integration — 2026-09-19
+
+The installed WASM policy now runs inside Vessel's ordinary Slime mode. Browser
+review followed the existing jar escape, authored cave squeeze and physical
+contact with the placed mushroom. The existing absorption animation removed the
+world mushroom, inventory contained one item, and the installed source supplied
+the learned/active bindings and qualified `keep_glow` receipt. Keyboard `G` and
+the HUD button toggled the source state; the journal displayed its acquisition
+and qualification. Pause, inventory/journal modal guards and held-key repeat
+suppression passed. These are observed controls and progression, not a claim
+that the pending light effect has been rendered.
+
+The host calls Caveat at input, threshold and absorption boundaries. It does
+not serialize snapshots on each render or physics tick. Existing engine code
+still owns contact detection, inventory writes, absorption animation and UI
+lifetime. It consumes source bindings without copying the learning/toggle rules
+into TypeScript.
+
+Before acquisition, the host stages the Caveat decision in a candidate session
+with the same source and any existing cave-entry context. It validates the
+result before attempting the normal inventory write, then publishes the
+candidate only after that write succeeds. A full bag discards the candidate;
+a failed policy dispatch never attempts the write. In both cases the existing
+pickup flow leaves the world item available. Reconstructing this pre-learning
+candidate is valid for this exact source's small event contract; it is not a
+general license to replace arbitrary sessions and drop their history. Tests
+using the installed WASM also cover loader/reset/unmount races, source-only
+variation, observer failures and synchronous round changes during the inventory
+callback.
+
+All four installed artifact byte identities are checked during installation and
+host tests. The runtime loader checks source and WASM digests before creating a
+session; it loads the JavaScript wrapper and generated glue as ordinary local
+modules. Do not describe that narrower runtime check as verification of all
+executed module bytes.
+
+Host evidence is retained in the private Vessel checkout under
+`.cache/slime-glow-review/` (including `controls.json`, runtime reports and
+screenshots) and `tests/lib/slime/slimeGlowAbilityState.spec.ts`. The protected
+emitted-light/material work still awaits the user's separate approval. Visible
+illumination, general game feel, frame-time improvements, standalone Slime
+export and broader language usefulness remain unverified by this milestone.

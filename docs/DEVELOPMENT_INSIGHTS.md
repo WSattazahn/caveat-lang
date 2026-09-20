@@ -115,8 +115,27 @@ require treating all player input as accumulating observations. The author must
 still decide what genuinely constitutes new evidence. A round reset is a new
 session, not deletion of inconvenient qualifications from the same history.
 The [policy contract](SLIME_GLOW_ABILITY.md) distinguishes interpreter atomicity
-from the host's inventory/absorption transaction. These tests do not establish
-the appearance or game feel of the eventual Vessel consumer.
+from the host's inventory/absorption transaction. The first live Vessel consumer
+now runs that source after actual authored mushroom contact: the existing
+absorption animation and inventory pickup are followed by a qualified learning
+receipt, keyboard/button toggles and a journal entry. Browser review also checks
+pause, modal and repeated-key behavior. Execution occurs at those event
+boundaries, not on every physics/render tick.
+
+Integration exposed a second transaction boundary. Caveat can reject its own
+event atomically, but cannot undo an inventory write performed by the host.
+Vessel stages this one-time learning decision before committing the pickup. A
+full bag discards that candidate, while a failed policy never attempts the
+inventory write; the world mushroom remains available. Installed-WASM tests
+exercise these boundaries and round changes during callbacks. The candidate
+can reconstruct this specific source's small pre-learning context; arbitrary
+program history cannot be discarded by the same argument.
+
+This demonstrates a real source-owned progression policy inside an existing
+engine. It does not yet demonstrate the complete ability's appearance: protected
+light/material changes await separate approval. The policy's `active` flag and
+HUD text are not evidence of emitted light, and no performance or comparative
+language advantage is inferred from this integration.
 
 ## What we have not established
 
