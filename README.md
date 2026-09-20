@@ -59,7 +59,9 @@ For headless authoring, `caveat-reactive validate` checks a reactive program and
 The [Slime glow ability policy](docs/SLIME_GLOW_ABILITY.md) is a small host-integration
 consumer: a reported mushroom absorption creates one qualified learning receipt,
 and ordinary ability toggles retain that basis without growing a per-input
-history. Native and real WebAssembly tests exercise 10,001 toggles, early
+history. Glow controls require a separate host-verified renderer capability;
+without it, the source reports the mushroom discovery without claiming light.
+Native and real WebAssembly tests exercise 10,001 ready toggles, early
 discovery, duplicate absorption, reset and source-only policy variation. Vessel's
 world contact, inventory transaction and visible glow remain host responsibilities.
 

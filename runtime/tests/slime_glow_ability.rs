@@ -13,6 +13,7 @@ fn ability(snapshot: &ReactiveSnapshot) -> Value {
 
 fn learned() -> (ReactiveSession, ReactiveSnapshot) {
     let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+    dispatch(&mut session, "glow_renderer_ready");
     dispatch(&mut session, "cave_entered");
     let snapshot = dispatch(&mut session, "absorb_mushroom");
     (session, snapshot)
@@ -68,7 +69,7 @@ fn clearing_context_changes_only_unfinished_guidance_and_resets_with_the_round()
     );
     assert_eq!(
         acquired.bindings["objective"]["text"],
-        BindingValue::Text("Glow learned.".into())
+        BindingValue::Text("Mushroom absorbed. Clearing complete.".into())
     );
     let after_learning = dispatch(&mut session, "clearing_started");
     assert_eq!(after_learning.bindings, acquired.bindings);
@@ -81,8 +82,74 @@ fn clearing_context_changes_only_unfinished_guidance_and_resets_with_the_round()
 }
 
 #[test]
+fn unavailable_renderer_records_discovery_without_promising_light_or_toggling() {
+    let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+    let initial = session.snapshot();
+    let discovered = dispatch(&mut session, "absorb_mushroom");
+    assert_eq!(
+        discovered.bindings["ability"]["active"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        discovered.bindings["ability"]["toggleAvailable"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        discovered.bindings["ability"]["name"],
+        BindingValue::Text("Mushroom discovery".into())
+    );
+    assert_eq!(
+        discovered.bindings["objective"]["text"],
+        BindingValue::Text("Mushroom absorbed.".into())
+    );
+    assert_eq!(
+        discovered.bindings["journal"]["text"],
+        BindingValue::Text(
+            "You absorbed one mushroom. Its effects are not yet established.".into()
+        )
+    );
+    let (_, ready_acquisition) = learned();
+    assert_eq!(
+        discovered.commitment_bases,
+        ready_acquisition.commitment_bases
+    );
+    let initial_bytes = serde_json::to_vec(&discovered).unwrap().len();
+    for _ in 0..1_001 {
+        let ignored = dispatch(&mut session, "toggle_glow");
+        assert_eq!(ignored.bindings, discovered.bindings);
+        assert_eq!(ignored.relations, discovered.relations);
+        assert_eq!(ignored.commitment_bases, discovered.commitment_bases);
+        assert!(serde_json::to_vec(&ignored).unwrap().len() < initial_bytes + 128);
+    }
+    let enabled = dispatch(&mut session, "glow_renderer_ready");
+    assert_eq!(
+        enabled.bindings["ability"]["toggleAvailable"],
+        BindingValue::Bool(true)
+    );
+    assert_eq!(
+        enabled.bindings["ability"]["active"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        enabled.bindings["ability"]["text"],
+        BindingValue::Text("Glow off".into())
+    );
+    assert_eq!(enabled.commitment_bases, discovered.commitment_bases);
+    let duplicate = dispatch(&mut session, "glow_renderer_ready");
+    assert_eq!(duplicate.bindings, enabled.bindings);
+    assert_eq!(duplicate.relations, enabled.relations);
+    assert_eq!(
+        dispatch(&mut session, "toggle_glow").bindings["ability"]["active"],
+        BindingValue::Bool(true)
+    );
+    let reset = ReactiveSession::from_source(SOURCE).unwrap().snapshot();
+    assert_eq!(reset, initial);
+}
+
+#[test]
 fn verified_absorption_is_sufficient_before_the_story_threshold() {
     let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+    dispatch(&mut session, "glow_renderer_ready");
     let acquired = dispatch(&mut session, "absorb_mushroom");
     assert_eq!(
         acquired.bindings["ability"]["learned"],
@@ -164,7 +231,7 @@ fn ten_thousand_toggles_keep_graph_and_receipt_bounded() {
         assert!(snapshot.decision_series.is_empty());
         assert_eq!(
             snapshot.qualified_values["active"].provenance,
-            acquired.qualified_values["learned"].provenance
+            acquired.qualified_values["active"].provenance
         );
         // Sequence digits and label lengths change; no per-toggle archive grows.
         assert!(serde_json::to_vec(&snapshot).unwrap().len() < initial_bytes + 128);
@@ -173,9 +240,13 @@ fn ten_thousand_toggles_keep_graph_and_receipt_bounded() {
 
 #[test]
 fn source_only_policy_variation_changes_automatic_activation_not_the_receipt() {
-    let changed = SOURCE.replace("set active = learned;", "set active = learned * 0;");
+    let changed = SOURCE.replace(
+        "set active = learned * renderer_ready;",
+        "set active = learned * renderer_ready * 0;",
+    );
     assert_ne!(changed, SOURCE);
     let mut session = ReactiveSession::from_source(&changed).unwrap();
+    dispatch(&mut session, "glow_renderer_ready");
     dispatch(&mut session, "cave_entered");
     let revised = dispatch(&mut session, "absorb_mushroom");
     let (_, original) = learned();
@@ -205,6 +276,7 @@ fn malformed_input_and_late_failure_publish_no_learning_or_consumption() {
     for (event, payload) in [
         ("absorb_mushroom", "{\"id\":1}"),
         ("toggle_glow", "{\"active\":true}"),
+        ("glow_renderer_ready", "{\"ready\":true}"),
         ("reset", "{}"),
         ("absorb_mushroom", "null"),
     ] {
@@ -212,7 +284,10 @@ fn malformed_input_and_late_failure_publish_no_learning_or_consumption() {
         assert!(session.dispatch_json(event, payload).is_err());
         assert_eq!(session.snapshot(), before);
     }
-    let failing_source = SOURCE.replace("set active = learned;", "set active = 1 / 0;");
+    let failing_source = SOURCE.replace(
+        "set active = learned * renderer_ready;",
+        "set active = 1 / 0;",
+    );
     let mut failing = ReactiveSession::from_source(&failing_source).unwrap();
     dispatch(&mut failing, "cave_entered");
     let before = failing.snapshot();
@@ -235,5 +310,9 @@ fn a_new_round_has_new_state_without_rewriting_the_previous_receipt() {
         BindingValue::Bool(false)
     );
     assert!(new_round.commitment_bases.is_empty());
+    assert_eq!(
+        new_round.bindings["ability"]["toggleAvailable"],
+        BindingValue::Bool(false)
+    );
     assert_eq!(old.snapshot().commitment_bases, acquired.commitment_bases);
 }

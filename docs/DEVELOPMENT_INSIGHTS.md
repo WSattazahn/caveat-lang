@@ -107,8 +107,8 @@ The first Slime glow policy separates one qualified acquisition from repeated
 ordinary ability toggles. The learning commitment retains the absorption report
 and its qualification; turning the ability off and on preserves that basis
 without creating new evidence for each button press. Ten thousand and one
-toggles in both native and real WebAssembly tests leave the graph at eight symbols
-and five relations (six when both optional scene contexts are observed). No
+ready toggles in both native and real WebAssembly tests leave the graph at ten
+symbols and six relations (seven when both scene contexts are observed). No
 history eviction or new interpreter feature was needed.
 
 This resolves a practical integration concern: persistent evidence does not
@@ -137,6 +137,17 @@ engine. It does not yet demonstrate the complete ability's appearance: protected
 light/material changes await separate approval. The policy's `active` flag and
 HUD text are not evidence of emitted light, and no performance or comparative
 language advantage is inferred from this integration.
+
+The first integration also exposed an actual mismatch: its UI said the body held
+light and offered a Glow toggle while no rendered effect had been implemented.
+A correct policy transition does not make that presentation true. The source now
+separates discovery from a host-verified renderer capability. Until that report,
+it records the absorbed mushroom, completes the objective, and says its effects
+are not yet established; it offers no Glow toggle. The existing qualified
+learning receipt is retained without claiming to prove a visual effect. This
+distinction belongs in the source contract as well as host UI, so sending a raw
+toggle event cannot bypass it. An explicit host report still is not independent
+verification: runtime inspection must establish the capability before dispatch.
 
 The next authored clearing exposed a distinction in what counts as contact.
 Being numerically near a hidden or obstructed item is insufficient evidence that

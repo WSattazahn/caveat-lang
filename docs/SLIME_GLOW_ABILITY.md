@@ -1,10 +1,13 @@
-# First mushroom, one learned ability
+# First mushroom discovery and an optional rendered ability
 
 [`slime_glow_ability.cav`](../examples/slime_glow_ability.cav) owns the bounded
-policy for a Slime RPG's first mushroom: verified absorption learns Glow and
-enables it, further input toggles the learned ability, and repeated absorption
-cannot enable it again. Discovering the mushroom before the cave story threshold
-still teaches Glow. Cave entry changes the objective, not permission to learn.
+policy for a Slime RPG's first mushroom: verified absorption records discovery
+once, with a qualified learning receipt. Glow controls and claims require a
+separate host report that its renderer is implemented and verified. With that
+capability reported before absorption, acquisition enables Glow and further
+input toggles it; repeated absorption cannot enable it again. Discovering the
+mushroom before the cave story threshold still counts. Cave entry changes the
+objective, not permission to discover.
 
 This is a policy consumer of the existing reactive interpreter. No language
 syntax, Rust evaluator behavior, material value, or shader is added. The
@@ -13,14 +16,15 @@ glow was rendered; those are host responsibilities.
 
 ## Source and host contract
 
-The four declared events accept exactly `{}`:
+The five declared events accept exactly `{}`:
 
 | Event | Host report | Source decision |
 | --- | --- | --- |
 | `cave_entered` | Existing authored cave threshold completed | Change the unfinished objective to absorbing the mushroom |
 | `clearing_started` | Explicit authored free-start clearing profile selected | Show the clearing's squeeze-and-absorb guidance until learned |
-| `absorb_mushroom` | The exact authored first mushroom was reached and accepted for absorption | Learn and enable once, record a qualified receipt, mark the item consumed |
-| `toggle_glow` | Player requested the ability toggle | Toggle only if learned |
+| `absorb_mushroom` | The exact authored first mushroom was reached and accepted for absorption | Record discovery once, retain its qualified receipt, consume the item; activate only with renderer capability |
+| `glow_renderer_ready` | The host implemented and verified the rendered Glow effect | Expose Glow labels and allow toggles after acquisition; do not grant discovery or silently activate an existing discovery |
+| `toggle_glow` | Player requested the ability toggle | Toggle only after acquisition and verified renderer capability |
 
 Identity, contact, inventory capacity and scene/session ownership must be checked
 by the existing host systems. They must not add a second learned/toggle state
@@ -34,17 +38,31 @@ Re-reporting context is idempotent. Hosts that omit this event retain the origin
 cave objective. A fresh round has no context; the host must report its selected
 scene again, including when it stages a pre-learning acquisition candidate.
 
+Without the renderer capability, absorption completes the objective as
+"Mushroom absorbed." (or "Mushroom absorbed. Clearing complete."). The ability
+is named "Mushroom discovery", remains inactive, and offers no toggle. Its
+journal says "You absorbed one mushroom. Its effects are not yet established."
+The host must consume `ability.toggleAvailable` when displaying controls and
+must not report `glow_renderer_ready` merely to make a button appear. The source
+also rejects unready toggle events. Reset removes the capability report; a host
+with a verified renderer must report it again for a new session or staged
+candidate. Vessel currently leaves this capability unset while protected
+lighting work awaits separate approval.
+
 The successful `keep_glow` commitment freezes value `1`, the `first_mushroom`
 evidence, and the `single_absorption` caveat. The caveat says that this first
 absorption does not establish the effects of other mushrooms. It does not
 prevent using the ability. The engine's authored mushroom rule determines the
-fictional effect; the language preserves its reported basis.
+fictional effect; the language preserves its reported basis. The supported
+claim is `mushroom_discovered`. The retained `keep_glow` commitment identifier
+records that learning decision, not proof that light exists or was rendered.
+Renderer capability has its own evidence and does not alter the learning receipt.
 
 Bindings are direct presentation/state projections:
 
 | Target | Properties |
 | --- | --- |
-| `ability` | `name`, `text`: strings; `learned`, `active`: booleans |
+| `ability` | `name`, `text`: strings; `learned`, `active`, `toggleAvailable`: booleans |
 | `item` | `available`, `consumed`: booleans |
 | `objective` | `text`: string; `complete`: boolean |
 | `journal` | `visible`: boolean; `text`, `qualification`: strings |
@@ -55,7 +73,8 @@ when exposing its basis; a boolean UI projection is not a replacement for it.
 
 The wrapper [`SlimeGlowPolicy`](../web/slime-glow-policy.js) forwards events and
 returns the full snapshots. Its exports are `new SlimeGlowPolicy(source)`,
-`snapshot()`, `caveEntered()`, `clearingStarted()`, `absorbMushroom()`, `toggleGlow()`, `reset()` and
+`snapshot()`, `caveEntered()`, `clearingStarted()`, `glowRendererReady()`,
+`absorbMushroom()`, `toggleGlow()`, `reset()` and
 `free()`. Initialize the generated WASM module first. `free()` is idempotent;
 other calls after free throw. `reset()` creates a fresh session from the same
 source and then frees the old session. It does not erase the old graph in place.
@@ -112,24 +131,27 @@ integrity check. The build command is the provenance for generated artifacts.
 
 ## Evidence and limits
 
-Eight native tests and the real WASM wrapper test cover locked input, authored
+Nine native tests and the real WASM wrapper test cover locked input, authored
 clearing context and its reset, unchanged old-scene guidance, early
 discovery, one-time qualified acquisition, duplicate absorption after disabling,
-10,001 toggles, new-round reset, malformed input and late atomic failure.
-Changing only `set active = learned` to `set active = learned * 0` changes
+10,001 ready toggles, factual unready discovery, capability before/after discovery,
+new-round reset, malformed input and late atomic failure.
+Changing only `set active = learned * renderer_ready` to
+`set active = learned * renderer_ready * 0` changes
 automatic activation without changing the learned ability or its receipt.
 
-After 10,001 toggles the graph still has eight symbols and five relations, with
+After 10,001 ready toggles the graph still has ten symbols and six relations, with
 unchanged commitment bases and empty reading/decision histories. Snapshot size
 varies only with fields such as event name, temporary effects and sequence
 digits; it does not archive every toggle. These tests establish the bounded
 policy and bridge independently of the host integration below. An additional
-1,001 WASM toggles with both scene contexts observed retain eight symbols and
-six relations and the same acquisition receipt.
+1,001 unready inputs with both scene contexts observed keep ten symbols and six
+relations without changing any bindings. Another 1,001 ready toggles after a
+late capability report keep ten symbols, seven relations and the same receipt.
 
 ## First live Vessel integration — 2026-09-19
 
-The installed WASM policy now runs inside Vessel's ordinary Slime mode. Browser
+The first installed WASM policy ran inside Vessel's ordinary Slime mode. Browser
 review followed the existing jar escape, authored cave squeeze and physical
 contact with the placed mushroom. The existing absorption animation removed the
 world mushroom, inventory contained one item, and the installed source supplied
@@ -137,7 +159,11 @@ the learned/active bindings and qualified `keep_glow` receipt. Keyboard `G` and
 the HUD button toggled the source state; the journal displayed its acquisition
 and qualification. Pause, inventory/journal modal guards and held-key repeat
 suppression passed. These are observed controls and progression, not a claim
-that the pending light effect has been rendered.
+that the pending light effect has been rendered. That first policy nevertheless
+showed Glow claims without an implemented renderer. The capability check above
+corrects that mismatch: the default source now describes discovery factually and
+withholds Glow controls. The earlier toggle review is historical evidence, not
+proof that the current default should expose those controls.
 
 The host calls Caveat at input, threshold and absorption boundaries. It does
 not serialize snapshots on each render or physics tick. Existing engine code

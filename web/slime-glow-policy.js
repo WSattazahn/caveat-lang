@@ -32,6 +32,10 @@ export class SlimeGlowPolicy {
     return this.#dispatch('clearing_started');
   }
 
+  glowRendererReady() {
+    return this.#dispatch('glow_renderer_ready');
+  }
+
   absorbMushroom() {
     return this.#dispatch('absorb_mushroom');
   }

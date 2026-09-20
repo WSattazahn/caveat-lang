@@ -18,12 +18,18 @@ await init({ module_or_path: wasm });
 const policy = new SlimeGlowPolicy(source);
 const initial = policy.snapshot();
 assert.equal(initial.bindings.ability.learned, false);
+assert.equal(initial.bindings.ability.toggleAvailable, false);
 assert.equal(initial.bindings.item.available, true);
 assert.deepEqual(policy.toggleGlow().bindings.ability, initial.bindings.ability);
 assert.deepEqual(policy.caveEntered().bindings.ability, initial.bindings.ability);
+const rendererReady = policy.glowRendererReady();
+assert.equal(rendererReady.bindings.ability.learned, false, 'Capability alone does not award discovery');
+assert.equal(rendererReady.bindings.ability.toggleAvailable, false);
+assert.equal(rendererReady.bindings.ability.name, 'Glow');
 const acquired = policy.absorbMushroom();
 assert.equal(acquired.bindings.ability.learned, true);
 assert.equal(acquired.bindings.ability.active, true);
+assert.equal(acquired.bindings.ability.toggleAvailable, true);
 assert.equal(acquired.bindings.item.consumed, true);
 assert.equal(acquired.bindings.item.available, false);
 assert.deepEqual(acquired.commitment_bases.keep_glow, {
@@ -42,7 +48,7 @@ for (let index = 0; index < 10_001; index += 1) {
   assert.deepEqual(snapshot.commitment_bases, acquired.commitment_bases);
   assert.deepEqual(snapshot.reading_streams, {});
   assert.deepEqual(snapshot.decision_series, {});
-  assert.deepEqual(snapshot.qualified_values.active.provenance, acquired.qualified_values.learned.provenance);
+  assert.deepEqual(snapshot.qualified_values.active.provenance, acquired.qualified_values.active.provenance);
   largestBytes = Math.max(largestBytes, JSON.stringify(snapshot).length);
 }
 assert(largestBytes < acquiredBytes + 128, 'No growing toggle archive; only sequence digits and labels change');
@@ -50,6 +56,7 @@ const disabled = snapshot;
 assert.equal(disabled.bindings.ability.active, false);
 assert.deepEqual(policy.absorbMushroom().bindings.ability, disabled.bindings.ability, 'Duplicate absorption must not enable');
 assert.deepEqual(policy.snapshot().commitment_bases, acquired.commitment_bases);
+assert.deepEqual(policy.glowRendererReady().bindings.ability, disabled.bindings.ability, 'Repeated capability must not re-enable');
 
 assert.deepEqual(policy.reset(), initial, 'A new round must start without old evidence or numeric state');
 const clearing = policy.clearingStarted();
@@ -60,18 +67,38 @@ assert.deepEqual(policy.clearingStarted().relations, clearing.relations, 'Repeat
 assert.deepEqual(policy.caveEntered().bindings.objective, clearing.bindings.objective, 'Clearing guidance survives a cave event');
 const clearingLearned = policy.absorbMushroom();
 assert.deepEqual(clearingLearned.commitment_bases, acquired.commitment_bases, 'Scene context cannot contaminate the learning receipt');
-assert.equal(policy.clearingStarted().bindings.objective.text, 'Glow learned.');
+assert.equal(policy.clearingStarted().bindings.objective.text, 'Mushroom absorbed. Clearing complete.');
+assert.equal(clearingLearned.bindings.ability.name, 'Mushroom discovery');
+assert.equal(clearingLearned.bindings.ability.active, false);
+assert.equal(clearingLearned.bindings.ability.toggleAvailable, false);
+assert.equal(clearingLearned.bindings.journal.text, 'You absorbed one mushroom. Its effects are not yet established.');
 for (let index = 0; index < 1_001; index += 1) {
   const next = policy.toggleGlow();
-  assert.equal(next.bindings.ability.active, index % 2 === 1);
+  assert.deepEqual(next.bindings, clearingLearned.bindings, 'Unready input cannot toggle or imply an effect');
   assert.deepEqual(next.symbols, clearingLearned.symbols);
   assert.deepEqual(next.relations, clearingLearned.relations);
   assert.deepEqual(next.commitment_bases, clearingLearned.commitment_bases);
   assert(JSON.stringify(next).length < JSON.stringify(clearingLearned).length + 128);
 }
+const clearingReady = policy.glowRendererReady();
+assert.equal(clearingReady.bindings.ability.toggleAvailable, true);
+assert.equal(clearingReady.bindings.ability.active, false, 'Late capability does not silently activate');
+assert.equal(clearingReady.bindings.objective.text, 'Glow learned.');
+assert.deepEqual(clearingReady.commitment_bases, acquired.commitment_bases);
+for (let index = 0; index < 1_001; index += 1) {
+  const next = policy.toggleGlow();
+  assert.equal(next.bindings.ability.active, index % 2 === 0);
+  assert.deepEqual(next.symbols, clearingReady.symbols);
+  assert.deepEqual(next.relations, clearingReady.relations);
+  assert.deepEqual(next.commitment_bases, clearingReady.commitment_bases);
+  assert(JSON.stringify(next).length < JSON.stringify(clearingReady).length + 128);
+}
 assert.deepEqual(policy.reset(), initial, 'Reset removes clearing context as well as learning');
 const early = policy.absorbMushroom();
 assert.equal(early.bindings.ability.learned, true, 'Contact can teach glow before the story threshold');
+assert.equal(early.bindings.ability.active, false, 'Reset removes the host capability report');
+assert.equal(early.bindings.ability.toggleAvailable, false);
+assert.equal(early.bindings.objective.text, 'Mushroom absorbed.');
 assert.deepEqual(early.commitment_bases, acquired.commitment_bases);
 assert.deepEqual(policy.caveEntered().bindings.ability, early.bindings.ability);
 policy.free();
@@ -79,9 +106,10 @@ policy.free();
 assert.throws(() => policy.toggleGlow(), /freed/);
 assert.throws(() => policy.reset(), /freed/);
 
-const changed = source.replace('set active = learned;', 'set active = learned * 0;');
+const changed = source.replace('set active = learned * renderer_ready;', 'set active = learned * renderer_ready * 0;');
 assert.notEqual(changed, source);
 const changedPolicy = new SlimeGlowPolicy(changed);
+changedPolicy.glowRendererReady();
 const revised = changedPolicy.absorbMushroom();
 assert.equal(revised.bindings.ability.active, false, 'Source alone controls automatic activation');
 assert.equal(revised.bindings.ability.learned, true);
@@ -90,13 +118,14 @@ assert.deepEqual(revised.qualified_values.active.provenance, acquired.qualified_
 assert.equal(changedPolicy.toggleGlow().bindings.ability.active, true);
 changedPolicy.free();
 
-const failing = new WebReactiveSession(source.replace('set active = learned;', 'set active = 1 / 0;'));
+const failing = new WebReactiveSession(source.replace('set active = learned * renderer_ready;', 'set active = 1 / 0;'));
 const before = failing.snapshot();
 assert.throws(() => failing.dispatch('absorb_mushroom', '{}'), /division by zero/);
 assert.equal(failing.snapshot(), before, 'Late failure must not consume or grant');
 for (const [event, payload] of [
   ['absorb_mushroom', '{"id":1}'],
   ['toggle_glow', '{"active":true}'],
+  ['glow_renderer_ready', '{"ready":true}'],
   ['reset', '{}'],
   ['absorb_mushroom', 'null'],
 ]) {
@@ -119,7 +148,9 @@ const report = {
   largest_toggle_snapshot_bytes: largestBytes,
   clearing_context_toggles: 1_001,
   clearing_context_relations: clearingLearned.relations.length,
-  checks: ['locked input', 'authored clearing context', 'early discovery', 'one qualified learning receipt', 'repeatable bounded toggles', 'duplicate absorption', 'reset/free', 'source variation', 'atomic failure', 'malformed input'],
+  clearing_ready_toggles: 1_001,
+  clearing_ready_relations: clearingReady.relations.length,
+  checks: ['locked input', 'authored clearing context', 'factual unready discovery', 'verified renderer capability', 'early discovery', 'one qualified learning receipt', 'repeatable bounded toggles', 'duplicate absorption', 'reset/free', 'source variation', 'atomic failure', 'malformed input'],
 };
 await mkdir(new URL('test-results/', root), { recursive: true });
 await writeFile(new URL('test-results/slime-glow-wasm.json', root), `${JSON.stringify(report, null, 2)}\n`);
