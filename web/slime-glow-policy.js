@@ -28,6 +28,10 @@ export class SlimeGlowPolicy {
     return this.#dispatch('cave_entered');
   }
 
+  clearingStarted() {
+    return this.#dispatch('clearing_started');
+  }
+
   absorbMushroom() {
     return this.#dispatch('absorb_mushroom');
   }

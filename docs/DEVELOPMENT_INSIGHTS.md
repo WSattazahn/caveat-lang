@@ -107,8 +107,9 @@ The first Slime glow policy separates one qualified acquisition from repeated
 ordinary ability toggles. The learning commitment retains the absorption report
 and its qualification; turning the ability off and on preserves that basis
 without creating new evidence for each button press. Ten thousand and one
-toggles in both native and real WebAssembly tests leave the graph at six symbols
-and five relations. No history eviction or new interpreter feature was needed.
+toggles in both native and real WebAssembly tests leave the graph at eight symbols
+and five relations (six when both optional scene contexts are observed). No
+history eviction or new interpreter feature was needed.
 
 This resolves a practical integration concern: persistent evidence does not
 require treating all player input as accumulating observations. The author must
@@ -136,6 +137,16 @@ engine. It does not yet demonstrate the complete ability's appearance: protected
 light/material changes await separate approval. The policy's `active` flag and
 HUD text are not evidence of emitted light, and no performance or comparative
 language advantage is inferred from this integration.
+
+The next authored clearing exposed a distinction in what counts as contact.
+Being numerically near a hidden or obstructed item is insufficient evidence that
+the player deliberately absorbed it. The host must establish a visible, reachable
+target and the player's interaction before reporting absorption. Caveat can then
+preserve that report's basis, but cannot authenticate perception or intent from
+an empty event payload. The optional `clearing_started` context changes guidance
+without changing acquisition permission or contaminating its learning receipt.
+The source and WASM tests establish this context contract; the host's new scene
+and interaction still require their own runtime review.
 
 ## What we have not established
 

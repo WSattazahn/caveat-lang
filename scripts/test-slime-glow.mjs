@@ -52,6 +52,24 @@ assert.deepEqual(policy.absorbMushroom().bindings.ability, disabled.bindings.abi
 assert.deepEqual(policy.snapshot().commitment_bases, acquired.commitment_bases);
 
 assert.deepEqual(policy.reset(), initial, 'A new round must start without old evidence or numeric state');
+const clearing = policy.clearingStarted();
+assert.deepEqual(clearing.bindings.ability, initial.bindings.ability);
+assert.deepEqual(clearing.commitment_bases, {});
+assert.equal(clearing.bindings.objective.text, 'Squeeze through the gap. Approach the mushroom and press E to absorb it.');
+assert.deepEqual(policy.clearingStarted().relations, clearing.relations, 'Repeated scene context does not grow history');
+assert.deepEqual(policy.caveEntered().bindings.objective, clearing.bindings.objective, 'Clearing guidance survives a cave event');
+const clearingLearned = policy.absorbMushroom();
+assert.deepEqual(clearingLearned.commitment_bases, acquired.commitment_bases, 'Scene context cannot contaminate the learning receipt');
+assert.equal(policy.clearingStarted().bindings.objective.text, 'Glow learned.');
+for (let index = 0; index < 1_001; index += 1) {
+  const next = policy.toggleGlow();
+  assert.equal(next.bindings.ability.active, index % 2 === 1);
+  assert.deepEqual(next.symbols, clearingLearned.symbols);
+  assert.deepEqual(next.relations, clearingLearned.relations);
+  assert.deepEqual(next.commitment_bases, clearingLearned.commitment_bases);
+  assert(JSON.stringify(next).length < JSON.stringify(clearingLearned).length + 128);
+}
+assert.deepEqual(policy.reset(), initial, 'Reset removes clearing context as well as learning');
 const early = policy.absorbMushroom();
 assert.equal(early.bindings.ability.learned, true, 'Contact can teach glow before the story threshold');
 assert.deepEqual(early.commitment_bases, acquired.commitment_bases);
@@ -99,7 +117,9 @@ const report = {
   relations: acquired.relations.length,
   learned_snapshot_bytes: acquiredBytes,
   largest_toggle_snapshot_bytes: largestBytes,
-  checks: ['locked input', 'early discovery', 'one qualified learning receipt', 'repeatable bounded toggles', 'duplicate absorption', 'reset/free', 'source variation', 'atomic failure', 'malformed input'],
+  clearing_context_toggles: 1_001,
+  clearing_context_relations: clearingLearned.relations.length,
+  checks: ['locked input', 'authored clearing context', 'early discovery', 'one qualified learning receipt', 'repeatable bounded toggles', 'duplicate absorption', 'reset/free', 'source variation', 'atomic failure', 'malformed input'],
 };
 await mkdir(new URL('test-results/', root), { recursive: true });
 await writeFile(new URL('test-results/slime-glow-wasm.json', root), `${JSON.stringify(report, null, 2)}\n`);

@@ -44,6 +44,43 @@ fn locked_toggles_and_cave_entry_do_not_award_or_consume_the_mushroom() {
 }
 
 #[test]
+fn clearing_context_changes_only_unfinished_guidance_and_resets_with_the_round() {
+    let mut session = ReactiveSession::from_source(SOURCE).unwrap();
+    let initial = session.snapshot();
+    let clearing = dispatch(&mut session, "clearing_started");
+    assert_eq!(ability(&clearing), ability(&initial));
+    assert!(clearing.commitment_bases.is_empty());
+    assert_eq!(
+        clearing.bindings["objective"]["text"],
+        BindingValue::Text(
+            "Squeeze through the gap. Approach the mushroom and press E to absorb it.".into()
+        )
+    );
+    let duplicate = dispatch(&mut session, "clearing_started");
+    assert_eq!(duplicate.relations, clearing.relations);
+    let cave = dispatch(&mut session, "cave_entered");
+    assert_eq!(cave.bindings["objective"], clearing.bindings["objective"]);
+    let acquired = dispatch(&mut session, "absorb_mushroom");
+    let (_, old_opening_acquired) = learned();
+    assert_eq!(
+        acquired.commitment_bases,
+        old_opening_acquired.commitment_bases
+    );
+    assert_eq!(
+        acquired.bindings["objective"]["text"],
+        BindingValue::Text("Glow learned.".into())
+    );
+    let after_learning = dispatch(&mut session, "clearing_started");
+    assert_eq!(after_learning.bindings, acquired.bindings);
+    let reset = ReactiveSession::from_source(SOURCE).unwrap().snapshot();
+    assert_eq!(reset, initial);
+    assert_eq!(
+        reset.bindings["objective"]["text"],
+        BindingValue::Text("Find shelter in the cave.".into())
+    );
+}
+
+#[test]
 fn verified_absorption_is_sufficient_before_the_story_threshold() {
     let mut session = ReactiveSession::from_source(SOURCE).unwrap();
     let acquired = dispatch(&mut session, "absorb_mushroom");

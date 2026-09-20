@@ -13,11 +13,12 @@ glow was rendered; those are host responsibilities.
 
 ## Source and host contract
 
-The three declared events accept exactly `{}`:
+The four declared events accept exactly `{}`:
 
 | Event | Host report | Source decision |
 | --- | --- | --- |
 | `cave_entered` | Existing authored cave threshold completed | Change the unfinished objective to absorbing the mushroom |
+| `clearing_started` | Explicit authored free-start clearing profile selected | Show the clearing's squeeze-and-absorb guidance until learned |
 | `absorb_mushroom` | The exact authored first mushroom was reached and accepted for absorption | Learn and enable once, record a qualified receipt, mark the item consumed |
 | `toggle_glow` | Player requested the ability toggle | Toggle only if learned |
 
@@ -25,6 +26,13 @@ Identity, contact, inventory capacity and scene/session ownership must be checke
 by the existing host systems. They must not add a second learned/toggle state
 machine. A host cannot replace this verification by sending an arbitrary object
 ID to Caveat: this small source has no dynamic inventory or entity-ID API.
+
+The optional clearing context does not award Glow or change its learning basis.
+It records the host's authored-scene report and replaces unfinished guidance with
+"Squeeze through the gap. Approach the mushroom and press E to absorb it."
+Re-reporting context is idempotent. Hosts that omit this event retain the original
+cave objective. A fresh round has no context; the host must report its selected
+scene again, including when it stages a pre-learning acquisition candidate.
 
 The successful `keep_glow` commitment freezes value `1`, the `first_mushroom`
 evidence, and the `single_absorption` caveat. The caveat says that this first
@@ -47,7 +55,7 @@ when exposing its basis; a boolean UI projection is not a replacement for it.
 
 The wrapper [`SlimeGlowPolicy`](../web/slime-glow-policy.js) forwards events and
 returns the full snapshots. Its exports are `new SlimeGlowPolicy(source)`,
-`snapshot()`, `caveEntered()`, `absorbMushroom()`, `toggleGlow()`, `reset()` and
+`snapshot()`, `caveEntered()`, `clearingStarted()`, `absorbMushroom()`, `toggleGlow()`, `reset()` and
 `free()`. Initialize the generated WASM module first. `free()` is idempotent;
 other calls after free throw. `reset()` creates a fresh session from the same
 source and then frees the old session. It does not erase the old graph in place.
@@ -104,17 +112,20 @@ integrity check. The build command is the provenance for generated artifacts.
 
 ## Evidence and limits
 
-Seven native tests and the real WASM wrapper test cover locked input, early
+Eight native tests and the real WASM wrapper test cover locked input, authored
+clearing context and its reset, unchanged old-scene guidance, early
 discovery, one-time qualified acquisition, duplicate absorption after disabling,
 10,001 toggles, new-round reset, malformed input and late atomic failure.
 Changing only `set active = learned` to `set active = learned * 0` changes
 automatic activation without changing the learned ability or its receipt.
 
-After 10,001 toggles the graph still has six symbols and five relations, with
+After 10,001 toggles the graph still has eight symbols and five relations, with
 unchanged commitment bases and empty reading/decision histories. Snapshot size
 varies only with fields such as event name, temporary effects and sequence
 digits; it does not archive every toggle. These tests establish the bounded
-policy and bridge independently of the host integration below.
+policy and bridge independently of the host integration below. An additional
+1,001 WASM toggles with both scene contexts observed retain eight symbols and
+six relations and the same acquisition receipt.
 
 ## First live Vessel integration — 2026-09-19
 
@@ -135,7 +146,7 @@ lifetime. It consumes source bindings without copying the learning/toggle rules
 into TypeScript.
 
 Before acquisition, the host stages the Caveat decision in a candidate session
-with the same source and any existing cave-entry context. It validates the
+with the same source and any existing scene context. It validates the
 result before attempting the normal inventory write, then publishes the
 candidate only after that write succeeds. A full bag discards the candidate;
 a failed policy dispatch never attempts the write. In both cases the existing
