@@ -48,8 +48,14 @@ meaning of a program would depend on the order its author happened to write the
 `use` lines. Declarations are order-independent; effects are not. Modules get
 the half that is.
 
-The prelude becomes an ordinary module under this rule rather than a special
-case in `reactive.rs`.
+`runtime/prelude.cav` satisfies this rule — adding a `module prelude;` header
+is enough to link it like any other module, and `tests/modules.rs` does exactly
+that. It nonetheless stays where it is, compiled in by `include_str!` and
+implicitly in scope. Making it an ordinary module would mean either writing
+`use prelude;` at the top of every program or auto-importing it, and an
+auto-import is a bigger special case than the one it replaces. What is special
+about the standard library is that it needs no ceremony, not the file it lives
+in.
 
 ## 2. Importing is declaration, never observation
 
