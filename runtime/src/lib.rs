@@ -4,6 +4,7 @@ pub mod caveat_rs;
 pub mod eval;
 pub mod game_session;
 pub mod graphics;
+pub mod link;
 pub mod map;
 pub mod parser;
 pub mod presentation;
