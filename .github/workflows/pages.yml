@@ -74,6 +74,8 @@ jobs:
       - run: npm ci
       - name: Assemble site
         run: npm run assemble
+      - name: Slime glow WebAssembly policy checks
+        run: npm run test:slime-glow
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
