@@ -500,7 +500,11 @@ pub struct ReactiveSession {
 
 impl ReactiveSession {
     pub fn from_source(source: &str) -> Result<Self, String> {
-        let program = crate::parser::parse(source)?;
+        // Draft 0.5: a bundle links to one program, but its identity stays the
+        // bundle bytes the author shipped, so saves and byte-pinned receipts
+        // keep referring to that. A source without the bundle marker links to
+        // itself, so single-file programs are unaffected.
+        let program = crate::parser::parse(&crate::link::link(source)?)?;
         let mut declarations = Vec::new();
         let mut directives = Vec::new();
         for statement in &program.statements {

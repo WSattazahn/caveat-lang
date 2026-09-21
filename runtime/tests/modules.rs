@@ -1,6 +1,7 @@
 //! Draft 0.5 module linking.
 
 use caveat_runtime::link::{self, BundlePart};
+use caveat_runtime::reactive::BindingValue;
 use caveat_runtime::{eval, parser, Attention, Consequence, NodeKind};
 
 fn part(name: &str, source: &str) -> BundlePart {
@@ -347,5 +348,77 @@ fn the_prelude_links_as_an_ordinary_module() {
     assert!(
         program.statements.len() > 10,
         "expected the whole library plus the program"
+    );
+}
+
+const DISCOVERY: &str = "module discovery;\n\
+     claim mushroom_discovered;\n\
+     evidence first_mushroom from \"first authored absorption\";\n\
+     caveat single_absorption consequence material;\n\
+     single_absorption qualifies first_mushroom;\n";
+
+const GLOW_PROGRAM: &str = "use discovery;\n\
+     state learned = 0 min 0 max 1;\n\
+     event absorb;\n\
+     proc learn() {\n\
+       reveal discovery::first_mushroom supports discovery::mushroom_discovered;\n\
+       set learned = qualified(1, discovery::first_mushroom);\n\
+     };\n\
+     on absorb when not observed(discovery::first_mushroom) call learn();\n\
+     bind ability.learned = learned == 1;\n";
+
+#[test]
+fn a_multi_module_bundle_runs_as_one_program_with_one_graph() {
+    let text = bundle(&[("discovery", DISCOVERY), ("main", GLOW_PROGRAM)]);
+    let mut session =
+        caveat_runtime::reactive::ReactiveSession::from_source(&text).expect("bundle runs");
+
+    let before = session.snapshot();
+    assert_eq!(
+        before.bindings["ability"]["learned"],
+        BindingValue::Bool(false)
+    );
+
+    session.dispatch_json("absorb", "{}").expect("absorb");
+    let after = session.snapshot();
+    assert_eq!(
+        after.bindings["ability"]["learned"],
+        BindingValue::Bool(true),
+        "the program's rule fired on the module's evidence"
+    );
+
+    // Re-absorbing is still guarded by the imported evidence being observed.
+    session
+        .dispatch_json("absorb", "{}")
+        .expect("second absorb");
+    assert_eq!(
+        session.snapshot().bindings["ability"]["learned"],
+        BindingValue::Bool(true)
+    );
+}
+
+#[test]
+fn a_bundle_is_identified_by_its_own_bytes_not_by_the_linked_output() {
+    // spec/caveat-0.5-draft.md section 5: the bundle is the artifact, so saves
+    // and byte-pinned receipts keep referring to what the author shipped.
+    let text = bundle(&[("discovery", DISCOVERY), ("main", GLOW_PROGRAM)]);
+    let from_bundle = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+        .expect("bundle runs")
+        .snapshot()
+        .source_id;
+    let again = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+        .expect("bundle runs")
+        .snapshot()
+        .source_id;
+    assert_eq!(from_bundle, again, "identity is stable for the same bundle");
+
+    let linked_text = link::link(&text).expect("bundle links");
+    let from_linked = caveat_runtime::reactive::ReactiveSession::from_source(&linked_text)
+        .expect("linked source runs")
+        .snapshot()
+        .source_id;
+    assert_ne!(
+        from_bundle, from_linked,
+        "identity must follow the bundle, not the linker's output"
     );
 }
