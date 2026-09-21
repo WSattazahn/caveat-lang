@@ -2091,6 +2091,11 @@ impl ReactiveSession {
                     commitments.push(MapCommitment {
                         action: name.clone(),
                         open: *open,
+                        retained_authorship: crate::map::retained_authorship(
+                            &self.graph,
+                            *id,
+                            |node| names.get(&node).map(|name| (*name).to_string()),
+                        ),
                         retained: self
                             .graph
                             .edges

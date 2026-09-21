@@ -328,6 +328,11 @@ impl GameSession {
                     commitments.push(MapCommitment {
                         action: name.clone(),
                         open: *open,
+                        retained_authorship: crate::map::retained_authorship(
+                            &evaluation.graph,
+                            *id,
+                            |node| Some(symbol_name(&evaluation, node)),
+                        ),
                         retained: evaluation
                             .graph
                             .edges

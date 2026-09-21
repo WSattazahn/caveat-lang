@@ -130,7 +130,49 @@ pub struct MapCommitment {
     pub action: String,
     pub open: bool,
     pub retained: Vec<String>,
+    /// The same retained caveats, with who wrote each one. Parallel to
+    /// `retained`, which stays a plain list of names so existing readers keep
+    /// working. See spec/caveat-borrowed-uncertainty-0.1.md.
+    pub retained_authorship: Vec<RetainedCaveat>,
     pub reopened_by: Vec<String>,
+}
+
+/// A caveat a commitment carried, and where it was written.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RetainedCaveat {
+    pub caveat: String,
+    /// The part that wrote the caveat, if it was written under an origin.
+    pub written_by: Option<String>,
+    /// Whether the caveat was written in a different part from the commitment
+    /// that retained it. `None` when either origin is unrecorded: not knowing
+    /// where something was written is not the same as having written it.
+    ///
+    /// This is a fact about location, not a judgement. A caveat written
+    /// elsewhere is not weaker, less relevant, or less binding than one
+    /// written here.
+    pub written_elsewhere: Option<bool>,
+}
+
+/// Pair each caveat a commitment retained with the part that wrote it.
+pub fn retained_authorship(
+    graph: &crate::EpistemicGraph,
+    commitment: crate::NodeId,
+    name_of: impl Fn(crate::NodeId) -> Option<String>,
+) -> Vec<RetainedCaveat> {
+    let by = graph.origin(commitment);
+    graph
+        .edges
+        .iter()
+        .filter(|edge| edge.from == commitment && edge.relation == Relation::Retains)
+        .filter_map(|edge| {
+            let written_by = graph.origin(edge.to);
+            Some(RetainedCaveat {
+                caveat: name_of(edge.to)?,
+                written_by: written_by.map(str::to_string),
+                written_elsewhere: by.zip(written_by).map(|(by, wrote)| by != wrote),
+            })
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
@@ -461,6 +503,9 @@ impl CaveatMap {
                 action: name.clone(),
                 open: *open,
                 retained,
+                retained_authorship: retained_authorship(&evaluation.graph, *id, |node| {
+                    symbol_name(&evaluation, node)
+                }),
                 reopened_by,
             });
         }

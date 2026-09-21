@@ -220,3 +220,141 @@ fn every_existing_game_still_records_nothing() {
         );
     }
 }
+
+// ---- borrowed uncertainty (spec/caveat-borrowed-uncertainty-0.1.md) ----
+
+/// A commitment that carries one caveat it wrote and one it inherited.
+const BORROWING: &str = "use weather;\n\
+     budget 6;\n\
+     caveat own_doubt consequence low;\n\
+     commit enter_channel because enough retaining weather::fog_refraction, own_doubt;\n";
+
+fn commitment_of(source: &str) -> caveat_runtime::map::MapCommitment {
+    let map = caveat_runtime::map::CaveatMap::from_source(source).expect("map builds");
+    map.execution
+        .commitments
+        .iter()
+        .find(|commitment| commitment.action == "enter_channel")
+        .expect("the commitment is in the map")
+        .clone()
+}
+
+#[test]
+fn a_commitment_records_which_retained_caveats_were_written_elsewhere() {
+    let commitment = commitment_of(
+        &link::link(&link::bundle(&[
+            part("weather", WEATHER),
+            part("crossing", BORROWING),
+        ]))
+        .expect("links"),
+    );
+
+    let entry = |caveat: &str| {
+        commitment
+            .retained_authorship
+            .iter()
+            .find(|retained| retained.caveat == caveat)
+            .unwrap_or_else(|| panic!("{caveat} is retained"))
+    };
+    let inherited = entry("weather__fog_refraction");
+    assert_eq!(inherited.written_by.as_deref(), Some("weather"));
+    assert_eq!(inherited.written_elsewhere, Some(true));
+
+    let own = entry("own_doubt");
+    assert_eq!(own.written_by.as_deref(), Some("crossing"));
+    assert_eq!(own.written_elsewhere, Some(false));
+
+    // The plain list is unchanged, so existing readers keep working.
+    assert_eq!(commitment.retained.len(), 2);
+    assert_eq!(
+        commitment.retained_authorship.len(),
+        commitment.retained.len(),
+        "the two lists describe the same caveats"
+    );
+}
+
+#[test]
+fn not_knowing_where_a_caveat_was_written_is_not_the_same_as_having_written_it() {
+    // A single-file program declares no origin. `written_elsewhere` must stay
+    // unknown rather than collapsing to false, which would claim the committer
+    // wrote a caveat nobody attributed.
+    let commitment = commitment_of(
+        "budget 6;\n\
+         caveat fog_refraction consequence material;\n\
+         caveat own_doubt consequence low;\n\
+         commit enter_channel because enough retaining fog_refraction, own_doubt;\n",
+    );
+    assert_eq!(commitment.retained_authorship.len(), 2);
+    for retained in &commitment.retained_authorship {
+        assert_eq!(retained.written_by, None, "{}", retained.caveat);
+        assert_eq!(
+            retained.written_elsewhere, None,
+            "{} must be unknown, not false",
+            retained.caveat
+        );
+    }
+}
+
+#[test]
+fn a_partly_attributed_program_reports_only_what_it_knows() {
+    // The commitment is attributed; one caveat is declared before any origin
+    // statement, so its own authorship is unrecorded.
+    let commitment = commitment_of(
+        "caveat unattributed_doubt consequence low;\n\
+         origin crossing;\n\
+         budget 6;\n\
+         caveat own_doubt consequence low;\n\
+         commit enter_channel because enough retaining unattributed_doubt, own_doubt;\n",
+    );
+    let entry = |caveat: &str| {
+        commitment
+            .retained_authorship
+            .iter()
+            .find(|retained| retained.caveat == caveat)
+            .unwrap_or_else(|| panic!("{caveat} is retained"))
+    };
+    assert_eq!(entry("own_doubt").written_elsewhere, Some(false));
+    assert_eq!(
+        entry("unattributed_doubt").written_elsewhere,
+        None,
+        "half an answer is not an answer"
+    );
+}
+
+#[test]
+fn retaining_a_caveat_from_elsewhere_changes_nothing_about_the_caveat() {
+    // written_elsewhere is a fact about where text was written. It must not
+    // touch consequence, attention, or whether the commitment holds.
+    let source = link::link(&link::bundle(&[
+        part("weather", WEATHER),
+        part("crossing", BORROWING),
+    ]))
+    .expect("links");
+    let evaluation = evaluate(&source);
+    let caveat = evaluation.symbols["weather__fog_refraction"];
+    assert!(
+        matches!(
+            evaluation.graph.nodes[&caveat],
+            caveat_runtime::NodeKind::Caveat {
+                consequence: caveat_runtime::Consequence::Material,
+                ..
+            }
+        ),
+        "an inherited caveat keeps its declared consequence: {:?}",
+        evaluation.graph.nodes[&caveat]
+    );
+
+    let same_file = commitment_of(
+        "origin crossing;\n\
+         budget 6;\n\
+         caveat fog_refraction consequence material;\n\
+         caveat own_doubt consequence low;\n\
+         commit enter_channel because enough retaining fog_refraction, own_doubt;\n",
+    );
+    let borrowed = commitment_of(&source);
+    assert_eq!(
+        same_file.open, borrowed.open,
+        "where a caveat was written does not decide whether the commitment holds"
+    );
+    assert_eq!(same_file.retained.len(), borrowed.retained.len());
+}
