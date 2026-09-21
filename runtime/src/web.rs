@@ -168,7 +168,10 @@ pub fn caveat_simulate(source: &str, actions_csv: &str) -> String {
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub fn evaluate_summary(source: &str) -> String {
-    match crate::parser::parse(source).and_then(|program| crate::eval::evaluate(&program)) {
+    match crate::link::link(source)
+        .and_then(|linked| crate::parser::parse(&linked))
+        .and_then(|program| crate::eval::evaluate(&program))
+    {
         Ok(evaluation) => format!(
             "CAVEAT|nodes={}|edges={}|events={}",
             evaluation.graph.nodes.len(),

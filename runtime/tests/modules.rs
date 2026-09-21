@@ -422,3 +422,173 @@ fn a_bundle_is_identified_by_its_own_bytes_not_by_the_linked_output() {
         "identity must follow the bundle, not the linker's output"
     );
 }
+
+// ---- loading from disk ----
+
+use caveat_runtime::link::disk;
+use std::path::{Path, PathBuf};
+
+/// Fixtures live under the gitignored target directory, keyed by process, so
+/// concurrent test binaries cannot sweep each other's files.
+fn fixture_root(test: &str) -> PathBuf {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("target/module-fixtures")
+        .join(format!("{}-{test}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).expect("fixture directory");
+    root
+}
+
+fn write(root: &Path, name: &str, contents: &str) -> PathBuf {
+    let path = root.join(name);
+    std::fs::write(&path, contents).expect("fixture file");
+    path
+}
+
+fn repo(relative: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join(relative)
+}
+
+#[test]
+fn an_on_disk_program_loads_links_and_runs_its_modules() {
+    let entry = repo("examples/modules/crossing.cav");
+    let text = disk::load(&entry).expect("crossing loads");
+    let parts = link::split_bundle(&text).expect("bundle splits");
+    assert_eq!(
+        parts
+            .iter()
+            .map(|part| part.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["weather", "crossing"],
+        "modules come first, the program last"
+    );
+
+    let source = link::link(&text).expect("crossing links");
+    let evaluation = evaluate(&source);
+
+    // The commitment retains an imported caveat, and attention came out of the
+    // program's single budget.
+    let ledger = evaluation.resources.clone().expect("budget is recorded");
+    assert_eq!((ledger.spent, ledger.initial, ledger.remaining), (2, 6, 4));
+    assert!(
+        evaluation.symbols.contains_key("enter_channel"),
+        "the program's own names stay bare: {:?}",
+        evaluation.symbols.keys().collect::<Vec<_>>()
+    );
+
+    // Imported evidence keeps the module's provenance, not the importer's.
+    let forecast = evaluation.symbols["weather__dawn_forecast"];
+    match &evaluation.graph.nodes[&forecast] {
+        NodeKind::Evidence { source, .. } => {
+            assert_eq!(source, "harbour forecast issued 05:00")
+        }
+        other => panic!("expected evidence, got {other:?}"),
+    }
+
+    // `display` in a module follows its symbol.
+    assert_eq!(
+        evaluation.display["weather__forecast_age"],
+        "The forecast is over an hour old."
+    );
+
+    // Examining in the program is what made the imported caveat examined.
+    let aged = evaluation.symbols["weather__forecast_age"];
+    assert!(
+        matches!(
+            evaluation.graph.nodes[&aged],
+            NodeKind::Caveat {
+                attention: Attention::Examined,
+                ..
+            }
+        ),
+        "{:?}",
+        evaluation.graph.nodes[&aged]
+    );
+    // The module's other caveat was never paid for.
+    let refraction = evaluation.symbols["weather__refraction"];
+    assert!(
+        !matches!(
+            evaluation.graph.nodes[&refraction],
+            NodeKind::Caveat {
+                attention: Attention::Examined,
+                ..
+            }
+        ),
+        "an unexamined imported caveat must stay unexamined"
+    );
+}
+
+#[test]
+fn a_program_without_imports_is_loaded_byte_for_byte() {
+    // Vessel pins the sha256 of this file, so loading must not touch it.
+    let entry = repo("examples/slime_glow_ability.cav");
+    let loaded = disk::load(&entry).expect("single-file program loads");
+    let raw = std::fs::read_to_string(&entry).expect("fixture reads");
+    assert_eq!(
+        loaded, raw,
+        "a program with no imports is returned unchanged"
+    );
+    assert!(!loaded.starts_with(link::BUNDLE_MARKER));
+}
+
+#[test]
+fn a_use_cannot_name_a_path() {
+    let root = fixture_root("escape");
+    for name in ["../secret", "sub/secret", "C:/secret", ".."] {
+        let entry = write(&root, "main.cav", &format!("use {name};\nclaim here;\n"));
+        let message = disk::load(&entry).expect_err("a path must be rejected");
+        assert!(
+            message.contains("is not a module name"),
+            "{name} should be rejected as a name, got: {message}"
+        );
+    }
+}
+
+#[test]
+fn a_missing_or_mislabelled_module_file_is_named_in_the_error() {
+    let root = fixture_root("resolution");
+
+    let entry = write(&root, "main.cav", "use weather;\nclaim here;\n");
+    let message = disk::load(&entry).expect_err("a missing module must be reported");
+    assert!(message.contains("cannot read"), "{message}");
+    assert!(message.contains("weather.cav"), "{message}");
+
+    write(&root, "weather.cav", "module climate;\nclaim fog;\n");
+    let message = disk::load(&entry).expect_err("a mismatched name must be reported");
+    assert!(
+        message.contains("declares `module climate;` but is imported as weather"),
+        "{message}"
+    );
+
+    write(&root, "weather.cav", "claim fog;\n");
+    let message = disk::load(&entry).expect_err("a missing module header must be reported");
+    assert!(
+        message.contains("must begin with `module weather;`"),
+        "{message}"
+    );
+}
+
+#[test]
+fn imports_are_followed_through_modules() {
+    let root = fixture_root("transitive");
+    write(&root, "base.cav", "module base;\nclaim shared;\n");
+    write(
+        &root,
+        "middle.cav",
+        "module middle;\nuse base;\nevidence relay from \"relay\";\nrelay supports base::shared;\n",
+    );
+    let entry = write(&root, "main.cav", "use middle;\nbudget 1;\n");
+
+    let text = disk::load(&entry).expect("transitive load");
+    let parts = link::split_bundle(&text).expect("splits");
+    let names: Vec<&str> = parts.iter().map(|part| part.name.as_str()).collect();
+    assert!(
+        names.contains(&"base"),
+        "a module reached only through another module must still be loaded: {names:?}"
+    );
+
+    let evaluation = evaluate(&link::link(&text).expect("links"));
+    assert!(evaluation.symbols.contains_key("base__shared"));
+}

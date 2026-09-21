@@ -1,0 +1,17 @@
+# A crossing that imports the shared vocabulary. `use` makes the names
+# reachable; it does not observe anything and spends no attention.
+use weather;
+
+budget 6;
+
+# Attention is the program's, not the module's. Examining here is what makes
+# `examined weather::forecast_age` true anywhere in the linked program.
+examine weather::forecast_age cost 2;
+
+claim hold_the_channel;
+evidence helm_check from "helm, before the turn";
+helm_check supports hold_the_channel;
+
+# The commitment retains an imported caveat. Its provenance is still the
+# module's: `from "harbour forecast issued 05:00"`, not this file.
+commit enter_channel because enough retaining weather::forecast_age;

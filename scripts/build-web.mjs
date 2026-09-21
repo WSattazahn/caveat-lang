@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +27,23 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
 }
 
+// Whether a .cav file is a draft 0.5 module, a program that imports modules,
+// or an ordinary single-file program. Reads only the statement heads, so it
+// does not reimplement the linker.
+async function caveatFileKind(file) {
+  const source = await readFile(file, 'utf8');
+  const statements = source
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/(#|\/\/)[^\n]*/g, '')
+    .split(';');
+  for (const statement of statements) {
+    const words = statement.trim().split(/\s+/);
+    if (words[0] === 'module' && words.length === 2) return 'module';
+    if (words[0] === 'use' && words.length === 2) return 'imports';
+  }
+  return 'program';
+}
+
 try {
   const bindgen = tool('wasm-bindgen');
   if (bindgen.version !== `wasm-bindgen ${bindgenVersion}`) {
@@ -41,9 +58,16 @@ try {
   run(bindgen.command, [wasm, '--out-dir', path.join(dist, 'pkg'), '--target', 'web']);
   await cp(path.join(root, 'web'), dist, { recursive: true });
   for (const entry of await readdir(path.join(root, 'game'), { withFileTypes: true })) {
-    if (entry.isFile() && entry.name.endsWith('.cav')) {
-      await cp(path.join(root, 'game', entry.name), path.join(dist, entry.name));
+    if (!entry.isFile() || !entry.name.endsWith('.cav')) continue;
+    const source = path.join(root, 'game', entry.name);
+    const kind = await caveatFileKind(source);
+    // A draft 0.5 module is a library, not a playable program. Copying one
+    // into dist/ would publish something the runtime refuses to start.
+    if (kind === 'module') continue;
+    if (kind === 'imports') {
+      throw new Error(`${entry.name} imports modules; dist/ cannot carry a multi-module game yet. Run cargo run --bin caveat -- --link game/${entry.name} and commit the bundle.`);
     }
+    await cp(source, path.join(dist, entry.name));
   }
   await cp(path.join(root, 'examples/slime_glow_ability.cav'), path.join(dist, 'slime_glow_ability.cav'));
   await mkdir(path.join(dist, 'vendor'), { recursive: true });

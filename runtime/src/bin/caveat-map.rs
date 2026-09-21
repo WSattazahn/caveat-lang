@@ -1,6 +1,6 @@
 use caveat_runtime::action_runtime::simulate;
 use caveat_runtime::map::{to_json_pretty, CaveatMap, MAP_SCHEMA};
-use std::{env, fs, process};
+use std::{env, process};
 
 fn fail(message: impl std::fmt::Display) -> ! {
     eprintln!("{message}");
@@ -8,8 +8,8 @@ fn fail(message: impl std::fmt::Display) -> ! {
 }
 
 fn load(path: &str) -> CaveatMap {
-    let source = fs::read_to_string(path)
-        .unwrap_or_else(|error| fail(format!("cannot read {path}: {error}")));
+    let source = caveat_runtime::link::disk::load(std::path::Path::new(path))
+        .unwrap_or_else(|error| fail(format!("cannot load {path}: {error}")));
     CaveatMap::from_source(&source).unwrap_or_else(|error| fail(format!("map error: {error}")))
 }
 

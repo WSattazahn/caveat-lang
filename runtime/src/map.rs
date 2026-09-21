@@ -491,7 +491,7 @@ impl CaveatMap {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
-        let program = crate::parser::parse(source)?;
+        let program = crate::parser::parse(&crate::link::link(source)?)?;
         Self::build(&program)
     }
 

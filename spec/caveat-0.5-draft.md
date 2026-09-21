@@ -152,6 +152,26 @@ diamond import yields one set of graph nodes rather than one per path.
 Flattened names are reserved: source may not declare an identifier containing
 `__`, so a rewritten name can never collide with a hand-written one.
 
+### 5.1 Files on disk
+
+`use weather;` resolves to `weather.cav` beside the entry file. Nothing
+searches a wider path and there is no configurable search order, so reading a
+program's imports never depends on where it was invoked from.
+
+A module name is a plain identifier, checked before it becomes a filename. A
+`use` naming a path, a parent, or a drive is rejected as a name rather than at
+the filesystem, so source cannot reach outside the directory it was loaded
+from. A module file must begin with `module NAME;` agreeing with its filename;
+a mismatch names both.
+
+Loading walks imports transitively and returns a bundle, with the program last.
+A program with no imports is returned byte-for-byte with no bundle header, so a
+single-file program keeps exactly the bytes and the identity it has today —
+which is what a byte-pinned receipt depends on.
+
+`caveat --link FILE.cav` writes the bundle to standard output. Every CLI that
+reads a `.cav` file loads it this way, so `use` works wherever a program does.
+
 ## 6. Errors
 
 Linking rejects, before any execution:
@@ -182,6 +202,20 @@ shared vocabulary is well chosen, that either game's policy is warranted, or
 that an imported caveat's consequence level is honest. It establishes only that
 two programs are talking about the same graph node instead of two accidentally
 identical names.
+
+This draft does not let an existing game split. A module may declare epistemic
+symbols, inference rules, pure functions, effect procedures, `display` text and
+presentation; it may not contain `state`, `event`, `bind` or `on`. Those raise
+questions this draft does not answer — whether a module's `state` joins the
+program's single state space, whether a module may bind a property the program
+never declared, and whether an `on` rule in a module fires for the program's
+events — and a rule that is guessed at is worse than one that is refused. So
+`game/light_the_way.cav` still cannot be broken up. What works today is the
+shared vocabulary and the standard library.
+
+For the same reason `scripts/build-web.mjs` refuses to publish a game with
+imports, and skips a `game/*.cav` that declares a module rather than copying a
+library into `dist/` as though it were playable.
 
 Versioning, module visibility, separate compilation, and a package registry are
 out of scope. So is any notion of a trusted or signed module: a bundle's

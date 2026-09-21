@@ -330,6 +330,7 @@ fn used_modules(source: &str) -> Result<Vec<String>, String> {
     let mut used = Vec::new();
     for (start, end) in statement_spans(source) {
         if let ["use", name] = statement_words(&source[start..end]).as_slice() {
+            check_module_name(name)?;
             if used.iter().any(|existing| existing == name) {
                 return Err(format!("duplicate import of {name}"));
             }
@@ -337,6 +338,23 @@ fn used_modules(source: &str) -> Result<Vec<String>, String> {
         }
     }
     Ok(used)
+}
+
+/// A module name is a plain identifier. `load` turns one into a file path, so
+/// anything that could name a directory, a parent, or a drive is rejected here
+/// rather than at the filesystem.
+fn check_module_name(name: &str) -> Result<(), String> {
+    let mut chars = name.chars();
+    let valid = chars.next().is_some_and(is_identifier_start) && chars.all(is_identifier_char);
+    if !valid {
+        return Err(format!("{name} is not a module name"));
+    }
+    if name.contains(FLAT) {
+        return Err(format!(
+            "module {name} contains `{FLAT}`, which is reserved for linked names"
+        ));
+    }
+    Ok(())
 }
 
 /// Blank out `module NAME;` and `use NAME;` statements. They are link-time
@@ -522,4 +540,91 @@ pub fn bundle(parts: &[BundlePart]) -> String {
         out.push_str(&part.source);
     }
     out
+}
+
+/// Reading a program and its modules from disk.
+///
+/// `use weather;` resolves to `weather.cav` beside the entry file. Nothing
+/// searches a wider path, and a module name is checked to be a plain
+/// identifier before it becomes a filename, so source cannot reach outside the
+/// directory it was loaded from.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod disk {
+    use super::{check_module_name, declared_module, used_modules, BundlePart};
+    use std::path::{Path, PathBuf};
+
+    /// Read an entry program and every module it reaches, returning a bundle.
+    ///
+    /// A program with no imports is returned byte-for-byte, with no bundle
+    /// header, so single-file programs keep exactly the identity they have now.
+    pub fn load(entry: &Path) -> Result<String, String> {
+        let source = read(entry)?;
+        let directory = entry.parent().unwrap_or_else(|| Path::new("."));
+        let mut parts: Vec<BundlePart> = Vec::new();
+        let mut pending = used_modules(&source)?;
+        if pending.is_empty() {
+            return Ok(source);
+        }
+        if let Some(name) = declared_module(&source) {
+            return Err(format!(
+                "{} is the program and must not declare `module {name};`",
+                entry.display()
+            ));
+        }
+        while let Some(name) = pending.pop() {
+            if parts.iter().any(|part| part.name == name) {
+                continue;
+            }
+            check_module_name(&name)?;
+            let path = module_path(directory, &name);
+            let module = read(&path)?;
+            match declared_module(&module) {
+                Some(declared) if declared == name => {}
+                Some(declared) => {
+                    return Err(format!(
+                        "{} declares `module {declared};` but is imported as {name}",
+                        path.display()
+                    ))
+                }
+                None => {
+                    return Err(format!(
+                        "{} must begin with `module {name};`",
+                        path.display()
+                    ))
+                }
+            }
+            pending.extend(used_modules(&module)?);
+            parts.push(BundlePart {
+                name,
+                source: module,
+            });
+        }
+        // Deterministic order regardless of filesystem or discovery order; the
+        // linker sorts by dependency afterwards.
+        parts.sort_by(|left, right| left.name.cmp(&right.name));
+        parts.push(BundlePart {
+            name: program_name(entry),
+            source,
+        });
+        Ok(super::bundle(&parts))
+    }
+
+    fn module_path(directory: &Path, name: &str) -> PathBuf {
+        directory.join(format!("{name}.cav"))
+    }
+
+    /// The program's part name is its file stem, which is what diagnostics and
+    /// `SourceMap` report. It is a label, not an importable module name.
+    fn program_name(entry: &Path) -> String {
+        entry
+            .file_stem()
+            .map(|stem| stem.to_string_lossy().into_owned())
+            .filter(|stem| !stem.is_empty())
+            .unwrap_or_else(|| "program".into())
+    }
+
+    fn read(path: &Path) -> Result<String, String> {
+        std::fs::read_to_string(path)
+            .map_err(|error| format!("cannot read {}: {error}", path.display()))
+    }
 }

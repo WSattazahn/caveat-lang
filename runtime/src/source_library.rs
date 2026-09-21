@@ -66,7 +66,7 @@ impl SourceLibrary {
             ));
         }
         let mut functions = crate::reactive::prelude_functions()?;
-        for statement in crate::parser::parse(source)?.statements {
+        for statement in crate::parser::parse(&crate::link::link(source)?)?.statements {
             match statement {
                 Statement::Reactive(Directive::Function(function)) => {
                     let name = function.name.clone();
