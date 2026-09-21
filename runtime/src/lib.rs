@@ -10,6 +10,7 @@ pub mod parser;
 pub mod presentation;
 pub mod reactive;
 mod reactive_expr;
+pub mod repeat;
 pub mod session;
 pub mod source_library;
 pub mod web;

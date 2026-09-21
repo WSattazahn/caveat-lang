@@ -103,7 +103,20 @@ pub fn link(bundle: &str) -> Result<String, String> {
 
 /// Link a bundle, also returning where each part landed.
 pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
-    let parts = split_bundle(bundle)?;
+    let mut parts = split_bundle(bundle)?;
+    // Repetition 0.1 expands first, so everything downstream — the declared
+    // names, the single-writer check, the rewriter — sees the statements the
+    // block generated rather than the block. A part with no `for` block is
+    // returned unchanged, so this is a no-op for every existing program.
+    for part in &mut parts {
+        part.source = crate::repeat::expand(&part.source).map_err(|error| {
+            if part.name.is_empty() {
+                error.clone()
+            } else {
+                format!("{}: {error}", part.name)
+            }
+        })?;
+    }
     if parts.len() == 1 && parts[0].name.is_empty() {
         return Ok((
             parts[0].source.clone(),
@@ -254,10 +267,17 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                 | Directive::Cue(_)
                 | Directive::Clock(_) => None,
             },
+            // The world's nouns. A module may declare them so that a
+            // `for KIND` block has a kind to iterate in its own part; the
+            // kind itself is a type tag like `consequence material`, not a
+            // symbol, so it is not namespaced.
+            Statement::Place { name, .. } => Some(name.clone()),
+            Statement::Entity { name, .. } => Some(name.clone()),
             // Declare nothing, but are allowed to appear.
-            Statement::Relate { .. } | Statement::Display { .. } | Statement::Presentation(_) => {
-                None
-            }
+            Statement::Connect { .. }
+            | Statement::Relate { .. }
+            | Statement::Display { .. }
+            | Statement::Presentation(_) => None,
             Statement::Budget { .. } => {
                 return Err(format!(
                     "module {} declares a budget; attention is spent by the program, not by a module",
@@ -398,7 +418,7 @@ fn statement_kind(statement: &Statement) -> &'static str {
 /// procedure braces follow the same rules as the parser's own scanner, so a
 /// semicolon inside quoted text or inside an effect body does not end a
 /// statement here either.
-fn statement_spans(source: &str) -> Vec<(usize, usize)> {
+pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
     let mut start = None;
     let mut braces = 0usize;
@@ -447,7 +467,7 @@ fn statement_spans(source: &str) -> Vec<(usize, usize)> {
 }
 
 /// The words of a statement, ignoring quoted text and comments.
-fn statement_words(text: &str) -> Vec<&str> {
+pub(crate) fn statement_words(text: &str) -> Vec<&str> {
     text.trim_end_matches(';').split_whitespace().collect()
 }
 
@@ -669,11 +689,11 @@ fn flat(module: &str, symbol: &str) -> String {
     format!("{module}{FLAT}{symbol}")
 }
 
-fn is_identifier_start(ch: char) -> bool {
+pub(crate) fn is_identifier_start(ch: char) -> bool {
     ch.is_ascii_alphabetic() || ch == '_'
 }
 
-fn is_identifier_char(ch: char) -> bool {
+pub(crate) fn is_identifier_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
 }
 

@@ -29,10 +29,16 @@ fn visibility_scale(metres) = clamp(metres / 400, 0, 1);
 
 A module file begins with `module NAME;`. It may contain only *declarations*:
 `claim`, `evidence`, `caveat`, relation statements, `rule`, `fn`, effect
-procedures, `display`, the presentation declarations, and the reactive
-declarations in section 8. It may **not** contain statements that execute:
-`budget`, `examine`, `defer`, `infer`, `select`, `converge`, `commit`,
-`reopen`, `inspect`, or `start_at`.
+procedures, `display`, the presentation declarations, the world's nouns
+(`place`, `entity`, `connect`), and the reactive declarations in section 8. It
+may **not** contain statements that execute: `budget`, `examine`, `defer`,
+`infer`, `select`, `converge`, `commit`, `reopen`, `inspect`, or `start_at`.
+
+An entity's *kind* is a type tag, like a caveat's `consequence`, not a symbol —
+so it is not namespaced, and a module and the program may both declare entities
+`kind reef`. The entity names themselves are scoped as usual. This is what lets
+a [repetition](caveat-repetition-0.1.md) block inside a module have a kind to
+iterate.
 
 The reason is not tidiness. Draft 0.4 says conditions "read only the executed
 prefix", and Draft 0.3's world checks depend on a single ordered program. If a
