@@ -117,9 +117,10 @@ cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
 npx playwright install chromium
 npm run test:beacon
 npm run test:rescue
+npm run test:slime-glow
 ```
 
-Reactive runtime tests check atomic rollback and malformed input, and rescue simulations verify a complete crossing, damage, timing, and the direct effect of observed evidence on motion. Browser rescue tests use real mouse, keyboard, and touch input. The story tests exhaust legal Beacon routes, checking unavailable-action rejection, investigation costs, retained caveats, reopening, physical destinations, evidence-dependent outcomes, and save restoration. Browser tests exercise the WebAssembly game and its presentation, starting their own local server. Run `npm run build` first; a separate `npm run serve` process is not required for tests. After `npm run package:game`, `npm run test:launch` also exercises blocked imports, a stalled module, and disabled-script previews.
+Reactive runtime tests check atomic rollback and malformed input, and rescue simulations verify a complete crossing, damage, timing, and the direct effect of observed evidence on motion. Browser rescue tests use real mouse, keyboard, and touch input. The story tests exhaust legal Beacon routes, checking unavailable-action rejection, investigation costs, retained caveats, reopening, physical destinations, evidence-dependent outcomes, and save restoration. Browser tests exercise the WebAssembly game and its presentation, starting their own local server. Run `npm run build` first; a separate `npm run serve` process is not required for tests. After `npm run package:game`, `npm run test:launch` also exercises blocked imports, a stalled module, and disabled-script previews. `npm run test:slime-glow` needs no browser: it drives the installed WebAssembly runtime directly and checks the host-integration policy's bounded toggles, verified renderer capability, qualified escape, atomic failure, and malformed input. It runs in the same continuous integration job that assembles `dist/`.
 
 ## Repository layout
 

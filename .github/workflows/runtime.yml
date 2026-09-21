@@ -71,6 +71,8 @@ jobs:
       - run: npm ci
       - name: Build browser distribution
         run: npm run assemble
+      - name: Slime glow WebAssembly policy checks
+        run: npm run test:slime-glow
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
@@ -79,6 +81,11 @@ jobs:
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: slime-glow-wasm-report
+          path: test-results/slime-glow-wasm.json
       - uses: actions/upload-artifact@v4
         with:
           name: browser-dist
