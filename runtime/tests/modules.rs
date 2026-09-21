@@ -917,3 +917,59 @@ fn the_cli_emits_a_bundle_that_runs() {
     let loaded = disk::load(&repo("examples/modules/slime_glow.cav")).expect("library load");
     assert_eq!(emitted, loaded);
 }
+
+#[test]
+fn a_late_failure_inside_a_module_rolls_back_the_whole_event() {
+    // spec/caveat-0.5-draft.md section 4 claims a call across a module
+    // boundary is one transaction. CAVEAT_ESSENCE.md: "A failed event
+    // publishes none of its numeric changes, graph changes, or presentation
+    // cues." A module must not be able to half-commit.
+    use caveat_runtime::reactive::ReactiveSession;
+
+    let module = "module ledger;\n\
+         claim counted;\n\
+         evidence tally from \"tally\";\n\
+         state total = 0 min 0 max 9;\n\
+         proc record(amount) {\n\
+           set total = total + 1;\n\
+           reveal tally supports counted;\n\
+           set total = total + amount;\n\
+         };\n\
+         bind hud.total = total;\n";
+    let program = "use ledger;\n\
+         event add;\n\
+         on add call ledger::record(1);\n";
+    let text = bundle(&[("ledger", module), ("main", program)]);
+
+    let mut session = ReactiveSession::from_source(&text).expect("bundle runs");
+    session.dispatch_json("add", "{}").expect("first add");
+    let after_one = session.snapshot();
+    assert_eq!(
+        after_one.bindings["hud"]["total"],
+        BindingValue::Number(2.0)
+    );
+    assert_eq!(after_one.relations.len(), 1, "the reveal landed");
+
+    // `total` is capped at 9. Three more adds reach 8, and the fourth would
+    // pass the cap partway through the procedure — after the first `set` and
+    // after the `reveal`.
+    for _ in 0..3 {
+        session.dispatch_json("add", "{}").expect("add");
+    }
+    let before = session.snapshot();
+    assert_eq!(before.bindings["hud"]["total"], BindingValue::Number(8.0));
+
+    let failed = session.dispatch_json("add", "{}");
+    assert!(failed.is_err(), "exceeding the cap must fail the event");
+    let after = session.snapshot();
+    assert_eq!(
+        after.bindings, before.bindings,
+        "a module's half-finished numeric change must not be published"
+    );
+    assert_eq!(
+        after.relations.len(),
+        before.relations.len(),
+        "a module's graph change must not survive a failed event"
+    );
+    assert_eq!(after.sequence, before.sequence, "no event was recorded");
+}
