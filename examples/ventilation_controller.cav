@@ -1,0 +1,29 @@
+# Source labels describe provenance; they do not authenticate a sensor.
+claim comfortable;
+evidence room_sensor from "room temperature sensor";
+evidence outage from "room sensor availability report";
+caveat calibration consequence high;
+caveat missing_data consequence high;
+calibration qualifies room_sensor;
+missing_data qualifies outage;
+
+readings temperature from room_sensor limit 8;
+decisions ventilation limit 8;
+
+event read value min 0 max 40;
+event unavailable;
+
+fn fan_demand(reading) = if(reading > 26, 1, 0);
+
+on read when value <= 26 sample temperature = value supports comfortable;
+on read when value > 26 sample temperature = value opposes comfortable;
+on read when committed(ventilation) and not reopened(ventilation) reopen ventilation because latest(temperature);
+on read commit ventilation because enough using fan_demand(latest(temperature)) retaining calibration;
+
+on unavailable reveal outage opposes comfortable;
+on unavailable when committed(ventilation) and not reopened(ventilation) reopen ventilation because outage;
+
+bind fan.value = if(committed(ventilation), latest(ventilation), 0);
+bind status.text = "waiting";
+bind status.text = "current" when committed(ventilation);
+bind status.text = "reopened" when reopened(ventilation);

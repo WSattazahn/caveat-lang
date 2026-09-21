@@ -1,0 +1,888 @@
+scene "Drag left or right. Reach the green harbor. Hold the blue ring to measure flow.";
+
+// Pure numeric helpers are reusable CAVEAT functions, with explicit arguments.
+fn distance(ax, az, bx, bz) = sqrt((ax - bx) * (ax - bx) + (az - bz) * (az - bz));
+fn pulse(time, rate) = 0.5 + 0.5 * sin(time * rate);
+fn tidal_pulse(time) = 0.35 + 0.65 * pulse(time, 1.8);
+fn infer_peak(flow, phase) = flow / phase;
+fn counter_plan(peak, fraction) = -peak * fraction;
+fn current_field(peak, phase, separation, radius) = peak * phase * clamp((radius - separation) / 1.2, 0, 1);
+fn weather_index(time, first, second) = if(time < first, 0, if(time < second, 1, 2));
+fn weather_strength(stage) = if(stage == 0, 0.9, if(stage == 1, -1.2, 1.2));
+fn key_axis(positive, positive_alias, negative, negative_alias) = max(positive, positive_alias) - max(negative, negative_alias);
+fn held_keys(left, right, up, down, a, d, w, s, space) = if(left + right + up + down + a + d + w + s + space > 0, 1, 0);
+
+place keeper_court kind courtyard;
+place lighthouse_base kind lighthouse;
+place lantern_room kind lantern_room;
+place observatory kind observatory;
+place tidal_archive kind archive;
+place harbor kind harbor;
+place breakwater kind breakwater;
+connect keeper_court to lighthouse_base;
+connect lighthouse_base to lantern_room;
+connect keeper_court to observatory;
+connect keeper_court to tidal_archive;
+connect keeper_court to harbor;
+connect harbor to breakwater;
+entity lamp kind beacon at lantern_room;
+entity lens kind optic at lantern_room;
+entity radio kind transmitter at observatory;
+entity star_scope kind telescope at observatory;
+entity tide_table kind chart at tidal_archive;
+entity tide_gauge kind gauge at harbor;
+entity buoy kind buoy at breakwater;
+entity dynamo kind generator at lighthouse_base;
+entity pilot_boat kind boat at harbor;
+entity chart_board kind chart at keeper_court;
+entity ferry kind ferry at harbor;
+entity harbor_goal kind harbor_goal at harbor;
+entity crosscurrent_marker kind ring at harbor;
+entity last_reading_marker kind ring at harbor;
+entity reef_one kind reef at harbor;
+entity reef_two kind reef at harbor;
+entity reef_three kind reef at harbor;
+entity reef_four kind reef at harbor;
+entity reef_five kind reef at harbor;
+entity reef_six kind reef at harbor;
+start_at keeper_court;
+
+// Rendering and collision detection share these source positions.
+position keeper_court at 0 3.15 2;
+position lighthouse_base at -6.4 6.1 -5.8;
+position lantern_room at -6.4 20 -5.8;
+position observatory at 9.5 5.2 -3.8;
+position tidal_archive at -10.8 2.8 6;
+position harbor at 5.3 1.2 12.2;
+position breakwater at 15.5 1.1 14.9;
+position lamp at -6.4 20.13 -5.8;
+position lens at -5.9 20.12 -4.65;
+position radio at 12.5 5.4 -4.5;
+position star_scope at 9.5 9.95 -3.8;
+position tide_table at -9.45 3 8.8;
+position tide_gauge at 2.65 0.7 13.7;
+position buoy at 18.9 0.3 16.3;
+position dynamo at -9.2 6.35 -5.8;
+position pilot_boat at 9 0.44 16.7;
+position chart_board at 1.35 3.35 4.8;
+position ferry at 0 0.6 58;
+position harbor_goal at 5.3 0.3 19;
+position crosscurrent_marker at -3.8 0.14 33.5;
+position last_reading_marker at -3.8 0.17 33.5;
+position reef_one at -1 0 45;
+position reef_two at 3.5 0 36;
+position reef_three at -0.2 0 27;
+position reef_four at -6.6 0 27;
+position reef_five at -7.4 0 45;
+position reef_six at 9.9 0 36;
+camera keeper_court from 21 23 34 toward 0 6 2;
+camera lighthouse_base from 9 19 17 toward -6.4 11 -5.8;
+camera lantern_room from 5.5 27 10 toward -6.4 21 -5.8;
+camera observatory from 26 16 14 toward 9.5 6.6 -3.8;
+camera tidal_archive from 3 13 24 toward -10.8 4 6;
+camera harbor from 24 13 32 toward 5.3 2.4 12.2;
+camera breakwater from 30 13 32 toward 15.5 1.6 14.9;
+overview from 0 76 94 toward 0 0 31;
+route keeper_court to lighthouse_base via -3.6 6.18 -1.5;
+route keeper_court to observatory via 4.5 5.26 -0.5;
+route keeper_court to tidal_archive via -5.5 3.15 4.45;
+route keeper_court to harbor via 2 3.18 7.5 then 3.5 2.75 9.7 then 4.3 1.9 11;
+route harbor to breakwater via 10.3 1.15 14.05;
+route lighthouse_base to lantern_room via -6.4 6.6 -3.26
+    then -7.2758 6.925 -3.4259
+    then -8.0373 7.25 -3.883
+    then -8.5913 7.575 -4.5728
+    then -8.8712 7.9 -5.4086
+    then -8.8446 8.225 -6.2863
+    then -8.5171 8.55 -7.0974
+    then -7.9313 8.875 -7.7425
+    then -7.1614 9.2 -8.1434
+    then -6.3036 9.525 -8.2526
+    then -5.4643 9.85 -8.0589
+    then -4.7468 10.175 -7.5884
+    then -4.2384 10.5 -6.9014
+    then -4.0003 10.825 -6.084
+    then -4.0595 11.15 -5.2381
+    then -4.4066 11.475 -4.468
+    then -4.9964 11.8 -3.8681
+    then -5.7544 12.125 -3.5108
+    then -6.5859 12.45 -3.4383
+    then -7.3878 12.775 -3.6572
+    then -8.0617 13.1 -4.1383
+    then -8.5255 13.425 -4.8201
+    then -8.7238 13.75 -5.6171
+    then -8.6343 14.075 -6.4301
+    then -8.2704 14.4 -7.159
+    then -7.6792 14.725 -7.7145
+    then -6.9353 15.05 -8.0296
+    then -6.1316 15.375 -8.0677
+    then -5.3676 15.7 -7.8261
+    then -4.7371 16.025 -7.3371
+    then -4.3167 16.35 -6.663
+    then -4.1562 16.675 -5.8882
+    then -4.2734 17 -5.109
+    then -4.6515 17.325 -4.4216
+    then -5.2416 17.65 -3.9097
+    then -5.9693 17.975 -3.6349
+    then -6.7438 18.3 -3.6291
+    then -7.4693 18.625 -3.8905
+    then -8.0569 18.95 -4.3849
+    then -8.4354 19.275 -5.0491
+    then -8.56 19.6 -5.8;
+
+display game_title "LIGHT THE WAY";
+display title "LIGHT THE WAY";
+display game_subtitle "32 passengers. One light.";
+display subtitle "32 passengers. One light.";
+display instruction "Drag left or right. Reach the green harbor. Hold the blue ring to measure flow.";
+display start_label "Start rescue";
+display retry_label "Try again";
+display win_title "EVERYONE HOME";
+display win_body "32 passengers rescued.";
+display loss_title "THE FERRY NEEDS YOU";
+display loss_1 "Three impacts. Find a clearer route.";
+display loss_2 "You missed the harbor. Aim for the green ring.";
+display loss_3 "Time ran out. Keep the ferry moving.";
+display warning_0 "Clear water";
+display warning_1 "Hold the light to steer";
+display warning_2 "Rocks ahead. Steer clear.";
+display score_label "Keeper score";
+display source_note "The course, collisions, rescue, and discoveries run in CAVEAT.";
+display clear_course "The charted approach is clear.";
+display keeper_chart "An old chart marks open water between the ferry and harbor.";
+display follow_light "Follow the light toward the harbor";
+
+budget 8;
+claim crosscurrent_mild;
+claim current_eastward;
+evidence morning_forecast from "tidal_archive: morning slack-water forecast";
+evidence foam_sensor from "held-light foam measurement at crosscurrent_marker";
+evidence weather_front from "visible cloud front and direction of surface streaks";
+readings flow from foam_sensor limit 128;
+readings weather from weather_front limit 8;
+decisions navigation limit 128;
+caveat surge_unmeasured consequence high;
+caveat reading_may_age consequence high;
+morning_forecast supports crosscurrent_mild;
+surge_unmeasured qualifies morning_forecast;
+surge_unmeasured qualifies foam_sensor;
+surge_unmeasured qualifies weather_front;
+reading_may_age qualifies foam_sensor;
+display crosscurrent_mild "The forecast current will not materially displace the ferry.";
+display current_eastward "The observed current runs eastward.";
+display morning_forecast "The morning tidal record predicts mild crossflow.";
+display foam_sensor "A held-light observation measures the foam's sideways motion.";
+display weather_front "The surface streaks change direction; their force remains unmeasured.";
+display surge_unmeasured "Storm surge may outgrow the forecast or a brief measurement.";
+display reading_may_age "A measured flow may change before the crossing is complete.";
+display navigation "Steer using the selected reading, retaining uncertainty about later changes.";
+claim clear_course;
+evidence keeper_chart from "tide_table";
+keeper_chart supports clear_course;
+evidence reef_one_reading from "reef_one";
+caveat reef_one_shadow consequence high;
+reef_one_shadow qualifies keeper_chart;
+display reef_one_reading "The light reveals submerged rock.";
+display reef_one_shadow "The chart may omit a submerged rock.";
+evidence reef_two_reading from "reef_two";
+caveat reef_two_shadow consequence high;
+reef_two_shadow qualifies keeper_chart;
+display reef_two_reading "The light reveals submerged rock.";
+display reef_two_shadow "The chart may omit a submerged rock.";
+evidence reef_three_reading from "reef_three";
+caveat reef_three_shadow consequence high;
+reef_three_shadow qualifies keeper_chart;
+display reef_three_reading "The light reveals submerged rock.";
+display reef_three_shadow "The chart may omit a submerged rock.";
+evidence reef_four_reading from "reef_four";
+caveat reef_four_shadow consequence high;
+reef_four_shadow qualifies keeper_chart;
+display reef_four_reading "The light reveals submerged rock.";
+display reef_four_shadow "The chart may omit a submerged rock.";
+evidence reef_five_reading from "reef_five";
+caveat reef_five_shadow consequence high;
+reef_five_shadow qualifies keeper_chart;
+display reef_five_reading "The light reveals submerged rock.";
+display reef_five_shadow "The chart may omit a submerged rock.";
+evidence reef_six_reading from "reef_six";
+caveat reef_six_shadow consequence high;
+reef_six_shadow qualifies keeper_chart;
+display reef_six_reading "The light reveals submerged rock.";
+display reef_six_shadow "The chart may omit a submerged rock.";
+
+// Values are the complete simulation contract. No motion or collision rule lives in JavaScript.
+state boat_x = ferry.x min -9.5 max 13;
+state boat_z = ferry.z min 0 max 70;
+state boat_vx = 0 min -4 max 4;
+state aim_x = ferry.x min -9.5 max 13;
+state aim_z = 45 min 19 max 60;
+state light_on = 0 min 0 max 1;
+state key_left = 0 min 0 max 1;
+state key_right = 0 min 0 max 1;
+state key_up = 0 min 0 max 1;
+state key_down = 0 min 0 max 1;
+state key_a = 0 min 0 max 1;
+state key_d = 0 min 0 max 1;
+state key_w = 0 min 0 max 1;
+state key_s = 0 min 0 max 1;
+state key_space = 0 min 0 max 1;
+state keyboard_active = 0 min 0 max 1;
+state phase = 0 min 0 max 3;
+state paused = 0 min 0 max 1;
+state hull = 3 min 0 max 3;
+state elapsed = 0 min 0 max 90;
+state rescued = 0 min 0 max 32;
+state collision_cooldown = 0 min 0 max 2;
+state warning = 0 min 0 max 3;
+state failure_reason = 0 min 0 max 3;
+state hit_count = 0 min 0 max 3;
+state reefs_seen = 0 min 0 max 6;
+state score = 0 min 0 max 6000;
+state progress = 0 min 0 max 1;
+state total_passengers = 32;
+state time_limit = 90;
+state aim_speed = 12;
+state aim_x_min = -9.5;
+state aim_x_max = 13;
+state aim_z_min = 19;
+state aim_z_max = 60;
+state forward_speed = 0.6;
+state cautious_speed = 0.42;
+state max_speed = 2.1;
+state turn_acceleration = 3.2;
+state collision_grace = 2;
+state reef_radius = 2.3;
+state boat_radius = 1.1;
+state beam_radius = 3.8;
+state caution_radius = 6.2;
+state goal_radius = 2.9;
+state wind_strength = 0.11;
+state boat_speed = forward_speed;
+state target_vx = 0 min -4 max 4;
+state contact = 0 min 0 max 6;
+state hit_x = 0;
+state current_radius = 4.2;
+state current_strength = 0.9;
+state current_pulse = 0.35;
+state current_distance = 100;
+state current_force = 0;
+state compensation = 0;
+state first_shift_at = 34;
+state second_shift_at = 40;
+state weather_phase = 0 min 0 max 2;
+state next_weather_phase = 0 min 0 max 2;
+state last_shift_at = 0;
+state reading_weather_phase = -1 min -1 max 2;
+state last_read_at = 0;
+state rain_travel = 0 min 0 max 43;
+state rain_speed = 1;
+state sample_duration = 1;
+state sample_radius = 1.5;
+state sample_charge = 0 min 0 max 1;
+state sample_in_range = 0 min 0 max 1;
+state sample_armed = 1 min 0 max 1;
+state notice_kind = 0 min 0 max 3;
+state notice_remaining = 0 min 0 max 3;
+// A working estimate carries its observed evidence and the graph's caveats.
+state forecast_drift = qualified(0, morning_forecast);
+state reef_one_seen = 0 min 0 max 1;
+state reef_one_distance = 100;
+state reef_two_seen = 0 min 0 max 1;
+state reef_two_distance = 100;
+state reef_three_seen = 0 min 0 max 1;
+state reef_three_distance = 100;
+state reef_four_seen = 0 min 0 max 1;
+state reef_four_distance = 100;
+state reef_five_seen = 0 min 0 max 1;
+state reef_five_distance = 100;
+state reef_six_seen = 0 min 0 max 1;
+state reef_six_distance = 100;
+
+event start;
+event pause;
+event resume;
+event aim x min -10000 max 10000, z min -10000 max 10000, active min 0 max 1;
+event steer dx min -1 max 1, dz min -1 max 1, active min 0 max 1, dt min 0 max 0.1;
+event tick dt min 0 max 0.1;
+event key_left_input active min 0 max 1;
+event key_right_input active min 0 max 1;
+event key_up_input active min 0 max 1;
+event key_down_input active min 0 max 1;
+event key_a_input active min 0 max 1;
+event key_d_input active min 0 max 1;
+event key_w_input active min 0 max 1;
+event key_s_input active min 0 max 1;
+event key_space_input active min 0 max 1;
+event release_keys;
+event toggle_pause active min 0 max 1;
+control pointer = aim;
+control keyboard = steer;
+control key_ArrowLeft = key_left_input;
+control key_ArrowRight = key_right_input;
+control key_ArrowUp = key_up_input;
+control key_ArrowDown = key_down_input;
+control key_KeyA = key_a_input;
+control key_KeyD = key_d_input;
+control key_KeyW = key_w_input;
+control key_KeyS = key_s_input;
+control key_Space = key_space_input;
+control release_keys = release_keys;
+control key_Escape = toggle_pause;
+control start = start reset;
+control pause = pause;
+control resume = resume;
+control retry = start reset;
+clock tick every 0.03333333333333333;
+
+// Feedback is emitted explicitly, once per event that warrants it.
+cue depart sound 392 0.14 0.06;
+cue reef_tone sound 660 0.08 0.035;
+cue impact_sound sound 82 0.22 0.1;
+cue impact_ring ring ferry "#ff7043" 0.4;
+cue arrival_sound sound 784 0.45 0.075;
+cue failure_sound sound 147 0.4 0.06;
+cue current_tone sound 440 0.16 0.05;
+cue current_ring ring crosscurrent_marker "#78dfdf" 0.8;
+cue storm_tone sound 196 0.35 0.06;
+cue storm_ring ring crosscurrent_marker "#ff9b65" 1.2;
+cue reef_six_ring ring reef_six "#ffe3a0" 0.75;
+cue reef_five_ring ring reef_five "#ffe3a0" 0.75;
+cue reef_four_ring ring reef_four "#ffe3a0" 0.75;
+cue reef_three_ring ring reef_three "#ffe3a0" 0.75;
+cue reef_two_ring ring reef_two "#ffe3a0" 0.75;
+cue reef_one_ring ring reef_one "#ffe3a0" 0.75;
+
+// Reusable effects keep source control policy separate from device delivery.
+proc clear_keyboard() {
+    set key_left = 0;
+    set key_right = 0;
+    set key_up = 0;
+    set key_down = 0;
+    set key_a = 0;
+    set key_d = 0;
+    set key_w = 0;
+    set key_s = 0;
+    set key_space = 0;
+    set keyboard_active = 0;
+};
+
+proc hold_keyboard(next_active) {
+    set keyboard_active = next_active;
+    set light_on = keyboard_active;
+};
+
+proc move_aim(horizontal, vertical, step) {
+    set aim_x = clamp(aim_x + horizontal * aim_speed * step, aim_x_min, aim_x_max);
+    set aim_z = clamp(aim_z + vertical * aim_speed * step, aim_z_min, aim_z_max);
+};
+
+on start when phase == 0 emit depart;
+on start when phase == 0 and not committed(navigation) commit navigation because enough using forecast_drift;
+on start when phase == 0 and not committed(follow_light) commit follow_light because enough retaining reef_one_shadow, reef_two_shadow, reef_three_shadow, reef_four_shadow, reef_five_shadow, reef_six_shadow;
+on start when phase == 0 set phase = 1;
+on pause when phase == 1 set paused = 1;
+on pause when phase == 1 set light_on = 0;
+on resume when phase == 1 set paused = 0;
+on toggle_pause when phase == 1 and active > 0 set paused = if(paused == 0, 1, 0);
+on toggle_pause when phase == 1 and active > 0 and paused == 1 set light_on = 0;
+on toggle_pause when phase == 1 and active > 0 and paused == 1 call clear_keyboard();
+on steer when phase < 2 and paused == 0 call move_aim(dx, dz, dt);
+on steer when phase < 2 and paused == 0 set light_on = active;
+on aim when phase < 2 and paused == 0 set aim_x = clamp(x, aim_x_min, aim_x_max);
+on aim when phase < 2 and paused == 0 set aim_z = clamp(z, aim_z_min, aim_z_max);
+on aim when phase < 2 and paused == 0 set light_on = active;
+
+// Physical key facts stay independent: releasing A does not release Left.
+on key_left_input when phase == 1 and paused == 0 and (active > 0 or key_left > 0) call hold_keyboard(held_keys(if(active > 0, 1, 0), key_right, key_up, key_down, key_a, key_d, key_w, key_s, key_space));
+on key_left_input when phase == 1 and paused == 0 and (active > 0 or key_left > 0) set key_left = if(active > 0, 1, 0);
+on key_right_input when phase == 1 and paused == 0 and (active > 0 or key_right > 0) call hold_keyboard(held_keys(key_left, if(active > 0, 1, 0), key_up, key_down, key_a, key_d, key_w, key_s, key_space));
+on key_right_input when phase == 1 and paused == 0 and (active > 0 or key_right > 0) set key_right = if(active > 0, 1, 0);
+on key_up_input when phase == 1 and paused == 0 and (active > 0 or key_up > 0) call hold_keyboard(held_keys(key_left, key_right, if(active > 0, 1, 0), key_down, key_a, key_d, key_w, key_s, key_space));
+on key_up_input when phase == 1 and paused == 0 and (active > 0 or key_up > 0) set key_up = if(active > 0, 1, 0);
+on key_down_input when phase == 1 and paused == 0 and (active > 0 or key_down > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, if(active > 0, 1, 0), key_a, key_d, key_w, key_s, key_space));
+on key_down_input when phase == 1 and paused == 0 and (active > 0 or key_down > 0) set key_down = if(active > 0, 1, 0);
+on key_a_input when phase == 1 and paused == 0 and (active > 0 or key_a > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, if(active > 0, 1, 0), key_d, key_w, key_s, key_space));
+on key_a_input when phase == 1 and paused == 0 and (active > 0 or key_a > 0) set key_a = if(active > 0, 1, 0);
+on key_d_input when phase == 1 and paused == 0 and (active > 0 or key_d > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, if(active > 0, 1, 0), key_w, key_s, key_space));
+on key_d_input when phase == 1 and paused == 0 and (active > 0 or key_d > 0) set key_d = if(active > 0, 1, 0);
+on key_w_input when phase == 1 and paused == 0 and (active > 0 or key_w > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, key_d, if(active > 0, 1, 0), key_s, key_space));
+on key_w_input when phase == 1 and paused == 0 and (active > 0 or key_w > 0) set key_w = if(active > 0, 1, 0);
+on key_s_input when phase == 1 and paused == 0 and (active > 0 or key_s > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, key_d, key_w, if(active > 0, 1, 0), key_space));
+on key_s_input when phase == 1 and paused == 0 and (active > 0 or key_s > 0) set key_s = if(active > 0, 1, 0);
+on key_space_input when phase == 1 and paused == 0 and (active > 0 or key_space > 0) call hold_keyboard(held_keys(key_left, key_right, key_up, key_down, key_a, key_d, key_w, key_s, if(active > 0, 1, 0)));
+on key_space_input when phase == 1 and paused == 0 and (active > 0 or key_space > 0) set key_space = if(active > 0, 1, 0);
+
+// Pointer/scripted steering, pause and transport cancellation end keyboard ownership.
+on release_keys when keyboard_active == 1 set light_on = 0;
+on release_keys call clear_keyboard();
+on pause when phase == 1 call clear_keyboard();
+on aim when phase < 2 and paused == 0 call clear_keyboard();
+on steer when phase < 2 and paused == 0 call clear_keyboard();
+
+// Keyboard policy runs in the same transaction, before scouting and motion.
+on tick when phase == 1 and paused == 0 and keyboard_active == 1 call move_aim(key_axis(key_right, key_d, key_left, key_a), key_axis(key_down, key_s, key_up, key_w), dt);
+
+// Scouting reveals actual contradictory evidence. The old chart support is retained.
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_one.x, reef_one.z) <= beam_radius and not observed(reef_one_reading) emit reef_one_ring;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_one.x, reef_one.z) <= beam_radius and not observed(reef_one_reading) emit reef_tone;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_one.x, reef_one.z) <= beam_radius and not observed(reef_one_reading) reveal reef_one_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_two.x, reef_two.z) <= beam_radius and not observed(reef_two_reading) emit reef_two_ring;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_two.x, reef_two.z) <= beam_radius and not observed(reef_two_reading) emit reef_tone;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_two.x, reef_two.z) <= beam_radius and not observed(reef_two_reading) reveal reef_two_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_three.x, reef_three.z) <= beam_radius and not observed(reef_three_reading) emit reef_three_ring;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_three.x, reef_three.z) <= beam_radius and not observed(reef_three_reading) emit reef_tone;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_three.x, reef_three.z) <= beam_radius and not observed(reef_three_reading) reveal reef_three_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_four.x, reef_four.z) <= beam_radius and not observed(reef_four_reading) emit reef_four_ring;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_four.x, reef_four.z) <= beam_radius and not observed(reef_four_reading) emit reef_tone;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_four.x, reef_four.z) <= beam_radius and not observed(reef_four_reading) reveal reef_four_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_five.x, reef_five.z) <= beam_radius and not observed(reef_five_reading) emit reef_five_ring;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_five.x, reef_five.z) <= beam_radius and not observed(reef_five_reading) emit reef_tone;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_five.x, reef_five.z) <= beam_radius and not observed(reef_five_reading) reveal reef_five_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_six.x, reef_six.z) <= beam_radius and not observed(reef_six_reading) emit reef_six_ring;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_six.x, reef_six.z) <= beam_radius and not observed(reef_six_reading) emit reef_tone;
+on tick when phase == 1 and paused == 0 and light_on == 1 and distance(aim_x, aim_z, reef_six.x, reef_six.z) <= beam_radius and not observed(reef_six_reading) reveal reef_six_reading opposes clear_course;
+
+// Weather observations report direction; only deliberate sampling measures force.
+on tick when phase == 1 and paused == 0 set next_weather_phase = weather_index(elapsed + dt, first_shift_at, second_shift_at);
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase emit storm_tone;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase emit storm_ring;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase set notice_kind = 3;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase set notice_remaining = 2.4;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase set current_strength = weather_strength(next_weather_phase);
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase and current_strength < 0 sample weather = -1 opposes current_eastward;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase and current_strength >= 0 sample weather = 1 supports current_eastward;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase and not reopened(navigation) reopen navigation because latest(weather);
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase set last_shift_at = elapsed + dt;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase set sample_charge = 0;
+on tick when phase == 1 and paused == 0 and next_weather_phase != weather_phase set weather_phase = next_weather_phase;
+
+// Leaving or releasing the light rearms one reading; holding forever is not telemetry.
+on tick when phase == 1 and paused == 0 set sample_in_range = 0;
+on tick when phase == 1 and paused == 0 and light_on >= 0.5 and distance(aim_x, aim_z, crosscurrent_marker.x, crosscurrent_marker.z) <= sample_radius set sample_in_range = 1;
+on tick when phase == 1 and paused == 0 and sample_in_range == 0 set sample_charge = 0;
+on tick when phase == 1 and paused == 0 and sample_in_range == 0 set sample_armed = 1;
+on tick when phase == 1 and paused == 0 and sample_in_range == 1 and sample_armed == 1 set sample_charge = min(sample_duration, sample_charge + dt);
+
+// Every completion records an immutable occurrence and appends a decision revision.
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration emit current_ring;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration emit current_tone;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration set notice_kind = 2;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration set notice_remaining = 1.2;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration and current_strength < 0 sample flow = current_strength * tidal_pulse(elapsed) opposes current_eastward;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration and current_strength >= 0 sample flow = current_strength * tidal_pulse(elapsed) supports current_eastward;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration and not examined(surge_unmeasured) examine surge_unmeasured cost 1;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration and not examined(reading_may_age) examine reading_may_age cost 1;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration and not reopened(navigation) reopen navigation because latest(flow);
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration commit navigation because enough using counter_plan(infer_peak(latest(flow), tidal_pulse(elapsed)), 0.65);
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration set last_read_at = elapsed;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration set reading_weather_phase = weather_phase;
+on tick when phase == 1 and paused == 0 and sample_armed == 1 and sample_charge >= sample_duration set sample_armed = 0;
+on tick when phase == 1 and paused == 0 set elapsed = min(time_limit, elapsed + dt);
+on tick when phase == 1 and paused == 0 set rain_speed = if(weather_phase == 0, 1, if(weather_phase == 1, 2.4, 1.8));
+on tick when phase == 1 and paused == 0 set rain_travel = wrap(rain_travel + dt * 10 * rain_speed, 43);
+on tick when phase == 1 and paused == 0 set notice_remaining = max(0, notice_remaining - dt);
+on tick when phase == 1 and paused == 0 set collision_cooldown = max(0, collision_cooldown - dt);
+on tick when phase == 1 and paused == 0 set warning = 0;
+on tick when phase == 1 and paused == 0 and light_on < 0.5 set warning = 1;
+on tick when phase == 1 and paused == 0 set reef_one_distance = distance(boat_x, boat_z, reef_one.x, reef_one.z);
+on tick when phase == 1 and paused == 0 set reef_two_distance = distance(boat_x, boat_z, reef_two.x, reef_two.z);
+on tick when phase == 1 and paused == 0 set reef_three_distance = distance(boat_x, boat_z, reef_three.x, reef_three.z);
+on tick when phase == 1 and paused == 0 set reef_four_distance = distance(boat_x, boat_z, reef_four.x, reef_four.z);
+on tick when phase == 1 and paused == 0 set reef_five_distance = distance(boat_x, boat_z, reef_five.x, reef_five.z);
+on tick when phase == 1 and paused == 0 set reef_six_distance = distance(boat_x, boat_z, reef_six.x, reef_six.z);
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) and not examined(reef_one_shadow) examine reef_one_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) set reef_one_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) and not reopened(follow_light) reopen follow_light because reef_one_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) and reef_one_distance < caution_radius set warning = 2;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) and not examined(reef_two_shadow) examine reef_two_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) set reef_two_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) and not reopened(follow_light) reopen follow_light because reef_two_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) and reef_two_distance < caution_radius set warning = 2;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) and not examined(reef_three_shadow) examine reef_three_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) set reef_three_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) and not reopened(follow_light) reopen follow_light because reef_three_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) and reef_three_distance < caution_radius set warning = 2;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) and not examined(reef_four_shadow) examine reef_four_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) set reef_four_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) and not reopened(follow_light) reopen follow_light because reef_four_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) and reef_four_distance < caution_radius set warning = 2;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) and not examined(reef_five_shadow) examine reef_five_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) set reef_five_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) and not reopened(follow_light) reopen follow_light because reef_five_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) and reef_five_distance < caution_radius set warning = 2;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) and not examined(reef_six_shadow) examine reef_six_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) set reef_six_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) and not reopened(follow_light) reopen follow_light because reef_six_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) and reef_six_distance < caution_radius set warning = 2;
+
+// The external current is deterministic physical truth, independent of observation.
+on tick when phase == 1 and paused == 0 set current_distance = distance(boat_x, boat_z, crosscurrent_marker.x, crosscurrent_marker.z);
+on tick when phase == 1 and paused == 0 set current_pulse = tidal_pulse(elapsed);
+on tick when phase == 1 and paused == 0 set current_force = current_field(current_strength, current_pulse, current_distance, current_radius);
+// Revision changes the navigator's response, not the current.
+on tick when phase == 1 and paused == 0 set compensation = current_field(latest(navigation), current_pulse, current_distance, current_radius);
+on tick when phase == 1 and paused == 0 and has_sample(flow) and abs(current_force) > 0.08 and warning < 2 set warning = 3;
+
+// Reopened knowledge changes the ferry's approach speed, buying room to steer.
+on tick when phase == 1 and paused == 0 set boat_speed = forward_speed;
+on tick when phase == 1 and paused == 0 and reopened(follow_light) and warning == 2 set boat_speed = cautious_speed;
+on tick when phase == 1 and paused == 0 set target_vx = 0;
+on tick when phase == 1 and paused == 0 and light_on >= 0.5 set target_vx = clamp((aim_x - boat_x) * 0.95, -max_speed, max_speed);
+on tick when phase == 1 and paused == 0 set boat_vx = boat_vx + clamp(target_vx - boat_vx, -turn_acceleration * dt, turn_acceleration * dt);
+on tick when phase == 1 and paused == 0 set boat_x = clamp(boat_x + (boat_vx + sin(elapsed * 0.7) * wind_strength + current_force + compensation) * dt, aim_x_min, aim_x_max);
+on tick when phase == 1 and paused == 0 set boat_z = boat_z - boat_speed * dt;
+on tick when phase == 1 and paused == 0 set progress = clamp((ferry.z - boat_z) / (ferry.z - harbor_goal.z), 0, 1);
+
+// Contacts use the same position identifiers as the rendered reefs.
+on tick when phase == 1 and paused == 0 set contact = 0;
+on tick when phase == 1 and paused == 0 set reef_one_distance = distance(boat_x, boat_z, reef_one.x, reef_one.z);
+on tick when phase == 1 and paused == 0 and contact == 0 and collision_cooldown <= 0 and reef_one_distance < reef_radius + boat_radius set contact = 1;
+on tick when phase == 1 and paused == 0 and contact == 1 set hit_x = reef_one.x;
+on tick when phase == 1 and paused == 0 and contact == 1 and not observed(reef_one_reading) reveal reef_one_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 set reef_two_distance = distance(boat_x, boat_z, reef_two.x, reef_two.z);
+on tick when phase == 1 and paused == 0 and contact == 0 and collision_cooldown <= 0 and reef_two_distance < reef_radius + boat_radius set contact = 2;
+on tick when phase == 1 and paused == 0 and contact == 2 set hit_x = reef_two.x;
+on tick when phase == 1 and paused == 0 and contact == 2 and not observed(reef_two_reading) reveal reef_two_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 set reef_three_distance = distance(boat_x, boat_z, reef_three.x, reef_three.z);
+on tick when phase == 1 and paused == 0 and contact == 0 and collision_cooldown <= 0 and reef_three_distance < reef_radius + boat_radius set contact = 3;
+on tick when phase == 1 and paused == 0 and contact == 3 set hit_x = reef_three.x;
+on tick when phase == 1 and paused == 0 and contact == 3 and not observed(reef_three_reading) reveal reef_three_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 set reef_four_distance = distance(boat_x, boat_z, reef_four.x, reef_four.z);
+on tick when phase == 1 and paused == 0 and contact == 0 and collision_cooldown <= 0 and reef_four_distance < reef_radius + boat_radius set contact = 4;
+on tick when phase == 1 and paused == 0 and contact == 4 set hit_x = reef_four.x;
+on tick when phase == 1 and paused == 0 and contact == 4 and not observed(reef_four_reading) reveal reef_four_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 set reef_five_distance = distance(boat_x, boat_z, reef_five.x, reef_five.z);
+on tick when phase == 1 and paused == 0 and contact == 0 and collision_cooldown <= 0 and reef_five_distance < reef_radius + boat_radius set contact = 5;
+on tick when phase == 1 and paused == 0 and contact == 5 set hit_x = reef_five.x;
+on tick when phase == 1 and paused == 0 and contact == 5 and not observed(reef_five_reading) reveal reef_five_reading opposes clear_course;
+on tick when phase == 1 and paused == 0 set reef_six_distance = distance(boat_x, boat_z, reef_six.x, reef_six.z);
+on tick when phase == 1 and paused == 0 and contact == 0 and collision_cooldown <= 0 and reef_six_distance < reef_radius + boat_radius set contact = 6;
+on tick when phase == 1 and paused == 0 and contact == 6 set hit_x = reef_six.x;
+on tick when phase == 1 and paused == 0 and contact == 6 and not observed(reef_six_reading) reveal reef_six_reading opposes clear_course;
+
+on tick when phase == 1 and paused == 0 and contact > 0 emit impact_sound;
+on tick when phase == 1 and paused == 0 and contact > 0 emit impact_ring;
+on tick when phase == 1 and paused == 0 and contact > 0 set notice_kind = 1;
+on tick when phase == 1 and paused == 0 and contact > 0 set notice_remaining = 0.8;
+on tick when phase == 1 and paused == 0 and contact > 0 set hull = max(0, hull - 1);
+on tick when phase == 1 and paused == 0 and contact > 0 set hit_count = min(3, hit_count + 1);
+on tick when phase == 1 and paused == 0 and contact > 0 set collision_cooldown = collision_grace;
+on tick when phase == 1 and paused == 0 and contact > 0 set warning = 2;
+on tick when phase == 1 and paused == 0 and contact > 0 and boat_x >= hit_x set boat_vx = 1.8;
+on tick when phase == 1 and paused == 0 and contact > 0 and boat_x < hit_x set boat_vx = -1.8;
+on tick when phase == 1 and paused == 0 and contact > 0 set boat_x = clamp(boat_x + boat_vx * 0.5, aim_x_min, aim_x_max);
+
+// A collision is also evidence, including on the final damaged frame.
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) and not examined(reef_one_shadow) examine reef_one_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) set reef_one_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_one_reading) and not reopened(follow_light) reopen follow_light because reef_one_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) and not examined(reef_two_shadow) examine reef_two_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) set reef_two_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_two_reading) and not reopened(follow_light) reopen follow_light because reef_two_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) and not examined(reef_three_shadow) examine reef_three_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) set reef_three_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_three_reading) and not reopened(follow_light) reopen follow_light because reef_three_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) and not examined(reef_four_shadow) examine reef_four_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) set reef_four_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_four_reading) and not reopened(follow_light) reopen follow_light because reef_four_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) and not examined(reef_five_shadow) examine reef_five_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) set reef_five_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_five_reading) and not reopened(follow_light) reopen follow_light because reef_five_reading;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) and not examined(reef_six_shadow) examine reef_six_shadow cost 1;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) set reef_six_seen = 1;
+on tick when phase == 1 and paused == 0 and observed(reef_six_reading) and not reopened(follow_light) reopen follow_light because reef_six_reading;
+
+// Source alone declares success or failure.
+on tick when phase == 1 and paused == 0 set reefs_seen = reef_one_seen + reef_two_seen + reef_three_seen + reef_four_seen + reef_five_seen + reef_six_seen;
+on tick when phase == 1 and paused == 0 and hull <= 0 set failure_reason = 1;
+on tick when phase == 1 and paused == 0 and hull <= 0 emit failure_sound;
+on tick when phase == 1 and paused == 0 and hull <= 0 set phase = 3;
+on tick when phase == 1 and paused == 0 and distance(boat_x, boat_z, harbor_goal.x, harbor_goal.z) <= goal_radius set rescued = total_passengers;
+on tick when phase == 1 and paused == 0 and rescued == total_passengers set progress = 1;
+on tick when phase == 1 and paused == 0 and rescued == total_passengers set score = hull * 1000 + max(0, time_limit - elapsed) * 20 + reefs_seen * 100;
+on tick when phase == 1 and paused == 0 and rescued == total_passengers emit arrival_sound;
+on tick when phase == 1 and paused == 0 and rescued == total_passengers set phase = 2;
+on tick when phase == 1 and paused == 0 and boat_z < harbor_goal.z - 2 set failure_reason = 2;
+on tick when phase == 1 and paused == 0 and boat_z < harbor_goal.z - 2 emit failure_sound;
+on tick when phase == 1 and paused == 0 and boat_z < harbor_goal.z - 2 set phase = 3;
+on tick when phase == 1 and paused == 0 and elapsed >= time_limit set failure_reason = 3;
+on tick when phase == 1 and paused == 0 and elapsed >= time_limit emit failure_sound;
+on tick when phase == 1 and paused == 0 and elapsed >= time_limit set phase = 3;
+
+// Finishing a run releases controls before the terminal snapshot is published.
+on tick when phase >= 2 call clear_keyboard();
+on tick when phase >= 2 set light_on = 0;
+
+// Presentation is evaluated by CAVEAT. Hosts apply these values without interpreting game states.
+bind app.screen = "ready";
+bind app.screen = "playing" when phase == 1;
+bind app.screen = "paused" when phase == 1 and paused == 1;
+bind app.screen = "won" when phase == 2;
+bind app.screen = "lost" when phase == 3;
+bind app.running = phase == 1 and paused == 0;
+bind intro.visible = phase == 0;
+bind demo.visible = phase == 0;
+bind hud.visible = phase > 0;
+bind footer.visible = phase == 1 and paused == 0;
+bind pause.visible = phase == 1 and paused == 0;
+bind pause_panel.visible = phase == 1 and paused == 1;
+bind ending.visible = phase >= 2;
+bind instruction.text = "Drag left or right. Reach the green harbor. Hold the blue ring to measure flow.";
+bind start_label.text = "Start rescue";
+bind retry_label.text = "Try again";
+bind passengers.text = number_text(total_passengers);
+bind passengers_label.text = "PEOPLE ABOARD";
+bind passengers_label.text = "PEOPLE RESCUED" when phase == 2;
+bind hull.low = hull <= 1;
+bind hull.aria_label = "Hull: " + number_text(hull) + " of 3";
+bind hull_one.lost = hull < 1;
+bind hull_two.lost = hull < 2;
+bind hull_three.lost = hull < 3;
+bind time.text = time_text(max(0, time_limit - elapsed));
+bind time_label.text = "TO GET HOME";
+bind time_label.text = "TIME LEFT" when phase >= 2;
+bind control_hint.text = "HOLD + DRAG THE LIGHT";
+bind control_hint.text = "ROCKS AHEAD. STEER CLEAR." when warning == 2;
+bind control_hint.text = "CROSSCURRENT. COUNTER-STEERING." when warning == 3;
+bind control_hint.text = "FLOW SHIFTED. STEER OR RESAMPLE." when weather_phase > 0 and reading_weather_phase != weather_phase;
+bind control_hint.text = "HOLD STEADY TO READ THE FLOW." when sample_charge > 0 and sample_charge < sample_duration;
+bind sample_panel.visible = phase == 1 and paused == 0;
+bind sample_panel.tone = "known";
+bind sample_panel.tone = "stale" when weather_phase > 0 and reading_weather_phase != weather_phase;
+bind sample_panel.tone = "sampling" when sample_charge > 0 and sample_charge < sample_duration;
+bind sample_progress.value = sample_charge / sample_duration;
+bind sample_progress.aria_valuenow = sample_charge / sample_duration;
+bind sample_progress.aria_label = "Current reading progress";
+bind sample_status.text = "HOLD THE RING TO READ THE CURRENT";
+bind sample_status.text = "READING HELD. KEEP STEERING." when has_sample(flow);
+bind sample_status.text = "WEATHER CHANGED. HOLD RING TO CHECK." when weather_phase > 0 and reading_weather_phase != weather_phase;
+bind sample_status.text = "RELEASE, THEN HOLD TO READ AGAIN." when sample_armed == 0 and sample_in_range == 1 and reading_weather_phase != weather_phase;
+bind sample_status.text = "READING CURRENT..." when sample_charge > 0 and sample_charge < sample_duration;
+bind reading_age.visible = true;
+bind reading_age.text = "FORECAST";
+bind reading_age.text = "READ " + number_text(floor(elapsed - last_read_at)) + "s AGO" when has_sample(flow);
+bind flow_legend.visible = has_sample(flow);
+bind flow_legend.text = "BRIGHT: FLOW · FAINT: LAST READING";
+bind toast.visible = phase == 1 and paused == 0 and notice_remaining > 0;
+bind toast.text = "";
+bind toast.text = "Rock hit. Steer clear." when notice_kind == 1;
+bind toast.text = "Reading saved. Steering revised." when notice_kind == 2;
+// Compare actual archived observations; visible weather alone cannot produce
+// this measurement-based conclusion. No browser history algorithm is needed.
+bind toast.text = "Flow reversed. Steering revised." when notice_kind == 2 and history_count(flow) >= 2 and latest(flow) * history_at(flow, history_count(flow) - 2) < 0;
+bind toast.text = "Flow shifted. Hold ring to measure." when notice_kind == 3;
+bind toast.text = "Flow shifted. Old reading kept." when notice_kind == 3 and has_sample(flow);
+bind impact.active = phase == 1 and paused == 0 and collision_cooldown > collision_grace - 0.3;
+bind progress.value = progress;
+bind boat_count.text = number_text(total_passengers - rescued);
+bind boat_label.visible = phase < 2 and paused == 0;
+bind goal_label.visible = phase < 2 and paused == 0;
+bind ending_eyebrow.text = "ANOTHER TRY";
+bind ending_eyebrow.text = "HOME AT LAST" when phase == 2;
+bind ending_title.text = "The ferry needs you.";
+bind ending_title.text = "Everyone home." when phase == 2;
+bind ending_note.text = "Find a clearer route through the rocks.";
+bind ending_note.text = "You missed the harbor. Aim for the green ring." when failure_reason == 2;
+bind ending_note.text = "Time ran out. Keep the ferry moving." when failure_reason == 3;
+bind ending_note.text = "The ferry reached harbor. Every passenger is safe." when phase == 2;
+bind result_score.text = number_text(score);
+bind result_score.visible = phase == 2;
+bind result_time.text = time_text(floor(elapsed));
+bind result_time.visible = phase >= 2;
+bind result_progress.text = percent_text(progress);
+bind result_progress.visible = phase == 3;
+bind score_label.text = "KEEPER SCORE";
+bind result_time_label.text = "CROSSING";
+bind result_progress_label.text = "OF THE WAY";
+bind announcer.text = "";
+bind announcer.text = "Everyone rescued." when phase == 2;
+bind announcer.text = "The rescue ended. Try again." when phase == 3;
+bind focus.target = "world" when phase == 1 and paused == 0;
+bind focus.target = "resume" when phase == 1 and paused == 1;
+bind focus.target = "retry" when phase >= 2;
+
+// Poses, visible parts, lighting, and color are source expressions.
+bind ferry.x = boat_x;
+bind ferry.y = ferry.y;
+bind ferry.z = boat_z;
+bind ferry.rotation_y = atan2(boat_vx + current_force + compensation + sin(elapsed * 0.7) * wind_strength, -boat_speed);
+bind ferry.body.y = sin(elapsed * 1.5) * 0.055;
+bind ferry.body.rotation_z = sin(elapsed * 1.3) * 0.018;
+bind ferry.body.rotation_z = -0.19 when phase == 3;
+bind ferry.wake.visible = phase == 1 and paused == 0;
+bind ferry.wake.scale = 1 + sin(elapsed * 2) * 0.05;
+bind ferry.halo.color = "#ffd791";
+bind ferry.halo.color = "#df7654" when phase == 3 or collision_cooldown > 0;
+bind ferry.halo.opacity = 0.88;
+bind ferry.halo.opacity = 0.35 when phase == 3;
+bind harbor_goal.passengers.count = rescued;
+bind harbor_goal.ring.color = "#83f1bd";
+bind harbor_goal.ring.color = "#d0ffd8" when phase == 2;
+bind harbor_goal.ring.opacity = 0.68 + sin(elapsed * 2.6) * 0.2;
+bind harbor_goal.inner.opacity = 0.09;
+bind harbor_goal.inner.opacity = 0.3 when phase == 2;
+bind lamp.sweep.visible = false;
+bind lamp.lens.emissive = 0.4;
+bind lamp.lens.emissive = 3.6 when light_on >= 0.5 or phase == 2;
+bind lamp.lens.emissive = 0.4 when phase == 3;
+bind lamp.halo.opacity = 0.3;
+bind lamp.halo.opacity = 0.9 when light_on >= 0.5 or phase == 2;
+bind lamp.halo.scale = 4;
+bind lamp.halo.scale = 8 when light_on >= 0.5 or phase == 2;
+bind light_target.x = aim_x;
+bind light_target.y = 0.23;
+bind light_target.z = aim_z;
+bind light_target.visible = phase < 2;
+bind light_target.ring.color = "#ffd27a";
+bind light_target.ring.color = "#ff805a" when warning == 2;
+bind light_target.ring.color = "#78dfdf" when warning == 3;
+bind light_target.ring.scale = 1 + sin(elapsed * 3) * 0.045;
+bind light_target.ring.opacity = 0.5;
+bind light_target.ring.opacity = 0.95 when light_on >= 0.5 or phase == 0;
+bind light_target.disc.opacity = 0.035;
+bind light_target.disc.opacity = 0.18 when light_on >= 0.5 or phase == 0;
+bind light_target.core.opacity = 0.25;
+bind light_target.core.opacity = 0.75 when light_on >= 0.5 or phase == 0;
+bind light_beam.from_x = lamp.x;
+bind light_beam.from_y = lamp.y + 0.8;
+bind light_beam.from_z = lamp.z;
+bind light_beam.to_x = aim_x;
+bind light_beam.to_y = 0.23;
+bind light_beam.to_z = aim_z;
+bind light_beam.to_x = harbor_goal.x when phase == 2;
+bind light_beam.to_z = harbor_goal.z when phase == 2;
+bind light_beam.visible = phase == 0 or phase == 2 or (phase == 1 and light_on >= 0.5);
+bind light_beam.color = "#ffe4a0";
+bind light_beam.opacity = 0.1;
+bind light_beam.radius = beam_radius;
+bind guide_line.from_x = boat_x;
+bind guide_line.from_y = 0.22;
+bind guide_line.from_z = boat_z;
+bind guide_line.to_x = aim_x;
+bind guide_line.to_y = 0.22;
+bind guide_line.to_z = aim_z;
+bind guide_line.visible = phase == 1 and paused == 0;
+bind guide_line.opacity = 0.75;
+bind guide_line.color = "#9ce8c2";
+bind guide_line.color = "#ffcd76" when warning == 1;
+bind guide_line.color = "#ff805a" when warning == 2;
+bind guide_line.color = "#78dfdf" when warning == 3;
+
+// A generic ring becomes a new hazard entirely through source rules and bindings.
+bind crosscurrent_marker.x = crosscurrent_marker.x;
+bind crosscurrent_marker.y = crosscurrent_marker.y;
+bind crosscurrent_marker.z = crosscurrent_marker.z;
+bind crosscurrent_marker.visible = phase < 2;
+bind crosscurrent_marker.scale = current_radius * (0.94 + current_pulse * 0.06);
+bind crosscurrent_marker.ring.color = "#5bb0cb";
+bind crosscurrent_marker.ring.color = "#88e8c4" when has_sample(flow);
+bind crosscurrent_marker.ring.color = "#ff9b65" when weather_phase > 0 and reading_weather_phase != weather_phase;
+bind crosscurrent_marker.ring.opacity = 0.22 + current_pulse * 0.34;
+bind crosscurrent_marker.ring.opacity = 0.55 + pulse(elapsed, 6) * 0.4 when weather_phase > 0 and reading_weather_phase != weather_phase;
+bind crosscurrent_marker.disc.color = "#5bb0cb";
+bind crosscurrent_marker.disc.color = "#88e8c4" when has_sample(flow);
+bind crosscurrent_marker.disc.color = "#ff9b65" when weather_phase > 0 and reading_weather_phase != weather_phase;
+bind crosscurrent_marker.disc.opacity = 0.045 + current_pulse * 0.045;
+bind crosscurrent_marker.disc.opacity = 0.12 + sample_charge * 0.14 when sample_in_range == 1;
+bind crosscurrent_marker.arrow.visible = true;
+bind crosscurrent_marker.arrow.rotation_y = 0;
+bind crosscurrent_marker.arrow.rotation_y = 3.141592653589793 when current_strength < 0;
+bind crosscurrent_marker.arrow.color = "#88e8f2";
+bind crosscurrent_marker.arrow.color = "#ffad70" when weather_phase > 0;
+bind crosscurrent_marker.arrow.opacity = 0.75 + pulse(elapsed, 3) * 0.2;
+bind crosscurrent_marker.arrow.x = -1.4;
+bind crosscurrent_marker.arrow.z = -0.48;
+bind crosscurrent_marker.progress.visible = phase == 1;
+bind crosscurrent_marker.progress.fill = sample_charge / sample_duration;
+bind crosscurrent_marker.progress.color = "#ffe4a0";
+bind crosscurrent_marker.progress.color = "#88e8c4" when has_sample(flow) and reading_weather_phase == weather_phase;
+bind crosscurrent_marker.progress.opacity = 0.95;
+
+// This faint arrow is the retained observation, not another view of current truth.
+bind last_reading_marker.visible = phase < 2 and has_sample(flow);
+bind last_reading_marker.scale = current_radius * (0.94 + current_pulse * 0.06);
+bind last_reading_marker.ring.opacity = 0;
+bind last_reading_marker.disc.opacity = 0;
+bind last_reading_marker.arrow.visible = true;
+bind last_reading_marker.arrow.x = -1.4;
+bind last_reading_marker.arrow.z = 0.48;
+bind last_reading_marker.arrow.rotation_y = 0;
+bind last_reading_marker.arrow.rotation_y = 3.141592653589793 when has_sample(flow) and latest(flow) < 0;
+bind last_reading_marker.arrow.color = "#a4d9e9";
+bind last_reading_marker.arrow.opacity = 0.42;
+bind last_reading_marker.progress.visible = false;
+
+// The same source storm that changes the current changes the whole visible sea.
+bind atmosphere.water_deep = "#255967";
+bind atmosphere.water_deep = "#142936" when weather_phase > 0;
+bind atmosphere.water_deep = "#193e50" when weather_phase == 2;
+bind atmosphere.water_shallow = "#618995";
+bind atmosphere.water_shallow = "#28415b" when weather_phase > 0;
+bind atmosphere.water_shallow = "#396578" when weather_phase == 2;
+bind atmosphere.water_foam = "#a8d6d5";
+bind atmosphere.water_foam = "#8bc9d3" when weather_phase > 0;
+bind atmosphere.wave_height = 1;
+bind atmosphere.wave_height = 2.2 when weather_phase > 0;
+bind atmosphere.wave_height = 1.8 when weather_phase == 2;
+bind atmosphere.sky_top = "#071422";
+bind atmosphere.sky_top = "#050a15" when weather_phase > 0;
+bind atmosphere.sky_horizon = "#658387";
+bind atmosphere.sky_horizon = "#23384b" when weather_phase > 0;
+bind atmosphere.sky_horizon = "#425d68" when weather_phase == 2;
+bind atmosphere.fog_color = "#203e47";
+bind atmosphere.fog_color = "#24313f" when weather_phase > 0;
+bind atmosphere.fog_density = 0.004;
+bind atmosphere.fog_density = 0.006 when weather_phase > 0;
+bind atmosphere.exposure = 1.4;
+bind atmosphere.exposure = 1.3 when weather_phase > 0;
+bind atmosphere.water_time = elapsed;
+bind atmosphere.rain_travel = rain_travel;
+bind atmosphere.rain.opacity = 0.055;
+bind atmosphere.rain.opacity = 0.25 when weather_phase > 0;
+bind atmosphere.rain.opacity = 0.16 when weather_phase == 2;
+bind atmosphere.rain.color = "#a6d2dd";
+bind atmosphere.rain.z = 25;
+bind atmosphere.ambient.intensity = 1.8;
+bind atmosphere.ambient.intensity = 1.25 when weather_phase > 0;
+bind atmosphere.ambient.intensity = 1.5 when weather_phase == 2;
+bind atmosphere.moonlight.intensity = 2.5;
+bind atmosphere.moonlight.intensity = 1.5 when weather_phase > 0;
+bind atmosphere.moonlight.intensity = 4.6 when weather_phase > 0 and elapsed < last_shift_at + 0.2;
+bind atmosphere.stars.opacity = 0.6;
+bind atmosphere.stars.opacity = 0.15 when weather_phase > 0;
+
+bind reef_one.foam.opacity = 0.25 + sin(elapsed * 1.3 + reef_one.x) * 0.035;
+bind reef_one.foam.opacity = 0.48 + sin(elapsed * 1.3 + reef_one.x) * 0.035 when observed(reef_one_reading);
+bind reef_one.reveal.opacity = 0;
+bind reef_one.reveal.opacity = 0.25 when observed(reef_one_reading);
+bind reef_one.reveal.scale = 1;
+
+bind reef_two.foam.opacity = 0.25 + sin(elapsed * 1.3 + reef_two.x) * 0.035;
+bind reef_two.foam.opacity = 0.48 + sin(elapsed * 1.3 + reef_two.x) * 0.035 when observed(reef_two_reading);
+bind reef_two.reveal.opacity = 0;
+bind reef_two.reveal.opacity = 0.25 when observed(reef_two_reading);
+bind reef_two.reveal.scale = 1;
+
+bind reef_three.foam.opacity = 0.25 + sin(elapsed * 1.3 + reef_three.x) * 0.035;
+bind reef_three.foam.opacity = 0.48 + sin(elapsed * 1.3 + reef_three.x) * 0.035 when observed(reef_three_reading);
+bind reef_three.reveal.opacity = 0;
+bind reef_three.reveal.opacity = 0.25 when observed(reef_three_reading);
+bind reef_three.reveal.scale = 1;
+
+bind reef_four.foam.opacity = 0.25 + sin(elapsed * 1.3 + reef_four.x) * 0.035;
+bind reef_four.foam.opacity = 0.48 + sin(elapsed * 1.3 + reef_four.x) * 0.035 when observed(reef_four_reading);
+bind reef_four.reveal.opacity = 0;
+bind reef_four.reveal.opacity = 0.25 when observed(reef_four_reading);
+bind reef_four.reveal.scale = 1;
+
+bind reef_five.foam.opacity = 0.25 + sin(elapsed * 1.3 + reef_five.x) * 0.035;
+bind reef_five.foam.opacity = 0.48 + sin(elapsed * 1.3 + reef_five.x) * 0.035 when observed(reef_five_reading);
+bind reef_five.reveal.opacity = 0;
+bind reef_five.reveal.opacity = 0.25 when observed(reef_five_reading);
+bind reef_five.reveal.scale = 1;
+
+bind reef_six.foam.opacity = 0.25 + sin(elapsed * 1.3 + reef_six.x) * 0.035;
+bind reef_six.foam.opacity = 0.48 + sin(elapsed * 1.3 + reef_six.x) * 0.035 when observed(reef_six_reading);
+bind reef_six.reveal.opacity = 0;
+bind reef_six.reveal.opacity = 0.25 when observed(reef_six_reading);
+bind reef_six.reveal.scale = 1;

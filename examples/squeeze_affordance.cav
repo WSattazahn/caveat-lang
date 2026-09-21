@@ -1,0 +1,87 @@
+scene "A reported squeeze volume can justify a provisional entry plan. It cannot demonstrate physical clearance.";
+
+claim passage_reported;
+claim probe_reported;
+evidence editor_snapshot from "Vessel SlimeWorld1.json excerpt: examples/squeeze_affordance_fixtures.json, captured 2026-09-19";
+evidence synthetic_probe from "Authored replay positions and intended segments; not recorded player telemetry";
+caveat authored_volume consequence material;
+caveat snapshot_age consequence material;
+caveat synthetic_intent consequence material;
+authored_volume qualifies editor_snapshot;
+snapshot_age qualifies editor_snapshot;
+synthetic_intent qualifies synthetic_probe;
+display authored_volume "The editor volume is a passage affordance, not a measurement of unobstructed physical clearance.";
+display snapshot_age "This copied editor snapshot may differ from the current scene.";
+display synthetic_intent "These test positions and intended segments do not prove that movement occurred.";
+
+readings center_x from editor_snapshot limit 16;
+readings center_y from editor_snapshot limit 16;
+readings center_z from editor_snapshot limit 16;
+readings half_x from editor_snapshot limit 16;
+readings half_y from editor_snapshot limit 16;
+readings half_z from editor_snapshot limit 16;
+readings rotation_size from editor_snapshot limit 16;
+readings passage_profile from editor_snapshot limit 16;
+readings passage_kind from editor_snapshot limit 16;
+readings position_x from synthetic_probe limit 16;
+readings position_y from synthetic_probe limit 16;
+readings position_z from synthetic_probe limit 16;
+readings intended_x from synthetic_probe limit 16;
+readings intended_z from synthetic_probe limit 16;
+decisions traversal limit 16;
+
+// Profile 1 means fixed physics, explicit squeeze role, and primitive cube.
+// Transform rotation remains a separate reported fact and is never discarded.
+event passage kind min 1 max 2, cx min -10000 max 10000, cy min -10000 max 10000, cz min -10000 max 10000, hx min 0 max 10000, hy min 0 max 10000, hz min 0 max 10000, rx min -360 max 360, ry min -360 max 360, rz min -360 max 360, profile min 0 max 1;
+event probe x min -10000 max 10000, y min -10000 max 10000, z min -10000 max 10000, to_x min -10000 max 10000, to_z min -10000 max 10000;
+state assessment = -2 min -2 max 2;
+
+// These policy constants match the inspected normal-radius entry query. This
+// example does not simulate changing body radius, wall exclusion, or movement.
+fn entry_radius() = 0.35;
+fn entry_padding() = 0.22;
+fn point_in_volume(px, py, pz, cx, cy, cz, hx, hy, hz, margin) = abs(px - cx) <= hx + margin and abs(py - cy) <= hy + margin and abs(pz - cz) <= hz + margin;
+// Segment/box separation tests avoid division and expanded min/max trees.
+fn segment_contacts(px, pz, tx, tz, cx, cz, hx, hz) = abs((px + tx) / 2 - cx) <= hx + abs(tx - px) / 2 and abs((pz + tz) / 2 - cz) <= hz + abs(tz - pz) / 2 and abs((tx - px) * (pz - cz) - (tz - pz) * (px - cx)) <= hx * abs(tz - pz) + hz * abs(tx - px);
+fn entry_contacts(px, py, pz, tx, tz, cx, cy, cz, hx, hy, hz, margin) = point_in_volume(px, py, pz, cx, cy, cz, hx, hy, hz, margin) or ((tx - px) * (tx - px) + (tz - pz) * (tz - pz) >= 0.0000000001 and abs(py - cy) <= hy + margin and segment_contacts(px, pz, tx, tz, cx, cz, hx + margin, hz + margin));
+// -1 unsupported; 0 outside; 1 padded/intended entry; 2 center in authored box.
+// Reactive input supplies max(abs(rx), abs(ry), abs(rz)). Direct library callers
+// may supply a signed rotation; abs here prevents negative values bypassing it.
+fn squeeze_assessment(profile, rotation, px, py, pz, tx, tz, cx, cy, cz, hx, hy, hz) = if(profile != 1 or abs(rotation) > 0.00000001 or hx <= 0 or hy <= 0 or hz <= 0, -1, if(point_in_volume(px, py, pz, cx, cy, cz, hx, hy, hz, 0), 2, if(entry_contacts(px, py, pz, tx, tz, cx, cy, cz, hx, hy, hz, entry_radius() + entry_padding()), 1, 0)));
+fn squeeze_label(code) = if(code == -2, "Awaiting a probe", if(code == -1, "Unsupported passage", if(code == 0, "Outside", if(code == 1, "Entry candidate", "Occupied authored volume"))));
+fn squeeze_reason(code, profile, rotation, hx, hy, hz) = if(abs(rotation) > 0.00000001, "Unsupported rotation: this policy requires an axis-aligned authored volume.", if(profile != 1, "Unsupported profile: expected fixed physics, an explicit squeeze role, and a primitive cube.", if(hx <= 0 or hy <= 0 or hz <= 0, "Unsupported bounds: all half-extents must be positive.", if(code == 2, "The reported center is inside the authored box; physical clearance remains unverified.", if(code == 1, "The reported center or intended segment contacts the padded entry volume; movement and physical clearance remain unverified.", "Neither the reported center nor its intended segment contacts the entry volume.")))));
+
+on passage sample center_x = cx supports passage_reported;
+on passage sample center_y = cy supports passage_reported;
+on passage sample center_z = cz supports passage_reported;
+on passage sample half_x = hx supports passage_reported;
+on passage sample half_y = hy supports passage_reported;
+on passage sample half_z = hz supports passage_reported;
+on passage sample rotation_size = max(abs(rx), max(abs(ry), abs(rz))) supports passage_reported;
+on passage sample passage_profile = profile supports passage_reported;
+on passage sample passage_kind = require(kind == 1 or kind == 2, kind) supports passage_reported;
+on passage when committed(traversal) and not reopened(traversal) reopen traversal because latest(passage_kind);
+on passage set assessment = -2;
+
+proc assess_probe(px, py, pz, tx, tz) {
+    sample position_x = px supports probe_reported;
+    sample position_y = py supports probe_reported;
+    sample position_z = pz supports probe_reported;
+    sample intended_x = tx supports probe_reported;
+    sample intended_z = tz supports probe_reported;
+    set assessment = squeeze_assessment(latest(passage_profile), latest(rotation_size), latest(position_x), latest(position_y), latest(position_z), latest(intended_x), latest(intended_z), latest(center_x), latest(center_y), latest(center_z), latest(half_x), latest(half_y), latest(half_z));
+    when committed(traversal) and not reopened(traversal) reopen traversal because latest(position_x);
+    commit traversal because enough using assessment;
+};
+
+// A probe before any passage report creates no observation or decision.
+on probe when has_sample(passage_kind) call assess_probe(x, y, z, to_x, to_z);
+
+bind passage.text = "No passage report";
+bind passage.text = if(latest(passage_kind) == 1, "Cave Squeeze Box", "Apothecary SqueezeBox") when has_sample(passage_kind);
+bind decision.text = squeeze_label(assessment);
+bind decision.value = assessment;
+bind reason.text = "Load a passage snapshot, then report a synthetic position and intent.";
+bind reason.text = squeeze_reason(assessment, latest(passage_profile), latest(rotation_size), latest(half_x), latest(half_y), latest(half_z)) when assessment != -2;
+bind reason.text = "The passage report changed. The previous decision remains recorded and reopened; submit a new probe." when assessment == -2 and reopened(traversal);
+bind qualification.text = "Authored volume only; copied snapshot; synthetic intent. No verified collision safety or completed traversal.";

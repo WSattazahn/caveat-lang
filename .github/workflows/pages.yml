@@ -67,15 +67,15 @@ jobs:
         run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - name: Install wasm-bindgen
         run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - name: Assemble site
-        run: |
-          rm -rf dist
-          mkdir -p dist/pkg
-          wasm-bindgen runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm --out-dir dist/pkg --target web
-          cp web/index.html web/door.html web/graphics.html web/3d.html web/the_door_round2.cav web/caveat3d.js web/moon-garden-3d.js web/moon-garden-3d.html web/mr-caveat.html dist/
-          cp game/moon_garden.cav dist/moon_garden.cav
-          cp game/missing_dumpling.cav dist/missing_dumpling.cav
-          cp -R web/assets dist/assets
+        run: npm run assemble
+      - name: Slime glow WebAssembly policy checks
+        run: npm run test:slime-glow
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

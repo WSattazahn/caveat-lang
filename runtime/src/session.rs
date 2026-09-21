@@ -1,8 +1,10 @@
 use crate::ast::{Program, Statement};
 use crate::eval::{Evaluation, EventKind};
 use crate::NodeId;
+use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum PendingInteraction {
     Investigate {
         name: String,
@@ -18,14 +20,14 @@ pub enum PendingInteraction {
     Complete,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Discovery {
     pub because: String,
     pub evidence: String,
     pub relation: String,
     pub target: String,
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CommitmentFeedback {
     pub action: String,
     pub retained: Vec<String>,
@@ -101,8 +103,15 @@ impl Session {
     }
 
     pub fn apply(&mut self, selection: &str) -> Result<(), String> {
-        self.last_discoveries.clear();
-        self.last_commitment = None;
+        // Evaluation can fail after a valid selection (for example, because an
+        // inspection exceeds the remaining budget). Publish no partial changes.
+        let mut candidate = self.clone();
+        candidate.apply_in_place(selection)?;
+        *self = candidate;
+        Ok(())
+    }
+
+    fn apply_in_place(&mut self, selection: &str) -> Result<(), String> {
         let index = self.next_interaction_index().ok_or("session is complete")?;
         let prefix = self.evaluate_before(index)?;
         self.validate_and_set_selection(index, selection, &prefix)?;
@@ -111,7 +120,9 @@ impl Session {
             .unwrap_or(self.program.statements.len());
         let evaluation =
             crate::eval::evaluate(&Program::new(self.program.statements[..next].to_vec()))?;
-        self.collect_feedback(selection, &evaluation);
+        self.last_discoveries.clear();
+        self.last_commitment = None;
+        self.collect_feedback(selection, &evaluation, prefix.history.len());
         self.cursor = index + 1;
         Ok(())
     }
@@ -152,10 +163,10 @@ impl Session {
         Ok(())
     }
 
-    fn collect_feedback(&mut self, selection: &str, evaluation: &Evaluation) {
+    fn collect_feedback(&mut self, selection: &str, evaluation: &Evaluation, prior_events: usize) {
         let name = |id: NodeId| symbol_name(evaluation, id);
         let mut committed_id = None;
-        for event in &evaluation.history {
+        for event in &evaluation.history[prior_events..] {
             match &event.kind {
                 EventKind::Revealed {
                     because,
@@ -207,6 +218,15 @@ impl Session {
     }
     pub fn program(&self) -> &Program {
         &self.program
+    }
+
+    /// Evaluate only the executed prefix, stopping before the next interaction.
+    /// Source selections beyond this boundary are authoring placeholders.
+    pub fn current_evaluation(&self) -> Result<Evaluation, String> {
+        let boundary = self
+            .next_interaction_index()
+            .unwrap_or(self.program.statements.len());
+        self.evaluate_before(boundary)
     }
 }
 

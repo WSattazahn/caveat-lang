@@ -101,7 +101,7 @@ fn main() {
             }
             let map = load(&path);
             println!(
-                "{{\"valid\":true,\"schema\":\"{}\",\"symbols\":{},\"relations\":{},\"actions\":{}}}",
+                "{{\"valid\":true,\"validation_scope\":\"declared_map\",\"schema\":\"{}\",\"symbols\":{},\"relations\":{},\"actions\":{}}}",
                 MAP_SCHEMA,
                 map.symbols.len(),
                 map.relations.len(),

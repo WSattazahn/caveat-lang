@@ -57,6 +57,10 @@ caveat-map simulate FILE.cav ACTION [ACTION ...]
 caveat-map validate FILE.cav
 ```
 
+The `validate` result reports `validation_scope: "declared_map"`: it checks
+map structure, not reactive execution. Use `caveat-reactive validate FILE.cav`
+to validate a reactive program's state, events, rules, and procedures.
+
 ### map
 
 Returns the complete JSON map.
