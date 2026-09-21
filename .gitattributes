@@ -1,0 +1,43 @@
+# Vessel pins the sha256 of built Caveat artifacts.
+#
+# scripts/build-web.mjs copies working-tree bytes straight into dist/, and the
+# Vessel provenance check (scripts/syncSlimeGlowCaveat.mjs in GPT_SandBox_Web)
+# compares dist/slime_glow_ability.cav and dist/slime-glow-policy.js against
+# examples/slime_glow_ability.cav, web/slime-glow-policy.js and the committed
+# blobs, then against the sha256 values recorded in
+# public/caveat/slime-glow/receipt.json.
+#
+# Git for Windows installs core.autocrlf=true by default, which would check
+# these files out with CRLF and silently change every one of those hashes. Pin
+# LF in the working tree on every platform so a checkout can never alter the
+# bytes we publish.
+* text=auto eol=lf
+
+# The hashed and pinned families, stated explicitly so the guarantee survives
+# any future edit to the wildcard above.
+*.cav   text eol=lf
+*.cvr   text eol=lf
+*.ebnf  text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.md    text eol=lf
+*.mjs   text eol=lf
+*.rs    text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+
+# Binary payloads must never pass through the text filter.
+*.wasm binary
+*.png  binary
+*.webp binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.mp3  binary
+*.ogg  binary
+*.wav  binary
+*.mp4  binary
