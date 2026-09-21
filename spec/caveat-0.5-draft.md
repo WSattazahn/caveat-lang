@@ -29,9 +29,10 @@ fn visibility_scale(metres) = clamp(metres / 400, 0, 1);
 
 A module file begins with `module NAME;`. It may contain only *declarations*:
 `claim`, `evidence`, `caveat`, relation statements, `rule`, `fn`, effect
-procedures, `display`, and the presentation declarations. It may **not**
-contain statements that execute: `budget`, `examine`, `defer`, `infer`,
-`select`, `converge`, `commit`, `reopen`, `inspect`, or `start_at`.
+procedures, `display`, the presentation declarations, and the reactive
+declarations in section 8. It may **not** contain statements that execute:
+`budget`, `examine`, `defer`, `infer`, `select`, `converge`, `commit`,
+`reopen`, `inspect`, or `start_at`.
 
 The reason is not tidiness. Draft 0.4 says conditions "read only the executed
 prefix", and Draft 0.3's world checks depend on a single ordered program. If a
@@ -184,6 +185,8 @@ Linking rejects, before any execution:
 - `budget` in a module (section 4);
 - duplicate `module` names in one bundle;
 - a declared identifier containing `__` (section 5);
+- a module that declares a name it also takes as a parameter (section 8);
+- a state cell or a host binding written by more than one part (section 8);
 - a bundle header whose byte length does not match the text that follows.
 
 These are static errors. None of them can be reached at runtime, and none of
@@ -203,21 +206,66 @@ that an imported caveat's consequence level is honest. It establishes only that
 two programs are talking about the same graph node instead of two accidentally
 identical names.
 
-This draft does not let an existing game split. A module may declare epistemic
-symbols, inference rules, pure functions, effect procedures, `display` text and
-presentation; it may not contain `state`, `event`, `bind` or `on`. Those raise
-questions this draft does not answer — whether a module's `state` joins the
-program's single state space, whether a module may bind a property the program
-never declared, and whether an `on` rule in a module fires for the program's
-events — and a rule that is guessed at is worse than one that is refused. So
-`game/light_the_way.cav` still cannot be broken up. What works today is the
-shared vocabulary and the standard library.
-
-For the same reason `scripts/build-web.mjs` refuses to publish a game with
-imports, and skips a `game/*.cav` that declares a module rather than copying a
-library into `dist/` as though it were playable.
-
 Versioning, module visibility, separate compilation, and a package registry are
 out of scope. So is any notion of a trusted or signed module: a bundle's
 provenance is exactly the provenance of its bytes, which is what the receipt
 already pins.
+
+## 8. Reactive declarations in a module
+
+A module may also declare `state`, `event`, `on`, `bind`, `cue`, `clock`,
+`control`, `readings` and `decisions`. Section 1 still applies: these declare,
+and a module still may not execute.
+
+**State joins the one state space, under a scoped name.** `state learned` in
+module `glow` is one cell, reachable as `glow::learned`. Nothing is
+partitioned; only the name is. A cell's `min` and `max` are declared with it and
+so travel with the cell rather than with whoever writes it, which is what keeps
+a bound from depending on the writer.
+
+**A binding is a host name and is never namespaced.** `bind ability.learned`
+projects into the host's contract — Vessel reads `snapshot.bindings.ability
+.learned` — so if linking renamed the target, modularising a policy would
+silently break its consumer. The rule that makes this fall out is simple: an
+identifier directly after `.` is a member name, not a symbol, so neither the
+binding property nor a presentation axis (`ferry.x`) is ever rewritten. The
+target is not a declared symbol either, so it passes through unchanged.
+
+**An `on` rule can only name events it can see.** A module may respond to an
+event it declares or imports. It cannot respond to the program's events,
+because it cannot name them — this needs no new rule, it is what scoping
+already means. A program that wants to keep its host-facing event names routes
+them itself:
+
+```caveat
+on absorb_mushroom when not observed(glow::first_mushroom) call glow::learn_glow();
+```
+
+### One writer per name
+
+A state cell may be assigned by one part, and a host binding's
+`target.property` may be written by one part. A second is a link error naming
+both parts.
+
+Within a part, order is what the author wrote: every matching `on` rule fires
+in source order, and the last matching `bind` wins, so a cascade over one
+property is an ordinary authored thing and stays legal. Across parts the order
+is the linker's topological one, which nobody wrote down. Letting two parts
+write the same name would hand the outcome to that ordering — the same failure
+section 1 rejects for executing modules, and section 3 for wildcard imports.
+
+This is why `examples/modules/glow.cav` makes the toggle a procedure instead of
+leaving `set active = 1 - active;` inline in the program's rule: `active` is the
+module's cell, so the module writes it and the program calls in.
+
+Revealing evidence is deliberately *not* restricted this way. Graph edges are
+additive and the model already expects supporting and opposing evidence to
+coexist, so two parts revealing into the same claim lose nothing and no
+ordering decides an outcome.
+
+### Parameters
+
+A module may not declare a name it also takes as a parameter. Rewriting is
+lexical, so the parameter inside the body would be rewritten too and fuse with
+the declaration. The link error names the declaration and the function that
+takes it, and renaming either one resolves it.

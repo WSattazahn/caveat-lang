@@ -27,6 +27,20 @@ function run(command, args) {
   if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
 }
 
+// Resolve a program's imports with the runtime's own linker.
+function linkBundle(file) {
+  const result = spawnSync(
+    'cargo',
+    ['run', '--quiet', '--manifest-path', 'runtime/Cargo.toml', '--bin', 'caveat', '--', '--link', file],
+    { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`cannot link ${path.basename(file)}: ${(result.stderr || '').trim()}`);
+  }
+  return result.stdout;
+}
+
 // Whether a .cav file is a draft 0.5 module, a program that imports modules,
 // or an ordinary single-file program. Reads only the statement heads, so it
 // does not reimplement the linker.
@@ -65,7 +79,12 @@ try {
     // into dist/ would publish something the runtime refuses to start.
     if (kind === 'module') continue;
     if (kind === 'imports') {
-      throw new Error(`${entry.name} imports modules; dist/ cannot carry a multi-module game yet. Run cargo run --bin caveat -- --link game/${entry.name} and commit the bundle.`);
+      // Linked by the runtime's own linker rather than a second
+      // implementation here, so dist/ can never disagree with what the
+      // sessions do. The bundle keeps its .cav name: a single-file program and
+      // a bundle are both just program text to the runtime.
+      await writeFile(path.join(dist, entry.name), linkBundle(source));
+      continue;
     }
     await cp(source, path.join(dist, entry.name));
   }

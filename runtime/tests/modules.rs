@@ -274,10 +274,10 @@ fn a_bundle_header_must_match_the_text_that_follows() {
 }
 
 #[test]
-fn a_diagnostic_maps_back_to_the_part_and_line_the_author_wrote() {
-    // Linking concatenates parts, so the evaluator's line number is not the
-    // author's. The source map is what makes it one again.
-    let (source, map) = link::link_with_map(&bundle(&[
+fn a_malformed_part_is_named_with_the_line_the_author_wrote() {
+    // Linking parses each part on its own, so the line number is already the
+    // one in that file rather than one in the concatenated output.
+    let message = link::link(&bundle(&[
         ("weather", WEATHER),
         (
             "main",
@@ -287,21 +287,66 @@ this is not a statement;
 ",
         ),
     ]))
-    .expect("bundle links");
-    let message = parser::parse(&source).expect_err("bad statement must fail");
-    let line: usize = message
-        .strip_prefix("line ")
-        .and_then(|rest| rest.split(',').next())
-        .and_then(|digits| digits.parse().ok())
-        .unwrap_or_else(|| panic!("unexpected diagnostic: {message}"));
-    assert_eq!(
-        map.locate(line),
-        Some(("main", 3)),
-        "linked line {line} should be main line 3; map: {:?}",
-        map.parts
+    .expect_err("a malformed program must be rejected");
+    assert!(
+        message.contains("the program main") && message.contains("line 3"),
+        "expected the program and line 3, got: {message}"
     );
-    // The module's own first line still maps to the module.
+
+    let message = link::link(&bundle(&[
+        (
+            "weather",
+            &format!(
+                "{WEATHER}also not a statement;
+"
+            ),
+        ),
+        (
+            "main",
+            "use weather;
+",
+        ),
+    ]))
+    .expect_err("a malformed module must be rejected");
+    assert!(
+        message.contains("module weather") && message.contains("line 6"),
+        "expected module weather and line 6, got: {message}"
+    );
+}
+
+#[test]
+fn the_source_map_places_every_part() {
+    let (source, map) = link::link_with_map(&bundle(&[
+        ("weather", WEATHER),
+        (
+            "main",
+            "use weather;
+claim ok;
+",
+        ),
+    ]))
+    .expect("bundle links");
     assert_eq!(map.locate(1), Some(("weather", 1)));
+
+    // The program's first line is wherever the modules stopped, and `claim ok;`
+    // is its second line.
+    let program_start = map
+        .parts
+        .iter()
+        .find(|(name, _)| name == "main")
+        .map(|(_, line)| *line)
+        .expect("the program is mapped");
+    assert_eq!(map.locate(program_start + 1), Some(("main", 2)));
+    let claim_line = source
+        .lines()
+        .position(|line| line.trim() == "claim ok;")
+        .expect("the program's claim is in the linked source")
+        + 1;
+    assert_eq!(
+        map.locate(claim_line),
+        Some(("main", 2)),
+        "the claim the author wrote on line 2 maps back to line 2"
+    );
 }
 
 #[test]
@@ -591,4 +636,284 @@ fn imports_are_followed_through_modules() {
 
     let evaluation = evaluate(&link::link(&text).expect("links"));
     assert!(evaluation.symbols.contains_key("base__shared"));
+}
+
+#[test]
+fn a_module_may_not_shadow_a_parameter_with_a_declaration() {
+    // The rewriter is lexical, so a declared name that is also a parameter
+    // would be rewritten inside the body and break the parameter reference.
+    let module = "module scale;\n\
+         claim value;\n\
+         fn double(value) = value + value;\n";
+    let message = error(&[("scale", module), ("main", "use scale;\nbudget 1;\n")]);
+    assert!(
+        message.contains("value"),
+        "a declaration shadowing a parameter must be rejected, got: {message}"
+    );
+}
+
+// ---- reactive declarations in modules (draft 0.5 section 8) ----
+
+const GLOW_MODULE: &str = "module glow;\n\
+     claim mushroom_discovered;\n\
+     evidence first_mushroom from \"first authored absorption\";\n\
+     caveat single_absorption consequence material;\n\
+     single_absorption qualifies first_mushroom;\n\
+     state learned = 0 min 0 max 1;\n\
+     event absorb;\n\
+     proc learn() {\n\
+       reveal first_mushroom supports mushroom_discovered;\n\
+       set learned = qualified(1, first_mushroom);\n\
+     };\n\
+     on absorb when not observed(first_mushroom) call learn();\n\
+     bind ability.learned = learned == 1;\n\
+     bind ability.text = \"Not discovered\";\n\
+     bind ability.text = \"Mushroom absorbed\" when learned == 1;\n";
+
+#[test]
+fn a_module_may_own_state_events_rules_and_bindings() {
+    let text = bundle(&[
+        ("glow", GLOW_MODULE),
+        (
+            "main",
+            "use glow;\n\
+             state escaped = 0 min 0 max 1;\n\
+             event escape;\n\
+             on escape set escaped = 1;\n\
+             bind objective.complete = escaped == 1;\n",
+        ),
+    ]);
+    let mut session =
+        caveat_runtime::reactive::ReactiveSession::from_source(&text).expect("bundle runs");
+
+    let before = session.snapshot();
+    assert_eq!(
+        before.bindings["ability"]["learned"],
+        BindingValue::Bool(false)
+    );
+    assert_eq!(
+        before.bindings["ability"]["text"],
+        BindingValue::Text("Not discovered".into())
+    );
+
+    // The host dispatches the module's event by its linked name.
+    session.dispatch_json("glow__absorb", "{}").expect("absorb");
+    let after = session.snapshot();
+    assert_eq!(
+        after.bindings["ability"]["learned"],
+        BindingValue::Bool(true)
+    );
+    assert_eq!(
+        after.bindings["ability"]["text"],
+        BindingValue::Text("Mushroom absorbed".into()),
+        "the cascade inside one module still resolves in source order"
+    );
+
+    // The program's own event and binding are untouched by the module.
+    assert_eq!(
+        after.bindings["objective"]["complete"],
+        BindingValue::Bool(false)
+    );
+    session.dispatch_json("escape", "{}").expect("escape");
+    assert_eq!(
+        session.snapshot().bindings["objective"]["complete"],
+        BindingValue::Bool(true)
+    );
+}
+
+#[test]
+fn a_binding_target_is_a_host_name_and_is_not_rewritten() {
+    // The host reads `ability.learned`. If linking renamed the target,
+    // modularising a policy would silently break its consumer.
+    let source = linked(&[("glow", GLOW_MODULE), ("main", "use glow;\n")]);
+    assert!(
+        source.contains("bind ability.learned = glow__learned == 1;"),
+        "target stays, state flattens: {source}"
+    );
+    assert!(
+        !source.contains("glow__ability"),
+        "a binding target must not be namespaced: {source}"
+    );
+}
+
+#[test]
+fn two_parts_may_not_write_the_same_binding_or_state_cell() {
+    // Across parts the order is the linker's, which nobody authored, so a
+    // second writer is refused rather than silently losing to link order.
+    let message = error(&[
+        ("glow", GLOW_MODULE),
+        ("main", "use glow;\nbind ability.learned = 1 == 1;\n"),
+    ]);
+    assert!(
+        message.contains("ability.learned is bound by both")
+            && message.contains("module glow")
+            && message.contains("the program main"),
+        "{message}"
+    );
+
+    let shared = "module shared;\nstate level = 0 min 0 max 9;\nevent bump;\non bump set level = level + 1;\n";
+    let message = error(&[
+        ("shared", shared),
+        (
+            "main",
+            "use shared;\nevent nudge;\non nudge set shared::level = 9;\n",
+        ),
+    ]);
+    assert!(
+        message.contains("shared__level is assigned by both"),
+        "{message}"
+    );
+}
+
+#[test]
+fn each_part_keeps_its_own_binding_cascade() {
+    // Different properties of the same host target may come from different
+    // parts; only the same property is a conflict.
+    let text = bundle(&[
+        ("glow", GLOW_MODULE),
+        (
+            "main",
+            "use glow;\nbind ability.name = \"Glow\";\nbind objective.text = \"Absorb one.\";\n",
+        ),
+    ]);
+    let session =
+        caveat_runtime::reactive::ReactiveSession::from_source(&text).expect("bundle runs");
+    let snapshot = session.snapshot();
+    assert_eq!(
+        snapshot.bindings["ability"]["name"],
+        BindingValue::Text("Glow".into())
+    );
+    assert_eq!(
+        snapshot.bindings["ability"]["text"],
+        BindingValue::Text("Not discovered".into())
+    );
+}
+
+#[test]
+fn a_program_can_route_its_own_event_to_a_module_procedure() {
+    // Keeps the host-facing event name in the program while the behaviour
+    // lives in the module.
+    let text = bundle(&[
+        ("glow", GLOW_MODULE),
+        (
+            "main",
+            "use glow;\nevent absorb;\non absorb when not observed(glow::first_mushroom) call glow::learn();\n",
+        ),
+    ]);
+    let mut session =
+        caveat_runtime::reactive::ReactiveSession::from_source(&text).expect("bundle runs");
+    session
+        .dispatch_json("absorb", "{}")
+        .expect("the program's own event name still works");
+    assert_eq!(
+        session.snapshot().bindings["ability"]["learned"],
+        BindingValue::Bool(true)
+    );
+}
+
+#[test]
+fn the_split_slime_glow_policy_behaves_exactly_like_the_single_file() {
+    // examples/modules/{glow,slime_glow}.cav is examples/slime_glow_ability.cav
+    // split in two. If linking changed anything the host can see, these two
+    // sessions would diverge.
+    use caveat_runtime::reactive::ReactiveSession;
+
+    let single = std::fs::read_to_string(repo("examples/slime_glow_ability.cav"))
+        .expect("the single-file policy reads");
+    let split =
+        disk::load(&repo("examples/modules/slime_glow.cav")).expect("the split policy loads");
+
+    let mut one = ReactiveSession::from_source(&single).expect("single-file session");
+    let mut two = ReactiveSession::from_source(&split).expect("split session");
+    assert_eq!(
+        one.snapshot().bindings,
+        two.snapshot().bindings,
+        "the two layouts must start identical"
+    );
+
+    // Every host event, including the ones that must do nothing yet.
+    for event in [
+        "toggle_glow",
+        "cave_entered",
+        "glow_renderer_ready",
+        "absorb_mushroom",
+        "toggle_glow",
+        "toggle_glow",
+        "absorb_mushroom",
+        "clearing_started",
+        "ruin_escaped",
+    ] {
+        let first = one.dispatch_json(event, "{}");
+        let second = two.dispatch_json(event, "{}");
+        assert_eq!(
+            first.is_ok(),
+            second.is_ok(),
+            "{event} succeeded in one layout and not the other"
+        );
+        assert_eq!(
+            one.snapshot().bindings,
+            two.snapshot().bindings,
+            "bindings diverged after {event}"
+        );
+    }
+
+    let end = one.snapshot();
+    assert_eq!(
+        end.bindings["ability"]["text"],
+        BindingValue::Text("Glow on".into()),
+        "the sequence should end with Glow learned and on"
+    );
+    assert_eq!(
+        end.bindings["objective"]["text"],
+        BindingValue::Text("You escaped into the garden.".into())
+    );
+
+    // Same graph size, just differently spelled names.
+    let (left, right) = (one.snapshot(), two.snapshot());
+    assert_eq!(left.symbols.len(), right.symbols.len(), "symbol count");
+    assert_eq!(
+        left.relations.len(),
+        right.relations.len(),
+        "relation count"
+    );
+    assert_ne!(
+        left.source_id, right.source_id,
+        "different bytes, so different identities"
+    );
+}
+
+#[test]
+fn the_cli_emits_a_bundle_that_runs() {
+    // scripts/build-web.mjs publishes exactly this stdout as the game's .cav,
+    // so what the CLI writes has to be loadable program text.
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_caveat"))
+        .args(["--link", "examples/modules/slime_glow.cav"])
+        .current_dir(repo("."))
+        .output()
+        .expect("caveat --link runs");
+    assert!(
+        output.status.success(),
+        "caveat --link failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let emitted = String::from_utf8(output.stdout).expect("bundle is text");
+    assert!(emitted.starts_with(link::BUNDLE_MARKER), "{emitted:.120}");
+
+    let mut session =
+        caveat_runtime::reactive::ReactiveSession::from_source(&emitted).expect("bundle runs");
+    session
+        .dispatch_json("glow_renderer_ready", "{}")
+        .expect("renderer");
+    session
+        .dispatch_json("absorb_mushroom", "{}")
+        .expect("absorb");
+    assert_eq!(
+        session.snapshot().bindings["ability"]["text"],
+        BindingValue::Text("Glow on".into())
+    );
+
+    // It is also byte-identical to what the library produces, so the CLI is
+    // not a second implementation.
+    let loaded = disk::load(&repo("examples/modules/slime_glow.cav")).expect("library load");
+    assert_eq!(emitted, loaded);
 }

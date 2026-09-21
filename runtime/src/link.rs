@@ -130,17 +130,21 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
 
     // Import edges, checked against the modules actually present.
     let mut imports: Vec<(String, Vec<String>)> = Vec::new();
-    for part in modules.iter().chain(std::iter::once(root)) {
+    for (part, is_module) in modules
+        .iter()
+        .map(|part| (part, true))
+        .chain(std::iter::once((root, false)))
+    {
         let used = used_modules(&part.source)?;
         for name in &used {
             if !declarations.iter().any(|(module, _)| module == name) {
                 return Err(format!(
                     "{} imports a module that is not in the bundle: {name}",
-                    describe(part)
+                    describe(part, is_module)
                 ));
             }
             if *name == part.name {
-                return Err(format!("{} imports itself", describe(part)));
+                return Err(format!("{} imports itself", describe(part, is_module)));
             }
         }
         imports.push((part.name.clone(), used));
@@ -149,6 +153,7 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
 
     let mut linked = String::new();
     let mut map = SourceMap { parts: Vec::new() };
+    let mut writes: Vec<(String, PartWrites)> = Vec::new();
     for name in &order {
         let part = modules
             .iter()
@@ -160,13 +165,21 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
             .map(|(_, declared)| declared.as_slice())
             .expect("ordered module was checked");
         map.parts.push((name.clone(), lines(&linked)));
-        linked.push_str(&rewrite(part, Some(name), declared, &declarations)?);
+        let rewritten = rewrite(part, Some(name), declared, &declarations)?;
+        let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
+        writes.push((format!("module {name}"), written));
+        linked.push_str(&rewritten);
         if !linked.ends_with('\n') {
             linked.push('\n');
         }
     }
     map.parts.push((root.name.clone(), lines(&linked)));
-    linked.push_str(&rewrite(root, None, &[], &declarations)?);
+    let rewritten = rewrite(root, None, &[], &declarations)?;
+    let label = describe(root, false);
+    let written = part_writes(&rewritten).map_err(|error| format!("{label}: {error}"))?;
+    writes.push((label, written));
+    linked.push_str(&rewritten);
+    check_single_writer(&writes)?;
     Ok((linked, map))
 }
 
@@ -175,11 +188,13 @@ fn lines(text: &str) -> usize {
     text.chars().filter(|ch| *ch == '\n').count() + 1
 }
 
-fn describe(part: &BundlePart) -> String {
-    if part.name.is_empty() {
-        "the program".into()
-    } else {
-        format!("module {}", part.name)
+/// How a part is named in diagnostics. The program carries a name too (its
+/// file stem), so rootness has to be passed in rather than guessed from it.
+fn describe(part: &BundlePart, module: bool) -> String {
+    match (module, part.name.is_empty()) {
+        (true, _) => format!("module {}", part.name),
+        (false, true) => "the program".into(),
+        (false, false) => format!("the program {}", part.name),
     }
 }
 
@@ -200,14 +215,45 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
     let program = crate::parser::parse(&strip_headers(&part.source))
         .map_err(|message| format!("module {}: {message}", part.name))?;
     let mut declared = Vec::new();
+    let mut parameters: Vec<(String, String)> = Vec::new();
     for statement in &program.statements {
         let name = match statement {
             Statement::Claim { name } => Some(name.clone()),
             Statement::Evidence { name, .. } => Some(name.clone()),
             Statement::Caveat { name, .. } => Some(name.clone()),
             Statement::Rule { name, .. } => Some(name.clone()),
-            Statement::Reactive(Directive::Function(function)) => Some(function.name.clone()),
-            Statement::Reactive(Directive::Procedure(procedure)) => Some(procedure.name.clone()),
+            Statement::Reactive(directive) => match directive {
+                Directive::Function(function) => {
+                    for parameter in &function.parameters {
+                        parameters.push((parameter.clone(), function.name.clone()));
+                    }
+                    Some(function.name.clone())
+                }
+                Directive::Procedure(procedure) => {
+                    for parameter in &procedure.parameters {
+                        parameters.push((parameter.clone(), procedure.name.clone()));
+                    }
+                    Some(procedure.name.clone())
+                }
+                Directive::Event {
+                    name,
+                    parameters: declared_parameters,
+                } => {
+                    for parameter in declared_parameters {
+                        parameters.push((parameter.name.clone(), name.clone()));
+                    }
+                    Some(name.clone())
+                }
+                Directive::State { name, .. }
+                | Directive::Readings { name, .. }
+                | Directive::Decisions { name, .. }
+                | Directive::Control { name, .. } => Some(name.clone()),
+                // Respond or project, but introduce no name of their own.
+                Directive::Rule(_)
+                | Directive::Binding(_)
+                | Directive::Cue(_)
+                | Directive::Clock(_) => None,
+            },
             // Declare nothing, but are allowed to appear.
             Statement::Relate { .. } | Statement::Display { .. } | Statement::Presentation(_) => {
                 None
@@ -239,7 +285,96 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
             declared.push(name);
         }
     }
+    // Rewriting is lexical, so a declared name that is also a parameter would
+    // be rewritten inside the body and fuse the parameter with the
+    // declaration. Refuse rather than silently rename one into the other.
+    for (parameter, owner) in &parameters {
+        if declared.contains(parameter) {
+            return Err(format!(
+                "module {} declares {parameter} and also takes it as a parameter of {owner}; rename one",
+                part.name
+            ));
+        }
+    }
     Ok(declared)
+}
+
+/// What a part writes: state cells it assigns, and host bindings it projects.
+/// Collected from the rewritten text, so the names are already flat and can be
+/// compared across parts.
+#[derive(Default)]
+struct PartWrites {
+    assigned: Vec<String>,
+    bound: Vec<(String, String)>,
+}
+
+fn part_writes(linked: &str) -> Result<PartWrites, String> {
+    let program = crate::parser::parse(linked)?;
+    let mut writes = PartWrites::default();
+    for statement in &program.statements {
+        let Statement::Reactive(directive) = statement else {
+            continue;
+        };
+        match directive {
+            Directive::Rule(rule) => collect_assignment(&rule.effect, &mut writes.assigned),
+            Directive::Procedure(procedure) => {
+                for step in &procedure.body {
+                    collect_assignment(&step.effect, &mut writes.assigned);
+                }
+            }
+            Directive::Binding(binding) => {
+                // A part may cascade over one property as many times as it
+                // likes; that order is the one the author wrote. Record it
+                // once so only a second *part* counts as a conflict.
+                let bound = (binding.target.clone(), binding.property.clone());
+                if !writes.bound.contains(&bound) {
+                    writes.bound.push(bound);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(writes)
+}
+
+fn collect_assignment(effect: &crate::reactive::Effect, assigned: &mut Vec<String>) {
+    if let crate::reactive::Effect::Set { name, .. } = effect {
+        if !assigned.contains(name) {
+            assigned.push(name.clone());
+        }
+    }
+}
+
+/// Refuse a state cell or a host binding written by more than one part.
+///
+/// Within a part, order is what the author wrote: `on` rules fire in source
+/// order and the last matching `bind` wins. Across parts the order is the
+/// linker's topological one, which nobody authored, so letting two parts write
+/// the same name would hand the outcome to an ordering decision the author
+/// never made. See spec/caveat-0.5-draft.md section 8.
+fn check_single_writer(writes: &[(String, PartWrites)]) -> Result<(), String> {
+    let mut cells: Vec<(&str, &str)> = Vec::new();
+    let mut bindings: Vec<((&str, &str), &str)> = Vec::new();
+    for (part, written) in writes {
+        for cell in &written.assigned {
+            if let Some((_, owner)) = cells.iter().find(|(name, _)| *name == cell) {
+                return Err(format!(
+                    "{cell} is assigned by both {owner} and {part}; a state cell is written by one part"
+                ));
+            }
+            cells.push((cell, part));
+        }
+        for (target, property) in &written.bound {
+            let key = (target.as_str(), property.as_str());
+            if let Some((_, owner)) = bindings.iter().find(|(bound, _)| *bound == key) {
+                return Err(format!(
+                    "{target}.{property} is bound by both {owner} and {part}; a binding is written by one part"
+                ));
+            }
+            bindings.push((key, part));
+        }
+    }
+    Ok(())
 }
 
 /// A short name for a statement, used only in link diagnostics.
@@ -461,6 +596,11 @@ fn rewrite(
             continue;
         }
 
+        // An identifier directly after `.` is a member name, not a symbol: the
+        // property in `bind ability.learned`, the axis in `ferry.x`. Both are
+        // part of the host's contract and must survive linking unchanged.
+        let member = out.ends_with('.');
+
         let mut end = index + ch.len_utf8();
         while let Some((next, ch)) = chars.peek() {
             if is_identifier_char(*ch) {
@@ -486,17 +626,23 @@ fn rewrite(
                 }
             }
             if symbol_end == symbol_start {
-                return Err(format!("{}: `{word}::` names no symbol", describe(part)));
+                return Err(format!(
+                    "{}: `{word}::` names no symbol",
+                    describe(part, module.is_some())
+                ));
             }
             let symbol = &source[symbol_start..symbol_end];
             if !imported.iter().any(|used| used == word) {
                 return Err(format!(
                     "{} names {word}::{symbol} without `use {word};`",
-                    describe(part)
+                    describe(part, module.is_some())
                 ));
             }
             let Some((_, names)) = declarations.iter().find(|(module, _)| module == word) else {
-                return Err(format!("{}: unknown module {word}", describe(part)));
+                return Err(format!(
+                    "{}: unknown module {word}",
+                    describe(part, module.is_some())
+                ));
             };
             if !names.iter().any(|declared| declared == symbol) {
                 return Err(format!("module {word} does not declare {symbol}"));
@@ -510,7 +656,7 @@ fn rewrite(
         }
 
         match module {
-            Some(module) if declared.iter().any(|name| name == word) => {
+            Some(module) if !member && declared.iter().any(|name| name == word) => {
                 out.push_str(&flat(module, word));
             }
             _ => out.push_str(word),
