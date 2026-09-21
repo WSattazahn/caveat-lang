@@ -79,30 +79,8 @@ pub fn split_bundle(bundle: &str) -> Result<Vec<BundlePart>, String> {
     Ok(parts)
 }
 
-/// Where each bundle part begins in the linked source: its name and the
-/// one-based line the part's first line became.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceMap {
-    pub parts: Vec<(String, usize)>,
-}
-
-impl SourceMap {
-    /// Translate a one-based line of linked source back to the part and line
-    /// the author wrote. Linking concatenates parts, so a diagnostic from the
-    /// evaluator is otherwise pointing at a line no author ever saw.
-    pub fn locate(&self, line: usize) -> Option<(&str, usize)> {
-        let (name, start) = self.parts.iter().rev().find(|(_, start)| *start <= line)?;
-        Some((name.as_str(), line - start + 1))
-    }
-}
-
 /// Link a bundle into one program source.
 pub fn link(bundle: &str) -> Result<String, String> {
-    link_with_map(bundle).map(|(source, _)| source)
-}
-
-/// Link a bundle, also returning where each part landed.
-pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
     let mut parts = split_bundle(bundle)?;
     // Repetition 0.1 expands first, so everything downstream — the declared
     // names, the single-writer check, the rewriter — sees the statements the
@@ -118,12 +96,7 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
         })?;
     }
     if parts.len() == 1 && parts[0].name.is_empty() {
-        return Ok((
-            parts[0].source.clone(),
-            SourceMap {
-                parts: vec![(String::new(), 1)],
-            },
-        ));
+        return Ok(parts[0].source.clone());
     }
 
     let (root, modules) = parts
@@ -165,7 +138,6 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
     let order = topological_order(&imports, modules)?;
 
     let mut linked = String::new();
-    let mut map = SourceMap { parts: Vec::new() };
     let mut writes: Vec<(String, PartWrites)> = Vec::new();
     for name in &order {
         let part = modules
@@ -178,14 +150,11 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
             .map(|(_, declared)| declared.as_slice())
             .expect("ordered module was checked");
         // The record of who declared what belongs in the artifact, not in a
-        // side channel: a reader of the linked text sees it too. It is emitted
-        // before the part is mapped so the map still points at the author's
-        // first line rather than at the marker.
+        // side channel: a reader of the linked text sees it too.
         linked.push_str(&format!(
             "origin {name};
 "
         ));
-        map.parts.push((name.clone(), lines(&linked)));
         let rewritten = rewrite(part, Some(name), declared, &declarations)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
         writes.push((format!("module {name}"), written));
@@ -201,19 +170,13 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
             root.name
         ));
     }
-    map.parts.push((root.name.clone(), lines(&linked)));
     let rewritten = rewrite(root, None, &[], &declarations)?;
     let label = describe(root, false);
     let written = part_writes(&rewritten).map_err(|error| format!("{label}: {error}"))?;
     writes.push((label, written));
     linked.push_str(&rewritten);
     check_single_writer(&writes)?;
-    Ok((linked, map))
-}
-
-/// The one-based line that the next appended character starts on.
-fn lines(text: &str) -> usize {
-    text.chars().filter(|ch| *ch == '\n').count() + 1
+    Ok(linked)
 }
 
 /// How a part is named in diagnostics. The program carries a name too (its
@@ -296,6 +259,15 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
             Statement::Budget { .. } => {
                 return Err(format!(
                     "module {} declares a budget; attention is spent by the program, not by a module",
+                    part.name
+                ));
+            }
+            // Not an executing statement, so it needs its own reason: the
+            // linker records where a part's declarations came from, and a
+            // module that set its own could name a part that did not write it.
+            Statement::Origin { part: claimed } => {
+                return Err(format!(
+                    "module {} declares `origin {claimed};`; the linker records a part's origin",
                     part.name
                 ));
             }

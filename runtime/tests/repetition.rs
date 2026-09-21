@@ -267,3 +267,40 @@ fn a_block_survives_linking_into_a_module() {
             .expect("evaluates");
     assert!(evaluation.symbols.contains_key("reefs__reef_three_seen"));
 }
+
+#[test]
+fn a_block_cannot_iterate_a_kind_another_part_declared() {
+    // spec/caveat-repetition-0.1.md section 4. Expansion runs per part, so a
+    // module's entities are not in scope for the program's block. Refusing is
+    // what keeps one part's generated names from depending on another's
+    // declarations.
+    let text = link::bundle(&[
+        link::BundlePart {
+            name: "harbour".into(),
+            source: format!("module harbour;\n{ENTITIES}"),
+        },
+        link::BundlePart {
+            name: "main".into(),
+            source: "use harbour;\nfor reef as $r { claim $r_seen; };\n".into(),
+        },
+    ]);
+    let message = link::link(&text).expect_err("iterating another part's kind must be rejected");
+    assert!(
+        message.contains("no entity is declared `kind reef`"),
+        "{message}"
+    );
+
+    // The module may iterate its own, and the generated names are its own.
+    let text = link::bundle(&[
+        link::BundlePart {
+            name: "harbour".into(),
+            source: format!("module harbour;\n{ENTITIES}for reef as $r {{ claim $r_seen; }};\n"),
+        },
+        link::BundlePart {
+            name: "main".into(),
+            source: "use harbour;\nbudget 1;\n".into(),
+        },
+    ]);
+    let linked = link::link(&text).expect("a module iterates its own kind");
+    assert!(linked.contains("claim harbour__reef_one_seen;"), "{linked}");
+}

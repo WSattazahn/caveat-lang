@@ -80,8 +80,11 @@ ordering nobody asked about.
 
 Expansion changes how many lines a part has, so a diagnostic pointing into or
 after an expanded block reports the line in the expanded text rather than the
-line the author wrote. Part attribution is unaffected: `SourceMap` is built
-after expansion, so the diagnostic still names the right file.
+line the author wrote. Which *part* it is in remains clear: linking parses each
+part on its own, so a parse error names the part and its own line, and the
+`origin` markers of
+[caveat-authorship-0.1](caveat-authorship-0.1.md) delimit the parts in the
+linked text.
 
 Repetition adds no runtime semantics and is not a loop. There is no iteration
 over values, no accumulator, and no way to write a block whose member count

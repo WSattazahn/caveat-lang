@@ -41,7 +41,11 @@ pub struct MapResolution {
 pub struct MapSymbol {
     pub name: String,
     pub kind: String,
+    /// Where the claim came from in the world: an evidence's `from`.
     pub source: Option<String>,
+    /// Which part of the program declared it. `None` when the program
+    /// declared no origin. See spec/caveat-authorship-0.1.md.
+    pub written_by: Option<String>,
     pub consequence: Option<String>,
     pub display: Option<String>,
 }
@@ -328,6 +332,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "claim".into(),
                     source: None,
+                    written_by: written_by(&evaluation, name),
                     consequence: None,
                     display: evaluation.display.get(name).cloned(),
                 }),
@@ -335,6 +340,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "evidence".into(),
                     source: Some(source.clone()),
+                    written_by: written_by(&evaluation, name),
                     consequence: None,
                     display: evaluation.display.get(name).cloned(),
                 }),
@@ -342,6 +348,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "caveat".into(),
                     source: None,
+                    written_by: written_by(&evaluation, name),
                     consequence: Some(format!("{consequence:?}").to_lowercase()),
                     display: evaluation.display.get(name).cloned(),
                 }),
@@ -447,6 +454,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "commitment".into(),
                     source: None,
+                    written_by: written_by(&evaluation, name),
                     consequence: None,
                     display: evaluation.display.get(name).cloned(),
                 });
@@ -1252,6 +1260,13 @@ fn relation_name(relation: Relation) -> String {
         Relation::ReliesOn => "relies_on".into(),
         _ => format!("{relation:?}").to_lowercase(),
     }
+}
+
+/// Which part declared a symbol, asked of the graph rather than recovered
+/// from the shape of its linked name.
+fn written_by(evaluation: &eval::Evaluation, name: &str) -> Option<String> {
+    let id = evaluation.symbols.get(name)?;
+    evaluation.graph.origin(*id).map(str::to_string)
 }
 
 fn symbol_name(evaluation: &eval::Evaluation, id: crate::NodeId) -> Option<String> {

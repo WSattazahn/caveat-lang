@@ -47,7 +47,7 @@ pub struct GameSymbol {
     pub source: Option<String>,
     /// Where the assertion came from in the program: the part that declared
     /// it. A different question from `source`, and both are recorded.
-    pub origin: Option<String>,
+    pub written_by: Option<String>,
     pub consequence: Option<String>,
     pub display: Option<String>,
     pub attention: Option<String>,
@@ -357,7 +357,7 @@ impl GameSession {
                 name: name.clone(),
                 kind: kind.into(),
                 source,
-                origin: evaluation.graph.origin(*id).map(str::to_string),
+                written_by: evaluation.graph.origin(*id).map(str::to_string),
                 consequence,
                 display: self.labels.get(name).cloned(),
                 attention,

@@ -315,52 +315,6 @@ this is not a statement;
 }
 
 #[test]
-fn the_source_map_places_every_part() {
-    let (source, map) = link::link_with_map(&bundle(&[
-        ("weather", WEATHER),
-        (
-            "main",
-            "use weather;
-claim ok;
-",
-        ),
-    ]))
-    .expect("bundle links");
-    // Line 1 is the linker's own `origin weather;` marker. It has no authored
-    // counterpart, so the map says so rather than inventing one.
-    assert_eq!(map.locate(1), None);
-    assert!(source.starts_with("origin weather;"), "{source:.40}");
-    assert_eq!(map.locate(2), Some(("weather", 1)));
-
-    // The program's first line is wherever the modules stopped, and `claim ok;`
-    // is its second line.
-    let program_start = map
-        .parts
-        .iter()
-        .find(|(name, _)| name == "main")
-        .map(|(_, line)| *line)
-        .expect("the program is mapped");
-    assert_eq!(map.locate(program_start + 1), Some(("main", 2)));
-    let claim_line = source
-        .lines()
-        .position(|line| line.trim() == "claim ok;")
-        .expect("the program's claim is in the linked source")
-        + 1;
-    assert_eq!(
-        map.locate(claim_line),
-        Some(("main", 2)),
-        "the claim the author wrote on line 2 maps back to line 2"
-    );
-}
-
-#[test]
-fn a_single_file_program_maps_to_itself() {
-    let (_, map) = link::link_with_map("budget 1; claim only;").expect("plain source links");
-    assert_eq!(map.locate(1), Some(("", 1)));
-    assert_eq!(map.locate(9), Some(("", 9)));
-}
-
-#[test]
 fn the_prelude_links_as_an_ordinary_module() {
     // spec/caveat-0.5-draft.md section 1: the standard library stops being a
     // special case in reactive.rs and becomes a module like any other.

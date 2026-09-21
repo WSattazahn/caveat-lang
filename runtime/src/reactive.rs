@@ -2120,7 +2120,7 @@ impl ReactiveSession {
                 name: name.clone(),
                 kind: kind.into(),
                 source,
-                origin: self.graph.origin(*id).map(str::to_string),
+                written_by: self.graph.origin(*id).map(str::to_string),
                 consequence,
                 attention,
                 display: self.labels.get(name).cloned(),

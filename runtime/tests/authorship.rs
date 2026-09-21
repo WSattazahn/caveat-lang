@@ -69,7 +69,7 @@ fn world_provenance_and_program_provenance_are_different_questions() {
         .find(|symbol| symbol.name == "weather__fog_bank")
         .expect("the imported evidence is in the snapshot");
     assert_eq!(symbol.source.as_deref(), Some("lookout report, 06:40"));
-    assert_eq!(symbol.origin.as_deref(), Some("weather"));
+    assert_eq!(symbol.written_by.as_deref(), Some("weather"));
 
     // The importing program declares its own evidence about a different thing.
     let mine = snapshot
@@ -78,7 +78,7 @@ fn world_provenance_and_program_provenance_are_different_questions() {
         .find(|symbol| symbol.name == "helm_check")
         .expect("the program's evidence is in the snapshot");
     assert_eq!(mine.source.as_deref(), Some("helm, before the turn"));
-    assert_eq!(mine.origin.as_deref(), Some("crossing"));
+    assert_eq!(mine.written_by.as_deref(), Some("crossing"));
 }
 
 #[test]
@@ -197,10 +197,13 @@ fn an_effect_that_reveals_at_runtime_is_not_attributed_to_the_last_part_read() {
             .unwrap_or_else(|| panic!("{name} is in the snapshot"))
     };
     assert_eq!(
-        symbol("glow__first_mushroom").origin.as_deref(),
+        symbol("glow__first_mushroom").written_by.as_deref(),
         Some("glow")
     );
-    assert_eq!(symbol("glow__discovered").origin.as_deref(), Some("glow"));
+    assert_eq!(
+        symbol("glow__discovered").written_by.as_deref(),
+        Some("glow")
+    );
 }
 
 #[test]
