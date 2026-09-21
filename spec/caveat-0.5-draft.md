@@ -165,6 +165,10 @@ diamond import yields one set of graph nodes rather than one per path.
 Flattened names are reserved: source may not declare an identifier containing
 `__`, so a rewritten name can never collide with a hand-written one.
 
+The flat name is a linking mechanism, not the record of who declared what.
+[caveat-authorship-0.1](caveat-authorship-0.1.md) puts that in the graph, so
+the answer does not have to be recovered by parsing a `__`.
+
 ### 5.1 Files on disk
 
 `use weather;` resolves to `weather.cav` beside the entry file. Nothing

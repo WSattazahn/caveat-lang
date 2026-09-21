@@ -510,7 +510,8 @@ impl ReactiveSession {
         for statement in &program.statements {
             match statement {
                 Statement::Reactive(directive) => directives.push(directive.clone()),
-                Statement::Scene { .. }
+                Statement::Origin { .. }
+                | Statement::Scene { .. }
                 | Statement::Display { .. }
                 | Statement::Budget { .. }
                 | Statement::Claim { .. }
@@ -2114,6 +2115,7 @@ impl ReactiveSession {
                 name: name.clone(),
                 kind: kind.into(),
                 source,
+                origin: self.graph.origin(*id).map(str::to_string),
                 consequence,
                 attention,
                 display: self.labels.get(name).cloned(),

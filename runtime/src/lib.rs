@@ -92,6 +92,10 @@ pub struct Edge {
     pub from: NodeId,
     pub to: NodeId,
     pub relation: Relation,
+    /// Which bundle part asserted this edge, when it was asserted while
+    /// declarations were being read. `None` for an edge a running effect
+    /// revealed: see spec/caveat-authorship-0.1.md.
+    pub origin: Option<String>,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QualificationImpact {
@@ -105,6 +109,12 @@ pub struct EpistemicGraph {
     next_id: NodeId,
     pub nodes: HashMap<NodeId, NodeKind>,
     pub edges: Vec<Edge>,
+    /// The part whose declarations are being read right now.
+    authoring: Option<String>,
+    /// Which part declared each node. A program with no `origin` statement
+    /// records nothing rather than guessing, so "unattributed" is visible
+    /// instead of being filled in with a default.
+    pub origins: HashMap<NodeId, String>,
 }
 
 impl EpistemicGraph {
@@ -114,10 +124,24 @@ impl EpistemicGraph {
             ..Self::default()
         }
     }
+    /// Record which part is declaring from here on. `None` means the caller
+    /// cannot honestly attribute what follows, and nothing is recorded.
+    pub fn set_authoring(&mut self, part: Option<String>) {
+        self.authoring = part;
+    }
+
+    /// Which part declared this node, if it was declared under an origin.
+    pub fn origin(&self, node: NodeId) -> Option<&str> {
+        self.origins.get(&node).map(String::as_str)
+    }
+
     pub fn add(&mut self, node: NodeKind) -> NodeId {
         let id = self.next_id;
         self.next_id += 1;
         self.nodes.insert(id, node);
+        if let Some(part) = &self.authoring {
+            self.origins.insert(id, part.clone());
+        }
         id
     }
     pub fn add_caveat(
@@ -134,7 +158,12 @@ impl EpistemicGraph {
     pub fn relate(&mut self, from: NodeId, relation: Relation, to: NodeId) {
         assert!(self.nodes.contains_key(&from));
         assert!(self.nodes.contains_key(&to));
-        self.edges.push(Edge { from, to, relation });
+        self.edges.push(Edge {
+            from,
+            to,
+            relation,
+            origin: self.authoring.clone(),
+        });
     }
     pub fn set_attention(&mut self, caveat: NodeId, state: Attention) {
         match self.nodes.get_mut(&caveat) {

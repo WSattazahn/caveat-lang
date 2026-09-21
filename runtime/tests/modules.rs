@@ -326,7 +326,11 @@ claim ok;
         ),
     ]))
     .expect("bundle links");
-    assert_eq!(map.locate(1), Some(("weather", 1)));
+    // Line 1 is the linker's own `origin weather;` marker. It has no authored
+    // counterpart, so the map says so rather than inventing one.
+    assert_eq!(map.locate(1), None);
+    assert!(source.starts_with("origin weather;"), "{source:.40}");
+    assert_eq!(map.locate(2), Some(("weather", 1)));
 
     // The program's first line is wherever the modules stopped, and `claim ok;`
     // is its second line.

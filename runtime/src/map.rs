@@ -231,7 +231,7 @@ impl CaveatMap {
 
         for statement in &program.statements {
             match statement {
-                Statement::Reactive(_) => {}
+                Statement::Reactive(_) | Statement::Origin { .. } => {}
                 Statement::Presentation(directive) => presentation.push(directive.clone()),
                 Statement::Require { action, condition } => requirements.push(MapRequirement {
                     action: action.clone(),

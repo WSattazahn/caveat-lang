@@ -163,6 +163,9 @@ fn parse_statement(line: &str, position: Position) -> Result<Statement, String> 
                 outcome: (*outcome).into(),
                 condition: None,
             },
+            ["origin", part] => Statement::Origin {
+                part: (*part).into(),
+            },
             ["budget", amount] => Statement::Budget {
                 units: number(amount)?,
             },

@@ -177,6 +177,14 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
             .find(|(module, _)| module == name)
             .map(|(_, declared)| declared.as_slice())
             .expect("ordered module was checked");
+        // The record of who declared what belongs in the artifact, not in a
+        // side channel: a reader of the linked text sees it too. It is emitted
+        // before the part is mapped so the map still points at the author's
+        // first line rather than at the marker.
+        linked.push_str(&format!(
+            "origin {name};
+"
+        ));
         map.parts.push((name.clone(), lines(&linked)));
         let rewritten = rewrite(part, Some(name), declared, &declarations)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
@@ -185,6 +193,13 @@ pub fn link_with_map(bundle: &str) -> Result<(String, SourceMap), String> {
         if !linked.ends_with('\n') {
             linked.push('\n');
         }
+    }
+    if !root.name.is_empty() {
+        linked.push_str(&format!(
+            "origin {};
+",
+            root.name
+        ));
     }
     map.parts.push((root.name.clone(), lines(&linked)));
     let rewritten = rewrite(root, None, &[], &declarations)?;
