@@ -14,6 +14,147 @@ use crate::reactive::Directive;
 /// program, so every existing `.cav` file and every existing save stays valid.
 pub const BUNDLE_MARKER: &str = "#caveat-bundle 1";
 
+/// Words the grammar has already given a meaning.
+///
+/// Rewriting is word-level: it cannot tell a reference to a symbol from a word
+/// the grammar reads as something else. Rather than teach it the whole grammar,
+/// two rules close that gap together — a module may not declare one of these,
+/// and the rewriter never substitutes one. Both are needed: the first makes the
+/// collision impossible, the second makes the keyword safe even so.
+///
+/// Open-ended tags — an entity's `kind`, a binding's target — are not a closed
+/// set and are handled by position in `tag_offsets` instead.
+const RESERVED: &[&str] = &[
+    // statements and clauses reachable inside a module
+    "and",
+    "as",
+    "at",
+    "because",
+    "bind",
+    "budget",
+    "call",
+    "camera",
+    "caveat",
+    "claim",
+    "clock",
+    "commit",
+    "connect",
+    "consequence",
+    "control",
+    "cost",
+    "cue",
+    "decisions",
+    "defer",
+    "display",
+    "emit",
+    "entity",
+    "event",
+    "evidence",
+    "examine",
+    "fn",
+    "for",
+    "from",
+    "if",
+    "kind",
+    "limit",
+    "module",
+    "not",
+    "on",
+    "or",
+    "origin",
+    "overview",
+    "place",
+    "position",
+    "proc",
+    "readings",
+    "reopen",
+    "require",
+    "retaining",
+    "reveal",
+    "route",
+    "rule",
+    "sample",
+    "scene",
+    "set",
+    "state",
+    "through",
+    "to",
+    "toward",
+    "use",
+    "using",
+    "via",
+    "when",
+    // closed value words
+    "catastrophic",
+    "deadline",
+    "enough",
+    "false",
+    "flash",
+    "high",
+    "live",
+    "low",
+    "material",
+    "negligible",
+    "opposes",
+    "qualifies",
+    "relies_on",
+    "reopens",
+    "retains",
+    "ring",
+    "sound",
+    "supports",
+    "toast",
+    "true",
+    // epistemic predicates and qualified values
+    "committed",
+    "examined",
+    "has_sample",
+    "in_context",
+    "latest",
+    "observed",
+    "qualified",
+    "reopened",
+];
+
+/// Names that are already callable: the runtime's primitives and the standard
+/// library in `runtime/prelude.cav`.
+///
+/// These are not grammar keywords — they are ordinary symbols — so a module may
+/// declare one, but only as a function. `fn abs(...)` in a module is its own
+/// `abs`, and every call inside that module resolves to it, which is what
+/// scoping means. `claim abs;` is refused instead, because it would make every
+/// `abs(...)` in the module resolve to a claim.
+const CALLABLE: &[&str] = &[
+    "abs",
+    "atan2",
+    "ceil",
+    "clamp",
+    "cos",
+    "floor",
+    "max",
+    "min",
+    "number_text",
+    "percent_text",
+    "round",
+    "sin",
+    "sqrt",
+    "text",
+    "time_second_text",
+    "time_text",
+    "time_total_text",
+    "wrap",
+];
+
+/// Whether the grammar has already given this word a meaning.
+pub fn is_reserved(word: &str) -> bool {
+    RESERVED.contains(&word)
+}
+
+/// Whether this name is already a callable function.
+pub fn is_callable(word: &str) -> bool {
+    CALLABLE.contains(&word)
+}
+
 /// Separator for flattened names. Source may not declare an identifier
 /// containing it, so a rewritten name can never collide with a written one.
 const FLAT: &str = "__";
@@ -208,6 +349,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
     let mut declared = Vec::new();
     let mut parameters: Vec<(String, String)> = Vec::new();
     for statement in &program.statements {
+        let declares_function = matches!(statement, Statement::Reactive(Directive::Function(_)));
         let name = match statement {
             Statement::Claim { name } => Some(name.clone()),
             Statement::Evidence { name, .. } => Some(name.clone()),
@@ -283,6 +425,18 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
             if name.contains(FLAT) {
                 return Err(format!(
                     "module {} declares {name}; `{FLAT}` is reserved for linked names",
+                    part.name
+                ));
+            }
+            if is_reserved(&name) {
+                return Err(format!(
+                    "module {} declares {name}, which the grammar already uses",
+                    part.name
+                ));
+            }
+            if is_callable(&name) && !declares_function {
+                return Err(format!(
+                    "module {} declares {name}, which is already a function;                      a module may shadow it with `fn {name}(...)` but not with another kind of name",
                     part.name
                 ));
             }
@@ -499,6 +653,91 @@ fn check_module_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Byte offsets of words that name an open-ended tag rather than a symbol.
+///
+/// An entity's kind is author-chosen, so it cannot be a reserved word; the
+/// only thing that distinguishes `reef` in `kind reef` from a reference is
+/// where it sits. spec/caveat-0.5-draft.md section 1 says a kind is a type tag
+/// and is not namespaced, and this is what makes that true.
+fn tag_offsets(source: &str) -> Vec<usize> {
+    let code = blank_noncode(source);
+    let mut offsets = Vec::new();
+    for (start, end) in statement_spans(&code) {
+        let words: Vec<(usize, &str)> = word_offsets(&code[start..end])
+            .map(|(offset, word)| (start + offset, word))
+            .collect();
+        let shape: Vec<&str> = words.iter().map(|(_, word)| *word).collect();
+        let tag = match shape.as_slice() {
+            ["entity", _, "kind", _, "at", _] => Some(3),
+            ["place", _, "kind", _] => Some(3),
+            _ => None,
+        };
+        if let Some(index) = tag {
+            offsets.push(words[index].0);
+        }
+        // `state NAME = <expr> min N max N` ends in a fixed four words, so the
+        // bounds keywords are known by position. They share their names with
+        // prelude functions, which a module may legitimately call in the
+        // expression part of the same statement.
+        if shape.first() == Some(&"state") && shape.len() >= 4 {
+            let bounds = shape.len() - 4;
+            if shape[bounds] == "min" && shape[bounds + 2] == "max" {
+                offsets.push(words[bounds].0);
+                offsets.push(words[bounds + 2].0);
+            }
+        }
+    }
+    offsets
+}
+
+/// Words of a statement with their byte offsets.
+fn word_offsets(text: &str) -> impl Iterator<Item = (usize, &str)> {
+    text.split_whitespace()
+        .map(move |word| (word.as_ptr() as usize - text.as_ptr() as usize, word))
+}
+
+/// Replace the contents of comments and quoted text with spaces, keeping every
+/// byte offset. Shape matching then cannot be thrown off by either.
+fn blank_noncode(source: &str) -> String {
+    let mut out: Vec<char> = source.chars().collect();
+    let offsets: Vec<usize> = source.char_indices().map(|(index, _)| index).collect();
+    let blank = |from: usize, to: usize, out: &mut Vec<char>| {
+        for (position, offset) in offsets.iter().enumerate() {
+            if *offset >= from && *offset < to && out[position] != '\n' {
+                out[position] = ' ';
+            }
+        }
+    };
+    let mut chars = source.char_indices().peekable();
+    while let Some((index, ch)) = chars.next() {
+        if ch == '"' {
+            let mut escaped = false;
+            let mut end = index + ch.len_utf8();
+            for (next, ch) in chars.by_ref() {
+                end = next + ch.len_utf8();
+                if escaped {
+                    escaped = false;
+                } else if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    break;
+                }
+            }
+            blank(index, end, &mut out);
+        } else if ch == '#' || (ch == '/' && chars.peek().map(|(_, next)| *next) == Some('/')) {
+            let mut end = index + ch.len_utf8();
+            for (next, ch) in chars.by_ref() {
+                if ch == '\n' {
+                    break;
+                }
+                end = next + ch.len_utf8();
+            }
+            blank(index, end, &mut out);
+        }
+    }
+    out.into_iter().collect()
+}
+
 /// Blank out `module NAME;` and `use NAME;` statements. They are link-time
 /// declarations, not program statements, so the evaluator must never see them.
 /// Their bytes become spaces rather than disappearing, which keeps every later
@@ -568,6 +807,7 @@ fn rewrite(
 ) -> Result<String, String> {
     let imported = used_modules(&part.source)?;
     let stripped = strip_headers(&part.source);
+    let tags = tag_offsets(&stripped);
     let mut out = String::with_capacity(stripped.len());
     let mut chars = stripped.char_indices().peekable();
     let source = stripped.as_str();
@@ -603,10 +843,13 @@ fn rewrite(
             continue;
         }
 
-        // An identifier directly after `.` is a member name, not a symbol: the
-        // property in `bind ability.learned`, the axis in `ferry.x`. Both are
-        // part of the host's contract and must survive linking unchanged.
-        let member = out.ends_with('.');
+        // Three kinds of word are not references to a symbol, and none may be
+        // rewritten. A member name after `.` — the property in
+        // `bind ability.learned`, the axis in `ferry.x` — belongs to the host's
+        // contract. A reserved word already has a meaning from the grammar. An
+        // open-ended tag, like the kind in `entity r kind reef at h`, is named
+        // by where it sits.
+        let member = out.ends_with('.') || tags.contains(&index);
 
         let mut end = index + ch.len_utf8();
         while let Some((next, ch)) = chars.peek() {
@@ -663,7 +906,9 @@ fn rewrite(
         }
 
         match module {
-            Some(module) if !member && declared.iter().any(|name| name == word) => {
+            Some(module)
+                if !member && !is_reserved(word) && declared.iter().any(|name| name == word) =>
+            {
                 out.push_str(&flat(module, word));
             }
             _ => out.push_str(word),

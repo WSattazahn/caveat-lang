@@ -165,6 +165,16 @@ diamond import yields one set of graph nodes rather than one per path.
 Flattened names are reserved: source may not declare an identifier containing
 `__`, so a rewritten name can never collide with a hand-written one.
 
+Rewriting substitutes a name only where a name is a *reference*. Three kinds of
+word are not, and none is rewritten: a member after `.` (a binding's property,
+a position's axis), a word the grammar already uses, and an open-ended tag
+named by its position — an entity's or place's `kind`, and the `min`/`max` that
+close a `state` declaration. A module may not declare a name in the first
+group, and may shadow an existing function only with another function:
+`fn abs(...)` in a module is its own `abs` and every call inside it resolves
+there, while `claim abs;` would make every `abs(...)` in that module resolve to
+a claim, so it is refused.
+
 The flat name is a linking mechanism, not the record of who declared what.
 [caveat-authorship-0.1](caveat-authorship-0.1.md) puts that in the graph, so
 the answer does not have to be recovered by parsing a `__`.
@@ -202,6 +212,8 @@ Linking rejects, before any execution:
 - duplicate `module` names in one bundle;
 - a declared identifier containing `__` (section 5);
 - a module that declares a name it also takes as a parameter (section 8);
+- a module that declares a name the grammar already uses, or shadows an
+  existing function with something other than a function (section 5);
 - a state cell or a host binding written by more than one part (section 8);
 - a bundle header whose byte length does not match the text that follows.
 

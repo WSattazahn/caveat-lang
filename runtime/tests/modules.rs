@@ -931,3 +931,110 @@ fn a_late_failure_inside_a_module_rolls_back_the_whole_event() {
     );
     assert_eq!(after.sequence, before.sequence, "no event was recorded");
 }
+
+// ---- the rewriter only substitutes in reference positions ----
+
+/// Every slot where a word is *not* a reference to a symbol, with a module
+/// that declares a name colliding with it. Before this was enumerated, each
+/// one was found by a bug rather than by the list.
+#[test]
+fn a_word_that_is_not_a_reference_is_never_rewritten() {
+    let cases: Vec<(&str, &str, &str)> = vec![
+        (
+            "a caveat's consequence",
+            "module m;\nclaim thing;\ncaveat doubt consequence material;\n",
+            "caveat m__doubt consequence material;",
+        ),
+        (
+            "an entity's kind",
+            "module m;\nclaim reef;\nplace harbor kind harbor;\nentity reef_one kind reef at harbor;\n",
+            "entity m__reef_one kind reef at m__harbor;",
+        ),
+        (
+            "a place's kind",
+            "module m;\nclaim cove;\nplace harbor kind cove;\n",
+            "place m__harbor kind cove;",
+        ),
+        (
+            "a relation word",
+            "module m;\nclaim a;\nevidence b from \"s\";\nb supports a;\n",
+            "m__b supports m__a;",
+        ),
+        (
+            "a state's bounds",
+            "module m;\nfn min(a, b) = if(a < b, a, b);\nstate level = min(3, 4) min 0 max 9;\n",
+            "state m__level = m__min(3, 4) min 0 max 9;",
+        ),
+        (
+            "a binding property",
+            "module m;\nstate learned = 0 min 0 max 1;\nbind ability.learned = learned == 1;\n",
+            "bind ability.learned = m__learned == 1;",
+        ),
+    ];
+    for (slot, module, expected) in cases {
+        let source = linked(&[("m", module), ("main", "use m;\nbudget 1;\n")]);
+        assert!(
+            source.contains(expected),
+            "{slot}: expected `{expected}` in:\n{source}"
+        );
+    }
+}
+
+#[test]
+fn a_module_may_not_declare_a_word_the_grammar_uses() {
+    for word in [
+        "material",
+        "supports",
+        "consequence",
+        "kind",
+        "when",
+        "because",
+        "observed",
+    ] {
+        let module = format!("module m;\nclaim {word};\n");
+        let message = error(&[("m", &module), ("main", "use m;\n")]);
+        assert!(
+            message.contains(&format!("declares {word}, which the grammar already uses")),
+            "{word}: {message}"
+        );
+    }
+}
+
+#[test]
+fn a_module_may_shadow_a_function_only_with_a_function() {
+    // `fn abs` in a module is its own abs; `claim abs` would make every
+    // `abs(...)` in that module resolve to a claim.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\nfn abs(value) = value * value;\nfn scaled(v) = abs(v) + 1;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(source.contains("fn m__abs(value)"), "{source}");
+    assert!(
+        source.contains("fn m__scaled(v) = m__abs(v) + 1;"),
+        "a module's call resolves to its own function: {source}"
+    );
+
+    let message = error(&[("m", "module m;\nclaim abs;\n"), ("main", "use m;\n")]);
+    assert!(message.contains("which is already a function"), "{message}");
+}
+
+#[test]
+fn the_reserved_list_does_not_drift_from_the_standard_library() {
+    // The standard library is source, not a hand-kept list here. If a prelude
+    // function is added and not listed, a module could declare its name as a
+    // claim and silently break every call to it.
+    let prelude = include_str!("../prelude.cav");
+    for line in prelude.lines() {
+        let Some(rest) = line.strip_prefix("fn ") else {
+            continue;
+        };
+        let name = rest.split('(').next().expect("a function name").trim();
+        assert!(
+            caveat_runtime::link::is_callable(name),
+            "prelude function {name} is missing from link.rs CALLABLE"
+        );
+    }
+}
