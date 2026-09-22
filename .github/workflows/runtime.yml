@@ -12,7 +12,7 @@ concurrency:
 jobs:
   changes:
     name: regression scope
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       legacy_door: ${{ steps.scope.outputs.legacy_door }}
     steps:
@@ -48,13 +48,11 @@ jobs:
 
   core:
     name: core semantics
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-          components: rustfmt, clippy
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
@@ -62,15 +60,14 @@ jobs:
       - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
-      - run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - name: Build browser distribution
-        run: npm run assemble
+        run: npm run build
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
       - name: CLI and CAVEAT Map playthroughs
@@ -81,29 +78,75 @@ jobs:
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- validate game/missing_dumpling.cav
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/missing_dumpling.cav sauce_might_be_noodles follow_sauce_face tiny_print_could_be_shop_cat search_bridge
           cargo run --manifest-path runtime/Cargo.toml --bin caveat-map -- simulate game/moon_garden.cav bell_echo_distorts_direction follow_bell cushion_may_hold_old_fur search_tea_pavilion
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: slime-glow-wasm-report
           path: test-results/slime-glow-wasm.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: browser-dist
           path: dist
           retention-days: 1
 
+  # Vessel pins the sha256 of the published WASM. That pin only means something
+  # if another Linux machine gets the same bytes, so rebuild from a different
+  # checkout path and cargo home and require an exact match.
+  reproducible:
+    name: reproducible WebAssembly
+    needs: core
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: elsewhere/caveat-lang
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: elsewhere/caveat-lang
+      - uses: actions/download-artifact@v8
+        with:
+          name: browser-dist
+          path: first-build
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
+      - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Rebuild with another checkout path and cargo home
+        env:
+          CARGO_HOME: ${{ runner.temp }}/another cargo home
+        run: npm run build
+      - name: Require identical bytes
+        run: |
+          first="$GITHUB_WORKSPACE/first-build"
+          for file in pkg/caveat_runtime_bg.wasm pkg/caveat_runtime.js build-info.json; do
+            sha256sum "$first/$file" "dist/$file"
+            cmp "$first/$file" "dist/$file"
+          done
+          if grep -a -q -e "$HOME" -e "$RUNNER_TEMP" "$first/pkg/caveat_runtime_bg.wasm"; then
+            echo "::error::the WASM records a builder-specific path"
+            exit 1
+          fi
+          cat dist/build-info.json
+
   last-beacon:
     name: The Last Beacon browser QA
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -115,7 +158,7 @@ jobs:
         run: |
           npm run package:game
           npm run test:launch
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: last-beacon-browser-qa
@@ -124,7 +167,7 @@ jobs:
   light-the-way:
     name: Light the Way (${{ matrix.browser }})
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -132,11 +175,11 @@ jobs:
         browser: [chromium, webkit]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -146,7 +189,7 @@ jobs:
         run: npm run test:rescue
         env:
           BROWSERS: ${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: light-the-way-${{ matrix.browser }}-qa
@@ -155,13 +198,13 @@ jobs:
   mr-caveat:
     name: Mr. Caveat iPhone QA
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.0
@@ -254,7 +297,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: mr-caveat-visual-qa
@@ -263,13 +306,13 @@ jobs:
   moon-garden-2d:
     name: Moon Garden 2D QA
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.0
@@ -308,7 +351,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: moon-garden-visual-qa
@@ -317,13 +360,13 @@ jobs:
   moon-garden-3d:
     name: Moon Garden 3D QA
     needs: core
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.0
@@ -368,7 +411,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: moon-garden-3d-visual-qa
@@ -378,13 +421,13 @@ jobs:
     name: Legacy Door 3D QA
     needs: [core, changes]
     if: needs.changes.outputs.legacy_door == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: browser-dist
           path: dist
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm install --no-save --no-package-lock playwright@1.55.0
@@ -406,7 +449,7 @@ jobs:
             {const p=await fresh('reroute');await click(p,/Check camera/);await click(p,/Reroute/);await p.close()}
           }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: caveat-all-route-visual-qa
