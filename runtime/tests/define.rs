@@ -146,3 +146,30 @@ fn a_pure_function_cannot_read_a_define() {
     .unwrap_err();
     assert!(error.contains("high"), "{error}");
 }
+
+#[test]
+fn a_define_may_read_an_event_parameter_where_that_parameter_exists() {
+    // Found by the glowcap round 4 rewrite: `define $m_here = target == $index;`
+    // was rejected on its own even though every use was inside an event rule.
+    let source = r#"
+        place garden kind garden;
+        entity cave kind mushroom at garden;
+        entity pool kind mushroom at garden;
+        event absorb target kind mushroom;
+        for mushroom as $m {
+            state $m_consumed = 0;
+            define $m_here = target == $index;
+            on absorb when $m_here set $m_consumed = 1;
+        };
+    "#;
+    let mut game = session(source);
+    let shown = game
+        .dispatch_json("absorb", r#"{"target":"pool"}"#)
+        .unwrap();
+    assert_eq!(shown.values["pool_consumed"], 1.0);
+    assert_eq!(shown.values["cave_consumed"], 0.0);
+    // A binding has no event parameters, so using the define there is an error.
+    let error =
+        ReactiveSession::from_source(&format!("{source}\nbind hud.here = cave_here;")).unwrap_err();
+    assert!(error.contains("target"), "{error}");
+}

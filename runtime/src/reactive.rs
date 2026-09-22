@@ -1297,8 +1297,22 @@ impl ReactiveSession {
             {
                 return Err(format!("define {name} collides with an event parameter"));
             }
+            // On its own a define may name any event parameter; each place it
+            // is used is validated again with that place's parameters.
+            let names = self
+                .values
+                .keys()
+                .chain(self.constants.keys())
+                .chain(
+                    self.events
+                        .values()
+                        .flatten()
+                        .map(|parameter| &parameter.name),
+                )
+                .cloned()
+                .collect();
             expression
-                .validate(&numeric, &validate_predicate)
+                .validate(&names, &validate_predicate)
                 .map_err(|error| format!("define {name}: {error}"))?;
         }
         let mut types = BTreeMap::new();
