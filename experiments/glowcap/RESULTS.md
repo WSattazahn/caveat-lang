@@ -1,14 +1,18 @@
 # Glowcap or duskcap — results
 
-**Verdict: TypeScript**, by the rule fixed in [PROTOCOL.md](PROTOCOL.md) before
-either implementation existed (commit `cfcc881`). Caveat had to be better on
-at least two of the four measurements. It was not clearly better on any: the
-two implementations tied on correctness, change cost and explanation accuracy.
-On size Caveat had fewer lines but more bytes. On a tie the incumbent wins.
+This benchmark is Caveat's scoreboard against a plain TypeScript
+implementation of the same beat. The rule is fixed in
+[PROTOCOL.md](PROTOCOL.md) (commit `cfcc881`): to win, Caveat must be better
+on at least two of the four measurements.
 
-Caveat did not lose on quality. It matched TypeScript and was no better, and
-that is not enough to justify a 1.3 MB runtime, a second repository and a
-pinning pipeline.
+**Round 1: TypeScript.** Caveat was not clearly better on any measurement.
+The two tied on correctness, change cost and explanation accuracy. On size
+Caveat had fewer lines but more bytes, and on a tie the incumbent wins. The
+places where it lost became the language's work list.
+
+**Round 2, after [Explanations 0.1](../../spec/caveat-explanations-0.1.md):
+Caveat**, on change cost and explanations. Details and caveats are
+[below](#rescore-after-explanations-01).
 
 ## Measurements
 
@@ -94,6 +98,51 @@ Caveat side needed the reactive 0.1–0.7 specs and the repetition spec (about
   implementation *is* those ideas (evidence, frozen basis, reopening, cited
   explanations) written without the language.
 
+## Rescore after Explanations 0.1
+
+[Explanations 0.1](../../spec/caveat-explanations-0.1.md) added `because` to
+bindings. An author says what a binding cites, and the runtime rejects any
+citation the binding never read. The Caveat side was then re-authored as
+`caveat2/` and replayed through the same frozen harness, phase by phase, with
+one commit per phase. The TypeScript side is unchanged.
+
+| | TypeScript | Caveat (before) | Caveat + `because` |
+| --- | --- | --- | --- |
+| Phases green on first run | 5 / 5 | 5 / 5 | 5 / 5 |
+| Final size, code lines | 141 | 123 | **113** (78 + 35) |
+| Final size, bytes | **6,747** | 8,967 | 8,088 |
+| Change cost CR1–CR4 | 57 | 55 | **40** |
+| CR1 / CR2 / CR3 / CR4 | 2 / 5 / 48 / 2 | 1 / 13 / 32 / 9 | 1 / 5 / 32 / 2 |
+| Explanation failures | 0 | 0 | 0 |
+| Explanation bookkeeping | caveat map, union helper, lists by hand; nothing checks a citation | guard ordering, dummy `check` state, `cite` override | none; every citation is checked against lineage at runtime |
+| Differential fuzz vs TypeScript | — | 0 of 1.73M events | 0 of 1.73M events |
+| Dispatch + view, median | 0.8 µs | 196 µs | 168 µs |
+| Shipped, gzipped | 2 KB | 402 KB | 402 KB |
+
+**By the pre-registered rule, Caveat now wins.**
+- It is better on change cost (−30%) and on explanations: no bookkeeping, and
+  a guarantee TypeScript lacks, since a fabricated citation is rejected at
+  runtime.
+- It ties on correctness. Size is mixed: 20% fewer lines, 20% more bytes.
+- It is no more than 2× worse on any of measures 1–4.
+- Dispatch stays under the 1 ms gate.
+
+The gain is exactly where the language was weak. CR2 fell from 13 to 5 lines
+and CR4 from 9 to 2; CR1 and CR3 are unchanged. The dummy validation state,
+the guard ordering and the adapter override are gone.
+
+**Costs and caveats of this result:**
+- **Authored with foresight.** The rescore was written knowing the four change
+  requests, and the TypeScript side got no second pass with the same
+  knowledge. The improvement is confined to the two requests the feature
+  targets, but only a blind round can confirm it: new change requests,
+  pre-registered before either side sees them.
+- **Explanations made every dispatch slower.** They are published for every
+  shown binding, so the unchanged Caveat program went from 140 µs to 196 µs
+  per event. Serialising the whole snapshot on each dispatch is the remaining
+  runtime cost, and the next target.
+- **Shipped size is unchanged**, about 400 KB gzipped.
+
 ## Reproduce
 
 ```sh
@@ -102,4 +151,6 @@ node experiments/glowcap/harness.mjs --phase=cr4
 node experiments/glowcap/harness.mjs --measure
 node experiments/glowcap/harness.mjs --bench
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=7
+node experiments/glowcap/harness.mjs --phase=cr4 --impl=caveat2
+node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=7 --against=caveat2
 ```

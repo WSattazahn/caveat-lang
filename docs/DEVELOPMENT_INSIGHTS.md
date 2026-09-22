@@ -193,6 +193,8 @@ override. Dispatch cost 140 µs against 0.9 µs, and the host ships 397 KB
 gzipped against 2 KB. The pre-registered rule therefore chose TypeScript for
 this kind of host logic.
 
+That measurement became a work list. [Explanations 0.1](../spec/caveat-explanations-0.1.md) lets a binding state what it cites, with the runtime rejecting any citation the binding never read. Re-authored with it, the Caveat side reduced total change cost to 40 lines against 57, removed every lineage-steering construct, and won by the same rule. The rescore was written with knowledge of the change requests, so a blind round is still needed.
+
 The experiment does not refute the model. The TypeScript implementation
 expresses the same evidence, frozen basis, reopening and cited explanations
 directly. It measures the language's cost against that alternative.

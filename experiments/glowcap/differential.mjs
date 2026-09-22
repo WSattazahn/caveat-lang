@@ -3,9 +3,10 @@
 // they disagree about accepting an event or about the resulting view. The
 // scenarios cover the cases their author thought of; this covers the rest.
 //
-//   node experiments/glowcap/differential.mjs [--sequences=2000] [--length=40] [--seed=1]
+//   node experiments/glowcap/differential.mjs [--sequences=2000] [--length=40] [--seed=1] [--against=caveat|caveat2]
 // Same entry points as harness.mjs (importing it would run its test mode).
-const IMPLEMENTATIONS = { ts: { entry: 'ts/glowcap.ts' }, caveat: { entry: 'caveat/adapter.mjs' } };
+const against = process.argv.find((a) => a.startsWith('--against='))?.split('=')[1] ?? 'caveat';
+const IMPLEMENTATIONS = { ts: { entry: 'ts/glowcap.ts' }, caveat: { entry: `${against}/adapter.mjs` } };
 
 const arg = (name, fallback) => Number(process.argv.find((a) => a.startsWith(`--${name}=`))?.split('=')[1] ?? fallback);
 const SEQUENCES = arg('sequences', 2000);
