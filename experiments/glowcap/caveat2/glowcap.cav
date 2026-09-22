@@ -33,7 +33,7 @@ for mushroom as $m {
     event absorb_$m dusk min 0 max 1;
     event taste_$m dusk min 0 max 1;
 
-    on absorb_$m set $m_consumed = require($m_consumed == 0 and $m_known != 2 and ($m_known == 0 or $m_known == 1 + dusk), 1);
+    on absorb_$m set $m_consumed = require($m_consumed == 0 and $m_known != 2 and ($m_known == 0 or $m_known == 1 + dusk) and ($m_known != 0 or contradiction < 2), 1);
     on absorb_$m when dusk == 0 set glow = 30;
     on absorb_$m when dusk == 0 reveal absorb_$m supports glowing_is_safe;
     on absorb_$m when dusk == 0 set support = support + qualified(1, absorb_$m);
@@ -48,7 +48,7 @@ for mushroom as $m {
     on taste_$m set $m_known = require($m_consumed == 0 and $m_known == 0, qualified(1 + dusk, taste_$m));
 
     bind $m.present = $m_consumed == 0;
-    bind $m.canAbsorb = $m_consumed == 0 and $m_known != 2;
+    bind $m.canAbsorb = $m_consumed == 0 and $m_known != 2 and ($m_known != 0 or contradiction < 2);
     bind $m.canTaste = $m_consumed == 0 and $m_known == 0;
     bind $m.label = "" because nothing;
     bind $m.label = "Glowcap" when $m_consumed == 0 and $m_known == 1 because $m_known;
@@ -57,6 +57,8 @@ for mushroom as $m {
     bind $m.label = "Probably a glowcap" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction == 0 because support;
     bind $m.label = "Probably a duskcap" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction > 0 because contradiction;
     bind $m.label = "Could be a duskcap — taste first" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction > 0 because support, contradiction;
+    // Twice bitten: after two contradictions only a known glowcap is absorbed.
+    bind $m.label = "Too risky — taste first" when $m_consumed == 0 and $m_known == 0 and contradiction >= 2 because contradiction;
 };
 
 bind slime.glowing = glow > 0;
