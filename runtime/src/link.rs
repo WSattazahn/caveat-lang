@@ -67,6 +67,7 @@ const RESERVED: &[&str] = &[
     "limit",
     "module",
     "not",
+    "nothing",
     "on",
     "or",
     "origin",
