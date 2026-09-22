@@ -48,6 +48,12 @@ export function createPolicy() {
     return found;
   }
 
+  // Twice bitten: after two contradictions, only a mushroom known to be a
+  // glowcap may be absorbed.
+  function tooRisky(target: Mushroom): boolean {
+    return target.tasted === null && contradictedBy.length >= 2;
+  }
+
   function beliefState(): BeliefState {
     if (supportedBy.length && contradictedBy.length) return 'uncertain';
     if (supportedBy.length) return 'probably_safe';
@@ -70,6 +76,7 @@ export function createPolicy() {
         if (target.consumed) throw new Error(`${event.id} is already consumed`);
         if (target.tasted === 'duskcap') throw new Error(`${event.id} is a known duskcap`);
         if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
+        if (tooRisky(target)) throw new Error(`${event.id} is too risky to absorb untasted`);
         target.consumed = true;
         const evidence = `absorb_${event.id}`;
         if (kind === 'glowcap') {
@@ -101,6 +108,7 @@ export function createPolicy() {
     if (consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] as string[] };
     if (tasted === 'glowcap') return { present: true, label: 'Glowcap', canAbsorb: true, canTaste: false, because: [`taste_${id}`] };
     if (tasted === 'duskcap') return { present: true, label: 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [`taste_${id}`] };
+    if (tooRisky(mushroom(id))) return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...contradictedBy] };
     const guess: Record<BeliefState, [string, string[]]> = {
       none: ['Glowing mushroom', []],
       probably_safe: ['Probably a glowcap', supportedBy],
