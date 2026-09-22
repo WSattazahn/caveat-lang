@@ -42,6 +42,7 @@ export function createPolicy() {
   const supportedBy: string[] = [];
   const contradictedBy: string[] = [];
   let trust: { basis: string[]; reopenedBy: string[]; caveats: string[] } | null = null;
+  const history: { change: 'committed' | 'reopened'; because: string[] }[] = [];
   // Caveats attached to each piece of evidence; anything citing it inherits them.
   const caveatsOf = new Map<string, string[]>();
   let now = 0;
@@ -80,10 +81,16 @@ export function createPolicy() {
     if (kind === 'glowcap') {
       supportedBy.push(evidence);
       // A decision keeps the caveats its basis carried when it was made.
-      if (!trust && beliefState() === 'probably_safe') trust = { basis: [evidence], reopenedBy: [], caveats: caveatsFor([evidence]) };
+      if (!trust && beliefState() === 'probably_safe') {
+        trust = { basis: [evidence], reopenedBy: [], caveats: caveatsFor([evidence]) };
+        history.push({ change: 'committed', because: [evidence] });
+      }
     } else {
       contradictedBy.push(evidence);
-      trust?.reopenedBy.push(evidence);
+      if (trust) {
+        trust.reopenedBy.push(evidence);
+        history.push({ change: 'reopened', because: [evidence] });
+      }
     }
   }
 
@@ -169,8 +176,8 @@ export function createPolicy() {
         caveats: caveatsFor([...supportedBy, ...contradictedBy]),
       },
       decision: trust
-        ? { state: trust.reopenedBy.length ? 'reopened' : 'committed', basis: [...trust.basis], reopenedBy: [...trust.reopenedBy], caveats: [...trust.caveats] }
-        : { state: 'none', basis: [] as string[], reopenedBy: [] as string[], caveats: [] as string[] },
+        ? { state: trust.reopenedBy.length ? 'reopened' : 'committed', basis: [...trust.basis], reopenedBy: [...trust.reopenedBy], caveats: [...trust.caveats], history: history.map((entry) => ({ ...entry, because: [...entry.because] })) }
+        : { state: 'none', basis: [] as string[], reopenedBy: [] as string[], caveats: [] as string[], history: [] },
     };
   }
 

@@ -37,6 +37,13 @@ export function createPolicy() {
         basis: bases.trust?.provenance.evidence ?? [],
         reopenedBy: trust?.reopened_by ?? [],
         caveats: bases.trust?.provenance.caveats ?? [],
+        // Bindings are primitive, so the history is read from the commitment's record.
+        history: trust
+          ? [
+              { change: 'committed', because: bases.trust.provenance.evidence },
+              ...trust.reopened_by.map((evidence) => ({ change: 'reopened', because: [evidence] })),
+            ]
+          : [],
       },
     };
   }
