@@ -41,6 +41,12 @@ export function createPolicy() {
   const supportedBy: string[] = [];
   const contradictedBy: string[] = [];
   let trust: { basis: string[]; reopenedBy: string[] } | null = null;
+  // Caveats attached to each piece of evidence; anything citing it inherits them.
+  const caveatsOf = new Map<string, string[]>();
+
+  function caveatsFor(evidence: string[]): string[] {
+    return [...new Set(evidence.flatMap((id) => caveatsOf.get(id) ?? []))];
+  }
 
   function mushroom(id: string): Mushroom {
     const found = mushrooms.get(id);
@@ -61,6 +67,17 @@ export function createPolicy() {
     return 'none';
   }
 
+  // Absorptions and tastes both bear on the belief and the trust decision.
+  function learn(evidence: string, kind: Kind): void {
+    if (kind === 'glowcap') {
+      supportedBy.push(evidence);
+      if (!trust && beliefState() === 'probably_safe') trust = { basis: [evidence], reopenedBy: [] };
+    } else {
+      contradictedBy.push(evidence);
+      trust?.reopenedBy.push(evidence);
+    }
+  }
+
   // Every check runs before the first write, so a rejected event changes nothing.
   function dispatch(event: GlowcapEvent): void {
     switch (event.type) {
@@ -78,16 +95,9 @@ export function createPolicy() {
         if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
         if (tooRisky(target)) throw new Error(`${event.id} is too risky to absorb untasted`);
         target.consumed = true;
-        const evidence = `absorb_${event.id}`;
-        if (kind === 'glowcap') {
-          glow = GLOW_SECONDS;
-          supportedBy.push(evidence);
-          if (!trust && beliefState() === 'probably_safe') trust = { basis: [evidence], reopenedBy: [] };
-        } else {
-          heavy = HEAVY_SECONDS;
-          contradictedBy.push(evidence);
-          trust?.reopenedBy.push(evidence);
-        }
+        if (kind === 'glowcap') glow = GLOW_SECONDS;
+        else heavy = HEAVY_SECONDS;
+        learn(`absorb_${event.id}`, kind);
         return;
       }
       case 'taste': {
@@ -96,6 +106,9 @@ export function createPolicy() {
         if (target.consumed) throw new Error(`${event.id} is already consumed`);
         if (target.tasted) throw new Error(`${event.id} was already tasted`);
         target.tasted = kind;
+        const evidence = `taste_${event.id}`;
+        if (glow <= 0) caveatsOf.set(evidence, ['tasted_in_dark']);
+        learn(evidence, kind);
         return;
       }
       default:
@@ -104,10 +117,21 @@ export function createPolicy() {
   }
 
   function mushroomView(id: string, belief: BeliefState) {
+    const base = labelFor(id, belief);
+    return { ...base, caveats: caveatsFor(base.because) };
+  }
+
+  function labelFor(id: string, belief: BeliefState) {
     const { consumed, tasted } = mushroom(id);
     if (consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] as string[] };
-    if (tasted === 'glowcap') return { present: true, label: 'Glowcap', canAbsorb: true, canTaste: false, because: [`taste_${id}`] };
-    if (tasted === 'duskcap') return { present: true, label: 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [`taste_${id}`] };
+    if (tasted) {
+      const taste = `taste_${id}`;
+      const dark = caveatsOf.get(taste)?.includes('tasted_in_dark') ?? false;
+      const label = tasted === 'glowcap'
+        ? dark ? 'Probably a glowcap (tasted in the dark)' : 'Glowcap'
+        : dark ? 'Probably a duskcap (tasted in the dark)' : 'Duskcap — avoid';
+      return { present: true, label, canAbsorb: tasted === 'glowcap', canTaste: false, because: [taste] };
+    }
     if (tooRisky(mushroom(id))) return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...contradictedBy] };
     const guess: Record<BeliefState, [string, string[]]> = {
       none: ['Glowing mushroom', []],
@@ -130,10 +154,11 @@ export function createPolicy() {
         note: state === 'probably_safe' ? basedOn(supportedBy.length) : state === 'probably_unsafe' ? basedOn(contradictedBy.length) : '',
         supportedBy: [...supportedBy],
         contradictedBy: [...contradictedBy],
+        caveats: caveatsFor([...supportedBy, ...contradictedBy]),
       },
       decision: trust
-        ? { state: trust.reopenedBy.length ? 'reopened' : 'committed', basis: [...trust.basis], reopenedBy: [...trust.reopenedBy] }
-        : { state: 'none', basis: [] as string[], reopenedBy: [] as string[] },
+        ? { state: trust.reopenedBy.length ? 'reopened' : 'committed', basis: [...trust.basis], reopenedBy: [...trust.reopenedBy], caveats: caveatsFor(trust.basis) }
+        : { state: 'none', basis: [] as string[], reopenedBy: [] as string[], caveats: [] as string[] },
     };
   }
 

@@ -30,9 +30,14 @@ export function createPolicy() {
     const trust = commitments.find((c) => c.action === 'trust');
     return {
       slime: { ...bindings.slime },
-      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: why[id].label.evidence }])),
-      belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes') },
-      decision: { state: bindings.decision.state, basis: bases.trust?.provenance.evidence ?? [], reopenedBy: trust?.reopened_by ?? [] },
+      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: why[id].label.evidence, caveats: why[id].label.caveats }])),
+      belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: why.belief.state.caveats },
+      decision: {
+        state: bindings.decision.state,
+        basis: bases.trust?.provenance.evidence ?? [],
+        reopenedBy: trust?.reopened_by ?? [],
+        caveats: bases.trust?.provenance.caveats ?? [],
+      },
     };
   }
 
