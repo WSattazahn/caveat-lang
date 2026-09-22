@@ -17,7 +17,7 @@ display taste_faded "The taste has faded from memory.";
 state support = 0;
 state contradiction = 0;
 state glow = 0 min 0 max 30;
-state heavy = 0 min 0 max 20;
+state heavy = 0 min 0 max 30;
 state now = 0;
 
 // Trust can be committed again, so it is a decision series. A recovered
@@ -40,7 +40,8 @@ on tick set glow = max(0, glow - dt);
 on tick set heavy = max(0, heavy - dt);
 on tick set now = now + dt;
 on absorb when sort == sort.glowcap set glow = 30;
-on absorb when sort == sort.duskcap set heavy = 20;
+// Heaviness stacks while it lasts, up to 30 seconds.
+on absorb when sort == sort.duskcap set heavy = if(heavy > 0, min(30, heavy + 20), 20);
 
 for mushroom as $m {
     claim $m_is_glowcap;
@@ -112,6 +113,7 @@ for mushroom as $m {
 
 bind slime.glowing = glow > 0;
 bind slime.heavy = heavy > 0;
+bind slime.heavySeconds = ceil(heavy);
 
 bind belief.state = "none";
 bind belief.state = "probably_safe" when probably_safe because support;
