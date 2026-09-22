@@ -7,6 +7,7 @@ type BeliefState = 'none' | 'probably_safe' | 'probably_unsafe' | 'uncertain';
 const MUSHROOMS = ['cave', 'pool', 'ruin', 'grove'] as const;
 const GLOW_SECONDS = 30;
 const HEAVY_SECONDS = 20;
+const HEAVY_MAX_SECONDS = 30;
 const TASTE_FADES_AFTER = 60;
 
 export type GlowcapEvent =
@@ -119,7 +120,8 @@ export function createPolicy() {
         if (tooRisky(target)) throw new Error(`${event.id} is too risky to absorb untasted`);
         target.consumed = true;
         if (kind === 'glowcap') glow = GLOW_SECONDS;
-        else heavy = HEAVY_SECONDS;
+        // Heaviness stacks while it lasts, up to a cap.
+        else heavy = heavy > 0 ? Math.min(HEAVY_MAX_SECONDS, heavy + HEAVY_SECONDS) : HEAVY_SECONDS;
         learn(`absorb_${event.id}`, kind);
         return;
       }
@@ -171,7 +173,7 @@ export function createPolicy() {
   function view() {
     const state = beliefState();
     return {
-      slime: { glowing: glow > 0, heavy: heavy > 0 },
+      slime: { glowing: glow > 0, heavy: heavy > 0, heavySeconds: Math.ceil(heavy) },
       mushrooms: Object.fromEntries(MUSHROOMS.map((id) => [id, mushroomView(id, state)])),
       belief: {
         state,

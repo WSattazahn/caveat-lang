@@ -20,3 +20,5 @@
 {"at":"2026-09-22T19:30:47.019Z","phase":"cr6","impl":"caveat2","hash":"cf537a78612a","passed":24,"total":24,"failed":[],"explanationFailed":[]}
 {"at":"2026-09-22T19:31:47.857Z","phase":"cr7","impl":"ts","hash":"4c540242d19a","passed":26,"total":26,"failed":[],"explanationFailed":[]}
 {"at":"2026-09-22T19:33:48.554Z","phase":"cr7","impl":"caveat2","hash":"5862f7097d51","passed":26,"total":26,"failed":[],"explanationFailed":[]}
+{"at":"2026-09-22T19:34:01.520Z","phase":"cr8","impl":"ts","hash":"8f8af37c05bd","passed":27,"total":27,"failed":[],"explanationFailed":[]}
+{"at":"2026-09-22T19:34:02.770Z","phase":"cr8","impl":"caveat2","hash":"3a588b043758","passed":27,"total":27,"failed":[],"explanationFailed":[]}

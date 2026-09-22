@@ -17,7 +17,7 @@ display taste_faded "The taste has faded from memory.";
 state support = 0;
 state contradiction = 0;
 state glow = 0 min 0 max 30;
-state heavy = 0 min 0 max 20;
+state heavy = 0 min 0 max 30;
 state now = 0;
 
 // Trust is a decision series so it can be committed again. Its control state is
@@ -69,7 +69,8 @@ for mushroom as $m {
     on absorb_$m when dusk == 0 and trust_state == 2 and recovery_count >= 2 set trust_basis = recovery;
     on absorb_$m when dusk == 0 and (trust_state == 0 and contradiction_count == 0 or trust_state == 2 and recovery_count >= 2) commit trust because enough using trust_basis;
     on absorb_$m when dusk == 0 and (trust_state == 0 and contradiction_count == 0 or trust_state == 2 and recovery_count >= 2) set trust_state = 1;
-    on absorb_$m when dusk == 1 set heavy = 20;
+    // Heaviness stacks while it lasts, up to 30 seconds.
+    on absorb_$m when dusk == 1 set heavy = if(heavy > 0, min(30, heavy + 20), 20);
     on absorb_$m when dusk == 1 reveal absorb_$m opposes glowing_is_safe;
     on absorb_$m when dusk == 1 set contradiction = contradiction + qualified(1, absorb_$m);
     on absorb_$m when dusk == 1 set recovery = 0;
@@ -132,6 +133,7 @@ for mushroom as $m {
 
 bind slime.glowing = glow > 0;
 bind slime.heavy = heavy > 0;
+bind slime.heavySeconds = ceil(heavy);
 
 bind belief.state = "none";
 bind belief.state = "probably_safe" when support > 0 and contradiction == 0;
