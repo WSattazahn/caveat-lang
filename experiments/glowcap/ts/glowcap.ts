@@ -13,6 +13,7 @@ const TASTE_FADES_AFTER = 60;
 export type GlowcapEvent =
   | { type: 'absorb'; id: string; kind: string }
   | { type: 'taste'; id: string; kind: string }
+  | { type: 'witness'; id: string; kind: string }
   | { type: 'tick'; dt: number };
 
 interface Mushroom {
@@ -134,6 +135,18 @@ export function createPolicy() {
         const evidence = `taste_${event.id}`;
         if (glow <= 0) caveatsOf.set(evidence, ['tasted_in_dark']);
         tastedAt.set(evidence, now);
+        learn(evidence, kind);
+        return;
+      }
+      // Another creature eats it: the slime learns secondhand.
+      case 'witness': {
+        const target = mushroom(event.id);
+        const kind = kindOf(event.kind);
+        if (target.consumed) throw new Error(`${event.id} is already consumed`);
+        if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
+        target.consumed = true;
+        const evidence = `witness_${event.id}`;
+        caveatsOf.set(evidence, ['secondhand']);
         learn(evidence, kind);
         return;
       }
