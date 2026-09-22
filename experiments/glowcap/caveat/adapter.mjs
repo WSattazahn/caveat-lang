@@ -28,9 +28,14 @@ export function createPolicy() {
     const { bindings, binding_qualifications: why, relations, commitment_bases: bases, commitments } = snapshot;
     const bearing = (relation) => relations.filter((r) => r.relation === relation && r.to === 'glowing_is_safe').map((r) => r.from);
     const trust = commitments.find((c) => c.action === 'trust');
+    const mushroom = (id) => {
+      const { cite, ...shown } = bindings[id];
+      const cited = cite === 'contradiction' ? snapshot.qualified_values.contradiction.provenance : why[id].label;
+      return { ...shown, because: cited.evidence, caveats: cited.caveats };
+    };
     return {
       slime: { ...bindings.slime },
-      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: why[id].label.evidence, caveats: why[id].label.caveats }])),
+      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, mushroom(id)])),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: why.belief.state.caveats },
       decision: {
         state: bindings.decision.state,

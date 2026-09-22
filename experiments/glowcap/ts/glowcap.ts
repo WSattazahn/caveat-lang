@@ -137,7 +137,7 @@ export function createPolicy() {
       none: ['Glowing mushroom', []],
       probably_safe: ['Probably a glowcap', supportedBy],
       probably_unsafe: ['Probably a duskcap', contradictedBy],
-      uncertain: ['Could be a duskcap — taste first', [...supportedBy, ...contradictedBy]],
+      uncertain: ['Could be a duskcap — taste first', contradictedBy],
     };
     const [label, because] = guess[belief];
     return { present: true, label, canAbsorb: true, canTaste: true, because: [...because] };

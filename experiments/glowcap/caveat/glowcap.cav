@@ -83,6 +83,10 @@ for mushroom as $m {
     bind $m.label = "Probably a duskcap" when $m_consumed == 0 and $m_known == 0 and contradiction < 2 and support == 0 and contradiction > 0;
     bind $m.label = "Could be a duskcap — taste first" when $m_consumed == 0 and $m_known == 0 and contradiction < 2 and support > 0 and contradiction > 0;
     bind $m.label = "Too risky — taste first" when $m_consumed == 0 and $m_known == 0 and contradiction >= 2;
+    // What a label cites. Its own lineage includes everything its guards read;
+    // an uncertain label deliberately cites only the contradictions behind it.
+    bind $m.cite = "label";
+    bind $m.cite = "contradiction" when $m_consumed == 0 and $m_known == 0 and contradiction < 2 and support > 0 and contradiction > 0;
 };
 
 bind slime.glowing = glow > 0;
