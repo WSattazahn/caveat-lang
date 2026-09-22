@@ -304,3 +304,27 @@ fn a_block_cannot_iterate_a_kind_another_part_declared() {
     let linked = link::link(&text).expect("a module iterates its own kind");
     assert!(linked.contains("claim harbour__reef_one_seen;"), "{linked}");
 }
+
+#[test]
+fn the_word_for_in_a_comment_or_text_is_not_a_nested_block() {
+    // The glowcap experiment's first failed run: a comment explaining what a
+    // rule was *for* was rejected as a nested `for` block.
+    let source = format!(
+        "{ENTITIES}for reef as $r {{\n\
+         // Plain copies for the fade rules.\n\
+         # Kept for later.\n\
+         evidence $r_sighting from \"good for $r\";\n\
+         }};"
+    );
+    let expanded = repeat::expand(&source).expect("comments and text may say for");
+    assert!(
+        expanded.contains("evidence reef_two_sighting from \"good for reef_two\";"),
+        "{expanded}"
+    );
+    // A real nested block is still refused.
+    let nested =
+        format!("{ENTITIES}for reef as $r {{ // note\n for reef as $q {{ claim $q; }}; }};");
+    assert!(repeat::expand(&nested)
+        .unwrap_err()
+        .contains("for blocks do not nest"));
+}
