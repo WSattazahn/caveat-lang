@@ -14,6 +14,11 @@ places where it lost became the language's work list.
 Caveat**, on change cost and explanations. Details and caveats are
 [below](#rescore-after-explanations-01).
 
+**Round 3, blind change requests: TypeScript.** Four new requests were
+committed before either side was changed. Caveat was clearly cheaper on two of
+them and far more expensive on one: 97 changed lines against 53. Details are
+[below](#round-3-blind-change-requests).
+
 ## Measurements
 
 All numbers come from `runs.jsonl`, `harness.mjs --measure`, `--bench`, and
@@ -143,6 +148,63 @@ the guard ordering and the adapter override are gone.
   runtime cost, and the next target.
 - **Shipped size is unchanged**, about 400 KB gzipped.
 
+## Round 3: blind change requests
+
+CR5–CR8 and scenarios S21–S27 were committed at `6409b13`, before either
+implementation changed. Caveat was frozen at Explanations 0.1. Each side
+applied the requests in order, one commit per request, and TypeScript went
+first each time.
+
+| | TypeScript | Caveat |
+| --- | --- | --- |
+| CR5: a taste fades | 22 | **15** |
+| CR6: trust has a history | 15 | **6** |
+| CR7: trust recovers | **11** | 71 |
+| CR8: heaviness stacks | 5 | 5 |
+| **Change cost, blind** | **53** | 97 |
+| Phases green on first run | **4 / 4** | 3 / 4 |
+| Final size, code lines | **164** | 174 (125 + 49) |
+| Final size, bytes | **8,220** | 13,506 |
+| Differential fuzz, 1.84M events | — | 0 divergences |
+
+**TypeScript wins the blind round:** it was better on correctness, size and
+change cost. Both are correct: the fuzz found no disagreement, including
+fading, recovery, ordered history and stacking.
+
+**Where Caveat was better.**
+- CR5: a caveat attached to evidence after the fact reached every label and
+  the belief by adding `qualified(0, taste, taste_faded)` to the values that
+  counted it, and the decision's frozen basis kept its own caveats for free.
+  TypeScript needed a timestamp map and a caveat freeze at commit time.
+- CR6: the history already existed in the commitment's record.
+
+**Where it broke down: CR7, 71 lines against 11.** The request was ordinary
+("the second glowcap after a contradiction restores trust, based on those
+two"). Four language facts turned it into shadow bookkeeping:
+
+1. A singleton commitment cannot be made twice, so `trust` became a
+   decision series.
+2. A new revision's basis includes its predecessor's basis and reopening
+   witness. That is correct lineage, but the designer's "based on those two"
+   had nowhere to live except a separate `trust_basis` state.
+3. A guard's lineage enters whatever its rule sets, including rules that are
+   skipped. Guards that read qualified counts or `reopened(trust)` would have
+   put unrelated evidence into `trust_basis`, `recovery` and `trust_state`.
+   Keeping them clean took plain shadow copies: `trust_state`,
+   `recovery_count`, `contradiction_count` and a plain `epoch`, which
+   decides whether a fading taste is still in the recovery window.
+4. Bindings are primitive and provenance sets are unordered, so the adapter
+   rebuilt the per-revision history by subtracting inherited lineage and
+   re-sorting by observation order.
+
+The same thing that cost CR2 and CR4 in round 1 struck again one level
+down: Caveat's lineage is the complete dependency, and the language had no
+way to say *which part is the meaning*. Explanations 0.1 solved that for
+bindings only. State and commitments still lack it.
+
+**Also found:** a `for` block containing the word "for" in a comment is
+rejected as a nested block. That caused the one failed Caveat run.
+
 ## Reproduce
 
 ```sh
@@ -153,4 +215,7 @@ node experiments/glowcap/harness.mjs --bench
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=7
 node experiments/glowcap/harness.mjs --phase=cr4 --impl=caveat2
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=7 --against=caveat2
+node experiments/glowcap/harness.mjs --phase=cr8 --impl=ts
+node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat2
+node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=11 --against=caveat2
 ```
