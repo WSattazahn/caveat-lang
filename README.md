@@ -106,6 +106,8 @@ npm run build
 npm run serve
 ```
 
+The build also writes `dist/pkg-reactive/`: the same runtime without the sequential, graphics and 3D sessions, for hosts that only run reactive programs (`cargo build --no-default-features`). It is about a fifth smaller.
+
 Open [Light the Way locally](http://127.0.0.1:4173/rescue.html). The earlier [story experiment](http://127.0.0.1:4173/last-beacon.html) remains available. The build compiles the Rust runtime to WebAssembly and assembles `dist/` with game sources, browser assets, and a local copy of Three.js. Existing games remain available in the same build.
 
 To play the earlier Last Beacon story in a terminal, without a browser or JavaScript:

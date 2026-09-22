@@ -14,6 +14,9 @@ pub mod repeat;
 pub mod session;
 pub mod source_library;
 pub mod web;
+#[cfg(feature = "games")]
+pub mod web_games;
+#[cfg(feature = "games")]
 pub mod web_source_library;
 pub mod world3d;
 

@@ -125,7 +125,7 @@ jobs:
       - name: Require identical bytes
         run: |
           first="$GITHUB_WORKSPACE/first-build"
-          for file in pkg/caveat_runtime_bg.wasm pkg/caveat_runtime.js build-info.json; do
+          for file in pkg/caveat_runtime_bg.wasm pkg/caveat_runtime.js pkg-reactive/caveat_runtime_bg.wasm pkg-reactive/caveat_runtime.js build-info.json; do
             sha256sum "$first/$file" "dist/$file"
             cmp "$first/$file" "dist/$file"
           done

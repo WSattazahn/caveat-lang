@@ -7,6 +7,10 @@ import { spawnSync } from 'node:child_process';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
 const wasm = path.join(root, 'runtime/target/wasm32-unknown-unknown/release/caveat_runtime.wasm');
+// The reactive-only runtime has its own target directory, so switching
+// features does not invalidate the full build's cache.
+const reactiveTarget = path.join(root, 'runtime/target/reactive');
+const reactiveWasm = path.join(reactiveTarget, 'wasm32-unknown-unknown/release/caveat_runtime.wasm');
 const bindgenVersion = '0.2.104';
 
 function tool(name) {
@@ -106,6 +110,12 @@ try {
   await rm(dist, { recursive: true, force: true });
   await mkdir(path.join(dist, 'pkg'), { recursive: true });
   run(bindgen.command, [wasm, '--out-dir', path.join(dist, 'pkg'), '--target', 'web']);
+  if (compile) {
+    // For hosts that run only reactive programs: no sequential, graphics or 3D
+    // sessions. See spec/caveat-view-0.1.md.
+    run(tool('cargo').command, ['build', '--locked', '--manifest-path', 'runtime/Cargo.toml', '--lib', '--target', 'wasm32-unknown-unknown', '--release', '--no-default-features', '--target-dir', reactiveTarget], remappedRustflags());
+    run(bindgen.command, [reactiveWasm, '--out-dir', path.join(dist, 'pkg-reactive'), '--target', 'web']);
+  }
   await writeFile(path.join(dist, 'build-info.json'), `${JSON.stringify(buildInfo(compile), null, 2)}\n`);
   await cp(path.join(root, 'web'), dist, { recursive: true });
   for (const entry of await readdir(path.join(root, 'game'), { withFileTypes: true })) {
