@@ -4,6 +4,7 @@ place garden kind garden;
 entity cave kind mushroom at garden;
 entity pool kind mushroom at garden;
 entity ruin kind mushroom at garden;
+entity grove kind mushroom at garden;
 
 claim glowing_is_safe;
 
