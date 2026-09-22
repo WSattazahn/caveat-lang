@@ -9,6 +9,7 @@ const GLOW_SECONDS = 30;
 const HEAVY_SECONDS = 20;
 const HEAVY_MAX_SECONDS = 30;
 const TASTE_FADES_AFTER = 60;
+const REGROWS_AFTER = 45;
 
 export type GlowcapEvent =
   | { type: 'absorb'; id: string; kind: string }
@@ -16,9 +17,12 @@ export type GlowcapEvent =
   | { type: 'witness'; id: string; kind: string }
   | { type: 'tick'; dt: number };
 
+// A mushroom that regrows is a new one: `life` numbers its evidence.
 interface Mushroom {
   consumed: boolean;
   tasted: Kind | null;
+  life: number;
+  consumedAt: number;
 }
 
 const BELIEF_TEXT: Record<BeliefState, string> = {
@@ -38,7 +42,7 @@ function basedOn(count: number): string {
 }
 
 export function createPolicy() {
-  const mushrooms = new Map<string, Mushroom>(MUSHROOMS.map((id) => [id, { consumed: false, tasted: null }]));
+  const mushrooms = new Map<string, Mushroom>(MUSHROOMS.map((id) => [id, { consumed: false, tasted: null, life: 1, consumedAt: 0 }]));
   let glow = 0;
   let heavy = 0;
   const supportedBy: string[] = [];
@@ -65,6 +69,16 @@ export function createPolicy() {
     const found = mushrooms.get(id);
     if (!found) throw new Error(`Unknown mushroom ${id}`);
     return found;
+  }
+
+  function evidenceOf(action: string, id: string): string {
+    const { life } = mushroom(id);
+    return life === 1 ? `${action}_${id}` : `${action}_${id}_${life}`;
+  }
+
+  function consume(target: Mushroom): void {
+    target.consumed = true;
+    target.consumedAt = now;
   }
 
   // Twice bitten: after two contradictions, only a mushroom known to be a
@@ -110,6 +124,9 @@ export function createPolicy() {
         glow = Math.max(0, glow - event.dt);
         heavy = Math.max(0, heavy - event.dt);
         now += event.dt;
+        for (const target of mushrooms.values()) {
+          if (target.consumed && now - target.consumedAt >= REGROWS_AFTER) Object.assign(target, { consumed: false, tasted: null, life: target.life + 1 });
+        }
         return;
       }
       case 'absorb': {
@@ -119,11 +136,11 @@ export function createPolicy() {
         if (target.tasted === 'duskcap') throw new Error(`${event.id} is a known duskcap`);
         if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
         if (tooRisky(target)) throw new Error(`${event.id} is too risky to absorb untasted`);
-        target.consumed = true;
+        consume(target);
         if (kind === 'glowcap') glow = GLOW_SECONDS;
         // Heaviness stacks while it lasts, up to a cap.
         else heavy = heavy > 0 ? Math.min(HEAVY_MAX_SECONDS, heavy + HEAVY_SECONDS) : HEAVY_SECONDS;
-        learn(`absorb_${event.id}`, kind);
+        learn(evidenceOf('absorb', event.id), kind);
         return;
       }
       case 'taste': {
@@ -132,7 +149,7 @@ export function createPolicy() {
         if (target.consumed) throw new Error(`${event.id} is already consumed`);
         if (target.tasted) throw new Error(`${event.id} was already tasted`);
         target.tasted = kind;
-        const evidence = `taste_${event.id}`;
+        const evidence = evidenceOf('taste', event.id);
         if (glow <= 0) caveatsOf.set(evidence, ['tasted_in_dark']);
         tastedAt.set(evidence, now);
         learn(evidence, kind);
@@ -144,8 +161,8 @@ export function createPolicy() {
         const kind = kindOf(event.kind);
         if (target.consumed) throw new Error(`${event.id} is already consumed`);
         if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
-        target.consumed = true;
-        const evidence = `witness_${event.id}`;
+        const evidence = evidenceOf('witness', event.id);
+        consume(target);
         caveatsOf.set(evidence, ['secondhand']);
         learn(evidence, kind);
         return;
@@ -164,7 +181,7 @@ export function createPolicy() {
     const { consumed, tasted } = mushroom(id);
     if (consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] as string[] };
     if (tasted) {
-      const taste = `taste_${id}`;
+      const taste = evidenceOf('taste', id);
       const dark = caveatsOf.get(taste)?.includes('tasted_in_dark') ?? false;
       const qualifier = faded(taste) ? ' (taste has faded)' : dark ? ' (tasted in the dark)' : null;
       const label = tasted === 'glowcap'
