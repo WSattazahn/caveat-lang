@@ -154,4 +154,7 @@ runtime, a second repository and a pinning pipeline.
 
 ## Amendments
 
-None yet.
+None to the behaviour, scenarios, measurements or decision rule after
+`cfcc881`. One check was added after the fact and is labelled as such in
+[RESULTS.md](RESULTS.md): `differential.mjs`, a seeded differential fuzz of
+the two implementations.
