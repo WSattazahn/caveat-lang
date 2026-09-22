@@ -7,6 +7,8 @@ entity ruin kind mushroom at garden;
 entity grove kind mushroom at garden;
 
 claim glowing_is_safe;
+caveat tasted_in_dark consequence material;
+display tasted_in_dark "Tasted in the dark; taste can be wrong without light.";
 
 // Sums of qualified observations. Their grounds are exactly the evidence
 // counted, whatever guards decided when to count it.
@@ -39,6 +41,7 @@ for mushroom as $m {
     state $m_consumed = 0 min 0 max 1;
     // 0 unknown, otherwise the tasted sort; grounded on the taste.
     state $m_known = 0 min 0 max 2;
+    state $m_dark = 0 min 0 max 1;
     define $m_here = target == $index;
     define $m_unknown = $m_consumed == 0 and $m_known == 0;
 
@@ -57,14 +60,25 @@ for mushroom as $m {
     on taste when $m_here and not $m_unknown reject "already known";
     on taste when $m_here and sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
     on taste when $m_here and sort == sort.duskcap reveal taste_$m opposes $m_is_glowcap;
-    on taste when $m_here set $m_known = qualified(sort, taste_$m);
+    on taste when $m_here and sort == sort.glowcap reveal taste_$m supports glowing_is_safe;
+    on taste when $m_here and sort == sort.duskcap reveal taste_$m opposes glowing_is_safe;
+    on taste when $m_here set $m_dark = if(glow == 0, 1, 0);
+    on taste when $m_here and glow > 0 set $m_known = qualified(sort, taste_$m);
+    on taste when $m_here and glow == 0 set $m_known = qualified(sort, taste_$m, tasted_in_dark);
+    // A taste counts like an absorption, carrying its caveat with it.
+    on taste when $m_here and sort == sort.glowcap set support = support + $m_known / sort;
+    on taste when $m_here and sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using $m_known / sort;
+    on taste when $m_here and sort == sort.duskcap set contradiction = contradiction + $m_known / sort;
+    on taste when $m_here and sort == sort.duskcap and committed(trust) reopen trust because taste_$m;
 
     bind $m.present = $m_consumed == 0;
     bind $m.canAbsorb = $m_consumed == 0 and $m_known != sort.duskcap and not ($m_unknown and twice_bitten);
     bind $m.canTaste = $m_unknown;
     bind $m.label = "" because nothing;
     bind $m.label = "Glowcap" when $m_consumed == 0 and $m_known == sort.glowcap because $m_known;
+    bind $m.label = "Probably a glowcap (tasted in the dark)" when $m_consumed == 0 and $m_known == sort.glowcap and $m_dark == 1 because $m_known;
     bind $m.label = "Duskcap — avoid" when $m_consumed == 0 and $m_known == sort.duskcap because $m_known;
+    bind $m.label = "Probably a duskcap (tasted in the dark)" when $m_consumed == 0 and $m_known == sort.duskcap and $m_dark == 1 because $m_known;
     bind $m.label = "Glowing mushroom" when $m_unknown and support == 0 and contradiction == 0 because nothing;
     bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
     bind $m.label = "Probably a duskcap" when $m_unknown and probably_unsafe because contradiction;
@@ -76,9 +90,9 @@ bind slime.glowing = glow > 0;
 bind slime.heavy = heavy > 0;
 
 bind belief.state = "none";
-bind belief.state = "probably_safe" when probably_safe;
-bind belief.state = "probably_unsafe" when probably_unsafe;
-bind belief.state = "uncertain" when uncertain;
+bind belief.state = "probably_safe" when probably_safe because support;
+bind belief.state = "probably_unsafe" when probably_unsafe because contradiction;
+bind belief.state = "uncertain" when uncertain because support, contradiction;
 bind belief.text = "";
 bind belief.text = "Glowing mushrooms give you light." when probably_safe;
 bind belief.text = "Glowing mushrooms make you heavy." when probably_unsafe;
