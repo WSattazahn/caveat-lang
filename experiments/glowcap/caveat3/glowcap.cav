@@ -18,6 +18,7 @@ state heavy = 0 min 0 max 20;
 define probably_safe = support > 0 and contradiction == 0;
 define probably_unsafe = support == 0 and contradiction > 0;
 define uncertain = support > 0 and contradiction > 0;
+define twice_bitten = contradiction >= 2;
 
 fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + number_text(count) + " observations.");
 
@@ -44,6 +45,7 @@ for mushroom as $m {
     on absorb when $m_here and $m_consumed == 1 reject "already absorbed";
     on absorb when $m_here and $m_known == sort.duskcap reject "a known duskcap";
     on absorb when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
+    on absorb when $m_here and $m_unknown and twice_bitten reject "too risky to absorb untasted";
     on absorb when $m_here set $m_consumed = 1;
     on absorb when $m_here and sort == sort.glowcap reveal absorb_$m supports glowing_is_safe;
     on absorb when $m_here and sort == sort.glowcap set support = support + qualified(1, absorb_$m);
@@ -58,7 +60,7 @@ for mushroom as $m {
     on taste when $m_here set $m_known = qualified(sort, taste_$m);
 
     bind $m.present = $m_consumed == 0;
-    bind $m.canAbsorb = $m_consumed == 0 and $m_known != sort.duskcap;
+    bind $m.canAbsorb = $m_consumed == 0 and $m_known != sort.duskcap and not ($m_unknown and twice_bitten);
     bind $m.canTaste = $m_unknown;
     bind $m.label = "" because nothing;
     bind $m.label = "Glowcap" when $m_consumed == 0 and $m_known == sort.glowcap because $m_known;
@@ -67,6 +69,7 @@ for mushroom as $m {
     bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
     bind $m.label = "Probably a duskcap" when $m_unknown and probably_unsafe because contradiction;
     bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because support, contradiction;
+    bind $m.label = "Too risky — taste first" when $m_unknown and twice_bitten because contradiction;
 };
 
 bind slime.glowing = glow > 0;
