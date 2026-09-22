@@ -22,3 +22,5 @@
 {"at":"2026-09-22T19:33:48.554Z","phase":"cr7","impl":"caveat2","hash":"5862f7097d51","passed":26,"total":26,"failed":[],"explanationFailed":[]}
 {"at":"2026-09-22T19:34:01.520Z","phase":"cr8","impl":"ts","hash":"8f8af37c05bd","passed":27,"total":27,"failed":[],"explanationFailed":[]}
 {"at":"2026-09-22T19:34:02.770Z","phase":"cr8","impl":"caveat2","hash":"3a588b043758","passed":27,"total":27,"failed":[],"explanationFailed":[]}
+{"at":"2026-09-22T20:54:07.670Z","phase":"base","impl":"caveat3","hash":"569a27aea7cb","passed":0,"total":14,"failed":["S01","S02","S03","S04","S05","S06","S07","S08","S09","S10","S11","S12","S13","S14"],"explanationFailed":[]}
+{"at":"2026-09-22T20:57:23.685Z","phase":"base","impl":"caveat3","hash":"569a27aea7cb","passed":14,"total":14,"failed":[],"explanationFailed":[]}

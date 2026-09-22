@@ -1,0 +1,88 @@
+scene "Glowcap or duskcap: look-alike mushrooms, a belief that generalises, and a trust decision that reopens.";
+
+place garden kind garden;
+entity cave kind mushroom at garden;
+entity pool kind mushroom at garden;
+entity ruin kind mushroom at garden;
+
+claim glowing_is_safe;
+
+// Sums of qualified observations. Their grounds are exactly the evidence
+// counted, whatever guards decided when to count it.
+state support = 0;
+state contradiction = 0;
+state glow = 0 min 0 max 30;
+state heavy = 0 min 0 max 20;
+
+define probably_safe = support > 0 and contradiction == 0;
+define probably_unsafe = support == 0 and contradiction > 0;
+define uncertain = support > 0 and contradiction > 0;
+
+fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + number_text(count) + " observations.");
+
+event tick dt min 0 max 0.1;
+event absorb target kind mushroom, sort in glowcap duskcap;
+event taste target kind mushroom, sort in glowcap duskcap;
+
+on tick set glow = max(0, glow - dt);
+on tick set heavy = max(0, heavy - dt);
+on absorb when sort == sort.glowcap set glow = 30;
+on absorb when sort == sort.duskcap set heavy = 20;
+
+for mushroom as $m {
+    claim $m_is_glowcap;
+    evidence absorb_$m from "Vessel: the slime absorbed the $m mushroom";
+    evidence taste_$m from "Vessel: the slime tasted the $m mushroom";
+
+    state $m_consumed = 0 min 0 max 1;
+    // 0 unknown, otherwise the tasted sort; grounded on the taste.
+    state $m_known = 0 min 0 max 2;
+    define $m_here = target == $index;
+    define $m_unknown = $m_consumed == 0 and $m_known == 0;
+
+    on absorb when $m_here and $m_consumed == 1 reject "already absorbed";
+    on absorb when $m_here and $m_known == sort.duskcap reject "a known duskcap";
+    on absorb when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
+    on absorb when $m_here set $m_consumed = 1;
+    on absorb when $m_here and sort == sort.glowcap reveal absorb_$m supports glowing_is_safe;
+    on absorb when $m_here and sort == sort.glowcap set support = support + qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.duskcap reveal absorb_$m opposes glowing_is_safe;
+    on absorb when $m_here and sort == sort.duskcap set contradiction = contradiction + qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.duskcap and committed(trust) reopen trust because absorb_$m;
+
+    on taste when $m_here and not $m_unknown reject "already known";
+    on taste when $m_here and sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
+    on taste when $m_here and sort == sort.duskcap reveal taste_$m opposes $m_is_glowcap;
+    on taste when $m_here set $m_known = qualified(sort, taste_$m);
+
+    bind $m.present = $m_consumed == 0;
+    bind $m.canAbsorb = $m_consumed == 0 and $m_known != sort.duskcap;
+    bind $m.canTaste = $m_unknown;
+    bind $m.label = "" because nothing;
+    bind $m.label = "Glowcap" when $m_consumed == 0 and $m_known == sort.glowcap because $m_known;
+    bind $m.label = "Duskcap — avoid" when $m_consumed == 0 and $m_known == sort.duskcap because $m_known;
+    bind $m.label = "Glowing mushroom" when $m_unknown and support == 0 and contradiction == 0 because nothing;
+    bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
+    bind $m.label = "Probably a duskcap" when $m_unknown and probably_unsafe because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because support, contradiction;
+};
+
+bind slime.glowing = glow > 0;
+bind slime.heavy = heavy > 0;
+
+bind belief.state = "none";
+bind belief.state = "probably_safe" when probably_safe;
+bind belief.state = "probably_unsafe" when probably_unsafe;
+bind belief.state = "uncertain" when uncertain;
+bind belief.text = "";
+bind belief.text = "Glowing mushrooms give you light." when probably_safe;
+bind belief.text = "Glowing mushrooms make you heavy." when probably_unsafe;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when uncertain;
+bind belief.note = "";
+bind belief.note = based_on(support) when probably_safe;
+bind belief.note = based_on(contradiction) when probably_unsafe;
+
+bind decision.state = "none";
+bind decision.state = "committed" when committed(trust);
+bind decision.state = "reopened" when reopened(trust);
