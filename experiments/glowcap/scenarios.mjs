@@ -8,7 +8,7 @@
 //   ['expect', partialView]  only the listed fields are checked; lists are sets
 //   ['reject', event]        dispatch must throw and leave the view unchanged
 
-export const PHASES = ['base', 'cr1', 'cr2', 'cr3', 'cr4'];
+export const PHASES = ['base', 'cr1', 'cr2', 'cr3', 'cr4', 'cr5', 'cr6', 'cr7', 'cr8'];
 
 const DT = 0.0625; // exact in binary floating point: 16 ticks = 1 s
 const seconds = (s) => ['tick', DT, s * 16];
@@ -366,9 +366,128 @@ export const SCENARIOS = [
       }],
     ],
   },
+  // ── Round 3: blind change requests (PROTOCOL.md) ─────────────────────────
+  {
+    id: 'S21', title: 'CR5: a taste fades after a minute', since: 'cr5',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      ['taste', 'pool', 'duskcap'],
+      seconds(59),
+      ['expect', { mushrooms: { pool: { label: 'Duskcap — avoid', caveats: [] } } }],
+      seconds(1),
+      ['expect', {
+        mushrooms: { pool: { label: 'Probably a duskcap (taste has faded)', canAbsorb: false, canTaste: false, because: ['taste_pool'], caveats: ['taste_faded'] } },
+        belief: { contradictedBy: ['taste_pool'], caveats: ['taste_faded'] },
+        decision: { basis: ['absorb_cave'], caveats: [] },
+      }],
+      ['reject', { type: 'absorb', id: 'pool', kind: 'duskcap' }],
+    ],
+  },
+  {
+    id: 'S22', title: 'CR5: a dark taste fades and keeps both caveats; the decision keeps its own', since: 'cr5',
+    steps: [
+      ['taste', 'ruin', 'glowcap'],
+      seconds(60),
+      ['expect', {
+        mushrooms: {
+          ruin: { label: 'Probably a glowcap (taste has faded)', canAbsorb: true, canTaste: false, because: ['taste_ruin'], caveats: ['tasted_in_dark', 'taste_faded'] },
+          cave: { label: 'Probably a glowcap', because: ['taste_ruin'], caveats: ['tasted_in_dark', 'taste_faded'] },
+        },
+        belief: { caveats: ['tasted_in_dark', 'taste_faded'] },
+        decision: { state: 'committed', basis: ['taste_ruin'], caveats: ['tasted_in_dark'] },
+      }],
+    ],
+  },
+  {
+    id: 'S23', title: 'CR6: trust keeps its history', since: 'cr6',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      ['absorb', 'pool', 'duskcap'],
+      ['absorb', 'ruin', 'duskcap'],
+      ['expect', {
+        decision: {
+          history: [
+            { change: 'committed', because: ['absorb_cave'] },
+            { change: 'reopened', because: ['absorb_pool'] },
+            { change: 'reopened', because: ['absorb_ruin'] },
+          ],
+        },
+      }],
+    ],
+  },
+  {
+    id: 'S24', title: 'CR6: no trust, no history', since: 'cr6',
+    steps: [
+      ['expect', { decision: { history: [] } }],
+      ['absorb', 'pool', 'duskcap'],
+      ['expect', { decision: { history: [] } }],
+    ],
+  },
+  {
+    id: 'S25', title: 'CR7: trust recovers after two glowcaps, then reopens again', since: 'cr7',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      ['absorb', 'pool', 'duskcap'],
+      ['taste', 'ruin', 'glowcap'],
+      ['expect', { decision: { state: 'reopened' } }],
+      ['absorb', 'ruin', 'glowcap'],
+      ['expect', {
+        belief: { state: 'uncertain' },
+        decision: {
+          state: 'committed', basis: ['taste_ruin', 'absorb_ruin'], reopenedBy: [], caveats: [],
+          history: [
+            { change: 'committed', because: ['absorb_cave'] },
+            { change: 'reopened', because: ['absorb_pool'] },
+            { change: 'committed', because: ['taste_ruin', 'absorb_ruin'] },
+          ],
+        },
+      }],
+      ['absorb', 'grove', 'duskcap'],
+      ['expect', {
+        decision: {
+          state: 'reopened', basis: ['taste_ruin', 'absorb_ruin'], reopenedBy: ['absorb_grove'],
+          history: [
+            { change: 'committed', because: ['absorb_cave'] },
+            { change: 'reopened', because: ['absorb_pool'] },
+            { change: 'committed', because: ['taste_ruin', 'absorb_ruin'] },
+            { change: 'reopened', because: ['absorb_grove'] },
+          ],
+        },
+      }],
+    ],
+  },
+  {
+    id: 'S26', title: 'CR7: a contradiction in between resets the count', since: 'cr7',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      ['taste', 'pool', 'duskcap'],
+      ['taste', 'ruin', 'glowcap'],
+      ['taste', 'grove', 'duskcap'],
+      ['absorb', 'ruin', 'glowcap'],
+      ['expect', { decision: { state: 'reopened', basis: ['absorb_cave'], reopenedBy: ['taste_pool', 'taste_grove'] } }],
+    ],
+  },
+  {
+    id: 'S27', title: 'CR8: heaviness stacks up to 30 seconds', since: 'cr8',
+    steps: [
+      ['expect', { slime: { heavy: false, heavySeconds: 0 } }],
+      ['absorb', 'pool', 'duskcap'],
+      ['expect', { slime: { heavy: true, heavySeconds: 20 } }],
+      seconds(5),
+      ['expect', { slime: { heavySeconds: 15 } }],
+      ['absorb', 'ruin', 'duskcap'],
+      ['expect', { slime: { heavySeconds: 30 } }],
+      ['tick', DT, 8], // 0.5 s
+      ['expect', { slime: { heavySeconds: 30 } }],
+      seconds(29),
+      ['expect', { slime: { heavy: true, heavySeconds: 1 } }],
+      ['tick', DT, 8],
+      ['expect', { slime: { heavy: false, heavySeconds: 0 } }],
+    ],
+  },
 ];
 
-export const EXPLANATION_KEYS = new Set(['because', 'supportedBy', 'contradictedBy', 'basis', 'reopenedBy', 'caveats']);
+export const EXPLANATION_KEYS = new Set(['because', 'supportedBy', 'contradictedBy', 'basis', 'reopenedBy', 'caveats', 'history']);
 
 export function applies(scenario, phase) {
   const at = PHASES.indexOf(phase);

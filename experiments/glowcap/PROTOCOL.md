@@ -113,6 +113,35 @@ cumulative. Its scenarios are already written in `scenarios.mjs`.
 - **CR4 — cite the counterexample.** In the `uncertain` state an unknown
   mushroom's `because` is contradictedBy only (its `caveats` follow `because`).
 
+## Round 3: blind change requests
+
+These four requests and their scenarios (S21–S27) were committed before either
+implementation was changed for them. They apply to `ts/` and to `caveat2/`,
+which is Caveat with [Explanations 0.1](../../spec/caveat-explanations-0.1.md)
+and nothing newer; the language is frozen for this round. The measurements and
+the decision rule are the same.
+
+- **CR5 — a taste fades.** Sixty seconds after a taste (counted in ticks since
+  that taste), it has faded. The tasted mushroom is labelled
+  `Probably a glowcap (taste has faded)` / `Probably a duskcap (taste has
+  faded)`, which wins over the dark label, with the same `canAbsorb` and
+  `canTaste`. The taste evidence now carries the caveat `taste_faded`, so
+  every view citing it includes that caveat. The trust decision keeps the
+  caveats its basis carried when it was committed; a later fade does not
+  change them.
+- **CR6 — trust has a history.** `decision.history` lists each change to
+  trust, in order: `{ change: 'committed', because: basis }` and
+  `{ change: 'reopened', because: [evidence] }`. It is compared in order.
+- **CR7 — trust recovers.** While trust is reopened, the second glowcap
+  observation (an absorption or a sweet taste) since the most recent
+  contradiction commits it again. The new basis is those two observations,
+  in order. `reopenedBy` and `caveats` describe the current commitment, and
+  the history gains the entry. Belief and labels are unaffected.
+- **CR8 — heaviness stacks.** Absorbing a duskcap while heavy adds 20 s to
+  the heavy timer, up to 30 s; otherwise it sets the timer to 20 s.
+  `slime.heavySeconds` is the remaining heavy time rounded up to a whole
+  second, and 0 when the slime is not heavy.
+
 ## Measurements
 
 Every harness run appends a record to `runs.jsonl`: time, phase,
