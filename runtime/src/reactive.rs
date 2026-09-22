@@ -253,6 +253,9 @@ pub struct Binding {
     pub property: String,
     pub value: BindingExpression,
     pub condition: Expr,
+    /// What this binding cites when it wins: `None` cites its whole lineage,
+    /// `Some(vec![])` is `because nothing`. See spec/caveat-explanations-0.1.md.
+    pub because: Option<Vec<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -443,6 +446,8 @@ pub struct ReactiveSnapshot {
     pub events: Vec<EventSignature>,
     pub bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     pub binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
+    /// What each shown binding cites: a subset of its qualifications.
+    pub binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
     pub cues: Vec<Cue>,
     pub cue_qualifications: Vec<Provenance>,
     pub controls: BTreeMap<String, Control>,
@@ -484,6 +489,7 @@ pub struct ReactiveSession {
     binding_rules: Arc<Vec<Binding>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
+    binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -570,6 +576,9 @@ impl ReactiveSession {
                     if let BindingExpression::Expression(value) = &mut binding.value {
                         *value = reactive_expr::expand(value, &functions)?;
                     }
+                    for citation in binding.because.iter_mut().flatten() {
+                        *citation = reactive_expr::expand(citation, &functions)?;
+                    }
                 }
                 _ => {}
             }
@@ -603,6 +612,7 @@ impl ReactiveSession {
             binding_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
+            binding_explanations: BTreeMap::new(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -1149,6 +1159,17 @@ impl ReactiveSession {
                     ));
                 }
             }
+            // A citation may be of any type; only its provenance is used.
+            for citation in binding.because.iter().flatten() {
+                citation
+                    .validate(&numeric, &validate_predicate)
+                    .map_err(|error| {
+                        format!(
+                            "binding {}.{} because: {error}",
+                            binding.target, binding.property
+                        )
+                    })?;
+            }
         }
         Ok(())
     }
@@ -1157,8 +1178,10 @@ impl ReactiveSession {
         let mut bindings = BTreeMap::<String, BTreeMap<String, BindingValue>>::new();
         let mut data = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
         let mut guards = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
+        // The declaration that supplied each shown value: the last one to match.
+        let mut winners = BTreeMap::<(String, String), usize>::new();
         let parameters = BTreeMap::new();
-        for binding in self.binding_rules.iter() {
+        for (index, binding) in self.binding_rules.iter().enumerate() {
             let context = || format!("binding {}.{}", binding.target, binding.property);
             let condition = self
                 .evaluate(&binding.condition, &parameters)
@@ -1193,6 +1216,7 @@ impl ReactiveSession {
             data.entry(binding.target.clone())
                 .or_default()
                 .insert(binding.property.clone(), value.provenance);
+            winners.insert((binding.target.clone(), binding.property.clone()), index);
         }
         for (target, properties) in guards {
             for (property, provenance) in properties {
@@ -1203,9 +1227,62 @@ impl ReactiveSession {
                     .merge(&provenance)?;
             }
         }
+        let mut explanations = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
+        for ((target, property), index) in winners {
+            let lineage = &data[&target][&property];
+            let explanation = match &self.binding_rules[index].because {
+                None => lineage.clone(),
+                Some(citations) => {
+                    self.grounded_citation(&target, &property, citations, lineage, &parameters)?
+                }
+            };
+            explanations
+                .entry(target)
+                .or_default()
+                .insert(property, explanation);
+        }
         self.bindings = bindings;
         self.binding_qualifications = data;
+        self.binding_explanations = explanations;
         Ok(())
+    }
+
+    /// Evaluate a winning binding's `because` citations and check that they
+    /// cite only what the binding actually depended on. An explanation may
+    /// leave dependencies out; it may never introduce one.
+    fn grounded_citation(
+        &self,
+        target: &str,
+        property: &str,
+        citations: &[Expr],
+        lineage: &Provenance,
+        parameters: &BTreeMap<String, Tracked<f64>>,
+    ) -> Result<Provenance, String> {
+        let mut cited = Provenance::default();
+        for citation in citations {
+            let value = self
+                .evaluate(citation, parameters)
+                .map_err(|error| format!("binding {target}.{property} because: {error}"))?;
+            cited.merge(&value.provenance)?;
+        }
+        let ungrounded = cited
+            .evidence
+            .difference(&lineage.evidence)
+            .map(|name| format!("evidence {name}"))
+            .chain(
+                cited
+                    .caveats
+                    .difference(&lineage.caveats)
+                    .map(|name| format!("caveat {name}")),
+            )
+            .collect::<Vec<_>>();
+        if !ungrounded.is_empty() {
+            return Err(format!(
+                "binding {target}.{property} cites {} that its value and conditions never read",
+                ungrounded.join(", ")
+            ));
+        }
+        Ok(cited)
     }
 
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
@@ -2129,6 +2206,7 @@ impl ReactiveSession {
         ReactiveSnapshot {
             bindings: self.bindings.clone(),
             binding_qualifications: self.binding_qualifications.clone(),
+            binding_explanations: self.binding_explanations.clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.values.clone(),
@@ -2531,12 +2609,13 @@ fn parse_function(line: &str) -> Result<Directive, String> {
     }))
 }
 
-/// Locate a trailing `when` outside strings and expression parentheses.
-fn binding_parts(value: &str) -> Result<(&str, Option<&str>), String> {
+/// Byte offsets of every `separator` character, and of every whitespace-
+/// delimited `keyword`, that lies outside strings and expression parentheses.
+fn top_level_positions(value: &str, separator: Option<char>, keyword: &str) -> Vec<usize> {
     let mut quoted = false;
     let mut escaped = false;
     let mut depth = 0_i64;
-    let mut separator = None;
+    let mut found = Vec::new();
     for (index, ch) in value.char_indices() {
         if quoted {
             if escaped {
@@ -2552,25 +2631,67 @@ fn binding_parts(value: &str) -> Result<(&str, Option<&str>), String> {
             depth += 1;
         } else if ch == ')' {
             depth -= 1;
+        } else if depth == 0 && Some(ch) == separator {
+            found.push(index);
         } else if depth == 0
-            && value[index..].starts_with("when")
+            && !keyword.is_empty()
+            && value[index..].starts_with(keyword)
             && index > 0
             && value[..index].ends_with(char::is_whitespace)
-            && value[index + 4..].starts_with(char::is_whitespace)
+            && value[index + keyword.len()..]
+                .chars()
+                .next()
+                .is_none_or(char::is_whitespace)
         {
-            separator = Some(index);
+            // A keyword ending the text still counts, so `bind x = 1 because`
+            // reports a missing citation rather than a stray token.
+            found.push(index);
         }
     }
-    if let Some(index) = separator {
-        let expression = value[..index].trim();
-        let condition = value[index + 4..].trim();
-        if expression.is_empty() || condition.is_empty() {
-            return Err("bind requires a value and a condition after when".into());
-        }
-        Ok((expression, Some(condition)))
-    } else {
-        Ok((value.trim(), None))
+    found
+}
+
+/// Split at the last top-level `keyword`: the text before it and, if the
+/// keyword is present, the text after it.
+fn trailing_clause<'a>(value: &'a str, keyword: &str) -> (&'a str, Option<&'a str>) {
+    match top_level_positions(value, None, keyword).last() {
+        Some(&index) => (
+            value[..index].trim(),
+            Some(value[index + keyword.len()..].trim()),
+        ),
+        None => (value.trim(), None),
     }
+}
+
+/// Locate a trailing `when` outside strings and expression parentheses.
+fn binding_parts(value: &str) -> Result<(&str, Option<&str>), String> {
+    let (expression, condition) = trailing_clause(value, "when");
+    if condition.is_some_and(|condition| expression.is_empty() || condition.is_empty()) {
+        return Err("bind requires a value and a condition after when".into());
+    }
+    Ok((expression, condition))
+}
+
+/// `because nothing`, or one or more comma-separated expressions whose
+/// provenance a binding cites.
+fn parse_citations(citations: &str) -> Result<Vec<Expr>, String> {
+    if matches!(citations, "nothing") {
+        return Ok(Vec::new());
+    }
+    let mut parsed = Vec::new();
+    let mut start = 0;
+    for end in top_level_positions(citations, Some(','), "")
+        .into_iter()
+        .chain([citations.len()])
+    {
+        let citation = citations[start..end].trim();
+        if citation.is_empty() {
+            return Err("because expects expressions separated by commas, or nothing".into());
+        }
+        parsed.push(reactive_expr::parse_unresolved(citation)?);
+        start = end + 1;
+    }
+    Ok(parsed)
 }
 
 fn parse_binding(line: &str) -> Result<Directive, String> {
@@ -2579,7 +2700,7 @@ fn parse_binding(line: &str) -> Result<Directive, String> {
         .unwrap()
         .trim()
         .split_once('=')
-        .ok_or("bind expects TARGET.PROPERTY = VALUE [when CONDITION]")?;
+        .ok_or("bind expects TARGET.PROPERTY = VALUE [when CONDITION] [because CITATIONS]")?;
     let (target, property) = path
         .trim()
         .split_once('.')
@@ -2588,6 +2709,15 @@ fn parse_binding(line: &str) -> Result<Directive, String> {
     for segment in property.split('.') {
         identifier(segment)?;
     }
+    // `because` comes last, so it is split off before looking for `when`.
+    let (value, citations) = trailing_clause(value, "because");
+    let because = match citations {
+        Some("") => {
+            return Err("because expects expressions separated by commas, or nothing".into())
+        }
+        Some(citations) => Some(parse_citations(citations)?),
+        None => None,
+    };
     let (value, condition) = binding_parts(value)?;
     let value = BindingExpression::Expression(reactive_expr::parse_unresolved(value)?);
     Ok(Directive::Binding(Binding {
@@ -2595,6 +2725,7 @@ fn parse_binding(line: &str) -> Result<Directive, String> {
         property: property.into(),
         value,
         condition: reactive_expr::parse_unresolved(condition.unwrap_or("true"))?,
+        because,
     }))
 }
 

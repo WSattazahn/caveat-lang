@@ -42,6 +42,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Reactive 0.7](spec/caveat-reactive-0.7.md) adds reusable effect procedures. A `proc` can share input handling or a sequence of observation and revision steps across source events. Calls freeze their numeric arguments and entry guard, retain every argument's qualifications, and run within the calling event's atomic transaction. The game shares keyboard cleanup, held-input activation, and aim movement; the thermostat records and revises through a source procedure. Rust provides bounded calls and validation, while the behavior remains Caveat source.
 
+[Explanations 0.1](spec/caveat-explanations-0.1.md) lets a binding say what it cites: `bind label.text = "…" when … because contradiction;`. The runtime checks the citation against the binding's lineage, so an explanation may leave dependencies out but can never cite evidence or a caveat the value and its conditions did not read. The full lineage stays available for audit.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
