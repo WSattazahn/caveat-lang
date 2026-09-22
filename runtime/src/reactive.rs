@@ -171,23 +171,24 @@ pub struct GuardedEffect {
 fn expand_effect(
     effect: &mut Effect,
     functions: &BTreeMap<String, FunctionDef>,
+    defines: &BTreeMap<String, Expr>,
 ) -> Result<(), String> {
     match effect {
         Effect::Set { value, because, .. } => {
-            *value = reactive_expr::expand(value, functions)?;
+            *value = reactive_expr::expand_with(value, functions, defines)?;
             for citation in because.iter_mut().flatten() {
-                *citation = reactive_expr::expand(citation, functions)?;
+                *citation = reactive_expr::expand_with(citation, functions, defines)?;
             }
         }
         Effect::Sample { value, .. }
         | Effect::Commit {
             using: Some(value), ..
         } => {
-            *value = reactive_expr::expand(value, functions)?;
+            *value = reactive_expr::expand_with(value, functions, defines)?;
         }
         Effect::Call { arguments, .. } => {
             for argument in arguments {
-                *argument = reactive_expr::expand(argument, functions)?;
+                *argument = reactive_expr::expand_with(argument, functions, defines)?;
             }
         }
         _ => {}
@@ -251,6 +252,11 @@ pub enum Directive {
         parameters: Vec<Parameter>,
     },
     Rule(Rule),
+    /// `define NAME = EXPRESSION;`, inlined where NAME is read.
+    Define {
+        name: String,
+        expression: Expr,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -505,6 +511,7 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
+    define_rules: Arc<Vec<(String, Expr)>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
@@ -576,29 +583,48 @@ impl ReactiveSession {
             }
         }
         reactive_expr::validate_functions(&functions)?;
+        let mut defines = BTreeMap::new();
+        for directive in &directives {
+            if let Directive::Define { name, expression } = directive {
+                if functions.contains_key(name) {
+                    return Err(format!("define {name} collides with a function"));
+                }
+                if defines.insert(name.clone(), expression.clone()).is_some() {
+                    return Err(format!("duplicate define {name}"));
+                }
+            }
+        }
         for directive in &mut directives {
             match directive {
                 Directive::State { initial, .. } => {
-                    *initial = reactive_expr::expand(initial, &functions)?
+                    *initial = reactive_expr::expand_with(initial, &functions, &defines)?
                 }
                 Directive::Rule(rule) => {
-                    rule.condition = reactive_expr::expand(&rule.condition, &functions)?;
-                    expand_effect(&mut rule.effect, &functions)?;
+                    rule.condition =
+                        reactive_expr::expand_with(&rule.condition, &functions, &defines)?;
+                    expand_effect(&mut rule.effect, &functions, &defines)?;
                 }
                 Directive::Procedure(procedure) => {
                     for step in &mut procedure.body {
-                        step.condition = reactive_expr::expand(&step.condition, &functions)?;
-                        expand_effect(&mut step.effect, &functions)?;
+                        step.condition =
+                            reactive_expr::expand_with(&step.condition, &functions, &defines)?;
+                        expand_effect(&mut step.effect, &functions, &defines)?;
                     }
                 }
                 Directive::Binding(binding) => {
-                    binding.condition = reactive_expr::expand(&binding.condition, &functions)?;
+                    binding.condition =
+                        reactive_expr::expand_with(&binding.condition, &functions, &defines)?;
                     if let BindingExpression::Expression(value) = &mut binding.value {
-                        *value = reactive_expr::expand(value, &functions)?;
+                        *value = reactive_expr::expand_with(value, &functions, &defines)?;
                     }
                     for citation in binding.because.iter_mut().flatten() {
-                        *citation = reactive_expr::expand(citation, &functions)?;
+                        *citation = reactive_expr::expand_with(citation, &functions, &defines)?;
                     }
+                }
+                // Expanded on its own too, so a cycle or bad call in an unused
+                // define is still an error.
+                Directive::Define { expression, .. } => {
+                    *expression = reactive_expr::expand_with(expression, &functions, &defines)?;
                 }
                 _ => {}
             }
@@ -630,6 +656,7 @@ impl ReactiveSession {
             rules: Arc::new(Vec::new()),
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
+            define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
@@ -705,6 +732,8 @@ impl ReactiveSession {
         }
         for directive in &directives {
             match directive {
+                Directive::Define { name, expression } => Arc::make_mut(&mut session.define_rules)
+                    .push((name.clone(), expression.clone())),
                 Directive::Procedure(procedure) => {
                     if functions.contains_key(&procedure.name) {
                         return Err(format!(
@@ -1169,6 +1198,25 @@ impl ReactiveSession {
             .chain(self.constants.keys())
             .cloned()
             .collect();
+        for (name, expression) in self.define_rules.iter() {
+            if self.values.contains_key(name) || self.constants.contains_key(name) {
+                return Err(format!("define {name} collides with a state"));
+            }
+            if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
+                return Err(format!("define {name} collides with a history"));
+            }
+            if self
+                .events
+                .values()
+                .flatten()
+                .any(|parameter| parameter.name == *name)
+            {
+                return Err(format!("define {name} collides with an event parameter"));
+            }
+            expression
+                .validate(&numeric, &validate_predicate)
+                .map_err(|error| format!("define {name}: {error}"))?;
+        }
         let mut types = BTreeMap::new();
         for binding in self.binding_rules.iter() {
             if binding.condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
@@ -2532,11 +2580,13 @@ pub(crate) fn parse_directive_at(
             | "readings"
             | "decisions"
             | "proc"
+            | "define"
     ) {
         return None;
     }
     Some((|| match keyword {
         "proc" => parse_procedure(line, position),
+        "define" => parse_define(line),
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
             ["readings", name, "from", template, "limit", limit] => Ok(Directive::Readings {
@@ -2844,6 +2894,18 @@ fn parse_citations(citations: &str) -> Result<Vec<Expr>, String> {
         start = end + 1;
     }
     Ok(parsed)
+}
+
+fn parse_define(line: &str) -> Result<Directive, String> {
+    let (name, expression) = line
+        .strip_prefix("define")
+        .unwrap()
+        .split_once('=')
+        .ok_or("define expects NAME = EXPRESSION")?;
+    Ok(Directive::Define {
+        name: identifier(name.trim())?,
+        expression: reactive_expr::parse_unresolved(expression.trim())?,
+    })
 }
 
 fn parse_binding(line: &str) -> Result<Directive, String> {

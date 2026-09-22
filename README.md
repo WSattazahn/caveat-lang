@@ -48,6 +48,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Reject 0.1](spec/caveat-reject-0.1.md) adds `reject "MESSAGE"`: an event that is not allowed fails atomically with that message, without a dummy state or a `require` trick.
 
+[Define 0.1](spec/caveat-define-0.1.md) adds `define NAME = EXPRESSION;`, a named expression over state and the graph that is inlined wherever it is read, including per member inside a `for` block.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
