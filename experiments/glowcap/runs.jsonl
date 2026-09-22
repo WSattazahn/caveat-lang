@@ -44,3 +44,4 @@
 {"at":"2026-09-22T21:49:18.091Z","phase":"cr10","impl":"caveat4","hash":"32749110d478","passed":0,"total":33,"failed":["S01","S02","S03b","S04b","S05","S06","S07","S08b","S09","S10","S11b","S12","S13","S14","S15","S16","S17","S18","S19","S20","S21","S22","S23","S24","S25","S26","S27","S28","S29","S30","S31","S32","S33"],"explanationFailed":[]}
 {"at":"2026-09-22T21:49:47.350Z","phase":"cr10","impl":"caveat4","hash":"dd34809dcafd","passed":30,"total":33,"failed":["S31","S32","S33"],"explanationFailed":["S31","S32"]}
 {"at":"2026-09-22T21:50:16.357Z","phase":"cr10","impl":"caveat4","hash":"7d422e5b0677","passed":33,"total":33,"failed":[],"explanationFailed":[]}
+{"at":"2026-09-22T21:51:30.146Z","phase":"cr11","impl":"ts","hash":"e4e1a8d5aab5","passed":35,"total":35,"failed":[],"explanationFailed":[]}

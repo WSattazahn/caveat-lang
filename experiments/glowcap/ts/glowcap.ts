@@ -23,6 +23,7 @@ interface Mushroom {
   tasted: Kind | null;
   life: number;
   consumedAt: number;
+  consumedBy: string;
 }
 
 const BELIEF_TEXT: Record<BeliefState, string> = {
@@ -42,7 +43,7 @@ function basedOn(count: number): string {
 }
 
 export function createPolicy() {
-  const mushrooms = new Map<string, Mushroom>(MUSHROOMS.map((id) => [id, { consumed: false, tasted: null, life: 1, consumedAt: 0 }]));
+  const mushrooms = new Map<string, Mushroom>(MUSHROOMS.map((id) => [id, { consumed: false, tasted: null, life: 1, consumedAt: 0, consumedBy: '' }]));
   let glow = 0;
   let heavy = 0;
   const supportedBy: string[] = [];
@@ -76,9 +77,10 @@ export function createPolicy() {
     return life === 1 ? `${action}_${id}` : `${action}_${id}_${life}`;
   }
 
-  function consume(target: Mushroom): void {
+  function consume(target: Mushroom, evidence: string): void {
     target.consumed = true;
     target.consumedAt = now;
+    target.consumedBy = evidence;
   }
 
   // Twice bitten: after two contradictions, only a mushroom known to be a
@@ -136,11 +138,12 @@ export function createPolicy() {
         if (target.tasted === 'duskcap') throw new Error(`${event.id} is a known duskcap`);
         if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
         if (tooRisky(target)) throw new Error(`${event.id} is too risky to absorb untasted`);
-        consume(target);
+        const evidence = evidenceOf('absorb', event.id);
+        consume(target, evidence);
         if (kind === 'glowcap') glow = GLOW_SECONDS;
         // Heaviness stacks while it lasts, up to a cap.
         else heavy = heavy > 0 ? Math.min(HEAVY_MAX_SECONDS, heavy + HEAVY_SECONDS) : HEAVY_SECONDS;
-        learn(evidenceOf('absorb', event.id), kind);
+        learn(evidence, kind);
         return;
       }
       case 'taste': {
@@ -162,7 +165,7 @@ export function createPolicy() {
         if (target.consumed) throw new Error(`${event.id} is already consumed`);
         if (target.tasted && target.tasted !== kind) throw new Error(`${event.id} tasted as ${target.tasted}`);
         const evidence = evidenceOf('witness', event.id);
-        consume(target);
+        consume(target, evidence);
         caveatsOf.set(evidence, ['secondhand']);
         learn(evidence, kind);
         return;
@@ -174,7 +177,18 @@ export function createPolicy() {
 
   function mushroomView(id: string, belief: BeliefState) {
     const base = labelFor(id, belief);
-    return { ...base, caveats: caveatsFor(base.because) };
+    return { ...base, caveats: caveatsFor(base.because), why: whyNot(id) };
+  }
+
+  // Why each greyed-out action is greyed out, citing what the slime learned.
+  function whyNot(id: string) {
+    const target = mushroom(id);
+    const reason = (text: string, because: string[]) => ({ reason: text, because, caveats: caveatsFor(because) });
+    const allowed = reason('', []);
+    if (target.consumed) return { absorb: reason('Already eaten', [target.consumedBy]), taste: reason('Already eaten', [target.consumedBy]) };
+    const taste = evidenceOf('taste', id);
+    if (target.tasted) return { absorb: target.tasted === 'duskcap' ? reason('Known duskcap', [taste]) : allowed, taste: reason('Already tasted', [taste]) };
+    return { absorb: tooRisky(target) ? reason('Too risky untasted', [...contradictedBy]) : allowed, taste: allowed };
   }
 
   function labelFor(id: string, belief: BeliefState) {
