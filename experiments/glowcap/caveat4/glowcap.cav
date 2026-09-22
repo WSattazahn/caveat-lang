@@ -96,7 +96,6 @@ for mushroom as $m {
     on absorb when $m_here and $m_known == sort.duskcap reject "a known duskcap";
     on absorb when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
     on absorb when $m_here and $m_unknown and twice_bitten reject "too risky to absorb untasted";
-    on absorb when $m_here set $m_consumed = 1;
     on absorb when $m_here set $m_consumed_at = now;
     on absorb when $m_here and sort == sort.glowcap reveal absorb_$m supports glowing_is_safe;
     on absorb when $m_here and sort == sort.glowcap set support = support + qualified(1, absorb_$m);
@@ -107,6 +106,8 @@ for mushroom as $m {
     on absorb when $m_here and sort == sort.duskcap set contradiction = contradiction + qualified(1, absorb_$m);
     on absorb when $m_here and sort == sort.duskcap and committed(trust) reopen trust because absorb_$m;
     on absorb when $m_here and sort == sort.duskcap set recovery = 0;
+    // Consumed on the evidence that consumed it, once that evidence is observed.
+    on absorb when $m_here set $m_consumed = qualified(1, absorb_$m);
 
     on taste when $m_here and not $m_unknown reject "already known";
     on taste when $m_here and sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
@@ -129,7 +130,6 @@ for mushroom as $m {
     // Another creature eats it: an observation like an absorption, secondhand.
     on witness when $m_here and $m_consumed == 1 reject "already eaten";
     on witness when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
-    on witness when $m_here set $m_consumed = 1;
     on witness when $m_here set $m_consumed_at = now;
     on witness when $m_here and sort == sort.glowcap reveal witness_$m supports glowing_is_safe;
     on witness when $m_here and sort == sort.glowcap set support = support + qualified(1, witness_$m, secondhand);
@@ -140,6 +140,7 @@ for mushroom as $m {
     on witness when $m_here and sort == sort.duskcap set contradiction = contradiction + qualified(1, witness_$m, secondhand);
     on witness when $m_here and sort == sort.duskcap and committed(trust) reopen trust because witness_$m;
     on witness when $m_here and sort == sort.duskcap set recovery = 0;
+    on witness when $m_here set $m_consumed = qualified(1, witness_$m, secondhand);
 
     // A taste fades after a minute; everything built on it learns so.
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 qualify taste_$m with taste_faded;
@@ -161,6 +162,15 @@ for mushroom as $m {
     bind $m.label = "Probably a duskcap" when $m_unknown and probably_unsafe because contradiction;
     bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because contradiction;
     bind $m.label = "Too risky — taste first" when $m_unknown and twice_bitten because contradiction;
+
+    // Why an action is greyed out: the last matching reason wins.
+    bind $m.whyAbsorb = "" because nothing;
+    bind $m.whyAbsorb = "Too risky untasted" when $m_unknown and twice_bitten because contradiction;
+    bind $m.whyAbsorb = "Known duskcap" when $m_consumed == 0 and $m_known == sort.duskcap because $m_known;
+    bind $m.whyAbsorb = "Already eaten" when $m_consumed == 1 because $m_consumed;
+    bind $m.whyTaste = "" because nothing;
+    bind $m.whyTaste = "Already tasted" when $m_known != 0 because $m_known;
+    bind $m.whyTaste = "Already eaten" when $m_consumed == 1 because $m_consumed;
 };
 
 bind slime.glowing = glow > 0;

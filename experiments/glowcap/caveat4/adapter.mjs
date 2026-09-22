@@ -35,8 +35,10 @@ export function createPolicy() {
       slime: { ...bindings.slime },
       mushrooms: Object.fromEntries([...lives.keys()].map((id) => {
         const life = liveOf(id);
-        const { regrown, ...mushroom } = bindings[life];
-        return [id, { ...mushroom, because: cites[life].label.evidence, caveats: cites[life].label.caveats }];
+        const { regrown, whyAbsorb, whyTaste, ...mushroom } = bindings[life];
+        const why = (reason, cited) => ({ reason, because: cited.evidence, caveats: cited.caveats });
+        return [id, { ...mushroom, because: cites[life].label.evidence, caveats: cites[life].label.caveats,
+          why: { absorb: why(whyAbsorb, cites[life].whyAbsorb), taste: why(whyTaste, cites[life].whyTaste) } }];
       })),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: cites.belief.state.caveats },
       decision: { state: bindings.decision.state, basis: grounds[current]?.evidence ?? [], reopenedBy: trust?.reopened_by ?? [], caveats: grounds[current]?.caveats ?? [],
