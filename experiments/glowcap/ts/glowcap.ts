@@ -26,6 +26,24 @@ interface Mushroom {
   consumedBy: string;
 }
 
+interface Trust { basis: string[]; reopenedBy: string[]; caveats: string[] }
+interface Change { change: 'committed' | 'reopened'; because: string[] }
+
+// Everything a policy knows, as JSON: save() writes it, createPolicy(saved) resumes.
+export interface Saved {
+  mushrooms: [string, Mushroom][];
+  glow: number;
+  heavy: number;
+  now: number;
+  supportedBy: string[];
+  contradictedBy: string[];
+  trust: Trust | null;
+  history: Change[];
+  sinceContradiction: string[];
+  caveatsOf: [string, string[]][];
+  tastedAt: [string, number][];
+}
+
 const BELIEF_TEXT: Record<BeliefState, string> = {
   none: '',
   probably_safe: 'Glowing mushrooms give you light.',
@@ -42,20 +60,38 @@ function basedOn(count: number): string {
   return count === 1 ? 'Based on one observation.' : `Based on ${count} observations.`;
 }
 
-export function createPolicy() {
+export function createPolicy(saved?: Saved) {
   const mushrooms = new Map<string, Mushroom>(MUSHROOMS.map((id) => [id, { consumed: false, tasted: null, life: 1, consumedAt: 0, consumedBy: '' }]));
   let glow = 0;
   let heavy = 0;
   const supportedBy: string[] = [];
   const contradictedBy: string[] = [];
-  let trust: { basis: string[]; reopenedBy: string[]; caveats: string[] } | null = null;
-  const history: { change: 'committed' | 'reopened'; because: string[] }[] = [];
+  let trust: Trust | null = null;
+  const history: Change[] = [];
   // Glowcap observations since the most recent contradiction; two recommit trust.
   let sinceContradiction: string[] = [];
   // Caveats attached to each piece of evidence; anything citing it inherits them.
   const caveatsOf = new Map<string, string[]>();
   let now = 0;
   const tastedAt = new Map<string, number>();
+
+  if (saved) {
+    const copy = structuredClone(saved);
+    for (const [id, state] of copy.mushrooms) mushrooms.set(id, state);
+    ({ glow, heavy, now, trust, sinceContradiction } = copy);
+    supportedBy.push(...copy.supportedBy);
+    contradictedBy.push(...copy.contradictedBy);
+    history.push(...copy.history);
+    for (const [id, caveats] of copy.caveatsOf) caveatsOf.set(id, caveats);
+    for (const [id, at] of copy.tastedAt) tastedAt.set(id, at);
+  }
+
+  function save(): Saved {
+    return structuredClone({
+      mushrooms: [...mushrooms], glow, heavy, now, supportedBy, contradictedBy, trust, history,
+      sinceContradiction, caveatsOf: [...caveatsOf], tastedAt: [...tastedAt],
+    });
+  }
 
   function faded(evidence: string): boolean {
     const at = tastedAt.get(evidence);
@@ -233,5 +269,5 @@ export function createPolicy() {
     };
   }
 
-  return { dispatch, view };
+  return { dispatch, view, save };
 }
