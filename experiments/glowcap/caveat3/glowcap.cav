@@ -20,6 +20,12 @@ state glow = 0 min 0 max 30;
 state heavy = 0 min 0 max 20;
 state now = 0;
 
+// Trust can be committed again, so it is a decision series. A recovered
+// revision is grounded on the glowcaps observed since the last contradiction.
+decisions trust limit 16;
+state recovery = 0;
+state epoch = 0; // bumped by every contradiction
+
 define probably_safe = support > 0 and contradiction == 0;
 define probably_unsafe = support == 0 and contradiction > 0;
 define uncertain = support > 0 and contradiction > 0;
@@ -48,6 +54,7 @@ for mushroom as $m {
     state $m_dark = 0 min 0 max 1;
     state $m_tasted_at = -1;
     state $m_faded = 0 min 0 max 1;
+    state $m_taste_epoch = -1;
     define $m_here = target == $index;
     define $m_unknown = $m_consumed == 0 and $m_known == 0;
     define $m_fading = $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60;
@@ -59,10 +66,14 @@ for mushroom as $m {
     on absorb when $m_here set $m_consumed = 1;
     on absorb when $m_here and sort == sort.glowcap reveal absorb_$m supports glowing_is_safe;
     on absorb when $m_here and sort == sort.glowcap set support = support + qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.glowcap set recovery = recovery + qualified(1, absorb_$m);
     on absorb when $m_here and sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.glowcap and reopened(trust) and recovery >= 2 commit trust because enough using recovery;
     on absorb when $m_here and sort == sort.duskcap reveal absorb_$m opposes glowing_is_safe;
     on absorb when $m_here and sort == sort.duskcap set contradiction = contradiction + qualified(1, absorb_$m);
     on absorb when $m_here and sort == sort.duskcap and committed(trust) reopen trust because absorb_$m;
+    on absorb when $m_here and sort == sort.duskcap set recovery = 0;
+    on absorb when $m_here and sort == sort.duskcap set epoch = epoch + 1;
 
     on taste when $m_here and not $m_unknown reject "already known";
     on taste when $m_here and sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
@@ -75,14 +86,20 @@ for mushroom as $m {
     on taste when $m_here and glow == 0 set $m_known = qualified(sort, taste_$m, tasted_in_dark);
     // A taste counts like an absorption, carrying its caveat with it.
     on taste when $m_here and sort == sort.glowcap set support = support + $m_known / sort;
+    on taste when $m_here and sort == sort.glowcap set recovery = recovery + $m_known / sort;
     on taste when $m_here and sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using $m_known / sort;
+    on taste when $m_here and sort == sort.glowcap and reopened(trust) and recovery >= 2 commit trust because enough using recovery;
     on taste when $m_here and sort == sort.duskcap set contradiction = contradiction + $m_known / sort;
     on taste when $m_here and sort == sort.duskcap and committed(trust) reopen trust because taste_$m;
+    on taste when $m_here and sort == sort.duskcap set recovery = 0;
+    on taste when $m_here and sort == sort.duskcap set epoch = epoch + 1;
+    on taste when $m_here set $m_taste_epoch = epoch;
 
     // A taste fades after a minute: wherever it is counted, it gains taste_faded.
     on tick when $m_fading set $m_known = $m_known + qualified(0, taste_$m, taste_faded);
     on tick when $m_fading and $m_known == sort.glowcap set support = support + qualified(0, taste_$m, taste_faded);
     on tick when $m_fading and $m_known == sort.duskcap set contradiction = contradiction + qualified(0, taste_$m, taste_faded);
+    on tick when $m_fading and $m_known == sort.glowcap and $m_taste_epoch == epoch set recovery = recovery + qualified(0, taste_$m, taste_faded);
     on tick when $m_fading set $m_faded = 1;
 
     bind $m.present = $m_consumed == 0;
