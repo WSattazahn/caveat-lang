@@ -26,6 +26,12 @@ dispatch took 97 µs (down from 202 µs), and the runtime shipped 333 KB
 gzipped. This round was written knowing every request. Details are
 [below](#round-4-the-language-after-rounds-1-3).
 
+**Round 5, after late qualification and the decision journal: Caveat.**
+Replaying CR5–CR8 from round 4's CR4 state cost 36 changed lines against
+TypeScript's 53. Across all eight requests that makes 71 against 110. The
+program is 134 lines against 164. Also written knowing every request. Details
+are [below](#round-5-late-qualification-and-the-decision-journal).
+
 ## Measurements
 
 All numbers come from `runs.jsonl`, `harness.mjs --measure`, `--bench`, and
@@ -263,6 +269,57 @@ about Caveat's own subject, time and knowledge:
    reopening in order. The host still rebuilds that history from revisions,
    relations and unordered grounds (CR6's 13 lines and 16 of CR7's).
 
+## Round 5: late qualification and the decision journal
+
+Round 4 left two gaps, and the language gained one feature for each:
+- [Late Qualification 0.1](../../spec/caveat-late-qualification-0.1.md):
+  `qualify EVIDENCE with CAVEAT`, a caveat learned after the fact that
+  reaches every current value built on that evidence and leaves decisions
+  already made alone.
+- [Decision Journal 0.1](../../spec/caveat-decision-journal-0.1.md): every
+  commitment and reopening, in order, with its evidence in observation order.
+
+`caveat4/` starts from `caveat3/` as it stood after CR4. It replays CR5–CR8,
+one commit per phase, written knowing the requests.
+
+| Request | TypeScript | Caveat, round 3 | Caveat, round 4 | Caveat, round 5 |
+| --- | --- | --- | --- | --- |
+| CR5: a taste fades | 22 | 15 | 14 | **11** |
+| CR6: trust has a history | 15 | 6 | 13 | **5** |
+| CR7: trust recovers | **11** | 71 | 38 | 15 |
+| CR8: heaviness stacks | 5 | 5 | 5 | 5 |
+| **CR5–CR8** | 53 | 97 | 70 | **36** |
+| **All eight requests** | 110 | 137 | 105 | **71** |
+| Final size, code lines | 164 | 174 | 154 | **134** (107 + 27) |
+| Final size, bytes | **8,220** | 13,506 | 11,338 | 10,153 |
+| Phases green on first run | 9 / 9 | 8 / 9 | 8 / 9 | 5 / 5 |
+| Differential fuzz vs TypeScript | — | 0 of 1.84M | 0 of 1.83M | 0 of 1.79M |
+| Dispatch + view, median | 1.3 µs | 202 µs | 97 µs | 114 µs |
+| Shipped, gzipped | 2.7 KB | 413 KB | 333 KB | 340 KB |
+
+**What the features removed.**
+- **CR5.** A fading taste is one fact: `qualify taste_$m with taste_faded`.
+  The runtime finds every value that counted the taste, including the
+  belief, the labels and the recovery window. The decision keeps its caveats
+  because it was already made.
+- **CR6.** The adapter filters the journal: one line.
+- **CR7.** No epoch counter and no window test: when the recovery
+  accumulator is reset, it no longer holds the taste, so a late caveat does
+  not reach it. The history needed no change, because the journal already
+  records every revision with its own grounds, in order.
+
+TypeScript still wins CR7 on lines, 11 against 15. It keeps the recovery
+window as a plain array. Caveat declares a decision series and two recommit
+rules, in exchange for revisions whose grounds and journal entries are
+correct without any code.
+
+**What is left.**
+- **Runtime cost.** Still two orders of magnitude slower than plain
+  TypeScript, and about 340 KB to ship.
+- **Foresight.** Rounds 4 and 5 were written knowing the requests. Only
+  round 3 was blind. The next confirmation is another blind round on the
+  current language.
+
 ## Reproduce
 
 ```sh
@@ -278,4 +335,6 @@ node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat2
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=11 --against=caveat2
 node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat3
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=13 --against=caveat3
+node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat4
+node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=17 --against=caveat4
 ```
