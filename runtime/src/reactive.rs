@@ -146,6 +146,13 @@ pub enum Effect {
     Reject {
         message: String,
     },
+    /// A caveat learned late: every current value that depends on the evidence
+    /// gains it. Decisions already made keep what they were made on. See
+    /// spec/caveat-late-qualification-0.1.md.
+    Qualify {
+        evidence: String,
+        caveat: String,
+    },
     Set {
         name: String,
         value: Expr,
@@ -478,6 +485,28 @@ pub enum EffectReport {
         action: String,
         because: String,
     },
+    Qualify {
+        evidence: String,
+        caveat: String,
+    },
+}
+
+/// One change to a decision, in the order it happened. See
+/// spec/caveat-decision-journal-0.1.md.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct JournalEntry {
+    /// The declared commitment or decision series.
+    pub decision: String,
+    /// The concrete commitment, `name@N` for a series revision.
+    pub commitment: String,
+    /// `committed` or `reopened`.
+    pub change: String,
+    pub sequence: u64,
+    pub event: String,
+    /// For a commitment its grounds' evidence, for a reopening the evidence
+    /// that reopened it; either way in the order it was first observed.
+    pub because: Vec<String>,
+    pub caveats: Vec<String>,
 }
 
 /// What a host redraws after an event: bindings and what they cite, cues and
@@ -495,6 +524,7 @@ pub struct ReactiveView {
     pub commitments: Vec<MapCommitment>,
     pub commitment_grounds: BTreeMap<String, Provenance>,
     pub decision_series: BTreeMap<String, DecisionSeries>,
+    pub decision_journal: Vec<JournalEntry>,
     pub relations: Vec<MapRelation>,
 }
 
@@ -524,6 +554,7 @@ pub struct ReactiveSnapshot {
     /// What each commitment was grounded on: its `using` content and retained
     /// caveats, without its guard or a predecessor's basis.
     pub commitment_grounds: BTreeMap<String, Provenance>,
+    pub decision_journal: Vec<JournalEntry>,
     pub cues: Vec<Cue>,
     pub cue_qualifications: Vec<Provenance>,
     pub controls: BTreeMap<String, Control>,
@@ -569,6 +600,7 @@ pub struct ReactiveSession {
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
     grounds: BTreeMap<String, Provenance>,
     commitment_grounds: BTreeMap<String, Provenance>,
+    journal: Vec<JournalEntry>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -714,6 +746,7 @@ impl ReactiveSession {
             binding_explanations: BTreeMap::new(),
             grounds: BTreeMap::new(),
             commitment_grounds: BTreeMap::new(),
+            journal: Vec::new(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -1215,6 +1248,10 @@ impl ReactiveSession {
                     }
                 }
                 Effect::Reject { .. } => {}
+                Effect::Qualify { evidence, caveat } => {
+                    self.require_kind(evidence, "evidence")?;
+                    self.require_kind(caveat, "caveat")?;
+                }
                 Effect::Emit { name } => {
                     if !self.cue_definitions.contains_key(name) {
                         return Err(format!("emit references undeclared cue {name}"));
@@ -1810,6 +1847,7 @@ impl ReactiveSession {
             commitments: self.commitment_records(&names),
             commitment_grounds: self.commitment_grounds.clone(),
             decision_series: self.decision_series.clone(),
+            decision_journal: self.journal.clone(),
             relations: self.relation_records(&names),
         }
     }
@@ -2031,6 +2069,28 @@ impl ReactiveSession {
             .iter()
             .filter_map(|(name, id)| caveats.contains(id).then_some(name.clone()))
             .collect()
+    }
+
+    /// Evidence names in the order each was first observed: the position of
+    /// its first supporting or opposing relation in the graph.
+    fn in_observation_order<'a>(&self, evidence: impl Iterator<Item = &'a String>) -> Vec<String> {
+        let mut named = evidence
+            .map(|name| {
+                let id = self.symbols.get(name).copied();
+                let rank = self
+                    .graph
+                    .edges
+                    .iter()
+                    .position(|edge| {
+                        Some(edge.from) == id
+                            && matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                    })
+                    .unwrap_or(usize::MAX);
+                (rank, name.clone())
+            })
+            .collect::<Vec<_>>();
+        named.sort();
+        named.into_iter().map(|(_, name)| name).collect()
     }
 
     fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
@@ -2311,6 +2371,39 @@ impl ReactiveSession {
                 });
             }
             Effect::Reject { message } => return Err(format!("rejected: {message}")),
+            Effect::Qualify { evidence, caveat } => {
+                if !self.predicate("observed", evidence)? {
+                    return Err(format!("cannot qualify unobserved evidence {evidence}"));
+                }
+                let (from, to) = (self.symbols[caveat], self.symbols[evidence]);
+                if !self.graph.edges.iter().any(|edge| {
+                    edge.from == from && edge.to == to && edge.relation == Relation::Qualifies
+                }) {
+                    self.graph.relate(from, Relation::Qualifies, to);
+                }
+                // The caveat and whatever qualifies it, as `qualified` inherits.
+                let added = Provenance::from_names(
+                    [],
+                    std::iter::once(caveat.clone()).chain(self.incoming_caveats([from])),
+                )?;
+                // Current values only. Commitment bases and grounds, reading
+                // archives and the journal record what was known then.
+                for (name, tracked) in self.values.iter_mut() {
+                    if tracked.provenance.evidence.contains(evidence) {
+                        tracked.provenance.merge(&added)?;
+                        tracked.provenance.merge(guard)?;
+                    }
+                    if let Some(grounds) = self.grounds.get_mut(name) {
+                        if grounds.evidence.contains(evidence) {
+                            grounds.merge(&added)?;
+                        }
+                    }
+                }
+                self.effects.push(EffectReport::Qualify {
+                    evidence: evidence.clone(),
+                    caveat: caveat.clone(),
+                });
+            }
             Effect::Emit { name } => {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
@@ -2503,6 +2596,16 @@ impl ReactiveSession {
                             .expect("revision occurs during dispatch"),
                     });
                 }
+                let grounds = &self.commitment_grounds[&name];
+                self.journal.push(JournalEntry {
+                    decision: action.clone(),
+                    commitment: name.clone(),
+                    change: "committed".into(),
+                    sequence: self.sequence,
+                    event: self.last_event.clone().unwrap_or_default(),
+                    because: self.in_observation_order(grounds.evidence.iter()),
+                    caveats: grounds.caveats.iter().cloned().collect(),
+                });
                 self.effects.push(EffectReport::Commit {
                     action: name,
                     retained: retained_names,
@@ -2545,6 +2648,19 @@ impl ReactiveSession {
                         .or_default()
                         .merge(&basis)?;
                     self.graph.reopen(id, from);
+                    self.journal.push(JournalEntry {
+                        decision: action.clone(),
+                        commitment: current.clone(),
+                        change: "reopened".into(),
+                        sequence: self.sequence,
+                        event: self.last_event.clone().unwrap_or_default(),
+                        because: vec![because.clone()],
+                        caveats: self
+                            .qualify_core(&because, &[])?
+                            .caveats
+                            .into_iter()
+                            .collect(),
+                    });
                     self.effects.push(EffectReport::Reopen {
                         action: current,
                         because,
@@ -2624,6 +2740,7 @@ impl ReactiveSession {
             binding_explanations: self.binding_explanations.clone(),
             value_grounds: self.grounds.clone(),
             commitment_grounds: self.commitment_grounds.clone(),
+            decision_journal: self.journal.clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.values.clone(),
@@ -2967,6 +3084,7 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
                     | "sample"
                     | "call"
                     | "reject"
+                    | "qualify"
             )
         {
             candidates.push(index);
@@ -3312,6 +3430,10 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     match words {
+        ["qualify", evidence, "with", caveat] => Ok(Effect::Qualify {
+            evidence: identifier(evidence)?,
+            caveat: identifier(caveat)?,
+        }),
         ["reject", rest @ ..] if !rest.is_empty() => {
             let text = rest.join(" ");
             let (message, trailing) = quoted_prefix(&text)?;

@@ -76,6 +76,7 @@ const RESERVED: &[&str] = &[
     "place",
     "position",
     "proc",
+    "qualify",
     "readings",
     "reject",
     "reopen",
@@ -95,6 +96,7 @@ const RESERVED: &[&str] = &[
     "using",
     "via",
     "when",
+    "with",
     // closed value words
     "catastrophic",
     "deadline",
