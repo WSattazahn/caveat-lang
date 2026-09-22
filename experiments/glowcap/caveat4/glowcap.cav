@@ -5,6 +5,36 @@ entity cave kind mushroom at garden;
 entity pool kind mushroom at garden;
 entity ruin kind mushroom at garden;
 entity grove kind mushroom at garden;
+// A regrown mushroom is a new one, with its own evidence. Entities are
+// declared, so each mushroom has eight lives; the host shows the current one.
+entity cave_2 kind mushroom at garden;
+entity pool_2 kind mushroom at garden;
+entity ruin_2 kind mushroom at garden;
+entity grove_2 kind mushroom at garden;
+entity cave_3 kind mushroom at garden;
+entity pool_3 kind mushroom at garden;
+entity ruin_3 kind mushroom at garden;
+entity grove_3 kind mushroom at garden;
+entity cave_4 kind mushroom at garden;
+entity pool_4 kind mushroom at garden;
+entity ruin_4 kind mushroom at garden;
+entity grove_4 kind mushroom at garden;
+entity cave_5 kind mushroom at garden;
+entity pool_5 kind mushroom at garden;
+entity ruin_5 kind mushroom at garden;
+entity grove_5 kind mushroom at garden;
+entity cave_6 kind mushroom at garden;
+entity pool_6 kind mushroom at garden;
+entity ruin_6 kind mushroom at garden;
+entity grove_6 kind mushroom at garden;
+entity cave_7 kind mushroom at garden;
+entity pool_7 kind mushroom at garden;
+entity ruin_7 kind mushroom at garden;
+entity grove_7 kind mushroom at garden;
+entity cave_8 kind mushroom at garden;
+entity pool_8 kind mushroom at garden;
+entity ruin_8 kind mushroom at garden;
+entity grove_8 kind mushroom at garden;
 
 claim glowing_is_safe;
 caveat tasted_in_dark consequence material;
@@ -58,6 +88,7 @@ for mushroom as $m {
     state $m_dark = 0 min 0 max 1;
     state $m_tasted_at = -1;
     state $m_faded = 0 min 0 max 1;
+    state $m_consumed_at = 0;
     define $m_here = target == $index;
     define $m_unknown = $m_consumed == 0 and $m_known == 0;
 
@@ -66,6 +97,7 @@ for mushroom as $m {
     on absorb when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
     on absorb when $m_here and $m_unknown and twice_bitten reject "too risky to absorb untasted";
     on absorb when $m_here set $m_consumed = 1;
+    on absorb when $m_here set $m_consumed_at = now;
     on absorb when $m_here and sort == sort.glowcap reveal absorb_$m supports glowing_is_safe;
     on absorb when $m_here and sort == sort.glowcap set support = support + qualified(1, absorb_$m);
     on absorb when $m_here and sort == sort.glowcap set recovery = recovery + qualified(1, absorb_$m);
@@ -98,6 +130,7 @@ for mushroom as $m {
     on witness when $m_here and $m_consumed == 1 reject "already eaten";
     on witness when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
     on witness when $m_here set $m_consumed = 1;
+    on witness when $m_here set $m_consumed_at = now;
     on witness when $m_here and sort == sort.glowcap reveal witness_$m supports glowing_is_safe;
     on witness when $m_here and sort == sort.glowcap set support = support + qualified(1, witness_$m, secondhand);
     on witness when $m_here and sort == sort.glowcap set recovery = recovery + qualified(1, witness_$m, secondhand);
@@ -113,6 +146,7 @@ for mushroom as $m {
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 set $m_faded = 1;
 
     bind $m.present = $m_consumed == 0;
+    bind $m.regrown = $m_consumed == 1 and now - $m_consumed_at >= 45;
     bind $m.canAbsorb = $m_consumed == 0 and $m_known != sort.duskcap and not ($m_unknown and twice_bitten);
     bind $m.canTaste = $m_unknown;
     bind $m.label = "" because nothing;

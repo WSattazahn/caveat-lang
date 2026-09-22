@@ -9,11 +9,20 @@ export const ready = init({ module_or_path: await readFile(new URL('../../../dis
 
 export function createPolicy() {
   const session = new WebReactiveSession(source);
-  const mushrooms = JSON.parse(session.snapshot()).world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
   let shown = JSON.parse(session.view());
+  // Each mushroom's declared lives, in order; the current one is the first not yet regrown.
+  const lives = new Map();
+  for (const { id, kind } of JSON.parse(session.snapshot()).world.entities) {
+    const base = id.replace(/_\d+$/, '');
+    if (kind === 'mushroom') lives.set(base, [...(lives.get(base) ?? []), id]);
+  }
+  const liveOf = (id) => {
+    if (!lives.has(id)) throw new Error(`Unknown mushroom ${id}`);
+    return lives.get(id).find((life) => !shown.bindings[life].regrown) ?? lives.get(id).at(-1);
+  };
 
   function dispatch(event) {
-    const payload = event.type === 'tick' ? { dt: event.dt } : { target: event.id, sort: event.kind };
+    const payload = event.type === 'tick' ? { dt: event.dt } : { target: liveOf(event.id), sort: event.kind };
     shown = JSON.parse(session.dispatch_view(event.type, JSON.stringify(payload)));
   }
 
@@ -24,7 +33,11 @@ export function createPolicy() {
     const trust = commitments.find((c) => c.action === current);
     return {
       slime: { ...bindings.slime },
-      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: cites[id].label.evidence, caveats: cites[id].label.caveats }])),
+      mushrooms: Object.fromEntries([...lives.keys()].map((id) => {
+        const life = liveOf(id);
+        const { regrown, ...mushroom } = bindings[life];
+        return [id, { ...mushroom, because: cites[life].label.evidence, caveats: cites[life].label.caveats }];
+      })),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: cites.belief.state.caveats },
       decision: { state: bindings.decision.state, basis: grounds[current]?.evidence ?? [], reopenedBy: trust?.reopened_by ?? [], caveats: grounds[current]?.caveats ?? [],
         history: journal.filter((entry) => entry.decision === 'trust').map(({ change, because }) => ({ change, because })) },
