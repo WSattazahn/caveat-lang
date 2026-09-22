@@ -18,6 +18,8 @@ const arg = (name, fallback) => process.argv.find((a) => a.startsWith(`--${name}
 export const IMPLEMENTATIONS = {
   ts: { entry: 'ts/glowcap.ts', policy: ['ts/glowcap.ts'], glue: [] },
   caveat: { entry: 'caveat/adapter.mjs', policy: ['caveat/glowcap.cav'], glue: ['caveat/adapter.mjs'] },
+  // Rescore after Explanations 0.1: the Caveat side re-authored with `because`.
+  caveat2: { entry: 'caveat2/adapter.mjs', policy: ['caveat2/glowcap.cav'], glue: ['caveat2/adapter.mjs'] },
 };
 
 async function load(name) {
@@ -165,6 +167,7 @@ async function bench() {
   const shipped = {
     ts: ['ts/glowcap.ts'],
     caveat: ['caveat/glowcap.cav', 'caveat/adapter.mjs', '../../dist/pkg/caveat_runtime.js', '../../dist/pkg/caveat_runtime_bg.wasm'],
+    caveat2: ['caveat2/glowcap.cav', 'caveat2/adapter.mjs', '../../dist/pkg/caveat_runtime.js', '../../dist/pkg/caveat_runtime_bg.wasm'],
   };
   for (const [name, files] of Object.entries(shipped)) {
     let raw = 0;

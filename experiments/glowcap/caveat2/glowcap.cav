@@ -1,0 +1,78 @@
+scene "Glowcap or duskcap: look-alike mushrooms, a belief that generalises, and a trust decision that reopens.";
+
+place garden kind garden;
+entity cave kind mushroom at garden;
+entity pool kind mushroom at garden;
+entity ruin kind mushroom at garden;
+
+claim glowing_is_safe;
+
+// Sums of qualified observations: anything computed from them carries the
+// evidence behind it, and a label can cite them.
+state support = 0;
+state contradiction = 0;
+state glow = 0 min 0 max 30;
+state heavy = 0 min 0 max 20;
+
+fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + number_text(count) + " observations.");
+
+event tick dt min 0 max 0.1;
+on tick set glow = max(0, glow - dt);
+on tick set heavy = max(0, heavy - dt);
+
+for mushroom as $m {
+    claim $m_is_glowcap;
+    evidence absorb_$m from "Vessel: the slime absorbed the $m mushroom";
+    evidence taste_$m from "Vessel: the slime tasted the $m mushroom";
+
+    state $m_consumed = 0 min 0 max 1;
+    // 0 unknown, 1 tasted glowcap, 2 tasted duskcap; qualified by the taste.
+    state $m_known = 0 min 0 max 2;
+
+    event absorb_$m dusk min 0 max 1;
+    event taste_$m dusk min 0 max 1;
+
+    on absorb_$m set $m_consumed = require($m_consumed == 0 and $m_known != 2 and ($m_known == 0 or $m_known == 1 + dusk), 1);
+    on absorb_$m when dusk == 0 set glow = 30;
+    on absorb_$m when dusk == 0 reveal absorb_$m supports glowing_is_safe;
+    on absorb_$m when dusk == 0 set support = support + qualified(1, absorb_$m);
+    on absorb_$m when dusk == 0 and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, absorb_$m);
+    on absorb_$m when dusk == 1 set heavy = 20;
+    on absorb_$m when dusk == 1 reveal absorb_$m opposes glowing_is_safe;
+    on absorb_$m when dusk == 1 set contradiction = contradiction + qualified(1, absorb_$m);
+    on absorb_$m when dusk == 1 and committed(trust) reopen trust because absorb_$m;
+
+    on taste_$m when dusk == 0 reveal taste_$m supports $m_is_glowcap;
+    on taste_$m when dusk == 1 reveal taste_$m opposes $m_is_glowcap;
+    on taste_$m set $m_known = require($m_consumed == 0 and $m_known == 0, qualified(1 + dusk, taste_$m));
+
+    bind $m.present = $m_consumed == 0;
+    bind $m.canAbsorb = $m_consumed == 0 and $m_known != 2;
+    bind $m.canTaste = $m_consumed == 0 and $m_known == 0;
+    bind $m.label = "" because nothing;
+    bind $m.label = "Glowcap" when $m_consumed == 0 and $m_known == 1 because $m_known;
+    bind $m.label = "Duskcap — avoid" when $m_consumed == 0 and $m_known == 2 because $m_known;
+    bind $m.label = "Glowing mushroom" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction == 0 because nothing;
+    bind $m.label = "Probably a glowcap" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction == 0 because support;
+    bind $m.label = "Probably a duskcap" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction > 0 because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction > 0 because support, contradiction;
+};
+
+bind slime.glowing = glow > 0;
+bind slime.heavy = heavy > 0;
+
+bind belief.state = "none";
+bind belief.state = "probably_safe" when support > 0 and contradiction == 0;
+bind belief.state = "probably_unsafe" when support == 0 and contradiction > 0;
+bind belief.state = "uncertain" when support > 0 and contradiction > 0;
+bind belief.text = "";
+bind belief.text = "Glowing mushrooms give you light." when support > 0 and contradiction == 0;
+bind belief.text = "Glowing mushrooms make you heavy." when support == 0 and contradiction > 0;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when support > 0 and contradiction > 0;
+bind belief.note = "";
+bind belief.note = based_on(support) when support > 0 and contradiction == 0;
+bind belief.note = based_on(contradiction) when support == 0 and contradiction > 0;
+
+bind decision.state = "none";
+bind decision.state = "committed" when committed(trust);
+bind decision.state = "reopened" when reopened(trust);

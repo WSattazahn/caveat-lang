@@ -8,3 +8,4 @@
 {"at":"2026-09-22T18:40:50.434Z","phase":"cr3","impl":"caveat","hash":"898ee7ed520a","passed":19,"total":19,"failed":[],"explanationFailed":[]}
 {"at":"2026-09-22T18:41:42.137Z","phase":"cr4","impl":"ts","hash":"c088b8fcbbf9","passed":20,"total":20,"failed":[],"explanationFailed":[]}
 {"at":"2026-09-22T18:41:42.620Z","phase":"cr4","impl":"caveat","hash":"e20eb17b1ae9","passed":20,"total":20,"failed":[],"explanationFailed":[]}
+{"at":"2026-09-22T19:15:21.295Z","phase":"base","impl":"caveat2","hash":"7304e76b1519","passed":14,"total":14,"failed":[],"explanationFailed":[]}
