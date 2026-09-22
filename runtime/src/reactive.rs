@@ -108,6 +108,10 @@ pub enum Effect {
     Emit {
         name: String,
     },
+    /// Fail the event with this message. Nothing the event did is kept.
+    Reject {
+        message: String,
+    },
     Set {
         name: String,
         value: Expr,
@@ -1097,6 +1101,7 @@ impl ReactiveSession {
                         return Err(format!("sample {stream} requires a numeric expression"));
                     }
                 }
+                Effect::Reject { .. } => {}
                 Effect::Emit { name } => {
                     if !self.cue_definitions.contains_key(name) {
                         return Err(format!("emit references undeclared cue {name}"));
@@ -2032,6 +2037,7 @@ impl ReactiveSession {
                     target: claim.clone(),
                 });
             }
+            Effect::Reject { message } => return Err(format!("rejected: {message}")),
             Effect::Emit { name } => {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
@@ -2653,7 +2659,15 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
         if depth == 0
             && matches!(
                 *token,
-                "set" | "reveal" | "examine" | "commit" | "reopen" | "emit" | "sample" | "call"
+                "set"
+                    | "reveal"
+                    | "examine"
+                    | "commit"
+                    | "reopen"
+                    | "emit"
+                    | "sample"
+                    | "call"
+                    | "reject"
             )
         {
             candidates.push(index);
@@ -2666,7 +2680,7 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
         .find(|index| parse_effect(&words[*index..]).is_ok())
         .or_else(|| candidates.last().copied())
         .ok_or(
-            "rule requires set, reveal, examine, commit, reopen, emit, sample, or call effect",
+            "rule requires set, reveal, examine, commit, reopen, emit, sample, call, or reject effect",
         )?;
     let condition = if effect_index == 0 {
         reactive_expr::parse("true")?
@@ -2987,6 +3001,14 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     match words {
+        ["reject", rest @ ..] if !rest.is_empty() => {
+            let text = rest.join(" ");
+            let (message, trailing) = quoted_prefix(&text)?;
+            if !trailing.is_empty() {
+                return Err("reject expects one quoted message".into());
+            }
+            Ok(Effect::Reject { message })
+        }
         ["call", rest @ ..] if !rest.is_empty() => {
             let (name, arguments) = reactive_expr::parse_procedure_call(&rest.join(" "))?;
             Ok(Effect::Call { name, arguments })

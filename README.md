@@ -46,6 +46,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Explanations 0.2](spec/caveat-explanations-0.2.md) separates what a value is *based on* (its grounds) from everything that could have influenced it (its lineage). A rule’s guard, a skipped rule, the guard that revealed evidence, and a decision’s predecessor all stay in lineage but never enter grounds. Citations read grounds, `set x = e because c` narrows them, and grounds are always a subset of lineage.
 
+[Reject 0.1](spec/caveat-reject-0.1.md) adds `reject "MESSAGE"`: an event that is not allowed fails atomically with that message, without a dummy state or a `require` trick.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.

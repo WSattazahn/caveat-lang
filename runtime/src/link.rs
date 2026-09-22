@@ -76,6 +76,7 @@ const RESERVED: &[&str] = &[
     "position",
     "proc",
     "readings",
+    "reject",
     "reopen",
     "require",
     "retaining",
