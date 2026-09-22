@@ -20,6 +20,17 @@ state glow = 0 min 0 max 30;
 state heavy = 0 min 0 max 20;
 state now = 0;
 
+// Trust is a decision series so it can be committed again. Its control state is
+// kept plain: committed() and reopened() on a series carry every earlier basis,
+// and a guard's lineage enters whatever it sets.
+decisions trust limit 16;
+state trust_state = 0 min 0 max 2; // 0 none, 1 committed, 2 reopened
+state trust_basis = 0;              // the current commitment's own basis
+state recovery = 0;                 // glowcap observations since the last contradiction
+state recovery_count = 0;
+state contradiction_count = 0;
+state epoch = 0;                    // bumped by every contradiction
+
 fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + number_text(count) + " observations.");
 
 event tick dt min 0 max 0.1;
@@ -43,6 +54,7 @@ for mushroom as $m {
     state $m_tasted_at = -1;
     state $m_dusk = 0 min 0 max 1;
     state $m_faded = 0 min 0 max 1;
+    state $m_taste_epoch = -1;
 
     event absorb_$m dusk min 0 max 1;
     event taste_$m dusk min 0 max 1;
@@ -51,11 +63,21 @@ for mushroom as $m {
     on absorb_$m when dusk == 0 set glow = 30;
     on absorb_$m when dusk == 0 reveal absorb_$m supports glowing_is_safe;
     on absorb_$m when dusk == 0 set support = support + qualified(1, absorb_$m);
-    on absorb_$m when dusk == 0 and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, absorb_$m);
+    on absorb_$m when dusk == 0 set recovery = recovery + qualified(1, absorb_$m);
+    on absorb_$m when dusk == 0 set recovery_count = recovery_count + 1;
+    on absorb_$m when dusk == 0 and trust_state == 0 and contradiction_count == 0 set trust_basis = qualified(1, absorb_$m);
+    on absorb_$m when dusk == 0 and trust_state == 2 and recovery_count >= 2 set trust_basis = recovery;
+    on absorb_$m when dusk == 0 and (trust_state == 0 and contradiction_count == 0 or trust_state == 2 and recovery_count >= 2) commit trust because enough using trust_basis;
+    on absorb_$m when dusk == 0 and (trust_state == 0 and contradiction_count == 0 or trust_state == 2 and recovery_count >= 2) set trust_state = 1;
     on absorb_$m when dusk == 1 set heavy = 20;
     on absorb_$m when dusk == 1 reveal absorb_$m opposes glowing_is_safe;
     on absorb_$m when dusk == 1 set contradiction = contradiction + qualified(1, absorb_$m);
-    on absorb_$m when dusk == 1 and committed(trust) reopen trust because absorb_$m;
+    on absorb_$m when dusk == 1 set recovery = 0;
+    on absorb_$m when dusk == 1 set recovery_count = 0;
+    on absorb_$m when dusk == 1 set contradiction_count = contradiction_count + 1;
+    on absorb_$m when dusk == 1 set epoch = epoch + 1;
+    on absorb_$m when dusk == 1 and trust_state >= 1 reopen trust because absorb_$m;
+    on absorb_$m when dusk == 1 and trust_state >= 1 set trust_state = 2;
 
     on taste_$m when dusk == 0 reveal taste_$m supports $m_is_glowcap;
     on taste_$m when dusk == 1 reveal taste_$m opposes $m_is_glowcap;
@@ -66,16 +88,28 @@ for mushroom as $m {
     on taste_$m when glow == 0 set $m_taste = qualified(1, taste_$m, tasted_in_dark);
     on taste_$m set $m_known = require($m_consumed == 0 and $m_known == 0, $m_taste * (1 + dusk));
     on taste_$m when dusk == 0 set support = support + $m_taste;
-    on taste_$m when dusk == 0 and contradiction == 0 and not committed(trust) commit trust because enough using $m_taste;
+    on taste_$m when dusk == 0 set recovery = recovery + $m_taste;
+    on taste_$m when dusk == 0 set recovery_count = recovery_count + 1;
+    on taste_$m when dusk == 0 and trust_state == 0 and contradiction_count == 0 set trust_basis = $m_taste;
+    on taste_$m when dusk == 0 and trust_state == 2 and recovery_count >= 2 set trust_basis = recovery;
+    on taste_$m when dusk == 0 and (trust_state == 0 and contradiction_count == 0 or trust_state == 2 and recovery_count >= 2) commit trust because enough using trust_basis;
+    on taste_$m when dusk == 0 and (trust_state == 0 and contradiction_count == 0 or trust_state == 2 and recovery_count >= 2) set trust_state = 1;
     on taste_$m when dusk == 1 set contradiction = contradiction + $m_taste;
-    on taste_$m when dusk == 1 and committed(trust) reopen trust because taste_$m;
+    on taste_$m when dusk == 1 set recovery = 0;
+    on taste_$m when dusk == 1 set recovery_count = 0;
+    on taste_$m when dusk == 1 set contradiction_count = contradiction_count + 1;
+    on taste_$m when dusk == 1 set epoch = epoch + 1;
+    on taste_$m when dusk == 1 and trust_state >= 1 reopen trust because taste_$m;
+    on taste_$m when dusk == 1 and trust_state >= 1 set trust_state = 2;
     on taste_$m set $m_tasted_at = now;
     on taste_$m set $m_dusk = dusk;
+    on taste_$m set $m_taste_epoch = epoch;
 
     // A taste fades after a minute: its evidence gains taste_faded wherever it is counted.
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 set $m_known = $m_known + qualified(0, taste_$m, taste_faded);
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 and $m_dusk == 0 set support = support + qualified(0, taste_$m, taste_faded);
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 and $m_dusk == 1 set contradiction = contradiction + qualified(0, taste_$m, taste_faded);
+    on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 and $m_dusk == 0 and $m_taste_epoch == epoch set recovery = recovery + qualified(0, taste_$m, taste_faded);
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 set $m_faded = 1;
 
     bind $m.present = $m_consumed == 0;
@@ -112,5 +146,6 @@ bind belief.note = based_on(support) when support > 0 and contradiction == 0;
 bind belief.note = based_on(contradiction) when support == 0 and contradiction > 0;
 
 bind decision.state = "none";
-bind decision.state = "committed" when committed(trust);
-bind decision.state = "reopened" when reopened(trust);
+bind decision.state = "committed" when trust_state == 1;
+bind decision.state = "reopened" when trust_state == 2;
+bind decision.basis = trust_basis when trust_state >= 1 because trust_basis;

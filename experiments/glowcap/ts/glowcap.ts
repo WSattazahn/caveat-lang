@@ -43,6 +43,8 @@ export function createPolicy() {
   const contradictedBy: string[] = [];
   let trust: { basis: string[]; reopenedBy: string[]; caveats: string[] } | null = null;
   const history: { change: 'committed' | 'reopened'; because: string[] }[] = [];
+  // Glowcap observations since the most recent contradiction; two recommit trust.
+  let sinceContradiction: string[] = [];
   // Caveats attached to each piece of evidence; anything citing it inherits them.
   const caveatsOf = new Map<string, string[]>();
   let now = 0;
@@ -81,12 +83,16 @@ export function createPolicy() {
     if (kind === 'glowcap') {
       supportedBy.push(evidence);
       // A decision keeps the caveats its basis carried when it was made.
-      if (!trust && beliefState() === 'probably_safe') {
-        trust = { basis: [evidence], reopenedBy: [], caveats: caveatsFor([evidence]) };
-        history.push({ change: 'committed', because: [evidence] });
+      sinceContradiction.push(evidence);
+      const recovered = trust !== null && trust.reopenedBy.length > 0 && sinceContradiction.length >= 2;
+      if ((!trust && beliefState() === 'probably_safe') || recovered) {
+        const basis = recovered ? [...sinceContradiction] : [evidence];
+        trust = { basis, reopenedBy: [], caveats: caveatsFor(basis) };
+        history.push({ change: 'committed', because: [...basis] });
       }
     } else {
       contradictedBy.push(evidence);
+      sinceContradiction = [];
       if (trust) {
         trust.reopenedBy.push(evidence);
         history.push({ change: 'reopened', because: [evidence] });
