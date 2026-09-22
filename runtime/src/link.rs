@@ -22,8 +22,16 @@ pub const BUNDLE_MARKER: &str = "#caveat-bundle 1";
 /// and the rewriter never substitutes one. Both are needed: the first makes the
 /// collision impossible, the second makes the keyword safe even so.
 ///
-/// Open-ended tags — an entity's `kind`, a binding's target — are not a closed
-/// set and are handled by position in `tag_offsets` instead.
+/// `tag_offsets` protects the rest, by position rather than by name, in two
+/// cases this list cannot serve. Open-ended tags — an entity's `kind`, a
+/// binding's target — are not a closed set. And a few clause keywords are words
+/// a module may also legitimately declare: `min` and `max` are prelude
+/// functions it may shadow, and nothing stops it claiming `every` or `reset`.
+/// Reserving those would forbid the declaration; leaving them out would rewrite
+/// the clause. Position tells the two uses apart.
+///
+/// `tests/modules.rs` derives the grammar's words from the parsers and fails
+/// on any that neither list accounts for.
 const RESERVED: &[&str] = &[
     // statements and clauses reachable inside a module
     "and",
@@ -684,6 +692,27 @@ fn tag_offsets(source: &str) -> Vec<usize> {
             if shape[bounds] == "min" && shape[bounds + 2] == "max" {
                 offsets.push(words[bounds].0);
                 offsets.push(words[bounds + 2].0);
+            }
+        }
+        // The other three declarations that carry a clause keyword have no
+        // expression part at all: an event is a comma-separated list of
+        // `NAME min NUMBER max NUMBER`, a clock is `EVENT every STEP`, a
+        // control is `NAME = EVENT [reset]`. Nothing else in those statements
+        // can be written as one of these words, so every occurrence is the
+        // clause keyword and none of them may be substituted. `state` needs
+        // the positional rule above instead, because its expression part may
+        // legitimately call a module's own `min`.
+        let clause: &[&str] = match shape.first().copied() {
+            Some("event") => &["min", "max"],
+            Some("clock") => &["every"],
+            Some("control") => &["reset"],
+            _ => &[],
+        };
+        if !clause.is_empty() {
+            for (offset, word) in &words {
+                if clause.contains(&word.trim_end_matches(';')) {
+                    offsets.push(*offset);
+                }
             }
         }
     }

@@ -1038,3 +1038,229 @@ fn the_reserved_list_does_not_drift_from_the_standard_library() {
         );
     }
 }
+
+#[test]
+fn a_clause_keyword_survives_a_module_that_declares_its_name() {
+    // A module may legitimately own `min` — it is a prelude function, and a
+    // module is allowed to shadow one with its own `fn` — and nothing stops it
+    // claiming `every` or `reset`. The rewriter must still leave those words
+    // alone where the grammar is using them. Substituting them produced a
+    // module that no longer parsed, reported as "clock expects EVENT every
+    // STEP" with nothing in the message naming the real cause.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             fn min(a, b) = a;\n\
+             claim every;\n\
+             claim reset;\n\
+             event tick dt min 0 max 1, dz min 2 max 3;\n\
+             state level = min(1, 2) min 0 max 5;\n\
+             clock tick every 0.1;\n\
+             control steer = tick reset;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(
+        source.contains("event m__tick dt min 0 max 1, dz min 2 max 3;"),
+        "every parameter's bounds, not just the last: {source}"
+    );
+    assert!(source.contains("clock m__tick every 0.1;"), "{source}");
+    assert!(
+        source.contains("control m__steer = m__tick reset;"),
+        "{source}"
+    );
+    // The distinction the positional rule exists for: the call is the module's
+    // own function and is rewritten; the bound is the grammar's word and is not.
+    assert!(
+        source.contains("state m__level = m__min(1, 2) min 0 max 5;"),
+        "{source}"
+    );
+}
+
+// ── The grammar's own words ────────────────────────────────────────────────
+//
+// RESERVED is hand-kept and nothing made it follow the parser. That is not a
+// compile error when it drifts: the rewriter simply begins substituting a
+// keyword inside any module that declares the same name, the module fails to
+// re-parse, and the error names the statement rather than the word. `event`'s
+// `min`/`max`, `clock`'s `every` and `control`'s `reset` were all broken that
+// way, and each reported something like "clock expects EVENT every STEP".
+
+/// String literals inside the delimited group that starts at `open_at`.
+/// Tracks nesting and skips escapes; returns the literals and the index just
+/// past the closing delimiter.
+fn literals_in_group(
+    source: &str,
+    open_at: usize,
+    open: char,
+    close: char,
+) -> (Vec<String>, usize) {
+    let bytes: Vec<char> = source[open_at..].chars().collect();
+    let mut literals = Vec::new();
+    let mut depth = 0usize;
+    let mut index = 0usize;
+    while index < bytes.len() {
+        let ch = bytes[index];
+        if ch == '"' {
+            let mut word = String::new();
+            index += 1;
+            while index < bytes.len() && bytes[index] != '"' {
+                if bytes[index] == '\\' {
+                    index += 1;
+                }
+                if index < bytes.len() {
+                    word.push(bytes[index]);
+                }
+                index += 1;
+            }
+            literals.push(word);
+        } else if ch == open {
+            depth += 1;
+        } else if ch == close {
+            depth -= 1;
+            if depth == 0 {
+                return (literals, open_at + index + 1);
+            }
+        }
+        index += 1;
+    }
+    (literals, source.len())
+}
+
+fn is_word(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_')
+}
+
+/// Every word the three parsers give a meaning, read out of their source.
+///
+/// Three forms carry them: `words.first() == Some(&"X")`, the
+/// `matches!(keyword, "a" | "b" | ...)` gates that open the reactive and
+/// presentation parsers, and the string literals inside slice patterns.
+fn grammar_keywords() -> std::collections::BTreeSet<String> {
+    const SOURCES: [&str; 3] = [
+        include_str!("../src/parser.rs"),
+        include_str!("../src/reactive.rs"),
+        include_str!("../src/presentation.rs"),
+    ];
+    let mut words = std::collections::BTreeSet::new();
+    for source in SOURCES {
+        // `Some(&"X")`
+        let mut from = 0;
+        while let Some(found) = source[from..].find("Some(&\"") {
+            let start = from + found + "Some(&\"".len();
+            let end = start + source[start..].find('"').expect("a closed literal");
+            if is_word(&source[start..end]) {
+                words.insert(source[start..end].to_string());
+            }
+            from = end;
+        }
+
+        // `matches!( ... )`
+        let mut from = 0;
+        while let Some(found) = source[from..].find("matches!(") {
+            let open = from + found + "matches!".len();
+            let (literals, next) = literals_in_group(source, open, '(', ')');
+            words.extend(literals.into_iter().filter(|word| is_word(word)));
+            from = next;
+        }
+
+        // Slice patterns: `[ ... ] =>`
+        let mut from = 0;
+        while let Some(found) = source[from..].find('[') {
+            let open = from + found;
+            let (literals, next) = literals_in_group(source, open, '[', ']');
+            if source[next..].trim_start().starts_with("=>") {
+                words.extend(literals.into_iter().filter(|word| is_word(word)));
+            }
+            from = if next > open { next } else { open + 1 };
+        }
+    }
+    words
+}
+
+/// Words the rewriter protects by position in `tag_offsets` instead of by
+/// name, because a module may legitimately declare them too — `min` and `max`
+/// are also prelude functions, and nothing stops a module claiming `every` or
+/// `reset`. Each is covered by a test above.
+const POSITIONAL: &[&str] = &["min", "max", "every", "reset"];
+
+/// Words that only ever appear in a statement a module may not contain —
+/// actions, choices, investigations and the executing statements draft 0.5
+/// section 1 lists. `module_declarations` rejects those before the rewriter
+/// runs, so the word cannot reach it. The test below checks that premise.
+const OUTSIDE_MODULES: &[&str] = &[
+    "action",
+    "choice",
+    "converge",
+    "infer",
+    "inspect",
+    "investigate",
+    "move",
+    "observe",
+    "open",
+    "operate",
+    "options",
+    "otherwise",
+    "requires_open",
+    "resolve",
+    "select",
+    "start_at",
+    "stay",
+    "then",
+    "when_committed",
+];
+
+#[test]
+fn the_reserved_list_does_not_drift_from_the_grammar() {
+    let keywords = grammar_keywords();
+
+    // If a parser is rewritten into a shape these three scans do not read,
+    // the set silently empties and the check passes while guarding nothing.
+    assert!(
+        keywords.len() >= 60,
+        "only {} keywords were read out of the parsers — the scan has gone blind, \
+         not the grammar shrunk",
+        keywords.len()
+    );
+
+    let unclassified: Vec<&String> = keywords
+        .iter()
+        .filter(|word| {
+            !link::is_reserved(word)
+                && !POSITIONAL.contains(&word.as_str())
+                && !OUTSIDE_MODULES.contains(&word.as_str())
+        })
+        .collect();
+
+    assert!(
+        unclassified.is_empty(),
+        "the grammar has words link.rs does not account for: {unclassified:?}\n\
+         Each one needs a decision, not a default:\n\
+           - RESERVED, if a module must not declare it;\n\
+           - POSITIONAL, with a tag_offsets rule and a test, if a module may declare it\n\
+           and the rewriter must tell the two uses apart by position;\n\
+           - OUTSIDE_MODULES, if it only appears in a statement a module cannot contain.\n\
+         Leaving it unlisted means the rewriter substitutes it inside any module that\n\
+         declares the same name, and the module stops parsing."
+    );
+}
+
+#[test]
+fn a_module_cannot_contain_the_statements_outside_modules_names() {
+    // OUTSIDE_MODULES rests on the module validator rejecting these statements
+    // outright. If that ever loosened, those words would reach the rewriter
+    // with nothing protecting them, so the premise is checked rather than
+    // assumed. `select` stands for the group; the reason is shared.
+    let message = error(&[
+        ("m", "module m;\nclaim mist;\nconverge mist;\n"),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(
+        message.contains("which executes; a module may only declare"),
+        "a module must still refuse executing statements: {message}"
+    );
+}
