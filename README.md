@@ -54,6 +54,10 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Typed Parameters 0.1](spec/caveat-typed-parameters-0.1.md) lets an event take an entity by name (`target kind mushroom`) or one of a list of names (`sort in glowcap duskcap`). The host sends names; the source reads positions, with `sort.duskcap` and `target.pool` as constants.
 
+[Late Qualification 0.1](spec/caveat-late-qualification-0.1.md) adds `qualify EVIDENCE with CAVEAT`: a caveat learned after the fact reaches every current value built on that evidence, while decisions already made keep what they were made on.
+
+[Decision Journal 0.1](spec/caveat-decision-journal-0.1.md) publishes every commitment and reopening, in order, with the evidence each was based on in the order it was observed.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
