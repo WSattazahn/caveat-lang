@@ -4,7 +4,7 @@
 type Kind = 'glowcap' | 'duskcap';
 type BeliefState = 'none' | 'probably_safe' | 'probably_unsafe' | 'uncertain';
 
-const MUSHROOMS = ['cave', 'pool', 'ruin'] as const;
+const MUSHROOMS = ['cave', 'pool', 'ruin', 'grove'] as const;
 const GLOW_SECONDS = 30;
 const HEAVY_SECONDS = 20;
 
