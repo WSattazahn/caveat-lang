@@ -1,0 +1,9 @@
+# Vessel pins the sha256 of dist/pkg/caveat_runtime_bg.wasm, and the compiler
+# is part of those bytes: a floating `stable` changed them with every Rust
+# release, so no pinned build could be reproduced for long. Bump this
+# deliberately and re-pin the host afterwards.
+[toolchain]
+channel = "1.98.1"
+targets = ["wasm32-unknown-unknown"]
+components = ["rustfmt", "clippy"]
+profile = "minimal"

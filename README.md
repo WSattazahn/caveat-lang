@@ -97,10 +97,9 @@ The runtime checks the reached evidence graph before an action. Declared but und
 
 ### Build and play
 
-With stable Rust and Node.js 20 or newer installed, run from the repository root:
+With rustup and Node.js 20 or newer installed, run from the repository root. `rust-toolchain.toml` pins the compiler, and rustup installs it with the WebAssembly target on first use:
 
 ```sh
-rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.104 --locked
 npm ci
 npm run build
