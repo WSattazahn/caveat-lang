@@ -25,7 +25,18 @@ export function createPolicy() {
       slime: { ...bindings.slime },
       mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: cites[id].label.evidence, caveats: cites[id].label.caveats }])),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: cites.belief.state.caveats },
-      decision: { state: bindings.decision.state, basis: grounds.trust?.evidence ?? [], reopenedBy: trust?.reopened_by ?? [], caveats: grounds.trust?.caveats ?? [] },
+      decision: {
+        state: bindings.decision.state,
+        basis: grounds.trust?.evidence ?? [],
+        reopenedBy: trust?.reopened_by ?? [],
+        caveats: grounds.trust?.caveats ?? [],
+        history: trust
+          ? [
+              { change: 'committed', because: grounds.trust.evidence },
+              ...trust.reopened_by.map((evidence) => ({ change: 'reopened', because: [evidence] })),
+            ]
+          : [],
+      },
     };
   }
 
