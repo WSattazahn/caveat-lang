@@ -194,7 +194,10 @@ fn every_existing_example_and_game_still_parses() {
             let path = entry.unwrap().path();
             if path.extension().and_then(|ext| ext.to_str()) == Some("cav") {
                 let source = std::fs::read_to_string(&path).unwrap();
-                parser::parse(&source)
+                // Parse what a session parses: `for` blocks expanded first.
+                let expanded = caveat_runtime::repeat::expand(&source)
+                    .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+                parser::parse(&expanded)
                     .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
             }
         }

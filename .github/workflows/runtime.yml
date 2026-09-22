@@ -70,6 +70,8 @@ jobs:
         run: npm run build
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
+      - name: Glowcap explanations against the lean runtime
+        run: npm run test:glowcap
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
@@ -134,6 +136,31 @@ jobs:
             exit 1
           fi
           cat dist/build-info.json
+
+  glowcap-page:
+    name: Glowcap explainer browser QA
+    needs: core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Play the glowcap explainer
+        run: npm run test:glowcap-page
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: glowcap-page-qa
+          path: test-results/glowcap-page.png
 
   last-beacon:
     name: The Last Beacon browser QA

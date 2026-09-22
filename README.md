@@ -1,8 +1,69 @@
 # CAVEAT
 
-An experimental programming language for computation with claims, evidence, caveats, provisional commitments, and reopening.
+**Code that knows why.**
 
-CAVEAT explores a persistent epistemic graph rather than reducing every computation immediately to a single settled value. Contradictory positions may coexist; evidence carries provenance; commitments can retain unresolved caveats; later evidence can reopen earlier commitments.
+Caveat is a programming language for programs that act on what they know and keep track of how they know it:
+
+- **Values carry their evidence.** Every number computed from an observation carries that evidence and its caveats through every sum, comparison and label.
+- **Explanations can't lie.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something that never counted.
+- **Decisions remember.** A decision records what it was made on, reopens when the world disagrees, and keeps a journal.
+- **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
+
+**[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
+
+## What only Caveat does
+
+| | Caveat | A general-purpose language |
+| --- | --- | --- |
+| **Explanations** | `bind label = "Could be a duskcap" when … because contradiction;` The runtime checks the citation: it may leave dependencies out, never add one. | A list you maintain by hand. Nothing checks it. |
+| **Caveats through computation** | `qualified(1, taste, tasted_in_dark)` flows through every sum, condition, decision and label that uses it. | Thread a caveat list through every function. |
+| **Late caveats** | `qualify taste with taste_faded;` reaches every current value built on the taste. Decisions made earlier keep theirs. | Find every derived value by hand, and remember to freeze the ones that were decisions. |
+| **Decisions that remember** | `commit`, `reopen`, and revisions of a decision series. Each revision is grounded on exactly what it used, and `decision_journal` records them in order. | History arrays, basis snapshots and bookkeeping code. |
+| **Grounds and lineage** | *Lineage* is everything that could have influenced a value. *Grounds* is what it is based on. Guards are control, never content, and grounds ⊆ lineage always. | One or the other, by convention. |
+| **Atomic events** | `reject "already absorbed";` No partial update survives a rejected event. | Validate everything before the first write, by discipline. |
+
+## The evidence: the glowcap benchmark
+
+The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game beat twice, in TypeScript and in Caveat:
+- a frozen, pre-registered scenario suite;
+- eight change requests, four of them blind;
+- a differential fuzz of 1.8 million events per round.
+
+The two implementations have never disagreed.
+
+| Round | Change cost, Caveat vs TypeScript | Result |
+| --- | --- | --- |
+| 1 · first version | 55 vs 57 (CR1–4) | Parity. The weak spots became the language's work list. |
+| 3 · blind requests | 97 vs 53 (CR5–8) | TypeScript. Caveat's lineage fought the designer's meaning. |
+| 5 · the language today | **71 vs 110** (all eight) | Caveat, with 134 lines against 164. |
+
+Every loss was turned into a feature, and each feature is measured: [grounded explanations](spec/caveat-explanations-0.1.md), [grounds](spec/caveat-explanations-0.2.md), [reject](spec/caveat-reject-0.1.md), [define](spec/caveat-define-0.1.md), [typed parameters](spec/caveat-typed-parameters-0.1.md), [the view](spec/caveat-view-0.1.md), [late qualification](spec/caveat-late-qualification-0.1.md) and the [decision journal](spec/caveat-decision-journal-0.1.md).
+
+What Caveat still costs, honestly:
+- about 100 µs per event against about 1 µs for plain TypeScript;
+- a WebAssembly runtime of about 340 KB gzipped;
+- rounds 4 and 5 were written knowing the requests.
+
+## A taste
+
+```caveat
+event absorb target kind mushroom, sort in glowcap duskcap;
+
+for mushroom as $m {
+    on absorb when $m_here and $m_consumed == 1 reject "already absorbed";
+    on absorb when $m_here and sort == sort.glowcap
+        set support = support + qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.duskcap and committed(trust)
+        reopen trust because absorb_$m;
+    on tick when $m_tasted_at >= 0 and now - $m_tasted_at >= 60
+        qualify taste_$m with taste_faded;
+
+    bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
+    bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because contradiction;
+};
+```
+
+Read [Why Caveat](docs/WHY_CAVEAT.md) for side-by-side code and the Caveatist way of working. To write your first program, start from the [authoring guide](docs/AI_AUTHORING.md).
 
 ## Status
 

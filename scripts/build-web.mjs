@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -110,10 +111,13 @@ try {
   await rm(dist, { recursive: true, force: true });
   await mkdir(path.join(dist, 'pkg'), { recursive: true });
   run(bindgen.command, [wasm, '--out-dir', path.join(dist, 'pkg'), '--target', 'web']);
+  // For hosts that run only reactive programs: no sequential, graphics or 3D
+  // sessions. See spec/caveat-view-0.1.md. --assemble-only reuses the last
+  // lean build if there is one, as it reuses the full one.
   if (compile) {
-    // For hosts that run only reactive programs: no sequential, graphics or 3D
-    // sessions. See spec/caveat-view-0.1.md.
     run(tool('cargo').command, ['build', '--locked', '--manifest-path', 'runtime/Cargo.toml', '--lib', '--target', 'wasm32-unknown-unknown', '--release', '--no-default-features', '--target-dir', reactiveTarget], remappedRustflags());
+  }
+  if (compile || existsSync(reactiveWasm)) {
     run(bindgen.command, [reactiveWasm, '--out-dir', path.join(dist, 'pkg-reactive'), '--target', 'web']);
   }
   await writeFile(path.join(dist, 'build-info.json'), `${JSON.stringify(buildInfo(compile), null, 2)}\n`);
