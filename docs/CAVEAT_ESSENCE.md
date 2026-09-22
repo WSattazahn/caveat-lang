@@ -12,6 +12,7 @@ Caveat's identity is the persistent epistemic graph described in the [original s
 - A failed event publishes none of its numeric changes, graph changes, or presentation cues.
 - Knowledge can change an actor's response. It must not retroactively change the external physical condition being observed.
 - An explanation may cite less than a value depended on, never more. The runtime rejects a citation its binding did not read; the complete lineage remains inspectable.
+- Lineage records what could have influenced a value; grounds record what it is based on. Control (guards, skipped rules, revealing guards, predecessor decisions) belongs to lineage only, and grounds never exceed lineage.
 
 `observed(...)` answers whether an evidence edge was reached, not whether a claim is true. `committed(...)` and `reopened(...)` describe the history and current status of a decision. These queries do not turn the graph into a single confidence score.
 

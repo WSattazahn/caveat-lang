@@ -111,6 +111,9 @@ pub enum Effect {
     Set {
         name: String,
         value: Expr,
+        /// Authored grounds; `None` grounds the state on its value expression.
+        /// See spec/caveat-explanations-0.2.md.
+        because: Option<Vec<Expr>>,
     },
     Reveal {
         evidence: String,
@@ -166,8 +169,13 @@ fn expand_effect(
     functions: &BTreeMap<String, FunctionDef>,
 ) -> Result<(), String> {
     match effect {
-        Effect::Set { value, .. }
-        | Effect::Sample { value, .. }
+        Effect::Set { value, because, .. } => {
+            *value = reactive_expr::expand(value, functions)?;
+            for citation in because.iter_mut().flatten() {
+                *citation = reactive_expr::expand(citation, functions)?;
+            }
+        }
+        Effect::Sample { value, .. }
         | Effect::Commit {
             using: Some(value), ..
         } => {
@@ -448,6 +456,12 @@ pub struct ReactiveSnapshot {
     pub binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     /// What each shown binding cites: a subset of its qualifications.
     pub binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    /// What each state is grounded on: its content, never its control. A
+    /// subset of `qualified_values`. See spec/caveat-explanations-0.2.md.
+    pub value_grounds: BTreeMap<String, Provenance>,
+    /// What each commitment was grounded on: its `using` content and retained
+    /// caveats, without its guard or a predecessor's basis.
+    pub commitment_grounds: BTreeMap<String, Provenance>,
     pub cues: Vec<Cue>,
     pub cue_qualifications: Vec<Provenance>,
     pub controls: BTreeMap<String, Control>,
@@ -490,6 +504,8 @@ pub struct ReactiveSession {
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    grounds: BTreeMap<String, Provenance>,
+    commitment_grounds: BTreeMap<String, Provenance>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -613,6 +629,8 @@ impl ReactiveSession {
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
+            grounds: BTreeMap::new(),
+            commitment_grounds: BTreeMap::new(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -777,6 +795,10 @@ impl ReactiveSession {
                         unreachable!("validated number initializer")
                     };
                     check_range(name, number, min.value(), max.value())?;
+                    let grounds = session
+                        .evaluate_grounds(initial, &BTreeMap::new())?
+                        .provenance;
+                    session.grounds.insert(name.clone(), grounds);
                     session
                         .values
                         .insert(name.clone(), Tracked::new(number, value.provenance)?);
@@ -1080,12 +1102,21 @@ impl ReactiveSession {
                         return Err(format!("emit references undeclared cue {name}"));
                     }
                 }
-                Effect::Set { name, value } => {
+                Effect::Set {
+                    name,
+                    value,
+                    because,
+                } => {
                     if !self.values.contains_key(name) {
                         return Err(format!("set references undeclared state {name}"));
                     }
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                         return Err(format!("state {name} requires a numeric expression"));
+                    }
+                    for citation in because.iter().flatten() {
+                        citation
+                            .validate(&numeric, &validate_predicate)
+                            .map_err(|error| format!("set {name} because: {error}"))?;
                     }
                 }
                 Effect::Reveal {
@@ -1232,9 +1263,12 @@ impl ReactiveSession {
             let lineage = &data[&target][&property];
             let explanation = match &self.binding_rules[index].because {
                 None => lineage.clone(),
-                Some(citations) => {
-                    self.grounded_citation(&target, &property, citations, lineage, &parameters)?
-                }
+                Some(citations) => self.grounded_citation(
+                    &format!("binding {target}.{property}"),
+                    citations,
+                    lineage,
+                    &parameters,
+                )?,
             };
             explanations
                 .entry(target)
@@ -1247,13 +1281,14 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// Evaluate a winning binding's `because` citations and check that they
-    /// cite only what the binding actually depended on. An explanation may
-    /// leave dependencies out; it may never introduce one.
+    /// Evaluate `because` citations and check that they cite only what the
+    /// binding or state actually depended on. An explanation may leave
+    /// dependencies out; it may never introduce one. Citations are read for
+    /// their grounds, so citing a state cites what it is grounded on rather
+    /// than every guard that ever touched it.
     fn grounded_citation(
         &self,
-        target: &str,
-        property: &str,
+        subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
         parameters: &BTreeMap<String, Tracked<f64>>,
@@ -1261,8 +1296,8 @@ impl ReactiveSession {
         let mut cited = Provenance::default();
         for citation in citations {
             let value = self
-                .evaluate(citation, parameters)
-                .map_err(|error| format!("binding {target}.{property} because: {error}"))?;
+                .evaluate_grounds(citation, parameters)
+                .map_err(|error| format!("{subject} because: {error}"))?;
             cited.merge(&value.provenance)?;
         }
         let ungrounded = cited
@@ -1278,7 +1313,7 @@ impl ReactiveSession {
             .collect::<Vec<_>>();
         if !ungrounded.is_empty() {
             return Err(format!(
-                "binding {target}.{property} cites {} that its value and conditions never read",
+                "{subject} cites {} that its value and conditions never read",
                 ungrounded.join(", ")
             ));
         }
@@ -1586,6 +1621,79 @@ impl ReactiveSession {
         )
     }
 
+    /// Evaluate an expression for its grounds: the same value, with each read
+    /// supplying content only. States give their grounds, `qualified` and
+    /// `observed` give the evidence and the caveats that qualify it, and
+    /// commitment predicates give the commitment's grounds. Guard, selection
+    /// and absence dependencies stay in lineage. Every read here is a subset
+    /// of the corresponding lineage read, so grounds are a subset of lineage.
+    fn evaluate_grounds(
+        &self,
+        expression: &Expr,
+        parameters: &BTreeMap<String, Tracked<f64>>,
+    ) -> Result<Tracked<Value>, String> {
+        expression.evaluate_tracked_with_histories(
+            &|name| {
+                if let Some(value) = self.values.get(name) {
+                    let grounds = self.grounds.get(name).cloned().unwrap_or_default();
+                    return Ok(Some(Tracked::new(value.value, grounds)?));
+                }
+                Ok(parameters
+                    .get(name)
+                    .cloned()
+                    .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
+            },
+            &|kind, name| self.predicate_grounds(kind, name),
+            &|evidence, caveats| self.qualify_core(evidence, caveats),
+            &|name, query| self.history_read(name, query),
+        )
+    }
+
+    fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if matches!(kind, "committed" | "reopened") {
+            if let Some(series) = self.decision_series.get(name) {
+                return match &series.current {
+                    Some(current) => self.predicate_grounds(kind, current),
+                    None => Ok(Tracked::plain(false)),
+                };
+            }
+        }
+        let value = match kind {
+            "has_sample" => return self.predicate_tracked(kind, name),
+            _ => self.predicate(kind, name)?,
+        };
+        let provenance = match kind {
+            "observed" if value => self.qualify_core(name, &[])?,
+            "examined" => Provenance::from_names(
+                [],
+                std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
+            )?,
+            "committed" | "reopened" if value => {
+                let mut grounds = self
+                    .commitment_grounds
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_default();
+                if kind == "reopened" {
+                    let id = self.symbols[name];
+                    let by_id = self
+                        .symbols
+                        .iter()
+                        .map(|(name, id)| (*id, name))
+                        .collect::<HashMap<_, _>>();
+                    for edge in &self.graph.edges {
+                        if edge.to == id && edge.relation == Relation::Reopens {
+                            grounds.merge(&self.qualify_core(by_id[&edge.from], &[])?)?;
+                        }
+                    }
+                }
+                grounds
+            }
+            _ => Provenance::default(),
+        };
+        Tracked::new(value, provenance)
+    }
+
     fn predicate(&self, kind: &str, name: &str) -> Result<bool, String> {
         let Some(id) = self.symbols.get(name) else {
             return if matches!(kind, "committed" | "reopened") {
@@ -1648,6 +1756,24 @@ impl ReactiveSession {
     }
 
     fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+        let mut provenance = self.qualify_core(evidence, extras)?;
+        if let Some(observation) = self.observation_qualifications.get(evidence) {
+            provenance.merge(observation)?;
+        }
+        if let Some(dependency) = self
+            .predicate_qualifications
+            .get("observed")
+            .and_then(|targets| targets.get(evidence))
+        {
+            provenance.merge(dependency)?;
+        }
+        Ok(provenance)
+    }
+
+    /// The evidence, the caveats that qualify it and the claims it bears on,
+    /// and any explicit extras: what a qualified value is *about*, without the
+    /// guard that revealed the evidence.
+    fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
         self.require_kind(evidence, "evidence")?;
         if !self.predicate("observed", evidence)? {
             return Err(format!(
@@ -1675,18 +1801,7 @@ impl ReactiveSession {
             .incoming_caveats(roots)
             .into_iter()
             .chain(extras.iter().cloned());
-        let mut provenance = Provenance::from_names([evidence.into()], caveats)?;
-        if let Some(observation) = self.observation_qualifications.get(evidence) {
-            provenance.merge(observation)?;
-        }
-        if let Some(dependency) = self
-            .predicate_qualifications
-            .get("observed")
-            .and_then(|targets| targets.get(evidence))
-        {
-            provenance.merge(dependency)?;
-        }
-        Ok(provenance)
+        Provenance::from_names([evidence.into()], caveats)
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
@@ -1921,17 +2036,32 @@ impl ReactiveSession {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
             }
-            Effect::Set { name, value } => {
-                let value = self.evaluate(value, parameters)?;
+            Effect::Set {
+                name,
+                value: expression,
+                because,
+            } => {
+                let value = self.evaluate(expression, parameters)?;
                 let Value::Number(number) = value.value else {
                     return Err("numeric state expression returned a boolean".into());
                 };
                 let range = &self.ranges[name];
                 check_range(name, number, range.min, range.max)?;
-                self.values.insert(
-                    name.clone(),
-                    Tracked::new(number, value.provenance.union(guard)?)?,
-                );
+                let lineage = value.provenance.union(guard)?;
+                // Grounds are read against the state before this write, like
+                // the value itself, and never take the rule's guard.
+                let grounds = match because {
+                    None => self.evaluate_grounds(expression, parameters)?.provenance,
+                    Some(citations) => self.grounded_citation(
+                        &format!("state {name}"),
+                        citations,
+                        &lineage,
+                        parameters,
+                    )?,
+                };
+                self.grounds.insert(name.clone(), grounds);
+                self.values
+                    .insert(name.clone(), Tracked::new(number, lineage)?);
             }
             Effect::Reveal {
                 evidence,
@@ -2028,16 +2158,22 @@ impl ReactiveSession {
                         "generated commitment identity {name} already exists"
                     ));
                 }
+                // Grounds: what the decision was made on, i.e. its `using`
+                // content and retained caveats. The guard and a predecessor's
+                // basis stay in the lineage recorded below.
+                let mut grounds = Provenance::from_names([], retaining.iter().cloned())?;
                 let used_value = if let Some(expression) = using {
                     let value = self.evaluate(expression, parameters)?;
                     let Value::Number(number) = value.value else {
                         return Err("commit using requires a numeric value".into());
                     };
                     provenance.merge(&value.provenance)?;
+                    grounds.merge(&self.evaluate_grounds(expression, parameters)?.provenance)?;
                     Some(number)
                 } else {
                     None
                 };
+                self.commitment_grounds.insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
@@ -2207,6 +2343,8 @@ impl ReactiveSession {
             bindings: self.bindings.clone(),
             binding_qualifications: self.binding_qualifications.clone(),
             binding_explanations: self.binding_explanations.clone(),
+            value_grounds: self.grounds.clone(),
+            commitment_grounds: self.commitment_grounds.clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.values.clone(),
@@ -2870,10 +3008,24 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),
-        ["set", name, "=", rest @ ..] if !rest.is_empty() => Ok(Effect::Set {
-            name: identifier(name)?,
-            value: reactive_expr::parse_unresolved(&rest.join(" "))?,
-        }),
+        ["set", name, "=", rest @ ..] if !rest.is_empty() => {
+            let text = rest.join(" ");
+            let (value, citations) = trailing_clause(&text, "because");
+            let because = match citations {
+                Some("") => {
+                    return Err(
+                        "because expects expressions separated by commas, or nothing".into(),
+                    )
+                }
+                Some(citations) => Some(parse_citations(citations)?),
+                None => None,
+            };
+            Ok(Effect::Set {
+                name: identifier(name)?,
+                value: reactive_expr::parse_unresolved(value)?,
+                because,
+            })
+        }
         ["reveal", evidence, relation, claim] if matches!(*relation, "supports" | "opposes") => {
             Ok(Effect::Reveal {
                 evidence: identifier(evidence)?,
