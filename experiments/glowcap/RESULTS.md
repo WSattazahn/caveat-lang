@@ -19,6 +19,13 @@ committed before either side was changed. Caveat was clearly cheaper on two of
 them and far more expensive on one: 97 changed lines against 53. Details are
 [below](#round-3-blind-change-requests).
 
+**Round 4, after grounds, reject, define, typed parameters and the view:
+level, Caveat slightly ahead.** Across all eight requests the change cost was
+105 lines against TypeScript's 110. The program was 154 lines against 164,
+dispatch took 97 µs (down from 202 µs), and the runtime shipped 333 KB
+gzipped. This round was written knowing every request. Details are
+[below](#round-4-the-language-after-rounds-1-3).
+
 ## Measurements
 
 All numbers come from `runs.jsonl`, `harness.mjs --measure`, `--bench`, and
@@ -204,6 +211,57 @@ bindings only. State and commitments still lack it.
 
 **Also found:** a `for` block containing the word "for" in a comment is
 rejected as a nested block. That caused the one failed Caveat run.
+(Fixed in `72b7c32`.)
+
+## Round 4: the language after rounds 1–3
+
+Five additions came out of the rounds above:
+- [Explanations 0.2](../../spec/caveat-explanations-0.2.md): grounds, what a
+  value is *based on*, separate from lineage;
+- [Reject 0.1](../../spec/caveat-reject-0.1.md);
+- [Define 0.1](../../spec/caveat-define-0.1.md);
+- [Typed Parameters 0.1](../../spec/caveat-typed-parameters-0.1.md);
+- [View 0.1](../../spec/caveat-view-0.1.md), with a lean reactive-only
+  runtime.
+
+The Caveat side was re-authored as `caveat3/` and replayed from base to CR8,
+one commit per phase. **Written with knowledge of every request**, so read it
+as a measure of the language, not a blind trial.
+
+| | TypeScript | Caveat, rounds 2–3 | Caveat, round 4 |
+| --- | --- | --- | --- |
+| CR1 / CR2 / CR3 / CR4 | 2 / 5 / 48 / 2 | 1 / 5 / 32 / 2 | 1 / 5 / **27** / 2 |
+| CR5 / CR6 / CR7 / CR8 | 22 / 15 / **11** / 5 | 15 / 6 / 71 / 5 | **14** / 13 / 38 / 5 |
+| **Change cost, all eight** | 110 | 137 | **105** |
+| Final size, code lines | 164 | 174 | **154** (116 + 38) |
+| Final size, bytes | **8,220** | 13,506 | 11,338 |
+| Phases green on first run | 9 / 9 | 8 / 9 | 8 / 9 |
+| Differential fuzz vs TypeScript | — | 0 of 1.84M | 0 of 1.83M |
+| Dispatch + view, median | 1.4 µs | 202 µs | 97 µs |
+| Shipped, gzipped | 2.7 KB | 413 KB | 333 KB |
+
+**What changed in the source.**
+- The label hacks are gone.
+- Validation is plain `reject` rules.
+- Conditions have names.
+- The host sends `{"target": "pool", "sort": "duskcap"}`.
+- The fade rules test qualified state directly, because a guard no longer
+  leaks into grounds.
+- A recovered decision is grounded on exactly its two observations, with no
+  shadow state and no subtraction.
+
+The failed run was a runtime bug: a `define` that names an event parameter
+was rejected on its own. It is fixed in the runtime with a regression test.
+
+**Where Caveat still lost: CR7, 38 lines against 11.** Two gaps remain, both
+about Caveat's own subject, time and knowledge:
+1. **A caveat that arrives late.** When a taste fades, everything built on it
+   should carry `taste_faded`. Caveat attaches caveats at computation time,
+   so the source pushes the caveat into each accumulator by hand. Keeping it
+   on the right recovery window took a plain `epoch` counter.
+2. **No decision journal.** The runtime knows every commitment and
+   reopening in order. The host still rebuilds that history from revisions,
+   relations and unordered grounds (CR6's 13 lines and 16 of CR7's).
 
 ## Reproduce
 
@@ -218,4 +276,6 @@ node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=7 
 node experiments/glowcap/harness.mjs --phase=cr8 --impl=ts
 node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat2
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=11 --against=caveat2
+node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat3
+node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=13 --against=caveat3
 ```
