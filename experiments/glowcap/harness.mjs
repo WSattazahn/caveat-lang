@@ -2,7 +2,7 @@
 // every run to runs.jsonl, so the iteration counts in RESULTS.md come from a
 // log rather than recollection.
 //
-//   node experiments/glowcap/harness.mjs [--phase=base|cr1|cr2|cr3|cr4] [--impl=ts|caveat|both]
+//   node experiments/glowcap/harness.mjs [--phase=base|cr1|…|cr12] [--impl=ts|caveat…|both]
 //   node experiments/glowcap/harness.mjs --measure   size of each implementation
 //   node experiments/glowcap/harness.mjs --bench     µs per dispatch + view, bytes shipped
 import { createHash } from 'node:crypto';
@@ -45,6 +45,15 @@ function toEvent(step) {
   return type === 'tick' ? { type, dt: a } : { type, id: a, kind: b };
 }
 
+const SAVE_LIMIT = 4096;
+
+// Keys sorted, arrays in order: two views are identical only if this matches.
+function canonical(value) {
+  const sort = (v) => (Array.isArray(v) ? v.map(sort)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sort(v[k])])) : v);
+  return JSON.stringify(sort(value));
+}
+
 function compare(actual, expected, at, failures) {
   for (const [key, want] of Object.entries(expected)) {
     const got = actual?.[key];
@@ -76,6 +85,16 @@ function runScenario(createPolicy, scenario) {
         const found = [];
         compare(policy.view(), step[1], '', found);
         failures.push(...tag(found));
+      } else if (step[0] === 'resume') {
+        // CR12: save, round-trip through JSON, resume, and carry on with the
+        // resumed policy. The whole view must survive, not just what is asked.
+        const text = JSON.stringify(policy.save());
+        const next = createPolicy(JSON.parse(text));
+        const bytes = Buffer.byteLength(text);
+        if (bytes > SAVE_LIMIT) failures.push(...tag([{ where: 'save', want: `at most ${SAVE_LIMIT} bytes`, got: `${bytes} bytes`, explanation: false }]));
+        else if (canonical(next.view()) !== canonical(policy.view())) failures.push(...tag([{ where: 'resume', want: canonical(policy.view()), got: canonical(next.view()), explanation: false }]));
+        policy.free?.();
+        policy = next;
       } else if (step[0] === 'reject') {
         const before = JSON.stringify(policy.view());
         let threw = false;

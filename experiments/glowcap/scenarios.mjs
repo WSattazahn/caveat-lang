@@ -7,8 +7,11 @@
 //   ['absorb', id, kind]   ['taste', id, kind]   ['tick', dt, times = 1]
 //   ['expect', partialView]  only the listed fields are checked; lists are sets
 //   ['reject', event]        dispatch must throw and leave the view unchanged
+//   ['witness', id, kind]    (CR9)
+//   ['resume']               (CR12) save, round-trip through JSON, resume, compare
+//                            the complete views, continue on the resumed policy
 
-export const PHASES = ['base', 'cr1', 'cr2', 'cr3', 'cr4', 'cr5', 'cr6', 'cr7', 'cr8'];
+export const PHASES = ['base', 'cr1', 'cr2', 'cr3', 'cr4', 'cr5', 'cr6', 'cr7', 'cr8', 'cr9', 'cr10', 'cr11', 'cr12'];
 
 const DT = 0.0625; // exact in binary floating point: 16 ticks = 1 s
 const seconds = (s) => ['tick', DT, s * 16];
@@ -483,6 +486,252 @@ export const SCENARIOS = [
       ['expect', { slime: { heavy: true, heavySeconds: 1 } }],
       ['tick', DT, 8],
       ['expect', { slime: { heavy: false, heavySeconds: 0 } }],
+    ],
+  },
+  // ── Round 6: blind change requests (PROTOCOL.md) ─────────────────────────
+  {
+    id: 'S28', title: 'CR9: a witnessed glowcap teaches, secondhand', since: 'cr9',
+    steps: [
+      ['witness', 'cave', 'glowcap'],
+      ['expect', {
+        slime: { glowing: false, heavy: false },
+        mushrooms: {
+          cave: consumed,
+          pool: { label: 'Probably a glowcap', because: ['witness_cave'], caveats: ['secondhand'] },
+        },
+        belief: { state: 'probably_safe', note: 'Based on one observation.', supportedBy: ['witness_cave'], caveats: ['secondhand'] },
+        decision: { state: 'committed', basis: ['witness_cave'], caveats: ['secondhand'], history: [{ change: 'committed', because: ['witness_cave'] }] },
+      }],
+      ['reject', { type: 'witness', id: 'cave', kind: 'glowcap' }],
+      ['reject', { type: 'absorb', id: 'cave', kind: 'glowcap' }],
+      ['reject', { type: 'witness', id: 'nowhere', kind: 'glowcap' }],
+      ['reject', { type: 'witness', id: 'pool', kind: 'bluecap' }],
+    ],
+  },
+  {
+    id: 'S29', title: 'CR9: a witnessed duskcap reopens trust; risk does not stop another creature', since: 'cr9',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      ['witness', 'pool', 'duskcap'],
+      ['expect', {
+        slime: { glowing: true, heavy: false },
+        mushrooms: { ruin: { label: 'Could be a duskcap — taste first', because: ['witness_pool'], caveats: ['secondhand'] } },
+        belief: { state: 'uncertain', contradictedBy: ['witness_pool'], caveats: ['secondhand'] },
+        decision: { state: 'reopened', reopenedBy: ['witness_pool'], caveats: [] },
+      }],
+      ['witness', 'ruin', 'duskcap'],
+      ['expect', { mushrooms: { grove: { label: 'Too risky — taste first', canAbsorb: false, because: ['witness_pool', 'witness_ruin'], caveats: ['secondhand'] } } }],
+      ['reject', { type: 'absorb', id: 'grove', kind: 'glowcap' }],
+      ['witness', 'grove', 'glowcap'],
+      ['expect', {
+        mushrooms: { grove: { present: false } },
+        belief: { supportedBy: ['absorb_cave', 'witness_grove'] },
+        decision: { state: 'reopened', reopenedBy: ['witness_pool', 'witness_ruin'] },
+      }],
+    ],
+  },
+  {
+    id: 'S30', title: 'CR9: a witness must agree with a taste', since: 'cr9',
+    steps: [
+      ['taste', 'cave', 'glowcap'],
+      ['reject', { type: 'witness', id: 'cave', kind: 'duskcap' }],
+      ['witness', 'cave', 'glowcap'],
+      ['expect', {
+        mushrooms: { cave: { present: false } },
+        belief: { supportedBy: ['taste_cave', 'witness_cave'], caveats: ['tasted_in_dark', 'secondhand'] },
+        decision: { state: 'committed', basis: ['taste_cave'], caveats: ['tasted_in_dark'] },
+      }],
+    ],
+  },
+  {
+    id: 'S31', title: 'CR10: an eaten mushroom regrows as a stranger', since: 'cr10',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      seconds(44),
+      ['expect', { mushrooms: { cave: { present: false } } }],
+      seconds(1),
+      ['expect', { mushrooms: { cave: { present: true, label: 'Probably a glowcap', canAbsorb: true, canTaste: true, because: ['absorb_cave'] } } }],
+      ['absorb', 'cave', 'duskcap'],
+      ['expect', {
+        slime: { heavy: true },
+        mushrooms: {
+          cave: { present: false },
+          ruin: { label: 'Could be a duskcap — taste first', because: ['absorb_cave_2'] },
+        },
+        belief: { state: 'uncertain', supportedBy: ['absorb_cave'], contradictedBy: ['absorb_cave_2'] },
+        decision: { state: 'reopened', basis: ['absorb_cave'], reopenedBy: ['absorb_cave_2'] },
+      }],
+      seconds(45),
+      ['taste', 'cave', 'glowcap'],
+      ['expect', {
+        mushrooms: { cave: { present: true, label: 'Probably a glowcap (tasted in the dark)', canAbsorb: true, canTaste: false, because: ['taste_cave_3'], caveats: ['tasted_in_dark'] } },
+        belief: { supportedBy: ['absorb_cave', 'taste_cave_3'], contradictedBy: ['absorb_cave_2'] },
+      }],
+    ],
+  },
+  {
+    id: 'S32', title: 'CR10: a regrown mushroom forgets its taste; the old taste still fades', since: 'cr10',
+    steps: [
+      ['taste', 'pool', 'duskcap'],
+      ['witness', 'pool', 'duskcap'],
+      seconds(45),
+      ['expect', { mushrooms: { pool: { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: ['taste_pool', 'witness_pool'], caveats: ['tasted_in_dark', 'secondhand'] } } }],
+      ['taste', 'pool', 'glowcap'],
+      ['expect', { mushrooms: { pool: { label: 'Probably a glowcap (tasted in the dark)', canAbsorb: true, canTaste: false, because: ['taste_pool_2'], caveats: ['tasted_in_dark'] } } }],
+      seconds(15),
+      ['expect', {
+        mushrooms: {
+          pool: { label: 'Probably a glowcap (tasted in the dark)', because: ['taste_pool_2'], caveats: ['tasted_in_dark'] },
+          cave: { label: 'Too risky — taste first', caveats: ['tasted_in_dark', 'secondhand', 'taste_faded'] },
+        },
+        belief: { state: 'uncertain', supportedBy: ['taste_pool_2'], contradictedBy: ['taste_pool', 'witness_pool'], caveats: ['tasted_in_dark', 'secondhand', 'taste_faded'] },
+      }],
+      seconds(45),
+      ['expect', {
+        mushrooms: { pool: { label: 'Probably a glowcap (taste has faded)', caveats: ['tasted_in_dark', 'taste_faded'] } },
+        decision: { state: 'none', history: [] },
+      }],
+    ],
+  },
+  {
+    id: 'S33', title: 'CR10: regrowth has no limit', since: 'cr10',
+    steps: [
+      ['absorb', 'ruin', 'glowcap'],
+      seconds(45),
+      ['absorb', 'ruin', 'glowcap'],
+      seconds(45),
+      ['absorb', 'ruin', 'glowcap'],
+      ['expect', {
+        belief: { state: 'probably_safe', note: 'Based on 3 observations.', supportedBy: ['absorb_ruin', 'absorb_ruin_2', 'absorb_ruin_3'] },
+        decision: { state: 'committed', basis: ['absorb_ruin'] },
+      }],
+      seconds(45),
+      ['absorb', 'ruin', 'duskcap'],
+      seconds(45),
+      ['witness', 'ruin', 'glowcap'],
+      seconds(45),
+      ['absorb', 'ruin', 'glowcap'],
+      ['expect', {
+        belief: { state: 'uncertain', supportedBy: ['absorb_ruin', 'absorb_ruin_2', 'absorb_ruin_3', 'witness_ruin_5', 'absorb_ruin_6'], contradictedBy: ['absorb_ruin_4'] },
+        decision: {
+          state: 'committed', basis: ['witness_ruin_5', 'absorb_ruin_6'], reopenedBy: [], caveats: ['secondhand'],
+          history: [
+            { change: 'committed', because: ['absorb_ruin'] },
+            { change: 'reopened', because: ['absorb_ruin_4'] },
+            { change: 'committed', because: ['witness_ruin_5', 'absorb_ruin_6'] },
+          ],
+        },
+      }],
+    ],
+  },
+  {
+    id: 'S34', title: 'CR11: every greyed-out action says why', since: 'cr11',
+    steps: [
+      ['expect', { mushrooms: { cave: { why: { absorb: { reason: '', because: [], caveats: [] }, taste: { reason: '', because: [], caveats: [] } } } } }],
+      ['absorb', 'cave', 'glowcap'],
+      ['taste', 'pool', 'duskcap'],
+      ['expect', {
+        mushrooms: {
+          cave: { why: { absorb: { reason: 'Already eaten', because: ['absorb_cave'], caveats: [] }, taste: { reason: 'Already eaten', because: ['absorb_cave'], caveats: [] } } },
+          pool: { why: { absorb: { reason: 'Known duskcap', because: ['taste_pool'], caveats: [] }, taste: { reason: 'Already tasted', because: ['taste_pool'], caveats: [] } } },
+          ruin: { why: { absorb: { reason: '', because: [], caveats: [] }, taste: { reason: '', because: [], caveats: [] } } },
+        },
+      }],
+      seconds(31),
+      ['taste', 'ruin', 'glowcap'],
+      ['expect', { mushrooms: { ruin: { why: { absorb: { reason: '', because: [] }, taste: { reason: 'Already tasted', because: ['taste_ruin'], caveats: ['tasted_in_dark'] } } } } }],
+      ['witness', 'grove', 'duskcap'],
+      ['expect', {
+        mushrooms: {
+          grove: { why: { absorb: { reason: 'Already eaten', because: ['witness_grove'], caveats: ['secondhand'] } } },
+          ruin: { canAbsorb: true, why: { absorb: { reason: '', because: [] } } },
+        },
+      }],
+      seconds(14),
+      ['expect', {
+        mushrooms: {
+          cave: {
+            present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true,
+            why: { absorb: { reason: 'Too risky untasted', because: ['taste_pool', 'witness_grove'], caveats: ['secondhand'] }, taste: { reason: '', because: [], caveats: [] } },
+          },
+        },
+      }],
+      seconds(15),
+      ['expect', {
+        mushrooms: {
+          cave: { why: { absorb: { reason: 'Too risky untasted', because: ['taste_pool', 'witness_grove'], caveats: ['secondhand', 'taste_faded'] } } },
+          pool: { why: { absorb: { reason: 'Known duskcap', because: ['taste_pool'], caveats: ['taste_faded'] } } },
+        },
+      }],
+    ],
+  },
+  {
+    id: 'S35', title: 'CR11: a consumed mushroom cites what consumed its current life', since: 'cr11',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      seconds(45),
+      ['witness', 'cave', 'glowcap'],
+      ['expect', {
+        mushrooms: { cave: { why: { absorb: { reason: 'Already eaten', because: ['witness_cave_2'], caveats: ['secondhand'] }, taste: { reason: 'Already eaten', because: ['witness_cave_2'], caveats: ['secondhand'] } } } },
+        belief: { note: 'Based on 2 observations.', supportedBy: ['absorb_cave', 'witness_cave_2'] },
+      }],
+    ],
+  },
+  {
+    id: 'S36', title: 'CR12: resume mid-play with everything in flight', since: 'cr12',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      seconds(10),
+      ['taste', 'pool', 'duskcap'],
+      ['witness', 'grove', 'glowcap'],
+      ['resume'],
+      ['expect', { slime: { glowing: true, heavy: false }, decision: { state: 'reopened', basis: ['absorb_cave'], reopenedBy: ['taste_pool'] } }],
+      seconds(21),
+      ['expect', { slime: { glowing: false } }],
+      seconds(14),
+      ['expect', { mushrooms: { cave: { present: true, label: 'Could be a duskcap — taste first', because: ['taste_pool'] } } }],
+      ['resume'],
+      seconds(10),
+      ['expect', { mushrooms: { grove: { present: true, label: 'Could be a duskcap — taste first' } } }],
+      seconds(15),
+      ['expect', { mushrooms: { pool: { label: 'Probably a duskcap (taste has faded)', caveats: ['taste_faded'] } } }],
+      ['reject', { type: 'absorb', id: 'pool', kind: 'duskcap' }],
+      ['absorb', 'grove', 'glowcap'],
+      ['expect', {
+        decision: {
+          state: 'committed', basis: ['witness_grove', 'absorb_grove_2'], reopenedBy: [], caveats: ['secondhand'],
+          history: [
+            { change: 'committed', because: ['absorb_cave'] },
+            { change: 'reopened', because: ['taste_pool'] },
+            { change: 'committed', because: ['witness_grove', 'absorb_grove_2'] },
+          ],
+        },
+      }],
+    ],
+  },
+  {
+    id: 'S37', title: 'CR12: a save stays small after ten minutes of play', since: 'cr12',
+    steps: [
+      ['absorb', 'cave', 'glowcap'],
+      seconds(600),
+      ['resume'],
+      ['expect', { slime: { glowing: false }, mushrooms: { cave: { present: true, label: 'Probably a glowcap', because: ['absorb_cave'] } } }],
+      ['absorb', 'cave', 'glowcap'],
+      ['expect', { belief: { note: 'Based on 2 observations.', supportedBy: ['absorb_cave', 'absorb_cave_2'] } }],
+    ],
+  },
+  {
+    id: 'S38', title: 'CR12: resuming a game that has not started', since: 'cr12',
+    steps: [
+      ['resume'],
+      ['expect', {
+        slime: { glowing: false, heavy: false },
+        mushrooms: { cave: unknown, pool: unknown, ruin: unknown, grove: unknown },
+        belief: { state: 'none', supportedBy: [], contradictedBy: [] },
+        decision: { state: 'none', basis: [], reopenedBy: [], history: [] },
+      }],
+      ['absorb', 'cave', 'glowcap'],
+      ['expect', { decision: { state: 'committed', basis: ['absorb_cave'] } }],
     ],
   },
 ];

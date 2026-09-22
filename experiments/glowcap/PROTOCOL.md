@@ -142,6 +142,75 @@ the decision rule are the same.
   `slime.heavySeconds` is the remaining heavy time rounded up to a whole
   second, and 0 when the slime is not heavy.
 
+## Round 6: blind change requests
+
+These four requests and their scenarios (S28–S38) were committed before either
+implementation was changed for them. They apply to `ts/` and to `caveat4/`
+(Caveat as of `feat/grounded-explanations` 70d4c7b: explanations 0.2, reject,
+define, typed parameters, view, late qualification, decision journal). The
+language and runtime are frozen for this round: nothing in `runtime/` changes
+until the round is scored. The measurements and the decision rule are the same.
+
+- **CR9 — watching others eat.** A new event, `witness` (`id`, `kind`): the
+  slime sees another creature eat that mushroom and what it did to the
+  creature. The mushroom is consumed. The evidence is `witness_<id>`, and it
+  always carries the caveat `secondhand`. A witnessed glowcap supports the
+  belief and a witnessed duskcap contradicts it, exactly like an absorption
+  (it can commit, reopen and recover trust). The slime's own timers do not
+  change. Rejected when the id or kind is unknown, the mushroom is consumed,
+  or the kind contradicts a previous taste. Being too risky for the slime to
+  absorb does not stop another creature eating it.
+- **CR10 — mushrooms regrow.** Forty-five seconds after a mushroom is consumed
+  (counted in ticks since, like a fade), a new mushroom grows in its place:
+  present, untasted, of unknown kind, which may differ from the last. Evidence
+  about the new mushroom takes a life number: the first life keeps
+  `absorb_cave`, `taste_cave`, `witness_cave`; the second is `absorb_cave_2`,
+  `taste_cave_2`, `witness_cave_2`; and so on, with no limit. Evidence from
+  earlier lives stays in the belief and the decision, and an earlier taste
+  still fades on its own clock.
+- **CR11 — say why not.** Each mushroom view gains
+  `why: { absorb: { reason, because, caveats }, taste: { reason, because, caveats } }`.
+  `reason` is `''` and `because` is `[]` when the action is allowed;
+  otherwise the first match:
+
+  | action | when | reason | because |
+  | --- | --- | --- | --- |
+  | absorb, taste | consumed | `Already eaten` | the evidence that consumed the current life |
+  | absorb | tasted duskcap | `Known duskcap` | the taste |
+  | absorb | unknown, twice bitten | `Too risky untasted` | contradictedBy |
+  | taste | tasted | `Already tasted` | the taste |
+
+  `caveats` is the union of the caveats on `because`, as for every other view.
+- **CR12 — save and resume.** Each policy gains `save()`, returning a JSON
+  value, and `createPolicy(saved)` resumes from it. After resuming, the view is
+  identical and every later event is accepted or rejected, and changes the
+  view, exactly as it would have without the save. `JSON.stringify(save())` is
+  at most 4096 bytes in every scenario, including ten minutes of continuous
+  play. The harness step `['resume']` saves, round-trips the save through
+  JSON, resumes, compares the complete views and continues on the resumed
+  policy.
+
+### Predictions, registered with the requests
+
+The author wrote both implementations and has now seen them, so these requests
+cannot be chosen blind to their fit. To keep that visible, each carries a
+prediction made before any implementation work:
+
+| CR | predicted | why |
+| --- | --- | --- |
+| CR9 | TypeScript smaller diff; explanations free on both sides | Caveat has no way to share the absorb rules with a new event (procedures take numbers, not evidence), so the rules are repeated |
+| CR10 | TypeScript clearly better | Caveat evidence is declared statically; unbounded lives are dynamic identity, which the frozen language does not have |
+| CR11 | Caveat better | reasons with cited, qualified evidence are bindings with `because`; TypeScript needs the bookkeeping of each rule twice |
+| CR12 | TypeScript better | the runtime has no restore; the Caveat side must replay events from the host |
+
+A prediction that fails is reported as failed.
+
+### Fuzz for round 6
+
+`differential.mjs --round=6` adds `witness` events, 45-second tick bursts,
+and a `resume` step, in which both implementations save and resume at the
+same point. It is run after CR12 with `--against=caveat4`.
+
 ## Measurements
 
 Every harness run appends a record to `runs.jsonl`: time, phase,

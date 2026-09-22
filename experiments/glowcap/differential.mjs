@@ -3,7 +3,11 @@
 // they disagree about accepting an event or about the resulting view. The
 // scenarios cover the cases their author thought of; this covers the rest.
 //
-//   node experiments/glowcap/differential.mjs [--sequences=2000] [--length=40] [--seed=1] [--against=caveat|caveat2]
+//   node experiments/glowcap/differential.mjs [--sequences=2000] [--length=40] [--seed=1] [--against=caveat|caveat2] [--round=6]
+//
+// --round=6 (pre-registered with CR9–CR12) adds witness events, 45-second
+// bursts that let mushrooms regrow, and resume steps where both sides save
+// and resume at the same point.
 // Same entry points as harness.mjs (importing it would run its test mode).
 const against = process.argv.find((a) => a.startsWith('--against='))?.split('=')[1] ?? 'caveat';
 const IMPLEMENTATIONS = { ts: { entry: 'ts/glowcap.ts' }, caveat: { entry: `${against}/adapter.mjs` } };
@@ -26,8 +30,16 @@ const pick = (list) => list[Math.floor(random() * list.length)];
 const IDS = ['cave', 'pool', 'ruin', 'grove', 'cave', 'pool', 'ruin', 'grove', 'nowhere'];
 const KINDS = ['glowcap', 'duskcap', 'glowcap', 'duskcap', 'bluecap'];
 
+const ROUND6 = arg('round', 0) >= 6;
+
 // A step is one event, or a burst of ticks long enough to cross the timers.
 function randomStep() {
+  if (ROUND6) {
+    const roll = random();
+    if (roll < 0.08) return 'resume';
+    if (roll < 0.2) return [{ type: 'witness', id: pick(IDS), kind: pick(KINDS) }];
+    if (roll < 0.3) return Array.from({ length: pick([720, 240]) }, () => ({ type: 'tick', dt: 0.0625 }));
+  }
   const roll = random();
   if (roll < 0.35) return [{ type: 'absorb', id: pick(IDS), kind: pick(KINDS) }];
   if (roll < 0.7) return [{ type: 'taste', id: pick(IDS), kind: pick(KINDS) }];
@@ -74,15 +86,23 @@ for (const name of Object.keys(IMPLEMENTATIONS)) {
 let events = 0;
 const divergences = new Map();
 for (let sequence = 0; sequence < SEQUENCES; sequence += 1) {
-  const ts = factories.ts();
-  const caveat = factories.caveat();
+  let ts = factories.ts();
+  let caveat = factories.caveat();
   const history = [];
   let diverged = false;
   for (let step = 0; step < LENGTH && !diverged; step += 1) {
     // Accept/reject is compared on every event; views once per step, since a
     // burst of ticks only matters where it ends.
     let difference = null;
-    for (const event of randomStep()) {
+    const events = randomStep();
+    if (events === 'resume') {
+      history.push({ type: 'resume' });
+      ts = factories.ts(JSON.parse(JSON.stringify(ts.save())));
+      const resumed = factories.caveat(JSON.parse(JSON.stringify(caveat.save())));
+      caveat.free?.();
+      caveat = resumed;
+    }
+    for (const event of events === 'resume' ? [] : events) {
       history.push(event);
       events += 1;
       const outcome = { ts: attempt(ts, event), caveat: attempt(caveat, event) };
