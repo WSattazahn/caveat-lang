@@ -7,9 +7,22 @@ description = "Reference runtime for the experimental CAVEAT programming languag
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# The sequential, graphics and 3D browser sessions. Reactive-only hosts can
+# build without them: cargo build --no-default-features.
+default = ["games"]
+games = []
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "=0.2.104"
+
+# Measured on the glowcap beat (reactive-only build): whole-program LTO with a
+# single codegen unit is 9% smaller and 8% faster than the default. opt-level
+# "s"/"z" shrink the gzipped size further but dispatch 50-80% slower.
+[profile.release]
+lto = true
+codegen-units = 1

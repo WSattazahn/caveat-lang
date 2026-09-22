@@ -1530,6 +1530,9 @@ fn infer_function(
 
 struct Expander<'a> {
     functions: &'a BTreeMap<String, FunctionDef>,
+    /// Named expressions over state and the graph, inlined where their name
+    /// is read. See spec/caveat-define-0.1.md.
+    defines: &'a BTreeMap<String, Expr>,
     active: Vec<String>,
     remaining: usize,
 }
@@ -1562,6 +1565,15 @@ impl Expander<'_> {
                     // The argument is already expanded in its caller's scope.
                     // Do not substitute again if a caller name matches a formal.
                     return self.walk(argument, None);
+                }
+                if let Some(body) = self.defines.get(name) {
+                    if self.active.contains(name) {
+                        return Err(format!("define {name} refers to itself"));
+                    }
+                    self.active.push(name.clone());
+                    let expanded = self.walk(body, None);
+                    self.active.pop();
+                    return expanded.map_err(|error| format!("define {name}: {error}"));
                 }
                 Node::Variable(name.clone())
             }
@@ -1703,11 +1715,21 @@ pub fn expand(
     expression: &Expr,
     functions: &BTreeMap<String, FunctionDef>,
 ) -> Result<Expr, String> {
+    expand_with(expression, functions, &BTreeMap::new())
+}
+
+/// `expand`, also inlining named `define` expressions wherever they are read.
+pub fn expand_with(
+    expression: &Expr,
+    functions: &BTreeMap<String, FunctionDef>,
+    defines: &BTreeMap<String, Expr>,
+) -> Result<Expr, String> {
     if functions.len() > MAX_FUNCTIONS {
         return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
     }
     Expander {
         functions,
+        defines,
         active: Vec::new(),
         remaining: MAX_EXPANDED_NODES,
     }

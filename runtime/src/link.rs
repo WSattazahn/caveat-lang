@@ -52,6 +52,7 @@ const RESERVED: &[&str] = &[
     "cost",
     "cue",
     "decisions",
+    "define",
     "defer",
     "display",
     "emit",
@@ -76,6 +77,7 @@ const RESERVED: &[&str] = &[
     "position",
     "proc",
     "readings",
+    "reject",
     "reopen",
     "require",
     "retaining",
@@ -389,6 +391,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                 Directive::State { name, .. }
                 | Directive::Readings { name, .. }
                 | Directive::Decisions { name, .. }
+                | Directive::Define { name, .. }
                 | Directive::Control { name, .. } => Some(name.clone()),
                 // Respond or project, but introduce no name of their own.
                 Directive::Rule(_)

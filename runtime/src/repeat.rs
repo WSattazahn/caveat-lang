@@ -75,7 +75,12 @@ fn expand_block(statement: &str, kinds: &[(String, Vec<String>)]) -> Result<Stri
     }
 
     let body = &statement[open + 1..close];
-    if statement_words(body).contains(&"for") {
+    // A nested block is a statement that begins with `for`. The word inside a
+    // comment or quoted text is not one.
+    if statement_spans(body)
+        .into_iter()
+        .any(|(start, end)| statement_words(&body[start..end]).first() == Some(&"for"))
+    {
         return Err(format!(
             "for blocks do not nest; see spec/caveat-repetition-0.1.md section 4: {}",
             head(statement)

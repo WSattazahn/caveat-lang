@@ -145,6 +145,15 @@ digests, generated glue/WASM digests, source identity, and footprint observation
 These identify tested files; the runtime's FNV source ID is not a cryptographic
 integrity check. The build command is the provenance for generated artifacts.
 
+A host that pins digests should take these files from the Linux CI build, not
+a local one. `rust-toolchain.toml` pins the compiler and the build remaps the
+cargo home and checkout paths, so any Linux build of a revision produces the
+same bytes; CI's `reproducible WebAssembly` job rebuilds from another path to
+prove it. A Windows build still records `\` separators and differs. Each
+`deploy-pages` run keeps the pinned files as the `caveat-runtime-<sha>` artifact
+for 90 days, and `build-info.json` beside them names the revision, compiler and
+host.
+
 ## Evidence and limits
 
 Ten native tests and the real WASM wrapper test cover locked input, authored

@@ -17,7 +17,7 @@ permissions:
 jobs:
   changes:
     name: regression scope
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       legacy_door: ${{ steps.scope.outputs.legacy_door }}
     steps:
@@ -47,13 +47,11 @@ jobs:
           echo "legacy_door=$legacy" >> "$GITHUB_OUTPUT"
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-          components: rustfmt, clippy
+      - name: Install the toolchain rust-toolchain.toml pins
+        run: rustup toolchain install && rustc --version
       - uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/wasm-bindgen
@@ -63,27 +61,40 @@ jobs:
           cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
           cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
           cargo test --manifest-path runtime/Cargo.toml --all-targets
-      - name: Build WASM
-        run: cargo build --manifest-path runtime/Cargo.toml --lib --target wasm32-unknown-unknown --release
       - name: Install wasm-bindgen
         run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Assemble site
-        run: npm run assemble
+      - name: Build site
+        run: npm run build
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      # The bytes a host pins. Pages keeps only the latest build, so this is
+      # where an older revision's runtime can still be fetched from.
+      - name: Keep the published runtime for host pinning
+        uses: actions/upload-artifact@v7
+        with:
+          name: caveat-runtime-${{ github.sha }}
+          path: |
+            dist/build-info.json
+            dist/slime_glow_ability.cav
+            dist/slime-glow-policy.js
+            dist/pkg/caveat_runtime.js
+            dist/pkg/caveat_runtime_bg.wasm
+            dist/pkg-reactive/caveat_runtime.js
+            dist/pkg-reactive/caveat_runtime_bg.wasm
+          retention-days: 90
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -92,17 +103,17 @@ jobs:
     steps:
       - name: Deploy Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   visual-mr-caveat:
     name: live Mr. Caveat QA
     needs: deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
       - run: npx playwright install --with-deps webkit
@@ -153,7 +164,7 @@ jobs:
             }finally{await browser.close()}
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: mr-caveat-live-visuals
@@ -162,12 +173,12 @@ jobs:
   visual-moon-2d:
     name: live Moon Garden 2D QA
     needs: deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0
       - run: npx playwright install --with-deps webkit
@@ -199,12 +210,12 @@ jobs:
   visual-moon-3d:
     name: live Moon Garden 3D QA
     needs: deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0
       - run: npx playwright install --with-deps webkit
@@ -232,12 +243,12 @@ jobs:
     name: live legacy Door QA
     needs: [deploy, changes]
     if: needs.changes.outputs.legacy_door == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       SITE_URL: ${{ needs.deploy.outputs.page_url }}
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: {node-version: 22}
       - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
       - run: npx playwright install --with-deps webkit

@@ -44,6 +44,16 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Explanations 0.1](spec/caveat-explanations-0.1.md) lets a binding say what it cites: `bind label.text = "…" when … because contradiction;`. The runtime checks the citation against the binding's lineage, so an explanation may leave dependencies out but can never cite evidence or a caveat the value and its conditions did not read. The full lineage stays available for audit.
 
+[Explanations 0.2](spec/caveat-explanations-0.2.md) separates what a value is *based on* (its grounds) from everything that could have influenced it (its lineage). A rule’s guard, a skipped rule, the guard that revealed evidence, and a decision’s predecessor all stay in lineage but never enter grounds. Citations read grounds, `set x = e because c` narrows them, and grounds are always a subset of lineage.
+
+[Reject 0.1](spec/caveat-reject-0.1.md) adds `reject "MESSAGE"`: an event that is not allowed fails atomically with that message, without a dummy state or a `require` trick.
+
+[Define 0.1](spec/caveat-define-0.1.md) adds `define NAME = EXPRESSION;`, a named expression over state and the graph that is inlined wherever it is read, including per member inside a `for` block.
+
+[View 0.1](spec/caveat-view-0.1.md) adds `dispatch_view`: the same transaction as `dispatch`, returning only what a host redraws after an event (bindings and their citations, cues, effects, commitments and their grounds, relations) as compact JSON.
+
+[Typed Parameters 0.1](spec/caveat-typed-parameters-0.1.md) lets an event take an entity by name (`target kind mushroom`) or one of a list of names (`sort in glowcap duskcap`). The host sends names; the source reads positions, with `sort.duskcap` and `target.pool` as constants.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.
@@ -89,15 +99,16 @@ The runtime checks the reached evidence graph before an action. Declared but und
 
 ### Build and play
 
-With stable Rust and Node.js 20 or newer installed, run from the repository root:
+With rustup and Node.js 20 or newer installed, run from the repository root. `rust-toolchain.toml` pins the compiler, and rustup installs it with the WebAssembly target on first use:
 
 ```sh
-rustup target add wasm32-unknown-unknown
 cargo install wasm-bindgen-cli --version 0.2.104 --locked
 npm ci
 npm run build
 npm run serve
 ```
+
+The build also writes `dist/pkg-reactive/`: the same runtime without the sequential, graphics and 3D sessions, for hosts that only run reactive programs (`cargo build --no-default-features`). It is about a fifth smaller.
 
 Open [Light the Way locally](http://127.0.0.1:4173/rescue.html). The earlier [story experiment](http://127.0.0.1:4173/last-beacon.html) remains available. The build compiles the Rust runtime to WebAssembly and assembles `dist/` with game sources, browser assets, and a local copy of Three.js. Existing games remain available in the same build.
 

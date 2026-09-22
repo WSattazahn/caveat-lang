@@ -24,6 +24,7 @@ const MAX_PROCEDURE_STEPS: usize = 4096;
 const MAX_PROCEDURE_DEPTH: usize = 64;
 const MAX_EVENT_STEPS: usize = 4096;
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
+pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
 
 /// Compile the standard library through the same parser and function checker
@@ -91,6 +92,39 @@ pub struct Parameter {
     pub name: String,
     pub min: Number,
     pub max: Number,
+    #[serde(skip_serializing_if = "ParameterDomain::is_numeric")]
+    pub domain: ParameterDomain,
+}
+
+/// What a host may send for a parameter. See spec/caveat-typed-parameters-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParameterDomain {
+    Numeric,
+    /// `NAME kind KIND`: an entity of that kind, sent by name. Its value is the
+    /// entity's position in the kind, counted from 1 as `$index` counts.
+    Entity {
+        kind: String,
+        members: Vec<String>,
+    },
+    /// `NAME in A B C`: one of these names, sent as text. Its value is the
+    /// name's position, counted from 1.
+    Member {
+        members: Vec<String>,
+    },
+}
+
+impl ParameterDomain {
+    fn is_numeric(&self) -> bool {
+        matches!(self, Self::Numeric)
+    }
+
+    fn members(&self) -> &[String] {
+        match self {
+            Self::Numeric => &[],
+            Self::Entity { members, .. } | Self::Member { members } => members,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,9 +142,16 @@ pub enum Effect {
     Emit {
         name: String,
     },
+    /// Fail the event with this message. Nothing the event did is kept.
+    Reject {
+        message: String,
+    },
     Set {
         name: String,
         value: Expr,
+        /// Authored grounds; `None` grounds the state on its value expression.
+        /// See spec/caveat-explanations-0.2.md.
+        because: Option<Vec<Expr>>,
     },
     Reveal {
         evidence: String,
@@ -164,18 +205,24 @@ pub struct GuardedEffect {
 fn expand_effect(
     effect: &mut Effect,
     functions: &BTreeMap<String, FunctionDef>,
+    defines: &BTreeMap<String, Expr>,
 ) -> Result<(), String> {
     match effect {
-        Effect::Set { value, .. }
-        | Effect::Sample { value, .. }
+        Effect::Set { value, because, .. } => {
+            *value = reactive_expr::expand_with(value, functions, defines)?;
+            for citation in because.iter_mut().flatten() {
+                *citation = reactive_expr::expand_with(citation, functions, defines)?;
+            }
+        }
+        Effect::Sample { value, .. }
         | Effect::Commit {
             using: Some(value), ..
         } => {
-            *value = reactive_expr::expand(value, functions)?;
+            *value = reactive_expr::expand_with(value, functions, defines)?;
         }
         Effect::Call { arguments, .. } => {
             for argument in arguments {
-                *argument = reactive_expr::expand(argument, functions)?;
+                *argument = reactive_expr::expand_with(argument, functions, defines)?;
             }
         }
         _ => {}
@@ -239,6 +286,11 @@ pub enum Directive {
         parameters: Vec<Parameter>,
     },
     Rule(Rule),
+    /// `define NAME = EXPRESSION;`, inlined where NAME is read.
+    Define {
+        name: String,
+        expression: Expr,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -428,6 +480,24 @@ pub enum EffectReport {
     },
 }
 
+/// What a host redraws after an event: bindings and what they cite, cues and
+/// effects, commitments and their grounds, decision series and live relations.
+/// Static declarations and full lineage stay in `ReactiveSnapshot`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReactiveView {
+    pub schema: String,
+    pub sequence: u64,
+    pub last_event: Option<String>,
+    pub bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    pub binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    pub cues: Vec<Cue>,
+    pub effects: Vec<EffectReport>,
+    pub commitments: Vec<MapCommitment>,
+    pub commitment_grounds: BTreeMap<String, Provenance>,
+    pub decision_series: BTreeMap<String, DecisionSeries>,
+    pub relations: Vec<MapRelation>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReactiveSnapshot {
     pub schema: String,
@@ -448,6 +518,12 @@ pub struct ReactiveSnapshot {
     pub binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     /// What each shown binding cites: a subset of its qualifications.
     pub binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    /// What each state is grounded on: its content, never its control. A
+    /// subset of `qualified_values`. See spec/caveat-explanations-0.2.md.
+    pub value_grounds: BTreeMap<String, Provenance>,
+    /// What each commitment was grounded on: its `using` content and retained
+    /// caveats, without its guard or a predecessor's basis.
+    pub commitment_grounds: BTreeMap<String, Provenance>,
     pub cues: Vec<Cue>,
     pub cue_qualifications: Vec<Provenance>,
     pub controls: BTreeMap<String, Control>,
@@ -487,9 +563,12 @@ pub struct ReactiveSession {
     rules: Arc<Vec<Rule>>,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
+    define_rules: Arc<Vec<(String, Expr)>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    grounds: BTreeMap<String, Provenance>,
+    commitment_grounds: BTreeMap<String, Provenance>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -556,29 +635,48 @@ impl ReactiveSession {
             }
         }
         reactive_expr::validate_functions(&functions)?;
+        let mut defines = BTreeMap::new();
+        for directive in &directives {
+            if let Directive::Define { name, expression } = directive {
+                if functions.contains_key(name) {
+                    return Err(format!("define {name} collides with a function"));
+                }
+                if defines.insert(name.clone(), expression.clone()).is_some() {
+                    return Err(format!("duplicate define {name}"));
+                }
+            }
+        }
         for directive in &mut directives {
             match directive {
                 Directive::State { initial, .. } => {
-                    *initial = reactive_expr::expand(initial, &functions)?
+                    *initial = reactive_expr::expand_with(initial, &functions, &defines)?
                 }
                 Directive::Rule(rule) => {
-                    rule.condition = reactive_expr::expand(&rule.condition, &functions)?;
-                    expand_effect(&mut rule.effect, &functions)?;
+                    rule.condition =
+                        reactive_expr::expand_with(&rule.condition, &functions, &defines)?;
+                    expand_effect(&mut rule.effect, &functions, &defines)?;
                 }
                 Directive::Procedure(procedure) => {
                     for step in &mut procedure.body {
-                        step.condition = reactive_expr::expand(&step.condition, &functions)?;
-                        expand_effect(&mut step.effect, &functions)?;
+                        step.condition =
+                            reactive_expr::expand_with(&step.condition, &functions, &defines)?;
+                        expand_effect(&mut step.effect, &functions, &defines)?;
                     }
                 }
                 Directive::Binding(binding) => {
-                    binding.condition = reactive_expr::expand(&binding.condition, &functions)?;
+                    binding.condition =
+                        reactive_expr::expand_with(&binding.condition, &functions, &defines)?;
                     if let BindingExpression::Expression(value) = &mut binding.value {
-                        *value = reactive_expr::expand(value, &functions)?;
+                        *value = reactive_expr::expand_with(value, &functions, &defines)?;
                     }
                     for citation in binding.because.iter_mut().flatten() {
-                        *citation = reactive_expr::expand(citation, &functions)?;
+                        *citation = reactive_expr::expand_with(citation, &functions, &defines)?;
                     }
+                }
+                // Expanded on its own too, so a cycle or bad call in an unused
+                // define is still an error.
+                Directive::Define { expression, .. } => {
+                    *expression = reactive_expr::expand_with(expression, &functions, &defines)?;
                 }
                 _ => {}
             }
@@ -610,9 +708,12 @@ impl ReactiveSession {
             rules: Arc::new(Vec::new()),
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
+            define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
+            grounds: BTreeMap::new(),
+            commitment_grounds: BTreeMap::new(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -683,6 +784,8 @@ impl ReactiveSession {
         }
         for directive in &directives {
             match directive {
+                Directive::Define { name, expression } => Arc::make_mut(&mut session.define_rules)
+                    .push((name.clone(), expression.clone())),
                 Directive::Procedure(procedure) => {
                     if functions.contains_key(&procedure.name) {
                         return Err(format!(
@@ -777,6 +880,10 @@ impl ReactiveSession {
                         unreachable!("validated number initializer")
                     };
                     check_range(name, number, min.value(), max.value())?;
+                    let grounds = session
+                        .evaluate_grounds(initial, &BTreeMap::new())?
+                        .provenance;
+                    session.grounds.insert(name.clone(), grounds);
                     session
                         .values
                         .insert(name.clone(), Tracked::new(number, value.provenance)?);
@@ -789,6 +896,38 @@ impl ReactiveSession {
                     );
                 }
                 Directive::Event { name, parameters } => {
+                    let mut parameters = parameters.clone();
+                    for parameter in &mut parameters {
+                        if let ParameterDomain::Entity { kind, members } = &mut parameter.domain {
+                            *members = session
+                                .world
+                                .entities
+                                .iter()
+                                .filter(|entity| entity.kind == *kind)
+                                .map(|entity| entity.id.clone())
+                                .collect();
+                            if members.is_empty() {
+                                return Err(format!(
+                                    "parameter {} of event {name}: no entity is declared kind {kind}",
+                                    parameter.name
+                                ));
+                            }
+                            parameter.max = Number::parse(&members.len().to_string())?;
+                        }
+                        // PARAMETER.MEMBER names each value in source.
+                        for (position, member) in parameter.domain.members().iter().enumerate() {
+                            let constant = format!("{}.{member}", parameter.name);
+                            let value = (position + 1) as f64;
+                            if session
+                                .constants
+                                .insert(constant.clone(), value)
+                                .is_some_and(|previous| previous != value)
+                            {
+                                return Err(format!("{constant} already names a different value"));
+                            }
+                        }
+                    }
+                    let parameters = &parameters;
                     if session
                         .events
                         .insert(name.clone(), parameters.clone())
@@ -1075,17 +1214,27 @@ impl ReactiveSession {
                         return Err(format!("sample {stream} requires a numeric expression"));
                     }
                 }
+                Effect::Reject { .. } => {}
                 Effect::Emit { name } => {
                     if !self.cue_definitions.contains_key(name) {
                         return Err(format!("emit references undeclared cue {name}"));
                     }
                 }
-                Effect::Set { name, value } => {
+                Effect::Set {
+                    name,
+                    value,
+                    because,
+                } => {
                     if !self.values.contains_key(name) {
                         return Err(format!("set references undeclared state {name}"));
                     }
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                         return Err(format!("state {name} requires a numeric expression"));
+                    }
+                    for citation in because.iter().flatten() {
+                        citation
+                            .validate(&numeric, &validate_predicate)
+                            .map_err(|error| format!("set {name} because: {error}"))?;
                     }
                 }
                 Effect::Reveal {
@@ -1133,6 +1282,25 @@ impl ReactiveSession {
             .chain(self.constants.keys())
             .cloned()
             .collect();
+        for (name, expression) in self.define_rules.iter() {
+            if self.values.contains_key(name) || self.constants.contains_key(name) {
+                return Err(format!("define {name} collides with a state"));
+            }
+            if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
+                return Err(format!("define {name} collides with a history"));
+            }
+            if self
+                .events
+                .values()
+                .flatten()
+                .any(|parameter| parameter.name == *name)
+            {
+                return Err(format!("define {name} collides with an event parameter"));
+            }
+            expression
+                .validate(&numeric, &validate_predicate)
+                .map_err(|error| format!("define {name}: {error}"))?;
+        }
         let mut types = BTreeMap::new();
         for binding in self.binding_rules.iter() {
             if binding.condition.validate(&numeric, &validate_predicate)? != ValueType::Bool {
@@ -1232,9 +1400,12 @@ impl ReactiveSession {
             let lineage = &data[&target][&property];
             let explanation = match &self.binding_rules[index].because {
                 None => lineage.clone(),
-                Some(citations) => {
-                    self.grounded_citation(&target, &property, citations, lineage, &parameters)?
-                }
+                Some(citations) => self.grounded_citation(
+                    &format!("binding {target}.{property}"),
+                    citations,
+                    lineage,
+                    &parameters,
+                )?,
             };
             explanations
                 .entry(target)
@@ -1247,13 +1418,14 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// Evaluate a winning binding's `because` citations and check that they
-    /// cite only what the binding actually depended on. An explanation may
-    /// leave dependencies out; it may never introduce one.
+    /// Evaluate `because` citations and check that they cite only what the
+    /// binding or state actually depended on. An explanation may leave
+    /// dependencies out; it may never introduce one. Citations are read for
+    /// their grounds, so citing a state cites what it is grounded on rather
+    /// than every guard that ever touched it.
     fn grounded_citation(
         &self,
-        target: &str,
-        property: &str,
+        subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
         parameters: &BTreeMap<String, Tracked<f64>>,
@@ -1261,8 +1433,8 @@ impl ReactiveSession {
         let mut cited = Provenance::default();
         for citation in citations {
             let value = self
-                .evaluate(citation, parameters)
-                .map_err(|error| format!("binding {target}.{property} because: {error}"))?;
+                .evaluate_grounds(citation, parameters)
+                .map_err(|error| format!("{subject} because: {error}"))?;
             cited.merge(&value.provenance)?;
         }
         let ungrounded = cited
@@ -1278,7 +1450,7 @@ impl ReactiveSession {
             .collect::<Vec<_>>();
         if !ungrounded.is_empty() {
             return Err(format!(
-                "binding {target}.{property} cites {} that its value and conditions never read",
+                "{subject} cites {} that its value and conditions never read",
                 ungrounded.join(", ")
             ));
         }
@@ -1474,17 +1646,55 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveSnapshot, String> {
-        // Typed map parsing rejects duplicate fields instead of last-write wins.
-        let payload: NumericPayload = serde_json::from_str(payload_json)
-            .map_err(|error| format!("invalid event payload: {error}"))?;
-        self.dispatch(event, &payload.0)
+        let payload = self.resolve_payload(event, payload_json)?;
+        self.dispatch(event, &payload)
     }
 
-    pub fn dispatch(
-        &mut self,
+    /// Parse a JSON payload and turn each typed parameter's name into its
+    /// position. Numeric parameters take numbers; typed parameters take the
+    /// name of an entity or member, or its position as a number. Bounds and the
+    /// exact parameter set are checked by `apply` as for any payload.
+    fn resolve_payload(
+        &self,
         event: &str,
-        parameters: &BTreeMap<String, f64>,
-    ) -> Result<ReactiveSnapshot, String> {
+        payload_json: &str,
+    ) -> Result<BTreeMap<String, f64>, String> {
+        // Typed map parsing rejects duplicate fields instead of last-write wins.
+        let payload: Payload = serde_json::from_str(payload_json)
+            .map_err(|error| format!("invalid event payload: {error}"))?;
+        let signature = self.events.get(event);
+        payload
+            .0
+            .into_iter()
+            .map(|(name, value)| {
+                let parameter = signature
+                    .and_then(|parameters| parameters.iter().find(|p| p.name == name));
+                let number = match (value, parameter.map(|p| &p.domain)) {
+                    (PayloadValue::Number(number), _) => number,
+                    (PayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
+                        let position = domain
+                            .members()
+                            .iter()
+                            .position(|member| *member == text)
+                            .ok_or_else(|| {
+                                format!(
+                                    "event {event} parameter {name} does not accept {text}; expected one of {}",
+                                    domain.members().join(", ")
+                                )
+                            })?;
+                        (position + 1) as f64
+                    }
+                    (PayloadValue::Text(_), _) => {
+                        return Err(format!("event {event} parameter {name} expects a number"))
+                    }
+                };
+                Ok((name, number))
+            })
+            .collect()
+    }
+
+    /// Run one event as a transaction. Any failure leaves the session as it was.
+    pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
         let signature = self
             .events
             .get(event)
@@ -1543,9 +1753,98 @@ impl ReactiveSession {
         }
         // Binding failures roll back the same numeric/graph/cue transaction.
         next.evaluate_bindings()?;
-        let snapshot = next.snapshot();
         *self = next;
-        Ok(snapshot)
+        Ok(())
+    }
+
+    /// Dispatch and return the full snapshot.
+    pub fn dispatch(
+        &mut self,
+        event: &str,
+        parameters: &BTreeMap<String, f64>,
+    ) -> Result<ReactiveSnapshot, String> {
+        self.apply(event, parameters)?;
+        Ok(self.snapshot())
+    }
+
+    /// Dispatch and return the per-event view: what a host redraws after an
+    /// event, without the static world, symbols and full lineage.
+    pub fn dispatch_view_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<ReactiveView, String> {
+        let payload = self.resolve_payload(event, payload_json)?;
+        self.apply(event, &payload)?;
+        Ok(self.view())
+    }
+
+    pub fn view(&self) -> ReactiveView {
+        let names = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect::<HashMap<_, _>>();
+        ReactiveView {
+            schema: REACTIVE_VIEW_SCHEMA.into(),
+            sequence: self.sequence,
+            last_event: self.last_event.clone(),
+            bindings: self.bindings.clone(),
+            binding_explanations: self.binding_explanations.clone(),
+            cues: self.cues.clone(),
+            effects: self.effects.clone(),
+            commitments: self.commitment_records(&names),
+            commitment_grounds: self.commitment_grounds.clone(),
+            decision_series: self.decision_series.clone(),
+            relations: self.relation_records(&names),
+        }
+    }
+
+    fn commitment_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapCommitment> {
+        let mut sorted = self.symbols.iter().collect::<Vec<_>>();
+        sorted.sort_by_key(|(name, _)| *name);
+        sorted
+            .into_iter()
+            .filter_map(|(name, id)| match &self.graph.nodes[id] {
+                NodeKind::Commitment { open, .. } => Some(MapCommitment {
+                    action: name.clone(),
+                    open: *open,
+                    retained_authorship: crate::map::retained_authorship(
+                        &self.graph,
+                        *id,
+                        |node| names.get(&node).map(|name| (*name).to_string()),
+                    ),
+                    retained: self
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.from == *id && edge.relation == Relation::Retains)
+                        .map(|edge| names[&edge.to].to_string())
+                        .collect(),
+                    reopened_by: self
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
+                        .map(|edge| names[&edge.from].to_string())
+                        .collect(),
+                }),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn relation_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapRelation> {
+        self.graph
+            .edges
+            .iter()
+            .map(|edge| MapRelation {
+                from: names[&edge.from].into(),
+                to: names[&edge.to].into(),
+                relation: relation_name(edge.relation).into(),
+                origin: "live".into(),
+            })
+            .collect()
     }
 
     fn execute_guarded_effect(
@@ -1584,6 +1883,79 @@ impl ReactiveSession {
             &|evidence, caveats| self.qualify(evidence, caveats),
             &|name, query| self.history_read(name, query),
         )
+    }
+
+    /// Evaluate an expression for its grounds: the same value, with each read
+    /// supplying content only. States give their grounds, `qualified` and
+    /// `observed` give the evidence and the caveats that qualify it, and
+    /// commitment predicates give the commitment's grounds. Guard, selection
+    /// and absence dependencies stay in lineage. Every read here is a subset
+    /// of the corresponding lineage read, so grounds are a subset of lineage.
+    fn evaluate_grounds(
+        &self,
+        expression: &Expr,
+        parameters: &BTreeMap<String, Tracked<f64>>,
+    ) -> Result<Tracked<Value>, String> {
+        expression.evaluate_tracked_with_histories(
+            &|name| {
+                if let Some(value) = self.values.get(name) {
+                    let grounds = self.grounds.get(name).cloned().unwrap_or_default();
+                    return Ok(Some(Tracked::new(value.value, grounds)?));
+                }
+                Ok(parameters
+                    .get(name)
+                    .cloned()
+                    .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
+            },
+            &|kind, name| self.predicate_grounds(kind, name),
+            &|evidence, caveats| self.qualify_core(evidence, caveats),
+            &|name, query| self.history_read(name, query),
+        )
+    }
+
+    fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if matches!(kind, "committed" | "reopened") {
+            if let Some(series) = self.decision_series.get(name) {
+                return match &series.current {
+                    Some(current) => self.predicate_grounds(kind, current),
+                    None => Ok(Tracked::plain(false)),
+                };
+            }
+        }
+        let value = match kind {
+            "has_sample" => return self.predicate_tracked(kind, name),
+            _ => self.predicate(kind, name)?,
+        };
+        let provenance = match kind {
+            "observed" if value => self.qualify_core(name, &[])?,
+            "examined" => Provenance::from_names(
+                [],
+                std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
+            )?,
+            "committed" | "reopened" if value => {
+                let mut grounds = self
+                    .commitment_grounds
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_default();
+                if kind == "reopened" {
+                    let id = self.symbols[name];
+                    let by_id = self
+                        .symbols
+                        .iter()
+                        .map(|(name, id)| (*id, name))
+                        .collect::<HashMap<_, _>>();
+                    for edge in &self.graph.edges {
+                        if edge.to == id && edge.relation == Relation::Reopens {
+                            grounds.merge(&self.qualify_core(by_id[&edge.from], &[])?)?;
+                        }
+                    }
+                }
+                grounds
+            }
+            _ => Provenance::default(),
+        };
+        Tracked::new(value, provenance)
     }
 
     fn predicate(&self, kind: &str, name: &str) -> Result<bool, String> {
@@ -1648,6 +2020,24 @@ impl ReactiveSession {
     }
 
     fn qualify(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
+        let mut provenance = self.qualify_core(evidence, extras)?;
+        if let Some(observation) = self.observation_qualifications.get(evidence) {
+            provenance.merge(observation)?;
+        }
+        if let Some(dependency) = self
+            .predicate_qualifications
+            .get("observed")
+            .and_then(|targets| targets.get(evidence))
+        {
+            provenance.merge(dependency)?;
+        }
+        Ok(provenance)
+    }
+
+    /// The evidence, the caveats that qualify it and the claims it bears on,
+    /// and any explicit extras: what a qualified value is *about*, without the
+    /// guard that revealed the evidence.
+    fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
         self.require_kind(evidence, "evidence")?;
         if !self.predicate("observed", evidence)? {
             return Err(format!(
@@ -1675,18 +2065,7 @@ impl ReactiveSession {
             .incoming_caveats(roots)
             .into_iter()
             .chain(extras.iter().cloned());
-        let mut provenance = Provenance::from_names([evidence.into()], caveats)?;
-        if let Some(observation) = self.observation_qualifications.get(evidence) {
-            provenance.merge(observation)?;
-        }
-        if let Some(dependency) = self
-            .predicate_qualifications
-            .get("observed")
-            .and_then(|targets| targets.get(evidence))
-        {
-            provenance.merge(dependency)?;
-        }
-        Ok(provenance)
+        Provenance::from_names([evidence.into()], caveats)
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
@@ -1917,21 +2296,37 @@ impl ReactiveSession {
                     target: claim.clone(),
                 });
             }
+            Effect::Reject { message } => return Err(format!("rejected: {message}")),
             Effect::Emit { name } => {
                 self.cues.push(self.cue_definitions[name].clone());
                 self.cue_qualifications.push(guard.clone());
             }
-            Effect::Set { name, value } => {
-                let value = self.evaluate(value, parameters)?;
+            Effect::Set {
+                name,
+                value: expression,
+                because,
+            } => {
+                let value = self.evaluate(expression, parameters)?;
                 let Value::Number(number) = value.value else {
                     return Err("numeric state expression returned a boolean".into());
                 };
                 let range = &self.ranges[name];
                 check_range(name, number, range.min, range.max)?;
-                self.values.insert(
-                    name.clone(),
-                    Tracked::new(number, value.provenance.union(guard)?)?,
-                );
+                let lineage = value.provenance.union(guard)?;
+                // Grounds are read against the state before this write, like
+                // the value itself, and never take the rule's guard.
+                let grounds = match because {
+                    None => self.evaluate_grounds(expression, parameters)?.provenance,
+                    Some(citations) => self.grounded_citation(
+                        &format!("state {name}"),
+                        citations,
+                        &lineage,
+                        parameters,
+                    )?,
+                };
+                self.grounds.insert(name.clone(), grounds);
+                self.values
+                    .insert(name.clone(), Tracked::new(number, lineage)?);
             }
             Effect::Reveal {
                 evidence,
@@ -2028,16 +2423,22 @@ impl ReactiveSession {
                         "generated commitment identity {name} already exists"
                     ));
                 }
+                // Grounds: what the decision was made on, i.e. its `using`
+                // content and retained caveats. The guard and a predecessor's
+                // basis stay in the lineage recorded below.
+                let mut grounds = Provenance::from_names([], retaining.iter().cloned())?;
                 let used_value = if let Some(expression) = using {
                     let value = self.evaluate(expression, parameters)?;
                     let Value::Number(number) = value.value else {
                         return Err("commit using requires a numeric value".into());
                     };
                     provenance.merge(&value.provenance)?;
+                    grounds.merge(&self.evaluate_grounds(expression, parameters)?.provenance)?;
                     Some(number)
                 } else {
                     None
                 };
+                self.commitment_grounds.insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
@@ -2207,6 +2608,8 @@ impl ReactiveSession {
             bindings: self.bindings.clone(),
             binding_qualifications: self.binding_qualifications.clone(),
             binding_explanations: self.binding_explanations.clone(),
+            value_grounds: self.grounds.clone(),
+            commitment_grounds: self.commitment_grounds.clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.values.clone(),
@@ -2388,11 +2791,13 @@ pub(crate) fn parse_directive_at(
             | "readings"
             | "decisions"
             | "proc"
+            | "define"
     ) {
         return None;
     }
     Some((|| match keyword {
         "proc" => parse_procedure(line, position),
+        "define" => parse_define(line),
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
             ["readings", name, "from", template, "limit", limit] => Ok(Directive::Readings {
@@ -2480,10 +2885,34 @@ pub(crate) fn parse_directive_at(
                                 name: identifier(name)?,
                                 min,
                                 max,
+                                domain: ParameterDomain::Numeric,
+                            });
+                        }
+                        // Bounds and members are filled in when the event is
+                        // registered, from the world's entities of that kind.
+                        [name, "kind", kind] => parameters.push(Parameter {
+                            name: identifier(name)?,
+                            min: Number::parse("1")?,
+                            max: Number::parse("1")?,
+                            domain: ParameterDomain::Entity {
+                                kind: identifier(kind)?,
+                                members: Vec::new(),
+                            },
+                        }),
+                        [name, "in", members @ ..] if !members.is_empty() => {
+                            let members = members
+                                .iter()
+                                .map(|member| identifier(member))
+                                .collect::<Result<Vec<_>, _>>()?;
+                            parameters.push(Parameter {
+                                name: identifier(name)?,
+                                min: Number::parse("1")?,
+                                max: Number::parse(&members.len().to_string())?,
+                                domain: ParameterDomain::Member { members },
                             });
                         }
                         _ => {
-                            return Err("event parameter must be NAME min NUMBER max NUMBER".into())
+                            return Err("event parameter must be NAME min NUMBER max NUMBER, NAME kind KIND, or NAME in NAME...".into())
                         }
                     }
                 }
@@ -2515,7 +2944,15 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
         if depth == 0
             && matches!(
                 *token,
-                "set" | "reveal" | "examine" | "commit" | "reopen" | "emit" | "sample" | "call"
+                "set"
+                    | "reveal"
+                    | "examine"
+                    | "commit"
+                    | "reopen"
+                    | "emit"
+                    | "sample"
+                    | "call"
+                    | "reject"
             )
         {
             candidates.push(index);
@@ -2528,7 +2965,7 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
         .find(|index| parse_effect(&words[*index..]).is_ok())
         .or_else(|| candidates.last().copied())
         .ok_or(
-            "rule requires set, reveal, examine, commit, reopen, emit, sample, or call effect",
+            "rule requires set, reveal, examine, commit, reopen, emit, sample, call, or reject effect",
         )?;
     let condition = if effect_index == 0 {
         reactive_expr::parse("true")?
@@ -2694,6 +3131,18 @@ fn parse_citations(citations: &str) -> Result<Vec<Expr>, String> {
     Ok(parsed)
 }
 
+fn parse_define(line: &str) -> Result<Directive, String> {
+    let (name, expression) = line
+        .strip_prefix("define")
+        .unwrap()
+        .split_once('=')
+        .ok_or("define expects NAME = EXPRESSION")?;
+    Ok(Directive::Define {
+        name: identifier(name.trim())?,
+        expression: reactive_expr::parse_unresolved(expression.trim())?,
+    })
+}
+
 fn parse_binding(line: &str) -> Result<Directive, String> {
     let (path, value) = line
         .strip_prefix("bind")
@@ -2849,6 +3298,14 @@ fn parse_cue(line: &str) -> Result<Directive, String> {
 
 fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     match words {
+        ["reject", rest @ ..] if !rest.is_empty() => {
+            let text = rest.join(" ");
+            let (message, trailing) = quoted_prefix(&text)?;
+            if !trailing.is_empty() {
+                return Err("reject expects one quoted message".into());
+            }
+            Ok(Effect::Reject { message })
+        }
         ["call", rest @ ..] if !rest.is_empty() => {
             let (name, arguments) = reactive_expr::parse_procedure_call(&rest.join(" "))?;
             Ok(Effect::Call { name, arguments })
@@ -2870,10 +3327,24 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         ["emit", name] => Ok(Effect::Emit {
             name: identifier(name)?,
         }),
-        ["set", name, "=", rest @ ..] if !rest.is_empty() => Ok(Effect::Set {
-            name: identifier(name)?,
-            value: reactive_expr::parse_unresolved(&rest.join(" "))?,
-        }),
+        ["set", name, "=", rest @ ..] if !rest.is_empty() => {
+            let text = rest.join(" ");
+            let (value, citations) = trailing_clause(&text, "because");
+            let because = match citations {
+                Some("") => {
+                    return Err(
+                        "because expects expressions separated by commas, or nothing".into(),
+                    )
+                }
+                Some(citations) => Some(parse_citations(citations)?),
+                None => None,
+            };
+            Ok(Effect::Set {
+                name: identifier(name)?,
+                value: reactive_expr::parse_unresolved(value)?,
+                because,
+            })
+        }
         ["reveal", evidence, relation, claim] if matches!(*relation, "supports" | "opposes") => {
             Ok(Effect::Reveal {
                 evidence: identifier(evidence)?,
@@ -2967,29 +3438,36 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     }
 }
 
-struct NumericPayload(BTreeMap<String, f64>);
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum PayloadValue {
+    Number(f64),
+    Text(String),
+}
 
-impl<'de> serde::Deserialize<'de> for NumericPayload {
+struct Payload(BTreeMap<String, PayloadValue>);
+
+impl<'de> serde::Deserialize<'de> for Payload {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct Visitor;
         impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = NumericPayload;
+            type Value = Payload;
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("an object of unique numeric event parameters")
+                formatter.write_str("an object of unique event parameters")
             }
             fn visit_map<M: serde::de::MapAccess<'de>>(
                 self,
                 mut map: M,
             ) -> Result<Self::Value, M::Error> {
                 let mut values = BTreeMap::new();
-                while let Some((key, value)) = map.next_entry::<String, f64>()? {
+                while let Some((key, value)) = map.next_entry::<String, PayloadValue>()? {
                     if values.insert(key.clone(), value).is_some() {
                         return Err(serde::de::Error::custom(format!(
                             "duplicate parameter {key}"
                         )));
                     }
                 }
-                Ok(NumericPayload(values))
+                Ok(Payload(values))
             }
         }
         deserializer.deserialize_map(Visitor)
