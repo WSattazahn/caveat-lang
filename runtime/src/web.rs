@@ -59,6 +59,18 @@ impl WebReactiveSession {
             .dispatch_json(event, payload_json)
             .and_then(|snapshot| to_json_pretty(&snapshot))
     }
+
+    /// The per-event view, as compact JSON. See spec/caveat-view-0.1.md.
+    pub fn view(&self) -> String {
+        serde_json::to_string(&self.inner.view()).expect("finite reactive view")
+    }
+
+    /// Dispatch and return the per-event view rather than the full snapshot.
+    pub fn dispatch_view(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        self.inner
+            .dispatch_view_json(event, payload_json)
+            .map(|view| serde_json::to_string(&view).expect("finite reactive view"))
+    }
 }
 
 fn pending_json(pending: PendingInteraction) -> String {

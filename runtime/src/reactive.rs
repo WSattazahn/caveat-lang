@@ -24,6 +24,7 @@ const MAX_PROCEDURE_STEPS: usize = 4096;
 const MAX_PROCEDURE_DEPTH: usize = 64;
 const MAX_EVENT_STEPS: usize = 4096;
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
+pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
 
 /// Compile the standard library through the same parser and function checker
@@ -444,6 +445,24 @@ pub enum EffectReport {
         action: String,
         because: String,
     },
+}
+
+/// What a host redraws after an event: bindings and what they cite, cues and
+/// effects, commitments and their grounds, decision series and live relations.
+/// Static declarations and full lineage stay in `ReactiveSnapshot`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ReactiveView {
+    pub schema: String,
+    pub sequence: u64,
+    pub last_event: Option<String>,
+    pub bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
+    pub binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
+    pub cues: Vec<Cue>,
+    pub effects: Vec<EffectReport>,
+    pub commitments: Vec<MapCommitment>,
+    pub commitment_grounds: BTreeMap<String, Provenance>,
+    pub decision_series: BTreeMap<String, DecisionSeries>,
+    pub relations: Vec<MapRelation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -1568,11 +1587,8 @@ impl ReactiveSession {
         self.dispatch(event, &payload.0)
     }
 
-    pub fn dispatch(
-        &mut self,
-        event: &str,
-        parameters: &BTreeMap<String, f64>,
-    ) -> Result<ReactiveSnapshot, String> {
+    /// Run one event as a transaction. Any failure leaves the session as it was.
+    pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
         let signature = self
             .events
             .get(event)
@@ -1631,9 +1647,99 @@ impl ReactiveSession {
         }
         // Binding failures roll back the same numeric/graph/cue transaction.
         next.evaluate_bindings()?;
-        let snapshot = next.snapshot();
         *self = next;
-        Ok(snapshot)
+        Ok(())
+    }
+
+    /// Dispatch and return the full snapshot.
+    pub fn dispatch(
+        &mut self,
+        event: &str,
+        parameters: &BTreeMap<String, f64>,
+    ) -> Result<ReactiveSnapshot, String> {
+        self.apply(event, parameters)?;
+        Ok(self.snapshot())
+    }
+
+    /// Dispatch and return the per-event view: what a host redraws after an
+    /// event, without the static world, symbols and full lineage.
+    pub fn dispatch_view_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<ReactiveView, String> {
+        let payload: NumericPayload = serde_json::from_str(payload_json)
+            .map_err(|error| format!("invalid event payload: {error}"))?;
+        self.apply(event, &payload.0)?;
+        Ok(self.view())
+    }
+
+    pub fn view(&self) -> ReactiveView {
+        let names = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect::<HashMap<_, _>>();
+        ReactiveView {
+            schema: REACTIVE_VIEW_SCHEMA.into(),
+            sequence: self.sequence,
+            last_event: self.last_event.clone(),
+            bindings: self.bindings.clone(),
+            binding_explanations: self.binding_explanations.clone(),
+            cues: self.cues.clone(),
+            effects: self.effects.clone(),
+            commitments: self.commitment_records(&names),
+            commitment_grounds: self.commitment_grounds.clone(),
+            decision_series: self.decision_series.clone(),
+            relations: self.relation_records(&names),
+        }
+    }
+
+    fn commitment_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapCommitment> {
+        let mut sorted = self.symbols.iter().collect::<Vec<_>>();
+        sorted.sort_by_key(|(name, _)| *name);
+        sorted
+            .into_iter()
+            .filter_map(|(name, id)| match &self.graph.nodes[id] {
+                NodeKind::Commitment { open, .. } => Some(MapCommitment {
+                    action: name.clone(),
+                    open: *open,
+                    retained_authorship: crate::map::retained_authorship(
+                        &self.graph,
+                        *id,
+                        |node| names.get(&node).map(|name| (*name).to_string()),
+                    ),
+                    retained: self
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.from == *id && edge.relation == Relation::Retains)
+                        .map(|edge| names[&edge.to].to_string())
+                        .collect(),
+                    reopened_by: self
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
+                        .map(|edge| names[&edge.from].to_string())
+                        .collect(),
+                }),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn relation_records(&self, names: &HashMap<NodeId, &str>) -> Vec<MapRelation> {
+        self.graph
+            .edges
+            .iter()
+            .map(|edge| MapRelation {
+                from: names[&edge.from].into(),
+                to: names[&edge.to].into(),
+                relation: relation_name(edge.relation).into(),
+                origin: "live".into(),
+            })
+            .collect()
     }
 
     fn execute_guarded_effect(
