@@ -11,6 +11,8 @@ caveat tasted_in_dark consequence material;
 display tasted_in_dark "Tasted in the dark; taste can be wrong without light.";
 caveat taste_faded consequence material;
 display taste_faded "The taste has faded from memory.";
+caveat secondhand consequence material;
+display secondhand "Seen, not felt: another creature ate it.";
 
 // Sums of qualified observations. Their grounds are exactly the evidence
 // counted, whatever guards decided when to count it.
@@ -35,6 +37,7 @@ fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + n
 event tick dt min 0 max 0.1;
 event absorb target kind mushroom, sort in glowcap duskcap;
 event taste target kind mushroom, sort in glowcap duskcap;
+event witness target kind mushroom, sort in glowcap duskcap;
 
 on tick set glow = max(0, glow - dt);
 on tick set heavy = max(0, heavy - dt);
@@ -47,6 +50,7 @@ for mushroom as $m {
     claim $m_is_glowcap;
     evidence absorb_$m from "Vessel: the slime absorbed the $m mushroom";
     evidence taste_$m from "Vessel: the slime tasted the $m mushroom";
+    evidence witness_$m from "Vessel: the slime saw another creature eat the $m mushroom";
 
     state $m_consumed = 0 min 0 max 1;
     // 0 unknown, otherwise the tasted sort; grounded on the taste.
@@ -89,6 +93,20 @@ for mushroom as $m {
     on taste when $m_here and sort == sort.duskcap set contradiction = contradiction + $m_known / sort;
     on taste when $m_here and sort == sort.duskcap and committed(trust) reopen trust because taste_$m;
     on taste when $m_here and sort == sort.duskcap set recovery = 0;
+
+    // Another creature eats it: an observation like an absorption, secondhand.
+    on witness when $m_here and $m_consumed == 1 reject "already eaten";
+    on witness when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
+    on witness when $m_here set $m_consumed = 1;
+    on witness when $m_here and sort == sort.glowcap reveal witness_$m supports glowing_is_safe;
+    on witness when $m_here and sort == sort.glowcap set support = support + qualified(1, witness_$m, secondhand);
+    on witness when $m_here and sort == sort.glowcap set recovery = recovery + qualified(1, witness_$m, secondhand);
+    on witness when $m_here and sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, witness_$m, secondhand);
+    on witness when $m_here and sort == sort.glowcap and reopened(trust) and recovery >= 2 commit trust because enough using recovery;
+    on witness when $m_here and sort == sort.duskcap reveal witness_$m opposes glowing_is_safe;
+    on witness when $m_here and sort == sort.duskcap set contradiction = contradiction + qualified(1, witness_$m, secondhand);
+    on witness when $m_here and sort == sort.duskcap and committed(trust) reopen trust because witness_$m;
+    on witness when $m_here and sort == sort.duskcap set recovery = 0;
 
     // A taste fades after a minute; everything built on it learns so.
     on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 qualify taste_$m with taste_faded;
