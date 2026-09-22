@@ -92,6 +92,39 @@ pub struct Parameter {
     pub name: String,
     pub min: Number,
     pub max: Number,
+    #[serde(skip_serializing_if = "ParameterDomain::is_numeric")]
+    pub domain: ParameterDomain,
+}
+
+/// What a host may send for a parameter. See spec/caveat-typed-parameters-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ParameterDomain {
+    Numeric,
+    /// `NAME kind KIND`: an entity of that kind, sent by name. Its value is the
+    /// entity's position in the kind, counted from 1 as `$index` counts.
+    Entity {
+        kind: String,
+        members: Vec<String>,
+    },
+    /// `NAME in A B C`: one of these names, sent as text. Its value is the
+    /// name's position, counted from 1.
+    Member {
+        members: Vec<String>,
+    },
+}
+
+impl ParameterDomain {
+    fn is_numeric(&self) -> bool {
+        matches!(self, Self::Numeric)
+    }
+
+    fn members(&self) -> &[String] {
+        match self {
+            Self::Numeric => &[],
+            Self::Entity { members, .. } | Self::Member { members } => members,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -863,6 +896,38 @@ impl ReactiveSession {
                     );
                 }
                 Directive::Event { name, parameters } => {
+                    let mut parameters = parameters.clone();
+                    for parameter in &mut parameters {
+                        if let ParameterDomain::Entity { kind, members } = &mut parameter.domain {
+                            *members = session
+                                .world
+                                .entities
+                                .iter()
+                                .filter(|entity| entity.kind == *kind)
+                                .map(|entity| entity.id.clone())
+                                .collect();
+                            if members.is_empty() {
+                                return Err(format!(
+                                    "parameter {} of event {name}: no entity is declared kind {kind}",
+                                    parameter.name
+                                ));
+                            }
+                            parameter.max = Number::parse(&members.len().to_string())?;
+                        }
+                        // PARAMETER.MEMBER names each value in source.
+                        for (position, member) in parameter.domain.members().iter().enumerate() {
+                            let constant = format!("{}.{member}", parameter.name);
+                            let value = (position + 1) as f64;
+                            if session
+                                .constants
+                                .insert(constant.clone(), value)
+                                .is_some_and(|previous| previous != value)
+                            {
+                                return Err(format!("{constant} already names a different value"));
+                            }
+                        }
+                    }
+                    let parameters = &parameters;
                     if session
                         .events
                         .insert(name.clone(), parameters.clone())
@@ -1581,10 +1646,51 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveSnapshot, String> {
+        let payload = self.resolve_payload(event, payload_json)?;
+        self.dispatch(event, &payload)
+    }
+
+    /// Parse a JSON payload and turn each typed parameter's name into its
+    /// position. Numeric parameters take numbers; typed parameters take the
+    /// name of an entity or member, or its position as a number. Bounds and the
+    /// exact parameter set are checked by `apply` as for any payload.
+    fn resolve_payload(
+        &self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<BTreeMap<String, f64>, String> {
         // Typed map parsing rejects duplicate fields instead of last-write wins.
-        let payload: NumericPayload = serde_json::from_str(payload_json)
+        let payload: Payload = serde_json::from_str(payload_json)
             .map_err(|error| format!("invalid event payload: {error}"))?;
-        self.dispatch(event, &payload.0)
+        let signature = self.events.get(event);
+        payload
+            .0
+            .into_iter()
+            .map(|(name, value)| {
+                let parameter = signature
+                    .and_then(|parameters| parameters.iter().find(|p| p.name == name));
+                let number = match (value, parameter.map(|p| &p.domain)) {
+                    (PayloadValue::Number(number), _) => number,
+                    (PayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
+                        let position = domain
+                            .members()
+                            .iter()
+                            .position(|member| *member == text)
+                            .ok_or_else(|| {
+                                format!(
+                                    "event {event} parameter {name} does not accept {text}; expected one of {}",
+                                    domain.members().join(", ")
+                                )
+                            })?;
+                        (position + 1) as f64
+                    }
+                    (PayloadValue::Text(_), _) => {
+                        return Err(format!("event {event} parameter {name} expects a number"))
+                    }
+                };
+                Ok((name, number))
+            })
+            .collect()
     }
 
     /// Run one event as a transaction. Any failure leaves the session as it was.
@@ -1668,9 +1774,8 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveView, String> {
-        let payload: NumericPayload = serde_json::from_str(payload_json)
-            .map_err(|error| format!("invalid event payload: {error}"))?;
-        self.apply(event, &payload.0)?;
+        let payload = self.resolve_payload(event, payload_json)?;
+        self.apply(event, &payload)?;
         Ok(self.view())
     }
 
@@ -2780,10 +2885,34 @@ pub(crate) fn parse_directive_at(
                                 name: identifier(name)?,
                                 min,
                                 max,
+                                domain: ParameterDomain::Numeric,
+                            });
+                        }
+                        // Bounds and members are filled in when the event is
+                        // registered, from the world's entities of that kind.
+                        [name, "kind", kind] => parameters.push(Parameter {
+                            name: identifier(name)?,
+                            min: Number::parse("1")?,
+                            max: Number::parse("1")?,
+                            domain: ParameterDomain::Entity {
+                                kind: identifier(kind)?,
+                                members: Vec::new(),
+                            },
+                        }),
+                        [name, "in", members @ ..] if !members.is_empty() => {
+                            let members = members
+                                .iter()
+                                .map(|member| identifier(member))
+                                .collect::<Result<Vec<_>, _>>()?;
+                            parameters.push(Parameter {
+                                name: identifier(name)?,
+                                min: Number::parse("1")?,
+                                max: Number::parse(&members.len().to_string())?,
+                                domain: ParameterDomain::Member { members },
                             });
                         }
                         _ => {
-                            return Err("event parameter must be NAME min NUMBER max NUMBER".into())
+                            return Err("event parameter must be NAME min NUMBER max NUMBER, NAME kind KIND, or NAME in NAME...".into())
                         }
                     }
                 }
@@ -3309,29 +3438,36 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
     }
 }
 
-struct NumericPayload(BTreeMap<String, f64>);
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum PayloadValue {
+    Number(f64),
+    Text(String),
+}
 
-impl<'de> serde::Deserialize<'de> for NumericPayload {
+struct Payload(BTreeMap<String, PayloadValue>);
+
+impl<'de> serde::Deserialize<'de> for Payload {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct Visitor;
         impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = NumericPayload;
+            type Value = Payload;
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("an object of unique numeric event parameters")
+                formatter.write_str("an object of unique event parameters")
             }
             fn visit_map<M: serde::de::MapAccess<'de>>(
                 self,
                 mut map: M,
             ) -> Result<Self::Value, M::Error> {
                 let mut values = BTreeMap::new();
-                while let Some((key, value)) = map.next_entry::<String, f64>()? {
+                while let Some((key, value)) = map.next_entry::<String, PayloadValue>()? {
                     if values.insert(key.clone(), value).is_some() {
                         return Err(serde::de::Error::custom(format!(
                             "duplicate parameter {key}"
                         )));
                     }
                 }
-                Ok(NumericPayload(values))
+                Ok(Payload(values))
             }
         }
         deserializer.deserialize_map(Visitor)
