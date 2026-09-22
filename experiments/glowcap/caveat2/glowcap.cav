@@ -9,6 +9,8 @@ entity grove kind mushroom at garden;
 claim glowing_is_safe;
 caveat tasted_in_dark consequence material;
 display tasted_in_dark "Tasted in the dark; taste can be wrong without light.";
+caveat taste_faded consequence material;
+display taste_faded "The taste has faded from memory.";
 
 // Sums of qualified observations: anything computed from them carries the
 // evidence behind it, and a label can cite them.
@@ -16,12 +18,14 @@ state support = 0;
 state contradiction = 0;
 state glow = 0 min 0 max 30;
 state heavy = 0 min 0 max 20;
+state now = 0;
 
 fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + number_text(count) + " observations.");
 
 event tick dt min 0 max 0.1;
 on tick set glow = max(0, glow - dt);
 on tick set heavy = max(0, heavy - dt);
+on tick set now = now + dt;
 
 for mushroom as $m {
     claim $m_is_glowcap;
@@ -34,6 +38,11 @@ for mushroom as $m {
     // One qualified unit per taste, carrying tasted_in_dark when there was no glow.
     state $m_taste = 0;
     state $m_dark = 0 min 0 max 1;
+    // Plain copies, read by the fade rules: a skipped rule adds its guard's lineage
+    // to what it would have set, so these guards must not read qualified state.
+    state $m_tasted_at = -1;
+    state $m_dusk = 0 min 0 max 1;
+    state $m_faded = 0 min 0 max 1;
 
     event absorb_$m dusk min 0 max 1;
     event taste_$m dusk min 0 max 1;
@@ -60,6 +69,14 @@ for mushroom as $m {
     on taste_$m when dusk == 0 and contradiction == 0 and not committed(trust) commit trust because enough using $m_taste;
     on taste_$m when dusk == 1 set contradiction = contradiction + $m_taste;
     on taste_$m when dusk == 1 and committed(trust) reopen trust because taste_$m;
+    on taste_$m set $m_tasted_at = now;
+    on taste_$m set $m_dusk = dusk;
+
+    // A taste fades after a minute: its evidence gains taste_faded wherever it is counted.
+    on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 set $m_known = $m_known + qualified(0, taste_$m, taste_faded);
+    on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 and $m_dusk == 0 set support = support + qualified(0, taste_$m, taste_faded);
+    on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 and $m_dusk == 1 set contradiction = contradiction + qualified(0, taste_$m, taste_faded);
+    on tick when $m_faded == 0 and $m_tasted_at >= 0 and now - $m_tasted_at >= 60 set $m_faded = 1;
 
     bind $m.present = $m_consumed == 0;
     bind $m.canAbsorb = $m_consumed == 0 and $m_known != 2 and ($m_known != 0 or contradiction < 2);
@@ -69,6 +86,8 @@ for mushroom as $m {
     bind $m.label = "Probably a glowcap (tasted in the dark)" when $m_consumed == 0 and $m_known == 1 and $m_dark == 1 because $m_known;
     bind $m.label = "Duskcap — avoid" when $m_consumed == 0 and $m_known == 2 and $m_dark == 0 because $m_known;
     bind $m.label = "Probably a duskcap (tasted in the dark)" when $m_consumed == 0 and $m_known == 2 and $m_dark == 1 because $m_known;
+    bind $m.label = "Probably a glowcap (taste has faded)" when $m_consumed == 0 and $m_known == 1 and $m_faded == 1 because $m_known;
+    bind $m.label = "Probably a duskcap (taste has faded)" when $m_consumed == 0 and $m_known == 2 and $m_faded == 1 because $m_known;
     bind $m.label = "Glowing mushroom" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction == 0 because nothing;
     bind $m.label = "Probably a glowcap" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction == 0 because support;
     bind $m.label = "Probably a duskcap" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction > 0 because contradiction;
