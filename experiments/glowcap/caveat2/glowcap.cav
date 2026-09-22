@@ -72,7 +72,7 @@ for mushroom as $m {
     bind $m.label = "Glowing mushroom" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction == 0 because nothing;
     bind $m.label = "Probably a glowcap" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction == 0 because support;
     bind $m.label = "Probably a duskcap" when $m_consumed == 0 and $m_known == 0 and support == 0 and contradiction > 0 because contradiction;
-    bind $m.label = "Could be a duskcap — taste first" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction > 0 because support, contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when $m_consumed == 0 and $m_known == 0 and support > 0 and contradiction > 0 because contradiction;
     // Twice bitten: after two contradictions only a known glowcap is absorbed.
     bind $m.label = "Too risky — taste first" when $m_consumed == 0 and $m_known == 0 and contradiction >= 2 because contradiction;
 };
