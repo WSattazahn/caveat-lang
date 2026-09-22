@@ -15,7 +15,9 @@
     "test:launch": "node scripts/test-launch.mjs",
     "package:game": "node scripts/package-standalone.mjs",
     "test:rescue": "node scripts/test-rescue.mjs",
-    "test:slime-glow": "node scripts/test-slime-glow.mjs"
+    "test:slime-glow": "node scripts/test-slime-glow.mjs",
+    "test:glowcap": "node scripts/test-glowcap.mjs",
+    "test:glowcap-page": "node scripts/test-glowcap-page.mjs"
   },
   "dependencies": {
     "three": "0.186.0"
