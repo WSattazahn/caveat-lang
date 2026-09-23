@@ -23,8 +23,14 @@ event tick dt min 0 max 0.1;
 
 State initializers are numeric expressions. They can reference previously
 declared states and read-only source positions. Explicit state bounds are
-optional; the default is `-1e12..1e12`. Values are finite double-precision
-numbers. Out-of-range results reject the event; they are not silently clamped.
+optional; the default is `-1e12..1e12`. This is also the hard inclusive limit:
+explicit state bounds and numeric event parameter bounds must have finite
+endpoints satisfying `-1e12 <= min <= max <= 1e12`. An explicit declaration
+cannot widen that limit.
+
+Values are finite double-precision numbers. State initializers must fit their
+declared range. An assignment outside that range rejects the entire event
+atomically, including any earlier effects; values are not silently clamped.
 Use the `clamp` function when saturation is intended.
 
 Each event declares all its numeric parameters and their required inclusive

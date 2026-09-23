@@ -66,6 +66,17 @@ functions, not the rest of their containing program.
 5. Change one policy and replay the same inputs. Check both the changed decision
    and the records that should remain unchanged.
 
+Plan numeric ranges before writing accumulators or clocks. State and numeric
+event bounds must be finite, ordered, and within the inclusive hard limit
+`-1e12..1e12`; an explicit larger `max` is invalid even when the initial value
+fits. For a state accumulator such as `total = total + dt`, choose its units,
+maximum supported duration, and representation so every update fits the
+declared range. If the required duration would overflow it, redesign the
+representation before coding. Exceeding the range rejects the whole event,
+without advancing that accumulator. A state accumulator and the runtime's
+snapshot `elapsed` are separate values; this state-bound rule does not specify
+the runtime clock's limit. Validate early and replay boundary cases.
+
 For the thermostat fixture, the input sequence is 17, 25, 17. The expected
 heating bases are 1, 0, 1, with three distinct temperature occurrences and
 three decision revisions. Each revision retains the calibration caveat. The
@@ -113,17 +124,23 @@ are sets. Older saves can omit the two new fields, so generic consumers should
 treat their absence as unknown. Saved records are checked for internal
 consistency; an unsigned save is not proof that its history really occurred.
 
-## What would demonstrate AI usefulness
-
-The tooling enables an experiment; it does not establish that agents write
-Caveat more reliably or cheaply than another language. A fair comparison gives
-the same model the same task, time/tool budget, and independent input histories.
-Compare Caveat against TypeScript with equivalent provenance support. Check
-behavior, dependency preservation, valid revisions, repair attempts, token cost,
-and execution overhead. Count unsupported claims about evidence as failures.
+## Evidence from fresh authors
 
 The [first authoring pilot](AI_AUTHORING_PILOT.md) supplied this guide, language
-references, and a task to a fresh agent. Its first candidate passed, and the
-original source and independent verification are retained. This demonstrates
-documentation sufficiency for that example; broader adoption needs repeated
-tasks, comparative measurements, and independent users.
+references and a task to one fresh agent. Its first candidate passed; the
+original source and independent verification are retained.
+
+A later [six-context study](../experiments/agent-authoring/v1/RESULTS.md) used
+three preregistered tasks, two authors per task, three source versions and
+twelve runtime checks per author. Authors received no private-test feedback.
+Two first submissions and all six final submissions passed the registered
+corpus, including exact grounds, journal order, atomic rejection and restore.
+All four first-source failures involved the numeric declaration ceiling; the
+guidance above was clarified afterward, with the original packet preserved.
+
+Two final sources still reject valid advances beyond their accumulated clock
+cap, and the other two clock representations have untested large-time paths.
+Those limits stay in the results. The evidence supports authoring these
+specified policies with self-directed repair; it does not establish complete
+correctness, reliability across models, or an authoring cost advantage. Keep
+independent policy checks and explicit duration/capacity contracts in the loop.

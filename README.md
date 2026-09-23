@@ -26,6 +26,15 @@ that have gone stale. The journal now preserves elapsed time and the chosen
 numeric value, and restore checks its consistency with commitments and evidence.
 See the [implementation record](experiments/trail-rescue/RESULTS.md).
 
+**Fresh-agent authoring:** six fresh contexts authored three specified policies
+using a frozen documentation packet, without private-test feedback. Two first
+submissions and all six final submissions passed the registered corpus: 20,512
+final-source events and 4,788 restores. All four initial failures exposed an
+unclear numeric-bound restriction, now documented. Two final programs still
+have known clock-horizon contract violations outside the corpus. The
+[study report](experiments/agent-authoring/v1/RESULTS.md) preserves those limits,
+every revision and the independent verification.
+
 ## What only Caveat does
 
 | | Caveat | A general-purpose language |
