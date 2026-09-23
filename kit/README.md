@@ -1,20 +1,38 @@
-# Caveat developer kit (unpublished)
+# caveat-lang
 
-A session library and scenario runner for reactive Caveat programs in Node.
-It lives in this repository as a private package. Its name, version and
-bundled runtime are release decisions in the
-[consolidation plan](../docs/CONSOLIDATION_PLAN.md). Until then it uses the
-repository build, so run `npm run build` first.
+A bundled WebAssembly runtime, session library and scenario runner for reactive
+Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
+
+The selected release candidate is **`caveat-lang@0.1.0-rc.1`**, with the command
+`caveat` and npm publication tag `next`. It is not published: `private: true`
+stays set until publishing is explicitly authorized. The package can be
+installed from a tested tarball without Rust:
+
+```sh
+npm install ./caveat-lang-0.1.0-rc.1.tgz
+npx --no-install caveat test my.scenarios.json
+```
+
+Program and scenario files are supplied by the caller; the tarball does not
+include the repository's examples or test suites.
 
 ## Run scenario files
 
+From an installed tarball:
+
 ```sh
-node kit/bin/caveat.mjs test examples/thermostat_history.scenarios.json
-node kit/bin/caveat.mjs test --json a.scenarios.json b.scenarios.json
-node kit/bin/caveat.mjs test --runtime path/to/pkg-reactive file.scenarios.json
+npx --no-install caveat test --json a.scenarios.json b.scenarios.json
+npx --no-install caveat test --runtime path/to/pkg-reactive file.scenarios.json
 ```
 
-Files follow [Scenarios 0.1](../spec/caveat-scenarios-0.1.md). Every file is
+From a repository checkout, build the runtime first:
+
+```sh
+npm run build
+node kit/bin/caveat.mjs test examples/thermostat_history.scenarios.json
+```
+
+Files follow [Scenarios 0.1](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/spec/caveat-scenarios-0.1.md). Every file is
 validated before anything runs. Exit status is 0 when every scenario passes,
 1 when one fails, and 2 when a file is invalid or the runtime cannot load.
 
@@ -26,12 +44,16 @@ FAIL R01 step 8 send [primary]: expected a policy rejection; got input/bound_exc
 
 ## Use a session from code
 
+With the package installed, save the
+[thermostat example](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/examples/thermostat_history.cav)
+as `thermostat_history.cav` alongside this code:
+
 ```js
 import { readFile } from 'node:fs/promises';
-import { loadRuntimeFromDirectory } from './kit/lib/node.mjs';
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
 
-const source = await readFile('examples/thermostat_history.cav', 'utf8');
-const runtime = await loadRuntimeFromDirectory();   // dist/pkg-reactive by default
+const source = await readFile(new URL('./thermostat_history.cav', import.meta.url), 'utf8');
+const runtime = await loadRuntimeFromDirectory();   // uses the bundled runtime
 const session = runtime.open(source);
 
 const outcome = session.dispatch('read', { value: 17 });
@@ -45,8 +67,11 @@ session.close();
 resumed.close();
 ```
 
+In the repository, import from `./kit/lib/node.mjs` instead; its default runtime
+is the build in `dist/pkg-reactive`.
+
 Rejections are values, following the
-[dispatch outcome contract](../spec/caveat-dispatch-0.1.md). Everything else
+[dispatch outcome contract](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/spec/caveat-dispatch-0.1.md). Everything else
 throws a `CaveatError` with a `kind`:
 
 | `kind` | Meaning |
@@ -66,18 +91,20 @@ instance, and `loadRuntime()` given a module URL imports a fresh copy once the
 earlier instance has trapped.
 
 In a browser, `lib/session.mjs` and `lib/scenarios.mjs` need no Node APIs.
-Load the runtime from URLs:
+Serve the installed files over HTTP and load the runtime from URLs (adjust
+these paths to your server layout):
 
 ```js
-import { loadRuntime } from './node_modules/caveat-kit/lib/session.mjs';
+import { loadRuntime } from './node_modules/caveat-lang/lib/session.mjs';
 const runtime = await loadRuntime({
-  module: new URL('./node_modules/caveat-kit/runtime/caveat_runtime.js', location.href).href,
-  wasm: new URL('./node_modules/caveat-kit/runtime/caveat_runtime_bg.wasm', location.href),
+  module: new URL('./node_modules/caveat-lang/runtime/caveat_runtime.js', location.href).href,
+  wasm: new URL('./node_modules/caveat-lang/runtime/caveat_runtime_bg.wasm', location.href),
 });
 ```
 
 ## Tests
 
+These commands run from a repository checkout, after `npm run build`.
 `npm run test:kit` covers:
 
 - validation and matching rules, including repeated elements in `$set` and
@@ -88,11 +115,11 @@ const runtime = await loadRuntime({
   loses history, a resumed session that diverges or disagrees, grounds outside
   lineage, fatal reports, unrecognised outcomes and traps. Each is caught and
   the misbehaving session is named;
-- the [spec evidence](../experiments/scenario-format/README.md) fixtures and
+- the [spec evidence](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/experiments/scenario-format/README.md) fixtures and
   the CLI's exit codes.
 
 `npm run test:scenario-conversion` runs the
-[converted Trail Rescue and Glowcap suites](../experiments/scenario-conversion/README.md).
+[converted Trail Rescue and Glowcap suites](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/experiments/scenario-conversion/README.md).
 
 `npm run test:kit-browser` runs the session library and the scenario runner
 in Chromium: the runtime loaded from URLs, typed outcomes, refused input that
@@ -107,19 +134,28 @@ with `fetch`, including a failing one. Set `PLAYWRIGHT_CHANNEL=chrome` or
 never uses a stale copy. It installs the tarball offline into a fresh consumer
 directory under `test-results/kit-package/` and uses it only through the
 install: the `caveat` command (exit statuses 0, 1 and 2), the library imported
-as `caveat-kit/node`, `caveat-kit/session` and `caveat-kit/scenarios`, and the
+as `caveat-lang/node`, `caveat-lang/session` and `caveat-lang/scenarios`, and the
 browser check above. The tarball holds the command, the three library files,
 the runtime, this README, the license and the notices, and nothing else.
 
 The package is MIT licensed. Packing copies the repository's `LICENSE` and
 `THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the
-tarball, and the test checks both arrive unchanged. This is a packaging test,
-not a release: the name and version are unset, and a release packs the
-verified Linux runtime.
+tarball, and the test checks both arrive unchanged.
+
+CI already runs this packaging test against the runtime built by its Linux
+core job. It retains the exact tested `.tgz`, the test report with its SHA-256,
+`build-info.json` and `SHA256SUMS` together as an artifact. A local Windows run
+checks packaging locally; the release candidate must use the tested Linux
+artifact from the intended release commit. The current private tarball is for
+evaluation. Once publishing is authorized, commit the removal of `private`,
+rebuild and retest the candidate on Linux, then publish that exact tested
+tarball under the `next` tag. See the
+[consolidation plan](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/docs/CONSOLIDATION_PLAN.md)
+for the remaining release gates.
 
 ## Not yet
 
 - `init`, `validate` and `replay` commands.
-- A package name and version chosen for release.
+- Publication on npm.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.

@@ -1,8 +1,8 @@
 {
-  "name": "caveat-kit",
-  "version": "0.0.0",
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.1",
   "private": true,
-  "description": "Run Caveat reactive programs and scenario files from Node. Unpublished: name, version and runtime bundling are decided at release.",
+  "description": "The Caveat reactive runtime with a session library and scenario runner for Node and browsers.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -25,6 +25,9 @@
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
+  "publishConfig": {
+    "tag": "next"
+  },
   "scripts": {
     "test": "node --test"
   }

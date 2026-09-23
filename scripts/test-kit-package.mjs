@@ -6,8 +6,9 @@
 //   node scripts/test-kit-package.mjs            PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //   node scripts/test-kit-package.mjs --no-browser
 //
-// This is a packaging test, not a release: the name and version are unset,
-// and a release packs the verified Linux runtime (docs/CONSOLIDATION_PLAN.md).
+// In CI the runtime comes from the Linux build, and the job keeps the tested
+// tarball with this report, build-info.json and SHA256SUMS. Publishing it is
+// a separate, authorized step (docs/CONSOLIDATION_PLAN.md).
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -25,6 +26,7 @@ const run = path.join(root, 'test-results', 'kit-package', new Date().toISOStrin
 const consumer = path.join(run, 'consumer');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const RUNTIME_FILES = ['caveat_runtime.js', 'caveat_runtime_bg.wasm'];
+const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
 // Caveat's license and the notices of the crates compiled into the runtime.
 const LEGAL_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
 
@@ -73,9 +75,16 @@ try {
     'runtime/build-info.json', 'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm',
   ], 'the tarball holds exactly the library, command, runtime, README, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
+  assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
   tarball = path.join(run, packed.filename);
   const bytes = await readFile(tarball);
-  Object.assign(report, { tarball: packed.filename, size: bytes.length, sha256: sha256(bytes), files });
+  Object.assign(report, {
+    name: manifest.name, version: manifest.version, distTag: manifest.publishConfig?.tag ?? null,
+    private: manifest.private === true,
+    tarball: packed.filename, size: bytes.length, sha256: sha256(bytes), files,
+  });
+  // The build that produced the packed runtime, kept beside the tarball.
+  await copyFile(path.join(dist, 'build-info.json'), path.join(run, 'build-info.json'));
 } finally {
   await removeRuntime();
 }
@@ -87,10 +96,16 @@ npm(['install', tarball, '--offline', '--ignore-scripts', '--no-audit', '--no-fu
 for (const file of ['thermostat_history.cav', 'thermostat_history.scenarios.json']) {
   await copyFile(path.join(root, 'examples', file), path.join(consumer, file));
 }
-const installed = path.join(consumer, 'node_modules', 'caveat-kit');
+const installed = path.join(consumer, 'node_modules', manifest.name);
+const installedManifest = JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8'));
+for (const key of ['name', 'version', 'private', 'publishConfig', 'bin', 'exports']) {
+  assert.deepEqual(installedManifest[key], manifest[key], `installed package preserves ${key}`);
+}
 for (const file of RUNTIME_FILES) {
   assert.equal(sha256(await readFile(path.join(installed, 'runtime', file))), sha256(await readFile(path.join(dist, 'pkg-reactive', file))), `installed ${file} matches the build`);
 }
+assert.equal(await readFile(path.join(installed, 'runtime', 'build-info.json'), 'utf8'),
+  await readFile(path.join(run, 'build-info.json'), 'utf8'), 'retained build metadata matches the installed runtime');
 assert.ok(['caveat', 'caveat.cmd'].some(name => existsSync(path.join(consumer, 'node_modules', '.bin', name))), 'npm linked the caveat command');
 report.checks.install = true;
 
@@ -99,7 +114,7 @@ for (const file of LEGAL_FILES) {
   assert.equal(await readFile(path.join(installed, file), 'utf8'), await readFile(path.join(root, file), 'utf8'), `installed ${file} matches the repository`);
 }
 assert.match(await readFile(path.join(installed, 'LICENSE'), 'utf8'), /^MIT License\n/);
-assert.equal(JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8')).license, 'MIT');
+assert.equal(installedManifest.license, 'MIT');
 report.checks.license = 'MIT';
 
 // The command, by its installed path.
@@ -125,9 +140,9 @@ await writeFile(path.join(consumer, 'clock.cav'), CLOCK_SOURCE);
 await writeFile(path.join(consumer, 'use.mjs'), `
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadRuntimeFromDirectory } from 'caveat-kit/node';
-import { CaveatError } from 'caveat-kit/session';
-import { parseScenarioFile } from 'caveat-kit/scenarios';
+import { loadRuntimeFromDirectory } from '${manifest.name}/node';
+import { CaveatError } from '${manifest.name}/session';
+import { parseScenarioFile } from '${manifest.name}/scenarios';
 const runtime = await loadRuntimeFromDirectory();
 const source = await readFile('thermostat_history.cav', 'utf8');
 const session = runtime.open(source);
@@ -155,11 +170,20 @@ report.checks.library = true;
 
 // The session library and runner in a browser, loaded from the installed package.
 if (!process.argv.includes('--no-browser')) {
-  const outcome = await checkKitInBrowser({ root: consumer, kit: '/node_modules/caveat-kit/lib/', runtime: '/node_modules/caveat-kit/runtime/', examples: '/' });
+  const outcome = await checkKitInBrowser({ root: consumer, kit: `/node_modules/${manifest.name}/lib/`, runtime: `/node_modules/${manifest.name}/runtime/`, examples: '/' });
   assertBrowserResults(outcome);
   report.checks.browser = outcome.browser;
 }
 
 await writeFile(path.join(run, 'report.json'), `${JSON.stringify(report, null, 2)}\n`);
+// These are the exact files CI retains. Write the checksum manifest only once
+// every package check has passed; do not pack a second tarball for uploading.
+const checksums = [];
+for (const file of [report.tarball, 'report.json', 'build-info.json']) {
+  const digest = sha256(await readFile(path.join(run, file)));
+  if (file === report.tarball) assert.equal(digest, report.sha256, 'the tested tarball is unchanged');
+  checksums.push(`${digest}  ${file}`);
+}
+await writeFile(path.join(run, 'SHA256SUMS'), `${checksums.join('\n')}\n`);
 console.log(`Packed kit checks pass: ${report.tarball}, ${report.size} bytes, sha256 ${report.sha256}`);
 console.log(`Installed from the tarball: command, library${report.checks.browser ? ` and browser (${report.checks.browser})` : ''}. Report: ${path.relative(root, path.join(run, 'report.json'))}`);

@@ -178,12 +178,25 @@ jobs:
       - name: Developer kit session library and runner in Chromium
         run: npm run test:kit-browser
       - name: Pack the developer kit and use it from a fresh install
+        id: kit_package
         run: npm run test:kit-package
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: kit-package-report
           path: test-results/kit-package/*/report.json
+      - name: Retain the tested developer kit candidate
+        uses: actions/upload-artifact@v7
+        if: steps.kit_package.outcome == 'success'
+        with:
+          name: kit-package-candidate
+          path: |
+            test-results/kit-package/*/*.tgz
+            test-results/kit-package/*/report.json
+            test-results/kit-package/*/build-info.json
+            test-results/kit-package/*/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
       - uses: actions/upload-artifact@v7
         if: always()
         with:
