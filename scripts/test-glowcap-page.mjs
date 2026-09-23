@@ -1,6 +1,7 @@
-// Plays web/glowcap.html in a real browser: every label, the belief, the trust
-// journal and the late-caveat feed must come through, with no console errors.
-// Run after `npm run build`. SITE_URL tests a deployed copy instead.
+// Plays web/glowcap.html in a real browser: the "Change what you know" steps,
+// then every label, the belief, the trust journal and the late-caveat feed must
+// come through, with no console errors. Run after `npm run build`. SITE_URL
+// tests a deployed copy instead; PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome.
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -39,7 +40,7 @@ const click = (page, act, id) => page.locator(`button[data-act="${act}"][data-id
 
 await mkdir(results, { recursive: true });
 await startServer();
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {});
 try {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
   const errors = [];
@@ -47,6 +48,30 @@ try {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto(url);
   await page.waitForFunction(() => window.__glowcap !== undefined);
+
+  // Change what you know: decide, learn something new, and see what changed,
+  // why the decision reopened, and the original reasons kept.
+  assert.equal(await page.locator('#change-learn').isDisabled(), true);
+  assert.equal(await page.locator('#change-result').isVisible(), false);
+  assert.equal(await page.locator('#change-question').isVisible(), false);
+  await page.locator('#change-decide').click();
+  assert.equal(await page.locator('#change-decision').innerText(), 'Decision: Started trusting glowing mushrooms because you absorbed the cave mushroom.');
+  await page.locator('#change-learn').click();
+  const changed = await page.locator('#change-diff').innerText();
+  assert.match(changed, /Trust decision: trusting glowing mushrooms → reopened, not trusting/);
+  assert.match(changed, /Belief: Probably safe → Uncertain/);
+  assert.match(changed, /ruin mushroom: Probably a glowcap → Could be a duskcap — taste first/);
+  assert.match(changed, /pool mushroom: Probably a glowcap → absorbed/);
+  assert.equal(await page.locator('#change-why').innerText(), 'Stopped trusting glowing mushrooms because you absorbed the pool mushroom.');
+  assert.match(await page.locator('#change-kept').innerText(), /^Started trusting glowing mushrooms because you absorbed the cave mushroom\.\s+Kept exactly as it was when the decision was made\.$/);
+  assert.equal(await page.locator('#change-question').innerText(), 'What would your program need to learn to change its mind?');
+  await page.locator('#change').screenshot({ path: path.join(results, 'glowcap-change.png') });
+  // The guided steps use their own session: the garden below has not moved.
+  assert.equal(await page.locator('#journal').innerText(), '');
+  await page.locator('#change-again').click();
+  assert.equal(await page.locator('#change-decide').isDisabled(), false);
+  assert.equal(await page.locator('#change-result').isVisible(), false);
+  assert.equal(await page.locator('#change-question').isVisible(), false);
 
   assert.equal(await label(page, 'pool'), 'Glowing mushroom');
   assert.match(await why(page, 'pool'), /nothing is claimed/);
@@ -77,8 +102,19 @@ try {
   assert.match(await page.locator('#journal').innerText(), /Trusted glowing mushrooms again/);
 
   await page.screenshot({ path: path.join(results, 'glowcap-page.png'), fullPage: true });
+
+  // On a phone the guided steps fit without sideways scrolling.
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  phone.on('pageerror', (error) => errors.push(error.message));
+  await phone.goto(url);
+  await phone.waitForFunction(() => window.__glowcap !== undefined);
+  await phone.locator('#change-decide').click();
+  await phone.locator('#change-learn').click();
+  assert.equal(await phone.locator('#change-question').isVisible(), true);
+  assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'no horizontal scroll on a phone');
+  await phone.locator('#change').screenshot({ path: path.join(results, 'glowcap-change-phone.png') });
   assert.deepEqual(errors, []);
-  console.log('Glowcap page plays through: labels, belief, journal and late caveats render from the runtime.');
+  console.log('Glowcap page plays through: "Change what you know", labels, belief, journal and late caveats render from the runtime.');
 } finally {
   await browser.close();
   server?.kill();

@@ -112,6 +112,33 @@ host reads it; nobody writes it.
 
 ## The Caveatist way
 
+> Say what you know, and what it rests on.  
+> Carry the caveats honestly.  
+> Give uncertainty the attention its consequences deserve.  
+> Act when there is enough to proceed.  
+> Remember why you chose, and remain willing to choose again.
+
+Each line has a mechanism in the language:
+
+- **What it rests on.** Observations are evidence, and `because` cites what a
+  value rests on. The runtime rejects a citation the value never read.
+- **Caveats, carried.** A caveat qualifies evidence and travels through every
+  sum, comparison and label built on it. `qualify … with …` reaches everything
+  current when you learn something late.
+- **Attention to consequences.** A caveat declares its consequence (`low`,
+  `material` or `high`), and `examine … cost …` spends the program's
+  attention `budget`.
+- **Enough to proceed.** `commit … because enough retaining …` acts while the
+  caveat stays on record.
+- **Willing to choose again.** `reopen … because …` revises a decision, and
+  the decision journal keeps every revision with the grounds it used.
+
+These are principles for how Caveat programs are written, not conditions on
+using Caveat. Try them in
+[Change what you know](https://wsattazahn.github.io/caveat-lang/glowcap.html).
+
+The working rules behind them:
+
 1. **Say what you know, and how you know it.** Observations are evidence.
    Derived values carry it.
 2. **Never let an explanation lie.** Cite what a value rests on, and let the

@@ -1,6 +1,17 @@
 # CAVEAT
 
-**Code that knows why.**
+**Programs that remember why.** For the thinking behind it, read
+[The Caveatist way](docs/WHY_CAVEAT.md#the-caveatist-way).
+
+> Say what you know, and what it rests on.  
+> Carry the caveats honestly.  
+> Give uncertainty the attention its consequences deserve.  
+> Act when there is enough to proceed.  
+> Remember why you chose, and remain willing to choose again.
+
+These are the project's principles. They are not additional license
+conditions: Caveat is under the [MIT License](LICENSE), and using it does not
+require adopting them.
 
 Caveat is a programming language for programs that act on what they know and keep track of how they know it:
 
@@ -10,6 +21,8 @@ Caveat is a programming language for programs that act on what they know and kee
 - **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
+
+Start with **Change what you know** at the top of that page. Make a decision in one click, learn something new in a second, and see what changed, why the decision reopened, and the original reasons it kept.
 
 **Trail Rescue** is a new, complete mechanic: spend three scout tokens, weigh
 fallible reports, choose a tunnel and reconsider when its evidence changes or

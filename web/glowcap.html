@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0f1720">
+  <link rel="icon" href="data:,">
   <title>Glowcap or duskcap — code that knows why</title>
   <style>
     :root{
@@ -82,6 +83,25 @@
     pre{margin:0;padding:10px 12px;border-radius:12px;background:#0a1016;border:1px solid var(--line);overflow:auto;font-size:12.5px;line-height:1.5;color:#dfe8e3}
     footer{margin-top:26px;color:var(--muted);font-size:14px;line-height:1.6}
     footer a{color:var(--glow)}
+    .change{margin-top:22px}
+    .change > p{margin:0 0 12px;color:#d8d4cc;line-height:1.5}
+    .change ol.steps{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+    .change .step{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+    .change .go{border-radius:12px;padding:10px 14px;border:1px solid rgba(155,231,196,.55);background:rgba(155,231,196,.1);color:var(--ink)}
+    .change .go:hover:not(:disabled){background:rgba(155,231,196,.18)}
+    .change .go:disabled{opacity:.4;cursor:default}
+    .change .said{margin:0;line-height:1.45}
+    .change .said .because{color:var(--muted)}
+    .change .result{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:4px}
+    .change .result > div{padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.16)}
+    .change .result h3{margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .change .result ul{margin:0;padding-left:18px;line-height:1.45}
+    .change .result p{margin:0;line-height:1.45}
+    .change .kept{color:var(--glow);font-size:14px}
+    .change .question{margin:14px 0 0;font-size:18px}
+    .change .question + .ghost{margin-top:10px}
+    /* Layout rules above set display; hidden parts must still hide. */
+    .change .result[hidden],.change [hidden]{display:none}
   </style>
 </head>
 <body>
@@ -94,6 +114,27 @@
     and the runtime checks the answer: an explanation may leave things out, but it can
     never cite something that didn't count.
   </p>
+
+  <section class="panel change" id="change" aria-labelledby="change-title">
+    <h2 id="change-title">Change what you know</h2>
+    <p>Make a decision, then learn something new. See what changed, why the decision reopened, and what it still remembers.</p>
+    <ol class="steps">
+      <li class="step">
+        <button class="go" id="change-decide">1 · Absorb the cave mushroom</button>
+        <p class="said" id="change-decision" aria-live="polite"></p>
+      </li>
+      <li class="step">
+        <button class="go" id="change-learn" disabled>2 · Absorb the pool mushroom — it looks just the same</button>
+      </li>
+    </ol>
+    <div class="result" id="change-result" aria-live="polite" hidden>
+      <div><h3>What changed</h3><ul id="change-diff"></ul></div>
+      <div><h3>Why the decision reopened</h3><p id="change-why"></p></div>
+      <div><h3>The original reasons</h3><p id="change-kept"></p></div>
+    </div>
+    <p class="question" id="change-question" hidden><strong>What would your program need to learn to change its mind?</strong></p>
+    <button class="ghost" id="change-again" hidden>Start again</button>
+  </section>
 
   <section class="status" aria-label="Slime">
     <span class="pill glow" id="glow">Glow <b>0 s</b></span>
@@ -310,6 +351,83 @@
     requestAnimationFrame(frame);
   }
 
+  // "Change what you know": the same program in a separate session, so the
+  // guided steps never disturb the garden. Caveat makes and reopens the
+  // decision; this code only compares what it showed before and after.
+  let change, changeWords, changeIds, decided;
+  const TRUST_STATES = { none: 'no decision', committed: 'trusting glowing mushrooms', reopened: 'reopened, not trusting' };
+
+  function changeStart() {
+    change?.free();
+    change = new WebReactiveSession(source);
+    const snapshot = JSON.parse(change.snapshot());
+    changeWords = glossary(snapshot);
+    changeIds = snapshot.world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
+    decided = null;
+    $('change-decide').disabled = false;
+    $('change-learn').disabled = true;
+    $('change-decision').innerHTML = '';
+    $('change-result').hidden = true;
+    $('change-question').hidden = true;
+    $('change-again').hidden = true;
+  }
+
+  function changeAct(id) {
+    try {
+      return JSON.parse(change.dispatch_view('absorb', JSON.stringify({ target: id, sort: TRUTH[id] })));
+    } catch (error) {
+      $('change-decision').innerHTML = `<b>Rejected:</b> ${esc(rejection(error))}.`;
+      return null;
+    }
+  }
+
+  // What someone sees: the trust decision, the belief, and each mushroom's label.
+  function seen(view) {
+    return {
+      trust: TRUST_STATES[view.bindings.decision.state] ?? view.bindings.decision.state,
+      belief: beliefCard(view, changeWords).title,
+      labels: Object.fromEntries(mushroomCards(view, changeWords, changeIds).map((card) => [card.id, card.present ? card.label : 'absorbed'])),
+    };
+  }
+
+  const line = (entry) => `<b>${esc(entry.text)}</b> <span class="because">${because(entry.because)}${entry.caveats.length ? `; ${entry.caveats.map(esc).join('; ')}` : ''}.</span>`;
+
+  $('change-decide').addEventListener('click', () => {
+    const view = changeAct('cave');
+    if (!view) return;
+    const [first] = journalLines(view, changeWords);
+    decided = { view, seen: seen(view), entry: JSON.stringify(view.decision_journal[0]) };
+    $('change-decision').innerHTML = first ? `Decision: ${line(first)}` : 'No decision yet.';
+    $('change-decide').disabled = true;
+    $('change-learn').disabled = false;
+  });
+
+  $('change-learn').addEventListener('click', () => {
+    const view = changeAct('pool');
+    if (!view) return;
+    const before = decided.seen;
+    const after = seen(view);
+    const changes = [];
+    if (before.trust !== after.trust) changes.push(`Trust decision: ${before.trust} → <b>${esc(after.trust)}</b>`);
+    if (before.belief !== after.belief) changes.push(`Belief: ${esc(before.belief)} → <b>${esc(after.belief)}</b>`);
+    for (const id of changeIds) {
+      if (before.labels[id] !== after.labels[id]) changes.push(`${esc(id)} mushroom: ${esc(before.labels[id])} → <b>${esc(after.labels[id])}</b>`);
+    }
+    $('change-diff').innerHTML = changes.map((item) => `<li>${item}</li>`).join('');
+    const lines = journalLines(view, changeWords);
+    const reopened = lines.filter((entry) => entry.change === 'reopened').at(-1);
+    $('change-why').innerHTML = reopened ? line(reopened) : 'The decision did not reopen.';
+    const kept = JSON.stringify(view.decision_journal[0]) === decided.entry;
+    $('change-kept').innerHTML = `${line(lines[0])}<br><span class="kept">${kept ? 'Kept exactly as it was when the decision was made.' : 'This record changed.'}</span>`;
+    $('change-result').hidden = false;
+    $('change-question').hidden = false;
+    $('change-again').hidden = false;
+    $('change-learn').disabled = true;
+  });
+
+  $('change-again').addEventListener('click', changeStart);
+
+  changeStart();
   start();
   render();
   requestAnimationFrame(frame);
