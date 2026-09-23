@@ -23,6 +23,11 @@ const MAX_PROCEDURE_PARAMETERS: usize = 32;
 const MAX_PROCEDURE_STEPS: usize = 4096;
 const MAX_PROCEDURE_DEPTH: usize = 64;
 const MAX_EVENT_STEPS: usize = 4096;
+const MAX_RENEWAL_LIMIT: usize = 1024;
+const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
+/// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
+/// prefix and the caveat, so it travels through every predicate path.
+const CARRIES: &str = "carries:";
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
@@ -152,6 +157,14 @@ pub enum Effect {
     Qualify {
         evidence: String,
         caveat: String,
+        /// `after SECONDS`: apply once that much time has passed, to the
+        /// occurrence current now. See spec/caveat-renewal-0.1.md.
+        after: Option<Expr>,
+    },
+    /// Give renewable evidence a new occurrence: from now on its name means a
+    /// new, unobserved piece of evidence. See spec/caveat-renewal-0.1.md.
+    Renew {
+        evidence: String,
     },
     Set {
         name: String,
@@ -241,6 +254,9 @@ fn expand_effect(
         Effect::Sample { value, .. }
         | Effect::Commit {
             using: Some(value), ..
+        }
+        | Effect::Qualify {
+            after: Some(value), ..
         } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
         }
@@ -289,6 +305,11 @@ pub enum Directive {
     },
     Decisions {
         name: String,
+        limit: usize,
+    },
+    /// `renewable EVIDENCE limit N;`
+    Renewable {
+        evidence: String,
         limit: usize,
     },
     Function(FunctionDef),
@@ -469,6 +490,32 @@ pub struct DecisionSeries {
     pub selection_qualifications: Provenance,
 }
 
+/// Evidence that can be renewed, and every occurrence it has had. See
+/// spec/caveat-renewal-0.1.md.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Renewal {
+    pub limit: usize,
+    /// First to current: the declared name, then `NAME@2`, `NAME@3`, ...
+    pub occurrences: Vec<String>,
+    /// The caveats declared on the evidence. Every occurrence inherits them.
+    #[serde(skip)]
+    template_caveats: Vec<NodeId>,
+}
+
+/// `qualify EVIDENCE with CAVEAT after SECONDS`, waiting for its time.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ScheduledQualification {
+    /// The occurrence that was current when it was scheduled.
+    pub evidence: String,
+    pub caveat: String,
+    /// The elapsed time when it was scheduled, and how long after that it applies.
+    pub scheduled_at: f64,
+    pub after: f64,
+    /// The scheduling rule's guard and the delay's lineage, which join the
+    /// lineage of what it qualifies.
+    pub guard: Provenance,
+}
+
 #[derive(Debug, Clone)]
 struct StateRange {
     min: f64,
@@ -619,11 +666,16 @@ impl<'a> OrderStep<'a> {
                 using: Some(value), ..
             } => expressions.push(value),
             Effect::Call { arguments, .. } => expressions.extend(arguments),
-            Effect::Qualify { evidence, .. } => uses.push((
-                evidence.clone(),
-                guard.clone(),
-                format!("qualify {evidence}"),
-            )),
+            Effect::Qualify {
+                evidence, after, ..
+            } => {
+                uses.push((
+                    evidence.clone(),
+                    guard.clone(),
+                    format!("qualify {evidence}"),
+                ));
+                expressions.extend(after);
+            }
             Effect::Reopen {
                 because: EvidenceSelector::Named(evidence),
                 ..
@@ -694,7 +746,8 @@ impl Changes {
             || !same(&old.commitment_bases, &new.commitment_bases)
             || !same(&old.commitment_grounds, &new.commitment_grounds)
             || !same(&old.reading_streams, &new.reading_streams)
-            || !same(&old.decision_series, &new.decision_series);
+            || !same(&old.decision_series, &new.decision_series)
+            || !same(&old.renewals, &new.renewals);
         Self { names, graph }
     }
 
@@ -735,6 +788,10 @@ pub enum EffectReport {
     Qualify {
         evidence: String,
         caveat: String,
+    },
+    Renew {
+        evidence: String,
+        occurrence: String,
     },
 }
 
@@ -783,6 +840,10 @@ pub struct ReactiveSnapshot {
     pub schema: String,
     pub source_id: String,
     pub sequence: u64,
+    /// Seconds counted from the time event's `dt`.
+    pub elapsed: f64,
+    pub renewals: BTreeMap<String, Renewal>,
+    pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
     pub qualified_values: BTreeMap<String, QualifiedValue>,
@@ -837,6 +898,13 @@ pub struct ReactiveSession {
     commitment_bases: Arc<BTreeMap<String, CommitmentBasis>>,
     reading_streams: Arc<BTreeMap<String, ReadingStream>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
+    renewals: Arc<BTreeMap<String, Renewal>>,
+    /// Qualifications waiting for time to pass, in the order scheduled.
+    scheduled: Arc<Vec<ScheduledQualification>>,
+    /// Seconds counted from the time event's `dt`.
+    elapsed: f64,
+    /// The event whose `dt` counts time: the clock's, or else `tick`.
+    time_event: Option<Arc<str>>,
     observation_qualifications: Arc<BTreeMap<String, Provenance>>,
     examination_qualifications: Arc<BTreeMap<String, Provenance>>,
     reopening_qualifications: Arc<BTreeMap<String, Provenance>>,
@@ -988,6 +1056,10 @@ impl ReactiveSession {
             commitment_bases: Arc::default(),
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
+            renewals: Arc::default(),
+            scheduled: Arc::default(),
+            elapsed: 0.0,
+            time_event: None,
             observation_qualifications: Arc::default(),
             examination_qualifications: Arc::default(),
             reopening_qualifications: Arc::default(),
@@ -1096,6 +1168,39 @@ impl ReactiveSession {
                 Directive::Function(_)
                 | Directive::Readings { .. }
                 | Directive::Decisions { .. } => {}
+                Directive::Renewable { evidence, limit } => {
+                    session.require_kind(evidence, "evidence")?;
+                    if *limit == 0 || *limit > MAX_RENEWAL_LIMIT {
+                        return Err(format!(
+                            "renewable {evidence} limit must be in 1..{MAX_RENEWAL_LIMIT}"
+                        ));
+                    }
+                    let id = session.symbols[evidence];
+                    let template_caveats = session
+                        .graph
+                        .edges
+                        .iter()
+                        .filter(|edge| edge.to == id && edge.relation == Relation::Qualifies)
+                        .filter(|edge| {
+                            matches!(
+                                session.graph.nodes.get(&edge.from),
+                                Some(NodeKind::Caveat { .. })
+                            )
+                        })
+                        .map(|edge| edge.from)
+                        .collect();
+                    let renewal = Renewal {
+                        limit: *limit,
+                        occurrences: vec![evidence.clone()],
+                        template_caveats,
+                    };
+                    if Arc::make_mut(&mut session.renewals)
+                        .insert(evidence.clone(), renewal)
+                        .is_some()
+                    {
+                        return Err(format!("duplicate renewable {evidence}"));
+                    }
+                }
                 Directive::Binding(binding) => {
                     Arc::make_mut(&mut session.binding_rules).push(binding.clone())
                 }
@@ -1292,6 +1397,17 @@ impl ReactiveSession {
                 parameters[0].max.value(),
             )?;
         }
+        session.time_event = session
+            .clock
+            .as_ref()
+            .map(|clock| clock.event.clone())
+            .or_else(|| {
+                session
+                    .events
+                    .contains_key("tick")
+                    .then(|| "tick".to_string())
+            })
+            .map(Arc::from);
         session.validate_procedures()?;
         session.specialize_procedures()?;
         session.validate_rules()?;
@@ -1719,6 +1835,10 @@ impl ReactiveSession {
                 "has_sample" => self.require_readings(symbol),
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
+                _ if kind.starts_with(CARRIES) => {
+                    self.require_kind(symbol, "evidence")?;
+                    self.require_kind(&kind[CARRIES.len()..], "caveat")
+                }
                 _ => Err(format!("unknown epistemic predicate {kind}")),
             }
         };
@@ -1794,9 +1914,30 @@ impl ReactiveSession {
                     }
                 }
                 Effect::Reject { .. } => {}
-                Effect::Qualify { evidence, caveat } => {
+                Effect::Qualify {
+                    evidence,
+                    caveat,
+                    after,
+                } => {
                     self.require_kind(evidence, "evidence")?;
                     self.require_kind(caveat, "caveat")?;
+                    if let Some(after) = after {
+                        if self.time_event.is_none() {
+                            return Err(format!(
+                                "qualify {evidence} with {caveat} after: nothing counts time; declare a tick event or a clock"
+                            ));
+                        }
+                        if after.validate(&numeric, &validate_predicate)? != ValueType::Number {
+                            return Err("qualify after requires a number of seconds".into());
+                        }
+                    }
+                }
+                Effect::Renew { evidence } => {
+                    if !self.renewals.contains_key(evidence) {
+                        return Err(format!(
+                            "renew {evidence}: declare it renewable first (renewable {evidence} limit N;)"
+                        ));
+                    }
                 }
                 Effect::Emit { name } => {
                     if !self.cue_definitions.contains_key(name) {
@@ -2277,7 +2418,9 @@ impl ReactiveSession {
                     .selection_qualifications
                     .merge(guard);
             }
-            Effect::Reveal { evidence, .. } => Some(("observed", evidence.clone())),
+            Effect::Reveal { evidence, .. } | Effect::Renew { evidence } => {
+                Some(("observed", self.occurrence(evidence).to_string()))
+            }
             Effect::Examine { caveat, .. } => Some(("examined", caveat.clone())),
             Effect::Commit { action, .. } => Some(("committed", action.clone())),
             Effect::Reopen { action, .. } => {
@@ -2413,6 +2556,10 @@ impl ReactiveSession {
             .checked_add(1)
             .ok_or("reactive event sequence exhausted")?;
         self.last_event = Some(event.into());
+        if self.time_event.as_deref() == Some(event) {
+            self.elapsed += parameters.get("dt").copied().unwrap_or(0.0);
+            self.apply_due_qualifications()?;
+        }
         let parameters = parameters
             .iter()
             .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
@@ -2579,8 +2726,8 @@ impl ReactiveSession {
                         .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
                 }))
             },
-            &|kind, name| self.predicate_tracked(kind, name),
-            &|evidence, caveats| self.qualify(evidence, caveats),
+            &|kind, name| self.predicate_tracked(kind, self.predicate_target(kind, name)),
+            &|evidence, caveats| self.qualify(self.occurrence(evidence), caveats),
             &|name, query| self.history_read(name, query),
         )
     }
@@ -2606,8 +2753,8 @@ impl ReactiveSession {
                     .cloned()
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
-            &|kind, name| self.predicate_grounds(kind, name),
-            &|evidence, caveats| self.qualify_core(evidence, caveats),
+            &|kind, name| self.predicate_grounds(kind, self.predicate_target(kind, name)),
+            &|evidence, caveats| self.qualify_core(self.occurrence(evidence), caveats),
             &|name, query| self.history_read(name, query),
         )
     }
@@ -2627,6 +2774,13 @@ impl ReactiveSession {
         };
         let provenance = match kind {
             "observed" if value => self.qualify_core(name, &[])?,
+            _ if kind.starts_with(CARRIES) => {
+                if self.predicate("observed", name)? {
+                    self.qualify_core(name, &[])?
+                } else {
+                    Provenance::default()
+                }
+            }
             "examined" => Provenance::from_names(
                 [],
                 std::iter::once(name.into()).chain(self.incoming_caveats([self.symbols[name]])),
@@ -2685,6 +2839,13 @@ impl ReactiveSession {
                 self.graph.nodes.get(id),
                 Some(NodeKind::Commitment { open: true, .. })
             ),
+            _ if kind.starts_with(CARRIES) => {
+                self.predicate("observed", name)?
+                    && self
+                        .qualify_core(name, &[])?
+                        .caveats
+                        .contains(&kind[CARRIES.len()..])
+            }
             _ => return Err(format!("unknown graph predicate {kind}")),
         })
     }
@@ -2821,6 +2982,9 @@ impl ReactiveSession {
         let value = self.predicate(kind, name)?;
         let mut provenance = match kind {
             "observed" if value => self.qualify(name, &[])?,
+            // Whether it carries the caveat or not, the answer rests on the
+            // evidence and what qualifies it.
+            _ if kind.starts_with(CARRIES) => self.predicate_tracked("observed", name)?.provenance,
             "examined" => {
                 let id = self.symbols[name];
                 let mut provenance = Provenance::from_names(
@@ -3029,42 +3193,86 @@ impl ReactiveSession {
                 });
             }
             Effect::Reject { message } => return Err(format!("rejected: {message}")),
-            Effect::Qualify { evidence, caveat } => {
-                if !self.predicate("observed", evidence)? {
-                    return Err(format!("cannot qualify unobserved evidence {evidence}"));
+            Effect::Qualify {
+                evidence,
+                caveat,
+                after,
+            } => {
+                let occurrence = self.occurrence(evidence).to_string();
+                if !self.predicate("observed", &occurrence)? {
+                    return Err(format!("cannot qualify unobserved evidence {occurrence}"));
                 }
-                let (from, to) = (self.symbols[caveat], self.symbols[evidence]);
-                if !self.graph.edges.iter().any(|edge| {
-                    edge.from == from && edge.to == to && edge.relation == Relation::Qualifies
-                }) {
-                    Arc::make_mut(&mut self.graph).relate(from, Relation::Qualifies, to);
-                }
-                // The caveat and whatever qualifies it, as `qualified` inherits.
-                let added = Provenance::from_names(
-                    [],
-                    std::iter::once(caveat.clone()).chain(self.incoming_caveats([from])),
-                )?;
-                // Current values only. Commitment bases and grounds, reading
-                // archives and the journal record what was known then.
-                for slot in 0..self.states.len() {
-                    let cell = &self.states.cells[slot];
-                    let in_value = cell.value.provenance.evidence.contains(evidence);
-                    let in_grounds = cell.grounds.evidence.contains(evidence);
-                    if !(in_value || in_grounds) {
-                        continue;
-                    }
-                    let cell = self.states.cell_mut(slot);
-                    if in_value {
-                        cell.value.provenance.merge(&added)?;
-                        cell.value.provenance.merge(guard)?;
-                    }
-                    if in_grounds {
-                        cell.grounds.merge(&added)?;
+                match after {
+                    None => self.apply_qualification(&occurrence, caveat, guard)?,
+                    Some(expression) => {
+                        let delay = self.evaluate(expression, parameters)?;
+                        let Value::Number(after) = delay.value else {
+                            return Err("qualify after requires a number of seconds".into());
+                        };
+                        if after < 0.0 {
+                            return Err(
+                                "qualify after requires a nonnegative number of seconds".into()
+                            );
+                        }
+                        if self.scheduled.len() >= MAX_SCHEDULED_QUALIFICATIONS {
+                            return Err(format!(
+                                "scheduled qualifications exceed limit {MAX_SCHEDULED_QUALIFICATIONS}"
+                            ));
+                        }
+                        let scheduled = ScheduledQualification {
+                            evidence: occurrence,
+                            caveat: caveat.clone(),
+                            scheduled_at: self.elapsed,
+                            after,
+                            guard: guard.union(&delay.provenance)?,
+                        };
+                        Arc::make_mut(&mut self.scheduled).push(scheduled);
                     }
                 }
-                self.effects.push(EffectReport::Qualify {
+            }
+            Effect::Renew { evidence } => {
+                let renewal = &self.renewals[evidence];
+                if renewal.occurrences.len() >= renewal.limit {
+                    return Err(format!(
+                        "renewable {evidence} reached its limit {}",
+                        renewal.limit
+                    ));
+                }
+                let ordinal = renewal.occurrences.len() + 1;
+                let name = format!("{evidence}@{ordinal}");
+                if self.symbols.contains_key(&name) {
+                    return Err(format!("generated occurrence {name} already exists"));
+                }
+                let template_caveats = renewal.template_caveats.clone();
+                let NodeKind::Evidence {
+                    description,
+                    source,
+                } = self.graph.nodes[&self.symbols[evidence]].clone()
+                else {
+                    unreachable!("validated renewable evidence")
+                };
+                let graph = Arc::make_mut(&mut self.graph);
+                let id = graph.add(NodeKind::Evidence {
+                    description: format!("{description} (occurrence {ordinal})"),
+                    source,
+                });
+                for caveat in template_caveats {
+                    graph.relate(caveat, Relation::Qualifies, id);
+                }
+                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
+                // The occurrence exists because this rule chose to renew.
+                if !guard.is_empty() {
+                    Arc::make_mut(&mut self.observation_qualifications)
+                        .insert(name.clone(), guard.clone());
+                }
+                Arc::make_mut(&mut self.renewals)
+                    .get_mut(evidence)
+                    .expect("validated renewable evidence")
+                    .occurrences
+                    .push(name.clone());
+                self.effects.push(EffectReport::Renew {
                     evidence: evidence.clone(),
-                    caveat: caveat.clone(),
+                    occurrence: name,
                 });
             }
             Effect::Emit { name } => {
@@ -3108,6 +3316,7 @@ impl ReactiveSession {
                 relation,
                 claim,
             } => {
+                let evidence = &self.occurrence(evidence).to_string();
                 let from = self.symbols[evidence];
                 let to = self.symbols[claim];
                 if !self
@@ -3298,7 +3507,11 @@ impl ReactiveSession {
                     .get(&current)
                     .ok_or_else(|| format!("cannot reopen uncommitted action {action}"))?;
                 let (because, cause) = match because {
-                    EvidenceSelector::Named(name) => (name.clone(), self.qualify(name, &[])?),
+                    EvidenceSelector::Named(name) => {
+                        let name = self.occurrence(name).to_string();
+                        let cause = self.qualify(&name, &[])?;
+                        (name, cause)
+                    }
                     EvidenceSelector::Latest(stream) => {
                         let reading = self.latest(stream)?;
                         let name = self.reading_streams[stream]
@@ -3345,6 +3558,90 @@ impl ReactiveSession {
             }
         }
         Ok(())
+    }
+
+    /// A caveat learned late, applied to one occurrence of evidence: see
+    /// spec/caveat-late-qualification-0.1.md.
+    fn apply_qualification(
+        &mut self,
+        evidence: &str,
+        caveat: &str,
+        guard: &Provenance,
+    ) -> Result<(), String> {
+        let (from, to) = (self.symbols[caveat], self.symbols[evidence]);
+        if !self
+            .graph
+            .edges
+            .iter()
+            .any(|edge| edge.from == from && edge.to == to && edge.relation == Relation::Qualifies)
+        {
+            Arc::make_mut(&mut self.graph).relate(from, Relation::Qualifies, to);
+        }
+        // The caveat and whatever qualifies it, as `qualified` inherits.
+        let added = Provenance::from_names(
+            [],
+            std::iter::once(caveat.to_string()).chain(self.incoming_caveats([from])),
+        )?;
+        // Current values only. Commitment bases and grounds, reading
+        // archives and the journal record what was known then.
+        for slot in 0..self.states.len() {
+            let cell = &self.states.cells[slot];
+            let in_value = cell.value.provenance.evidence.contains(evidence);
+            let in_grounds = cell.grounds.evidence.contains(evidence);
+            if !(in_value || in_grounds) {
+                continue;
+            }
+            let cell = self.states.cell_mut(slot);
+            if in_value {
+                cell.value.provenance.merge(&added)?;
+                cell.value.provenance.merge(guard)?;
+            }
+            if in_grounds {
+                cell.grounds.merge(&added)?;
+            }
+        }
+        self.effects.push(EffectReport::Qualify {
+            evidence: evidence.to_string(),
+            caveat: caveat.to_string(),
+        });
+        Ok(())
+    }
+
+    /// Apply every scheduled qualification whose time has come, in the order
+    /// they were scheduled.
+    fn apply_due_qualifications(&mut self) -> Result<(), String> {
+        let elapsed = self.elapsed;
+        let due = |scheduled: &ScheduledQualification| {
+            elapsed - scheduled.scheduled_at >= scheduled.after
+        };
+        if !self.scheduled.iter().any(due) {
+            return Ok(());
+        }
+        let (now, later): (Vec<_>, Vec<_>) = self.scheduled.iter().cloned().partition(due);
+        self.scheduled = Arc::new(later);
+        for scheduled in now {
+            self.apply_qualification(&scheduled.evidence, &scheduled.caveat, &scheduled.guard)?;
+        }
+        Ok(())
+    }
+
+    /// What a source name means now: the current occurrence of renewable
+    /// evidence, and the name itself for everything else.
+    fn occurrence<'a>(&'a self, name: &'a str) -> &'a str {
+        self.renewals
+            .get(name)
+            .and_then(|renewal| renewal.occurrences.last())
+            .map_or(name, String::as_str)
+    }
+
+    /// A predicate's target as the source names it, resolved: predicates on
+    /// evidence mean its current occurrence.
+    fn predicate_target<'a>(&'a self, kind: &str, name: &'a str) -> &'a str {
+        if kind == "observed" || kind.starts_with(CARRIES) {
+            self.occurrence(name)
+        } else {
+            name
+        }
     }
 
     pub fn snapshot(&self) -> ReactiveSnapshot {
@@ -3417,6 +3714,9 @@ impl ReactiveSession {
             value_grounds: self.states.grounds(),
             commitment_grounds: (*self.commitment_grounds).clone(),
             decision_journal: (*self.journal).clone(),
+            elapsed: self.elapsed,
+            renewals: (*self.renewals).clone(),
+            scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
             qualified_values: self.states.values(),
@@ -3497,9 +3797,17 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             claim: rename(claim),
         },
         Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
-        Effect::Qualify { evidence, caveat } => Effect::Qualify {
+        Effect::Qualify {
+            evidence,
+            caveat,
+            after,
+        } => Effect::Qualify {
             evidence: rename(evidence),
             caveat: rename(caveat),
+            after: after.as_ref().map(|after| after.rename_symbols(names)),
+        },
+        Effect::Renew { evidence } => Effect::Renew {
+            evidence: rename(evidence),
         },
         Effect::Set {
             name,
@@ -3687,6 +3995,7 @@ pub(crate) fn parse_directive_at(
             | "clock"
             | "readings"
             | "decisions"
+            | "renewable"
             | "proc"
             | "define"
     ) {
@@ -3705,6 +4014,15 @@ pub(crate) fn parse_directive_at(
                     .map_err(|_| "reading limit must be an unsigned integer")?,
             }),
             _ => Err("readings expects NAME from EVIDENCE limit CAPACITY".into()),
+        },
+        "renewable" => match words.as_slice() {
+            ["renewable", evidence, "limit", limit] => Ok(Directive::Renewable {
+                evidence: identifier(evidence)?,
+                limit: limit
+                    .parse()
+                    .map_err(|_| "renewable limit must be an unsigned integer")?,
+            }),
+            _ => Err("renewable expects EVIDENCE limit CAPACITY".into()),
         },
         "decisions" => match words.as_slice() {
             ["decisions", name, "limit", limit] => Ok(Directive::Decisions {
@@ -3851,6 +4169,7 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
                     | "call"
                     | "reject"
                     | "qualify"
+                    | "renew"
             )
         {
             candidates.push(index);
@@ -3901,10 +4220,12 @@ fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<
                         kind: kind.into(),
                     })
                 }
-                _ => return Err(format!(
+                _ => {
+                    return Err(format!(
                     "proc parameter {} must be NAME, or NAME evidence, NAME claim or NAME caveat",
                     parameter.trim()
-                )),
+                ))
+                }
             }
         }
     }
@@ -4212,6 +4533,17 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         ["qualify", evidence, "with", caveat] => Ok(Effect::Qualify {
             evidence: identifier(evidence)?,
             caveat: identifier(caveat)?,
+            after: None,
+        }),
+        ["qualify", evidence, "with", caveat, "after", rest @ ..] if !rest.is_empty() => {
+            Ok(Effect::Qualify {
+                evidence: identifier(evidence)?,
+                caveat: identifier(caveat)?,
+                after: Some(reactive_expr::parse_unresolved(&rest.join(" "))?),
+            })
+        }
+        ["renew", evidence] => Ok(Effect::Renew {
+            evidence: identifier(evidence)?,
         }),
         ["reject", rest @ ..] if !rest.is_empty() => {
             let text = rest.join(" ");

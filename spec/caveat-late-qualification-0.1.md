@@ -19,7 +19,10 @@ on EVENT [when CONDITION] qualify EVIDENCE with CAVEAT;
 ```
 
 `EVIDENCE` must be declared evidence and `CAVEAT` a declared caveat. `qualify`
-and `with` are reserved.
+and `with` are reserved. [Renewal 0.1](caveat-renewal-0.1.md) adds
+`qualify EVIDENCE with CAVEAT after SECONDS`, which applies the same effect
+once that much time has passed, to the occurrence current when it was
+scheduled.
 
 ## Meaning
 

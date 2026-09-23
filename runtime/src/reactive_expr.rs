@@ -508,7 +508,13 @@ impl Expr {
             | Node::Latest(_)
             | Node::HistoryCount(_) => self.node.clone(),
             Node::Variable(name) => Node::Variable(rename(name)),
-            Node::Predicate(kind, target) => Node::Predicate(kind.clone(), rename(target)),
+            Node::Predicate(kind, target) => match kind.strip_prefix("carries:") {
+                Some(caveat) => Node::Predicate(
+                    format!("carries:{}", rename(&caveat.to_string())),
+                    rename(target),
+                ),
+                None => Node::Predicate(kind.clone(), rename(target)),
+            },
             Node::Qualified(value, evidence, caveats) => Node::Qualified(
                 child(value),
                 rename(evidence),
@@ -1421,6 +1427,15 @@ impl Parser {
             };
             self.expect(TokenKind::RightParen, "')' after history operation")?;
             return Ok(node);
+        }
+        // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
+        // travels in the predicate's name. See spec/caveat-renewal-0.1.md.
+        if name == "carries" {
+            let evidence = self.graph_identifier("carries evidence")?;
+            self.expect(TokenKind::Comma, "',' before the carried caveat")?;
+            let caveat = self.graph_identifier("carries caveat")?;
+            self.expect(TokenKind::RightParen, "')' after the carried caveat")?;
+            return Ok(Node::Predicate(format!("carries:{caveat}"), evidence));
         }
         if name == "latest" {
             let history = self.graph_identifier("latest history")?;
