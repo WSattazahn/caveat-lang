@@ -28,7 +28,12 @@ export function createPolicy() {
     const trust = commitments.find((c) => c.action === current);
     return {
       slime: { ...bindings.slime },
-      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: named(cites[id].label.evidence), caveats: cites[id].label.caveats }])),
+      mushrooms: Object.fromEntries(mushrooms.map((id) => {
+        const { whyAbsorb, whyTaste, ...mushroom } = bindings[id];
+        const why = (reason, cited) => ({ reason, because: named(cited.evidence), caveats: cited.caveats });
+        return [id, { ...mushroom, because: named(cites[id].label.evidence), caveats: cites[id].label.caveats,
+          why: { absorb: why(whyAbsorb, cites[id].whyAbsorb), taste: why(whyTaste, cites[id].whyTaste) } }];
+      })),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: cites.belief.state.caveats },
       decision: { state: bindings.decision.state, basis: named(grounds[current]?.evidence ?? []), reopenedBy: named(trust?.reopened_by ?? []), caveats: grounds[current]?.caveats ?? [],
         history: journal.filter((entry) => entry.decision === 'trust').map(({ change, because }) => ({ change, because: named(because) })) },
