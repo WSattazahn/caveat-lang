@@ -11,6 +11,8 @@ caveat tasted_in_dark consequence material;
 display tasted_in_dark "Tasted in the dark; taste can be wrong without light.";
 caveat taste_faded consequence material;
 display taste_faded "The taste has faded from memory.";
+caveat secondhand consequence material;
+display secondhand "Seen, not felt: another creature ate it.";
 
 // Sums of qualified observations. Their grounds are exactly the evidence
 // counted, whatever guards decided when to count it.
@@ -35,6 +37,7 @@ fn based_on(count) = if(count == 1, "Based on one observation.", "Based on " + n
 event tick dt min 0 max 0.1;
 event absorb target kind mushroom, sort in glowcap duskcap;
 event taste target kind mushroom, sort in glowcap duskcap;
+event witness target kind mushroom, sort in glowcap duskcap;
 
 on tick set glow = max(0, glow - dt);
 on tick set heavy = max(0, heavy - dt);
@@ -43,10 +46,25 @@ on absorb when sort == sort.glowcap set glow = 30;
 // Heaviness stacks while it lasts, up to 30 seconds.
 on absorb when sort == sort.duskcap set heavy = if(heavy > 0, min(30, heavy + 20), 20);
 
+// What an observation of a mushroom's effect teaches, however it was observed.
+proc learn(e evidence, sort) {
+    when sort == sort.glowcap reveal e supports glowing_is_safe;
+    when sort == sort.glowcap set support = support + qualified(1, e);
+    when sort == sort.glowcap set recovery = recovery + qualified(1, e);
+    when sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, e);
+    when sort == sort.glowcap and reopened(trust) and recovery >= 2 commit trust because enough using recovery;
+    when sort == sort.duskcap reveal e opposes glowing_is_safe;
+    when sort == sort.duskcap set contradiction = contradiction + qualified(1, e);
+    when sort == sort.duskcap and committed(trust) reopen trust because e;
+    when sort == sort.duskcap set recovery = 0;
+};
+
 for mushroom as $m {
     claim $m_is_glowcap;
     evidence absorb_$m from "Vessel: the slime absorbed the $m mushroom";
     evidence taste_$m from "Vessel: the slime tasted the $m mushroom";
+    evidence witness_$m from "Vessel: the slime saw another creature eat the $m mushroom";
+    secondhand qualifies witness_$m;
 
     state $m_consumed = 0 min 0 max 1;
     // 0 unknown, otherwise the tasted sort; grounded on the taste.
@@ -62,15 +80,13 @@ for mushroom as $m {
     on absorb when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
     on absorb when $m_here and $m_unknown and twice_bitten reject "too risky to absorb untasted";
     on absorb when $m_here set $m_consumed = 1;
-    on absorb when $m_here and sort == sort.glowcap reveal absorb_$m supports glowing_is_safe;
-    on absorb when $m_here and sort == sort.glowcap set support = support + qualified(1, absorb_$m);
-    on absorb when $m_here and sort == sort.glowcap set recovery = recovery + qualified(1, absorb_$m);
-    on absorb when $m_here and sort == sort.glowcap and contradiction == 0 and not committed(trust) commit trust because enough using qualified(1, absorb_$m);
-    on absorb when $m_here and sort == sort.glowcap and reopened(trust) and recovery >= 2 commit trust because enough using recovery;
-    on absorb when $m_here and sort == sort.duskcap reveal absorb_$m opposes glowing_is_safe;
-    on absorb when $m_here and sort == sort.duskcap set contradiction = contradiction + qualified(1, absorb_$m);
-    on absorb when $m_here and sort == sort.duskcap and committed(trust) reopen trust because absorb_$m;
-    on absorb when $m_here and sort == sort.duskcap set recovery = 0;
+    on absorb when $m_here call learn(absorb_$m, sort);
+
+    // Another creature eats it: the same lesson, secondhand.
+    on witness when $m_here and $m_consumed == 1 reject "already eaten";
+    on witness when $m_here and $m_known != 0 and $m_known != sort reject "tasted as the other sort";
+    on witness when $m_here set $m_consumed = 1;
+    on witness when $m_here call learn(witness_$m, sort);
 
     on taste when $m_here and not $m_unknown reject "already known";
     on taste when $m_here and sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
