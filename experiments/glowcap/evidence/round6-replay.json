@@ -1,0 +1,244 @@
+{
+  "recordedAt": "2026-09-23T04:40:10.872Z",
+  "repositoryRevision": "e6ace96ebc25b80a249b879270b96730ac310eed",
+  "runtimeBuild": {
+    "revision": "8d8596acce8bebe3cdf2fe17e4d02f93eddc18ff",
+    "clean": false,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+  },
+  "precisionFix": "6c4b504",
+  "orderingFix": "e6ace96",
+  "wasmSha256": {
+    "full": "1a1a0ce1902f48442418292cbbd4a2affda55aa6ddf2f1ba58b305d3e39ab4dc",
+    "reactive": "d897787f414a5020d5d99f387d9da6c874a3512580a1f4db96221fec223fcd97"
+  },
+  "policyHashes": {
+    "ts": "6e16eec80dac",
+    "caveat5": "ba358b940cd1"
+  },
+  "host": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "architecture": "x64",
+    "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+    "node": "v24.11.1"
+  },
+  "originalFailure": {
+    "seed": 6,
+    "sequences": 2000,
+    "events": 7276500,
+    "diverged": 5,
+    "output": "2000 sequences, 7276500 events, 5 diverged\n\nmushrooms.ruin.because: 1 sequence(s)\n  ts=[\"absorb_pool\",\"taste_grove\",\"taste_pool_2\",\"witness_grove\",\"witness_pool_2\",\"witness_ruin\"] caveat=[]\n  events (ticks elided): [{\"type\":\"absorb\",\"id\":\"pool\",\"kind\":\"duskcap\"},{\"type\":\"resume\"},{\"type\":\"taste\",\"id\":\"pool\",\"kind\":\"bluecap\"},{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"pool\",\"kind\":\"duskcap\"},{\"type\":\"witness\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"witness\",\"id\":\"pool\",\"kind\":\"duskcap\"},{\"type\":\"resume\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"resume\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"resume\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"witness\",\"id\":\"ruin\",\"kind\":\"duskcap\"}]\n\nmushrooms.ruin.caveats: 1 sequence(s)\n  ts=[\"taste_faded\",\"tasted_in_dark\"] caveat=[\"tasted_in_dark\"]\n  events (ticks elided): [{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"ruin\",\"kind\":\"bluecap\"},{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"bluecap\"},{\"type\":\"witness\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"pool\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"pool\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"pool\",\"kind\":\"glowcap\"},{\"type\":\"resume\"},{\"type\":\"witness\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"duskcap\"}]\n\nmushrooms.grove.because: 1 sequence(s)\n  ts=[\"taste_cave\"] caveat=[]\n  events (ticks elided): [{\"type\":\"resume\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"witness\",\"id\":\"grove\",\"kind\":\"glowcap\"},{\"type\":\"witness\",\"id\":\"ruin\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"nowhere\",\"kind\":\"bluecap\"},{\"type\":\"resume\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"bluecap\"},{\"type\":\"witness\",\"id\":\"pool\",\"kind\":\"bluecap\"},{\"type\":\"witness\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"resume\"},{\"type\":\"resume\"},{\"type\":\"witness\",\"id\":\"ruin\",\"kind\":\"bluecap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"glowcap\"}]\n\nmushrooms.cave.caveats: 1 sequence(s)\n  ts=[\"taste_faded\",\"tasted_in_dark\"] caveat=[\"tasted_in_dark\"]\n  events (ticks elided): [{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"witness\",\"id\":\"pool\",\"kind\":\"duskcap\"},{\"type\":\"witness\",\"id\":\"pool\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"pool\",\"kind\":\"bluecap\"},{\"type\":\"taste\",\"id\":\"ruin\",\"kind\":\"bluecap\"},{\"type\":\"resume\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"witness\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"nowhere\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"pool\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"ruin\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"ruin\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"duskcap\"},{\"type\":\"resume\"}]\n\nmushrooms.cave.because: 1 sequence(s)\n  ts=[] caveat=[\"witness_cave_2\"]\n  events (ticks elided): [{\"type\":\"witness\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"taste\",\"id\":\"cave\",\"kind\":\"glowcap\"},{\"type\":\"witness\",\"id\":\"cave\",\"kind\":\"bluecap\"},{\"type\":\"absorb\",\"id\":\"grove\",\"kind\":\"bluecap\"},{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"bluecap\"},{\"type\":\"resume\"},{\"type\":\"witness\",\"id\":\"cave\",\"kind\":\"duskcap\"},{\"type\":\"absorb\",\"id\":\"nowhere\",\"kind\":\"duskcap\"},{\"type\":\"taste\",\"id\":\"pool\",\"kind\":\"glowcap\"},{\"type\":\"resume\"},{\"type\":\"taste\",\"id\":\"grove\",\"kind\":\"glowcap\"}]\nexit 1"
+  },
+  "precisionOnlyFuzz": [
+    {
+      "seed": 6,
+      "sequences": 2000,
+      "events": 7280140,
+      "diverged": 0,
+      "comparator": "original comparison (sorts basis/reopenedBy)",
+      "policyHash": "f218c3e6c0d0",
+      "command": "node experiments/glowcap/differential.mjs --round=6 --against=caveat5 --sequences=2000 --seed=6",
+      "output": "2000 sequences, 7280140 events, 0 diverged\nexit 0"
+    },
+    {
+      "seed": 7,
+      "sequences": 2000,
+      "events": 7163331,
+      "diverged": 0,
+      "comparator": "original comparison (sorts basis/reopenedBy)",
+      "policyHash": "f218c3e6c0d0",
+      "command": "node experiments/glowcap/differential.mjs --round=6 --against=caveat5 --sequences=2000 --seed=7",
+      "output": "2000 sequences, 7163331 events, 0 diverged\nexit 0"
+    }
+  ],
+  "orderingFailure": {
+    "check": "saved divergence replay with ordered decision arrays before adapter correction",
+    "sequence": 1510,
+    "eventIndex": 1820,
+    "event": {
+      "type": "taste",
+      "id": "grove",
+      "kind": "glowcap"
+    },
+    "field": "decision.basis",
+    "ts": [
+      "taste_pool",
+      "taste_grove"
+    ],
+    "caveat": [
+      "taste_grove",
+      "taste_pool"
+    ],
+    "cause": "adapter read unordered commitment grounds although journal already preserved observation order"
+  },
+  "orderedFuzz": [
+    {
+      "seed": 6,
+      "sequences": 2000,
+      "events": 7280140,
+      "diverged": 0,
+      "comparator": "protocol ordered decisions",
+      "policyHash": "ba358b940cd1",
+      "command": "node experiments/glowcap/differential.mjs --round=6 --against=caveat5 --sequences=2000 --seed=6 --ordered-decisions",
+      "output": "2000 sequences, 7280140 events, 0 diverged"
+    },
+    {
+      "seed": 7,
+      "sequences": 2000,
+      "events": 7163331,
+      "diverged": 0,
+      "comparator": "protocol ordered decisions",
+      "policyHash": "ba358b940cd1",
+      "command": "node experiments/glowcap/differential.mjs --round=6 --against=caveat5 --sequences=2000 --seed=7 --ordered-decisions",
+      "output": "2000 sequences, 7163331 events, 0 diverged"
+    }
+  ],
+  "capturedFailures": {
+    "fixture": "experiments/glowcap/fixtures/round6-float-divergences.json",
+    "fixtureSha256": "bbafca255f6e337318eb5442008deb67397584cec200b2fab7f22a2e276c78c9",
+    "command": "node experiments/glowcap/replay-divergences.mjs",
+    "cases": 5,
+    "events": 16011,
+    "resumes": 13,
+    "output": "sequence 178: 2612 events/resumes agree\r\nsequence 821: 4475 events/resumes agree\r\nsequence 955: 2198 events/resumes agree\r\nsequence 1476: 4518 events/resumes agree\r\nsequence 1510: 2221 events/resumes agree\r\n5 saved divergences: 16011 events and 13 resumes agree event by event"
+  },
+  "timing": {
+    "note": "Run after both ordered fuzz processes and other task-owned tests finished. All implementations use the current runtime; caveat4 here is not the historical frozen runtime measurement.",
+    "dispatchCommand": "node experiments/glowcap/harness.mjs --bench",
+    "dispatchAndShippedOutput": "ts     dispatch+view µs  median 2.5  p95 4.1  max 677.4\r\ncaveat dispatch+view µs  median 128.4  p95 148.2  max 7110.5\r\ncaveat2 dispatch+view µs  median 186.0  p95 216.2  max 965.3\r\ncaveat3 dispatch+view µs  median 38.6  p95 45.0  max 4323.6\r\ncaveat4 dispatch+view µs  median 192.0  p95 228.1  max 1116.0\r\ncaveat5 dispatch+view µs  median 51.6  p95 59.1  max 646.7\r\nts     shipped 11586 bytes (3470 gzipped)\r\ncaveat shipped 1974580 bytes (560952 gzipped)\r\ncaveat2 shipped 1979119 bytes (561820 gzipped)\r\ncaveat3 shipped 1706124 bytes (482289 gzipped)\r\ncaveat4 shipped 1710089 bytes (483083 gzipped)\r\ncaveat5 shipped 1707487 bytes (482716 gzipped)",
+    "resumeCommand": "node experiments/glowcap/resume-bench.mjs",
+    "resume": [
+      {
+        "impl": "ts",
+        "saveBytes": 624,
+        "medianMs": 0.07130000000000081,
+        "samplesMs": [
+          0.3135000000000048,
+          0.05729999999999791,
+          0.07130000000000081
+        ]
+      },
+      {
+        "impl": "caveat4",
+        "saveBytes": 97,
+        "medianMs": 1602.826,
+        "samplesMs": [
+          1602.826,
+          1583.9672,
+          1715.4921000000013
+        ]
+      },
+      {
+        "impl": "caveat5",
+        "saveBytes": 2045,
+        "medianMs": 3.24159999999938,
+        "samplesMs": [
+          7.154000000000451,
+          3.24159999999938,
+          3.1401000000005297
+        ]
+      }
+    ]
+  },
+  "implementation": {
+    "ts": {
+      "codeLines": 233,
+      "bytes": 11586,
+      "changeCost": 103
+    },
+    "caveat5": {
+      "codeLines": 168,
+      "bytes": 12701,
+      "originalChangeCost": 86,
+      "correctionChangeCost": 2,
+      "totalChangeCost": 88
+    },
+    "phaseDiffs": "cr9 f1f3b92: 30 changed code lines\ncr10 1fff53a: 32 changed code lines\ncr11 e46d6a2: 18 changed code lines\ncr12 ccd9eea: 6 changed code lines"
+  },
+  "validation": {
+    "rustTests": {
+      "command": "cargo test --manifest-path runtime/Cargo.toml --all-targets",
+      "passed": 418
+    },
+    "rustFmt": {
+      "command": "cargo fmt --manifest-path runtime/Cargo.toml --all -- --check",
+      "exitCode": 0
+    },
+    "rustClippy": {
+      "command": "cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings",
+      "exitCode": 0
+    },
+    "comparator": {
+      "command": "node --test experiments/glowcap/compare-views.test.mjs",
+      "passed": 7,
+      "output": "✔ set-valued evidence and caveats compare without order and inputs stay intact (3.6817ms)\r\n✔ decision.basis must retain observation order (0.3656ms)\r\n✔ decision.reopenedBy must retain observation order (0.238ms)\r\n✔ decision history entries must remain in order (0.2485ms)\r\n✔ evidence inside a decision history entry must remain in order (0.2414ms)\r\n✔ normalising set order does not hide a missing caveat or changed reason (0.989ms)\r\n✔ unrecognised lists retain their order instead of silently becoming sets (0.1363ms)\r\nℹ tests 7\r\nℹ suites 0\r\nℹ pass 7\r\nℹ fail 0\r\nℹ cancelled 0\r\nℹ skipped 0\r\nℹ todo 0\r\nℹ duration_ms 127.1089"
+    },
+    "scenarios": [
+      {
+        "command": "node experiments/glowcap/harness.mjs --phase=cr12 --impl=ts",
+        "at": "2026-09-23T04:23:10.220Z",
+        "phase": "cr12",
+        "impl": "ts",
+        "hash": "6e16eec80dac",
+        "passed": 38,
+        "total": 38,
+        "failed": [],
+        "explanationFailed": []
+      },
+      {
+        "command": "node experiments/glowcap/harness.mjs --phase=cr12 --impl=caveat5",
+        "at": "2026-09-23T04:30:14.275Z",
+        "phase": "cr12",
+        "impl": "caveat5",
+        "hash": "ba358b940cd1",
+        "passed": 38,
+        "total": 38,
+        "failed": [],
+        "explanationFailed": []
+      }
+    ],
+    "saveMutations": {
+      "rounds": 30000,
+      "seed": 20260922,
+      "command": "SAVE_FUZZ_ROUNDS=30000 cargo test --manifest-path runtime/Cargo.toml --test save_restore no_altered_save_can_crash_the_runtime -- --nocapture",
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s\r\n     Running tests\\save_restore.rs (runtime\\target\\debug\\deps\\save_restore-b69fa6a66cf0cbb8.exe)\r\n\r\nrunning 1 test\r\ntest no_altered_save_can_crash_the_runtime ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 14.35s"
+    },
+    "regrowth": {
+      "note": "Evidence lists compared as sets per protocol; twelve lives is not proof of unlimited regrowth.",
+      "output": "12 mushroom lives: 12 absorptions and 8,640 ticks agree under the protocol; 12 distinct supporting observations retained."
+    },
+    "glowcap": {
+      "command": "npm run test:glowcap",
+      "output": "> caveat-lang-games@0.1.0 test:glowcap\r\n> node scripts/test-glowcap.mjs\r\n\r\nGlowcap explainer checks pass: labels, belief, journal, late caveats and rejections all come from the runtime."
+    },
+    "slimeGlow": {
+      "command": "npm run test:slime-glow",
+      "output": "> caveat-lang-games@0.1.0 test:slime-glow\r\n> node scripts/test-slime-glow.mjs\r\n\r\nSlime Glow WebAssembly checks pass: 10001 toggles; graph remains 12 symbols/6 relations.\r\nReport: C:\\Dev\\caveat-lang\\test-results\\slime-glow-wasm.json"
+    },
+    "browser": {
+      "command": "npm run test:glowcap-page",
+      "output": "> caveat-lang-games@0.1.0 test:glowcap-page\r\n> node scripts/test-glowcap-page.mjs\r\n\r\nGlowcap page plays through: labels, belief, journal and late caveats render from the runtime.",
+      "screenshot": "test-results/glowcap-page.png",
+      "screenshotSha256": "b1409f116edc0974d51e15e1c98abe177563a3b7e13aacd140978a279d511612",
+      "inspected": true
+    },
+    "unavailableNpmScripts": [
+      "typecheck",
+      "lint",
+      "test",
+      "audit:all"
+    ]
+  },
+  "limitations": [
+    "Renewal remains capped at 1024 lives per mushroom; CR10 unlimited regrowth is not met.",
+    "Replay was authored with knowledge of the requests; blind round 6 remains a TypeScript win.",
+    "Size is mixed in lines and bytes. Change cost is the only clear win under the unchanged scoring rule.",
+    "Full fuzz compares acceptance per event and views per step or tick-burst endpoint; saved failures compare views after each tick.",
+    "Original failed fuzz stops sequences early, changing later random-number consumption; exact saved failures are retained separately.",
+    "Feature-branch pushes do not trigger the main/PR-only browser CI; local browser check passed."
+  ]
+}

@@ -42,6 +42,15 @@ resume is a replay of events, so resuming ten minutes of play takes 8
 seconds. The gaps it found are the next language work list. Details are
 [below](#round-6-blind-change-requests-on-the-current-language).
 
+**Round 6 replay, after the language work list: lower change cost, with
+remaining limits.** Written knowing CR9–CR12, it initially cost 86 changed
+lines, plus two for a later adapter correction, against TypeScript's 103,
+and 168 program lines against 233. All 38 scenarios
+pass after fixes to save size and numeric parsing. Regrowth now uses dynamic
+evidence but still stops at a declared 1,024-life limit. Size is mixed in
+lines and bytes, so this is not a win under the unchanged adoption rule.
+Details are [below](#round-6-replay-the-language-the-work-list-produced).
+
 ## Measurements
 
 All numbers come from `runs.jsonl`, `harness.mjs --measure`, `--bench`, and
@@ -421,6 +430,150 @@ right about the thing that matters in a game.
 5. **The ordering trap.** Qualifying with evidence that the same event
    reveals later should either work or be caught when the program loads.
 
+## Round 6 replay: the language the work list produced
+
+The language now has features addressing the five work-list items:
+
+- [incremental evaluation](../../spec/caveat-incremental-evaluation-0.1.md);
+- the [observation order](../../spec/caveat-observation-order-0.1.md) check;
+- [procedure symbols](../../spec/caveat-procedure-symbols-0.1.md);
+- [renewal](../../spec/caveat-renewal-0.1.md), with scheduled qualification
+  and `carries`;
+- [save](../../spec/caveat-save-0.1.md).
+
+`caveat5/` starts from `caveat4/` exactly as it stood after CR8 and replays
+CR9–CR12 on that language, one commit per phase. **This replay was written
+knowing the requests**, like rounds 4 and 5: it shows what the new language
+costs on these requests, not how it does on requests it was not shaped for.
+
+The replay verification and timing outputs are preserved in
+[`evidence/round6-replay.json`](evidence/round6-replay.json), including the
+runtime revision, WebAssembly hashes, host, commands and both fuzz seeds.
+The blind column retains its original measurements. The TypeScript and
+replay timing columns use the current build, measured after the fuzz finished.
+The replay ships 482,716 bytes gzipped (policy, adapter and runtime), against
+TypeScript's 3,470. The raw current-build benchmark also includes `caveat4`;
+that is the old program on the new runtime and does not replace the historical
+blind result.
+
+| | TypeScript | Caveat, round 6 (blind) | Caveat, replay |
+| --- | --- | --- | --- |
+| CR9: watching others eat | **12** | 16 | 30 |
+| CR10: mushrooms regrow | **28** | 50 | 32 |
+| CR11: say why not | 24 | **17** | 18 |
+| CR12: save and resume | 39 | 9 | **6** |
+| **CR9–CR12, code lines changed** | 103 | 92 | **86** |
+| Later adapter correction, code lines changed | — | — | 2 |
+| Total including that correction | 103 | 92 | **88** |
+| Final size, code lines | 233 | 208 | **168** (135 + 33) |
+| Final size, bytes | **11,586** | 15,303 | 12,701 |
+| Phases green on first run | **4 / 4** | 2 / 4 | 3 / 4 |
+| Meets every request | yes | no: eight lives | no: 1,024-life limit |
+| Dispatch + view, median / p95 | 2.5 / 4.1 µs | 1,090 / 1,467 µs | 51.6 / 59.1 µs |
+| Resume ten minutes of play | 0.071 ms | 8.0 s | 3.24 ms |
+| Save after ten minutes | 624 bytes | 97 bytes | 2,045 bytes |
+| Differential fuzz, round-6 mode | — | 0 of 1.11M events | 0 of 14.44M events (ordered) |
+
+**CR9.** `proc learn(e evidence, sort)` holds what an observation teaches.
+Absorbing and witnessing each call it with their own evidence, and
+`secondhand qualifies witness_$m` states the difference once. The count, 30,
+is the price of moving the nine absorb rules into the procedure: every moved
+line counts as removed and added. After it, a new way of observing costs a
+call.
+
+**CR10.** Each mushroom's three evidence names are `renewable`. Regrowth
+renews them and resets the mushroom's per-life states; the source and glue
+spell `absorb_cave@2` where the protocol says `absorb_cave_2`, a one-line
+rename. The fade became `qualify taste_$m with taste_faded after 60`, bound to
+the taste it is about, and the faded labels ask `carries(taste_$m,
+taste_faded)`. That removed two timer states and two tick rules. Regrowing the
+cave mushroom twelve times now matches TypeScript: twelve absorptions, twelve
+supporting observations. Round 6's Caveat stopped at eight. The bound is now
+1,024 lives per mushroom, declared in the source. This removes the static
+eight-life workaround, but does **not** meet CR10's literal requirement of
+regrowth "with no limit". Exhausting the declared renewal limit rejects the
+event; the finite scenarios and fuzz do not establish unlimited regrowth.
+
+**CR11.** The same bindings as round 6. The consumption rule is written after
+the call that reveals the evidence. The [observation order](../../spec/caveat-observation-order-0.1.md)
+check now rejects round 6's first attempt when the program loads, naming both
+rules.
+
+**CR12.** The adapter saves with the runtime's own save and resumes with
+`WebReactiveSession.restore`. Its first run failed one scenario: S36's second
+save was 4,257 bytes, over the 4 KB limit, because the save format wrote every
+state and its grounds twice. The format was then made compact (unchanged
+states left out, grounds stored once, empty lists omitted), and the phase
+passed. That failed run counts against the replay's correctness, and the
+format change is part of the language, not the adapter (`61146b4`). The
+unchanged policy/glue hash in `runs.jsonl` does not identify the runtime;
+runtime changes can therefore turn a failing run into a passing run with
+the same recorded hash.
+
+**The differential failure and repair.** The first 2,000-sequence replay fuzz
+(seed 6) found five divergences in 7,276,500 events: two missing faded-taste
+caveats and three different mushroom explanation lists. The default
+`serde_json` parser changed some floating-point numbers by one unit in the
+last place. A changed saved clock or host-sent number could move a `>= 45`
+or `>= 60` boundary to a different tick. Enabling `float_roundtrip` in
+`6c4b504` fixes that shared parse path. The two regression tests check exact
+bits after save/restore and after host event parsing; both were shown to fail
+without the feature and pass with it during the original investigation.
+
+The five captured failures are retained in
+[`fixtures/round6-float-divergences.json`](fixtures/round6-float-divergences.json),
+with identical adjacent ticks compressed by a `repeat` count.
+`replay-divergences.mjs` checks accept/reject and the view after **each**
+event, including each tick: 16,011 events and 13 resumes agree on the final
+adapter and runtime.
+The full fuzz checks accept/reject for every event and views at each step or
+tick-burst endpoint. After the precision fix, both seeds passed in the original
+comparison mode: seed 6 ran 7,280,140 events and seed 7 ran 7,163,331, each
+across 2,000 sequences with zero divergences. A failing sequence stops early
+and thus changes later random-number consumption: rerunning the same seed
+after a fix does not replay every later sequence identically. The saved-case
+replay above is the exact regression check for all five original failures.
+
+**A comparison gap found during final review.** The original fuzz sorted
+every top-level evidence array, including `decision.basis` and
+`decision.reopenedBy`. CR7 requires the basis in observation order, and the
+decision contract requires ordered reopening witnesses. A stricter replay
+of the saved failures exposed an adapter bug at sequence 1510, event 1820:
+after tasting pool then grove, its basis was `[taste_grove, taste_pool]`.
+The runtime's grounds are a set, while its decision journal already had the
+correct `[taste_pool, taste_grove]` order. The adapter now reads that
+revision's committed journal entry. This costs two changed code lines after
+the original 86-line replay; the failed order-sensitive check remains in the
+evidence record.
+
+The new shared comparator preserves the order of the basis, reopening
+witnesses, journal entries and their evidence. Focused tests show that it
+catches reordered lists while accepting set-valued evidence in either order.
+`replay-divergences.mjs` uses it, and `differential.mjs --ordered-decisions`
+enables it without changing the original comparison mode. Both seeds also
+passed after the adapter correction with this stricter mode: 4,000 sequences,
+14,443,471 events, zero divergences.
+
+**Other verification.** All 418 Rust tests pass, as do formatting, Clippy
+with warnings denied, the seven comparator tests, and all 38 scenarios on
+each implementation. The extended altered-save test completed 30,000
+mutations without a crash. The Glowcap and Slime Glow WebAssembly checks
+pass. The real Chromium explainer test also passes locally, including its
+labels, trust journal, late caveats and absence of browser errors; the saved
+screenshot was inspected. Feature-branch pushes alone do not run browser CI
+(the workflow runs on main or pull requests), so this browser result is local.
+
+**By the unchanged decision rule** change cost is a clear Caveat win
+(88 against 103, including the later correction). Size is mixed: 168 lines
+against 233, but 12,701 bytes against 11,586, just as fewer lines but more bytes
+was mixed in round 1. Explanations are level, and first-run correctness is
+behind (3 of 4 phases against 4 of 4). Its dispatch is under the 1 ms gate at
+51.6 µs median. This does not supply the two clear wins required for adoption,
+and the unlimited
+regrowth request remains unmet. Round 6 itself stays a TypeScript win. The
+replay measures progress on known requests; another blind round is needed
+to test whether that progress generalizes.
+
 ## Reproduce
 
 ```sh
@@ -441,4 +594,16 @@ node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=17
 node experiments/glowcap/harness.mjs --phase=cr12 --impl=ts
 node experiments/glowcap/harness.mjs --phase=cr12 --impl=caveat4
 node experiments/glowcap/differential.mjs --round=6 --sequences=300 --seed=6 --against=caveat4
+node experiments/glowcap/harness.mjs --phase=cr12 --impl=caveat5
+node experiments/glowcap/replay-divergences.mjs
+node experiments/glowcap/differential.mjs --round=6 --sequences=2000 --seed=6 --against=caveat5
+node experiments/glowcap/differential.mjs --round=6 --sequences=2000 --seed=7 --against=caveat5
+node --test experiments/glowcap/compare-views.test.mjs
+node experiments/glowcap/differential.mjs --round=6 --sequences=2000 --seed=6 --against=caveat5 --ordered-decisions
+node experiments/glowcap/differential.mjs --round=6 --sequences=2000 --seed=7 --against=caveat5 --ordered-decisions
+# Run timings after both fuzz processes finish.
+node experiments/glowcap/harness.mjs --bench
+node experiments/glowcap/resume-bench.mjs
+npm run test:glowcap
+npm run test:glowcap-page
 ```

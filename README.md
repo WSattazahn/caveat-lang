@@ -25,24 +25,30 @@ Caveat is a programming language for programs that act on what they know and kee
 ## The evidence: the glowcap benchmark
 
 The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game beat twice, in TypeScript and in Caveat:
-- a frozen, pre-registered scenario suite;
-- eight change requests, four of them blind;
-- a differential fuzz of 1.8 million events per round.
 
-The two implementations have never disagreed.
+- a frozen, pre-registered scenario suite;
+- twelve change requests, eight committed before either implementation changed for those rounds;
+- seeded differential fuzz comparing accepted and rejected events, views, and save/resume behavior.
 
 | Round | Change cost, Caveat vs TypeScript | Result |
 | --- | --- | --- |
 | 1 · first version | 55 vs 57 (CR1–4) | Parity. The weak spots became the language's work list. |
 | 3 · blind requests | 97 vs 53 (CR5–8) | TypeScript. Caveat's lineage fought the designer's meaning. |
-| 5 · the language today | **71 vs 110** (all eight) | Caveat, with 134 lines against 164. |
+| 5 · replay after language changes | **71 vs 110** (CR1–8) | Caveat, with 134 lines against 164. Written knowing the requests. |
+| 6 · blind requests | **92 vs 103** (CR9–12) | TypeScript. Caveat passed two of four phases on the first run, capped regrowth at eight lives, and exceeded the 1 ms event budget. |
+| 6 · replay after language changes | **88 vs 103** (CR9–12 plus correction) | Lower change cost; mixed size (168 vs 233 lines, 12,701 vs 11,586 bytes). Three of four phases passed on the first run. Written knowing the requests. |
 
-Every loss was turned into a feature, and each feature is measured: [grounded explanations](spec/caveat-explanations-0.1.md), [grounds](spec/caveat-explanations-0.2.md), [reject](spec/caveat-reject-0.1.md), [define](spec/caveat-define-0.1.md), [typed parameters](spec/caveat-typed-parameters-0.1.md), [the view](spec/caveat-view-0.1.md), [late qualification](spec/caveat-late-qualification-0.1.md) and the [decision journal](spec/caveat-decision-journal-0.1.md).
+The earlier losses led to [grounded explanations](spec/caveat-explanations-0.1.md), [grounds](spec/caveat-explanations-0.2.md), [reject](spec/caveat-reject-0.1.md), [define](spec/caveat-define-0.1.md), [typed parameters](spec/caveat-typed-parameters-0.1.md), [the view](spec/caveat-view-0.1.md), [late qualification](spec/caveat-late-qualification-0.1.md) and the [decision journal](spec/caveat-decision-journal-0.1.md).
+
+Round 6 led to [incremental evaluation](spec/caveat-incremental-evaluation-0.1.md), a load-time [observation-order check](spec/caveat-observation-order-0.1.md), [procedures that take evidence](spec/caveat-procedure-symbols-0.1.md), [renewable evidence and timed caveats](spec/caveat-renewal-0.1.md), and [save/restore without event replay](spec/caveat-save-0.1.md). The replay passes all 38 scenarios and a separate twelve-life regrowth check beyond the old eight-life cap. Its evidence still has a declared limit of 1,024 lives per mushroom: the request for unlimited regrowth remains unmet. Its first save-format attempt exceeded the size limit; that failed run remains in the results.
+
+The replay's first 2,000-sequence fuzz found five disagreements in about 7.3 million events. JSON parsing changed some floating-point values by one unit in the last place, moving timed behavior across a boundary. Exact round-trip parsing fixed those timing differences. Final review then found the fuzz was hiding a decision-basis ordering bug by sorting that list. The adapter now uses the journal's ordered evidence, and an order-sensitive comparator checks it. That correction adds two changed lines to the original 86. The five captured sequences and both stricter 2,000-sequence fuzz runs now agree: 14,443,471 fuzz events with zero divergences. The blind round remains a TypeScript win, and this replay does not establish an adoption win under the same rule: size is mixed and only change cost is clearly better.
 
 What Caveat still costs, honestly:
-- about 100 µs per event against about 1 µs for plain TypeScript;
-- a WebAssembly runtime of about 340 KB gzipped;
-- rounds 4 and 5 were written knowing the requests.
+
+- 51.6 µs median per event plus view for the replay program, against 2.5 µs for TypeScript, measured after the fuzz;
+- 482,716 gzipped bytes (about 483 KB) for the Caveat policy, adapter and runtime;
+- rounds 4, 5 and the round-6 replay were written knowing the requests, so another blind round is needed to test generalization.
 
 ## A taste
 
@@ -125,7 +131,7 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
 
-[Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: WebReactiveSession save() and WebReactiveSession.restore(source, saved). Restoring costs what loading costs plus the size of the save, and the save is checked name by name, so an edited one can be refused or played but never crash the runtime.
+[Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: `WebReactiveSession.save()` and `WebReactiveSession.restore(source, saved)`. Restoring costs what loading costs plus the size of the save. Restore validates the saved names, values and histories; mutation tests check that an altered save is either refused or remains playable without a crash.
 
 [Incremental Evaluation 0.1](spec/caveat-incremental-evaluation-0.1.md) makes an event cost what it touches: a binding is evaluated again only when something it reads changed, and a transaction copies only what its effects write. Round 6's 32-entity program went from 1.1 ms to 0.16 ms per event with identical results, checked against full evaluation after every event in the test suite.
 
