@@ -352,7 +352,7 @@ went first in every phase.
 | **5. Dispatch + view**, median / p95 | 2.6 µs / 4.8 µs | 1,090 µs / 1,467 µs | Caveat **over** the 1 ms gate |
 | Resume ten minutes of play | under 1 ms | 8.0 s | TypeScript |
 | Save after ten minutes | 624 bytes | 97 bytes | Caveat |
-| Differential fuzz | — | pending | |
+| Differential fuzz, round-6 mode | — | 0 of 1,109,220 events (300 sequences) | |
 
 By the decision rule, Caveat is better on at most two measures (size in
 lines, change cost), and each of those is offset by a worse number in the same
@@ -381,9 +381,12 @@ Caveat's only route is to declare the lives: 28 entities (`cave_2` …
 adapter routing each event to the current life. It passes every scenario,
 which go up to six lives, but a ninth life is refused (checked directly:
 TypeScript regrows a ninth time, Caveat reports the mushroom still eaten).
-The runtime evaluates every rule for every declared entity, so eight times
-the entities made the median event about seven times slower: 114 µs at CR8,
-828 µs after CR10, and 1,090 µs after CR11 added seven bindings per life.
+The runtime re-evaluated every binding of every declared entity after every
+event, so eight times the entities made the median event about seven times
+slower: 114 µs at CR8, 828 µs after CR10, and 1,090 µs after CR11 added seven
+bindings per life. (This paragraph first blamed the rules. A profile made
+afterwards found binding evaluation was 510 of 611 µs per event and the 1,600
+rule guards about 30 µs.)
 Two of the three failing runs were adapter bugs in this
 phase: a name collision and a regular expression that lost its backslash.
 
@@ -410,9 +413,9 @@ right about the thing that matters in a game.
 2. **Save and restore in the runtime.** A session snapshot of values,
    provenance, grounds, relations, commitments and the journal, restored in
    time proportional to the state rather than the history.
-3. **Cost that follows the event, not the program.** Rules guarded by
-   `target == $index` should be indexed by target, so declaring more entities
-   does not slow every event.
+3. **Cost that follows the event, not the program.** Declaring more entities
+   should not slow every event. (As first written, this item proposed indexing
+   rules by target; the profile above showed the cost was binding evaluation.)
 4. **Procedures over evidence.** `proc learn(e)` taking an evidence name
    would have made CR9 three lines.
 5. **The ordering trap.** Qualifying with evidence that the same event
