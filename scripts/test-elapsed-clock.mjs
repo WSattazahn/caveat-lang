@@ -66,7 +66,7 @@ try {
 const signedSource = 'event advance dt min 0 max 1; clock advance every 1; bind hud.angle = atan2(elapsed(), -1);';
 const signedInitial = new WebReactiveSession(signedSource);
 // Preserve negative zero on the wire; JSON.stringify(-0) would erase it.
-const signedSave = signedInitial.save().replace('"elapsed":0', '"elapsed":-0.0');
+const signedSave = signedInitial.save().replace(/"elapsed":0(?:\.0)?(?=[,}])/, '"elapsed":-0.0');
 signedInitial.free();
 session = WebReactiveSession.restore(signedSource, signedSave);
 try {
