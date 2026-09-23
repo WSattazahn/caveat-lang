@@ -7,8 +7,8 @@ import init, { WebReactiveSession } from '../../../dist/pkg-reactive/caveat_runt
 const source = await readFile(new URL('./glowcap.cav', import.meta.url), 'utf8');
 export const ready = init({ module_or_path: await readFile(new URL('../../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url)) });
 
-export function createPolicy() {
-  const session = new WebReactiveSession(source);
+export function createPolicy(saved) {
+  const session = saved ? WebReactiveSession.restore(source, JSON.stringify(saved)) : new WebReactiveSession(source);
   const mushrooms = JSON.parse(session.snapshot()).world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
   let shown = JSON.parse(session.view());
 
@@ -40,5 +40,5 @@ export function createPolicy() {
     };
   }
 
-  return { dispatch, view, free: () => session.free() };
+  return { dispatch, view, save: () => JSON.parse(session.save()), free: () => session.free() };
 }
