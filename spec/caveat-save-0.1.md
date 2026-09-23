@@ -29,7 +29,10 @@ everything an event can change, named as the program names it:
 
 - the program's `source_id`, the event `sequence`, the last event, and
   `elapsed` time;
-- every state's value, lineage and grounds;
+- every state whose value, lineage or grounds differ from what the program gave
+  it when it loaded, with its grounds written only when they differ from its
+  lineage. A state the save leaves out is recomputed from the source. Lineage
+  leaves out an empty list, so `{"value": 3}` is a state with no evidence;
 - what events did to the graph since the program loaded: the nodes they
   created (reading and renewal occurrences, rebuilt from their names, and
   commitments with their reason), the relations they added in order (their
