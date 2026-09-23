@@ -173,6 +173,15 @@ jobs:
         run: npm run test:glowcap-page
       - name: Play Trail Rescue on desktop and mobile
         run: npm run test:trail-rescue-page
+      - name: Developer kit session library and runner in Chromium
+        run: npm run test:kit-browser
+      - name: Pack the developer kit and use it from a fresh install
+        run: npm run test:kit-package
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: kit-package-report
+          path: test-results/kit-package/*/report.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:

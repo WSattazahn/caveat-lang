@@ -13,8 +13,15 @@
   "exports": {
     "./session": "./lib/session.mjs",
     "./node": "./lib/node.mjs",
-    "./scenarios": "./lib/scenarios.mjs"
+    "./scenarios": "./lib/scenarios.mjs",
+    "./runtime/*": "./runtime/*"
   },
+  "files": [
+    "bin/",
+    "lib/",
+    "runtime/",
+    "README.md"
+  ],
   "scripts": {
     "test": "node --test"
   }

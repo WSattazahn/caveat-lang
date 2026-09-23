@@ -60,9 +60,18 @@ throws a `CaveatError` with a `kind`:
 A WebAssembly trap in any session, including during `close()`, marks the
 whole runtime instance trapped: every session from it refuses further calls,
 `close()` no longer frees them, and `open` and `restore` refuse. Load another
-with `loadRuntimeFromDirectory()`. `lib/session.mjs` has no Node imports, and
-`loadRuntime({ module, wasm })` takes URLs, so it is written to run in a
-browser, but no browser test exists yet.
+with `loadRuntimeFromDirectory()`.
+
+In a browser, `lib/session.mjs` and `lib/scenarios.mjs` need no Node APIs.
+Load the runtime from URLs:
+
+```js
+import { loadRuntime } from './node_modules/caveat-kit/lib/session.mjs';
+const runtime = await loadRuntime({
+  module: new URL('./node_modules/caveat-kit/runtime/caveat_runtime.js', location.href).href,
+  wasm: new URL('./node_modules/caveat-kit/runtime/caveat_runtime_bg.wasm', location.href),
+});
+```
 
 ## Tests
 
@@ -82,10 +91,29 @@ browser, but no browser test exists yet.
 `npm run test:scenario-conversion` runs the
 [converted Trail Rescue and Glowcap suites](../experiments/scenario-conversion/README.md).
 
+`npm run test:kit-browser` runs the session library and the scenario runner
+in Chromium: the runtime loaded from URLs, typed outcomes, refused input that
+leaves state unchanged, save and restore, `elapsed()`, and scenario files read
+with `fetch`, including a failing one. Set `PLAYWRIGHT_CHANNEL=chrome` or
+`msedge` to use an installed browser.
+
+## Packing
+
+`npm run test:kit-package` copies the reactive runtime and its build info into
+`kit/runtime/`, packs the kit, and removes `kit/runtime/` again so development
+never uses a stale copy. It installs the tarball offline into a fresh consumer
+directory under `test-results/kit-package/` and uses it only through the
+install: the `caveat` command (exit statuses 0, 1 and 2), the library imported
+as `caveat-kit/node`, `caveat-kit/session` and `caveat-kit/scenarios`, and the
+browser check above. The tarball holds the command, the three library files,
+the runtime and this README, and nothing else.
+
+This is a packaging test, not a release. The package has no license, and its
+name and version are unset. A release packs the verified Linux runtime.
+
 ## Not yet
 
 - `init`, `validate` and `replay` commands.
-- A packed tarball with the runtime inside it.
+- A license, and a package name and version chosen for release.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.
-- A browser test of the session library.

@@ -31,8 +31,10 @@ export async function loadRuntimeFromDirectory(directory = defaultRuntimeDirecto
   const wasm = await readFile(wasmPath);
   // No local paths: reports that carry this identity may be committed.
   const identity = { reactiveWasmSha256: createHash('sha256').update(wasm).digest('hex') };
-  const buildInfo = path.join(directory, '..', 'build-info.json');
-  if (existsSync(buildInfo)) {
+  // A packed kit keeps build-info.json beside the runtime; the repository
+  // build keeps it one level up, in dist/.
+  const buildInfo = [path.join(directory, 'build-info.json'), path.join(directory, '..', 'build-info.json')].find(existsSync);
+  if (buildInfo) {
     try {
       const info = JSON.parse(await readFile(buildInfo, 'utf8'));
       Object.assign(identity, { revision: info.revision, clean: info.clean, compiled: info.compiled, host: info.host });
