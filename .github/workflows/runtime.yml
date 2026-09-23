@@ -62,6 +62,8 @@ jobs:
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
       - name: Third-party notices match the locked crates
         run: node scripts/third-party-notices.mjs --check
+      - name: Pages deployment gate refuses untested or stale artifacts
+        run: node --test scripts/pages-gate.test.mjs
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
       - uses: actions/setup-node@v7
         with:
@@ -96,17 +98,20 @@ jobs:
         if: always()
         with:
           name: slime-glow-wasm-report
+          overwrite: true
           path: test-results/slime-glow-wasm.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trail-rescue-policy-report
+          overwrite: true
           path: test-results/trail-rescue.json
       - uses: actions/upload-artifact@v7
         with:
           name: browser-dist
+          overwrite: true
           path: dist
-          retention-days: 1
+          retention-days: 90
 
   # Vessel pins the sha256 of the published WASM. That pin only means something
   # if another Linux machine gets the same bytes, so rebuild from a different
@@ -184,12 +189,14 @@ jobs:
         if: always()
         with:
           name: kit-package-report
+          overwrite: true
           path: test-results/kit-package/*/report.json
       - name: Retain the tested developer kit candidate
         uses: actions/upload-artifact@v7
         if: steps.kit_package.outcome == 'success'
         with:
           name: kit-package-candidate
+          overwrite: true
           path: |
             test-results/kit-package/*/*.tgz
             test-results/kit-package/*/report.json
@@ -201,6 +208,7 @@ jobs:
         if: always()
         with:
           name: glowcap-page-qa
+          overwrite: true
           path: |
             test-results/glowcap-page.png
             test-results/trail-rescue-*.png
@@ -232,6 +240,7 @@ jobs:
         if: always()
         with:
           name: last-beacon-browser-qa
+          overwrite: true
           path: test-results/
 
   light-the-way:
@@ -263,6 +272,7 @@ jobs:
         if: always()
         with:
           name: light-the-way-${{ matrix.browser }}-qa
+          overwrite: true
           path: test-results/rescue-*
 
   mr-caveat:
@@ -371,6 +381,7 @@ jobs:
         if: always()
         with:
           name: mr-caveat-visual-qa
+          overwrite: true
           path: mr-caveat-*.png
 
   moon-garden-2d:
@@ -425,6 +436,7 @@ jobs:
         if: always()
         with:
           name: moon-garden-visual-qa
+          overwrite: true
           path: moon-garden-*.png
 
   moon-garden-3d:
@@ -485,6 +497,7 @@ jobs:
         if: always()
         with:
           name: moon-garden-3d-visual-qa
+          overwrite: true
           path: moon-garden-3d-*.png
 
   legacy-door:
@@ -523,4 +536,5 @@ jobs:
         if: always()
         with:
           name: caveat-all-route-visual-qa
+          overwrite: true
           path: door-*.png
