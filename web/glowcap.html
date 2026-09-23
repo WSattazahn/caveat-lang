@@ -340,8 +340,9 @@
       const element = $('garden').querySelector(`[data-id="${card.id}"]`);
       cls(element, `card${card.present ? '' : ' gone'}`);
       text(element.querySelector('.label'), card.present ? card.label : 'Absorbed');
-      element.querySelector('[data-act="absorb"]').disabled = !card.canAbsorb;
-      element.querySelector('[data-act="taste"]').disabled = !card.canTaste;
+      // A stopped page keeps every control disabled, whatever the program last said.
+      element.querySelector('[data-act="absorb"]').disabled = stopped || !card.canAbsorb;
+      element.querySelector('[data-act="taste"]').disabled = stopped || !card.canTaste;
       put(element.querySelector('.why'), card.present
         ? why(card.because, card.caveats, 'Nothing observed yet, so nothing is claimed.')
         : '<span class="none">Gone.</span>');

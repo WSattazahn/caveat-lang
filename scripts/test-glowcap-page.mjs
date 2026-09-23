@@ -114,38 +114,50 @@ try {
   assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'no horizontal scroll on a phone');
   await phone.locator('#change').screenshot({ path: path.join(results, 'glowcap-change-phone.png') });
 
-  // A trap in the shared WebAssembly instance stops the whole page: no
-  // "Rejected", no more clicks, and no further call into the instance, not even
-  // from the clock. The trap is injected into the page's own runtime class.
-  const trapped = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
-  trapped.on('pageerror', (error) => errors.push(error.message));
-  trapped.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
-  await trapped.goto(url);
-  await trapped.waitForFunction(() => window.__glowcap !== undefined);
-  await trapped.evaluate(async () => {
-    const runtime = await import(new URL('./pkg-reactive/caveat_runtime.js', location.href).href);
-    const prototype = runtime.WebReactiveSession.prototype;
-    window.__calls = 0;
-    for (const name of Object.getOwnPropertyNames(prototype)) {
-      const original = prototype[name];
-      if (name === 'constructor' || typeof original !== 'function') continue;
-      prototype[name] = function (...args) {
-        window.__calls += 1;
-        if (name.startsWith('dispatch') && args[0] === 'absorb') throw new WebAssembly.RuntimeError('unreachable');
-        return original.apply(this, args);
-      };
-    }
-  });
-  await trapped.locator('#change-decide').click();
-  assert.equal(await trapped.locator('#stopped').isVisible(), true);
-  assert.equal(await trapped.evaluate(() => window.__glowcap.stopped()), true);
-  assert.equal(await trapped.locator('#change-decision').innerText(), '', 'a trap is not shown as a rejection');
-  for (const selector of ['#change-decide', '#change-learn', '#wait10', '#restart', 'button[data-act="absorb"][data-id="cave"]']) {
-    assert.equal(await trapped.locator(selector).isDisabled(), true, `${selector} is disabled`);
+  // A trap in the shared WebAssembly instance stops the whole page, wherever
+  // it happens: no "Rejected", every button disabled and kept disabled, and no
+  // further call into the instance, not even from the clock. The trap is
+  // injected into the page's own runtime class, for dispatches of one event.
+  async function stopsOnTrap(where, event, trigger) {
+    const trapped = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
+    trapped.on('pageerror', (error) => errors.push(`${where}: ${error.message}`));
+    trapped.on('console', (message) => { if (message.type() === 'error') errors.push(`${where}: ${message.text()}`); });
+    await trapped.goto(url);
+    await trapped.waitForFunction(() => window.__glowcap !== undefined);
+    await trapped.evaluate(async (trapEvent) => {
+      const runtime = await import(new URL('./pkg-reactive/caveat_runtime.js', location.href).href);
+      const prototype = runtime.WebReactiveSession.prototype;
+      window.__calls = 0;
+      for (const name of Object.getOwnPropertyNames(prototype)) {
+        const original = prototype[name];
+        if (name === 'constructor' || typeof original !== 'function') continue;
+        prototype[name] = function (...args) {
+          window.__calls += 1;
+          if (name.startsWith('dispatch') && args[0] === trapEvent) throw new WebAssembly.RuntimeError('unreachable');
+          return original.apply(this, args);
+        };
+      }
+    }, event);
+    await trigger(trapped);
+    await trapped.waitForFunction(() => window.__glowcap.stopped());
+    const enabled = () => trapped.locator('main button').evaluateAll((buttons) => buttons
+      .filter((button) => !button.disabled).map((button) => button.id || `${button.dataset.act} ${button.dataset.id}`));
+    assert.equal(await trapped.locator('#stopped').isVisible(), true, `${where}: the stop notice shows`);
+    assert.deepEqual(await enabled(), [], `${where}: every button is disabled`);
+    assert.equal(await trapped.locator('#change-decision').innerText(), '', `${where}: a trap is not shown as a rejection`);
+    assert.doesNotMatch(await trapped.locator('#feed').innerText(), /Rejected/, `${where}: a trap is not shown as a rejection`);
+    const callsAtStop = await trapped.evaluate(() => window.__calls);
+    await trapped.waitForTimeout(1000);
+    assert.equal(await trapped.evaluate(() => window.__calls), callsAtStop, `${where}: nothing calls into the trapped instance`);
+    assert.deepEqual(await enabled(), [], `${where}: every button stays disabled`);
+    await trapped.close();
   }
-  const callsAtStop = await trapped.evaluate(() => window.__calls);
-  await trapped.waitForTimeout(1000);
-  assert.equal(await trapped.evaluate(() => window.__calls), callsAtStop, 'nothing calls into the trapped instance');
+  await stopsOnTrap('guided panel', 'absorb', (page) => page.locator('#change-decide').click());
+  await stopsOnTrap('garden action', 'absorb', (page) => click(page, 'absorb', 'cave'));
+  await stopsOnTrap('garden taste', 'taste', (page) => click(page, 'taste', 'ruin'));
+  await stopsOnTrap('clock tick', 'tick', async () => {});
+  // The clock may trap first; either way wait() ends in a render after the stop.
+  await stopsOnTrap('waiting 10 s', 'tick', (page) => page.evaluate(() => window.__glowcap.wait(10)));
   assert.deepEqual(errors, []);
   console.log('Glowcap page plays through: "Change what you know", labels, belief, journal and late caveats render from the runtime.');
 } finally {
