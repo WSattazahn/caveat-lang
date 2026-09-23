@@ -119,6 +119,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Decision Journal 0.1](spec/caveat-decision-journal-0.1.md) publishes every commitment and reopening, in order, with the evidence each was based on in the order it was observed.
 
+[Incremental Evaluation 0.1](spec/caveat-incremental-evaluation-0.1.md) makes an event cost what it touches: a binding is evaluated again only when something it reads changed, and a transaction copies only what its effects write. Round 6's 32-entity program went from 1.1 ms to 0.16 ms per event with identical results, checked against full evaluation after every event in the test suite.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.

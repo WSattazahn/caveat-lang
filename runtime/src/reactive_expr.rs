@@ -160,6 +160,17 @@ impl<T> Tracked<T> {
     }
 }
 
+/// What an expression may read. See `Expr::collect_reads`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Reads {
+    /// Numeric names looked up: states, constants, parameters or locals.
+    pub names: BTreeSet<String>,
+    /// Queries the epistemic graph, a reading stream or a decision series.
+    pub graph: bool,
+    /// Could read anything; never skip it.
+    pub anything: bool,
+}
+
 /// A parsed expression with finite, canonical number literals.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
@@ -403,6 +414,68 @@ impl Expr {
             _ => {}
         }
         (nodes, bytes)
+    }
+
+    /// Everything evaluating this expression can read: the numeric names it
+    /// looks up, and whether it queries the graph or a history. Every branch
+    /// is included, taken or not, so this over-approximates and never misses
+    /// a read. The match is exhaustive on purpose: a new kind of node must say
+    /// what it reads before it compiles.
+    pub fn collect_reads(&self, reads: &mut Reads) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Variable(name) => {
+                reads.names.insert(name.clone());
+            }
+            Node::Predicate(_, _) | Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
+            Node::HistoryAt(_, index) => {
+                reads.graph = true;
+                index.collect_reads(reads);
+            }
+            Node::Fold(_, initial, _) => {
+                reads.graph = true;
+                initial.collect_reads(reads);
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                reads.graph = true;
+                initial.collect_reads(reads);
+                body.collect_reads(reads);
+            }
+            Node::Qualified(value, _, _) => {
+                reads.graph = true;
+                value.collect_reads(reads);
+            }
+            Node::Unary(_, child) => child.collect_reads(reads),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_reads(reads);
+                right.collect_reads(reads);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_reads(reads);
+                yes.collect_reads(reads);
+                no.collect_reads(reads);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+            }
+            // An unexpanded call's body is unknown here, so it could read
+            // anything. Sessions expand every call before evaluating.
+            Node::UserCall(_, arguments) => {
+                reads.anything = true;
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+            }
+            // The body has the arguments inlined, so its reads are the call's.
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+                body.collect_reads(reads);
+            }
+        }
     }
 
     fn new(node: Node) -> Result<Self, String> {

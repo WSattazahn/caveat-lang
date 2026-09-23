@@ -8,7 +8,7 @@ use crate::eval::ResourceLedger;
 use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
-use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Value, ValueType};
+use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType};
 pub use crate::reactive_expr::{Provenance, Tracked};
 use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::Serialize;
@@ -458,6 +458,155 @@ struct StateRange {
     max: f64,
 }
 
+/// A state's current value, with its lineage, and what it is grounded on.
+#[derive(Debug, Clone, PartialEq)]
+struct StateCell {
+    value: QualifiedValue,
+    grounds: Provenance,
+}
+
+/// Every declared state, in a slot fixed at load. A transaction's copy shares
+/// every cell until an effect writes one, so an event copies only the states
+/// it changes, and comparing before with after checks pointers first.
+#[derive(Debug, Clone, Default)]
+struct States {
+    slots: Arc<HashMap<String, usize>>,
+    names: Arc<Vec<String>>,
+    cells: Arc<Vec<Arc<StateCell>>>,
+}
+
+impl States {
+    fn contains_key(&self, name: &str) -> bool {
+        self.slots.contains_key(name)
+    }
+
+    fn slot(&self, name: &str) -> Option<usize> {
+        self.slots.get(name).copied()
+    }
+
+    fn get(&self, name: &str) -> Option<&StateCell> {
+        self.slot(name).map(|slot| &*self.cells[slot])
+    }
+
+    fn value(&self, name: &str) -> Option<&QualifiedValue> {
+        self.get(name).map(|cell| &cell.value)
+    }
+
+    fn names(&self) -> impl Iterator<Item = &String> {
+        self.names.iter()
+    }
+
+    fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    /// Load time: a new state. The caller has checked the name is unused.
+    fn declare(&mut self, name: String, cell: StateCell) {
+        let slot = self.names.len();
+        Arc::make_mut(&mut self.slots).insert(name.clone(), slot);
+        Arc::make_mut(&mut self.names).push(name);
+        Arc::make_mut(&mut self.cells).push(Arc::new(cell));
+    }
+
+    fn set(&mut self, slot: usize, cell: StateCell) {
+        Arc::make_mut(&mut self.cells)[slot] = Arc::new(cell);
+    }
+
+    fn cell_mut(&mut self, slot: usize) -> &mut StateCell {
+        Arc::make_mut(&mut Arc::make_mut(&mut self.cells)[slot])
+    }
+
+    /// The states whose value, lineage or grounds differ from `old`'s.
+    fn changed_since(&self, old: &Self) -> HashSet<String> {
+        if Arc::ptr_eq(&self.cells, &old.cells) {
+            return HashSet::new();
+        }
+        self.cells
+            .iter()
+            .zip(old.cells.iter())
+            .enumerate()
+            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && new != old)
+            .map(|(slot, _)| self.names[slot].clone())
+            .collect()
+    }
+
+    fn values(&self) -> BTreeMap<String, QualifiedValue> {
+        self.names
+            .iter()
+            .zip(self.cells.iter())
+            .map(|(name, cell)| (name.clone(), cell.value.clone()))
+            .collect()
+    }
+
+    fn grounds(&self) -> BTreeMap<String, Provenance> {
+        self.names
+            .iter()
+            .zip(self.cells.iter())
+            .map(|(name, cell)| (name.clone(), cell.grounds.clone()))
+            .collect()
+    }
+}
+
+/// What a session shows: bindings, their lineage and what each cites.
+type Shown = (
+    BTreeMap<String, BTreeMap<String, BindingValue>>,
+    BTreeMap<String, BTreeMap<String, Provenance>>,
+    BTreeMap<String, BTreeMap<String, Provenance>>,
+);
+
+/// Every `bind` declaration for one `TARGET.PROPERTY`, and what any of them
+/// can read. The property is shown from the last declaration that matches,
+/// with every declaration's guard in its lineage, so the group is the unit
+/// that is evaluated again or kept.
+#[derive(Debug, Clone)]
+struct BindingGroup {
+    target: String,
+    property: String,
+    reads: Reads,
+}
+
+/// What one event changed that an expression can read: states whose value,
+/// lineage or grounds differ, and whether anything the graph queries read
+/// (graph, observation and predicate records, commitments, histories) did.
+struct Changes {
+    names: HashSet<String>,
+    graph: bool,
+}
+
+impl Changes {
+    fn between(old: &ReactiveSession, new: &ReactiveSession) -> Self {
+        let names = new.states.changed_since(&old.states);
+        // Copy-on-write fields an event never wrote still share their pointer.
+        fn same<T: PartialEq>(old: &Arc<T>, new: &Arc<T>) -> bool {
+            Arc::ptr_eq(old, new) || **old == **new
+        }
+        let graph = !(Arc::ptr_eq(&old.graph, &new.graph)
+            || (old.graph.edges == new.graph.edges && old.graph.nodes == new.graph.nodes))
+            || !same(&old.symbols, &new.symbols)
+            || !same(
+                &old.observation_qualifications,
+                &new.observation_qualifications,
+            )
+            || !same(
+                &old.examination_qualifications,
+                &new.examination_qualifications,
+            )
+            || !same(&old.reopening_qualifications, &new.reopening_qualifications)
+            || !same(&old.predicate_qualifications, &new.predicate_qualifications)
+            || !same(&old.commitment_bases, &new.commitment_bases)
+            || !same(&old.commitment_grounds, &new.commitment_grounds)
+            || !same(&old.reading_streams, &new.reading_streams)
+            || !same(&old.decision_series, &new.decision_series);
+        Self { names, graph }
+    }
+
+    fn touch(&self, reads: &Reads) -> bool {
+        reads.anything
+            || (reads.graph && self.graph)
+            || reads.names.iter().any(|name| self.names.contains(name))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EffectReport {
@@ -512,19 +661,22 @@ pub struct JournalEntry {
 /// What a host redraws after an event: bindings and what they cite, cues and
 /// effects, commitments and their grounds, decision series and live relations.
 /// Static declarations and full lineage stay in `ReactiveSnapshot`.
+///
+/// It borrows from the session: a view is for serializing, and copying the
+/// bindings for every event cost more than building the records.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct ReactiveView {
-    pub schema: String,
+pub struct ReactiveView<'a> {
+    pub schema: &'static str,
     pub sequence: u64,
-    pub last_event: Option<String>,
-    pub bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
-    pub binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
-    pub cues: Vec<Cue>,
-    pub effects: Vec<EffectReport>,
+    pub last_event: Option<&'a str>,
+    pub bindings: &'a BTreeMap<String, BTreeMap<String, BindingValue>>,
+    pub binding_explanations: &'a BTreeMap<String, BTreeMap<String, Provenance>>,
+    pub cues: &'a [Cue],
+    pub effects: &'a [EffectReport],
     pub commitments: Vec<MapCommitment>,
-    pub commitment_grounds: BTreeMap<String, Provenance>,
-    pub decision_series: BTreeMap<String, DecisionSeries>,
-    pub decision_journal: Vec<JournalEntry>,
+    pub commitment_grounds: &'a BTreeMap<String, Provenance>,
+    pub decision_series: &'a BTreeMap<String, DecisionSeries>,
+    pub decision_journal: &'a [JournalEntry],
     pub relations: Vec<MapRelation>,
 }
 
@@ -580,38 +732,46 @@ pub struct ReactiveSession {
     source_id: String,
     sequence: u64,
     last_event: Option<String>,
-    values: BTreeMap<String, QualifiedValue>,
-    commitment_bases: BTreeMap<String, CommitmentBasis>,
-    reading_streams: BTreeMap<String, ReadingStream>,
-    decision_series: BTreeMap<String, DecisionSeries>,
-    observation_qualifications: BTreeMap<String, Provenance>,
-    examination_qualifications: BTreeMap<String, Provenance>,
-    reopening_qualifications: BTreeMap<String, Provenance>,
-    predicate_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
-    ranges: BTreeMap<String, StateRange>,
-    constants: BTreeMap<String, f64>,
-    events: BTreeMap<String, Vec<Parameter>>,
+    states: States,
+    // Copy-on-write: a transaction's copy shares these until an effect
+    // changes one (`Arc::make_mut`), so an event pays for what it touches and
+    // an untouched structure is recognised by pointer.
+    commitment_bases: Arc<BTreeMap<String, CommitmentBasis>>,
+    reading_streams: Arc<BTreeMap<String, ReadingStream>>,
+    decision_series: Arc<BTreeMap<String, DecisionSeries>>,
+    observation_qualifications: Arc<BTreeMap<String, Provenance>>,
+    examination_qualifications: Arc<BTreeMap<String, Provenance>>,
+    reopening_qualifications: Arc<BTreeMap<String, Provenance>>,
+    predicate_qualifications: Arc<BTreeMap<String, BTreeMap<String, Provenance>>>,
+    // Fixed at load and shared by every transaction.
+    ranges: Arc<BTreeMap<String, StateRange>>,
+    constants: Arc<BTreeMap<String, f64>>,
+    events: Arc<BTreeMap<String, Vec<Parameter>>>,
     rules: Arc<Vec<Rule>>,
+    /// Each event's rules, as indexes into `rules` in source order.
+    rules_by_event: Arc<HashMap<String, Vec<usize>>>,
     procedures: Arc<BTreeMap<String, Procedure>>,
     binding_rules: Arc<Vec<Binding>>,
+    binding_groups: Arc<Vec<BindingGroup>>,
+    /// For each of `binding_rules`, its index in `binding_groups`.
+    binding_group_of: Arc<Vec<usize>>,
     define_rules: Arc<Vec<(String, Expr)>>,
     bindings: BTreeMap<String, BTreeMap<String, BindingValue>>,
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
-    grounds: BTreeMap<String, Provenance>,
-    commitment_grounds: BTreeMap<String, Provenance>,
-    journal: Vec<JournalEntry>,
+    commitment_grounds: Arc<BTreeMap<String, Provenance>>,
+    journal: Arc<Vec<JournalEntry>>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
-    controls: BTreeMap<String, Control>,
+    controls: Arc<BTreeMap<String, Control>>,
     clock: Option<Clock>,
-    graph: EpistemicGraph,
-    symbols: HashMap<String, NodeId>,
+    graph: Arc<EpistemicGraph>,
+    symbols: Arc<HashMap<String, NodeId>>,
     resources: Option<ResourceLedger>,
-    world: MapWorld,
-    labels: BTreeMap<String, String>,
-    scenes: Vec<String>,
+    world: Arc<MapWorld>,
+    labels: Arc<BTreeMap<String, String>>,
+    scenes: Arc<Vec<String>>,
     effects: Vec<EffectReport>,
 }
 
@@ -726,38 +886,40 @@ impl ReactiveSession {
             source_id: source_identity(source),
             sequence: 0,
             last_event: None,
-            values: BTreeMap::new(),
-            commitment_bases: BTreeMap::new(),
-            reading_streams: BTreeMap::new(),
-            decision_series: BTreeMap::new(),
-            observation_qualifications: BTreeMap::new(),
-            examination_qualifications: BTreeMap::new(),
-            reopening_qualifications: BTreeMap::new(),
-            predicate_qualifications: BTreeMap::new(),
-            ranges: BTreeMap::new(),
-            constants,
-            events: BTreeMap::new(),
+            states: States::default(),
+            commitment_bases: Arc::default(),
+            reading_streams: Arc::default(),
+            decision_series: Arc::default(),
+            observation_qualifications: Arc::default(),
+            examination_qualifications: Arc::default(),
+            reopening_qualifications: Arc::default(),
+            predicate_qualifications: Arc::default(),
+            ranges: Arc::new(BTreeMap::new()),
+            constants: Arc::new(constants),
+            events: Arc::new(BTreeMap::new()),
             rules: Arc::new(Vec::new()),
+            rules_by_event: Arc::default(),
             procedures: Arc::new(BTreeMap::new()),
             binding_rules: Arc::new(Vec::new()),
+            binding_groups: Arc::new(Vec::new()),
+            binding_group_of: Arc::new(Vec::new()),
             define_rules: Arc::new(Vec::new()),
             bindings: BTreeMap::new(),
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
-            grounds: BTreeMap::new(),
-            commitment_grounds: BTreeMap::new(),
-            journal: Vec::new(),
+            commitment_grounds: Arc::default(),
+            journal: Arc::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
-            controls: BTreeMap::new(),
+            controls: Arc::default(),
             clock: None,
-            graph: evaluation.graph,
-            symbols: evaluation.symbols,
+            graph: Arc::new(evaluation.graph),
+            symbols: Arc::new(evaluation.symbols),
             resources: evaluation.resources,
-            world: map.world,
-            labels: evaluation.display.into_iter().collect(),
-            scenes: map.scenes,
+            world: Arc::new(map.world),
+            labels: Arc::new(evaluation.display.into_iter().collect()),
+            scenes: Arc::new(map.scenes),
             effects: Vec::new(),
         };
         let mut history_capacity = 0_usize;
@@ -790,7 +952,7 @@ impl ReactiveSession {
             match directive {
                 Directive::Readings { template, .. } => {
                     session.require_kind(template, "evidence")?;
-                    session.reading_streams.insert(
+                    Arc::make_mut(&mut session.reading_streams).insert(
                         name.clone(),
                         ReadingStream {
                             template: template.clone(),
@@ -802,7 +964,7 @@ impl ReactiveSession {
                     );
                 }
                 Directive::Decisions { .. } => {
-                    session.decision_series.insert(
+                    Arc::make_mut(&mut session.decision_series).insert(
                         name.clone(),
                         DecisionSeries {
                             limit,
@@ -861,8 +1023,7 @@ impl ReactiveSession {
                     }
                 }
                 Directive::Control { name, control } => {
-                    if session
-                        .controls
+                    if Arc::make_mut(&mut session.controls)
                         .insert(name.clone(), control.clone())
                         .is_some()
                     {
@@ -880,12 +1041,12 @@ impl ReactiveSession {
                     min,
                     max,
                 } => {
-                    if session.values.contains_key(name) {
+                    if session.states.contains_key(name) {
                         return Err(format!("duplicate reactive state {name}"));
                     }
                     let numeric = session
-                        .values
-                        .keys()
+                        .states
+                        .names()
                         .chain(session.constants.keys())
                         .cloned()
                         .collect();
@@ -901,7 +1062,7 @@ impl ReactiveSession {
                     }
                     let value = initial.evaluate_tracked_with_histories(
                         &|name| {
-                            Ok(session.values.get(name).cloned().or_else(|| {
+                            Ok(session.states.value(name).cloned().or_else(|| {
                                 session.constants.get(name).copied().map(Tracked::plain)
                             }))
                         },
@@ -916,11 +1077,14 @@ impl ReactiveSession {
                     let grounds = session
                         .evaluate_grounds(initial, &BTreeMap::new())?
                         .provenance;
-                    session.grounds.insert(name.clone(), grounds);
-                    session
-                        .values
-                        .insert(name.clone(), Tracked::new(number, value.provenance)?);
-                    session.ranges.insert(
+                    session.states.declare(
+                        name.clone(),
+                        StateCell {
+                            value: Tracked::new(number, value.provenance)?,
+                            grounds,
+                        },
+                    );
+                    Arc::make_mut(&mut session.ranges).insert(
                         name.clone(),
                         StateRange {
                             min: min.value(),
@@ -951,8 +1115,7 @@ impl ReactiveSession {
                         for (position, member) in parameter.domain.members().iter().enumerate() {
                             let constant = format!("{}.{member}", parameter.name);
                             let value = (position + 1) as f64;
-                            if session
-                                .constants
+                            if Arc::make_mut(&mut session.constants)
                                 .insert(constant.clone(), value)
                                 .is_some_and(|previous| previous != value)
                             {
@@ -961,8 +1124,7 @@ impl ReactiveSession {
                         }
                     }
                     let parameters = &parameters;
-                    if session
-                        .events
+                    if Arc::make_mut(&mut session.events)
                         .insert(name.clone(), parameters.clone())
                         .is_some()
                     {
@@ -994,9 +1156,9 @@ impl ReactiveSession {
         if session.events.is_empty() {
             return Err("reactive program must declare an event".into());
         }
-        for (event, parameters) in &session.events {
+        for (event, parameters) in session.events.iter() {
             for parameter in parameters {
-                if session.values.contains_key(&parameter.name)
+                if session.states.contains_key(&parameter.name)
                     || session.constants.contains_key(&parameter.name)
                 {
                     return Err(format!(
@@ -1006,7 +1168,7 @@ impl ReactiveSession {
                 }
             }
         }
-        for (name, control) in &session.controls {
+        for (name, control) in session.controls.iter() {
             if !session.events.contains_key(&control.event) {
                 return Err(format!(
                     "control {name} references undeclared event {}",
@@ -1034,8 +1196,45 @@ impl ReactiveSession {
         }
         session.validate_procedures()?;
         session.validate_rules()?;
-        session.evaluate_bindings()?;
+        session.group_bindings();
+        let mut rules_by_event = HashMap::<String, Vec<usize>>::new();
+        for (index, rule) in session.rules.iter().enumerate() {
+            rules_by_event
+                .entry(rule.event.clone())
+                .or_default()
+                .push(index);
+        }
+        session.rules_by_event = Arc::new(rules_by_event);
+        session.evaluate_bindings(None)?;
         Ok(session)
+    }
+
+    fn group_bindings(&mut self) {
+        let mut groups = Vec::<BindingGroup>::new();
+        let mut index_of = HashMap::<(String, String), usize>::new();
+        let mut group_of = Vec::with_capacity(self.binding_rules.len());
+        for binding in self.binding_rules.iter() {
+            let key = (binding.target.clone(), binding.property.clone());
+            let group = *index_of.entry(key).or_insert_with(|| {
+                groups.push(BindingGroup {
+                    target: binding.target.clone(),
+                    property: binding.property.clone(),
+                    reads: Reads::default(),
+                });
+                groups.len() - 1
+            });
+            let reads = &mut groups[group].reads;
+            binding.condition.collect_reads(reads);
+            if let BindingExpression::Expression(value) = &binding.value {
+                value.collect_reads(reads);
+            }
+            for citation in binding.because.iter().flatten() {
+                citation.collect_reads(reads);
+            }
+            group_of.push(group);
+        }
+        self.binding_groups = Arc::new(groups);
+        self.binding_group_of = Arc::new(group_of);
     }
 
     fn validate_procedures(&self) -> Result<(), String> {
@@ -1066,7 +1265,7 @@ impl ReactiveSession {
                         procedure.name
                     ));
                 }
-                if self.values.contains_key(parameter) || self.constants.contains_key(parameter) {
+                if self.states.contains_key(parameter) || self.constants.contains_key(parameter) {
                     return Err(format!(
                         "procedure {} parameter {parameter} shadows state or a coordinate",
                         procedure.name
@@ -1207,8 +1406,8 @@ impl ReactiveSession {
         }
         for (context, condition, effect, parameters) in steps {
             let numeric = self
-                .values
-                .keys()
+                .states
+                .names()
                 .chain(self.constants.keys())
                 .cloned()
                 .chain(parameters.into_iter().map(str::to_owned))
@@ -1262,7 +1461,7 @@ impl ReactiveSession {
                     value,
                     because,
                 } => {
-                    if !self.values.contains_key(name) {
+                    if !self.states.contains_key(name) {
                         return Err(format!("set references undeclared state {name}"));
                     }
                     if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
@@ -1314,13 +1513,13 @@ impl ReactiveSession {
             }
         }
         let numeric = self
-            .values
-            .keys()
+            .states
+            .names()
             .chain(self.constants.keys())
             .cloned()
             .collect();
         for (name, expression) in self.define_rules.iter() {
-            if self.values.contains_key(name) || self.constants.contains_key(name) {
+            if self.states.contains_key(name) || self.constants.contains_key(name) {
                 return Err(format!("define {name} collides with a state"));
             }
             if self.reading_streams.contains_key(name) || self.decision_series.contains_key(name) {
@@ -1337,8 +1536,8 @@ impl ReactiveSession {
             // On its own a define may name any event parameter; each place it
             // is used is validated again with that place's parameters.
             let names = self
-                .values
-                .keys()
+                .states
+                .names()
                 .chain(self.constants.keys())
                 .chain(
                     self.events
@@ -1393,24 +1592,43 @@ impl ReactiveSession {
         Ok(())
     }
 
-    fn evaluate_bindings(&mut self) -> Result<(), String> {
-        let mut bindings = BTreeMap::<String, BTreeMap<String, BindingValue>>::new();
-        let mut data = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
-        let mut guards = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
-        // The declaration that supplied each shown value: the last one to match.
-        let mut winners = BTreeMap::<(String, String), usize>::new();
+    /// Show every bound property: the last matching declaration's value, its
+    /// lineage (that value's and every declaration's guard) and what it cites.
+    ///
+    /// With `changes`, a property whose declarations read nothing the event
+    /// changed keeps what it showed, because evaluating it again would give
+    /// the same result: expressions are deterministic in what they read. Only
+    /// the rest are evaluated, so an event costs what it touches rather than
+    /// the size of the program. Debug builds check this against a full
+    /// evaluation after every event.
+    ///
+    /// Everything is computed before anything is written, and properties are
+    /// evaluated in declaration order and explained in name order, so an error
+    /// is the same one a full evaluation reports.
+    fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), String> {
+        let groups = Arc::clone(&self.binding_groups);
+        let rules = Arc::clone(&self.binding_rules);
+        let stale = groups
+            .iter()
+            .map(|group| changes.is_none_or(|changes| changes.touch(&group.reads)))
+            .collect::<Vec<_>>();
+        if !stale.contains(&true) {
+            return Ok(());
+        }
         let parameters = BTreeMap::new();
-        for (index, binding) in self.binding_rules.iter().enumerate() {
+        let mut guards = vec![Provenance::default(); groups.len()];
+        // The declaration that supplied each shown value: the last one to match.
+        let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
+        for (index, binding) in rules.iter().enumerate() {
+            let group = self.binding_group_of[index];
+            if !stale[group] {
+                continue;
+            }
             let context = || format!("binding {}.{}", binding.target, binding.property);
             let condition = self
                 .evaluate(&binding.condition, &parameters)
                 .map_err(|error| format!("{}: {error}", context()))?;
-            guards
-                .entry(binding.target.clone())
-                .or_default()
-                .entry(binding.property.clone())
-                .or_default()
-                .merge(&condition.provenance)?;
+            guards[group].merge(&condition.provenance)?;
             if condition.value != Value::Bool(true) {
                 continue;
             }
@@ -1428,45 +1646,82 @@ impl ReactiveSession {
                     Tracked::new(primitive, value.provenance)?
                 }
             };
-            bindings
-                .entry(binding.target.clone())
-                .or_default()
-                .insert(binding.property.clone(), value.value);
-            data.entry(binding.target.clone())
-                .or_default()
-                .insert(binding.property.clone(), value.provenance);
-            winners.insert((binding.target.clone(), binding.property.clone()), index);
+            winners[group] = Some((index, value));
         }
-        for (target, properties) in guards {
-            for (property, provenance) in properties {
-                data.entry(target.clone())
-                    .or_default()
-                    .entry(property)
-                    .or_default()
-                    .merge(&provenance)?;
-            }
-        }
-        let mut explanations = BTreeMap::<String, BTreeMap<String, Provenance>>::new();
-        for ((target, property), index) in winners {
-            let lineage = &data[&target][&property];
-            let explanation = match &self.binding_rules[index].because {
+        let mut order = (0..groups.len())
+            .filter(|&group| stale[group])
+            .collect::<Vec<_>>();
+        order.sort_by(|&a, &b| {
+            (&groups[a].target, &groups[a].property).cmp(&(&groups[b].target, &groups[b].property))
+        });
+        let mut shown = Vec::with_capacity(order.len());
+        for group in order {
+            let (target, property) = (&groups[group].target, &groups[group].property);
+            let guard = std::mem::take(&mut guards[group]);
+            let Some((index, value)) = winners[group].take() else {
+                shown.push((group, None, guard));
+                continue;
+            };
+            let mut lineage = value.provenance;
+            lineage.merge(&guard)?;
+            let explanation = match &rules[index].because {
                 None => lineage.clone(),
                 Some(citations) => self.grounded_citation(
                     &format!("binding {target}.{property}"),
                     citations,
-                    lineage,
+                    &lineage,
                     &parameters,
                 )?,
             };
-            explanations
-                .entry(target)
-                .or_default()
-                .insert(property, explanation);
+            shown.push((group, Some((value.value, explanation)), lineage));
         }
-        self.bindings = bindings;
-        self.binding_qualifications = data;
-        self.binding_explanations = explanations;
+        for (group, value, lineage) in shown {
+            let (target, property) = (&groups[group].target, &groups[group].property);
+            self.binding_qualifications
+                .entry(target.clone())
+                .or_default()
+                .insert(property.clone(), lineage);
+            match value {
+                Some((value, explanation)) => {
+                    self.bindings
+                        .entry(target.clone())
+                        .or_default()
+                        .insert(property.clone(), value);
+                    self.binding_explanations
+                        .entry(target.clone())
+                        .or_default()
+                        .insert(property.clone(), explanation);
+                }
+                None => {
+                    remove_shown(&mut self.bindings, target, property);
+                    remove_shown(&mut self.binding_explanations, target, property);
+                }
+            }
+        }
         Ok(())
+    }
+
+    /// Debug builds: an incremental evaluation must show exactly what a full
+    /// one shows, or fail with the same error.
+    #[cfg(debug_assertions)]
+    fn check_incremental_bindings(&self, incremental: &Result<(), String>) {
+        let mut full = self.clone();
+        let result = full.evaluate_bindings(None);
+        assert_eq!(
+            incremental, &result,
+            "incremental and full binding evaluation disagree on the outcome"
+        );
+        if result.is_ok() {
+            assert_eq!(self.bindings, full.bindings, "incremental bindings differ");
+            assert_eq!(
+                self.binding_qualifications, full.binding_qualifications,
+                "incremental binding lineage differs"
+            );
+            assert_eq!(
+                self.binding_explanations, full.binding_explanations,
+                "incremental binding explanations differ"
+            );
+        }
     }
 
     /// Evaluate `because` citations and check that they cite only what the
@@ -1645,24 +1900,31 @@ impl ReactiveSession {
         }
         let target = match effect {
             Effect::Set { name, .. } => {
-                return self
-                    .values
-                    .get_mut(name)
+                let slot = self.states.slot(name).expect("validated state");
+                // A guard already in the lineage changes nothing; writing it
+                // anyway would copy the shared cell.
+                let current = &self
+                    .states
+                    .get(name)
                     .expect("validated state")
-                    .provenance
-                    .merge(guard);
+                    .value
+                    .provenance;
+                if guard.evidence.is_subset(&current.evidence)
+                    && guard.caveats.is_subset(&current.caveats)
+                {
+                    return Ok(());
+                }
+                return self.states.cell_mut(slot).value.provenance.merge(guard);
             }
             Effect::Sample { stream, .. } => {
-                return self
-                    .reading_streams
+                return Arc::make_mut(&mut self.reading_streams)
                     .get_mut(stream)
                     .expect("validated stream")
                     .selection_qualifications
                     .merge(guard);
             }
             Effect::Commit { action, .. } if self.decision_series.contains_key(action) => {
-                return self
-                    .decision_series
+                return Arc::make_mut(&mut self.decision_series)
                     .get_mut(action)
                     .unwrap()
                     .selection_qualifications
@@ -1682,7 +1944,7 @@ impl ReactiveSession {
             _ => None,
         };
         if let Some((kind, name)) = target {
-            self.predicate_qualifications
+            Arc::make_mut(&mut self.predicate_qualifications)
                 .entry(kind.into())
                 .or_default()
                 .entry(name)
@@ -1770,15 +2032,40 @@ impl ReactiveSession {
                 parameter.max.value(),
             )?;
         }
+        // The shown bindings move into the transaction rather than being
+        // copied: rules never read them, and evaluation writes them only after
+        // it has succeeded, so a failed event hands them back untouched.
+        let shown = self.take_shown();
         let mut next = self.clone();
-        next.effects.clear();
-        next.cues.clear();
-        next.cue_qualifications.clear();
-        next.sequence = next
+        next.put_shown(shown);
+        match next.run_event(self, event, parameters) {
+            Ok(()) => {
+                *self = next;
+                Ok(())
+            }
+            Err(error) => {
+                self.put_shown(next.take_shown());
+                Err(error)
+            }
+        }
+    }
+
+    /// The body of `apply`, run on the transaction's copy: `old` is the
+    /// session as it was before the event.
+    fn run_event(
+        &mut self,
+        old: &Self,
+        event: &str,
+        parameters: &BTreeMap<String, f64>,
+    ) -> Result<(), String> {
+        self.effects.clear();
+        self.cues.clear();
+        self.cue_qualifications.clear();
+        self.sequence = self
             .sequence
             .checked_add(1)
             .ok_or("reactive event sequence exhausted")?;
-        next.last_event = Some(event.into());
+        self.last_event = Some(event.into());
         let parameters = parameters
             .iter()
             .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
@@ -1787,13 +2074,11 @@ impl ReactiveSession {
             remaining: MAX_EVENT_STEPS,
             depth: 0,
         };
-        for (index, rule) in self
-            .rules
-            .iter()
-            .enumerate()
-            .filter(|(_, rule)| rule.event == event)
-        {
-            let result = next.execute_guarded_effect(
+        let rules = Arc::clone(&self.rules);
+        let indexes = Arc::clone(&self.rules_by_event);
+        for &index in indexes.get(event).into_iter().flatten() {
+            let rule = &rules[index];
+            let result = self.execute_guarded_effect(
                 &rule.condition,
                 &rule.effect,
                 &parameters,
@@ -1803,9 +2088,25 @@ impl ReactiveSession {
             result.map_err(|error| format!("event {event}, rule {}: {error}", index + 1))?;
         }
         // Binding failures roll back the same numeric/graph/cue transaction.
-        next.evaluate_bindings()?;
-        *self = next;
-        Ok(())
+        let changes = Changes::between(old, self);
+        let result = self.evaluate_bindings(Some(&changes));
+        #[cfg(debug_assertions)]
+        self.check_incremental_bindings(&result);
+        result
+    }
+
+    fn take_shown(&mut self) -> Shown {
+        (
+            std::mem::take(&mut self.bindings),
+            std::mem::take(&mut self.binding_qualifications),
+            std::mem::take(&mut self.binding_explanations),
+        )
+    }
+
+    fn put_shown(&mut self, (bindings, qualifications, explanations): Shown) {
+        self.bindings = bindings;
+        self.binding_qualifications = qualifications;
+        self.binding_explanations = explanations;
     }
 
     /// Dispatch and return the full snapshot.
@@ -1824,30 +2125,30 @@ impl ReactiveSession {
         &mut self,
         event: &str,
         payload_json: &str,
-    ) -> Result<ReactiveView, String> {
+    ) -> Result<ReactiveView<'_>, String> {
         let payload = self.resolve_payload(event, payload_json)?;
         self.apply(event, &payload)?;
         Ok(self.view())
     }
 
-    pub fn view(&self) -> ReactiveView {
+    pub fn view(&self) -> ReactiveView<'_> {
         let names = self
             .symbols
             .iter()
             .map(|(name, id)| (*id, name.as_str()))
             .collect::<HashMap<_, _>>();
         ReactiveView {
-            schema: REACTIVE_VIEW_SCHEMA.into(),
+            schema: REACTIVE_VIEW_SCHEMA,
             sequence: self.sequence,
-            last_event: self.last_event.clone(),
-            bindings: self.bindings.clone(),
-            binding_explanations: self.binding_explanations.clone(),
-            cues: self.cues.clone(),
-            effects: self.effects.clone(),
+            last_event: self.last_event.as_deref(),
+            bindings: &self.bindings,
+            binding_explanations: &self.binding_explanations,
+            cues: &self.cues,
+            effects: &self.effects,
             commitments: self.commitment_records(&names),
-            commitment_grounds: self.commitment_grounds.clone(),
-            decision_series: self.decision_series.clone(),
-            decision_journal: self.journal.clone(),
+            commitment_grounds: &self.commitment_grounds,
+            decision_series: &self.decision_series,
+            decision_journal: &self.journal,
             relations: self.relation_records(&names),
         }
     }
@@ -1924,7 +2225,7 @@ impl ReactiveSession {
     ) -> Result<Tracked<Value>, String> {
         expression.evaluate_tracked_with_histories(
             &|name| {
-                Ok(self.values.get(name).cloned().or_else(|| {
+                Ok(self.states.value(name).cloned().or_else(|| {
                     parameters
                         .get(name)
                         .cloned()
@@ -1950,9 +2251,8 @@ impl ReactiveSession {
     ) -> Result<Tracked<Value>, String> {
         expression.evaluate_tracked_with_histories(
             &|name| {
-                if let Some(value) = self.values.get(name) {
-                    let grounds = self.grounds.get(name).cloned().unwrap_or_default();
-                    return Ok(Some(Tracked::new(value.value, grounds)?));
+                if let Some(cell) = self.states.get(name) {
+                    return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
                 }
                 Ok(parameters
                     .get(name)
@@ -2246,11 +2546,20 @@ impl ReactiveSession {
     }
 
     fn clear_predicate_dependency(&mut self, kind: &str, name: &str) {
-        if let Some(targets) = self.predicate_qualifications.get_mut(kind) {
-            targets.remove(name);
-            if targets.is_empty() {
-                self.predicate_qualifications.remove(kind);
-            }
+        // Checked first: most calls have nothing to clear, and a write would
+        // copy the shared map.
+        if !self
+            .predicate_qualifications
+            .get(kind)
+            .is_some_and(|targets| targets.contains_key(name))
+        {
+            return;
+        }
+        let dependencies = Arc::make_mut(&mut self.predicate_qualifications);
+        let targets = dependencies.get_mut(kind).expect("checked above");
+        targets.remove(name);
+        if targets.is_empty() {
+            dependencies.remove(kind);
         }
     }
 
@@ -2334,19 +2643,21 @@ impl ReactiveSession {
                     })
                     .map(|edge| edge.from)
                     .collect::<Vec<_>>();
-                let id = self.graph.add(NodeKind::Evidence {
+                let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
                     source,
                 });
-                self.symbols.insert(name.clone(), id);
-                self.graph.relate(id, *relation, self.symbols[claim]);
+                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
+                Arc::make_mut(&mut self.graph).relate(id, *relation, self.symbols[claim]);
                 for caveat in inherited {
-                    self.graph.relate(caveat, Relation::Qualifies, id);
+                    Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
                 }
-                self.observation_qualifications
+                Arc::make_mut(&mut self.observation_qualifications)
                     .insert(name.clone(), value.provenance.union(guard)?);
                 let provenance = self.qualify(&name, &[])?;
-                let readings = self.reading_streams.get_mut(stream).unwrap();
+                let readings = Arc::make_mut(&mut self.reading_streams)
+                    .get_mut(stream)
+                    .unwrap();
                 readings.current = Some(name.clone());
                 readings.selection_qualifications = Provenance::default();
                 readings.occurrences.push(ReadingOccurrence {
@@ -2379,7 +2690,7 @@ impl ReactiveSession {
                 if !self.graph.edges.iter().any(|edge| {
                     edge.from == from && edge.to == to && edge.relation == Relation::Qualifies
                 }) {
-                    self.graph.relate(from, Relation::Qualifies, to);
+                    Arc::make_mut(&mut self.graph).relate(from, Relation::Qualifies, to);
                 }
                 // The caveat and whatever qualifies it, as `qualified` inherits.
                 let added = Provenance::from_names(
@@ -2388,15 +2699,20 @@ impl ReactiveSession {
                 )?;
                 // Current values only. Commitment bases and grounds, reading
                 // archives and the journal record what was known then.
-                for (name, tracked) in self.values.iter_mut() {
-                    if tracked.provenance.evidence.contains(evidence) {
-                        tracked.provenance.merge(&added)?;
-                        tracked.provenance.merge(guard)?;
+                for slot in 0..self.states.len() {
+                    let cell = &self.states.cells[slot];
+                    let in_value = cell.value.provenance.evidence.contains(evidence);
+                    let in_grounds = cell.grounds.evidence.contains(evidence);
+                    if !(in_value || in_grounds) {
+                        continue;
                     }
-                    if let Some(grounds) = self.grounds.get_mut(name) {
-                        if grounds.evidence.contains(evidence) {
-                            grounds.merge(&added)?;
-                        }
+                    let cell = self.states.cell_mut(slot);
+                    if in_value {
+                        cell.value.provenance.merge(&added)?;
+                        cell.value.provenance.merge(guard)?;
+                    }
+                    if in_grounds {
+                        cell.grounds.merge(&added)?;
                     }
                 }
                 self.effects.push(EffectReport::Qualify {
@@ -2431,9 +2747,14 @@ impl ReactiveSession {
                         parameters,
                     )?,
                 };
-                self.grounds.insert(name.clone(), grounds);
-                self.values
-                    .insert(name.clone(), Tracked::new(number, lineage)?);
+                let slot = self.states.slot(name).expect("validated state");
+                self.states.set(
+                    slot,
+                    StateCell {
+                        value: Tracked::new(number, lineage)?,
+                        grounds,
+                    },
+                );
             }
             Effect::Reveal {
                 evidence,
@@ -2449,11 +2770,11 @@ impl ReactiveSession {
                     .any(|edge| edge.from == from && edge.to == to && edge.relation == *relation)
                 {
                     self.clear_predicate_dependency("observed", evidence);
-                    self.observation_qualifications
+                    Arc::make_mut(&mut self.observation_qualifications)
                         .entry(evidence.clone())
                         .or_default()
                         .merge(guard)?;
-                    self.graph.relate(from, *relation, to);
+                    Arc::make_mut(&mut self.graph).relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
                         evidence: evidence.clone(),
                         relation: relation_name(*relation).into(),
@@ -2481,10 +2802,10 @@ impl ReactiveSession {
                 resources.remaining -= cost;
                 resources.spent += cost;
                 resources.exhausted = resources.remaining == 0;
-                self.graph
+                Arc::make_mut(&mut self.graph)
                     .set_attention(self.symbols[caveat], Attention::Examined);
                 self.clear_predicate_dependency("examined", caveat);
-                self.examination_qualifications
+                Arc::make_mut(&mut self.examination_qualifications)
                     .insert(caveat.clone(), attention_basis);
                 self.effects.push(EffectReport::Examine {
                     caveat: caveat.clone(),
@@ -2545,7 +2866,7 @@ impl ReactiveSession {
                 } else {
                     None
                 };
-                self.commitment_grounds.insert(name.clone(), grounds);
+                Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
@@ -2558,12 +2879,13 @@ impl ReactiveSession {
                     .iter()
                     .map(|name| self.symbols[name])
                     .collect::<Vec<_>>();
-                let id = self.graph.commit_because(&name, &retained, reason.clone());
+                let id =
+                    Arc::make_mut(&mut self.graph).commit_because(&name, &retained, reason.clone());
                 self.clear_predicate_dependency("committed", action);
                 if ordinal.is_some() {
                     self.clear_predicate_dependency("reopened", action);
                 }
-                self.symbols.insert(name.clone(), id);
+                Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 for evidence in &provenance.evidence {
                     self.require_kind(evidence, "evidence")?;
                     if !self.predicate("observed", evidence)? {
@@ -2571,10 +2893,13 @@ impl ReactiveSession {
                             "commitment basis includes unobserved evidence {evidence}"
                         ));
                     }
-                    self.graph
-                        .relate(id, Relation::ReliesOn, self.symbols[evidence]);
+                    Arc::make_mut(&mut self.graph).relate(
+                        id,
+                        Relation::ReliesOn,
+                        self.symbols[evidence],
+                    );
                 }
-                self.commitment_bases.insert(
+                Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
                     CommitmentBasis {
                         value: used_value,
@@ -2582,7 +2907,9 @@ impl ReactiveSession {
                     },
                 );
                 if let Some(ordinal) = ordinal {
-                    let series = self.decision_series.get_mut(action).unwrap();
+                    let series = Arc::make_mut(&mut self.decision_series)
+                        .get_mut(action)
+                        .unwrap();
                     series.current = Some(name.clone());
                     series.selection_qualifications = Provenance::default();
                     series.revisions.push(DecisionRevision {
@@ -2597,7 +2924,7 @@ impl ReactiveSession {
                     });
                 }
                 let grounds = &self.commitment_grounds[&name];
-                self.journal.push(JournalEntry {
+                let entry = JournalEntry {
                     decision: action.clone(),
                     commitment: name.clone(),
                     change: "committed".into(),
@@ -2605,7 +2932,8 @@ impl ReactiveSession {
                     event: self.last_event.clone().unwrap_or_default(),
                     because: self.in_observation_order(grounds.evidence.iter()),
                     caveats: grounds.caveats.iter().cloned().collect(),
-                });
+                };
+                Arc::make_mut(&mut self.journal).push(entry);
                 self.effects.push(EffectReport::Commit {
                     action: name,
                     retained: retained_names,
@@ -2643,12 +2971,12 @@ impl ReactiveSession {
                         basis.merge(&series.selection_qualifications)?;
                     }
                     self.clear_predicate_dependency("reopened", &current);
-                    self.reopening_qualifications
+                    Arc::make_mut(&mut self.reopening_qualifications)
                         .entry(current.clone())
                         .or_default()
                         .merge(&basis)?;
-                    self.graph.reopen(id, from);
-                    self.journal.push(JournalEntry {
+                    Arc::make_mut(&mut self.graph).reopen(id, from);
+                    let entry = JournalEntry {
                         decision: action.clone(),
                         commitment: current.clone(),
                         change: "reopened".into(),
@@ -2660,7 +2988,8 @@ impl ReactiveSession {
                             .caveats
                             .into_iter()
                             .collect(),
-                    });
+                    };
+                    Arc::make_mut(&mut self.journal).push(entry);
                     self.effects.push(EffectReport::Reopen {
                         action: current,
                         because,
@@ -2738,31 +3067,32 @@ impl ReactiveSession {
             bindings: self.bindings.clone(),
             binding_qualifications: self.binding_qualifications.clone(),
             binding_explanations: self.binding_explanations.clone(),
-            value_grounds: self.grounds.clone(),
-            commitment_grounds: self.commitment_grounds.clone(),
-            decision_journal: self.journal.clone(),
+            value_grounds: self.states.grounds(),
+            commitment_grounds: (*self.commitment_grounds).clone(),
+            decision_journal: (*self.journal).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
-            qualified_values: self.values.clone(),
-            commitment_bases: self.commitment_bases.clone(),
-            reading_streams: self.reading_streams.clone(),
-            decision_series: self.decision_series.clone(),
-            observation_qualifications: self.observation_qualifications.clone(),
-            examination_qualifications: self.examination_qualifications.clone(),
-            reopening_qualifications: self.reopening_qualifications.clone(),
-            predicate_qualifications: self.predicate_qualifications.clone(),
-            controls: self.controls.clone(),
+            qualified_values: self.states.values(),
+            commitment_bases: (*self.commitment_bases).clone(),
+            reading_streams: (*self.reading_streams).clone(),
+            decision_series: (*self.decision_series).clone(),
+            observation_qualifications: (*self.observation_qualifications).clone(),
+            examination_qualifications: (*self.examination_qualifications).clone(),
+            reopening_qualifications: (*self.reopening_qualifications).clone(),
+            predicate_qualifications: (*self.predicate_qualifications).clone(),
+            controls: (*self.controls).clone(),
             clock: self.clock.clone(),
             schema: REACTIVE_SCHEMA.into(),
             source_id: self.source_id.clone(),
             sequence: self.sequence,
             last_event: self.last_event.clone(),
             values: self
-                .values
-                .iter()
-                .map(|(name, value)| (name.clone(), value.value))
+                .states
+                .names()
+                .zip(self.states.cells.iter())
+                .map(|(name, cell)| (name.clone(), cell.value.value))
                 .collect(),
-            world: self.world.clone(),
+            world: (*self.world).clone(),
             events: self
                 .events
                 .iter()
@@ -2771,8 +3101,8 @@ impl ReactiveSession {
                     parameters: parameters.clone(),
                 })
                 .collect(),
-            scenes: self.scenes.clone(),
-            labels: self.labels.clone(),
+            scenes: (*self.scenes).clone(),
+            labels: (*self.labels).clone(),
             symbols,
             commitments,
             relations: self
@@ -2793,6 +3123,20 @@ impl ReactiveSession {
                 exhausted: resources.exhausted,
             }),
             effects: self.effects.clone(),
+        }
+    }
+}
+
+/// Stop showing `TARGET.PROPERTY`, and the target once it shows nothing.
+fn remove_shown<T>(
+    shown: &mut BTreeMap<String, BTreeMap<String, T>>,
+    target: &str,
+    property: &str,
+) {
+    if let Some(properties) = shown.get_mut(target) {
+        properties.remove(property);
+        if properties.is_empty() {
+            shown.remove(target);
         }
     }
 }
