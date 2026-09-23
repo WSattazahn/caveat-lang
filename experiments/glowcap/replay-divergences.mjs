@@ -6,14 +6,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createPolicy as createTs } from './ts/glowcap.ts';
 import { createPolicy as createCaveat, ready } from './caveat5/adapter.mjs';
+import { compareViews } from './compare-views.mjs';
 
 await ready;
 const file = process.argv[2] ?? new URL('./fixtures/round6-float-divergences.json', import.meta.url);
 const cases = JSON.parse(await readFile(file, 'utf8'));
 assert.ok(cases.length > 0, 'A regression replay must contain cases');
-const normalise = (value) => Array.isArray(value) ? [...value].sort()
-  : value && typeof value === 'object'
-    ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, normalise(value[key])])) : value;
 function attempt(policy, event) {
   try { policy.dispatch(event); return 'accepted'; } catch { return 'rejected'; }
 }
@@ -39,7 +37,7 @@ for (const { sequence, history } of cases) {
           assert.equal(attempt(caveat, event), attempt(ts, event), `accept/reject: ${context}`);
           events += 1;
         }
-        assert.deepEqual(normalise(caveat.view()), normalise(ts.view()), `view: ${context}`);
+        assert.deepEqual(compareViews(ts.view(), caveat.view()), null, `view: ${context}`);
         index += 1;
       }
     }

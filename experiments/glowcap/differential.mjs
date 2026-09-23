@@ -11,6 +11,10 @@
 //
 // --dump=FILE writes each divergence's first example with every event,
 // ticks included, so it can be replayed exactly.
+// --ordered-decisions checks the protocol's ordered decision fields too.
+// Without it, retain the original comparator for published-run reproduction.
+import { compareViews } from './compare-views.mjs';
+
 // Same entry points as harness.mjs (importing it would run its test mode).
 const against = process.argv.find((a) => a.startsWith('--against='))?.split('=')[1] ?? 'caveat';
 const IMPLEMENTATIONS = { ts: { entry: 'ts/glowcap.ts' }, caveat: { entry: `${against}/adapter.mjs` } };
@@ -34,6 +38,7 @@ const IDS = ['cave', 'pool', 'ruin', 'grove', 'cave', 'pool', 'ruin', 'grove', '
 const KINDS = ['glowcap', 'duskcap', 'glowcap', 'duskcap', 'bluecap'];
 
 const ROUND6 = arg('round', 0) >= 6;
+const ORDERED_DECISIONS = process.argv.includes('--ordered-decisions');
 
 // A step is one event, or a burst of ticks long enough to cross the timers.
 function randomStep() {
@@ -114,7 +119,8 @@ for (let sequence = 0; sequence < SEQUENCES; sequence += 1) {
         break;
       }
     }
-    difference ??= firstDifference(normalise(ts.view()), normalise(caveat.view()));
+    difference ??= ORDERED_DECISIONS ? compareViews(ts.view(), caveat.view())
+      : firstDifference(normalise(ts.view()), normalise(caveat.view()));
     if (difference) {
       const entry = divergences.get(difference.at) ?? { count: 0, example: null };
       entry.count += 1;

@@ -274,3 +274,13 @@ run because a new local variable (`events`) shadowed the event counter. It
 was renamed; what the fuzz generates and compares did not change. The round-6
 fuzz ran 300 sequences rather than the default 2000, because the Caveat side
 had become slow enough (see RESULTS) that 2000 would take about five hours.
+
+Round 6 replay, final verification: the original differential comparator
+sorted `decision.basis` and `decision.reopenedBy`, hiding order differences
+despite the ordering requirements above. A new opt-in `--ordered-decisions`
+mode preserves those lists, the journal and each journal entry's evidence
+order, while comparing the specified evidence sets without order. The
+original mode remains available so its published results are reproducible.
+The saved-divergence replay uses the stricter comparison after every event.
+This changes verification, not the requested behavior or scoring rule; the
+adapter error it exposed and its correction are recorded in RESULTS.md.

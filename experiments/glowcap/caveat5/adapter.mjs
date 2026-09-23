@@ -35,7 +35,8 @@ export function createPolicy(saved) {
           why: { absorb: why(whyAbsorb, cites[id].whyAbsorb), taste: why(whyTaste, cites[id].whyTaste) } }];
       })),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: cites.belief.state.caveats },
-      decision: { state: bindings.decision.state, basis: named(grounds[current]?.evidence ?? []), reopenedBy: named(trust?.reopened_by ?? []), caveats: grounds[current]?.caveats ?? [],
+      // Grounds are a set; the journal retains this revision's observation order.
+      decision: { state: bindings.decision.state, basis: named(journal.find((entry) => entry.commitment === current && entry.change === 'committed')?.because ?? []), reopenedBy: named(trust?.reopened_by ?? []), caveats: grounds[current]?.caveats ?? [],
         history: journal.filter((entry) => entry.decision === 'trust').map(({ change, because }) => ({ change, because: named(because) })) },
     };
   }
