@@ -1,0 +1,78 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "../../../game/trail_rescue.cav",
+  "scenarios": [
+    {
+      "id": "R01",
+      "title": "A scouted plan goes stale and is reopened on the scout's own evidence",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "target": "stone",
+            "method": "scout",
+            "condition": 0
+          }
+        },
+        {
+          "send": "plan",
+          "payload": {
+            "target": "stone"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/decision/state": "committed",
+            "/commitment_grounds/route@1/evidence": [
+              "seen_scout_stone_1"
+            ]
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "plan",
+          "payload": {
+            "target": "reed"
+          },
+          "rejected": "Reconsider the existing plan first."
+        },
+        {
+          "send": "advance",
+          "payload": {
+            "dt": 30
+          }
+        },
+        {
+          "expect": {
+            "/elapsed": 30,
+            "/bindings/decision/state": "reopened",
+            "/bindings/stone/status": "unknown",
+            "/decision_journal/1": {
+              "change": "reopened",
+              "elapsed": 30,
+              "because": [
+                "seen_scout_stone_1"
+              ],
+              "caveats": [
+                "stale"
+              ]
+            }
+          }
+        },
+        {
+          "send": "advance",
+          "payload": {
+            "dt": 31
+          },
+          "rejected": true
+        },
+        {
+          "send": "rescue",
+          "rejected": true
+        }
+      ]
+    }
+  ]
+}

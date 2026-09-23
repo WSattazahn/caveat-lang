@@ -1,0 +1,47 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "../../../examples/thermostat_history.cav",
+  "scenarios": [
+    {
+      "id": "T01",
+      "title": "Each reading revises heating; earlier decisions keep what they knew",
+      "steps": [
+        {
+          "send": "read",
+          "payload": {
+            "value": 17
+          }
+        },
+        {
+          "expect": {
+            "/bindings/heating/text": "100%",
+            "/commitment_grounds/heating@1": {
+              "evidence": [
+                "temperature@1"
+              ],
+              "caveats": [
+                "calibration_offset"
+              ]
+            }
+          }
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "read",
+          "payload": {
+            "value": 25
+          }
+        },
+        {
+          "size": {
+            "save": {
+              "max": 200
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

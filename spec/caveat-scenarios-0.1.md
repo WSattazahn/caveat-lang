@@ -218,7 +218,9 @@ compiled build of `541e09d`. Nine altered copies failed as intended (a wrong
 value, list order, a bare `rejected` on a payload refusal, a wrong policy
 message, a fatal expected as a rejection, a size bound and others), and five
 invalid files were refused. Three more files exercised `repeat`, `$set`,
-growth bounds and a state-bound `evaluation` rejection.
+growth bounds and a state-bound `evaluation` rejection. The prototype, these
+files and their recorded results are kept in
+[`experiments/scenario-format`](../experiments/scenario-format/README.md).
 
 `thermostat_history.scenarios.json`, the authoring guide's walkthrough:
 

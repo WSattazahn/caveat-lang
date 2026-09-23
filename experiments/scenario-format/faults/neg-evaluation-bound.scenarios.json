@@ -1,0 +1,33 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "faults.cav",
+  "scenarios": [
+    {
+      "id": "F01",
+      "title": "state bound",
+      "steps": [
+        {
+          "send": "raise",
+          "payload": {
+            "amount": 8
+          }
+        },
+        {
+          "send": "raise",
+          "payload": {
+            "amount": 8
+          },
+          "rejected": {
+            "origin": "evaluation",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/hud/level": 8
+          }
+        }
+      ]
+    }
+  ]
+}

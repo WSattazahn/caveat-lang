@@ -1,0 +1,9 @@
+scene "Fault probes for the scenario runner.";
+state level = 0 min 0 max 10;
+readings sample from probe limit 2;
+evidence probe from "probe";
+event raise amount min 0 max 100;
+event peek;
+on raise set level = level + amount;
+on peek set level = history_at(sample, 5);
+bind hud.level = level;

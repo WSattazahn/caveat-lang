@@ -1,0 +1,250 @@
+{
+  "schema": 1,
+  "audit": "glowcap-cr12-rejection-origins",
+  "runtime": {
+    "revision": "541e09d61f131dbd25e546f96600e12d845f3592",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc",
+    "reactiveWasmSha256": "0b03a2419ead6d4f53c3d89d1dd071a8eed0de31ce81a2045f56db227ec2fa6b"
+  },
+  "sourceSha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e",
+  "expectedRejections": {
+    "policy/reject": 15,
+    "input/bound_exceeded": 2,
+    "input/payload_invalid": 4
+  },
+  "acceptedDispatches": 24315,
+  "unexpected": 0,
+  "rejections": [
+    {
+      "scenario": "S10",
+      "event": {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "a known duskcap"
+    },
+    {
+      "scenario": "S10",
+      "event": {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "a known duskcap"
+    },
+    {
+      "scenario": "S10",
+      "event": {
+        "type": "taste",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "already known"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "already absorbed"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "taste",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "already known"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "tick",
+        "dt": 0.2
+      },
+      "outcome": "input/bound_exceeded",
+      "atomic": true,
+      "message": "dt must be finite and in 0..0.1"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "tick",
+        "dt": -0.1
+      },
+      "outcome": "input/bound_exceeded",
+      "atomic": true,
+      "message": "dt must be finite and in 0..0.1"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "absorb",
+        "id": "nowhere",
+        "kind": "glowcap"
+      },
+      "outcome": "input/payload_invalid",
+      "atomic": true,
+      "message": "event absorb parameter target does not accept nowhere; expected one of cave, pool, ruin, grove"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "bluecap"
+      },
+      "outcome": "input/payload_invalid",
+      "atomic": true,
+      "message": "event absorb parameter sort does not accept bluecap; expected one of glowcap, duskcap"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "taste",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "already known"
+    },
+    {
+      "scenario": "S12",
+      "event": {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "duskcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "tasted as the other sort"
+    },
+    {
+      "scenario": "S16",
+      "event": {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "too risky to absorb untasted"
+    },
+    {
+      "scenario": "S17",
+      "event": {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "too risky to absorb untasted"
+    },
+    {
+      "scenario": "S21",
+      "event": {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "a known duskcap"
+    },
+    {
+      "scenario": "S28",
+      "event": {
+        "type": "witness",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "already eaten"
+    },
+    {
+      "scenario": "S28",
+      "event": {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "already absorbed"
+    },
+    {
+      "scenario": "S28",
+      "event": {
+        "type": "witness",
+        "id": "nowhere",
+        "kind": "glowcap"
+      },
+      "outcome": "input/payload_invalid",
+      "atomic": true,
+      "message": "event witness parameter target does not accept nowhere; expected one of cave, pool, ruin, grove"
+    },
+    {
+      "scenario": "S28",
+      "event": {
+        "type": "witness",
+        "id": "pool",
+        "kind": "bluecap"
+      },
+      "outcome": "input/payload_invalid",
+      "atomic": true,
+      "message": "event witness parameter sort does not accept bluecap; expected one of glowcap, duskcap"
+    },
+    {
+      "scenario": "S29",
+      "event": {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "too risky to absorb untasted"
+    },
+    {
+      "scenario": "S30",
+      "event": {
+        "type": "witness",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "tasted as the other sort"
+    },
+    {
+      "scenario": "S36",
+      "event": {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      "outcome": "policy/reject",
+      "atomic": true,
+      "message": "a known duskcap"
+    }
+  ]
+}

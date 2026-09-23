@@ -1,0 +1,11 @@
+{ "schema": "caveat-scenarios/0.1", "source": "../../../game/trail_rescue.cav", "scenarios": [
+  { "id": "P01", "title": "repeat, growth bound and same_as initial", "steps": [
+    { "checkpoint": "start" },
+    { "send": "advance", "payload": { "dt": 0.5 }, "repeat": 40 },
+    { "expect": { "/elapsed": 20, "/sequence": 40, "/bindings/decision/state": "none" } },
+    { "size": { "snapshot": { "max_growth": 512, "since": "start" } } },
+    { "same_as": "initial", "paths": ["/decision_journal", "/commitment_grounds"] },
+    { "resume": true },
+    { "send": "advance", "payload": { "dt": 30 }, "repeat": 3 },
+    { "send": "rescue", "rejected": "Choose a supported plan first.", "repeat": 2 }
+  ] } ] }
