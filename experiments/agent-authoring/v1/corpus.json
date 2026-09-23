@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "source": "frozen independent oracle, before candidate scoring",
+  "tasks": {
+    "A": {
+      "heldOutScenarios": 14,
+      "seededSequences": 100,
+      "steps": 4095,
+      "events": 3440,
+      "accepted": 1336,
+      "rejected": 2104,
+      "resumeSteps": 655,
+      "eventNames": {
+        "decide": 1385,
+        "advance": 741,
+        "read": 1313,
+        "no_such_event": 1
+      },
+      "hudValues": {
+        "recommendation": [
+          "waiting",
+          "release",
+          "block",
+          "stale"
+        ],
+        "decision": [
+          "none",
+          "release",
+          "block",
+          "review"
+        ]
+      }
+    },
+    "B": {
+      "heldOutScenarios": 16,
+      "seededSequences": 100,
+      "steps": 4106,
+      "events": 3412,
+      "accepted": 1496,
+      "rejected": 1916,
+      "resumeSteps": 694,
+      "eventNames": {
+        "approve": 781,
+        "revoke": 584,
+        "advance": 669,
+        "submit": 1378
+      },
+      "hudValues": {
+        "verdict": [
+          "undecided",
+          "allow",
+          "deny"
+        ],
+        "decision": [
+          "none",
+          "deny",
+          "allow",
+          "review"
+        ]
+      }
+    },
+    "C": {
+      "heldOutScenarios": 14,
+      "seededSequences": 100,
+      "steps": 4105,
+      "events": 3404,
+      "accepted": 624,
+      "rejected": 2780,
+      "resumeSteps": 701,
+      "eventNames": {
+        "choose": 813,
+        "outcome": 673,
+        "next": 597,
+        "inspect": 1321
+      },
+      "hudValues": {
+        "phase": [
+          "investigate",
+          "awaiting",
+          "complete",
+          "failed"
+        ]
+      }
+    }
+  }
+}

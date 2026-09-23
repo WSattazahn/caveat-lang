@@ -1,0 +1,6 @@
+{
+  "source": "event noop;",
+  "originalTransportAcceptsNull": true,
+  "correctedTransportRejectsNull": true,
+  "checkedBeforeCandidateScoring": true
+}

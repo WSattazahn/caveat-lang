@@ -42,7 +42,7 @@ function runCase(source, task, test) {
     const before = session.save();
     const beforeView = view(session);
     let accepted;
-    try { session.dispatch_view(event.event, JSON.stringify(event.payload ?? {})); accepted = true; }
+    try { session.dispatch_view(event.event, JSON.stringify(event.payload)); accepted = true; }
     catch { accepted = false; }
     if (!accepted) {
       assert.deepEqual(JSON.parse(session.save()), JSON.parse(before), 'rejected event changed saved state');
