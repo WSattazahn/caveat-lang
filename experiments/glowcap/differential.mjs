@@ -8,6 +8,9 @@
 // --round=6 (pre-registered with CR9–CR12) adds witness events, 45-second
 // bursts that let mushrooms regrow, and resume steps where both sides save
 // and resume at the same point.
+//
+// --dump=FILE writes each divergence's first example with every event,
+// ticks included, so it can be replayed exactly.
 // Same entry points as harness.mjs (importing it would run its test mode).
 const against = process.argv.find((a) => a.startsWith('--against='))?.split('=')[1] ?? 'caveat';
 const IMPLEMENTATIONS = { ts: { entry: 'ts/glowcap.ts' }, caveat: { entry: `${against}/adapter.mjs` } };
@@ -128,5 +131,10 @@ for (const [key, { count, example }] of divergences) {
   console.log(`\n${key}: ${count} sequence(s)`);
   console.log(`  ts=${JSON.stringify(example.difference.ts)} caveat=${JSON.stringify(example.difference.caveat)}`);
   console.log(`  events (ticks elided): ${JSON.stringify(example.history.filter((e) => e.type !== 'tick'))}`);
+}
+const dump = process.argv.find((a) => a.startsWith('--dump='))?.slice('--dump='.length);
+if (dump) {
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(dump, JSON.stringify([...divergences].map(([at, { example }]) => ({ at, ...example })), null, 1));
 }
 process.exitCode = divergences.size ? 1 : 0;
