@@ -1,0 +1,692 @@
+[
+  {
+    "at": "mushrooms.ruin.because",
+    "sequence": 178,
+    "difference": {
+      "at": "mushrooms.ruin.because",
+      "ts": [
+        "absorb_pool",
+        "taste_grove",
+        "taste_pool_2",
+        "witness_grove",
+        "witness_pool_2",
+        "witness_ruin"
+      ],
+      "caveat": []
+    },
+    "history": [
+      {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "taste",
+        "id": "pool",
+        "kind": "bluecap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 816
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "tick",
+        "dt": 0.1
+      },
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      {
+        "type": "witness",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "witness",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 496
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 560
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "witness",
+        "id": "ruin",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 720
+      }
+    ]
+  },
+  {
+    "at": "mushrooms.ruin.caveats",
+    "sequence": 821,
+    "difference": {
+      "at": "mushrooms.ruin.caveats",
+      "ts": [
+        "taste_faded",
+        "tasted_in_dark"
+      ],
+      "caveat": [
+        "tasted_in_dark"
+      ]
+    },
+    "history": [
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 720
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 16
+      },
+      {
+        "type": "taste",
+        "id": "ruin",
+        "kind": "bluecap"
+      },
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "bluecap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 496
+      },
+      {
+        "type": "tick",
+        "dt": 0.1
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 240
+      },
+      {
+        "type": "witness",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 160
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "taste",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "pool",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 1616
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 240
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "glowcap"
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "tick",
+        "dt": 0
+      },
+      {
+        "type": "witness",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "ruin",
+        "kind": "glowcap",
+        "repeat": 2
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 960
+      }
+    ]
+  },
+  {
+    "at": "mushrooms.grove.because",
+    "sequence": 955,
+    "difference": {
+      "at": "mushrooms.grove.because",
+      "ts": [
+        "taste_cave"
+      ],
+      "caveat": []
+    },
+    "history": [
+      {
+        "type": "resume"
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "witness",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      {
+        "type": "witness",
+        "id": "ruin",
+        "kind": "duskcap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 496
+      },
+      {
+        "type": "absorb",
+        "id": "nowhere",
+        "kind": "bluecap"
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "bluecap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 240
+      },
+      {
+        "type": "witness",
+        "id": "pool",
+        "kind": "bluecap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.1
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 720
+      },
+      {
+        "type": "witness",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "resume",
+        "repeat": 2
+      },
+      {
+        "type": "witness",
+        "id": "ruin",
+        "kind": "bluecap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 720
+      }
+    ]
+  },
+  {
+    "at": "mushrooms.cave.caveats",
+    "sequence": 1476,
+    "difference": {
+      "at": "mushrooms.cave.caveats",
+      "ts": [
+        "taste_faded",
+        "tasted_in_dark"
+      ],
+      "caveat": [
+        "tasted_in_dark"
+      ]
+    },
+    "history": [
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 160
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "witness",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 736
+      },
+      {
+        "type": "witness",
+        "id": "pool",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 720
+      },
+      {
+        "type": "absorb",
+        "id": "pool",
+        "kind": "bluecap"
+      },
+      {
+        "type": "taste",
+        "id": "ruin",
+        "kind": "bluecap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "absorb",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "absorb",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "witness",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.1
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 720
+      },
+      {
+        "type": "taste",
+        "id": "nowhere",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 240
+      },
+      {
+        "type": "taste",
+        "id": "pool",
+        "kind": "glowcap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "ruin",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 960
+      },
+      {
+        "type": "taste",
+        "id": "ruin",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 480
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 480
+      }
+    ]
+  },
+  {
+    "at": "mushrooms.cave.because",
+    "sequence": 1510,
+    "difference": {
+      "at": "mushrooms.cave.because",
+      "ts": [],
+      "caveat": [
+        "witness_cave_2"
+      ]
+    },
+    "history": [
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 496
+      },
+      {
+        "type": "witness",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "taste",
+        "id": "cave",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.05
+      },
+      {
+        "type": "witness",
+        "id": "cave",
+        "kind": "bluecap"
+      },
+      {
+        "type": "absorb",
+        "id": "grove",
+        "kind": "bluecap"
+      },
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "bluecap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 992
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "tick",
+        "dt": 0.1
+      },
+      {
+        "type": "witness",
+        "id": "cave",
+        "kind": "duskcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 320
+      },
+      {
+        "type": "absorb",
+        "id": "nowhere",
+        "kind": "duskcap"
+      },
+      {
+        "type": "taste",
+        "id": "pool",
+        "kind": "glowcap"
+      },
+      {
+        "type": "resume"
+      },
+      {
+        "type": "taste",
+        "id": "grove",
+        "kind": "glowcap"
+      },
+      {
+        "type": "tick",
+        "dt": 0.0625,
+        "repeat": 400
+      }
+    ]
+  }
+]
