@@ -153,28 +153,42 @@ export class CaveatSession {
   }
 }
 
+// Trap state belongs to a WebAssembly instance, not to a wrapper. Every
+// runtime made from the same session class shares one instance and so one
+// lifecycle: a trap seen through any of them stops all of them.
+const lifecycles = new WeakMap();
+function lifecycleOf(SessionClass) {
+  let lifecycle = lifecycles.get(SessionClass);
+  if (!lifecycle) {
+    lifecycle = { trapped: false };
+    lifecycles.set(SessionClass, lifecycle);
+  }
+  return lifecycle;
+}
+
 // SessionClass is the runtime's WebReactiveSession, or a stand-in with the same
 // methods: new SessionClass(source), SessionClass.restore(source, saved),
 // dispatch_outcome, snapshot, view, save and free.
 export function createRuntime(SessionClass, identity = {}) {
-  let trapped = false;
+  const lifecycle = lifecycleOf(SessionClass);
+  const refuse = () => new CaveatError('fatal', 'this runtime instance trapped; load a fresh one');
   const runtime = {
     identity: Object.freeze({ ...identity }),
-    get trapped() { return trapped; },
-    markTrapped() { trapped = true; },
+    get trapped() { return lifecycle.trapped; },
+    markTrapped() { lifecycle.trapped = true; },
     open(source) {
-      if (trapped) throw new CaveatError('fatal', 'runtime trapped earlier; load it again');
+      if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
       try { return new CaveatSession(new SessionClass(source), runtime); } catch (error) {
-        if (isTrap(error)) trapped = true;
+        if (isTrap(error)) lifecycle.trapped = true;
         throw new CaveatError(isTrap(error) ? 'fatal' : 'load', messageOf(error));
       }
     },
     restore(source, saved) {
-      if (trapped) throw new CaveatError('fatal', 'runtime trapped earlier; load it again');
+      if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string' || typeof saved !== 'string') throw new TypeError('source and save must be text');
       try { return new CaveatSession(SessionClass.restore(source, saved), runtime); } catch (error) {
-        if (isTrap(error)) trapped = true;
+        if (isTrap(error)) lifecycle.trapped = true;
         throw new CaveatError(isTrap(error) ? 'fatal' : 'restore', messageOf(error));
       }
     },
@@ -182,10 +196,26 @@ export function createRuntime(SessionClass, identity = {}) {
   return runtime;
 }
 
-// module: a URL or specifier for caveat_runtime.js, or its imported namespace.
-// wasm: whatever the runtime's init accepts (bytes, a URL or a Response).
+let freshInstances = 0;
+
+// module: a URL for caveat_runtime.js (relative URLs resolve against this file,
+// as import() does), or its imported namespace. wasm: whatever the runtime's
+// init accepts (bytes, a URL or a Response).
+//
+// Loading the same URL twice gives wrappers over the same instance. If that
+// instance has trapped, a URL is imported again under a unique query, which
+// gives a separate module with its own memory, so recovery never reuses the
+// trapped instance. A namespace cannot be re-imported, so it is refused.
 export async function loadRuntime({ module, wasm, identity }) {
-  const namespace = typeof module === 'string' || module instanceof URL ? await import(String(module)) : module;
+  const url = typeof module === 'string' || module instanceof URL ? new URL(String(module), import.meta.url) : null;
+  let namespace = url ? await import(url.href) : module;
+  if (lifecycles.get(namespace.WebReactiveSession)?.trapped) {
+    if (!url) throw new CaveatError('fatal', 'this runtime instance trapped; pass its module URL to load a fresh one');
+    const fresh = new URL(url.href);
+    freshInstances += 1;
+    fresh.searchParams.set('caveat-instance', String(freshInstances));
+    namespace = await import(fresh.href);
+  }
   await namespace.default({ module_or_path: wasm });
   if (typeof namespace.WebReactiveSession?.prototype?.dispatch_outcome !== 'function') {
     throw new CaveatError('load', 'this runtime build has no dispatch_outcome; it predates the dispatch outcome contract');

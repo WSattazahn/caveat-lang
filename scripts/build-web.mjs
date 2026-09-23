@@ -148,6 +148,10 @@ try {
   // The site ships the runtime, so it carries Caveat's license and the notices
   // of the crates compiled into it.
   for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) await cp(path.join(root, name), path.join(dist, name));
+  // Pages load the runtime through the kit's session library: typed outcomes,
+  // and no call into an instance after it traps. It is copied as .js, which
+  // every server sends as JavaScript.
+  await cp(path.join(root, 'kit/lib/session.mjs'), path.join(dist, 'caveat-session.js'));
   await writeFile(path.join(dist, '.nojekyll'), '');
   console.log('Built dist/: CAVEAT WebAssembly, game sources, browser assets, and local Three.js.');
 } catch (error) {

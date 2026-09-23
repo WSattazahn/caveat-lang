@@ -28,10 +28,9 @@ const results = {};
 try {
   const { loadRuntime } = await import(${JSON.stringify(`${kit}session.mjs`)});
   const { parseScenarioFile, runScenarioFile } = await import(${JSON.stringify(`${kit}scenarios.mjs`)});
-  const runtime = await loadRuntime({
-    module: new URL(${JSON.stringify(`${runtimeBase}caveat_runtime.js`)}, location.href).href,
-    wasm: new URL(${JSON.stringify(`${runtimeBase}caveat_runtime_bg.wasm`)}, location.href),
-  });
+  const moduleUrl = new URL(${JSON.stringify(`${runtimeBase}caveat_runtime.js`)}, location.href).href;
+  const wasmUrl = new URL(${JSON.stringify(`${runtimeBase}caveat_runtime_bg.wasm`)}, location.href);
+  const runtime = await loadRuntime({ module: moduleUrl, wasm: wasmUrl });
   const text = async url => {
     const response = await fetch(url);
     if (!response.ok) throw new Error(url + ' ' + response.status);
@@ -72,6 +71,24 @@ try {
   const failing = await runScenarioFile(altered, { runtime, readSource });
   const failure = failing.scenarios[0].failure;
   results.scenarioFailureReported = failing.failed === 1 && failure.kind === 'expect' && failure.path === '/bindings/heating/text' && failure.actual === '0%';
+
+  // Two loads of one module share its instance, so a trap reached through one
+  // stops the other; loading again afterwards gives a fresh, working instance.
+  const again = await loadRuntime({ module: moduleUrl, wasm: wasmUrl });
+  const one = runtime.open(source);
+  const two = again.open(source);
+  const { prototype } = (await import(moduleUrl)).WebReactiveSession;
+  const original = prototype.dispatch_outcome;
+  prototype.dispatch_outcome = () => { throw new WebAssembly.RuntimeError('unreachable'); };
+  try { one.dispatch('read', { value: 17 }); } catch { /* the trap */ }
+  prototype.dispatch_outcome = original;
+  let siblingRefused = false;
+  try { two.snapshot(); } catch (error) { siblingRefused = error.kind === 'fatal'; }
+  results.sharedTrap = runtime.trapped && again.trapped && siblingRefused;
+  const fresh = await loadRuntime({ module: moduleUrl, wasm: wasmUrl });
+  const three = fresh.open(source);
+  results.freshAfterTrap = !fresh.trapped && three.dispatch('read', { value: 17 }).outcome === 'accepted' && runtime.trapped;
+  three.close();
   results.userAgent = navigator.userAgent;
 } catch (error) {
   results.error = String(error && error.stack || error);
@@ -109,8 +126,12 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
     page.on('console', message => { if (message.type() === 'error') problems.push(`console: ${message.text()}`); });
     page.on('pageerror', error => problems.push(`page: ${error.message}`));
     page.on('response', response => { if (response.status() >= 400) problems.push(`${response.status()} ${new URL(response.url()).pathname}`); });
+    // A page error (such as a syntax error in the check) fails at once rather
+    // than waiting for the timeout.
+    const pageFailed = new Promise((_, reject) => page.on('pageerror', error => reject(new Error(`page error: ${error.message}`))));
+    pageFailed.catch(() => {});
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
-    await page.waitForFunction(() => window.__kitResult, null, { timeout: 60_000 });
+    await Promise.race([page.waitForFunction(() => window.__kitResult, null, { timeout: 60_000 }), pageFailed]);
     const results = await page.evaluate(() => window.__kitResult);
     return { results, problems, browser: browser.version() };
   } finally {
@@ -122,7 +143,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'restoreMatches', 'resumedAgrees', 'elapsed', 'scenariosPass', 'scenarioFailureReported']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'restoreMatches', 'resumedAgrees', 'elapsed', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }

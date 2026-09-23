@@ -139,7 +139,7 @@ async function play(viewport, name) {
 try {
   await mkdir(results, { recursive: true });
   await startServer();
-  browser = await chromium.launch();
+  browser = await chromium.launch(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {});
   await play({ width: 1180, height: 1000 }, 'desktop');
   await play({ width: 390, height: 844 }, 'mobile');
 } finally {

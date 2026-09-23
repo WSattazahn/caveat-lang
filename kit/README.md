@@ -59,8 +59,11 @@ throws a `CaveatError` with a `kind`:
 
 A WebAssembly trap in any session, including during `close()`, marks the
 whole runtime instance trapped: every session from it refuses further calls,
-`close()` no longer frees them, and `open` and `restore` refuse. Load another
-with `loadRuntimeFromDirectory()`.
+`close()` no longer frees them, and `open` and `restore` refuse. Runtimes
+loaded from the same module share one instance, so they share that state too.
+To recover, load again: `loadRuntimeFromDirectory()` always gives a fresh
+instance, and `loadRuntime()` given a module URL imports a fresh copy once the
+earlier instance has trapped.
 
 In a browser, `lib/session.mjs` and `lib/scenarios.mjs` need no Node APIs.
 Load the runtime from URLs:

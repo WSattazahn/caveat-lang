@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { CaveatError, createRuntime, loadRuntime, payloadText } from '../lib/session.mjs';
 import { faulty, real, thermostat } from './helpers.mjs';
 
@@ -138,4 +139,50 @@ test('holes in payload arrays are refused instead of becoming null', () => {
     assert.throws(() => payloadText(sparse), error => error.kind === 'payload' && /hole/.test(error.message), String(sparse));
   }
   assert.equal(payloadText([null, 1]), '[null,1]', 'an explicit null is still allowed');
+});
+
+// Regressions from review of 4e2ef26.
+
+test('loaders over the same instance share its trap, and loading again after a trap gives a fresh instance', async () => {
+  const url = new URL('../../dist/pkg-reactive/caveat_runtime.js', import.meta.url).href;
+  const wasm = await readFile(new URL('../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url));
+  const first = await loadRuntime({ module: url, wasm });
+  const second = await loadRuntime({ module: url, wasm });
+  const one = first.open(thermostat);
+  const two = second.open(thermostat);
+  // A trap inside the shared instance, reached through the first loader.
+  const namespace = await import(url);
+  const { prototype } = namespace.WebReactiveSession;
+  const original = prototype.dispatch_outcome;
+  prototype.dispatch_outcome = () => { throw new WebAssembly.RuntimeError('unreachable'); };
+  try {
+    assert.throws(() => one.dispatch('read', { value: 17 }), error => error.kind === 'fatal');
+  } finally {
+    prototype.dispatch_outcome = original;
+  }
+  assert.equal(second.trapped, true, 'the other loader sees the trap');
+  assert.throws(() => two.snapshot(), error => error.kind === 'fatal' && /trapped/.test(error.message));
+  assert.throws(() => second.open(thermostat), error => error.kind === 'fatal');
+  one.close();
+  two.close();
+
+  const fresh = await loadRuntime({ module: url, wasm });
+  assert.equal(fresh.trapped, false);
+  const three = fresh.open(thermostat);
+  assert.equal(three.dispatch('read', { value: 17 }).outcome, 'accepted', 'the fresh instance works');
+  assert.equal(first.trapped, true, 'the trapped instance stays trapped');
+  three.close();
+  await assert.rejects(loadRuntime({ module: namespace, wasm }), error => error.kind === 'fatal' && /module URL/.test(error.message));
+});
+
+test('runtimes created from the same session class share one lifecycle', () => {
+  const { runtime, sessions } = faulty();
+  runtime.open(thermostat).close();
+  const Class = sessions[0].constructor;
+  const a = createRuntime(Class);
+  const b = createRuntime(Class);
+  a.markTrapped();
+  assert.equal(b.trapped, true);
+  assert.equal(runtime.trapped, true);
+  assert.throws(() => b.open(thermostat), error => error.kind === 'fatal');
 });

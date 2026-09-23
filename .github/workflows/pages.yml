@@ -79,6 +79,8 @@ jobs:
         with:
           name: caveat-runtime-${{ github.sha }}
           path: |
+            dist/LICENSE
+            dist/THIRD_PARTY_NOTICES.md
             dist/build-info.json
             dist/slime_glow_ability.cav
             dist/slime-glow-policy.js

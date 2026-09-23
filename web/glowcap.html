@@ -83,6 +83,7 @@
     pre{margin:0;padding:10px 12px;border-radius:12px;background:#0a1016;border:1px solid var(--line);overflow:auto;font-size:12.5px;line-height:1.5;color:#dfe8e3}
     footer{margin-top:26px;color:var(--muted);font-size:14px;line-height:1.6}
     footer a{color:var(--glow)}
+    .stopped{margin:18px 0 0;padding:12px 14px;border:1px solid rgba(231,163,168,.6);border-radius:14px;background:rgba(231,163,168,.1);line-height:1.5}
     .change{margin-top:22px}
     .change > p{margin:0 0 12px;color:#d8d4cc;line-height:1.5}
     .change ol.steps{margin:0;padding:0;list-style:none;display:grid;gap:12px}
@@ -113,6 +114,11 @@
     this page — every label, the belief, the trust decision — <strong>can tell you why</strong>,
     and the runtime checks the answer: an explanation may leave things out, but it can
     never cite something that didn't count.
+  </p>
+
+  <p class="stopped" id="stopped" role="alert" hidden>
+    The Caveat runtime stopped unexpectedly, so this page has stopped too. Nothing more will run.
+    Reload the page to start again.
   </p>
 
   <section class="panel change" id="change" aria-labelledby="change-title">
@@ -197,8 +203,8 @@
 </main>
 
 <script type="module">
-  import init, { WebReactiveSession } from './pkg-reactive/caveat_runtime.js';
-  import { beliefCard, glossary, journalLines, lateCaveats, mushroomCards, rejection } from './glowcap-explain.js';
+  import { loadRuntime } from './caveat-session.js';
+  import { beliefCard, glossary, journalLines, lateCaveats, mushroomCards } from './glowcap-explain.js';
 
   // What each mushroom really is. The program never sees this: it learns only
   // from what you absorb and taste.
@@ -207,26 +213,49 @@
   // 60 s and a taste fades on time. 0.05 s steps add up to just under.
   const STEP = 0.0625;
 
-  await init();
+  // Both the garden and "Change what you know" run on one runtime instance
+  // through the kit's session library. A rejection is an ordinary outcome; any
+  // other failure stops the page, and nothing calls into the instance again.
+  const runtime = await loadRuntime({
+    module: new URL('./pkg-reactive/caveat_runtime.js', location.href).href,
+    wasm: new URL('./pkg-reactive/caveat_runtime_bg.wasm', location.href),
+  });
   const source = await (await fetch('./glowcap.cav')).text();
   let session, words, ids, view, now, feed;
+  let stopped = false;
   const $ = (id) => document.getElementById(id);
   const esc = (text) => String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   // "You absorbed the cave mushroom." as a clause: "you absorbed the cave mushroom".
   const clause = (sentence) => esc(sentence.charAt(0).toLowerCase() + sentence.slice(1).replace(/\.$/, ''));
   const because = (sentences) => `because ${sentences.map(clause).join(' and ')}`;
 
+  function stop(error) {
+    if (stopped) return;
+    stopped = true;
+    for (const button of document.querySelectorAll('main button')) button.disabled = true;
+    $('stopped').hidden = false;
+    console.warn('Caveat runtime stopped:', error?.message ?? error);
+  }
+
+  // Every call into the runtime goes through here. Returns undefined once stopped.
+  function guard(call) {
+    if (stopped) return undefined;
+    try { return call(); } catch (error) { stop(error); return undefined; }
+  }
+
   function start() {
-    session?.free();
-    session = new WebReactiveSession(source);
-    const snapshot = JSON.parse(session.snapshot());
-    words = glossary(snapshot);
-    ids = snapshot.world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
-    view = JSON.parse(session.view());
-    now = 0;
-    feed = [];
-    buildGarden();
-    say('act', 'Four glowing mushrooms. Absorb one to learn what it does, or taste it to find out without eating it.');
+    guard(() => {
+      session?.close();
+      session = runtime.open(source);
+      const snapshot = session.snapshot();
+      words = glossary(snapshot);
+      ids = snapshot.world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
+      view = snapshot;
+      now = 0;
+      feed = [];
+      buildGarden();
+      say('act', 'Four glowing mushrooms. Absorb one to learn what it does, or taste it to find out without eating it.');
+    });
   }
 
   function say(kind, html) {
@@ -234,33 +263,39 @@
     feed.length = Math.min(feed.length, 30);
   }
 
+  // The snapshot after an accepted event carries every field the page reads.
   function dispatch(event, payload) {
-    const journalBefore = view.decision_journal.length;
-    view = JSON.parse(session.dispatch_view(event, JSON.stringify(payload)));
-    for (const late of lateCaveats(view, words)) {
-      say('late', `<b>A caveat arrived late:</b> “${esc(late.caveat)}” now qualifies everything built on “${esc(late.evidence)}”. Decisions already made keep what they knew.`);
-    }
-    for (const line of journalLines(view, words).slice(journalBefore)) {
-      say('trust', `<b>${esc(line.text)}</b>, ${because(line.because)}.`);
-    }
+    return guard(() => {
+      const outcome = session.dispatch(event, payload);
+      if (outcome.outcome !== 'accepted') return outcome;
+      const journalBefore = view.decision_journal.length;
+      view = outcome.snapshot;
+      for (const late of lateCaveats(view, words)) {
+        say('late', `<b>A caveat arrived late:</b> “${esc(late.caveat)}” now qualifies everything built on “${esc(late.evidence)}”. Decisions already made keep what they knew.`);
+      }
+      for (const line of journalLines(view, words).slice(journalBefore)) {
+        say('trust', `<b>${esc(line.text)}</b>, ${because(line.because)}.`);
+      }
+      return outcome;
+    });
   }
 
   function act(type, id) {
     const sort = TRUTH[id];
-    try {
-      dispatch(type, { target: id, sort });
+    const outcome = dispatch(type, { target: id, sort });
+    if (outcome?.outcome === 'accepted') {
       const effect = type === 'absorb'
         ? (sort === 'glowcap' ? 'It was a glowcap: you glow.' : 'It was a duskcap: you feel heavy.')
         : (sort === 'glowcap' ? 'It tastes sweet.' : 'It tastes bitter.');
       say('act', `You ${type === 'absorb' ? 'absorbed' : 'tasted'} the ${id} mushroom. ${effect}`);
-    } catch (error) {
-      say('reject', `<b>Rejected:</b> ${esc(rejection(error))}. Nothing changed.`);
+    } else if (outcome?.outcome === 'rejected') {
+      say('reject', `<b>Rejected:</b> ${esc(outcome.message)}. Nothing changed.`);
     }
     render();
   }
 
   function wait(seconds) {
-    for (let i = 0; i < Math.round(seconds / STEP); i += 1) {
+    for (let i = 0; i < Math.round(seconds / STEP) && !stopped; i += 1) {
       dispatch('tick', { dt: STEP });
       now += STEP;
     }
@@ -334,21 +369,23 @@
   $('wait60').addEventListener('click', () => wait(60));
   $('restart').addEventListener('click', () => { start(); render(); });
 
-  // Real time runs in fixed steps; a hidden tab simply pauses.
+  // Real time runs in fixed steps; a hidden tab simply pauses. The loop ends
+  // when the page stops.
   let last = performance.now();
   let owed = 0;
   function frame(time) {
+    if (stopped) return;
     owed = Math.min(owed + (time - last) / 1000, STEP * 10);
     last = time;
     let stepped = false;
-    while (owed >= STEP) {
+    while (owed >= STEP && !stopped) {
       dispatch('tick', { dt: STEP });
       now += STEP;
       owed -= STEP;
       stepped = true;
     }
     if (stepped) render();
-    requestAnimationFrame(frame);
+    if (!stopped) requestAnimationFrame(frame);
   }
 
   // "Change what you know": the same program in a separate session, so the
@@ -358,9 +395,12 @@
   const TRUST_STATES = { none: 'no decision', committed: 'trusting glowing mushrooms', reopened: 'reopened, not trusting' };
 
   function changeStart() {
-    change?.free();
-    change = new WebReactiveSession(source);
-    const snapshot = JSON.parse(change.snapshot());
+    const snapshot = guard(() => {
+      change?.close();
+      change = runtime.open(source);
+      return change.snapshot();
+    });
+    if (!snapshot) return;
     changeWords = glossary(snapshot);
     changeIds = snapshot.world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
     decided = null;
@@ -372,13 +412,12 @@
     $('change-again').hidden = true;
   }
 
+  // The snapshot after an accepted step, or null. A rejection is shown; any
+  // other failure has already stopped the page.
   function changeAct(id) {
-    try {
-      return JSON.parse(change.dispatch_view('absorb', JSON.stringify({ target: id, sort: TRUTH[id] })));
-    } catch (error) {
-      $('change-decision').innerHTML = `<b>Rejected:</b> ${esc(rejection(error))}.`;
-      return null;
-    }
+    const outcome = guard(() => change.dispatch('absorb', { target: id, sort: TRUTH[id] }));
+    if (outcome?.outcome === 'rejected') $('change-decision').innerHTML = `<b>Rejected:</b> ${esc(outcome.message)}.`;
+    return outcome?.outcome === 'accepted' ? outcome.snapshot : null;
   }
 
   // What someone sees: the trust decision, the belief, and each mushroom's label.
@@ -431,7 +470,7 @@
   start();
   render();
   requestAnimationFrame(frame);
-  window.__glowcap = { view: () => view, act, wait, cards: () => mushroomCards(view, words, ids), journal: () => journalLines(view, words) };
+  window.__glowcap = { view: () => view, act, wait, stopped: () => stopped, cards: () => mushroomCards(view, words, ids), journal: () => journalLines(view, words) };
 </script>
 </body>
 </html>
