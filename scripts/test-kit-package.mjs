@@ -6,8 +6,8 @@
 //   node scripts/test-kit-package.mjs            PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //   node scripts/test-kit-package.mjs --no-browser
 //
-// This is a packaging test, not a release: the name, version and license are
-// unset, and a release packs the verified Linux runtime (docs/CONSOLIDATION_PLAN.md).
+// This is a packaging test, not a release: the name and version are unset,
+// and a release packs the verified Linux runtime (docs/CONSOLIDATION_PLAN.md).
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -25,6 +25,8 @@ const run = path.join(root, 'test-results', 'kit-package', new Date().toISOStrin
 const consumer = path.join(run, 'consumer');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const RUNTIME_FILES = ['caveat_runtime.js', 'caveat_runtime_bg.wasm'];
+// Caveat's license and the notices of the crates compiled into the runtime.
+const LEGAL_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -40,15 +42,20 @@ function node(args, cwd) {
   return spawnSync(process.execPath, args, { cwd, encoding: 'utf8' });
 }
 
-// The bundled runtime exists only while packing, so development never runs a
-// stale copy. It holds three regular files and is removed file by file.
+// The bundled runtime and the legal files exist in kit/ only while packing, so
+// development never runs a stale runtime and the repository keeps one copy of
+// each. They are regular files, removed one by one.
 async function stageRuntime() {
-  if (existsSync(bundled)) throw new Error(`${bundled} already exists; remove it before packing`);
+  for (const target of [bundled, ...LEGAL_FILES.map(file => path.join(kit, file))]) {
+    if (existsSync(target)) throw new Error(`${target} already exists; remove it before packing`);
+  }
   await mkdir(bundled);
   for (const file of RUNTIME_FILES) await copyFile(path.join(dist, 'pkg-reactive', file), path.join(bundled, file));
   await copyFile(path.join(dist, 'build-info.json'), path.join(bundled, 'build-info.json'));
+  for (const file of LEGAL_FILES) await copyFile(path.join(root, file), path.join(kit, file));
 }
 async function removeRuntime() {
+  for (const file of LEGAL_FILES) if (existsSync(path.join(kit, file))) await unlink(path.join(kit, file));
   if (!existsSync(bundled)) return;
   for (const file of await readdir(bundled)) await unlink(path.join(bundled, file));
   await rmdir(bundled);
@@ -62,9 +69,9 @@ try {
   const dry = JSON.parse(npm(['pack', '--dry-run', '--json'], kit))[0];
   const files = dry.files.map(file => file.path).sort();
   assert.deepEqual(files, [
-    'README.md', 'bin/caveat.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/session.mjs', 'package.json',
+    'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/session.mjs', 'package.json',
     'runtime/build-info.json', 'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm',
-  ], 'the tarball holds exactly the library, command, runtime and README');
+  ], 'the tarball holds exactly the library, command, runtime, README, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   tarball = path.join(run, packed.filename);
   const bytes = await readFile(tarball);
@@ -86,6 +93,14 @@ for (const file of RUNTIME_FILES) {
 }
 assert.ok(['caveat', 'caveat.cmd'].some(name => existsSync(path.join(consumer, 'node_modules', '.bin', name))), 'npm linked the caveat command');
 report.checks.install = true;
+
+// The license ships unchanged, and the metadata says what it is.
+for (const file of LEGAL_FILES) {
+  assert.equal(await readFile(path.join(installed, file), 'utf8'), await readFile(path.join(root, file), 'utf8'), `installed ${file} matches the repository`);
+}
+assert.match(await readFile(path.join(installed, 'LICENSE'), 'utf8'), /^MIT License\n/);
+assert.equal(JSON.parse(await readFile(path.join(installed, 'package.json'), 'utf8')).license, 'MIT');
+report.checks.license = 'MIT';
 
 // The command, by its installed path.
 const cli = path.join(installed, 'bin', 'caveat.mjs');

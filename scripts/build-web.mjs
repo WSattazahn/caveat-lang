@@ -145,6 +145,9 @@ try {
     await cp(path.join(root, 'node_modules/three/build', name), path.join(dist, 'vendor', name));
   }
   await cp(path.join(root, 'node_modules/three/LICENSE'), path.join(dist, 'vendor/THREE-LICENSE.txt'));
+  // The site ships the runtime, so it carries Caveat's license and the notices
+  // of the crates compiled into it.
+  for (const name of ['LICENSE', 'THIRD_PARTY_NOTICES.md']) await cp(path.join(root, name), path.join(dist, name));
   await writeFile(path.join(dist, '.nojekyll'), '');
   console.log('Built dist/: CAVEAT WebAssembly, game sources, browser assets, and local Three.js.');
 } catch (error) {

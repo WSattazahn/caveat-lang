@@ -2,6 +2,7 @@
   "name": "caveat-lang-games",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Build and verify the CAVEAT language browser games",
   "engines": {
@@ -25,6 +26,7 @@
     "test:kit": "npm --prefix kit test",
     "test:kit-browser": "node scripts/test-kit-browser.mjs",
     "test:kit-package": "node scripts/test-kit-package.mjs",
+    "check:notices": "node scripts/third-party-notices.mjs --check",
     "test:scenario-conversion": "node experiments/scenario-conversion/convert.mjs --check",
     "check:scenario-mutations": "node experiments/scenario-conversion/mutation-check.mjs"
   },

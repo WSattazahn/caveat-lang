@@ -106,14 +106,17 @@ directory under `test-results/kit-package/` and uses it only through the
 install: the `caveat` command (exit statuses 0, 1 and 2), the library imported
 as `caveat-kit/node`, `caveat-kit/session` and `caveat-kit/scenarios`, and the
 browser check above. The tarball holds the command, the three library files,
-the runtime and this README, and nothing else.
+the runtime, this README, the license and the notices, and nothing else.
 
-This is a packaging test, not a release. The package has no license, and its
-name and version are unset. A release packs the verified Linux runtime.
+The package is MIT licensed. Packing copies the repository's `LICENSE` and
+`THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the
+tarball, and the test checks both arrive unchanged. This is a packaging test,
+not a release: the name and version are unset, and a release packs the
+verified Linux runtime.
 
 ## Not yet
 
 - `init`, `validate` and `replay` commands.
-- A license, and a package name and version chosen for release.
+- A package name and version chosen for release.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.

@@ -270,3 +270,11 @@ Reactive runtime tests check atomic rollback and malformed input, and rescue sim
 - `scripts/` — reproducible browser build, local server, and game verification
 
 > Do not save CAVEAT by redefining it. If the computational model collapses into an existing paradigm, record the result.
+
+## License
+
+Caveat's code and documentation are available under the [MIT License](LICENSE).
+Third-party components keep their own licenses: the Rust crates compiled into
+the WebAssembly runtime are listed with their notices in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the site's copy of
+three.js ships with its license as `vendor/THREE-LICENSE.txt`.
