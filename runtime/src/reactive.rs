@@ -12,7 +12,7 @@ use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Reads, Value, V
 pub use crate::reactive_expr::{Provenance, Tracked};
 use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::Serialize;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 const LIMIT: f64 = 1_000_000_000_000.0;
@@ -544,6 +544,87 @@ impl States {
             .zip(self.cells.iter())
             .map(|(name, cell)| (name.clone(), cell.grounds.clone()))
             .collect()
+    }
+}
+
+/// A step an event runs, as the observation-order check sees it.
+struct OrderStep<'a> {
+    place: String,
+    /// The guards of the calls that led here.
+    inherited: Vec<&'a Expr>,
+    /// This step's own guard, split at `and`.
+    own: Vec<&'a Expr>,
+    effect: &'a Effect,
+}
+
+impl<'a> OrderStep<'a> {
+    fn guard(&self) -> impl Iterator<Item = &'a Expr> + '_ {
+        self.inherited.iter().chain(&self.own).copied()
+    }
+
+    fn revealed(&self) -> Option<String> {
+        match self.effect {
+            Effect::Reveal { evidence, .. } => Some(evidence.clone()),
+            _ => None,
+        }
+    }
+
+    fn reveals(&self, evidence: &str) -> bool {
+        matches!(self.effect, Effect::Reveal { evidence: revealed, .. } if revealed == evidence)
+    }
+
+    /// Evidence this step certainly needs observed once it runs as far as the
+    /// use, the guard already passed by then, and the use in words.
+    fn uses(&self) -> Vec<(String, Vec<&'a Expr>, String)> {
+        let mut uses = Vec::new();
+        for (position, conjunct) in self.own.iter().enumerate() {
+            let mut evidence = BTreeSet::new();
+            conjunct.qualified_unconditionally(&mut evidence);
+            let guard = self
+                .inherited
+                .iter()
+                .chain(&self.own[..position])
+                .copied()
+                .collect::<Vec<_>>();
+            for name in evidence {
+                uses.push((name.clone(), guard.clone(), format!("qualified(…, {name})")));
+            }
+        }
+        let guard = self.guard().collect::<Vec<_>>();
+        let mut expressions = Vec::new();
+        match self.effect {
+            Effect::Set { value, because, .. } => {
+                expressions.push(value);
+                expressions.extend(because.iter().flatten());
+            }
+            Effect::Sample { value, .. }
+            | Effect::Commit {
+                using: Some(value), ..
+            } => expressions.push(value),
+            Effect::Call { arguments, .. } => expressions.extend(arguments),
+            Effect::Qualify { evidence, .. } => uses.push((
+                evidence.clone(),
+                guard.clone(),
+                format!("qualify {evidence}"),
+            )),
+            Effect::Reopen {
+                because: EvidenceSelector::Named(evidence),
+                ..
+            } => uses.push((
+                evidence.clone(),
+                guard.clone(),
+                format!("reopen because {evidence}"),
+            )),
+            _ => {}
+        }
+        for expression in expressions {
+            let mut evidence = BTreeSet::new();
+            expression.qualified_unconditionally(&mut evidence);
+            for name in evidence {
+                uses.push((name.clone(), guard.clone(), format!("qualified(…, {name})")));
+            }
+        }
+        uses
     }
 }
 
@@ -1196,6 +1277,7 @@ impl ReactiveSession {
         }
         session.validate_procedures()?;
         session.validate_rules()?;
+        session.check_observation_order()?;
         session.group_bindings();
         let mut rules_by_event = HashMap::<String, Vec<usize>>::new();
         for (index, rule) in session.rules.iter().enumerate() {
@@ -1207,6 +1289,125 @@ impl ReactiveSession {
         session.rules_by_event = Arc::new(rules_by_event);
         session.evaluate_bindings(None)?;
         Ok(session)
+    }
+
+    /// A use of evidence that can only fail is an error when the program
+    /// loads, rather than on the first event that reaches it. See
+    /// spec/caveat-observation-order-0.1.md.
+    fn check_observation_order(&self) -> Result<(), String> {
+        let mut by_event = BTreeMap::<&str, Vec<OrderStep>>::new();
+        for (index, rule) in self.rules.iter().enumerate() {
+            self.flatten_steps(
+                format!("rule {}", index + 1),
+                Vec::new(),
+                &rule.condition,
+                &rule.effect,
+                by_event.entry(rule.event.as_str()).or_default(),
+            );
+        }
+        let revealed = by_event
+            .iter()
+            .map(|(event, steps)| {
+                let evidence = steps
+                    .iter()
+                    .filter_map(OrderStep::revealed)
+                    .collect::<HashSet<_>>();
+                (*event, evidence)
+            })
+            .collect::<BTreeMap<_, _>>();
+        for (event, steps) in &by_event {
+            let parameters = self.events[*event]
+                .iter()
+                .map(|parameter| parameter.name.as_str())
+                .collect::<HashSet<_>>();
+            // True for the whole event: reads only its parameters and constants.
+            let fixed = |conjunct: &Expr| {
+                let mut reads = Reads::default();
+                conjunct.collect_reads(&mut reads);
+                !reads.graph
+                    && !reads.anything
+                    && reads.names.iter().all(|name| {
+                        parameters.contains(name.as_str()) || self.constants.contains_key(name)
+                    })
+            };
+            for (position, step) in steps.iter().enumerate() {
+                let uses = step.uses();
+                for (evidence, guard, what) in &uses {
+                    let revealed_elsewhere = revealed.iter().any(|(other, evidence_set)| {
+                        other != event && evidence_set.contains(evidence)
+                    });
+                    if revealed_elsewhere
+                        || self.predicate("observed", evidence).unwrap_or(true)
+                        || steps[..position]
+                            .iter()
+                            .any(|earlier| earlier.reveals(evidence))
+                        || step.guard().any(|conjunct| {
+                            let mut reads = Reads::default();
+                            conjunct.collect_reads(&mut reads);
+                            reads.observed.contains(evidence)
+                        })
+                    {
+                        continue;
+                    }
+                    let later = steps[position + 1..]
+                        .iter()
+                        .filter(|step| step.reveals(evidence))
+                        .collect::<Vec<_>>();
+                    let Some(first) = later.first() else {
+                        return Err(format!(
+                            "event {event}, {}: {what} needs {evidence} observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+                            step.place
+                        ));
+                    };
+                    let certain = guard.iter().all(|conjunct| fixed(conjunct))
+                        && later.iter().all(|reveal| {
+                            guard
+                                .iter()
+                                .all(|conjunct| reveal.guard().any(|other| other == *conjunct))
+                        });
+                    if certain {
+                        return Err(format!(
+                            "event {event}, {}: {what} runs before {} reveals {evidence} in the same event, so it can only fail; reveal {evidence} first, or guard the rule with observed({evidence})",
+                            step.place, first.place
+                        ));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// One rule, or one step of a procedure it calls with the call's guard
+    /// carried along, in the order an event runs them. A call's own step
+    /// comes first: its arguments are evaluated before its body runs.
+    fn flatten_steps<'a>(
+        &'a self,
+        place: String,
+        inherited: Vec<&'a Expr>,
+        condition: &'a Expr,
+        effect: &'a Effect,
+        steps: &mut Vec<OrderStep<'a>>,
+    ) {
+        let own = condition.conjuncts();
+        let mut guard = inherited.clone();
+        guard.extend(own.iter().copied());
+        steps.push(OrderStep {
+            place: place.clone(),
+            inherited,
+            own,
+            effect,
+        });
+        if let Effect::Call { name, .. } = effect {
+            for (index, step) in self.procedures[name].body.iter().enumerate() {
+                self.flatten_steps(
+                    format!("{place} (procedure {name}, step {})", index + 1),
+                    guard.clone(),
+                    &step.condition,
+                    &step.effect,
+                    steps,
+                );
+            }
+        }
     }
 
     fn group_bindings(&mut self) {

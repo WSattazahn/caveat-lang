@@ -169,6 +169,8 @@ pub struct Reads {
     pub graph: bool,
     /// Could read anything; never skip it.
     pub anything: bool,
+    /// Evidence named by `observed(...)`.
+    pub observed: BTreeSet<String>,
 }
 
 /// A parsed expression with finite, canonical number literals.
@@ -427,7 +429,13 @@ impl Expr {
             Node::Variable(name) => {
                 reads.names.insert(name.clone());
             }
-            Node::Predicate(_, _) | Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
+            Node::Predicate(kind, name) => {
+                reads.graph = true;
+                if kind == "observed" {
+                    reads.observed.insert(name.clone());
+                }
+            }
+            Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
             Node::HistoryAt(_, index) => {
                 reads.graph = true;
                 index.collect_reads(reads);
@@ -475,6 +483,62 @@ impl Expr {
                 }
                 body.collect_reads(reads);
             }
+        }
+    }
+
+    /// The operands of a chain of `and`, left to right; the expression itself
+    /// if it is not one.
+    pub fn conjuncts(&self) -> Vec<&Expr> {
+        match &self.node {
+            Node::Binary(Binary::And, left, right) => {
+                let mut all = left.conjuncts();
+                all.extend(right.conjuncts());
+                all
+            }
+            _ => vec![self],
+        }
+    }
+
+    /// Evidence that `qualified(...)` names wherever evaluating this
+    /// expression is certain to reach it: not inside an `if` branch, the right
+    /// side of `and` or `or`, a `require` value or a fold body.
+    pub fn qualified_unconditionally(&self, evidence: &mut BTreeSet<String>) {
+        match &self.node {
+            Node::Qualified(value, name, _) => {
+                evidence.insert(name.clone());
+                value.qualified_unconditionally(evidence);
+            }
+            Node::Binary(Binary::And | Binary::Or, left, _)
+            | Node::Require(left, _)
+            | Node::If(left, _, _) => left.qualified_unconditionally(evidence),
+            Node::Binary(_, left, right) => {
+                left.qualified_unconditionally(evidence);
+                right.qualified_unconditionally(evidence);
+            }
+            Node::Unary(_, child) | Node::HistoryAt(_, child) => {
+                child.qualified_unconditionally(evidence)
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.qualified_unconditionally(evidence);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.qualified_unconditionally(evidence);
+                }
+                body.qualified_unconditionally(evidence);
+            }
+            Node::Fold(_, initial, _) | Node::ExpandedFold(_, initial, _) => {
+                initial.qualified_unconditionally(evidence)
+            }
+            Node::Number(_)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Predicate(_, _)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => {}
         }
     }
 
