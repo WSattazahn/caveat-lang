@@ -36,7 +36,7 @@ export function faulty(hooks = {}) {
     snapshot() { this.calls.push('snapshot'); return hooks.snapshot ? hooks.snapshot(this) : this.inner.snapshot(); }
     view() { this.calls.push('view'); return hooks.view ? hooks.view(this) : this.inner.view(); }
     save() { this.calls.push('save'); return hooks.save ? hooks.save(this) : this.inner.save(); }
-    free() { this.calls.push('free'); this.inner.free(); }
+    free() { this.calls.push('free'); if (hooks.free) return hooks.free(this); return this.inner.free(); }
   }
   const sessions = [];
   const Tracked = class extends Fake {

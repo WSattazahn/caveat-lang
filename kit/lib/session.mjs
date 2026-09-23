@@ -41,7 +41,7 @@ function isPlainObject(value) {
 
 // Payloads must survive standard JSON unchanged apart from negative zero, which
 // JSON writes as 0. Anything else (NaN, Infinity, undefined, functions, class
-// instances) is refused before the session is touched.
+// instances, holes in arrays) is refused before the session is touched.
 export function payloadText(payload) {
   const check = (value, at) => {
     if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
@@ -49,7 +49,13 @@ export function payloadText(payload) {
       if (!Number.isFinite(value)) throw new CaveatError('payload', `payload ${at || 'value'} is not a finite number`);
       return;
     }
-    if (Array.isArray(value)) { value.forEach((item, index) => check(item, `${at}/${index}`)); return; }
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index++) {
+        if (!Object.hasOwn(value, index)) throw new CaveatError('payload', `payload ${at}/${index} is a hole; JSON would send null`);
+        check(value[index], `${at}/${index}`);
+      }
+      return;
+    }
     if (isPlainObject(value)) { for (const [key, item] of Object.entries(value)) check(item, `${at}/${key}`); return; }
     throw new CaveatError('payload', `payload ${at || 'value'} cannot be sent as JSON`);
   };
@@ -78,9 +84,12 @@ export class CaveatSession {
 
   get state() { return this.#state; }
 
+  // A trap in any session of this runtime makes every session unusable.
   #usable() {
+    if (this.#state === 'open' && this.#runtime.trapped) this.#state = 'fatal';
     if (this.#state === 'open') return;
-    throw new CaveatError(this.#state === 'closed' ? 'closed' : 'fatal', `session is ${this.#state === 'closed' ? 'closed' : 'unusable after a fatal outcome'}`);
+    if (this.#state === 'closed') throw new CaveatError('closed', 'session is closed');
+    throw new CaveatError('fatal', this.#runtime.trapped ? 'the runtime instance trapped; load it again' : 'session is unusable after a fatal outcome');
   }
 
   #fail(error) {
@@ -92,6 +101,17 @@ export class CaveatSession {
   #call(read) {
     this.#usable();
     try { return read(); } catch (error) { throw this.#fail(error); }
+  }
+
+  // Runtime text that must be JSON. Malformed text is fatal like any other
+  // runtime fault, and is checked inside the same guard.
+  #json(read, what) {
+    const text = this.#call(read);
+    try {
+      return { text, value: JSON.parse(text) };
+    } catch {
+      throw this.#fail(new CaveatError('fatal', `${what}() returned text that is not JSON`));
+    }
   }
 
   // Returns {outcome: "accepted", snapshot} or {outcome: "rejected", origin,
@@ -113,23 +133,23 @@ export class CaveatSession {
     return outcome;
   }
 
-  snapshotText() { return this.#call(() => this.#inner.snapshot()); }
-  snapshot() { return JSON.parse(this.snapshotText()); }
-  viewText() { return this.#call(() => this.#inner.view()); }
-  view() { return JSON.parse(this.viewText()); }
+  snapshotText() { return this.#json(() => this.#inner.snapshot(), 'snapshot').text; }
+  snapshot() { return this.#json(() => this.#inner.snapshot(), 'snapshot').value; }
+  viewText() { return this.#json(() => this.#inner.view(), 'view').text; }
+  view() { return this.#json(() => this.#inner.view(), 'view').value; }
 
-  // The save is text; restore it with the exact source it came from.
-  save() { return this.#call(() => this.#inner.save()); }
+  // The save is JSON text; restore it with the exact source it came from.
+  save() { return this.#json(() => this.#inner.save(), 'save').text; }
 
-  // After a fatal outcome the session is abandoned without further calls into
-  // the runtime, including free().
+  // After a fatal outcome, or once the runtime has trapped, the session is
+  // abandoned without calling into the runtime, including free(). A trap
+  // during free() marks the runtime trapped for every other session.
   close() {
-    if (this.#state === 'open') {
+    if (this.#state === 'open' && !this.#runtime.trapped) {
       this.#state = 'closed';
-      try { this.#inner.free(); } catch { /* already released */ }
-    } else if (this.#state === 'fatal') {
-      this.#state = 'closed';
+      try { this.#inner.free(); } catch (error) { if (isTrap(error)) this.#runtime.markTrapped(); }
     }
+    this.#state = 'closed';
   }
 }
 

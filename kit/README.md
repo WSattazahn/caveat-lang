@@ -53,11 +53,13 @@ throws a `CaveatError` with a `kind`:
 | --- | --- |
 | `load` | The source did not load; the message is the runtime's diagnostic. |
 | `restore` | The save does not restore with this source. |
-| `payload` | The payload cannot be sent unchanged as JSON (a non-finite number, `undefined`, a class instance). The session is untouched. |
-| `fatal` | An unclassified runtime error, an unrecognised outcome, or a trap. The session refuses every later call and is never touched again. |
+| `payload` | The payload cannot be sent unchanged as JSON (a non-finite number, `undefined`, a hole in an array, a class instance). The session is untouched. |
+| `fatal` | An unclassified runtime error, an unrecognised outcome, runtime text that is not JSON, or a trap. The session refuses every later call and is never touched again. |
 | `closed` | The session was closed. |
 
-After a WebAssembly trap the whole runtime instance is refused; load another
+A WebAssembly trap in any session, including during `close()`, marks the
+whole runtime instance trapped: every session from it refuses further calls,
+`close()` no longer frees them, and `open` and `restore` refuse. Load another
 with `loadRuntimeFromDirectory()`. `lib/session.mjs` has no Node imports, and
 `loadRuntime({ module, wasm })` takes URLs, so it is written to run in a
 browser, but no browser test exists yet.

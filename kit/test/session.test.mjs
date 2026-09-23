@@ -81,3 +81,61 @@ test('a runtime without dispatch_outcome is refused at load', async () => {
   await assert.rejects(loadRuntime({ module: old, wasm: null }), error => error.kind === 'load' && /predates/.test(error.message));
   assert.equal(typeof createRuntime(class {}).open, 'function');
 });
+
+// Regressions from review of 603a20d.
+
+test('a trap in one session makes its siblings unusable, and closing never calls into the instance', () => {
+  const { runtime, sessions } = faulty({
+    dispatch(session, event, payload) {
+      if (session.number === 1) throw new WebAssembly.RuntimeError('unreachable');
+      return session.inner.dispatch_outcome(event, payload);
+    },
+  });
+  const first = runtime.open(thermostat);
+  const second = runtime.open(thermostat);
+  assert.equal(second.dispatch('read', { value: 17 }).outcome, 'accepted');
+  assert.throws(() => first.dispatch('read', { value: 17 }), error => error.kind === 'fatal');
+  const before = sessions[1].calls.length;
+  for (const call of ['snapshot', 'view', 'save']) {
+    assert.throws(() => second[call](), error => error.kind === 'fatal' && /trapped/.test(error.message), call);
+  }
+  assert.throws(() => second.dispatch('read', { value: 25 }), error => error.kind === 'fatal');
+  first.close();
+  second.close();
+  assert.equal(sessions[1].calls.length, before, 'the sibling made no call after the trap');
+  assert.ok(!sessions[0].calls.includes('free') && !sessions[1].calls.includes('free'), 'no free() on a trapped instance');
+});
+
+test('a trap during free() marks the runtime trapped for every session', () => {
+  const { runtime, sessions } = faulty({ free() { throw new WebAssembly.RuntimeError('unreachable'); } });
+  const first = runtime.open(thermostat);
+  const second = runtime.open(thermostat);
+  first.close();
+  assert.equal(runtime.trapped, true);
+  assert.throws(() => second.snapshot(), error => error.kind === 'fatal' && /trapped/.test(error.message));
+  second.close();
+  assert.deepEqual(sessions[1].calls.filter(call => call === 'free'), [], 'the second session is not freed');
+  assert.throws(() => runtime.open(thermostat), error => error.kind === 'fatal');
+});
+
+for (const call of ['snapshot', 'snapshotText', 'view', 'viewText', 'save']) {
+  test(`malformed JSON from ${call}() is fatal and ends the session`, () => {
+    const hook = call.replace('Text', '');
+    const { runtime, sessions } = faulty({ [hook]: () => '{"truncated":' });
+    const session = runtime.open(thermostat);
+    assert.throws(() => session[call](), error => error instanceof CaveatError && error.kind === 'fatal' && /not JSON/.test(error.message));
+    assert.equal(session.state, 'fatal');
+    const calls = sessions[0].calls.length;
+    assert.throws(() => session.dispatch('read', { value: 17 }), error => error.kind === 'fatal');
+    assert.equal(sessions[0].calls.length, calls, 'no call after the fatal read');
+  });
+}
+
+test('holes in payload arrays are refused instead of becoming null', () => {
+  const holes = [[1, undefined, 3], { a: new Array(2) }, [new Array(1)]];
+  delete holes[0][1];
+  for (const sparse of holes) {
+    assert.throws(() => payloadText(sparse), error => error.kind === 'payload' && /hole/.test(error.message), String(sparse));
+  }
+  assert.equal(payloadText([null, 1]), '[null,1]', 'an explicit null is still allowed');
+});

@@ -2,7 +2,7 @@
 // and to name the session that misbehaved.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runScenarioFile } from '../lib/scenarios.mjs';
+import { formatFileReport, runScenarioFile } from '../lib/scenarios.mjs';
 import { Real, faulty, real, scenarioFile, sourceReader, thermostat } from './helpers.mjs';
 
 const readSource = sourceReader({ 'thermostat.cav': thermostat });
@@ -209,4 +209,76 @@ test('after a WebAssembly trap the runner reloads the runtime for later scenario
   assert.equal(withoutReload.scenarios[1].pass, false);
   assert.equal(withoutReload.scenarios[1].failure.category, 'fatal');
   assert.match(withoutReload.scenarios[1].failure.message, /trapped/);
+});
+
+// Regressions from review of 603a20d.
+
+test('malformed snapshot JSON becomes a fatal result and later scenarios still run', async () => {
+  const { runtime } = faulty({
+    snapshot(session) { return session.number === 1 ? 'not json' : session.inner.snapshot(); },
+  });
+  const doc = scenarioFile('thermostat.cav', [{ send: 'read', payload: { value: 17 } }]);
+  doc.scenarios.push({ id: 'S2', title: 'next', steps: [{ send: 'read', payload: { value: 17 } }] });
+  const result = await runScenarioFile(doc, { runtime, readSource });
+  assert.equal(result.scenarios[0].failure.kind, 'fatal');
+  assert.equal(result.scenarios[0].failure.step, 0);
+  assert.equal(result.scenarios[0].failure.session, 'primary');
+  assert.match(result.scenarios[0].failure.outcome.message, /not JSON/);
+  assert.equal(result.scenarios[1].pass, true);
+});
+
+test('malformed view JSON during a step is a fatal result naming the session', async () => {
+  const { runtime } = faulty({
+    view(session) { return session.calls.includes('dispatch') ? '[' : session.inner.view(); },
+  });
+  const result = await only(runtime, [{ send: 'read', payload: { value: 17 } }, { send: 'read', payload: { value: 25 } }]);
+  assert.equal(result.failure.kind, 'fatal');
+  assert.equal(result.failure.step, 2);
+  assert.equal(result.failure.session, 'primary');
+});
+
+test('a trap while releasing sessions fails that scenario and the next one reloads', async () => {
+  let trapped = false;
+  const { runtime } = faulty({
+    free(session) {
+      if (!trapped) { trapped = true; throw new WebAssembly.RuntimeError('unreachable'); }
+      return session.inner.free();
+    },
+  });
+  const doc = scenarioFile('thermostat.cav', [{ send: 'read', payload: { value: 17 } }]);
+  doc.scenarios.push({ id: 'S2', title: 'next', steps: [{ send: 'read', payload: { value: 17 } }] });
+  let reloads = 0;
+  const result = await runScenarioFile(doc, { runtime, readSource, reload: async () => { reloads += 1; return real; } });
+  assert.equal(result.scenarios[0].pass, false);
+  assert.equal(result.scenarios[0].failure.kind, 'fatal');
+  assert.match(result.scenarios[0].failure.outcome.message, /releasing a session/);
+  assert.equal(result.scenarios[1].pass, true);
+  assert.equal(reloads, 1);
+});
+
+test('a failure reading the final restore is labelled "final restore"', async () => {
+  const { runtime } = faulty({
+    snapshot(session) {
+      if (session.restored) throw JSON.stringify({ schema: 'caveat-dispatch/0.1', outcome: 'fatal', code: 'unclassified', message: 'boom' });
+      return session.inner.snapshot();
+    },
+  });
+  const result = await only(runtime, [{ send: 'read', payload: { value: 17 } }]);
+  assert.equal(result.failure.kind, 'fatal');
+  assert.equal(result.failure.session, 'final restore');
+  assert.equal(result.failure.step, 2);
+});
+
+test('a list that grew since a checkpoint is reported with an absent marker, in text and JSON', async () => {
+  const doc = scenarioFile('thermostat.cav', [
+    { send: 'read', payload: { value: 17 } },
+    { same_as: 'initial', paths: ['/decision_journal'] },
+  ]);
+  const result = await runScenarioFile(doc, { runtime: real, readSource });
+  const { failure } = result.scenarios[0];
+  assert.equal(failure.kind, 'same_as');
+  assert.equal(failure.path, '/decision_journal/0');
+  assert.equal(failure.actual.commitment, 'heating@1');
+  assert.match(formatFileReport(result), /\/decision_journal\/0 was \(absent\) at "initial", now \{/);
+  assert.deepEqual(JSON.parse(JSON.stringify(failure)).expected, { $absent: true });
 });

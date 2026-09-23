@@ -239,7 +239,9 @@ export const same = (a, b) => canonical(a) === canonical(b);
 export function firstDifference(a, b, at = '') {
   if (Array.isArray(a) && Array.isArray(b)) {
     for (let index = 0; index < Math.max(a.length, b.length); index++) {
-      if (index >= a.length || index >= b.length) return { path: `${at}/${index}`, expected: a[index], actual: b[index] };
+      if (index >= a.length || index >= b.length) {
+        return { path: `${at}/${index}`, expected: index < a.length ? a[index] : ABSENT, actual: index < b.length ? b[index] : ABSENT };
+      }
       const found = firstDifference(a[index], b[index], `${at}/${index}`);
       if (found) return found;
     }
@@ -259,7 +261,9 @@ export function firstDifference(a, b, at = '') {
   return same(a, b) ? null : { path: at, expected: a, actual: b };
 }
 
-export const ABSENT = Object.freeze({ absent: true });
+// Marks a missing value in failures. JSON reports write it as the $absent
+// matcher, so a missing value is never confused with null or dropped.
+export const ABSENT = Object.freeze({ toJSON: () => ({ $absent: true }) });
 
 function countBy(values) {
   const counts = new Map();
@@ -384,11 +388,15 @@ async function runScenario(scenario, context) {
   const sessions = [];
   const extra = [];
   const states = new Map();
+  let result;
   const counts = { events: 0, rejected: 0, resumes: 0 };
   let step = 0;
   let runtime = context.runtime;
   const primary = () => sessions[sessions.length - 1];
-  const label = entry => (entry === primary() ? 'primary' : `shadow ${sessions.indexOf(entry) + 1}`);
+  const label = entry => {
+    if (extra.includes(entry)) return 'final restore';
+    return entry === primary() ? 'primary' : `shadow ${sessions.indexOf(entry) + 1}`;
+  };
   const fail = detail => { throw new Failure({ step, ...detail }); };
   const fatal = (entry, error, extra = {}) => fail({
     kind: 'fatal', category: 'fatal', session: label(entry),
@@ -523,13 +531,19 @@ async function runScenario(scenario, context) {
     const final = restore(primary(), 'final-resume');
     extra.push(final);
     compareRestored(final, primary(), 'final-resume', 'final restore');
-    return { id: scenario.id, title: scenario.title, pass: true, ...counts };
+    result = { id: scenario.id, title: scenario.title, pass: true, ...counts };
   } catch (error) {
     if (!(error instanceof Failure)) throw error;
-    return { id: scenario.id, title: scenario.title, pass: false, ...counts, failure: error.detail };
+    result = { id: scenario.id, title: scenario.title, pass: false, ...counts, failure: error.detail };
   } finally {
     for (const entry of [...sessions, ...extra]) entry.session.close();
   }
+  // Releasing sessions calls into the runtime too; a trap there is a failure.
+  if (result.pass && runtime.trapped) {
+    result = { ...result, pass: false, failure: { step, kind: 'fatal', category: 'fatal', session: null,
+      outcome: { outcome: 'fatal', code: null, message: 'the runtime trapped while releasing a session' } } };
+  }
+  return result;
 }
 
 // options.runtime: from createRuntime/loadRuntime. options.reload: optional
@@ -582,7 +596,7 @@ export function report(files, runtimeIdentity = {}) {
 
 const shown = value => {
   if (value === ABSENT) return '(absent)';
-  const text = JSON.stringify(value);
+  const text = value === undefined ? 'undefined' : JSON.stringify(value);
   return text.length > 240 ? `${text.slice(0, 237)}...` : text;
 };
 

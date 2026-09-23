@@ -189,7 +189,10 @@ These checks run without being written. Every scenario starts a new session.
 
 The first failure ends its scenario; other scenarios still run. After a
 WebAssembly trap the runner loads a fresh runtime before the next scenario,
-because a trap leaves the whole instance in an unknown state. The runner adds
+because a trap leaves the whole instance in an unknown state. Releasing a
+scenario's sessions also calls into the runtime; a trap there fails the
+scenario. Runtime text that is not JSON is a fatal failure, not a crash of the
+runner. The runner adds
 no randomness and reads no clock, so time passes only through the program's
 own events.
 
