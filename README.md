@@ -11,6 +11,21 @@ Caveat is a programming language for programs that act on what they know and kee
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
+**Trail Rescue** is a new, complete mechanic: spend three scout tokens, weigh
+fallible reports, choose a tunnel and reconsider when its evidence changes or
+ages. Its [requirements and 24 scenarios](experiments/trail-rescue/PROTOCOL.md)
+were committed before implementation. The [Caveat program](game/trail_rescue.cav)
+owns the rules; the [browser page](web/trail-rescue.html) displays its decisions
+and frozen explanations. Build and run it with `npm run build`, `npm run serve`,
+then open `http://127.0.0.1:4173/trail-rescue.html`.
+
+The mechanic added [state caveat queries](spec/caveat-state-caveats-0.1.md):
+`has_caveat(plan_basis, stale)` checks the actual grounds of a saved basis, and
+`reopen route because caveated(plan_basis, stale)` cites the precise observations
+that have gone stale. The journal now preserves elapsed time and the chosen
+numeric value, and restore checks its consistency with commitments and evidence.
+See the [implementation record](experiments/trail-rescue/RESULTS.md).
+
 ## What only Caveat does
 
 | | Caveat | A general-purpose language |
@@ -75,7 +90,7 @@ Read [Why Caveat](docs/WHY_CAVEAT.md) for side-by-side code and the Caveatist wa
 
 CAVEAT 0.3 is executable, and the **0.4 game profile** adds executable knowledge requirements, evidence-dependent outcomes, and source-authored spatial presentation. The Rust reference runtime parses source, evaluates the epistemic graph, exposes the CAVEAT Map, and runs the same game program in a terminal or a WebAssembly browser session. The new features are specified in [Draft 0.4](spec/caveat-0.4-draft.md).
 
-The newest playable proof-of-use is **Light the Way**, a direct-control ferry rescue powered by the new reactive CAVEAT profile. Movement, scouting, collisions, damage, score, and outcomes are source rules. **The Last Beacon** remains a separate 3D island mystery whose available decisions, evidence, retained uncertainty, nine outcomes, locations, cameras, and paths are authored in `game/the_last_beacon.cav`. **Moon Garden** remains a short mobile-first mystery with both a 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
+Other playable examples include **Light the Way**, a direct-control ferry rescue powered by the new reactive CAVEAT profile. Movement, scouting, collisions, damage, score, and outcomes are source rules. **The Last Beacon** remains a separate 3D island mystery whose available decisions, evidence, retained uncertainty, nine outcomes, locations, cameras, and paths are authored in `game/the_last_beacon.cav`. **Moon Garden** remains a short mobile-first mystery with both a 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
 
 **CAVEAT 3D 0.2** now consumes normalized Rust action-runtime executions (`Move`, `Inspect`, `Operate`, `Open`, `Observe`, `Stay`) and maps those commands to semantic place/entity/symbol presentation bindings. Moon Garden no longer needs normal per-action camera choreography. See `spec/caveat3d-0.2.md`. The remaining graphics problem is art-direction automation: semantic identifiers can now drive the scene, but attractive camera composition and assets still require authored presentation bindings.
 

@@ -1,0 +1,149 @@
+// Trail Rescue. Requirements were fixed in experiments/trail-rescue/PROTOCOL.md
+// before this program. The host translates inputs and displays these bindings.
+scene "Trail Rescue: choose a tunnel on evidence, and reconsider when it changes.";
+place trail kind trail;
+entity stone kind tunnel at trail;
+entity reed kind tunnel at trail;
+
+// Three paid scouts total and one report per tunnel: these are all possible
+// observations, not a rolling cache. Their identity survives disagreement.
+entity report_stone kind observation at trail;
+entity scout_stone_1 kind observation at trail;
+entity scout_stone_2 kind observation at trail;
+entity scout_stone_3 kind observation at trail;
+entity report_reed kind observation at trail;
+entity scout_reed_1 kind observation at trail;
+entity scout_reed_2 kind observation at trail;
+entity scout_reed_3 kind observation at trail;
+claim stone_passage_clear;
+claim reed_passage_clear;
+caveat secondhand consequence material;
+caveat stale consequence material;
+display secondhand "A visitor's report can be mistaken.";
+display stale "This observation is at least thirty seconds old.";
+
+state now = 0;
+state scouts = 3 min 0 max 3;
+state observations = 0 min 0 max 5;
+state outcome = 0 min 0 max 2;
+state selected_slot = 0 min 0 max 8;
+state observed_condition = 0 min 0 max 2;
+// The number chooses the route; its grounds remember exactly what supported it.
+state plan_basis = 0;
+decisions route limit 6;
+define pending = outcome == 0;
+define planned = committed(route) and not reopened(route);
+
+event observe target kind tunnel, method in report scout, condition min 0 max 2;
+event change target kind tunnel, condition in clear blocked;
+event advance dt min 0 max 30;
+clock advance every 0.1;
+event plan target kind tunnel;
+event rescue;
+
+on observe when not pending reject "The rescue has ended.";
+on change when not pending reject "The rescue has ended.";
+on advance when not pending reject "The rescue has ended.";
+on plan when not pending reject "The rescue has ended.";
+on rescue when not pending reject "The rescue has ended.";
+on observe when method == method.scout and condition != 0 reject "Scouting reads the tunnel itself.";
+on observe when method == method.report and condition != 1 and condition != 2 reject "A report must say clear or blocked.";
+on observe when method == method.scout and scouts == 0 reject "No scout tokens remain.";
+on plan when planned reject "Reconsider the existing plan first.";
+on rescue when not planned reject "Choose a supported plan first.";
+on advance set now = now + dt;
+on observe when method == method.scout set scouts = scouts - 1;
+on observe set observations = observations + 1;
+
+for tunnel as $t {
+    // Physical state stays hidden until a scout observes it or rescue tests it.
+    state $t_physical = if($index == 1, 1, 2) min 1 max 2;
+    state $t_scanned = 0 min 0 max 3;
+    state $t_reported = 0 min 0 max 1;
+    state $t_support = 0;
+    state $t_opposition = 0;
+    define $t_clear = $t_support > 0 and $t_opposition == 0;
+
+    on change when target == $index set $t_physical = condition;
+    on observe when target == $index and method == method.report and $t_reported == 1 reject "That visitor has already reported.";
+    on observe when target == $index and method == method.report set $t_reported = 1;
+    on observe when target == $index and method == method.report set selected_slot = 1 + 4 * ($index - 1);
+    on observe when target == $index and method == method.report set observed_condition = condition;
+    on observe when target == $index and method == method.scout set $t_scanned = $t_scanned + 1;
+    on observe when target == $index and method == method.scout set selected_slot = 1 + 4 * ($index - 1) + $t_scanned;
+    on observe when target == $index and method == method.scout set observed_condition = $t_physical;
+    on observe set $t_support = 0;
+    on observe set $t_opposition = 0;
+    on advance set $t_support = 0;
+    on advance set $t_opposition = 0;
+    on plan when target == $index and not $t_clear reject "A plan needs fresh, undisputed clear evidence.";
+    on rescue when plan_basis == $index set outcome = if($t_physical == 1, 1, 2);
+
+    bind $t.status = "unknown" because nothing;
+    bind $t.status = "clear" when $t_clear because $t_support;
+    bind $t.status = "blocked" when $t_support == 0 and $t_opposition > 0 because $t_opposition;
+    bind $t.status = "disputed" when $t_support > 0 and $t_opposition > 0 because $t_support, $t_opposition;
+    bind $t.clearCount = $t_support because $t_support;
+    bind $t.blockedCount = $t_opposition because $t_opposition;
+    bind $t.canScout = pending and scouts > 0;
+    bind $t.canReport = pending and $t_reported == 0;
+    bind $t.canPlan = pending and $t_clear and not planned;
+};
+
+proc learn(e evidence, c claim, route_number) {
+    when observed_condition == 1 reveal e supports c;
+    when observed_condition == 2 reveal e opposes c;
+    qualify e with stale after 30;
+    when planned and plan_basis == route_number and observed_condition == 2 reopen route because e;
+};
+
+on plan set plan_basis = target;
+for observation as $o {
+    evidence seen_$o from "$o";
+    state $o_result = 0 min 0 max 2;
+    state $o_at = 0;
+    state $o_order = 0 min 0 max 5;
+    define $o_tunnel = if($index <= 4, 1, 2);
+    define $o_fresh = observed(seen_$o) and not carries(seen_$o, stale);
+
+    on observe when selected_slot == $index and $index <= 4 call learn(seen_$o, stone_passage_clear, target);
+    on observe when selected_slot == $index and $index > 4 call learn(seen_$o, reed_passage_clear, target);
+    on observe when selected_slot == $index set $o_result = qualified(observed_condition, seen_$o);
+    on observe when selected_slot == $index set $o_at = now;
+    on observe when selected_slot == $index set $o_order = observations;
+
+    // Current assessments cite only fresh content, without deleting old facts.
+    on observe when $o_fresh and $o_result == 1 and $index <= 4 set stone_support = stone_support + qualified(1, seen_$o);
+    on observe when $o_fresh and $o_result == 2 and $index <= 4 set stone_opposition = stone_opposition + qualified(1, seen_$o);
+    on observe when $o_fresh and $o_result == 1 and $index > 4 set reed_support = reed_support + qualified(1, seen_$o);
+    on observe when $o_fresh and $o_result == 2 and $index > 4 set reed_opposition = reed_opposition + qualified(1, seen_$o);
+    on advance when $o_fresh and $o_result == 1 and $index <= 4 set stone_support = stone_support + qualified(1, seen_$o);
+    on advance when $o_fresh and $o_result == 2 and $index <= 4 set stone_opposition = stone_opposition + qualified(1, seen_$o);
+    on advance when $o_fresh and $o_result == 1 and $index > 4 set reed_support = reed_support + qualified(1, seen_$o);
+    on advance when $o_fresh and $o_result == 2 and $index > 4 set reed_opposition = reed_opposition + qualified(1, seen_$o);
+    on plan when target == $o_tunnel and $o_fresh and $o_result == 1 set plan_basis = plan_basis + qualified(0, seen_$o);
+
+    bind $o.observed = observed(seen_$o);
+    bind $o.order = $o_order;
+    bind $o.tunnel = if($index <= 4, "stone", "reed");
+    bind $o.method = if($index == 1 or $index == 5, "report", "scout");
+    bind $o.condition = if($o_result == 1, "clear", "blocked") because $o_result;
+    bind $o.at = $o_at;
+};
+secondhand qualifies seen_report_stone;
+secondhand qualifies seen_report_reed;
+
+on plan commit route because enough using plan_basis;
+// This selects the exact old observations, even when fresher support exists.
+// Simultaneous aging produces one entry with every affected basis observation.
+on advance when planned and has_caveat(plan_basis, stale) reopen route because caveated(plan_basis, stale);
+
+bind hud.now = now;
+bind hud.scoutsRemaining = scouts;
+bind hud.outcome = "pending";
+bind hud.outcome = "rescued" when outcome == 1;
+bind hud.outcome = "failed" when outcome == 2;
+bind hud.canRescue = pending and planned;
+bind decision.state = "none";
+bind decision.state = "committed" when planned;
+bind decision.state = "reopened" when reopened(route);

@@ -78,6 +78,41 @@ and [procedures](../spec/caveat-reactive-0.7.md). The
 [essence document](CAVEAT_ESSENCE.md) records the invariants that edits must
 preserve. Runtime tests are executable examples, including adversarial inputs.
 
+## Reconsider a decision when its evidence ages
+
+Keep a live state for the basis you actually used. The commitment freezes its
+original grounds; the separate state continues receiving late caveats:
+
+```caveat
+state plan_basis = 0;
+decisions route limit 6;
+on plan set plan_basis = current_assessment;
+on plan commit route because enough using plan_basis;
+on advance when committed(route) and not reopened(route)
+    and has_caveat(plan_basis, stale)
+    reopen route because caveated(plan_basis, stale);
+```
+
+`has_caveat` checks content grounds, excluding caveats found only in control
+lineage. `caveated` selects the exact observed evidence in those grounds that
+currently carries the caveat. It preserves old occurrence identities after
+renewal and cites simultaneous causes in observation order. An empty selection
+rejects atomically. An explicit extra caveat on a value is not automatically a
+caveat on its evidence. See [state caveats](../spec/caveat-state-caveats-0.1.md).
+
+The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
+with limited scouting, conflicting reports, timed evidence, frozen decisions
+and direct save/resume. Its host only translates envelopes and projects source
+bindings. After `npm run build`, run `npm run test:trail-rescue` for the
+registered scenarios and seeded invariant checks, and
+`npm run test:trail-rescue-page` for desktop and mobile browser flows.
+
+Journal entries expose the source clock as `elapsed` and the decision's frozen
+numeric `using` value as `value`. Read `because` for acquisition order; grounds
+are sets. Older saves can omit the two new fields, so generic consumers should
+treat their absence as unknown. Saved records are checked for internal
+consistency; an unsigned save is not proof that its history really occurred.
+
 ## What would demonstrate AI usefulness
 
 The tooling enables an experiment; it does not establish that agents write

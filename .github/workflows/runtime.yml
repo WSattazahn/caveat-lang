@@ -72,6 +72,8 @@ jobs:
         run: npm run test:slime-glow
       - name: Glowcap explanations against the lean runtime
         run: npm run test:glowcap
+      - name: Trail Rescue registered scenarios, invariants and restore
+        run: npm run test:trail-rescue
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
@@ -85,6 +87,11 @@ jobs:
         with:
           name: slime-glow-wasm-report
           path: test-results/slime-glow-wasm.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: trail-rescue-policy-report
+          path: test-results/trail-rescue.json
       - uses: actions/upload-artifact@v7
         with:
           name: browser-dist
@@ -138,7 +145,7 @@ jobs:
           cat dist/build-info.json
 
   glowcap-page:
-    name: Glowcap explainer browser QA
+    name: Evidence games browser QA
     needs: core
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -156,11 +163,15 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Play the glowcap explainer
         run: npm run test:glowcap-page
+      - name: Play Trail Rescue on desktop and mobile
+        run: npm run test:trail-rescue-page
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: glowcap-page-qa
-          path: test-results/glowcap-page.png
+          path: |
+            test-results/glowcap-page.png
+            test-results/trail-rescue-*.png
 
   last-beacon:
     name: The Last Beacon browser QA

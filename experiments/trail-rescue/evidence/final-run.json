@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "started": "2026-09-23T05:18:57.335Z",
+  "scenarios": [
+    {
+      "id": "TR01",
+      "pass": true,
+      "steps": 3
+    },
+    {
+      "id": "TR02",
+      "pass": true,
+      "steps": 5
+    },
+    {
+      "id": "TR03",
+      "pass": true,
+      "steps": 5
+    },
+    {
+      "id": "TR04",
+      "pass": true,
+      "steps": 7
+    },
+    {
+      "id": "TR05",
+      "pass": true,
+      "steps": 10
+    },
+    {
+      "id": "TR06",
+      "pass": true,
+      "steps": 4
+    },
+    {
+      "id": "TR07",
+      "pass": true,
+      "steps": 6
+    },
+    {
+      "id": "TR08",
+      "pass": true,
+      "steps": 4
+    },
+    {
+      "id": "TR09",
+      "pass": true,
+      "steps": 7
+    },
+    {
+      "id": "TR10",
+      "pass": true,
+      "steps": 5
+    },
+    {
+      "id": "TR11",
+      "pass": true,
+      "steps": 7
+    },
+    {
+      "id": "TR12",
+      "pass": true,
+      "steps": 14
+    },
+    {
+      "id": "TR13",
+      "pass": true,
+      "steps": 7
+    },
+    {
+      "id": "TR14",
+      "pass": true,
+      "steps": 5
+    },
+    {
+      "id": "TR15",
+      "pass": true,
+      "steps": 6
+    },
+    {
+      "id": "TR16",
+      "pass": true,
+      "steps": 6
+    },
+    {
+      "id": "TR17",
+      "pass": true,
+      "steps": 5
+    },
+    {
+      "id": "TR18",
+      "pass": true,
+      "steps": 11
+    },
+    {
+      "id": "TR19",
+      "pass": true,
+      "steps": 6
+    },
+    {
+      "id": "TR20",
+      "pass": true,
+      "steps": 7
+    },
+    {
+      "id": "TR21",
+      "pass": true,
+      "steps": 6
+    },
+    {
+      "id": "TR22",
+      "pass": true,
+      "steps": 4
+    },
+    {
+      "id": "TR23",
+      "pass": true,
+      "steps": 5
+    },
+    {
+      "id": "TR24",
+      "pass": true,
+      "steps": 17
+    }
+  ],
+  "checks": [
+    {
+      "name": "Non-JSON event rejection is atomic",
+      "pass": true
+    },
+    {
+      "name": "Source alone controls budget, aging, caveats and physical outcomes",
+      "pass": true
+    },
+    {
+      "name": "A hidden physical change does not leak into the knowledge view",
+      "pass": true
+    },
+    {
+      "name": "A source clock that permits negative time restores its journal and pending timers",
+      "pass": true
+    },
+    {
+      "name": "Seeded event and restore invariants",
+      "pass": true
+    }
+  ],
+  "stress": {
+    "seed": "0x7a11beef",
+    "sequences": 200,
+    "stepsPerSequence": 80,
+    "accepted": 7325,
+    "rejected": 8675,
+    "resumes": 3110
+  },
+  "durationMs": 13330,
+  "pass": true
+}

@@ -17,7 +17,9 @@
     "test:rescue": "node scripts/test-rescue.mjs",
     "test:slime-glow": "node scripts/test-slime-glow.mjs",
     "test:glowcap": "node scripts/test-glowcap.mjs",
-    "test:glowcap-page": "node scripts/test-glowcap-page.mjs"
+    "test:glowcap-page": "node scripts/test-glowcap-page.mjs",
+    "test:trail-rescue": "node experiments/trail-rescue/harness.mjs",
+    "test:trail-rescue-page": "node scripts/test-trail-rescue-page.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

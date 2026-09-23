@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#14251f">
+  <link rel="icon" href="data:,">
+  <title>Trail Rescue · Caveat</title>
+  <style>
+    :root { color-scheme: dark; --paper: #f1eee2; --muted: #aab8aa; --line: #405148; --mint: #c0e2a5; --gold: #ebce83; --rose: #efb4a3; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #14251f; color: var(--paper); font-family: "Segoe UI", system-ui, sans-serif; line-height: 1.5; }
+    body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 85% 0, #42604930, transparent 60%); }
+    main { position: relative; max-width: 1136px; padding: 32px 28px 48px; margin: auto; }
+    a { color: var(--mint); text-underline-offset: 4px; }
+    button, select { font: inherit; }
+    button, select, summary { -webkit-tap-highlight-color: transparent; }
+    button { padding: 10px 15px; border: 1px solid var(--line); border-radius: 7px; background: #283b30; color: var(--paper); font-weight: 600; cursor: pointer; min-height: 44px; }
+    button:hover:not(:disabled) { background: #3a5040; border-color: #97af91; }
+    button:disabled, select:disabled { opacity: .42; cursor: not-allowed; }
+    button:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+    select { background: #182c23; color: var(--paper); border: 1px solid var(--line); border-radius: 7px; padding: 9px; min-height: 44px; }
+    fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+    .eyebrow, .section-label { text-transform: uppercase; font-size: 11px; letter-spacing: .17em; font-weight: 650; color: var(--muted); }
+    .eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin: 0 0 30px; }
+    .eyebrow a { text-decoration: none; color: var(--paper); }
+    .intro { display: flex; justify-content: space-between; gap: 32px; align-items: center; }
+    h1 { font-family: Georgia, serif; font-size: clamp(40px, 7vw, 62px); font-weight: 400; letter-spacing: -.035em; line-height: 1; margin: 0 0 18px; }
+    .lede { max-width: 620px; color: #c5cec0; font-size: 17px; margin: 0; }
+    .firefly { position: relative; flex: 0 0 130px; height: 120px; display: grid; place-items: center; }
+    .firefly::before { content: ""; width: 15px; height: 25px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 30px 10px #ebce8333, 0 0 85px 30px #ebce8310; transform: rotate(-20deg); }
+    .firefly::after { content: ""; position: absolute; width: 46px; height: 19px; border: 1px solid #ebce8380; border-radius: 50%; transform: translate(-8px, -17px) rotate(-35deg); }
+    .resources { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; padding: 18px 0; border-block: 1px solid var(--line); margin: 28px 0 22px; }
+    .resource { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+    .resource strong { color: var(--paper); font-variant-numeric: tabular-nums; }
+    .tokens { letter-spacing: 3px; color: var(--mint); }
+    .utility { display: flex; gap: 8px; margin-left: auto; }
+    .utility button { font-size: 13px; padding: 8px 13px; background: transparent; }
+    #notice { color: var(--muted); font-size: 13px; margin: -10px 0 18px; min-height: 20px; }
+    #error { border: 1px solid #a36754; border-radius: 7px; padding: 12px 15px; background: #4d2a24; color: #ffe0d4; margin-bottom: 18px; overflow-wrap: anywhere; }
+    [hidden] { display: none !important; }
+    .tunnels { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .tunnel { min-width: 0; background: #1d3027; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .tunnel-scene { position: relative; overflow: hidden; height: 136px; display: grid; place-items: end center; background: linear-gradient(#283a32, #253e2b); border-bottom: 1px solid var(--line); }
+    .tunnel-scene::before { content: ""; position: relative; z-index: 1; width: 118px; height: 110px; border-radius: 70px 70px 0 0; background: #111f1b; border: 21px solid #627565; border-bottom: 0; box-shadow: 0 0 0 10px #425749; }
+    .tunnel-scene::after { content: ""; position: absolute; width: 120%; height: 75px; bottom: -49px; background: #426043; border-radius: 50%; }
+    .reed .tunnel-scene { background: linear-gradient(#2e4031, #33462c); }
+    .reed .tunnel-scene::before { border-color: #718062; box-shadow: 0 0 0 8px #4d6543; }
+    .scene-number { position: absolute; left: 18px; top: 14px; font-family: Georgia, serif; font-size: 22px; color: #c7d7bd88; }
+    .scene-note { position: absolute; right: 14px; top: 17px; font-size: 10px; letter-spacing: .11em; text-transform: uppercase; color: #c7d7bd; }
+    .card-body { padding: 18px 20px 20px; }
+    .card-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    h2 { font-family: Georgia, serif; font-size: 26px; font-weight: 400; margin: 0; }
+    .badge { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; border: 1px solid #627565; color: #c0cdbb; border-radius: 4px; padding: 4px 7px; white-space: nowrap; }
+    .badge[data-status="clear"] { color: var(--mint); border-color: #8eb277; }
+    .badge[data-status="blocked"], .badge[data-status="disputed"] { color: var(--rose); border-color: #a76d57; }
+    .explanation { font-size: 13px; color: var(--muted); min-height: 56px; margin: 12px 0; }
+    .explanation p { margin: 0; }
+    .explanation ol { padding-left: 19px; margin: 6px 0; }
+    .caveats { color: var(--gold); font-size: 12px; }
+    .card-actions { display: flex; gap: 8px; }
+    .card-actions button { flex: 1; }
+    .plan { background: #bcd5a7; color: #1d2b20; border-color: #bcd5a7; }
+    .plan:hover:not(:disabled) { background: #d0e7bc; color: #1d2b20; }
+    .report { display: flex; gap: 8px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .report label { flex: 1; font-size: 12px; color: var(--muted); }
+    .report select { font-size: 13px; max-width: 100%; }
+    .report button { font-size: 13px; padding-inline: 11px; }
+    .decision { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; border: 1px solid #657953; border-radius: 12px; background: #2b3b29; padding: 21px 22px; margin: 20px 0; }
+    .decision .section-label { color: #becdaa; margin: 0 0 6px; }
+    .decision h2 { font-size: 25px; }
+    #decision-description { color: #c5cec0; margin: 7px 0 0; font-size: 14px; }
+    #decision-basis, #decision-reopened { margin: 7px 0 0; padding-left: 20px; color: #c5cec0; font-size: 13px; }
+    #rescue { background: var(--gold); color: #263024; border-color: var(--gold); min-width: 160px; padding: 13px 20px; }
+    #rescue:hover:not(:disabled) { background: #f9dfa0; }
+    .time-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 0 0 28px; }
+    .time-controls span { font-size: 13px; color: var(--muted); margin-right: auto; }
+    .time-controls button { font-size: 13px; background: transparent; }
+    .notebook { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; border-top: 1px solid var(--line); padding-top: 22px; }
+    .notebook h2 { font-size: 23px; }
+    .notebook .section-label { margin: 3px 0 16px; font-size: 10px; }
+    .entries { list-style: none; margin: 0; padding: 0; }
+    .entries li { border-left: 2px solid #627655; padding: 0 0 0 13px; margin: 0 0 17px; font-size: 14px; }
+    .entries p { margin: 4px 0 0; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .entries .caveats { color: var(--gold); }
+    .empty { color: var(--muted); font-size: 13px; margin: 0; }
+    details { border: 1px solid var(--line); border-radius: 8px; margin-top: 26px; padding: 13px 16px; }
+    summary { cursor: pointer; font-size: 13px; color: #c5cec0; }
+    details p { font-size: 13px; color: var(--muted); max-width: 730px; }
+    .conditions { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+    .conditions > div { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .conditions span { font-size: 13px; min-width: 96px; }
+    .conditions button { font-size: 12px; padding: 7px 11px; }
+    footer { margin-top: 26px; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+    @media (max-width: 700px) {
+      main { padding: 20px 17px 32px; }
+      .eyebrow { margin-bottom: 25px; font-size: 9px; }
+      .intro { gap: 0; }
+      .firefly { flex-basis: 55px; height: 80px; }
+      .lede { font-size: 15px; }
+      .resources { gap: 12px 20px; }
+      .utility { margin-left: 0; width: 100%; }
+      .utility button { flex: 1; }
+      .tunnels, .notebook { grid-template-columns: 1fr; }
+      .tunnel-scene { height: 105px; }
+      .tunnel-scene::before { height: 89px; width: 102px; border-width: 18px; }
+      .card-body { padding: 16px; }
+      .explanation { min-height: 0; }
+      .decision { grid-template-columns: 1fr; gap: 16px; padding: 18px; }
+      #rescue { width: 100%; }
+      .time-controls span { width: 100%; }
+      .time-controls button { flex: 1; }
+      .notebook { gap: 23px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow"><a href="./">Caveat / Field notes</a><span>01 &nbsp; Evidence &amp; decisions</span></p>
+  <header class="intro">
+    <div><h1>Trail Rescue</h1><p class="lede">A firefly is stranded beyond two tunnels. You have three chances to scout. Gather what you can, choose a route, and bring it home.</p></div>
+    <div class="firefly" aria-hidden="true"></div>
+  </header>
+  <div id="error" role="alert" hidden></div>
+  <fieldset id="game" disabled aria-label="Trail Rescue controls">
+    <section class="resources" aria-label="Expedition supplies">
+      <div class="resource"><span id="token-marks" class="tokens" aria-hidden="true">● ● ●</span><span><strong id="scouts">3</strong> scout tokens</span></div>
+      <div class="resource">Elapsed <strong id="time">0 s</strong></div>
+      <div class="utility"><button id="save" type="button">Save</button><button id="resume" type="button">Resume</button><button id="reset" type="button">Reset</button></div>
+    </section>
+    <p id="notice" role="status">Loading the expedition…</p>
+    <div class="tunnels">
+      <article class="tunnel stone" data-tunnel="stone" aria-labelledby="stone-name">
+        <div class="tunnel-scene" aria-hidden="true"><span class="scene-number">01</span><span class="scene-note">The ridge path</span></div>
+        <div class="card-body">
+          <div class="card-heading"><h2 id="stone-name">Stone tunnel</h2><span class="badge" id="stone-status">Unknown</span></div>
+          <div class="explanation" id="stone-explanation"></div>
+          <div class="card-actions"><button data-action="scout" data-tunnel="stone" type="button">Scout · 1 token</button><button class="plan" data-action="plan" data-tunnel="stone" type="button">Plan stone route</button></div>
+          <div class="report"><label for="stone-report">Visitor says</label><select id="stone-report"><option value="clear">Clear</option><option value="blocked">Blocked</option></select><button data-action="report" data-tunnel="stone" type="button">Hear report</button></div>
+        </div>
+      </article>
+      <article class="tunnel reed" data-tunnel="reed" aria-labelledby="reed-name">
+        <div class="tunnel-scene" aria-hidden="true"><span class="scene-number">02</span><span class="scene-note">The marsh path</span></div>
+        <div class="card-body">
+          <div class="card-heading"><h2 id="reed-name">Reed tunnel</h2><span class="badge" id="reed-status">Unknown</span></div>
+          <div class="explanation" id="reed-explanation"></div>
+          <div class="card-actions"><button data-action="scout" data-tunnel="reed" type="button">Scout · 1 token</button><button class="plan" data-action="plan" data-tunnel="reed" type="button">Plan reed route</button></div>
+          <div class="report"><label for="reed-report">Visitor says</label><select id="reed-report"><option value="clear">Clear</option><option value="blocked">Blocked</option></select><button data-action="report" data-tunnel="reed" type="button">Hear report</button></div>
+        </div>
+      </article>
+    </div>
+    <section class="decision" aria-labelledby="decision-title" aria-live="polite">
+      <div><p class="section-label">Your route plan</p><h2 id="decision-title">A little knowledge first</h2><p id="decision-description">Scout a tunnel or hear a visitor's report before choosing a route.</p><ol id="decision-basis"></ol><ol id="decision-reopened"></ol><p id="decision-caveats" class="caveats"></p></div>
+      <button id="rescue" type="button">Attempt rescue →</button>
+    </section>
+    <div class="time-controls"><span>Observations become stale at 30 seconds. Time advances only when you wait.</span><button data-action="wait" data-dt="5" type="button">Wait 5 s</button><button data-action="wait" data-dt="30" type="button">Wait 30 s</button></div>
+    <section class="notebook" aria-label="Expedition notebook">
+      <div><h2>What you've learned</h2><p class="section-label">Observations · in the order received</p><p id="evidence-empty" class="empty">The paths are quiet. Neither tunnel has been observed.</p><ol id="evidence" class="entries"></ol></div>
+      <div><h2>Why you chose</h2><p class="section-label">Decisions · preserved as they happened</p><p id="history-empty" class="empty">Your first plan will start the story.</p><ol id="history" class="entries"></ol></div>
+    </section>
+    <details id="changing-conditions"><summary>Changing conditions</summary><p>Try a shifting world: change a tunnel without telling the scout. These controls change the simulation; only a new observation changes what the scout knows. Visitors can also be mistaken.</p><div class="conditions"><div><span>Stone tunnel</span><button data-action="change" data-tunnel="stone" data-condition="clear" type="button">Make clear</button><button data-action="change" data-tunnel="stone" data-condition="blocked" type="button">Make blocked</button></div><div><span>Reed tunnel</span><button data-action="change" data-tunnel="reed" data-condition="clear" type="button">Make clear</button><button data-action="change" data-tunnel="reed" data-condition="blocked" type="button">Make blocked</button></div></div></details>
+  </fieldset>
+  <footer><span>One rescue attempt. A well-supported plan can still be wrong.</span><a href="./trail_rescue.cav">Read the Caveat program ↗</a></footer>
+</main>
+<script type="module">
+  const $ = (id) => document.getElementById(id);
+  const storageKey = 'caveat.trail-rescue.save.v1';
+  let policy;
+  let createSession;
+  const title = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+  const seconds = (value) => `${Number(value.toFixed(3))} s`;
+  const caveatText = (values) => values.map((value) => ({ secondhand: 'Secondhand · a visitor may be mistaken', stale: 'Stale · no longer supports the current assessment' })[value] ?? value).join(' / ');
+  const say = (message) => { $('notice').textContent = message; };
+  const error = (failure) => { $('error').textContent = failure instanceof Error ? failure.message : String(failure); $('error').hidden = false; };
+  function clearError() { $('error').hidden = true; $('error').textContent = ''; }
+  function node(tag, text, className) { const element = document.createElement(tag); element.textContent = text; if (className) element.className = className; return element; }
+  function observationLabel(view, id) {
+    const evidence = view.evidence.find((item) => item.id === id);
+    if (!evidence) return id;
+    const method = evidence.method === 'scout' ? `scout #${id.split('_').at(-1)}` : 'visitor';
+    return `${title(evidence.tunnel)} ${method} at ${seconds(evidence.at)}: ${evidence.condition}`;
+  }
+  function reasons(view, ids, target, prefix = '') {
+    target.replaceChildren(...ids.map((id) => node('li', `${prefix}${observationLabel(view, id)}`)));
+  }
+  function render() {
+    const view = policy.view();
+    $('scouts').textContent = String(view.scoutsRemaining);
+    $('token-marks').textContent = Array.from({ length: 3 }, (_, i) => i < view.scoutsRemaining ? '●' : '○').join(' ');
+    $('time').textContent = seconds(view.now);
+    for (const tunnel of ['stone', 'reed']) {
+      const assessment = view.tunnels[tunnel];
+      const badge = $(`${tunnel}-status`);
+      badge.textContent = title(assessment.status);
+      badge.dataset.status = assessment.status;
+      const explanation = $(`${tunnel}-explanation`);
+      const descriptions = { unknown: 'No fresh observations to guide you.', clear: 'Fresh observations support this route.', blocked: 'Fresh observations warn against this route.', disputed: 'Fresh observations disagree. The route needs another look.' };
+      explanation.replaceChildren(node('p', descriptions[assessment.status]));
+      if (assessment.because.length) { const list = document.createElement('ol'); reasons(view, assessment.because, list); explanation.append(list); }
+      if (assessment.caveats.length) explanation.append(node('p', caveatText(assessment.caveats), 'caveats'));
+      document.querySelector(`[data-action="scout"][data-tunnel="${tunnel}"]`).disabled = !assessment.canScout;
+      document.querySelector(`[data-action="plan"][data-tunnel="${tunnel}"]`).disabled = !assessment.canPlan;
+      document.querySelector(`[data-action="report"][data-tunnel="${tunnel}"]`).disabled = !assessment.canReport;
+      $(`${tunnel}-report`).disabled = !assessment.canReport;
+    }
+    const decision = view.decision;
+    const headings = { none: 'A little knowledge first', committed: `${title(decision.tunnel ?? '')} route chosen`, reopened: 'Time to reconsider' };
+    const descriptions = { none: "Scout a tunnel or hear a visitor's report before choosing a route.", committed: 'Your plan rests on these observations, frozen when you chose:', reopened: 'Your plan was challenged. Gather fresh support, then choose a route again.' };
+    $('decision-title').textContent = view.outcome === 'rescued' ? 'The firefly is home.' : view.outcome === 'failed' ? 'The rescue failed.' : headings[decision.state];
+    $('decision-description').textContent = view.outcome === 'rescued' ? `You made it through the ${decision.tunnel} tunnel. These were the grounds for your choice:` : view.outcome === 'failed' ? `The ${decision.tunnel} tunnel was blocked at the attempt. The plan remains a record of what you knew:` : descriptions[decision.state];
+    reasons(view, decision.basis, $('decision-basis'));
+    reasons(view, decision.reopenedBy, $('decision-reopened'), 'Reopened by: ');
+    $('decision-caveats').textContent = decision.caveats.length ? `At commitment: ${caveatText(decision.caveats)}` : '';
+    $('rescue').disabled = !view.canRescue;
+    document.querySelectorAll('[data-action="wait"], [data-action="change"]').forEach((button) => { button.disabled = view.outcome !== 'pending'; });
+    $('evidence-empty').hidden = view.evidence.length > 0;
+    $('evidence').replaceChildren(...view.evidence.map((item) => {
+      const entry = node('li', observationLabel(view, item.id));
+      entry.dataset.evidenceId = item.id;
+      entry.append(node('p', `${item.id} · ${item.method === 'report' ? 'Visitor report' : 'Direct inspection'}`));
+      if (item.caveats.length) entry.append(node('p', caveatText(item.caveats), 'caveats'));
+      return entry;
+    }));
+    $('history-empty').hidden = decision.history.length > 0;
+    $('history').replaceChildren(...decision.history.map((item) => {
+      const entry = node('li', `${seconds(item.at)} · ${item.change === 'committed' ? 'Chose' : 'Reopened'} the ${item.tunnel} route`);
+      entry.append(node('p', item.because.map((id) => observationLabel(view, id)).join(' → ')));
+      if (item.caveats.length) entry.append(node('p', caveatText(item.caveats), 'caveats'));
+      return entry;
+    }));
+  }
+  function dispatch(event) {
+    clearError();
+    try { policy.dispatch(event); render(); say(event.type === 'change' ? 'Conditions changed out of sight. The scout has learned nothing new.' : 'Expedition updated.'); }
+    catch (failure) { error(failure); throw failure; }
+  }
+  // A replacement is constructed and checked before the existing session is released.
+  function replaceSession(saved) {
+    const replacement = createSession(saved);
+    try { replacement.view(); } catch (failure) { replacement.free(); throw failure; }
+    const previous = policy;
+    policy = replacement;
+    previous?.free();
+    render();
+  }
+  $('game').addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button || button.disabled) return;
+    clearError();
+    try {
+      if (button.id === 'save') { localStorage.setItem(storageKey, JSON.stringify(policy.save())); say('Expedition saved on this device. Resume returns to this checkpoint.'); return; }
+      if (button.id === 'resume') {
+        const saved = localStorage.getItem(storageKey);
+        if (saved === null) throw new Error('No saved expedition yet. Choose Save to create a checkpoint.');
+        replaceSession(JSON.parse(saved));
+        say('Saved expedition resumed.'); return;
+      }
+      if (button.id === 'reset') { replaceSession(); say('A fresh expedition. Your saved checkpoint is still available.'); return; }
+      if (button.id === 'rescue') { dispatch({ type: 'rescue' }); return; }
+      const { action, tunnel, condition, dt } = button.dataset;
+      if (action === 'scout') dispatch({ type: 'observe', tunnel, method: 'scout' });
+      if (action === 'report') dispatch({ type: 'observe', tunnel, method: 'report', condition: $(`${tunnel}-report`).value });
+      if (action === 'plan') dispatch({ type: 'plan', tunnel });
+      if (action === 'wait') dispatch({ type: 'tick', dt: Number(dt) });
+      if (action === 'change') dispatch({ type: 'change', tunnel, condition });
+    } catch (failure) { error(failure); }
+  });
+  try {
+    const [runtime, adapter, response] = await Promise.all([import('./pkg-reactive/caveat_runtime.js'), import('./trail-rescue-policy.js'), fetch('./trail_rescue.cav')]);
+    if (!response.ok) throw new Error(`The expedition could not load (${response.status}). Please reload to try again.`);
+    const source = await response.text();
+    await runtime.default();
+    createSession = (saved) => adapter.createPolicyFromSession(runtime.WebReactiveSession, source, saved);
+    replaceSession();
+    $('game').disabled = false;
+    say('Scout for yourself, or hear one free visitor report per tunnel.');
+    window.__trailRescue = Object.freeze({ dispatch, view: () => policy.view() });
+  } catch (failure) { error(failure); say('The expedition could not start. Reload this page to try again.'); }
+  window.addEventListener('pagehide', (event) => {
+    // A page in the back/forward cache still owns a usable session on return.
+    if (!event.persisted) { policy?.free(); policy = undefined; }
+  });
+</script>
+</body>
+</html>
