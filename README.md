@@ -40,6 +40,13 @@ Reactive source can now read the runtime clock directly with
 It uses the same time as scheduled caveats and decision journals, survives
 save/restore, and removes the need for a separate bounded state timer.
 
+A [four-context follow-up](experiments/agent-authoring/v2/RESULTS.md) repeated
+the two clock tasks with this read and the updated guide. Three first submissions
+and all four final submissions passed: 13,704 event dispatches and 3,158 restores.
+All four used `elapsed()` directly, without a separate state clock. The remaining
+first-source failure was unsupported comment syntax, repaired by its author.
+This is evidence on two repeated tasks, not a general reliability claim.
+
 ## What only Caveat does
 
 | | Caveat | A general-purpose language |

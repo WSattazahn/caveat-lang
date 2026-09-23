@@ -54,6 +54,9 @@ functions, not the rest of their containing program.
 
 ## An authoring loop
 
+Use `#` or `//` for line comments outside strings; `--` is not a comment marker.
+The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quoting.
+
 1. Read the event contract and the relevant reactive profile. Keep observations,
    proposed policies, physical conditions, and committed decisions distinct.
 2. Write a small program and an explicit event history. Mark which inputs are
@@ -170,3 +173,13 @@ Those limits stay in the results. The evidence supports authoring these
 specified policies with self-directed repair; it does not establish complete
 correctness, reliability across models, or an authoring cost advantage. Keep
 independent policy checks and explicit duration/capacity contracts in the loop.
+
+A [four-context follow-up](../experiments/agent-authoring/v2/RESULTS.md) repeated
+the two clock tasks with `elapsed()` and the updated guide. Three first sources
+and all four final sources passed the registered corpus. Every final source
+read the runtime clock directly, removing the separate clock representations
+seen in v1. The one first-source error used unsupported `--` comments; its
+author repaired it without private feedback. The comment reminder above was
+added after this cohort and is not part of its frozen packet. These are small,
+repeated-task results for the runtime and documentation together; they do not
+isolate causality or establish reliability on new tasks.

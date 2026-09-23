@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "registrationCommit": "b44a0190771b319bdbd616b34b3e10fd3381d94d",
+  "wave1": {
+    "dispatchedAt": "2026-09-23T14:33:55Z",
+    "timestampNote": "Recorded after both wave-one dispatches; not a timing measurement.",
+    "agents": {
+      "A1": "/root/clock_author_a1",
+      "B1": "/root/clock_author_b1"
+    },
+    "forkTurns": "none"
+  },
+  "wave2": {
+    "dispatchedAt": "2026-09-23T14:39:21Z",
+    "timestampNote": "Recorded after both wave-two dispatches; not a timing measurement.",
+    "agents": {
+      "A2": "/root/clock_author_a2",
+      "B2": "/root/clock_author_b2"
+    },
+    "forkTurns": "none"
+  }
+}
