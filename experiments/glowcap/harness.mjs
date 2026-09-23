@@ -24,6 +24,8 @@ export const IMPLEMENTATIONS = {
   caveat3: { entry: 'caveat3/adapter.mjs', policy: ['caveat3/glowcap.cav'], glue: ['caveat3/adapter.mjs'] },
   // Round 5: caveat3 at CR4, then CR5-CR8 with late qualification and the decision journal.
   caveat4: { entry: 'caveat4/adapter.mjs', policy: ['caveat4/glowcap.cav'], glue: ['caveat4/adapter.mjs'] },
+  // Round 6 replay: caveat4 as it stood after CR8, then CR9-CR12 on the language the round's work list produced.
+  caveat5: { entry: 'caveat5/adapter.mjs', policy: ['caveat5/glowcap.cav'], glue: ['caveat5/adapter.mjs'] },
 };
 
 async function load(name) {
@@ -193,6 +195,7 @@ async function bench() {
     caveat2: ['caveat2/glowcap.cav', 'caveat2/adapter.mjs', '../../dist/pkg/caveat_runtime.js', '../../dist/pkg/caveat_runtime_bg.wasm'],
     caveat3: ['caveat3/glowcap.cav', 'caveat3/adapter.mjs', '../../dist/pkg-reactive/caveat_runtime.js', '../../dist/pkg-reactive/caveat_runtime_bg.wasm'],
     caveat4: ['caveat4/glowcap.cav', 'caveat4/adapter.mjs', '../../dist/pkg-reactive/caveat_runtime.js', '../../dist/pkg-reactive/caveat_runtime_bg.wasm'],
+    caveat5: ['caveat5/glowcap.cav', 'caveat5/adapter.mjs', '../../dist/pkg-reactive/caveat_runtime.js', '../../dist/pkg-reactive/caveat_runtime_bg.wasm'],
   };
   for (const [name, files] of Object.entries(shipped)) {
     let raw = 0;

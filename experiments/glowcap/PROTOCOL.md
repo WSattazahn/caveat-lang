@@ -211,6 +211,18 @@ A prediction that fails is reported as failed.
 and a `resume` step, in which both implementations save and resume at the
 same point. It is run after CR12 with `--against=caveat4`.
 
+### Round 6 replay: the language the work list produced
+
+Not blind. After round 6 was scored, its work list was built into the
+language: incremental evaluation, a load-time check on observation order,
+procedures over symbols, renewable evidence with scheduled qualification and
+`carries`, and save and restore. `caveat5/` starts from `caveat4/` as it stood
+after CR8 (byte for byte) and replays CR9–CR12 on that language, one commit
+per phase, knowing the requests and scenarios. The scenarios, TypeScript side,
+measurements and fuzz (`--against=caveat5`) are unchanged. Like rounds 4 and 5,
+it shows what the new language costs on these requests, not how it does on
+requests it was not shaped for.
+
 ## Measurements
 
 Every harness run appends a record to `runs.jsonl`: time, phase,
