@@ -35,7 +35,7 @@ pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
 #[path = "reactive_save.rs"]
 mod save;
 pub use save::{
-    ReactiveSave, SavedGraph, SavedNode, SavedResources, SavedState, REACTIVE_SAVE_SCHEMA,
+    Compact, ReactiveSave, SavedGraph, SavedNode, SavedResources, SavedState, REACTIVE_SAVE_SCHEMA,
 };
 
 /// Compile the standard library through the same parser and function checker
@@ -522,10 +522,13 @@ pub struct ScheduledQualification {
     pub guard: Provenance,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Default)]
 struct LoadedGraph {
     last_node: NodeId,
     edges: usize,
+    /// Every state as the program set it when it loaded; a save leaves out
+    /// the states still equal to these.
+    states: Arc<Vec<Arc<StateCell>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -1440,6 +1443,7 @@ impl ReactiveSession {
         session.loaded = LoadedGraph {
             last_node: session.graph.nodes.keys().copied().max().unwrap_or(0),
             edges: session.graph.edges.len(),
+            states: Arc::clone(&session.states.cells),
         };
         session.evaluate_bindings(None)?;
         Ok(session)
