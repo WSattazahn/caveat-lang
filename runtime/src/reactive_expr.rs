@@ -431,7 +431,13 @@ impl Expr {
                 reads.names.insert(name.clone());
             }
             Node::Predicate(kind, name) => {
-                reads.graph = true;
+                if kind.starts_with("has_caveat:") {
+                    // This reads a live state's grounds. An assignment can
+                    // replace those grounds without changing the graph.
+                    reads.names.insert(name.clone());
+                } else {
+                    reads.graph = true;
+                }
                 if kind == "observed" {
                     reads.observed.insert(name.clone());
                 }
@@ -509,13 +515,18 @@ impl Expr {
             | Node::Latest(_)
             | Node::HistoryCount(_) => self.node.clone(),
             Node::Variable(name) => Node::Variable(rename(name)),
-            Node::Predicate(kind, target) => match kind.strip_prefix("carries:") {
-                Some(caveat) => Node::Predicate(
-                    format!("carries:{}", rename(&caveat.to_string())),
-                    rename(target),
-                ),
-                None => Node::Predicate(kind.clone(), rename(target)),
-            },
+            Node::Predicate(kind, target) => {
+                let qualified = ["carries:", "has_caveat:"]
+                    .into_iter()
+                    .find_map(|prefix| kind.strip_prefix(prefix).map(|caveat| (prefix, caveat)));
+                match qualified {
+                    Some((prefix, caveat)) => Node::Predicate(
+                        format!("{prefix}{}", rename(&caveat.to_string())),
+                        rename(target),
+                    ),
+                    None => Node::Predicate(kind.clone(), rename(target)),
+                }
+            }
             Node::Qualified(value, evidence, caveats) => Node::Qualified(
                 child(value),
                 rename(evidence),
@@ -1438,6 +1449,13 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after the carried caveat")?;
             return Ok(Node::Predicate(format!("carries:{caveat}"), evidence));
         }
+        if name == "has_caveat" {
+            let state = self.graph_identifier("has_caveat state")?;
+            self.expect(TokenKind::Comma, "',' before the state's caveat")?;
+            let caveat = self.graph_identifier("has_caveat caveat")?;
+            self.expect(TokenKind::RightParen, "')' after the state's caveat")?;
+            return Ok(Node::Predicate(format!("has_caveat:{caveat}"), state));
+        }
         if name == "latest" {
             let history = self.graph_identifier("latest history")?;
             self.expect(TokenKind::RightParen, "')' after history identifier")?;
@@ -1622,6 +1640,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
             || matches!(
                 name.as_str(),
                 "qualified"
+                    | "has_caveat"
                     | "if"
                     | "require"
                     | "latest"

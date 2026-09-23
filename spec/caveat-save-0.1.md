@@ -47,7 +47,7 @@ Bindings are not saved. They are computed from the state when a session is
 restored, like after any event, so a save cannot make a program show something
 its rules do not.
 
-## Restoring checks everything
+## Restore validation
 
 A save is data a host stored and may hand back changed. Restoring loads the
 source again, which supplies every declaration, and then applies the save. The
@@ -62,14 +62,25 @@ save is refused with an error, and never crashes the runtime, when:
 - a history's template or limit differs from the program's, holds more than its
   limit, has a revision without a basis, or a current entry that is not its
   latest;
-- the attention budget does not add up to the program's.
+- the attention budget does not add up to the program's;
+- the decision journal disagrees with the graph's commitment/reopening order,
+  the frozen grounds or numeric basis, the revision chain, or the observed
+  evidence and declared caveats it cites;
+- a journal entry has an impossible event/sequence relationship, unreachable
+  decision effect, or inconsistent optional elapsed time. Clocks whose source
+  admits negative `dt` are not incorrectly treated as monotonic.
+
+Journal `elapsed` and `value` fields are optional for saves written before
+those fields were introduced. Historical caveats may be a strict subset of
+current caveats: later qualification does not rewrite history.
 
 The runtime tests alter a saved game at random, 3,000 times on every run and
 30,000 when asked. Each altered save must be refused or accepted, and an
 accepted one must then run events, snapshots, views and saves again without a
 crash.
 
-A save is not signed. A player who edits a save can give their game any state
-the program could represent. That is the same trust a host already places in
-the events it dispatches, and the checks above make sure an edited save can
-only be refused or played, never crash the runtime.
+A save is not signed. These checks establish internal consistency, not proof
+that historical inputs or guards really occurred. Coordinated edits to mutually
+consistent records can still be accepted; authentication would require a
+different trust mechanism. Mutation tests exercise the requirement that an
+edited save is refused or remains playable without crashing.

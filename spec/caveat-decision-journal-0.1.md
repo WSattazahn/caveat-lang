@@ -22,12 +22,25 @@ change it made, in the order it made them:
 | `commitment` | the concrete commitment (`trust`, or `trust@2` for a series revision) |
 | `change` | `committed` or `reopened` |
 | `sequence`, `event` | the accepted event that made the change |
+| `elapsed` | source-controlled elapsed seconds at the change; absent in older saved entries |
+| `value` | the concrete commitment's frozen numeric `using` value; absent when none was supplied or in older saved entries |
 | `because` | for `committed`, the commitment's [grounds](caveat-explanations-0.2.md) evidence; for `reopened`, the evidence that reopened it |
 | `caveats` | the caveats of that evidence at that moment |
 
 `because` lists evidence in the order it was **first observed**, not in
 alphabetical order. A revision's entry shows what that revision was made on,
 not what its predecessor was.
+
+`elapsed` and `value` are additive optional fields. New entries always have
+`elapsed`; a reopening retains the commitment's original `value` even when
+the live state used to make it has changed. This lets a host display when and
+what was decided without maintaining another history. `elapsed` uses the
+program's clock, never wall time. Older saved entries remain readable and
+keep these fields absent; the runtime does not invent historical values.
+
+The [state-caveat selector](caveat-state-caveats-0.1.md) can reopen a decision
+because several grounded observations aged together. One selector execution
+adds one entry containing all its newly added witnesses in observation order.
 
 ## Guarantees
 

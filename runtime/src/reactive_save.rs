@@ -371,7 +371,10 @@ impl ReactiveSession {
                 return Err(format!("unknown event {event}"));
             }
         }
-        if !save.elapsed.is_finite() || save.elapsed < 0.0 {
+        if !save.elapsed.is_finite() {
+            return Err("elapsed time must be a finite number".into());
+        }
+        if self.source_clock_is_monotonic() && save.elapsed < 0.0 {
             return Err("elapsed time must be a nonnegative number".into());
         }
         self.sequence = save.sequence;
@@ -705,6 +708,7 @@ impl ReactiveSession {
                 return Err(format!("an effect names unknown {name}"));
             }
         }
+        self.check_saved_journal(save)?;
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
         self.reading_streams = Arc::new(save.reading_streams.clone());
@@ -732,5 +736,223 @@ impl ReactiveSession {
             .map(|compact| compact.0.clone())
             .collect();
         Ok(())
+    }
+
+    /// Custom clocks may admit negative dt. A save must retain that source's
+    /// time semantics, including pending qualifications scheduled below zero.
+    fn source_clock_is_monotonic(&self) -> bool {
+        self.time_event
+            .as_deref()
+            .and_then(|event| self.events.get(event))
+            .and_then(|parameters| parameters.iter().find(|parameter| parameter.name == "dt"))
+            .is_none_or(|parameter| parameter.min.value() >= 0.0)
+    }
+
+    /// Check historical records against the source and the independently saved
+    /// graph/bases. This establishes consistency, not authenticity: without an
+    /// event log or signature an internally consistent edited save is still data.
+    fn check_saved_journal(&self, save: &ReactiveSave) -> Result<(), String> {
+        let fail = |message: &str| format!("decision journal: {message}");
+        if (save.sequence == 0) != save.last_event.is_none() {
+            return Err(fail("sequence and last event disagree"));
+        }
+        let monotonic_time = self.source_clock_is_monotonic();
+        let mut committed = HashSet::new();
+        let mut reopened: HashMap<&str, Vec<&str>> = HashMap::new();
+        let mut current: HashMap<&str, &str> = HashMap::new();
+        let mut previous: Option<&JournalEntry> = None;
+        let mut latest_elapsed = None;
+        let mut last_committed_node = None;
+        for entry in &save.decision_journal {
+            self.require_commitment(&entry.commitment)?;
+            if !matches!(entry.change.as_str(), "committed" | "reopened") {
+                return Err(fail("unknown change"));
+            }
+            if entry.sequence == 0 || entry.sequence > save.sequence {
+                return Err(fail("entry sequence is outside the session"));
+            }
+            if !self.events.contains_key(&entry.event)
+                || (entry.sequence == save.sequence
+                    && save.last_event.as_ref() != Some(&entry.event))
+                || previous.is_some_and(|previous| {
+                    entry.sequence < previous.sequence
+                        || (entry.sequence == previous.sequence && entry.event != previous.event)
+                })
+            {
+                return Err(fail("entry event or sequence order is inconsistent"));
+            }
+            if !self.event_can_change_decision(&entry.event, &entry.decision, &entry.change) {
+                return Err(fail("event cannot make this decision change"));
+            }
+            if let Some(elapsed) = entry.elapsed {
+                if !elapsed.is_finite()
+                    || (monotonic_time
+                        && (elapsed < 0.0
+                            || elapsed > save.elapsed
+                            || latest_elapsed.is_some_and(|previous| elapsed < previous)))
+                    || previous.is_some_and(|previous| {
+                        previous.sequence == entry.sequence
+                            && previous.elapsed.is_some_and(|previous| previous != elapsed)
+                    })
+                    || (entry.sequence == save.sequence && elapsed != save.elapsed)
+                {
+                    return Err(fail("entry elapsed time is inconsistent"));
+                }
+                latest_elapsed = Some(elapsed);
+            }
+            let basis = save.commitment_bases.get(&entry.commitment);
+            if entry.value.is_some_and(|value| {
+                !value.is_finite() || basis.and_then(|basis| basis.value) != Some(value)
+            }) {
+                return Err(fail("entry value differs from its frozen commitment"));
+            }
+            let provenance = Provenance::from_names(
+                entry.because.iter().cloned(),
+                entry.caveats.iter().cloned(),
+            )?;
+            self.check_provenance("decision journal", &provenance)?;
+            if provenance.evidence.len() != entry.because.len()
+                || entry.because != self.in_observation_order(provenance.evidence.iter())
+                || entry.caveats != provenance.caveats.iter().cloned().collect::<Vec<_>>()
+                || entry
+                    .because
+                    .iter()
+                    .any(|name| !self.predicate("observed", name).unwrap_or(false))
+            {
+                return Err(fail(
+                    "entry witnesses are unobserved, repeated, or out of order",
+                ));
+            }
+            if let Some(series) = save.decision_series.get(&entry.decision) {
+                let revision = series
+                    .revisions
+                    .iter()
+                    .find(|revision| revision.id == entry.commitment)
+                    .ok_or_else(|| fail("commitment does not belong to its decision series"))?;
+                if entry.change == "committed" {
+                    if revision.sequence != entry.sequence || revision.event != entry.event {
+                        return Err(fail("commitment disagrees with its revision record"));
+                    }
+                    if revision.previous.as_deref() != current.get(entry.decision.as_str()).copied()
+                        || revision
+                            .previous
+                            .as_deref()
+                            .is_some_and(|name| !reopened.contains_key(name))
+                    {
+                        return Err(fail("revision has no preceding reopened commitment"));
+                    }
+                    current.insert(&entry.decision, &entry.commitment);
+                } else if current.get(entry.decision.as_str()).copied()
+                    != Some(entry.commitment.as_str())
+                {
+                    return Err(fail("reopening is not of the current revision"));
+                }
+            } else if entry.decision != entry.commitment {
+                return Err(fail("decision and commitment names disagree"));
+            }
+            if entry.change == "committed" {
+                let node = self.symbols[&entry.commitment];
+                if last_committed_node.is_some_and(|previous| node <= previous) {
+                    return Err(fail("commitment order differs from graph creation order"));
+                }
+                last_committed_node = Some(node);
+                if !committed.insert(entry.commitment.as_str()) {
+                    return Err(fail("commitment appears more than once"));
+                }
+                let grounds = save
+                    .commitment_grounds
+                    .get(&entry.commitment)
+                    .ok_or_else(|| fail("commitment has no frozen grounds"))?;
+                if basis.is_none() || grounds.0 != provenance {
+                    return Err(fail("commitment witnesses differ from its frozen grounds"));
+                }
+            } else {
+                if entry.because.is_empty()
+                    || (!committed.contains(entry.commitment.as_str())
+                        && self.symbols[&entry.commitment] > self.loaded.last_node)
+                {
+                    return Err(fail("reopening has no cause or preceding commitment"));
+                }
+                let seen = reopened.entry(&entry.commitment).or_default();
+                let mut live_caveats = BTreeSet::new();
+                for evidence in &entry.because {
+                    if seen.contains(&evidence.as_str()) {
+                        return Err(fail("reopening repeats an existing cause"));
+                    }
+                    seen.push(evidence);
+                    live_caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+                }
+                // Qualification only adds caveats. Historical caveats may be a
+                // strict subset of today's caveats; equality would rewrite time.
+                if !provenance.caveats.is_subset(&live_caveats) {
+                    return Err(fail("reopening cites caveats unrelated to its witnesses"));
+                }
+            }
+            previous = Some(entry);
+        }
+        for (name, series) in &save.decision_series {
+            for (index, revision) in series.revisions.iter().enumerate() {
+                if revision.ordinal != index as u64 + 1
+                    || revision.id != format!("{name}@{}", index + 1)
+                    || !committed.contains(revision.id.as_str())
+                {
+                    return Err(fail("revision identity/order has no matching commitment"));
+                }
+            }
+        }
+        for (name, id) in self.symbols.iter() {
+            let Some(NodeKind::Commitment { open, .. }) = self.graph.nodes.get(id) else {
+                continue;
+            };
+            if *id > self.loaded.last_node && !committed.contains(name.as_str()) {
+                return Err(fail("created commitment has no journal entry"));
+            }
+            let causes = reopened.get(name.as_str()).cloned().unwrap_or_default();
+            let edges = self
+                .graph
+                .edges
+                .iter()
+                .skip(self.loaded.edges)
+                .filter(|edge| edge.to == *id && edge.relation == Relation::Reopens)
+                .map(|edge| edge.from)
+                .collect::<Vec<_>>();
+            let recorded = causes
+                .iter()
+                .map(|name| self.symbols[*name])
+                .collect::<Vec<_>>();
+            if edges != recorded || (*id > self.loaded.last_node && *open != !causes.is_empty()) {
+                return Err(fail("reopening history differs from the graph"));
+            }
+        }
+        Ok(())
+    }
+
+    /// Ignore conditions (their historical values are unavailable), but require
+    /// that this event can reach the named effect through source procedures.
+    fn event_can_change_decision(&self, event: &str, decision: &str, change: &str) -> bool {
+        let mut pending = self
+            .rules
+            .iter()
+            .filter(|rule| rule.event == event)
+            .map(|rule| &rule.effect)
+            .collect::<Vec<_>>();
+        let mut visited = HashSet::new();
+        while let Some(effect) = pending.pop() {
+            match effect {
+                Effect::Commit { action, .. } if change == "committed" && action == decision => {
+                    return true
+                }
+                Effect::Reopen { action, .. } if change == "reopened" && action == decision => {
+                    return true
+                }
+                Effect::Call { name, .. } if visited.insert(name) => {
+                    if let Some(procedure) = self.procedures.get(name) {
+                        pending.extend(procedure.body.iter().map(|step| &step.effect));
+                    }
+                }
+                _ => {}
+            }
+        }
+        false
     }
 }

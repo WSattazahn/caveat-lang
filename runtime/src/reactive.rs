@@ -28,6 +28,8 @@ const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
 /// prefix and the caveat, so it travels through every predicate path.
 const CARRIES: &str = "carries:";
+/// A predicate on a live state's grounds, not on an evidence alias.
+const HAS_CAVEAT: &str = "has_caveat:";
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
@@ -204,6 +206,11 @@ pub enum Effect {
 pub enum EvidenceSelector {
     Named(String),
     Latest(String),
+    /// Observed evidence in a state's grounds that currently bears a caveat.
+    Caveated {
+        state: String,
+        caveat: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -822,6 +829,12 @@ pub struct JournalEntry {
     pub change: String,
     pub sequence: u64,
     pub event: String,
+    /// Source-controlled elapsed time at this change. Absent in older saves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub elapsed: Option<f64>,
+    /// The commitment's frozen `using` value, if it had one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<f64>,
     /// For a commitment its grounds' evidence, for a reopening the evidence
     /// that reopened it; either way in the order it was first observed.
     pub because: Vec<String>,
@@ -1277,6 +1290,9 @@ impl ReactiveSession {
                         "qualification_caveat" => session.require_kind(name, "caveat"),
                         "numeric_history" => session.require_history(name),
                         "has_sample" => session.require_readings(name),
+                        _ if kind.starts_with(HAS_CAVEAT) => session
+                            .state_with_caveat(name, &kind[HAS_CAVEAT.len()..])
+                            .map(|_| ()),
                         _ => Err("state initializers cannot query live graph predicates".into()),
                     })? != ValueType::Number
                     {
@@ -1863,6 +1879,9 @@ impl ReactiveSession {
                     self.require_kind(symbol, "evidence")?;
                     self.require_kind(&kind[CARRIES.len()..], "caveat")
                 }
+                _ if kind.starts_with(HAS_CAVEAT) => self
+                    .state_with_caveat(symbol, &kind[HAS_CAVEAT.len()..])
+                    .map(|_| ()),
                 _ => Err(format!("unknown epistemic predicate {kind}")),
             }
         };
@@ -2020,6 +2039,9 @@ impl ReactiveSession {
                     match because {
                         EvidenceSelector::Named(name) => self.require_kind(name, "evidence")?,
                         EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
+                        EvidenceSelector::Caveated { state, caveat } => {
+                            self.state_with_caveat(state, caveat)?;
+                        }
                     }
                 }
             }
@@ -2273,6 +2295,15 @@ impl ReactiveSession {
             ));
         }
         Ok(cited)
+    }
+
+    fn state_with_caveat(&self, name: &str, caveat: &str) -> Result<&StateCell, String> {
+        let state = self
+            .states
+            .get(name)
+            .ok_or_else(|| format!("unknown reactive state {name}"))?;
+        self.require_kind(caveat, "caveat")?;
+        Ok(state)
     }
 
     fn require_kind(&self, name: &str, kind: &str) -> Result<(), String> {
@@ -2784,6 +2815,13 @@ impl ReactiveSession {
     }
 
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if let Some(caveat) = kind.strip_prefix(HAS_CAVEAT) {
+            let state = self.state_with_caveat(name, caveat)?;
+            return Tracked::new(
+                state.grounds.caveats.contains(caveat),
+                state.grounds.clone(),
+            );
+        }
         if matches!(kind, "committed" | "reopened") {
             if let Some(series) = self.decision_series.get(name) {
                 return match &series.current {
@@ -2975,6 +3013,13 @@ impl ReactiveSession {
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if let Some(caveat) = kind.strip_prefix(HAS_CAVEAT) {
+            let state = self.state_with_caveat(name, caveat)?;
+            return Tracked::new(
+                state.grounds.caveats.contains(caveat),
+                state.value.provenance.clone(),
+            );
+        }
         if kind == "has_sample" {
             self.require_readings(name)?;
             let stream = &self.reading_streams[name];
@@ -3510,6 +3555,8 @@ impl ReactiveSession {
                     change: "committed".into(),
                     sequence: self.sequence,
                     event: self.last_event.clone().unwrap_or_default(),
+                    elapsed: Some(self.elapsed),
+                    value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
                     caveats: grounds.caveats.iter().cloned().collect(),
                 };
@@ -3534,7 +3581,7 @@ impl ReactiveSession {
                     EvidenceSelector::Named(name) => {
                         let name = self.occurrence(name).to_string();
                         let cause = self.qualify(&name, &[])?;
-                        (name, cause)
+                        (vec![name], cause)
                     }
                     EvidenceSelector::Latest(stream) => {
                         let reading = self.latest(stream)?;
@@ -3543,13 +3590,40 @@ impl ReactiveSession {
                             .as_ref()
                             .expect("latest required an occurrence")
                             .clone();
-                        (name, reading.provenance)
+                        (vec![name], reading.provenance)
+                    }
+                    EvidenceSelector::Caveated { state, caveat } => {
+                        let cell = self.state_with_caveat(state, caveat)?;
+                        let mut selected = Vec::new();
+                        let mut cause = cell.value.provenance.clone();
+                        for evidence in &cell.grounds.evidence {
+                            // These are concrete occurrence identities, not
+                            // renewable aliases. Never resolve them again.
+                            if self.predicate("observed", evidence)?
+                                && self.qualify_core(evidence, &[])?.caveats.contains(caveat)
+                            {
+                                selected.push(evidence);
+                                cause.merge(&self.qualify(evidence, &[])?)?;
+                            }
+                        }
+                        if selected.is_empty() {
+                            return Err(format!(
+                                "caveated({state}, {caveat}) selects no observed evidence carrying {caveat} from the state's grounds"
+                            ));
+                        }
+                        (self.in_observation_order(selected.into_iter()), cause)
                     }
                 };
-                let from = self.symbols[&because];
-                if !self.graph.edges.iter().any(|edge| {
-                    edge.from == from && edge.to == id && edge.relation == Relation::Reopens
-                }) {
+                let because = because
+                    .into_iter()
+                    .filter(|evidence| {
+                        let from = self.symbols[evidence];
+                        !self.graph.edges.iter().any(|edge| {
+                            edge.from == from && edge.to == id && edge.relation == Relation::Reopens
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                if !because.is_empty() {
                     let mut basis = cause.union(guard)?;
                     if let Some(series) = self.decision_series.get(action) {
                         basis.merge(&series.selection_qualifications)?;
@@ -3559,25 +3633,30 @@ impl ReactiveSession {
                         .entry(current.clone())
                         .or_default()
                         .merge(&basis)?;
-                    Arc::make_mut(&mut self.graph).reopen(id, from);
+                    let mut caveats = BTreeSet::new();
+                    for evidence in &because {
+                        caveats.extend(self.qualify_core(evidence, &[])?.caveats);
+                        Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);
+                        self.effects.push(EffectReport::Reopen {
+                            action: current.clone(),
+                            because: evidence.clone(),
+                        });
+                    }
                     let entry = JournalEntry {
                         decision: action.clone(),
                         commitment: current.clone(),
                         change: "reopened".into(),
                         sequence: self.sequence,
                         event: self.last_event.clone().unwrap_or_default(),
-                        because: vec![because.clone()],
-                        caveats: self
-                            .qualify_core(&because, &[])?
-                            .caveats
-                            .into_iter()
-                            .collect(),
+                        elapsed: Some(self.elapsed),
+                        value: self
+                            .commitment_bases
+                            .get(&current)
+                            .and_then(|basis| basis.value),
+                        because,
+                        caveats: caveats.into_iter().collect(),
                     };
                     Arc::make_mut(&mut self.journal).push(entry);
-                    self.effects.push(EffectReport::Reopen {
-                        action: current,
-                        because,
-                    });
                 }
             }
         }
@@ -3876,6 +3955,10 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             because: match because {
                 EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
                 EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(stream.clone()),
+                EvidenceSelector::Caveated { state, caveat } => EvidenceSelector::Caveated {
+                    state: state.clone(),
+                    caveat: rename(caveat),
+                },
             },
         },
     }
@@ -4697,6 +4780,22 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     .strip_suffix(')')
                     .ok_or("latest reading selector requires closing parenthesis")?;
                 EvidenceSelector::Latest(identifier(stream.trim())?)
+            } else if let Some(arguments) = selector
+                .strip_prefix("caveated")
+                .map(str::trim)
+                .and_then(|rest| rest.strip_prefix('('))
+            {
+                let arguments = arguments
+                    .trim()
+                    .strip_suffix(')')
+                    .ok_or("caveated selector requires closing parenthesis")?;
+                let (state, caveat) = arguments
+                    .split_once(',')
+                    .ok_or("caveated selector requires STATE, CAVEAT")?;
+                EvidenceSelector::Caveated {
+                    state: identifier(state.trim())?,
+                    caveat: identifier(caveat.trim())?,
+                }
             } else {
                 EvidenceSelector::Named(identifier(&selector)?)
             };

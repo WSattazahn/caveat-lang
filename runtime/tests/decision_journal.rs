@@ -89,3 +89,71 @@ fn the_view_carries_the_journal() {
     let json = serde_json::to_value(&view).unwrap();
     assert_eq!(json["decision_journal"][0]["change"], "committed");
 }
+
+#[test]
+fn journal_changes_publish_their_time_and_the_commitments_frozen_value() {
+    let source = format!(
+        "{PROGRAM}\nevent advance dt min 0 max 30; clock advance every 1;\nevent overwrite; on overwrite set recovery = 99;"
+    )
+    .replace(
+        "on see commit trust because enough using qualified(1, second) + qualified(1, first);",
+        "on see set recovery = qualified(1, second) + qualified(1, first); on see commit trust because enough using recovery;",
+    );
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    game.dispatch_json("advance", r#"{"dt":11}"#).unwrap();
+    game.dispatch_json("see", "{}").unwrap();
+    game.dispatch_json("advance", r#"{"dt":13}"#).unwrap();
+    game.dispatch_json("overwrite", "{}").unwrap();
+    let snapshot = game.dispatch_json("worry", "{}").unwrap();
+    let journal = snapshot.decision_journal;
+    assert_eq!(journal[0].elapsed, Some(11.0));
+    assert_eq!(journal[0].value, Some(2.0));
+    assert_eq!(journal[1].elapsed, Some(24.0));
+    assert_eq!(journal[1].value, Some(2.0));
+    assert_eq!(game.view().decision_journal, journal);
+    let json = serde_json::to_value(game.view()).unwrap();
+    assert_eq!(json["decision_journal"][1]["elapsed"], 24.0);
+    assert_eq!(json["decision_journal"][1]["value"], 2.0);
+}
+
+#[test]
+fn old_saved_journal_entries_remain_readable_without_inventing_time_or_values() {
+    let mut game = ReactiveSession::from_source(PROGRAM).unwrap();
+    game.dispatch_json("see", "{}").unwrap();
+    let mut save: serde_json::Value = serde_json::from_str(&game.save_json().unwrap()).unwrap();
+    let first = save["decision_journal"][0].as_object_mut().unwrap();
+    first.remove("elapsed");
+    first.remove("value");
+    let mut restored = ReactiveSession::restore_json(PROGRAM, &save.to_string()).unwrap();
+    assert_eq!(restored.view().decision_journal[0].elapsed, None);
+    assert_eq!(restored.view().decision_journal[0].value, None);
+    let view = serde_json::to_value(restored.view()).unwrap();
+    assert!(view["decision_journal"][0].get("elapsed").is_none());
+    assert!(view["decision_journal"][0].get("value").is_none());
+    restored.dispatch_json("worry", "{}").unwrap();
+    assert_eq!(restored.view().decision_journal[1].elapsed, Some(0.0));
+    assert_eq!(restored.view().decision_journal[1].value, Some(2.0));
+}
+
+#[test]
+fn decisions_without_using_do_not_invent_a_numeric_value() {
+    let mut game = ReactiveSession::from_source(
+        r#"
+claim safe;
+evidence doubt from "doubt";
+event decide;
+event reconsider;
+on decide commit choice because enough;
+on reconsider reveal doubt opposes safe;
+on reconsider reopen choice because doubt;
+"#,
+    )
+    .unwrap();
+    game.dispatch_json("decide", "{}").unwrap();
+    game.dispatch_json("reconsider", "{}").unwrap();
+    for entry in game.view().decision_journal {
+        assert_eq!(entry.elapsed, Some(0.0));
+        assert_eq!(entry.value, None);
+        assert!(serde_json::to_value(entry).unwrap().get("value").is_none());
+    }
+}

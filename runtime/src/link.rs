@@ -123,9 +123,11 @@ const RESERVED: &[&str] = &[
     "true",
     // epistemic predicates and qualified values
     "carries",
+    "caveated",
     "committed",
     "examined",
     "has_sample",
+    "has_caveat",
     "in_context",
     "latest",
     "observed",
