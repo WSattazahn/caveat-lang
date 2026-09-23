@@ -48,6 +48,8 @@ A decision series can select a new revision only after its current decision has 
 
 Skipped sampling and revision guards also affect which record remains current. Their dependencies belong to the current selection, separate from immutable archived values. A missing sample is still missing. Failed transactions consume no occurrence IDs and publish no partial history. Capacity limits reject an event atomically rather than evicting evidence silently.
 
+[Renewal 0.1](../spec/caveat-renewal-0.1.md) extends the same rule to evidence a program declares: a renewable name means its current occurrence, and `renew` gives it a new, unobserved one. Provenance names occurrences, never the name's current meaning, so renewing never relabels what an earlier value or decision rests on. A new occurrence inherits only the caveats declared on the evidence; a caveat learned about one occurrence stays with it. A scheduled `qualify … after` is bound to the occurrence that was current when it was scheduled.
+
 ## Computation over archives
 
 [Reactive 0.6](../spec/caveat-reactive-0.6.md) allows source-defined computation

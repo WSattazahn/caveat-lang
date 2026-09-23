@@ -5,7 +5,7 @@
 
 use crate::presentation::Number;
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -31,7 +31,8 @@ pub const MAX_TEXT_BYTES: usize = 65_536;
 
 /// Dependencies of an evaluated value, not an assertion that evidence is true
 /// or that a caveat is discharged. The host resolves and types graph names.
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct Provenance {
     pub evidence: BTreeSet<String>,
     pub caveats: BTreeSet<String>,
@@ -158,6 +159,19 @@ impl<T> Tracked<T> {
         provenance.validate()?;
         Ok(Self { value, provenance })
     }
+}
+
+/// What an expression may read. See `Expr::collect_reads`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Reads {
+    /// Numeric names looked up: states, constants, parameters or locals.
+    pub names: BTreeSet<String>,
+    /// Queries the epistemic graph, a reading stream or a decision series.
+    pub graph: bool,
+    /// Could read anything; never skip it.
+    pub anything: bool,
+    /// Evidence named by `observed(...)`.
+    pub observed: BTreeSet<String>,
 }
 
 /// A parsed expression with finite, canonical number literals.
@@ -403,6 +417,205 @@ impl Expr {
             _ => {}
         }
         (nodes, bytes)
+    }
+
+    /// Everything evaluating this expression can read: the numeric names it
+    /// looks up, and whether it queries the graph or a history. Every branch
+    /// is included, taken or not, so this over-approximates and never misses
+    /// a read. The match is exhaustive on purpose: a new kind of node must say
+    /// what it reads before it compiles.
+    pub fn collect_reads(&self, reads: &mut Reads) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Variable(name) => {
+                reads.names.insert(name.clone());
+            }
+            Node::Predicate(kind, name) => {
+                reads.graph = true;
+                if kind == "observed" {
+                    reads.observed.insert(name.clone());
+                }
+            }
+            Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
+            Node::HistoryAt(_, index) => {
+                reads.graph = true;
+                index.collect_reads(reads);
+            }
+            Node::Fold(_, initial, _) => {
+                reads.graph = true;
+                initial.collect_reads(reads);
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                reads.graph = true;
+                initial.collect_reads(reads);
+                body.collect_reads(reads);
+            }
+            Node::Qualified(value, _, _) => {
+                reads.graph = true;
+                value.collect_reads(reads);
+            }
+            Node::Unary(_, child) => child.collect_reads(reads),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_reads(reads);
+                right.collect_reads(reads);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_reads(reads);
+                yes.collect_reads(reads);
+                no.collect_reads(reads);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+            }
+            // An unexpanded call's body is unknown here, so it could read
+            // anything. Sessions expand every call before evaluating.
+            Node::UserCall(_, arguments) => {
+                reads.anything = true;
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+            }
+            // The body has the arguments inlined, so its reads are the call's.
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+                body.collect_reads(reads);
+            }
+        }
+    }
+
+    /// The name, if this expression is a bare name.
+    pub fn as_name(&self) -> Option<&str> {
+        match &self.node {
+            Node::Variable(name) => Some(name),
+            _ => None,
+        }
+    }
+
+    /// The same expression with names replaced: graph symbols wherever a
+    /// predicate or `qualified` names one, and bare names, so that an argument
+    /// can pass a name on. Histories are not renamed. Used to specialize a
+    /// procedure for the symbols it is called with.
+    pub fn rename_symbols(&self, names: &HashMap<String, String>) -> Expr {
+        let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
+        let child = |expression: &Expr| Box::new(expression.rename_symbols(names));
+        let node = match &self.node {
+            Node::Number(_)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => self.node.clone(),
+            Node::Variable(name) => Node::Variable(rename(name)),
+            Node::Predicate(kind, target) => match kind.strip_prefix("carries:") {
+                Some(caveat) => Node::Predicate(
+                    format!("carries:{}", rename(&caveat.to_string())),
+                    rename(target),
+                ),
+                None => Node::Predicate(kind.clone(), rename(target)),
+            },
+            Node::Qualified(value, evidence, caveats) => Node::Qualified(
+                child(value),
+                rename(evidence),
+                caveats.iter().map(rename).collect(),
+            ),
+            Node::Unary(operator, operand) => Node::Unary(*operator, child(operand)),
+            Node::Binary(operator, left, right) => {
+                Node::Binary(*operator, child(left), child(right))
+            }
+            Node::Require(condition, value) => Node::Require(child(condition), child(value)),
+            Node::If(condition, yes, no) => Node::If(child(condition), child(yes), child(no)),
+            Node::HistoryAt(history, index) => Node::HistoryAt(history.clone(), child(index)),
+            Node::Fold(history, initial, reducer) => {
+                Node::Fold(history.clone(), child(initial), reducer.clone())
+            }
+            Node::ExpandedFold(history, initial, body) => {
+                Node::ExpandedFold(history.clone(), child(initial), child(body))
+            }
+            Node::Function(function, arguments) => Node::Function(
+                *function,
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+            ),
+            Node::UserCall(name, arguments) => Node::UserCall(
+                name.clone(),
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+            ),
+            Node::ExpandedCall(arguments, body) => Node::ExpandedCall(
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+                child(body),
+            ),
+        };
+        Expr {
+            node,
+            depth: self.depth,
+        }
+    }
+
+    /// The operands of a chain of `and`, left to right; the expression itself
+    /// if it is not one.
+    pub fn conjuncts(&self) -> Vec<&Expr> {
+        match &self.node {
+            Node::Binary(Binary::And, left, right) => {
+                let mut all = left.conjuncts();
+                all.extend(right.conjuncts());
+                all
+            }
+            _ => vec![self],
+        }
+    }
+
+    /// Evidence that `qualified(...)` names wherever evaluating this
+    /// expression is certain to reach it: not inside an `if` branch, the right
+    /// side of `and` or `or`, a `require` value or a fold body.
+    pub fn qualified_unconditionally(&self, evidence: &mut BTreeSet<String>) {
+        match &self.node {
+            Node::Qualified(value, name, _) => {
+                evidence.insert(name.clone());
+                value.qualified_unconditionally(evidence);
+            }
+            Node::Binary(Binary::And | Binary::Or, left, _)
+            | Node::Require(left, _)
+            | Node::If(left, _, _) => left.qualified_unconditionally(evidence),
+            Node::Binary(_, left, right) => {
+                left.qualified_unconditionally(evidence);
+                right.qualified_unconditionally(evidence);
+            }
+            Node::Unary(_, child) | Node::HistoryAt(_, child) => {
+                child.qualified_unconditionally(evidence)
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.qualified_unconditionally(evidence);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.qualified_unconditionally(evidence);
+                }
+                body.qualified_unconditionally(evidence);
+            }
+            Node::Fold(_, initial, _) | Node::ExpandedFold(_, initial, _) => {
+                initial.qualified_unconditionally(evidence)
+            }
+            Node::Number(_)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Predicate(_, _)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => {}
+        }
     }
 
     fn new(node: Node) -> Result<Self, String> {
@@ -1215,6 +1428,15 @@ impl Parser {
             };
             self.expect(TokenKind::RightParen, "')' after history operation")?;
             return Ok(node);
+        }
+        // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
+        // travels in the predicate's name. See spec/caveat-renewal-0.1.md.
+        if name == "carries" {
+            let evidence = self.graph_identifier("carries evidence")?;
+            self.expect(TokenKind::Comma, "',' before the carried caveat")?;
+            let caveat = self.graph_identifier("carries caveat")?;
+            self.expect(TokenKind::RightParen, "')' after the carried caveat")?;
+            return Ok(Node::Predicate(format!("carries:{caveat}"), evidence));
         }
         if name == "latest" {
             let history = self.graph_identifier("latest history")?;

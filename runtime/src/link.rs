@@ -34,6 +34,7 @@ pub const BUNDLE_MARKER: &str = "#caveat-bundle 1";
 /// on any that neither list accounts for.
 const RESERVED: &[&str] = &[
     // statements and clauses reachable inside a module
+    "after",
     "and",
     "as",
     "at",
@@ -79,6 +80,8 @@ const RESERVED: &[&str] = &[
     "qualify",
     "readings",
     "reject",
+    "renew",
+    "renewable",
     "reopen",
     "require",
     "retaining",
@@ -119,6 +122,7 @@ const RESERVED: &[&str] = &[
     "toast",
     "true",
     // epistemic predicates and qualified values
+    "carries",
     "committed",
     "examined",
     "has_sample",
@@ -379,6 +383,9 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     for parameter in &procedure.parameters {
                         parameters.push((parameter.clone(), procedure.name.clone()));
                     }
+                    for parameter in &procedure.symbol_parameters {
+                        parameters.push((parameter.name.clone(), procedure.name.clone()));
+                    }
                     Some(procedure.name.clone())
                 }
                 Directive::Event {
@@ -397,6 +404,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                 | Directive::Control { name, .. } => Some(name.clone()),
                 // Respond or project, but introduce no name of their own.
                 Directive::Rule(_)
+                | Directive::Renewable { .. }
                 | Directive::Binding(_)
                 | Directive::Cue(_)
                 | Directive::Clock(_) => None,

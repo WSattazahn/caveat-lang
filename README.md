@@ -119,6 +119,16 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Decision Journal 0.1](spec/caveat-decision-journal-0.1.md) publishes every commitment and reopening, in order, with the evidence each was based on in the order it was observed.
 
+[Observation Order 0.1](spec/caveat-observation-order-0.1.md) rejects, when a program loads, a rule that qualifies a value with evidence only a later rule of the same event can reveal: a use that can only fail. Uses that could succeed on some dispatch are left to the runtime.
+
+[Procedure Symbols 0.1](spec/caveat-procedure-symbols-0.1.md) lets a procedure take evidence, a claim or a caveat by name (`proc learn(e evidence, sort)`), so every way of observing something can share one set of rules. Each call is specialized for the names it passes when the program loads.
+
+[Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
+
+[Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: WebReactiveSession save() and WebReactiveSession.restore(source, saved). Restoring costs what loading costs plus the size of the save, and the save is checked name by name, so an edited one can be refused or played but never crash the runtime.
+
+[Incremental Evaluation 0.1](spec/caveat-incremental-evaluation-0.1.md) makes an event cost what it touches: a binding is evaluated again only when something it reads changed, and a transaction copies only what its effects write. Round 6's 32-entity program went from 1.1 ms to 0.16 ms per event with identical results, checked against full evaluation after every event in the test suite.
+
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
 The browser sends input and elapsed time to generic `WebReactiveSession`, then draws its snapshot. It does not calculate the ferry's movement, collisions, damage, route rules, or rescue result. Rust implements the language interpreter; the game-specific rules are Caveat. [Design notes](docs/LIGHT_THE_WAY.md) explain the controls and the source/runtime/renderer boundary.

@@ -29,14 +29,14 @@ fn the_view_matches_the_snapshot_it_summarises() {
         let view = viewed.dispatch_view_json(event, "{}").unwrap();
         let snapshot = full.dispatch_json(event, "{}").unwrap();
         assert_eq!(view.sequence, snapshot.sequence);
-        assert_eq!(view.last_event, snapshot.last_event);
-        assert_eq!(view.bindings, snapshot.bindings);
-        assert_eq!(view.binding_explanations, snapshot.binding_explanations);
+        assert_eq!(view.last_event, snapshot.last_event.as_deref());
+        assert_eq!(*view.bindings, snapshot.bindings);
+        assert_eq!(*view.binding_explanations, snapshot.binding_explanations);
         assert_eq!(view.cues, snapshot.cues);
         assert_eq!(view.effects, snapshot.effects);
         assert_eq!(view.commitments, snapshot.commitments);
-        assert_eq!(view.commitment_grounds, snapshot.commitment_grounds);
-        assert_eq!(view.decision_series, snapshot.decision_series);
+        assert_eq!(*view.commitment_grounds, snapshot.commitment_grounds);
+        assert_eq!(*view.decision_series, snapshot.decision_series);
         assert_eq!(view.relations, snapshot.relations);
     }
 }

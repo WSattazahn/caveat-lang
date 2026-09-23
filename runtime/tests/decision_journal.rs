@@ -83,7 +83,7 @@ fn the_view_carries_the_journal() {
     let mut game = ReactiveSession::from_source(PROGRAM).unwrap();
     let view = game.dispatch_view_json("see", "{}").unwrap();
     assert_eq!(
-        summary(&view.decision_journal),
+        summary(view.decision_journal),
         vec![entry("committed", "trust@1", &["first", "second"])]
     );
     let json = serde_json::to_value(&view).unwrap();
