@@ -31,7 +31,8 @@ pub const MAX_TEXT_BYTES: usize = 65_536;
 
 /// Dependencies of an evaluated value, not an assertion that evidence is true
 /// or that a caveat is discharged. The host resolves and types graph names.
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct Provenance {
     pub evidence: BTreeSet<String>,
     pub caveats: BTreeSet<String>,

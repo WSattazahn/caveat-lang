@@ -39,6 +39,19 @@ impl WebReactiveSession {
         serde_json::to_string(&self.inner.view()).expect("finite reactive view")
     }
 
+    /// Everything the session knows that an event can change, as JSON a host
+    /// can store. See spec/caveat-save-0.1.md.
+    pub fn save(&self) -> Result<String, String> {
+        self.inner.save_json()
+    }
+
+    /// A session of `source` resumed from a save, without replaying events.
+    pub fn restore(source: &str, saved: &str) -> Result<WebReactiveSession, String> {
+        Ok(Self {
+            inner: ReactiveSession::restore_json(source, saved)?,
+        })
+    }
+
     /// Dispatch and return the per-event view rather than the full snapshot.
     pub fn dispatch_view(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
         self.inner

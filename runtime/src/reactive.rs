@@ -11,7 +11,7 @@ use crate::presentation::Number;
 use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType};
 pub use crate::reactive_expr::{Provenance, Tracked};
 use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
@@ -31,6 +31,12 @@ const CARRIES: &str = "carries:";
 pub const REACTIVE_SCHEMA: &str = "caveat-reactive/0.1";
 pub const REACTIVE_VIEW_SCHEMA: &str = "caveat-reactive-view/0.1";
 pub const REACTIVE_PRELUDE_SOURCE: &str = include_str!("../prelude.cav");
+
+#[path = "reactive_save.rs"]
+mod save;
+pub use save::{
+    ReactiveSave, SavedGraph, SavedNode, SavedResources, SavedState, REACTIVE_SAVE_SCHEMA,
+};
 
 /// Compile the standard library through the same parser and function checker
 /// as application source. Nothing in the host implements these algorithms.
@@ -446,13 +452,13 @@ pub struct Clock {
 
 pub type QualifiedValue = Tracked<f64>;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CommitmentBasis {
     pub value: Option<f64>,
     pub provenance: Provenance,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReadingOccurrence {
     pub id: String,
     pub ordinal: u64,
@@ -464,7 +470,7 @@ pub struct ReadingOccurrence {
     pub claim: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReadingStream {
     pub template: String,
     pub limit: usize,
@@ -473,7 +479,7 @@ pub struct ReadingStream {
     pub selection_qualifications: Provenance,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DecisionRevision {
     pub id: String,
     pub previous: Option<String>,
@@ -482,7 +488,7 @@ pub struct DecisionRevision {
     pub event: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DecisionSeries {
     pub limit: usize,
     pub current: Option<String>,
@@ -503,7 +509,7 @@ pub struct Renewal {
 }
 
 /// `qualify EVIDENCE with CAVEAT after SECONDS`, waiting for its time.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ScheduledQualification {
     /// The occurrence that was current when it was scheduled.
     pub evidence: String,
@@ -514,6 +520,12 @@ pub struct ScheduledQualification {
     /// The scheduling rule's guard and the delay's lineage, which join the
     /// lineage of what it qualifies.
     pub guard: Provenance,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct LoadedGraph {
+    last_node: NodeId,
+    edges: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -758,7 +770,7 @@ impl Changes {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EffectReport {
     Sample {
@@ -797,7 +809,7 @@ pub enum EffectReport {
 
 /// One change to a decision, in the order it happened. See
 /// spec/caveat-decision-journal-0.1.md.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct JournalEntry {
     /// The declared commitment or decision series.
     pub decision: String,
@@ -905,6 +917,9 @@ pub struct ReactiveSession {
     elapsed: f64,
     /// The event whose `dt` counts time: the clock's, or else `tick`.
     time_event: Option<Arc<str>>,
+    /// The graph as the program declared it: events add nodes after
+    /// `last_node` and edges after `edges`.
+    loaded: LoadedGraph,
     observation_qualifications: Arc<BTreeMap<String, Provenance>>,
     examination_qualifications: Arc<BTreeMap<String, Provenance>>,
     reopening_qualifications: Arc<BTreeMap<String, Provenance>>,
@@ -1060,6 +1075,7 @@ impl ReactiveSession {
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
+            loaded: LoadedGraph::default(),
             observation_qualifications: Arc::default(),
             examination_qualifications: Arc::default(),
             reopening_qualifications: Arc::default(),
@@ -1421,6 +1437,10 @@ impl ReactiveSession {
                 .push(index);
         }
         session.rules_by_event = Arc::new(rules_by_event);
+        session.loaded = LoadedGraph {
+            last_node: session.graph.nodes.keys().copied().max().unwrap_or(0),
+            edges: session.graph.edges.len(),
+        };
         session.evaluate_bindings(None)?;
         Ok(session)
     }
