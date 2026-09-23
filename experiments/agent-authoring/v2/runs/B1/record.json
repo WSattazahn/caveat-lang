@@ -1,0 +1,62 @@
+{
+  "id": "B1",
+  "started": "2026-09-23T14:35:52.045Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "571ab1bd9ce0b9a91efa8aef8cef1a0fb18050effe2fbfe8b3a7f19baa868c50",
+      "submittedAt": "2026-09-23T14:35:52.045Z",
+      "file": "versions/01.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T14:35:52.047Z",
+      "log": "checks/01.jsonl",
+      "status": "completed",
+      "durationMs": 39
+    },
+    {
+      "index": 2,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T14:35:56.910Z",
+      "log": "checks/02.jsonl",
+      "status": "completed",
+      "durationMs": 63
+    },
+    {
+      "index": 3,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T14:36:33.352Z",
+      "log": "checks/03.jsonl",
+      "status": "completed",
+      "durationMs": 63
+    },
+    {
+      "index": 4,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T14:36:48.944Z",
+      "log": "checks/04.jsonl",
+      "status": "completed",
+      "durationMs": 65
+    },
+    {
+      "index": 5,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T14:37:14.659Z",
+      "log": "checks/05.jsonl",
+      "status": "completed",
+      "durationMs": 73
+    }
+  ],
+  "finished": "2026-09-23T14:38:38.704Z",
+  "finalVersion": 1,
+  "finalSha256": "571ab1bd9ce0b9a91efa8aef8cef1a0fb18050effe2fbfe8b3a7f19baa868c50"
+}

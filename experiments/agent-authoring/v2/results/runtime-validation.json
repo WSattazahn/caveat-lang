@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "scope": "Runtime feature and existing-game checks, separate from the registered authoring outcomes",
+  "runtimeCommit": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+  "reactiveWasmSha256": "d92dd03d9a368b035a9d9b2a8a604139afaaf0e716344994e6ebd98471c285ec",
+  "checks": [
+    { "command": "cargo fmt --manifest-path runtime/Cargo.toml --all -- --check", "exitCode": 0 },
+    { "command": "cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings", "exitCode": 0 },
+    { "command": "cargo test --manifest-path runtime/Cargo.toml --all-targets", "exitCode": 0, "passed": 461 },
+    { "command": "npm run build", "exitCode": 0, "compiled": true, "cleanTrackedBuild": true },
+    { "command": "npm run test:elapsed-clock", "exitCode": 0, "checks": 7 },
+    { "command": "npm run test:glowcap", "exitCode": 0 },
+    { "command": "npm run test:slime-glow", "exitCode": 0, "toggles": 10001 },
+    { "command": "npm run test:trail-rescue", "exitCode": 0, "scenarios": 24, "additionalChecks": 5 },
+    { "command": "npm run test:glowcap-page", "exitCode": 0 },
+    { "command": "npm run test:trail-rescue-page", "exitCode": 0, "viewports": ["desktop", "mobile"] },
+    { "command": "node --test experiments/agent-authoring/v2/checks.test.mjs experiments/agent-authoring/v2/infra.test.mjs", "exitCode": 0, "passed": 13 }
+  ],
+  "newNativeTests": { "elapsed": 16, "moduleCompatibility": 5 },
+  "nativeLogSha256": "22394b4d1c6b2fdc4c8cfd4b6caa369333cdde5f51717fa14c5ad966754adcca",
+  "limits": [
+    "Local checks on the registered Windows build; this record does not claim a CI run.",
+    "Large elapsed and signed-zero cases use explicitly manufactured valid saves, not trillion-second event replays.",
+    "Authoring study results are recorded separately in scored.json."
+  ]
+}

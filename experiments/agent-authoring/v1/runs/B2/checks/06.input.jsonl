@@ -1,0 +1,16 @@
+{"event":"advance","payload":{"dt":0.1}}
+{"event":"submit","payload":{"code":4}}
+{"event":"advance","payload":{"dt":0.5}}
+{"event":"submit","payload":{"code":2}}
+{"event":"approve","payload":{}}
+{"event":"advance","payload":{"dt":1.5}}
+{"resume":true}
+{"event":"submit","payload":{"code":3}}
+{"event":"advance","payload":{"dt":0.5}}
+{"event":"approve","payload":{}}
+{"event":"submit","payload":{"code":1}}
+{"event":"advance","payload":{"dt":1.5}}
+{"event":"submit","payload":{"code":5}}
+{"event":"approve","payload":{}}
+{"event":"advance","payload":{"dt":0.5}}
+{"resume":true}

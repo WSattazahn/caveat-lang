@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "runtime": {
+    "reactiveWasmSha256": "0b03a2419ead6d4f53c3d89d1dd071a8eed0de31ce81a2045f56db227ec2fa6b",
+    "revision": "541e09d61f131dbd25e546f96600e12d845f3592",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "sources": {
+    "game/trail_rescue.cav": "9744ae625637b109c7e2a29fe4ad39216f8d75df0166252eba8d5243fd7c591b",
+    "experiments/trail-rescue/scenarios.json": "778c9028c5b26dad316ef95db0e945d5c2eaacb9511af6e307757a4e7c6f8dc0",
+    "experiments/glowcap/caveat5/glowcap.cav": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e",
+    "experiments/glowcap/caveat5/adapter.mjs": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406"
+  },
+  "suites": {
+    "trail": {
+      "file": "trail-rescue.scenarios.json",
+      "from": "experiments/trail-rescue/scenarios.json",
+      "scenarios": 24,
+      "events": 140,
+      "rejected": 22,
+      "resumes": 11,
+      "assertions": {
+        "derived": 868,
+        "located": 274
+      },
+      "hostOnlySteps": [
+        {
+          "scenario": "TR12",
+          "step": 1,
+          "event": {
+            "type": "unknown"
+          },
+          "adapter": "Unknown event type."
+        },
+        {
+          "scenario": "TR12",
+          "step": 2,
+          "event": {
+            "type": "plan",
+            "tunnel": "bogus"
+          },
+          "adapter": "Unknown tunnel."
+        },
+        {
+          "scenario": "TR12",
+          "step": 3,
+          "event": {
+            "type": "change",
+            "tunnel": "stone",
+            "condition": "maybe"
+          },
+          "adapter": "Expected clear or blocked."
+        },
+        {
+          "scenario": "TR12",
+          "step": 4,
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "guess"
+          },
+          "adapter": "Unknown observation method."
+        },
+        {
+          "scenario": "TR12",
+          "step": 5,
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report"
+          },
+          "adapter": "Expected clear or blocked."
+        },
+        {
+          "scenario": "TR12",
+          "step": 6,
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": 1
+          },
+          "adapter": "Expected clear or blocked."
+        },
+        {
+          "scenario": "TR12",
+          "step": 7,
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout",
+            "condition": "clear"
+          },
+          "adapter": "A scout reads the tunnel itself."
+        },
+        {
+          "scenario": "TR12",
+          "step": 10,
+          "event": {
+            "type": "tick",
+            "dt": "1"
+          },
+          "adapter": "Expected a finite time step."
+        },
+        {
+          "scenario": "TR12",
+          "step": 11,
+          "event": {
+            "type": "tick"
+          },
+          "adapter": "Expected a finite time step."
+        },
+        {
+          "scenario": "TR12",
+          "step": 12,
+          "event": {
+            "type": "observe",
+            "method": "scout"
+          },
+          "adapter": "Unknown tunnel."
+        },
+        {
+          "scenario": "TR12",
+          "step": 13,
+          "event": {
+            "type": "plan",
+            "tunnel": 0
+          },
+          "adapter": "Unknown tunnel."
+        }
+      ],
+      "passed": 24,
+      "failed": 0
+    },
+    "glowcap": {
+      "file": "glowcap-cr12.scenarios.json",
+      "from": "experiments/glowcap/scenarios.mjs",
+      "scenarios": 38,
+      "events": 24336,
+      "rejected": 21,
+      "resumes": 4,
+      "assertions": {
+        "derived": 501,
+        "located": 155
+      },
+      "hostOnlySteps": [],
+      "passed": 38,
+      "failed": 0
+    }
+  }
+}

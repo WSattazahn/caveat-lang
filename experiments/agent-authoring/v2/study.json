@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "runtimeCommit": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+  "runs": [
+    "A1",
+    "B1",
+    "A2",
+    "B2"
+  ],
+  "tasks": [
+    "A",
+    "B"
+  ],
+  "sourceVersionsPerRun": 3,
+  "runtimeChecksPerRun": 12,
+  "randomSequencesPerTask": 100,
+  "stepsPerRandomSequence": 40,
+  "seeds": {
+    "A": "0xa17001",
+    "B": "0xb17001"
+  },
+  "references": [
+    "docs/AI_AUTHORING.md",
+    "docs/CAVEAT_ESSENCE.md",
+    "runtime/prelude.cav",
+    "spec/caveat-reactive-0.1.md",
+    "spec/caveat-reactive-0.2.md",
+    "spec/caveat-reactive-0.3.md",
+    "spec/caveat-reactive-0.4.md",
+    "spec/caveat-reactive-0.5.md",
+    "spec/caveat-reactive-0.6.md",
+    "spec/caveat-reactive-0.7.md",
+    "spec/caveat-0.1.md",
+    "spec/caveat-define-0.1.md",
+    "spec/caveat-repetition-0.1.md",
+    "spec/caveat-procedure-symbols-0.1.md",
+    "spec/caveat-typed-parameters-0.1.md",
+    "spec/caveat-text-0.1.md",
+    "spec/caveat-reject-0.1.md",
+    "spec/caveat-explanations-0.1.md",
+    "spec/caveat-explanations-0.2.md",
+    "spec/caveat-decision-journal-0.1.md",
+    "spec/caveat-late-qualification-0.1.md",
+    "spec/caveat-renewal-0.1.md",
+    "spec/caveat-state-caveats-0.1.md",
+    "spec/caveat-observation-order-0.1.md",
+    "spec/caveat-save-0.1.md",
+    "spec/caveat-view-0.1.md",
+    "spec/caveat-elapsed-0.1.md"
+  ]
+}

@@ -1,0 +1,53 @@
+budget 0;
+claim dispatch_safe;
+evidence sensor_reading from "cold-storage temperature sensor";
+renewable sensor_reading limit 4;
+caveat calibration_uncertain consequence material;
+caveat stale consequence material;
+calibration_uncertain qualifies sensor_reading;
+decisions dispatch limit 3;
+
+state reading_count = 0 min 0 max 4;
+state latest_temperature = 0 min -10 max 20;
+state decision_basis = 0 min 0 max 1;
+state revision_count = 0 min 0 max 3;
+state clock_time = 0 min 0 max 1000000000000;
+
+event read temperature min -10 max 20;
+event decide;
+event advance dt min 0 max 2;
+clock advance every 1;
+
+on read when reading_count >= 4 reject "reading capacity exhausted";
+on read when reading_count > 0 renew sensor_reading;
+on read when temperature <= 4 reveal sensor_reading supports dispatch_safe;
+on read when temperature > 4 reveal sensor_reading opposes dispatch_safe;
+on read set latest_temperature = qualified(temperature, sensor_reading);
+on read qualify sensor_reading with stale after 2;
+on read set reading_count = reading_count + 1;
+
+on decide when reading_count == 0 reject "a reading is required";
+on decide when carries(sensor_reading, stale) reject "latest reading is stale";
+on decide when committed(dispatch) and not reopened(dispatch) reject "decision is closed";
+on decide set decision_basis = if(latest_temperature <= 4, 1, 0);
+on decide commit dispatch because enough using decision_basis;
+on decide set revision_count = revision_count + 1;
+
+on advance set clock_time = clock_time + dt;
+on advance when committed(dispatch) and not reopened(dispatch) and has_caveat(decision_basis, stale)
+    reopen dispatch because caveated(decision_basis, stale);
+
+bind hud.readings = reading_count;
+bind hud.temperature = latest_temperature;
+bind hud.recommendation = "waiting";
+bind hud.recommendation = "release" when reading_count > 0 and latest_temperature <= 4;
+bind hud.recommendation = "block" when reading_count > 0 and latest_temperature > 4;
+bind hud.recommendation = "stale" when carries(sensor_reading, stale);
+bind hud.decision = "none";
+bind hud.decision = "release" when committed(dispatch) and latest(dispatch) == 1;
+bind hud.decision = "block" when committed(dispatch) and latest(dispatch) == 0;
+bind hud.decision = "review" when reopened(dispatch);
+bind hud.frozen = if(committed(dispatch), latest(dispatch), -1);
+bind hud.revision = revision_count;
+bind hud.elapsed = clock_time;
+

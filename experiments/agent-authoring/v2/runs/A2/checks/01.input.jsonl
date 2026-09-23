@@ -1,0 +1,7 @@
+{"event":"advance","payload":{"dt":0.3}}
+{"event":"read","payload":{"temperature":4}}
+{"event":"decide","payload":{}}
+{"event":"advance","payload":{"dt":2}}
+{"resume":true}
+{"event":"advance","payload":{"dt":0}}
+{"event":"advance","payload":{"dt":0.0000000000000005}}

@@ -1,0 +1,57 @@
+{
+  "id": "SMOKE",
+  "started": "2026-09-23T05:35:25.238Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "c1b1e890ce9f1120cf30bd780643033dd95c6fdee207120537a00929f758db0b",
+      "submittedAt": "2026-09-23T05:35:25.239Z",
+      "file": "versions/01.cav"
+    },
+    {
+      "number": 2,
+      "sha256": "5d7e0fa621bec1f03b5f88e447c628c855671168fbac1da615614fa7914ce5a2",
+      "submittedAt": "2026-09-23T05:35:25.321Z",
+      "file": "versions/02.cav"
+    },
+    {
+      "number": 3,
+      "sha256": "84186b1f4799e72e68e548c7be8e3c68dc2ac91b0cadd2f40bce5bfe2cdb6030",
+      "submittedAt": "2026-09-23T05:35:25.392Z",
+      "file": "versions/03.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T05:35:25.240Z",
+      "log": "checks/01.jsonl",
+      "status": "completed",
+      "durationMs": 32
+    },
+    {
+      "index": 2,
+      "command": "validate",
+      "version": 2,
+      "started": "2026-09-23T05:35:25.323Z",
+      "log": "checks/02.jsonl",
+      "status": "error",
+      "error": "line 1, column 1: cannot parse statement: not a program",
+      "durationMs": 17
+    },
+    {
+      "index": 3,
+      "command": "replay",
+      "version": 3,
+      "started": "2026-09-23T05:35:25.394Z",
+      "log": "checks/03.jsonl",
+      "status": "completed",
+      "durationMs": 42
+    }
+  ],
+  "finished": "2026-09-23T05:35:25.531Z",
+  "finalVersion": 3,
+  "finalSha256": "84186b1f4799e72e68e548c7be8e3c68dc2ac91b0cadd2f40bce5bfe2cdb6030"
+}

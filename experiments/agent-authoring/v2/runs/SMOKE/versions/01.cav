@@ -1,0 +1,4 @@
+event advance dt min 0 max 2;
+clock advance every 1;
+event idle;
+bind hud.elapsed = elapsed();

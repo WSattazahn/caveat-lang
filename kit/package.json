@@ -1,0 +1,34 @@
+{
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.1",
+  "private": true,
+  "description": "The Caveat reactive runtime with a session library and scenario runner for Node and browsers.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "caveat": "bin/caveat.mjs"
+  },
+  "exports": {
+    "./session": "./lib/session.mjs",
+    "./node": "./lib/node.mjs",
+    "./scenarios": "./lib/scenarios.mjs",
+    "./runtime/*": "./runtime/*"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "runtime/",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "publishConfig": {
+    "tag": "next"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

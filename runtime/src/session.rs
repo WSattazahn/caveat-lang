@@ -44,7 +44,7 @@ pub struct Session {
 impl Session {
     pub fn from_source(source: &str) -> Result<Self, String> {
         Ok(Self {
-            program: crate::parser::parse(source)?,
+            program: crate::parser::parse(&crate::link::link(source)?)?,
             cursor: 0,
             last_discoveries: Vec::new(),
             last_commitment: None,

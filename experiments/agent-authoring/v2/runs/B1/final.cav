@@ -1,0 +1,91 @@
+claim access_allowed;
+claim review_required;
+evidence alpha_allow from "alpha allow assertion";
+evidence beta_allow from "beta allow assertion";
+evidence alpha_deny from "alpha deny assertion";
+evidence beta_deny from "beta deny assertion";
+evidence challenge from "access review challenge";
+caveat unverified_source consequence material;
+caveat expired consequence material;
+caveat revoked consequence material;
+unverified_source qualifies alpha_allow;
+unverified_source qualifies beta_allow;
+unverified_source qualifies alpha_deny;
+unverified_source qualifies beta_deny;
+
+decisions access limit 3;
+state alpha_support = 0 min 0 max 1;
+state beta_support = 0 min 0 max 1;
+state alpha_opposition = 0 min 0 max 1;
+state beta_opposition = 0 min 0 max 1;
+state approvals = 0 min 0 max 3;
+
+event submit code min 1 max 5;
+event revoke code min 1 max 4;
+event approve;
+event advance dt min 0 max 2;
+clock advance every 1;
+
+define support_votes = alpha_support + beta_support;
+define opposition_votes = alpha_opposition + beta_opposition;
+define alpha_allow_active = observed(alpha_allow) and not carries(alpha_allow, expired) and not carries(alpha_allow, revoked);
+define beta_allow_active = observed(beta_allow) and not carries(beta_allow, expired) and not carries(beta_allow, revoked);
+define alpha_deny_active = observed(alpha_deny) and not carries(alpha_deny, expired) and not carries(alpha_deny, revoked);
+define beta_deny_active = observed(beta_deny) and not carries(beta_deny, expired) and not carries(beta_deny, revoked);
+
+proc refresh_votes() {
+    set alpha_support = 0;
+    when alpha_allow_active set alpha_support = qualified(1, alpha_allow);
+    set beta_support = 0;
+    when beta_allow_active set beta_support = qualified(1, beta_allow);
+    set alpha_opposition = 0;
+    when alpha_deny_active set alpha_opposition = qualified(1, alpha_deny);
+    set beta_opposition = 0;
+    when beta_deny_active set beta_opposition = qualified(1, beta_deny);
+};
+
+on submit when code != floor(code) reject "submission code must be an integer";
+on submit when code == 1 and observed(alpha_allow) reject "assertion already submitted";
+on submit when code == 2 and observed(beta_allow) reject "assertion already submitted";
+on submit when code == 3 and observed(alpha_deny) reject "assertion already submitted";
+on submit when code == 4 and observed(beta_deny) reject "assertion already submitted";
+on submit when code == 5 and observed(challenge) reject "challenge already submitted";
+on submit when code == 1 reveal alpha_allow supports access_allowed;
+on submit when code == 1 qualify alpha_allow with expired after 2;
+on submit when code == 2 reveal beta_allow supports access_allowed;
+on submit when code == 2 qualify beta_allow with expired after 2;
+on submit when code == 3 reveal alpha_deny opposes access_allowed;
+on submit when code == 3 qualify alpha_deny with expired after 2;
+on submit when code == 4 reveal beta_deny opposes access_allowed;
+on submit when code == 4 qualify beta_deny with expired after 2;
+on submit when code == 5 reveal challenge supports review_required;
+on submit when code == 3 and committed(access) reopen access because alpha_deny;
+on submit when code == 4 and committed(access) reopen access because beta_deny;
+on submit when code == 5 and committed(access) reopen access because challenge;
+on submit call refresh_votes();
+
+on revoke when code != floor(code) reject "revocation code must be an integer";
+on revoke when code == 1 and (not observed(alpha_allow) or carries(alpha_allow, revoked)) reject "assertion absent or already revoked";
+on revoke when code == 2 and (not observed(beta_allow) or carries(beta_allow, revoked)) reject "assertion absent or already revoked";
+on revoke when code == 3 and (not observed(alpha_deny) or carries(alpha_deny, revoked)) reject "assertion absent or already revoked";
+on revoke when code == 4 and (not observed(beta_deny) or carries(beta_deny, revoked)) reject "assertion absent or already revoked";
+on revoke when code == 1 qualify alpha_allow with revoked;
+on revoke when code == 2 qualify beta_allow with revoked;
+on revoke when code == 3 qualify alpha_deny with revoked;
+on revoke when code == 4 qualify beta_deny with revoked;
+on revoke call refresh_votes();
+
+on advance call refresh_votes();
+
+on approve when support_votes + opposition_votes == 0 reject "no active votes";
+on approve when committed(access) and not reopened(access) reject "current decision is closed";
+on approve commit access because enough using if(support_votes > opposition_votes, 1, 0);
+on approve set approvals = approvals + 1;
+
+bind hud.support = support_votes;
+bind hud.opposition = opposition_votes;
+bind hud.verdict = if(support_votes + opposition_votes == 0, "undecided", if(support_votes > opposition_votes, "allow", "deny"));
+bind hud.decision = if(not committed(access), "none", if(reopened(access), "review", if(latest(access) == 1, "allow", "deny")));
+bind hud.frozen = if(committed(access), latest(access), -1);
+bind hud.revision = approvals;
+bind hud.elapsed = elapsed();

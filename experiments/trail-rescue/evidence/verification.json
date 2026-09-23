@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "at": "2026-09-23T05:20:02.866Z",
+  "requirementsCommit": "a03af45",
+  "branch": "codex/trail-rescue",
+  "node": "v24.11.1",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "checks": {
+    "format": "passed",
+    "clippy": "passed, zero warnings",
+    "rustTests": {
+      "passed": 440,
+      "failed": 0
+    },
+    "browserBuild": "passed",
+    "trailRescue": {
+      "scenarios": 24,
+      "registeredSteps": 162,
+      "additionalChecks": 5,
+      "seed": "0x7a11beef",
+      "sequences": 200,
+      "stepsPerSequence": 80,
+      "accepted": 7325,
+      "rejected": 8675,
+      "resumes": 3110
+    },
+    "browser": {
+      "desktop": [
+        1180,
+        1000
+      ],
+      "mobile": [
+        390,
+        844
+      ],
+      "realButtonFlows": "passed",
+      "consoleErrors": 0,
+      "horizontalOverflow": false,
+      "screenshotsVisuallyInspected": true
+    },
+    "existingConsumers": {
+      "slimeGlow": {
+        "toggles": 10001,
+        "graphGrowth": 0
+      },
+      "glowcapScenarios": 38,
+      "glowcapComparatorTests": 7,
+      "savedFuzzRegressions": {
+        "sequences": 5,
+        "events": 16011,
+        "resumes": 13,
+        "divergences": 0
+      },
+      "glowcapBrowser": "passed"
+    }
+  },
+  "sha256": {
+    "game/trail_rescue.cav": "9744ae625637b109c7e2a29fe4ad39216f8d75df0166252eba8d5243fd7c591b",
+    "web/trail-rescue-policy.js": "faf365c0508060586e04b34bf1a9c3d3bfaf2d2eb7c4a1a8087a1fe47b1099e8",
+    "web/trail-rescue.html": "3ae338d0b7a50864457b325336c90ef035199105089763eda58d0f1592fc06fe",
+    "runtime/src/reactive.rs": "104a7332c637157d5c482ebcd529b9208fc3820ff1bc045ed2217c2d8e218daa",
+    "runtime/src/reactive_expr.rs": "829986718710c6c29fc6b46593a29399787dfc5abf1ad4d62a60afdded3c3867",
+    "runtime/src/reactive_save.rs": "4d64c35f911f9a9a8fb4e6c87a77ec7de55e54acd0c5f06534702669dcabfd65",
+    "runtime/src/link.rs": "a4d8cc6ba2465a35a1cfa6a6b533224a891f63c451862f6c70419260c9d8e1e7",
+    "dist/pkg-reactive/caveat_runtime_bg.wasm": "dd113703a7534ca3620f6471c2031b559ed29755d8ef72c6aa6798bac1d972b7",
+    "dist/pkg/caveat_runtime_bg.wasm": "726b723c9074d4cb7d38470f72b8093d88a17ae9064a4872b11f220b720f9d3f",
+    "dist/build-info.json": "26c41e69a1076219a4cbeed0d8e679c1140bfc008a5a870132450d7368287dd1"
+  },
+  "limits": [
+    "Finite rescue beat: three scouts and one report per tunnel.",
+    "Unsigned saved history is checked for consistency, not authenticated.",
+    "Previous 14.4-million-event fuzz was not rerun.",
+    "This run contains no new timing benchmark."
+  ],
+  "runtimeCommit": "c5c0183"
+}

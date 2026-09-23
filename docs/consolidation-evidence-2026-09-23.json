@@ -1,0 +1,804 @@
+{
+  "schema": 1,
+  "capturedAt": "2026-09-23T17:36:01.8888119Z",
+  "repository": "https://github.com/WSattazahn/caveat-lang.git",
+  "localDirectory": "C:\\Dev\\caveat-lang",
+  "branch": "codex/dispatch-outcomes",
+  "sourceHead": "3980c3de2589f126fde237d9941300e3d2d94c09",
+  "main": "859db9a72a9ea2bead114095b66d04cbeeb198cb",
+  "commitsBeyondMain": 111,
+  "mergeCommitsBeyondMain": 12,
+  "statusBefore": [
+    " M runtime/src/reactive.rs",
+    "?? runtime/src/reactive_outcome.rs"
+  ],
+  "localTags": [],
+  "remoteTags": [],
+  "remoteHeads": [
+    {
+      "ref": "refs/heads/caveat-action-plans",
+      "sha": "98c1f00546698e0d04f38063487bf0f4fb3daf3d",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/cleanup/stabilize-caveat",
+      "sha": "038ee5895574f0a303179b06ec458c484b1a6e15",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/codex/agent-authoring-study",
+      "sha": "156bdc2b55232c868033deb2f0c029bfcb718075",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/codex/elapsed-clock",
+      "sha": "3980c3de2589f126fde237d9941300e3d2d94c09",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/codex/last-beacon-game",
+      "sha": "1f56d70d8de06b673bb7f03d48390f0f8e2458e3",
+      "ancestorOfMain": true,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/codex/trail-rescue",
+      "sha": "04f72dcd2030be8b08f21e064a6d2c8a6b41e784",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/experiment/glowcap",
+      "sha": "d8a8ff512b93aeb7c65e107c9ca5e1c391068ea9",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/feat/grounded-explanations",
+      "sha": "70d4c7b3e67f8af8e1dcbcf7b72f0fac860966f2",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/feat/modules-0.5",
+      "sha": "72b7c32b772d6ef83a4eaecd0368ef37d88432cc",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/feat/round6-language",
+      "sha": "6c4b504ed5898b64f48fc90fd4544986d6003c47",
+      "ancestorOfMain": false,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/feature/caveat3d-moon-garden",
+      "sha": "8a497e4baa55825b8e4eec2a4d5feaeacdfe8457",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/feature/caveat3d-semantic-actions",
+      "sha": "8e1a219fe2093dd76bf50cff964fe1a901520c0a",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/feature/moon-garden",
+      "sha": "108b467992bcbc5679e3b6dd646dee2d5ab1927a",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/feature/mr-caveat-feel",
+      "sha": "556b83b6cbdc502edee90482a73c6f269ae93462",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/feature/mr-caveat-missing-dumpling",
+      "sha": "fb0eef843c19d316811022480ed2a716d52b39a9",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/feature/mr-caveat-real-3d",
+      "sha": "0436056e5ab4b16b0c3e5260e45ad592415c014b",
+      "ancestorOfMain": false,
+      "ancestorOfHead": false
+    },
+    {
+      "ref": "refs/heads/fix/enforce-lf-checkout",
+      "sha": "5c97020f9689dd2e0bad79020cca558e6cd63a4e",
+      "ancestorOfMain": true,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/fix/reproducible-wasm",
+      "sha": "eec557cd561aaebf13613c46e5b0f6ac18f6a52f",
+      "ancestorOfMain": true,
+      "ancestorOfHead": true
+    },
+    {
+      "ref": "refs/heads/main",
+      "sha": "859db9a72a9ea2bead114095b66d04cbeeb198cb",
+      "ancestorOfMain": true,
+      "ancestorOfHead": true
+    }
+  ],
+  "stages": [
+    {
+      "ref": "feat/modules-0.5",
+      "tip": "72b7c32b772d6ef83a4eaecd0368ef37d88432cc",
+      "excludedRefs": [
+        "main"
+      ],
+      "uniqueCommitCount": 14,
+      "commits": [
+        {
+          "sha": "163815449bced8aa675c17c2b2bd56af5c85dbe9",
+          "subject": "feat: add draft 0.5 modules and the link pre-pass"
+        },
+        {
+          "sha": "7ab8662de593f91efeb977ae7a418974c5fb981c",
+          "subject": "feat: run multi-module bundles through the sessions"
+        },
+        {
+          "sha": "9d829dec484f02c30b5847bcc8a4b52714752dbc",
+          "subject": "feat: load multi-file programs from disk and link them from the CLI"
+        },
+        {
+          "sha": "7b068b5b482617e4fa8a35e7f86fb4c503b15d66",
+          "subject": "feat: let modules carry state, events, rules and bindings"
+        },
+        {
+          "sha": "00d5157c3d783ea04ff3d153302aa42922d14591",
+          "subject": "feat: add repetition 0.1, a block expanded over an entity kind"
+        },
+        {
+          "sha": "bf4b0d7e05f0ed12426aa2799bcfa00a72f1c15a",
+          "subject": "docs: state what the prelude actually is"
+        },
+        {
+          "sha": "3ed7ee95b054649a43a3ce6ca50a86871865686c",
+          "subject": "test: prove a module cannot half-commit an event"
+        },
+        {
+          "sha": "d726063af65ae2acc204b8443bd4130042900f56",
+          "subject": "feat: record which part of a program asserted a thing"
+        },
+        {
+          "sha": "5300acbc4be2da2a4b00b92e5524d37a644688d8",
+          "subject": "feat: record which retained caveats a commitment did not write"
+        },
+        {
+          "sha": "d3632b63115eeddce0a02e3c74142f6bf9713305",
+          "subject": "Merge remote-tracking branch 'origin/main' into feat/modules-0.5"
+        },
+        {
+          "sha": "b9e2a12900cef5a482bdb95205cd3f69ef1e1c0b",
+          "subject": "fix: report authorship where it is read, and drop what it superseded"
+        },
+        {
+          "sha": "1c5bf123d10c7624348dc62efd6f9908f0114de5",
+          "subject": "fix: rewrite only where a name is a reference"
+        },
+        {
+          "sha": "ab78b89c31fe2a5ea8963fd7b643430392dcccc5",
+          "subject": "fix: keep clause keywords a module may also declare"
+        },
+        {
+          "sha": "72b7c32b772d6ef83a4eaecd0368ef37d88432cc",
+          "subject": "fix: read only statements when looking for a nested for block"
+        }
+      ]
+    },
+    {
+      "ref": "feat/grounded-explanations",
+      "tip": "70d4c7b3e67f8af8e1dcbcf7b72f0fac860966f2",
+      "excludedRefs": [
+        "main",
+        "feat/modules-0.5"
+      ],
+      "uniqueCommitCount": 13,
+      "commits": [
+        {
+          "sha": "014183d03f90cb4140c1cd19229707e8b56d1830",
+          "subject": "feat: add grounded explanations to bindings"
+        },
+        {
+          "sha": "04bce1193e59dd93536ff815ab6285d6f3d01ecc",
+          "subject": "Merge branch 'feat/modules-0.5' into feat/grounded-explanations"
+        },
+        {
+          "sha": "df060ac6b7f6555d146d9d5ebed08471326c6a72",
+          "subject": "feat: separate grounds from lineage for state and commitments"
+        },
+        {
+          "sha": "12118baf5ec3b80411d8829d3c955bee0fe05fc9",
+          "subject": "feat: add a reject effect"
+        },
+        {
+          "sha": "04a829d4ed9b9208886e69c1c8c960d02c82c1f9",
+          "subject": "feat: add named expressions with define"
+        },
+        {
+          "sha": "65af4e3cfd3cacf6897263089903a1d68364b099",
+          "subject": "feat: add a per-event view to reactive sessions"
+        },
+        {
+          "sha": "00968da602026cabeca9a5c655ad0e9fc987f3f8",
+          "subject": "Merge remote-tracking branch 'origin/main' into feat/grounded-explanations"
+        },
+        {
+          "sha": "e19804dfdbf80a124231b1bd77e78edf7b20ec5e",
+          "subject": "feat: build a lean reactive-only runtime alongside the full one"
+        },
+        {
+          "sha": "0da4df1771f2f01b3feb34c446c85791a1bbca5c",
+          "subject": "feat: add typed event parameters"
+        },
+        {
+          "sha": "4bc393d080e0f9b642ed70e44903a49a4c4ad47a",
+          "subject": "fix: let a define name event parameters"
+        },
+        {
+          "sha": "b71417783d4945977c69cfc0326d5b19265f97d1",
+          "subject": "feat: add late qualification and a decision journal"
+        },
+        {
+          "sha": "732be269a6c5519464f67cc6f0a93e4247fdc3a2",
+          "subject": "feat: put what only Caveat does front and center"
+        },
+        {
+          "sha": "70d4c7b3e67f8af8e1dcbcf7b72f0fac860966f2",
+          "subject": "test: parse game sources the way sessions do, with for blocks expanded"
+        }
+      ]
+    },
+    {
+      "ref": "feat/round6-language",
+      "tip": "6c4b504ed5898b64f48fc90fd4544986d6003c47",
+      "excludedRefs": [
+        "main",
+        "feat/modules-0.5",
+        "feat/grounded-explanations"
+      ],
+      "uniqueCommitCount": 8,
+      "commits": [
+        {
+          "sha": "6db8f53b859fc89032f94091ab3b674da9a71a6a",
+          "subject": "perf(runtime): make an event cost what it touches"
+        },
+        {
+          "sha": "2029fc8692ec059c8efbdd72a39cb0f88c9b50cc",
+          "subject": "feat(runtime): reject evidence uses that can only fail, at load"
+        },
+        {
+          "sha": "e2d532424b7d4afb703488644a7bbebbe8b54e0f",
+          "subject": "feat(runtime): procedures that take evidence, claims and caveats by name"
+        },
+        {
+          "sha": "aa0000c42a9d39be978c991b60cde09418138093",
+          "subject": "feat(runtime): evidence whose identity events create"
+        },
+        {
+          "sha": "8f2037f7a706a5cdc372d6d0e7cb4199edd4fef2",
+          "subject": "feat(runtime): save a session and restore it without replaying"
+        },
+        {
+          "sha": "61146b42d33e2dee7cc3a8d2562bc13ee4e15db9",
+          "subject": "perf(runtime): compact saves"
+        },
+        {
+          "sha": "472340706942a207d32616a3bf01e7a6b6b7906b",
+          "subject": "docs(spec): describe the compact save format"
+        },
+        {
+          "sha": "6c4b504ed5898b64f48fc90fd4544986d6003c47",
+          "subject": "fix(runtime): parse every number exactly"
+        }
+      ]
+    },
+    {
+      "ref": "experiment/glowcap",
+      "tip": "d8a8ff512b93aeb7c65e107c9ca5e1c391068ea9",
+      "excludedRefs": [
+        "main",
+        "feat/modules-0.5",
+        "feat/grounded-explanations",
+        "feat/round6-language"
+      ],
+      "uniqueCommitCount": 65,
+      "commits": [
+        {
+          "sha": "cfcc881980e97a5e31a49b9ecc1ebed75abdc372",
+          "subject": "test: pre-register the glowcap Caveat vs TypeScript experiment"
+        },
+        {
+          "sha": "711831f8dd05609b186ce98e68788c303c2040d0",
+          "subject": "test(glowcap): base implementations in TypeScript and Caveat"
+        },
+        {
+          "sha": "0a9c5a0049bd6b464edbba2c057608f66308616f",
+          "subject": "test(glowcap): CR1, a fourth mushroom"
+        },
+        {
+          "sha": "af8e6323ea7bb9e227f5fbe59c80e90272418e2e",
+          "subject": "test(glowcap): CR2, twice bitten"
+        },
+        {
+          "sha": "e5d14176a44ac17e72f3bcbe6fbc4495e7a276a7",
+          "subject": "test(glowcap): CR3, tasting teaches and darkness qualifies"
+        },
+        {
+          "sha": "90e364c9ee466d0622bafecd8ac07142b51cf479",
+          "subject": "test(glowcap): CR4, cite the counterexample"
+        },
+        {
+          "sha": "4deee430f360ab62023f37c8f2304afbe1fd3708",
+          "subject": "docs(glowcap): record the Caveat vs TypeScript result"
+        },
+        {
+          "sha": "5fd62de9dbb9404f229ebd01869b5b4ed53bfc5e",
+          "subject": "Merge branch 'feat/grounded-explanations' into experiment/glowcap"
+        },
+        {
+          "sha": "bf00618cfa69ff0d2043ffde51ef3972d508eb86",
+          "subject": "test(glowcap): rescore base, Caveat re-authored with grounded explanations"
+        },
+        {
+          "sha": "431cc44065f4f3a74b10113e3fa5c9527395828a",
+          "subject": "test(glowcap): rescore CR1"
+        },
+        {
+          "sha": "0ee1dbacdbf7257dfc204336ff7ff0a817cba141",
+          "subject": "test(glowcap): rescore CR2"
+        },
+        {
+          "sha": "0abf1d0b2bbd8f20608679159a1eb84a66d2a2cd",
+          "subject": "test(glowcap): rescore CR3"
+        },
+        {
+          "sha": "57cd2094c4c5e9bc834ddc3b0648f004339096df",
+          "subject": "test(glowcap): rescore CR4"
+        },
+        {
+          "sha": "d73eed9ab0822afc507fcd326209ecb40500b4f5",
+          "subject": "docs(glowcap): rescore after grounded explanations"
+        },
+        {
+          "sha": "6409b1381f0fd27ab3867bdfafe3e9c2e7ee19b6",
+          "subject": "test(glowcap): pre-register blind change requests CR5-CR8"
+        },
+        {
+          "sha": "23543d801d0852e6407697b34875137cb95ea394",
+          "subject": "test(glowcap): blind CR5, a taste fades"
+        },
+        {
+          "sha": "37f0ecf9538894f50efd2a03295021a89009a257",
+          "subject": "test(glowcap): blind CR6, trust history"
+        },
+        {
+          "sha": "78a4dd3258478784932cc5e8af61480391a381c1",
+          "subject": "test(glowcap): blind CR7, trust recovers"
+        },
+        {
+          "sha": "b335bd385c4fa67bd491c843c54f722329bb7aef",
+          "subject": "test(glowcap): blind CR8, heaviness stacks"
+        },
+        {
+          "sha": "711201e8e8f67d8f774a6e7725287ee4e0706e7d",
+          "subject": "docs(glowcap): record the blind round"
+        },
+        {
+          "sha": "cd38f1756a4f33b7c8bfe4e931bd3fabcbc6353d",
+          "subject": "Merge branch 'feat/grounded-explanations' into experiment/glowcap"
+        },
+        {
+          "sha": "7c3df1d485ea99e2ea9be510b14ac95c6a62cca1",
+          "subject": "Merge branch 'feat/grounded-explanations' into experiment/glowcap"
+        },
+        {
+          "sha": "e8b2fcabd3c0aefed2fe0b80de0dc6273b324758",
+          "subject": "test(glowcap): round 4 base, Caveat with grounds, reject, define, typed parameters and the view"
+        },
+        {
+          "sha": "6271782e3194c397aa7e2b43f6a4a5ffa84e5fb6",
+          "subject": "test(glowcap): round 4 CR1"
+        },
+        {
+          "sha": "d416674cb92727fc2b346811737aac77414244d3",
+          "subject": "test(glowcap): round 4 CR2"
+        },
+        {
+          "sha": "bf8daedb3e7b976d978e0e993c5904a0392323ee",
+          "subject": "test(glowcap): round 4 CR3"
+        },
+        {
+          "sha": "cb6bb49d0c380fba65a73f0ca5c17e4156096133",
+          "subject": "test(glowcap): round 4 CR4"
+        },
+        {
+          "sha": "8a442a82f0e203211f9ce246c27589ec44f5acb8",
+          "subject": "test(glowcap): round 4 CR5"
+        },
+        {
+          "sha": "bfe6b62f27f8c3f3cf138c84337571d88860df56",
+          "subject": "test(glowcap): round 4 CR6"
+        },
+        {
+          "sha": "38b8071232ba3a86427666ca530c936e66e10492",
+          "subject": "test(glowcap): round 4 CR7"
+        },
+        {
+          "sha": "ae9389d399afeacdd416af6f9123e92d5747ef37",
+          "subject": "test(glowcap): round 4 CR8"
+        },
+        {
+          "sha": "72022899ffdcd78194c778dd575e0264b6b82bb1",
+          "subject": "docs(glowcap): record round 4"
+        },
+        {
+          "sha": "ce123362e267931b3d422f9606a9f66c9c857bd4",
+          "subject": "Merge branch 'feat/grounded-explanations' into experiment/glowcap"
+        },
+        {
+          "sha": "b252b1f9df387af58c23e6ebdb0e7bd528feb823",
+          "subject": "test(glowcap): round 5 starts from caveat3 at CR4"
+        },
+        {
+          "sha": "c2576f85751aded3701ed3ce896d7a7a6597aa08",
+          "subject": "test(glowcap): round 5 CR5"
+        },
+        {
+          "sha": "aee200a8245cf702ef510f4f23a9b4b31952c433",
+          "subject": "test(glowcap): round 5 CR6"
+        },
+        {
+          "sha": "268c7821e5b9b5f450709c7e0ac73f83270374dd",
+          "subject": "test(glowcap): round 5 CR7"
+        },
+        {
+          "sha": "92f432086422a554276280b9193bd0597824b186",
+          "subject": "test(glowcap): round 5 CR8"
+        },
+        {
+          "sha": "97e3a9f3ff6b11bd9bcb1e1633f9e2a5d8d0135b",
+          "subject": "docs(glowcap): record round 5"
+        },
+        {
+          "sha": "ebd7c69db3b4fbad077717c3a6478a1fdf9753eb",
+          "subject": "Merge branch 'feat/grounded-explanations' into experiment/glowcap"
+        },
+        {
+          "sha": "653bf2417c476b9cc513526b0c63dfcfb175c943",
+          "subject": "docs(experiment): pre-register round 6 blind change requests CR9-CR12"
+        },
+        {
+          "sha": "8b672fdd194bc8bd07a1e50f438c974986a5b5af",
+          "subject": "feat(experiment): CR9 witnessing in TypeScript"
+        },
+        {
+          "sha": "9c5ead231858b7d58365fc837ff1dbf85a70c2cb",
+          "subject": "feat(experiment): CR9 witnessing in Caveat"
+        },
+        {
+          "sha": "c88864b35b19043051c7df9259b51ffc630a5516",
+          "subject": "feat(experiment): CR10 regrowth in TypeScript"
+        },
+        {
+          "sha": "7dc25774a20e2bdab5626aa73ec265644237ecd8",
+          "subject": "feat(experiment): CR10 regrowth in Caveat, as eight declared lives"
+        },
+        {
+          "sha": "2feda2379219ee35aff998d19ddb70c8c62c863b",
+          "subject": "feat(experiment): CR11 why-not explanations in TypeScript"
+        },
+        {
+          "sha": "863203e27da8404aa138f99a2e49b50eef87d095",
+          "subject": "feat(experiment): CR11 why-not explanations in Caveat"
+        },
+        {
+          "sha": "a5de2c84131f480c99c5040dd9a534738dbc9814",
+          "subject": "feat(experiment): CR12 save and resume in TypeScript"
+        },
+        {
+          "sha": "72b95a00a17fc714e325e8c873368847aaf865d1",
+          "subject": "feat(experiment): CR12 save and resume in Caveat, by event replay"
+        },
+        {
+          "sha": "9b8e80aa7e9d268cff57b49516605b9ff38a04c0",
+          "subject": "docs(experiment): score round 6 — TypeScript wins the blind round"
+        },
+        {
+          "sha": "cd808db4595bf6efb1cb9466929bcaf494fc3b95",
+          "subject": "docs(experiment): record round 6 fuzz and correct the cost diagnosis"
+        },
+        {
+          "sha": "75f0ebd0894fba3befc9fe8c50557ba774925fa5",
+          "subject": "Merge branch 'feat/round6-language' into experiment/glowcap"
+        },
+        {
+          "sha": "9f8c346c5f9ecd66f954daa19d1f51591826e05f",
+          "subject": "docs(experiment): register the round 6 replay; caveat5 starts as caveat4 at CR8"
+        },
+        {
+          "sha": "f1f3b92764cccf34d8394581d56c60b563b5e58c",
+          "subject": "feat(experiment): CR9 witnessing in caveat5, one learn procedure"
+        },
+        {
+          "sha": "1fff53ae1867da3a789e1a9b0d0987f3011d1eb8",
+          "subject": "feat(experiment): CR10 regrowth in caveat5, with renewable evidence"
+        },
+        {
+          "sha": "e46d6a2f24f2624d2bbb996799a3122bf3aa1e27",
+          "subject": "feat(experiment): CR11 why-not explanations in caveat5"
+        },
+        {
+          "sha": "ccd9eea7a0f5290efe5be6bf11275c1f4ea27fc1",
+          "subject": "feat(experiment): CR12 save and resume in caveat5 with the runtime's save"
+        },
+        {
+          "sha": "50359ba44c73c9196e16aaa58287dad81cd54e77",
+          "subject": "Merge branch 'feat/round6-language' into experiment/glowcap"
+        },
+        {
+          "sha": "d9650dba08bb0d7c5e5dfb1ed412ff9366172d39",
+          "subject": "test(experiment): caveat5 CR12 passes 38/38 with compact saves"
+        },
+        {
+          "sha": "df2281f587f7081dc7a892eecb967c293a18b5b9",
+          "subject": "Merge branch 'feat/round6-language' into experiment/glowcap"
+        },
+        {
+          "sha": "f727cb7eb53b085796d46da8911863534e66dd07",
+          "subject": "feat(experiment): differential --dump writes divergences with every event"
+        },
+        {
+          "sha": "8d8596acce8bebe3cdf2fe17e4d02f93eddc18ff",
+          "subject": "Merge branch 'feat/round6-language' into experiment/glowcap"
+        },
+        {
+          "sha": "cadaa71440df739fd69819a58eec3d313e2e8091",
+          "subject": "test(experiment): retain round-six regressions and resume benchmark"
+        },
+        {
+          "sha": "e6ace96ebc25b80a249b879270b96730ac310eed",
+          "subject": "fix(experiment): preserve and verify decision evidence ordering"
+        },
+        {
+          "sha": "d8a8ff512b93aeb7c65e107c9ca5e1c391068ea9",
+          "subject": "docs(experiment): record verified round-six replay results"
+        }
+      ]
+    },
+    {
+      "ref": "codex/trail-rescue",
+      "tip": "04f72dcd2030be8b08f21e064a6d2c8a6b41e784",
+      "excludedRefs": [
+        "main",
+        "feat/modules-0.5",
+        "feat/grounded-explanations",
+        "feat/round6-language",
+        "experiment/glowcap"
+      ],
+      "uniqueCommitCount": 3,
+      "commits": [
+        {
+          "sha": "a03af4548ca1b29116288397dee2abd530b53b7b",
+          "subject": "docs(experiment): register trail rescue requirements before implementation"
+        },
+        {
+          "sha": "c5c0183f2af394d60670c63bb1ea2e95f16b2e3a",
+          "subject": "feat: reopen decisions from caveated state grounds"
+        },
+        {
+          "sha": "04f72dcd2030be8b08f21e064a6d2c8a6b41e784",
+          "subject": "feat: add verified Trail Rescue gameplay in Caveat"
+        }
+      ]
+    },
+    {
+      "ref": "codex/agent-authoring-study",
+      "tip": "156bdc2b55232c868033deb2f0c029bfcb718075",
+      "excludedRefs": [
+        "main",
+        "feat/modules-0.5",
+        "feat/grounded-explanations",
+        "feat/round6-language",
+        "experiment/glowcap",
+        "codex/trail-rescue"
+      ],
+      "uniqueCommitCount": 4,
+      "commits": [
+        {
+          "sha": "fba9c7871977bd6ef22eb6a61d9e5e2fbb35687b",
+          "subject": "docs(experiment): register fresh-agent Caveat authoring study"
+        },
+        {
+          "sha": "383b49b072c9772e924aba81de2541f710b3a2b1",
+          "subject": "test(experiment): preserve null payloads in independent scoring"
+        },
+        {
+          "sha": "608d0de3638ce4bc8dffe0f04e6569b22bc9504d",
+          "subject": "test(experiment): record six fresh Caveat authoring trials"
+        },
+        {
+          "sha": "156bdc2b55232c868033deb2f0c029bfcb718075",
+          "subject": "docs: clarify numeric bounds after fresh-author trials"
+        }
+      ]
+    },
+    {
+      "ref": "codex/elapsed-clock",
+      "tip": "3980c3de2589f126fde237d9941300e3d2d94c09",
+      "excludedRefs": [
+        "main",
+        "feat/modules-0.5",
+        "feat/grounded-explanations",
+        "feat/round6-language",
+        "experiment/glowcap",
+        "codex/trail-rescue",
+        "codex/agent-authoring-study"
+      ],
+      "uniqueCommitCount": 4,
+      "commits": [
+        {
+          "sha": "20a13d938a5e4a51f77792c6c9d2486776960742",
+          "subject": "feat: expose the reactive session clock through elapsed()"
+        },
+        {
+          "sha": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+          "subject": "test: preserve signed zero in the clock restore probe"
+        },
+        {
+          "sha": "b44a0190771b319bdbd616b34b3e10fd3381d94d",
+          "subject": "docs(experiment): register the elapsed-clock authoring follow-up"
+        },
+        {
+          "sha": "3980c3de2589f126fde237d9941300e3d2d94c09",
+          "subject": "test(experiment): record the elapsed-clock authoring follow-up"
+        }
+      ]
+    }
+  ],
+  "referencePullRequest": {
+    "baseRefName": "main",
+    "headRefName": "feat/grounded-explanations",
+    "headRefOid": "70d4c7b3e67f8af8e1dcbcf7b72f0fac860966f2",
+    "isDraft": true,
+    "mergeStateStatus": "CLEAN",
+    "mergeable": "MERGEABLE",
+    "number": 11,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:34:03Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388292/job/106947387581",
+        "name": "rustfmt",
+        "startedAt": "2026-09-22T21:33:47Z",
+        "status": "COMPLETED",
+        "workflowName": "format-check"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:33:52Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106947389375",
+        "name": "regression scope",
+        "startedAt": "2026-09-22T21:33:47Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:37:23Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106947389595",
+        "name": "core semantics",
+        "startedAt": "2026-09-22T21:33:47Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:38:46Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545396",
+        "name": "reproducible WebAssembly",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:37:57Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545281",
+        "name": "Glowcap explainer browser QA",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:39:57Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545292",
+        "name": "The Last Beacon browser QA",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:45:26Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545363",
+        "name": "Light the Way (chromium)",
+        "startedAt": "2026-09-22T21:37:28Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:40:53Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545345",
+        "name": "Light the Way (webkit)",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:38:29Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545293",
+        "name": "Mr. Caveat iPhone QA",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:38:34Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545207",
+        "name": "Moon Garden 2D QA",
+        "startedAt": "2026-09-22T21:37:26Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:38:41Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545256",
+        "name": "Moon Garden 3D QA",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-09-22T21:38:46Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/WSattazahn/caveat-lang/actions/runs/35787388422/job/106948545325",
+        "name": "Legacy Door 3D QA",
+        "startedAt": "2026-09-22T21:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "runtime"
+      }
+    ],
+    "title": "Caveat: code that knows why (explanations, grounds, late caveats, decision journal, glowcap explainer)",
+    "url": "https://github.com/WSattazahn/caveat-lang/pull/11"
+  }
+}

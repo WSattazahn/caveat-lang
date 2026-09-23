@@ -1,0 +1,102 @@
+{
+  "id": "A1",
+  "started": "2026-09-23T05:40:54.434Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "1be53fd9afd7e0ef56a5ab537385d9e255fe19c49af266a747c6a27f7df41716",
+      "submittedAt": "2026-09-23T05:40:54.435Z",
+      "file": "versions/01.cav"
+    },
+    {
+      "number": 2,
+      "sha256": "df35246316acd74b71e4ab5b6dc7509c847697fe50fef5ac988f2628df72d306",
+      "submittedAt": "2026-09-23T05:41:21.543Z",
+      "file": "versions/02.cav"
+    },
+    {
+      "number": 3,
+      "sha256": "b2bb9f5f3cca36c61aa9a8bc66ef27ba5392df26d88e682d478a9edf5b8600e6",
+      "submittedAt": "2026-09-23T05:43:09.449Z",
+      "file": "versions/03.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T05:40:54.437Z",
+      "log": "checks/01.jsonl",
+      "status": "error",
+      "error": "line 14, column 1: reactive bounds must be ordered and within +/-1e12",
+      "durationMs": 26
+    },
+    {
+      "index": 2,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:41:21.545Z",
+      "log": "checks/02.jsonl",
+      "status": "completed",
+      "durationMs": 78
+    },
+    {
+      "index": 3,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:41:38.531Z",
+      "log": "checks/03.jsonl",
+      "status": "completed",
+      "durationMs": 57
+    },
+    {
+      "index": 4,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:42:11.654Z",
+      "log": "checks/04.jsonl",
+      "status": "completed",
+      "durationMs": 66
+    },
+    {
+      "index": 5,
+      "command": "replay",
+      "version": 3,
+      "started": "2026-09-23T05:43:09.451Z",
+      "log": "checks/05.jsonl",
+      "status": "completed",
+      "durationMs": 66
+    },
+    {
+      "index": 6,
+      "command": "replay",
+      "version": 3,
+      "started": "2026-09-23T05:43:30.269Z",
+      "log": "checks/06.jsonl",
+      "status": "completed",
+      "durationMs": 57
+    },
+    {
+      "index": 7,
+      "command": "replay",
+      "version": 3,
+      "started": "2026-09-23T05:43:30.390Z",
+      "log": "checks/07.jsonl",
+      "status": "completed",
+      "durationMs": 64
+    },
+    {
+      "index": 8,
+      "command": "replay",
+      "version": 3,
+      "started": "2026-09-23T05:43:30.506Z",
+      "log": "checks/08.jsonl",
+      "status": "completed",
+      "durationMs": 58
+    }
+  ],
+  "finished": "2026-09-23T05:44:50.786Z",
+  "finalVersion": 3,
+  "finalSha256": "b2bb9f5f3cca36c61aa9a8bc66ef27ba5392df26d88e682d478a9edf5b8600e6"
+}

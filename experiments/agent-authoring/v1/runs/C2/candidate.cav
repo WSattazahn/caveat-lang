@@ -1,0 +1,74 @@
+# Repair queue: all admission, observations and decisions live in Caveat.
+claim bearing_fault;
+claim motor_fault;
+claim repair_effective;
+evidence bearing_check from "bearing inspection";
+evidence motor_check from "motor inspection";
+evidence failure from "unsuccessful repair outcome";
+caveat alternative_cause consequence high;
+caveat repair_unverified consequence high;
+alternative_cause qualifies bearing_check;
+alternative_cause qualifies motor_check;
+renewable bearing_check limit 3;
+renewable motor_check limit 3;
+renewable failure limit 2;
+decisions repair limit 2;
+
+state investigation = 1 min 1 max 2;
+state tokens = 3 min 0 max 3;
+state bearing = -1 min -1 max 2;
+state motor = -1 min -1 max 2;
+state stage = 0 min 0 max 3;
+state selected_code = 0 min 0 max 2;
+
+event inspect cause min 1 max 2, score min 0 max 2;
+event choose repair min 1 max 2;
+event outcome success min 0 max 1;
+event next;
+
+on inspect when cause != floor(cause) or score != floor(score) reject "integer cause and score required";
+on inspect when stage != 0 reject "inspection requires investigation phase";
+on inspect when tokens <= 0 reject "no diagnostic tokens remain";
+on inspect when cause == 1 and observed(bearing_check) renew bearing_check;
+on inspect when cause == 2 and observed(motor_check) renew motor_check;
+on inspect when cause == 1 reveal bearing_check supports bearing_fault;
+on inspect when cause == 2 reveal motor_check supports motor_fault;
+on inspect when cause == 1 set bearing = qualified(score, bearing_check);
+on inspect when cause == 2 set motor = qualified(score, motor_check);
+on inspect set tokens = tokens - 1;
+
+on choose when repair != floor(repair) reject "integer repair required";
+on choose when stage != 0 reject "choice requires investigation phase";
+on choose when repair == 1 and bearing <= 0 reject "no positive current bearing diagnosis";
+on choose when repair == 2 and motor <= 0 reject "no positive current motor diagnosis";
+on choose when repair == 1 commit repair because enough using qualified(repair, bearing_check) retaining repair_unverified;
+on choose when repair == 2 commit repair because enough using qualified(repair, motor_check) retaining repair_unverified;
+on choose set selected_code = repair;
+on choose set stage = 1;
+
+on outcome when success != floor(success) reject "integer outcome required";
+on outcome when stage != 1 reject "outcome requires awaiting phase";
+on outcome when success == 0 and observed(failure) renew failure;
+on outcome when success == 0 reveal failure opposes repair_effective;
+on outcome when success == 0 reopen repair because failure;
+on outcome when success == 0 set stage = 2;
+on outcome when success == 1 set stage = 3;
+
+on next when stage != 2 or investigation != 1 reject "no next investigation is available";
+on next set investigation = 2;
+on next set bearing = -1;
+on next set motor = -1;
+on next set selected_code = 0;
+on next set stage = 0;
+
+bind hud.investigation = investigation;
+bind hud.tokens = tokens;
+bind hud.bearing = bearing;
+bind hud.motor = motor;
+bind hud.phase = "investigate";
+bind hud.phase = "awaiting" when stage == 1;
+bind hud.phase = "failed" when stage == 2;
+bind hud.phase = "complete" when stage == 3;
+bind hud.selected = selected_code;
+bind hud.frozen = if(committed(repair), latest(repair), 0);
+bind hud.revision = history_count(repair);

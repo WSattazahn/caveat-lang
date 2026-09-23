@@ -1,0 +1,7 @@
+{"event":"inspect","payload":{"cause":2,"score":1}}
+{"event":"inspect","payload":{"cause":1,"score":0}}
+{"event":"choose","payload":{"repair":1}}
+{"event":"inspect","payload":{"cause":1,"score":2}}
+{"event":"choose","payload":{"repair":2}}
+{"event":"outcome","payload":{"success":1}}
+{"resume":true}

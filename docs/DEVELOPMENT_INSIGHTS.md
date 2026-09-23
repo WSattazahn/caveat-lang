@@ -173,10 +173,38 @@ it can preserve the asserted reason for completion, but cannot make an unconvinc
 passage convincing or authenticate the host's geometry. The physical scene and
 the player's experience require their own runtime review.
 
+## A first comparison with TypeScript did not favour Caveat
+
+The [glowcap experiment](../experiments/glowcap/RESULTS.md) pre-registered a
+slime beat where knowledge is the mechanic: look-alike mushrooms, a generalised
+belief, a trust decision that reopens, and cited explanations. The same author
+built it in TypeScript and in Caveat against one frozen scenario suite and four
+change requests. Both passed every phase on the first run, and a differential
+fuzz found no disagreement in 1.7 million events. Total change cost was 55
+lines for Caveat and 57 for TypeScript.
+
+Caveat was clearly better at one thing. A caveat added once to a qualified
+value reached every label, the belief and the frozen decision basis without
+bookkeeping (32 changed lines against 48). It was worse when an explanation had
+to be *authored* rather than derived. Conservative lineage cites everything a
+guard read, so matching the intended explanation took guard ordering, a dummy
+validation state, and, for "cite only the counterexample", an explicit
+override. Dispatch cost 140 µs against 0.9 µs, and the host ships 397 KB
+gzipped against 2 KB. The pre-registered rule therefore chose TypeScript for
+this kind of host logic.
+
+That measurement became a work list. [Explanations 0.1](../spec/caveat-explanations-0.1.md) lets a binding state what it cites, with the runtime rejecting any citation the binding never read. Re-authored with it, the Caveat side reduced total change cost to 40 lines against 57, removed every lineage-steering construct, and won by the same rule. The rescore was written with knowledge of the change requests, so a blind round is still needed.
+
+The experiment does not refute the model. The TypeScript implementation
+expresses the same evidence, frozen basis, reopening and cited explanations
+directly. It measures the language's cost against that alternative.
+
 ## What we have not established
 
 - That unfamiliar AI agents can author Caveat reliably across varied tasks.
-- That Caveat outperforms an equivalent library in an established language.
+- That Caveat outperforms an equivalent library in an established language. The
+  first comparison on identical tasks found parity at far higher runtime and
+  integration cost.
 - That its complete provenance graphs stay understandable in long programs.
 - That current execution and history bounds fit production workloads.
 - That the language is self-hosting or independently verifies evidence quality.

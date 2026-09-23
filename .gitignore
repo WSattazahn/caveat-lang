@@ -4,3 +4,6 @@
 /test-results/
 /playwright-report/
 *.log
+/kit/runtime/
+/kit/LICENSE
+/kit/THIRD_PARTY_NOTICES.md

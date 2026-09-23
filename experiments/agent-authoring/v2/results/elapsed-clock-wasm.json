@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "runtimeSha256": "d92dd03d9a368b035a9d9b2a8a604139afaaf0e716344994e6ebd98471c285ec",
+  "checks": [
+    "release binding invalidation",
+    "fractional timer boundary",
+    "late rejection atomicity",
+    "journal clock/value agreement",
+    "restore identity",
+    "manufactured elapsed above state limit",
+    "signed-zero clock invalidation"
+  ]
+}

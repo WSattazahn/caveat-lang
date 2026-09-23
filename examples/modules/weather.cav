@@ -1,0 +1,19 @@
+# Shared weather vocabulary. Two crossings can now talk about the same graph
+# node instead of two accidentally identical names.
+module weather;
+
+claim low_visibility;
+
+evidence dawn_forecast from "harbour forecast issued 05:00";
+evidence lookout_report from "bow lookout, 06:40";
+
+caveat forecast_age consequence material;
+caveat refraction consequence low;
+
+dawn_forecast supports low_visibility;
+lookout_report supports low_visibility;
+forecast_age qualifies dawn_forecast;
+refraction qualifies lookout_report;
+
+display forecast_age "The forecast is over an hour old.";
+display refraction "Fog refraction can exaggerate an apparent bank.";

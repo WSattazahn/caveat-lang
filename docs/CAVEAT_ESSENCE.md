@@ -11,6 +11,8 @@ Caveat's identity is the persistent epistemic graph described in the [original s
 - Examination spends the program's attention budget. Presentation cannot bypass that cost.
 - A failed event publishes none of its numeric changes, graph changes, or presentation cues.
 - Knowledge can change an actor's response. It must not retroactively change the external physical condition being observed.
+- An explanation may cite less than a value depended on, never more. The runtime rejects a citation its binding did not read; the complete lineage remains inspectable.
+- Lineage records what could have influenced a value; grounds record what it is based on. Control (guards, skipped rules, revealing guards, predecessor decisions) belongs to lineage only, and grounds never exceed lineage.
 
 `observed(...)` answers whether an evidence edge was reached, not whether a claim is true. `committed(...)` and `reopened(...)` describe the history and current status of a decision. These queries do not turn the graph into a single confidence score.
 
@@ -45,6 +47,8 @@ This is dependency preservation, not a truth oracle. The author chooses how evid
 A decision series can select a new revision only after its current decision has explicitly reopened. Every revision retains its numeric basis, caveats, predecessor, and actual evidence links. Reading the latest value selects a particular occurrence; it does not rewrite the archived record. A new decision can depend on the reason its predecessor reopened as well as its fresh measurement. Those are computational dependencies, not a statement that every earlier reading is still physically current.
 
 Skipped sampling and revision guards also affect which record remains current. Their dependencies belong to the current selection, separate from immutable archived values. A missing sample is still missing. Failed transactions consume no occurrence IDs and publish no partial history. Capacity limits reject an event atomically rather than evicting evidence silently.
+
+[Renewal 0.1](../spec/caveat-renewal-0.1.md) extends the same rule to evidence a program declares: a renewable name means its current occurrence, and `renew` gives it a new, unobserved one. Provenance names occurrences, never the name's current meaning, so renewing never relabels what an earlier value or decision rests on. A new occurrence inherits only the caveats declared on the evidence; a caveat learned about one occurrence stays with it. A scheduled `qualify … after` is bound to the occurrence that was current when it was scheduled.
 
 ## Computation over archives
 

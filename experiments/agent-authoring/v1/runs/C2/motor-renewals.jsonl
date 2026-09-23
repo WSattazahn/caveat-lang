@@ -1,0 +1,11 @@
+{"event":"inspect","payload":{"cause":2,"score":2}}
+{"event":"choose","payload":{"repair":2}}
+{"event":"outcome","payload":{"success":0}}
+{"event":"next","payload":{}}
+{"event":"inspect","payload":{"cause":2,"score":2}}
+{"resume":true}
+{"event":"inspect","payload":{"cause":2,"score":2}}
+{"event":"choose","payload":{"repair":2}}
+{"event":"outcome","payload":{"success":0}}
+{"event":"next","payload":{}}
+{"resume":true}

@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "at": "2026-09-23T05:59:01.403Z",
+  "frozenFiles": [
+    {
+      "file": "PROTOCOL.md",
+      "status": "unchanged",
+      "sha256": "fc27519bb174c318fbc2e43591cfcf484b71a4be1ae7320087a9726953535b41"
+    },
+    {
+      "file": "prepare-packet.mjs",
+      "status": "unchanged",
+      "sha256": "16a81673155391008e2a0feea279c7f3dcf1b459941cc0fd0b3324fc3266f02e"
+    },
+    {
+      "file": "packet/README.md",
+      "status": "unchanged",
+      "sha256": "e250d762be7d0ec8e7aea1abb35c913dba5387373793ca861c39bf5bbabb0ae2"
+    },
+    {
+      "file": "packet/runner.mjs",
+      "status": "unchanged",
+      "sha256": "284972d088b15dbbea4124a566d88bb064a3c99c4e956cc7e46167d454a3eac7"
+    },
+    {
+      "file": "packet/manifest.json",
+      "status": "unchanged",
+      "sha256": "4b576c33b629413b9cc2fc7c13e60a7ab5682ed5391ff0786d9be8edaf930984"
+    },
+    {
+      "file": "checks.mjs",
+      "status": "unchanged",
+      "sha256": "a94dae3fe23787662e3052b9391df6a9ff059c0d99fe859c22b9e09f037f9cf8"
+    },
+    {
+      "file": "checks.test.mjs",
+      "status": "unchanged",
+      "sha256": "eed78a05f908438cb73d50fc2bb23053648dbd82a1379e9a73b5322b865bc820"
+    },
+    {
+      "file": "verify.mjs",
+      "status": "documented null-transport correction",
+      "registeredSha256": "88a9d0f47a7faf8ed570f504774697c87e5cf27039de0af0c3a08f4388b8de0c",
+      "currentSha256": "a42f225089e5a3e7dce0cfad3f9d278b0b2f98f5a070a6949c800523cea2b835"
+    },
+    {
+      "file": "private/oracles.mjs",
+      "status": "unchanged",
+      "sha256": "47212b223d27d79867fffc2696402a39f0d5aa7eedff3d557f5a80251fe9b5c8"
+    },
+    {
+      "file": "tasks/access-review.md",
+      "status": "unchanged",
+      "sha256": "7bc7da394257a31d1d3f66d329d8de82bec626222afbec8367739b37616414de"
+    },
+    {
+      "file": "tasks/cold-storage.md",
+      "status": "unchanged",
+      "sha256": "b511f465695b91976d64a3dd9ab61effbd0f3ce837faf0383070d3de8ff87b9c"
+    },
+    {
+      "file": "tasks/repair-queue.md",
+      "status": "unchanged",
+      "sha256": "1d34fade62b959dad72e1003b809f21925efab52f4e7ee30a68fa8d0c5fdf613"
+    },
+    {
+      "file": "prompts/A1.md",
+      "status": "unchanged",
+      "sha256": "5f4285c7439d22df0f2974a87fe73100bfc5caaa586907e564de2b9a90d3f8a0"
+    },
+    {
+      "file": "prompts/A2.md",
+      "status": "unchanged",
+      "sha256": "7dfd1ff4105e4d006d58616e781babc214b094985aac0b4172bd5f362dabc649"
+    },
+    {
+      "file": "prompts/B1.md",
+      "status": "unchanged",
+      "sha256": "e15dc044b0c6b9c2200e2260bf3d8bb91364f15881d88cd7323532bac4a50038"
+    },
+    {
+      "file": "prompts/B2.md",
+      "status": "unchanged",
+      "sha256": "501239a02ee7fc40bd423ef0bb2fb2a3990b66c9fe1fc1bdde67920845918af5"
+    },
+    {
+      "file": "prompts/C1.md",
+      "status": "unchanged",
+      "sha256": "9f933f45a31780f76c776e17c968c6a3114ea0be9835b57fd80a30ba7aa999ff"
+    },
+    {
+      "file": "prompts/C2.md",
+      "status": "unchanged",
+      "sha256": "eba7a7849047c9e49b83ed34e32474f62daf694e97a51604f6dd49928065d02e"
+    }
+  ],
+  "references": 26,
+  "runtimeFiles": 2,
+  "runs": [
+    {
+      "id": "A1",
+      "preservedVersions": 3,
+      "runtimeChecks": 8,
+      "sourceCaptureBeforeExecution": true,
+      "finalFrozen": true,
+      "notesPresent": true
+    },
+    {
+      "id": "B1",
+      "preservedVersions": 2,
+      "runtimeChecks": 7,
+      "sourceCaptureBeforeExecution": true,
+      "finalFrozen": true,
+      "notesPresent": true
+    },
+    {
+      "id": "C1",
+      "preservedVersions": 1,
+      "runtimeChecks": 6,
+      "sourceCaptureBeforeExecution": true,
+      "finalFrozen": true,
+      "notesPresent": true
+    },
+    {
+      "id": "A2",
+      "preservedVersions": 2,
+      "runtimeChecks": 5,
+      "sourceCaptureBeforeExecution": true,
+      "finalFrozen": true,
+      "notesPresent": true
+    },
+    {
+      "id": "B2",
+      "preservedVersions": 2,
+      "runtimeChecks": 6,
+      "sourceCaptureBeforeExecution": true,
+      "finalFrozen": true,
+      "notesPresent": true
+    },
+    {
+      "id": "C2",
+      "preservedVersions": 1,
+      "runtimeChecks": 8,
+      "sourceCaptureBeforeExecution": true,
+      "finalFrozen": true,
+      "notesPresent": true
+    }
+  ],
+  "isolation": "Instructions and author disclosures; no OS sandbox or exhaustive read-access telemetry."
+}

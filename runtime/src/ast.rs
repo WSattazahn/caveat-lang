@@ -59,6 +59,11 @@ pub enum Statement {
         outcome: String,
         condition: Option<EpistemicCondition>,
     },
+    /// Which bundle part the statements that follow were written in. Emitted
+    /// by the linker; see spec/caveat-authorship-0.1.md.
+    Origin {
+        part: String,
+    },
     Scene {
         text: String,
     },

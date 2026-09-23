@@ -5,7 +5,7 @@
 
 use crate::presentation::Number;
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -16,6 +16,8 @@ const MAX_EVALUATED_NODES: usize = 65_536;
 const MAX_FOLD_RECORDS: usize = 256;
 const FOLD_ACC: &str = "$fold_acc";
 const FOLD_VALUE: &str = "$fold_value";
+/// Internal numeric-host request; source identifiers cannot spell this name.
+pub(crate) const ELAPSED_READ: &str = "$elapsed";
 type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), String> + 'a;
 
 /// Read-only requests against one immutable event snapshot.
@@ -31,7 +33,8 @@ pub const MAX_TEXT_BYTES: usize = 65_536;
 
 /// Dependencies of an evaluated value, not an assertion that evidence is true
 /// or that a caveat is discharged. The host resolves and types graph names.
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct Provenance {
     pub evidence: BTreeSet<String>,
     pub caveats: BTreeSet<String>,
@@ -160,6 +163,21 @@ impl<T> Tracked<T> {
     }
 }
 
+/// What an expression may read. See `Expr::collect_reads`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Reads {
+    /// Numeric names looked up: states, constants, parameters or locals.
+    pub names: BTreeSet<String>,
+    /// Queries the epistemic graph, a reading stream or a decision series.
+    pub graph: bool,
+    /// Reads the session clock independently of numeric state and the graph.
+    pub clock: bool,
+    /// Could read anything; never skip it.
+    pub anything: bool,
+    /// Evidence named by `observed(...)`.
+    pub observed: BTreeSet<String>,
+}
+
 /// A parsed expression with finite, canonical number literals.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
@@ -179,6 +197,7 @@ pub struct FunctionDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     Number(Number),
+    Elapsed,
     Bool(bool),
     Text(String),
     Variable(String),
@@ -405,6 +424,219 @@ impl Expr {
         (nodes, bytes)
     }
 
+    /// Everything evaluating this expression can read: the numeric names it
+    /// looks up, and whether it queries the graph or a history. Every branch
+    /// is included, taken or not, so this over-approximates and never misses
+    /// a read. The match is exhaustive on purpose: a new kind of node must say
+    /// what it reads before it compiles.
+    pub fn collect_reads(&self, reads: &mut Reads) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Elapsed => reads.clock = true,
+            Node::Variable(name) => {
+                reads.names.insert(name.clone());
+            }
+            Node::Predicate(kind, name) => {
+                if kind.starts_with("has_caveat:") {
+                    // This reads a live state's grounds. An assignment can
+                    // replace those grounds without changing the graph.
+                    reads.names.insert(name.clone());
+                } else {
+                    reads.graph = true;
+                }
+                if kind == "observed" {
+                    reads.observed.insert(name.clone());
+                }
+            }
+            Node::Latest(_) | Node::HistoryCount(_) => reads.graph = true,
+            Node::HistoryAt(_, index) => {
+                reads.graph = true;
+                index.collect_reads(reads);
+            }
+            Node::Fold(_, initial, _) => {
+                reads.graph = true;
+                initial.collect_reads(reads);
+            }
+            Node::ExpandedFold(_, initial, body) => {
+                reads.graph = true;
+                initial.collect_reads(reads);
+                body.collect_reads(reads);
+            }
+            Node::Qualified(value, _, _) => {
+                reads.graph = true;
+                value.collect_reads(reads);
+            }
+            Node::Unary(_, child) => child.collect_reads(reads),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_reads(reads);
+                right.collect_reads(reads);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_reads(reads);
+                yes.collect_reads(reads);
+                no.collect_reads(reads);
+            }
+            Node::Function(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+            }
+            // An unexpanded call's body is unknown here, so it could read
+            // anything. Sessions expand every call before evaluating.
+            Node::UserCall(_, arguments) => {
+                reads.anything = true;
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+            }
+            // The body has the arguments inlined, so its reads are the call's.
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_reads(reads);
+                }
+                body.collect_reads(reads);
+            }
+        }
+    }
+
+    /// The name, if this expression is a bare name.
+    pub fn as_name(&self) -> Option<&str> {
+        match &self.node {
+            Node::Variable(name) => Some(name),
+            _ => None,
+        }
+    }
+
+    /// The same expression with names replaced: graph symbols wherever a
+    /// predicate or `qualified` names one, and bare names, so that an argument
+    /// can pass a name on. Histories are not renamed. Used to specialize a
+    /// procedure for the symbols it is called with.
+    pub fn rename_symbols(&self, names: &HashMap<String, String>) -> Expr {
+        let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
+        let child = |expression: &Expr| Box::new(expression.rename_symbols(names));
+        let node = match &self.node {
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => self.node.clone(),
+            Node::Variable(name) => Node::Variable(rename(name)),
+            Node::Predicate(kind, target) => {
+                let qualified = ["carries:", "has_caveat:"]
+                    .into_iter()
+                    .find_map(|prefix| kind.strip_prefix(prefix).map(|caveat| (prefix, caveat)));
+                match qualified {
+                    Some((prefix, caveat)) => Node::Predicate(
+                        format!("{prefix}{}", rename(&caveat.to_string())),
+                        rename(target),
+                    ),
+                    None => Node::Predicate(kind.clone(), rename(target)),
+                }
+            }
+            Node::Qualified(value, evidence, caveats) => Node::Qualified(
+                child(value),
+                rename(evidence),
+                caveats.iter().map(rename).collect(),
+            ),
+            Node::Unary(operator, operand) => Node::Unary(*operator, child(operand)),
+            Node::Binary(operator, left, right) => {
+                Node::Binary(*operator, child(left), child(right))
+            }
+            Node::Require(condition, value) => Node::Require(child(condition), child(value)),
+            Node::If(condition, yes, no) => Node::If(child(condition), child(yes), child(no)),
+            Node::HistoryAt(history, index) => Node::HistoryAt(history.clone(), child(index)),
+            Node::Fold(history, initial, reducer) => {
+                Node::Fold(history.clone(), child(initial), reducer.clone())
+            }
+            Node::ExpandedFold(history, initial, body) => {
+                Node::ExpandedFold(history.clone(), child(initial), child(body))
+            }
+            Node::Function(function, arguments) => Node::Function(
+                *function,
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+            ),
+            Node::UserCall(name, arguments) => Node::UserCall(
+                name.clone(),
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+            ),
+            Node::ExpandedCall(arguments, body) => Node::ExpandedCall(
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+                child(body),
+            ),
+        };
+        Expr {
+            node,
+            depth: self.depth,
+        }
+    }
+
+    /// The operands of a chain of `and`, left to right; the expression itself
+    /// if it is not one.
+    pub fn conjuncts(&self) -> Vec<&Expr> {
+        match &self.node {
+            Node::Binary(Binary::And, left, right) => {
+                let mut all = left.conjuncts();
+                all.extend(right.conjuncts());
+                all
+            }
+            _ => vec![self],
+        }
+    }
+
+    /// Evidence that `qualified(...)` names wherever evaluating this
+    /// expression is certain to reach it: not inside an `if` branch, the right
+    /// side of `and` or `or`, a `require` value or a fold body.
+    pub fn qualified_unconditionally(&self, evidence: &mut BTreeSet<String>) {
+        match &self.node {
+            Node::Qualified(value, name, _) => {
+                evidence.insert(name.clone());
+                value.qualified_unconditionally(evidence);
+            }
+            Node::Binary(Binary::And | Binary::Or, left, _)
+            | Node::Require(left, _)
+            | Node::If(left, _, _) => left.qualified_unconditionally(evidence),
+            Node::Binary(_, left, right) => {
+                left.qualified_unconditionally(evidence);
+                right.qualified_unconditionally(evidence);
+            }
+            Node::Unary(_, child) | Node::HistoryAt(_, child) => {
+                child.qualified_unconditionally(evidence)
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.qualified_unconditionally(evidence);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.qualified_unconditionally(evidence);
+                }
+                body.qualified_unconditionally(evidence);
+            }
+            Node::Fold(_, initial, _) | Node::ExpandedFold(_, initial, _) => {
+                initial.qualified_unconditionally(evidence)
+            }
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Predicate(_, _)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => {}
+        }
+    }
+
     fn new(node: Node) -> Result<Self, String> {
         let depth = match &node {
             Node::Unary(_, child)
@@ -457,6 +689,10 @@ impl Expr {
     ) -> Result<ValueType, String> {
         match &self.node {
             Node::Number(_) => Ok(ValueType::Number),
+            Node::Elapsed => {
+                predicate("runtime_clock", "elapsed")?;
+                Ok(ValueType::Number)
+            }
             Node::Bool(_) => Ok(ValueType::Bool),
             Node::Text(_) => Ok(ValueType::Text),
             Node::Variable(name) => {
@@ -704,6 +940,11 @@ impl Expr {
         remaining.set(budget - 1);
         match &self.node {
             Node::Number(value) => Ok(Value::Number(value.value())),
+            Node::Elapsed => {
+                let value =
+                    numbers(ELAPSED_READ)?.ok_or("elapsed() requires a reactive session")?;
+                Ok(Value::Number(finite(value)?))
+            }
             Node::Bool(value) => Ok(Value::Bool(*value)),
             Node::Text(value) => {
                 check_text_size(value.len())?;
@@ -1166,6 +1407,15 @@ impl Parser {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
         }
+        // Before linking, an explicit module-local function may shadow this
+        // name with its own arity. Defer nonempty calls until that name has
+        // been resolved; a remaining global elapsed call still takes no args.
+        if name == "elapsed"
+            && (!self.allow_user_functions || self.peek() == Some(&TokenKind::RightParen))
+        {
+            self.expect(TokenKind::RightParen, "')' after elapsed (no arguments)")?;
+            return Ok(Node::Elapsed);
+        }
         if matches!(name.as_str(), "if" | "require") {
             let condition = self.expression(0, nesting)?;
             self.expect(TokenKind::Comma, "',' after condition")?;
@@ -1215,6 +1465,22 @@ impl Parser {
             };
             self.expect(TokenKind::RightParen, "')' after history operation")?;
             return Ok(node);
+        }
+        // carries(EVIDENCE, CAVEAT): a predicate on the evidence. The caveat
+        // travels in the predicate's name. See spec/caveat-renewal-0.1.md.
+        if name == "carries" {
+            let evidence = self.graph_identifier("carries evidence")?;
+            self.expect(TokenKind::Comma, "',' before the carried caveat")?;
+            let caveat = self.graph_identifier("carries caveat")?;
+            self.expect(TokenKind::RightParen, "')' after the carried caveat")?;
+            return Ok(Node::Predicate(format!("carries:{caveat}"), evidence));
+        }
+        if name == "has_caveat" {
+            let state = self.graph_identifier("has_caveat state")?;
+            self.expect(TokenKind::Comma, "',' before the state's caveat")?;
+            let caveat = self.graph_identifier("has_caveat caveat")?;
+            self.expect(TokenKind::RightParen, "')' after the state's caveat")?;
+            return Ok(Node::Predicate(format!("has_caveat:{caveat}"), state));
         }
         if name == "latest" {
             let history = self.graph_identifier("latest history")?;
@@ -1400,6 +1666,8 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
             || matches!(
                 name.as_str(),
                 "qualified"
+                    | "elapsed"
+                    | "has_caveat"
                     | "if"
                     | "require"
                     | "latest"
@@ -1510,7 +1778,14 @@ fn infer_function(
         .body
         .validate_calls(
             &parameters,
-            &|_, _| Err("pure source functions cannot query graph predicates".into()),
+            &|kind, _| {
+                Err(if kind == "runtime_clock" {
+                    "pure source functions cannot capture the runtime clock"
+                } else {
+                    "pure source functions cannot query graph predicates"
+                }
+                .into())
+            },
             &|called, arity| {
                 let callee = functions
                     .get(called)
@@ -1530,6 +1805,9 @@ fn infer_function(
 
 struct Expander<'a> {
     functions: &'a BTreeMap<String, FunctionDef>,
+    /// Named expressions over state and the graph, inlined where their name
+    /// is read. See spec/caveat-define-0.1.md.
+    defines: &'a BTreeMap<String, Expr>,
     active: Vec<String>,
     remaining: usize,
 }
@@ -1552,6 +1830,12 @@ impl Expander<'_> {
     ) -> Result<Expr, String> {
         let node = match &expression.node {
             Node::Number(number) => Node::Number(number.clone()),
+            Node::Elapsed => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture the runtime clock".into());
+                }
+                Node::Elapsed
+            }
             Node::Bool(value) => Node::Bool(*value),
             Node::Text(value) => Node::Text(value.clone()),
             Node::Variable(name) => {
@@ -1562,6 +1846,15 @@ impl Expander<'_> {
                     // The argument is already expanded in its caller's scope.
                     // Do not substitute again if a caller name matches a formal.
                     return self.walk(argument, None);
+                }
+                if let Some(body) = self.defines.get(name) {
+                    if self.active.contains(name) {
+                        return Err(format!("define {name} refers to itself"));
+                    }
+                    self.active.push(name.clone());
+                    let expanded = self.walk(body, None);
+                    self.active.pop();
+                    return expanded.map_err(|error| format!("define {name}: {error}"));
                 }
                 Node::Variable(name.clone())
             }
@@ -1661,6 +1954,9 @@ impl Expander<'_> {
                 Box::new(self.walk(body, parameters)?),
             ),
             Node::UserCall(name, arguments) => {
+                if name == "elapsed" {
+                    return Err("elapsed() requires no arguments".into());
+                }
                 let functions = self.functions;
                 let definition = functions
                     .get(name)
@@ -1703,11 +1999,21 @@ pub fn expand(
     expression: &Expr,
     functions: &BTreeMap<String, FunctionDef>,
 ) -> Result<Expr, String> {
+    expand_with(expression, functions, &BTreeMap::new())
+}
+
+/// `expand`, also inlining named `define` expressions wherever they are read.
+pub fn expand_with(
+    expression: &Expr,
+    functions: &BTreeMap<String, FunctionDef>,
+    defines: &BTreeMap<String, Expr>,
+) -> Result<Expr, String> {
     if functions.len() > MAX_FUNCTIONS {
         return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
     }
     Expander {
         functions,
+        defines,
         active: Vec::new(),
         remaining: MAX_EXPANDED_NODES,
     }

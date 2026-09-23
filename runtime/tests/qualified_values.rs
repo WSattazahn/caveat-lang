@@ -390,9 +390,18 @@ fn unseen_or_wrong_kind_evidence_cannot_be_claimed_by_a_qualified_value() {
             "accepted {expression}"
         );
     }
+    // A rule that can never succeed, because nothing ever observes its
+    // evidence, is rejected when the program loads.
+    let error = ReactiveSession::from_source(&format!(
+        "{GRAPH} state q = 0; event attempt; on attempt set q = 3; on attempt set q = qualified(1, unseen);"
+    ))
+    .unwrap_err();
+    assert!(error.contains("nothing observes it"), "{error}");
+    // One that fails only until another event reveals it rolls back whole.
     let mut game = session(
         r#"
-        state q = 0; event attempt;
+        state q = 0; event attempt; event notice;
+        on notice reveal unseen supports safe;
         on attempt set q = 3;
         on attempt set q = qualified(1, unseen);
     "#,
@@ -400,6 +409,11 @@ fn unseen_or_wrong_kind_evidence_cannot_be_claimed_by_a_qualified_value() {
     let before = game.snapshot();
     assert!(game.dispatch_json("attempt", "{}").is_err());
     assert_eq!(game.snapshot(), before);
+    game.dispatch_json("notice", "{}").unwrap();
+    assert_eq!(
+        game.dispatch_json("attempt", "{}").unwrap().values["q"],
+        1.0
+    );
 }
 
 #[test]

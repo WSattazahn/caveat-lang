@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "registrationCommit": "fba9c78",
+  "wave1": {
+    "dispatchedAt": "2026-09-23T05:40:24.938Z",
+    "agents": {
+      "A1": "/root/author_a1",
+      "B1": "/root/author_b1",
+      "C1": "/root/author_c1"
+    },
+    "forkTurns": "none"
+  },
+  "wave2": {
+    "dispatchedAt": "2026-09-23T05:46:32.383Z",
+    "agents": {
+      "A2": "/root/author_a2",
+      "B2": "/root/author_b2",
+      "C2": "/root/author_c2"
+    },
+    "forkTurns": "none"
+  }
+}

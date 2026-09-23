@@ -195,6 +195,9 @@ impl Evaluator {
     }
     fn apply(&mut self, statement: &Statement) -> Result<(), String> {
         match statement {
+            // Everything declared from here until the next `origin` was
+            // written in this part.
+            Statement::Origin { part } => self.graph.set_authoring(Some(part.clone())),
             Statement::Scene { text } => self.event(EventKind::Scene { text: text.clone() }),
             Statement::Display { symbol, text } => {
                 self.display.insert(symbol.clone(), text.clone());
@@ -481,5 +484,9 @@ pub fn evaluate(program: &Program) -> Result<Evaluation, String> {
     for statement in &program.statements {
         evaluator.apply(statement)?;
     }
+    // Declarations are over. Anything a running effect reveals afterwards has
+    // no part to honestly attribute it to, so it is recorded as unattributed
+    // rather than inheriting whichever part happened to be read last.
+    evaluator.graph.set_authoring(None);
     Ok(evaluator.finish())
 }

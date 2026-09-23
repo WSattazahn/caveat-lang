@@ -7,6 +7,11 @@ headless runner to check it?
 This was one constrained authoring task. It was not a comparison against
 another language, a test of model training changes, or a measure of adoption.
 
+A later [six-context, three-task study](../experiments/agent-authoring/v1/RESULTS.md)
+repeats this question with preregistered tasks, preserved revisions and withheld
+verification. Two first submissions and all six final submissions pass its
+corpus, with known clock-horizon contract violations in two final sources.
+
 ## Task and access
 
 The agent was asked to implement a ventilation controller with two inputs:

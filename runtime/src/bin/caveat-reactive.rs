@@ -29,10 +29,9 @@ fn write_record(output: &mut impl Write, record: &Value) -> Result<(), Value> {
 }
 
 fn load_source(path: &str) -> Result<String, Value> {
-    let file = File::open(path).map_err(|error| failure("source_io", error))?;
-    let mut source = String::new();
-    file.take((MAX_INPUT_BYTES + 1) as u64)
-        .read_to_string(&mut source)
+    // The limit applies to the whole bundle, so imports cannot be used to get
+    // past it one module at a time.
+    let source = caveat_runtime::link::disk::load(std::path::Path::new(path))
         .map_err(|error| failure("source_io", error))?;
     if source.len() > MAX_INPUT_BYTES {
         return Err(failure("source_io", "source exceeds 1 MiB input limit"));

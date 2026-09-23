@@ -1,0 +1,3 @@
+# Experimental artifacts are immutable raw submissions, including CRLF and
+# trailing blank lines. Conversion would invalidate recorded source hashes.
+* -text whitespace=cr-at-eol,-blank-at-eof

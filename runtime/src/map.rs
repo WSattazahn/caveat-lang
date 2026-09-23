@@ -41,7 +41,11 @@ pub struct MapResolution {
 pub struct MapSymbol {
     pub name: String,
     pub kind: String,
+    /// Where the claim came from in the world: an evidence's `from`.
     pub source: Option<String>,
+    /// Which part of the program declared it. `None` when the program
+    /// declared no origin. See spec/caveat-authorship-0.1.md.
+    pub written_by: Option<String>,
     pub consequence: Option<String>,
     pub display: Option<String>,
 }
@@ -130,7 +134,49 @@ pub struct MapCommitment {
     pub action: String,
     pub open: bool,
     pub retained: Vec<String>,
+    /// The same retained caveats, with who wrote each one. Parallel to
+    /// `retained`, which stays a plain list of names so existing readers keep
+    /// working. See spec/caveat-borrowed-uncertainty-0.1.md.
+    pub retained_authorship: Vec<RetainedCaveat>,
     pub reopened_by: Vec<String>,
+}
+
+/// A caveat a commitment carried, and where it was written.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RetainedCaveat {
+    pub caveat: String,
+    /// The part that wrote the caveat, if it was written under an origin.
+    pub written_by: Option<String>,
+    /// Whether the caveat was written in a different part from the commitment
+    /// that retained it. `None` when either origin is unrecorded: not knowing
+    /// where something was written is not the same as having written it.
+    ///
+    /// This is a fact about location, not a judgement. A caveat written
+    /// elsewhere is not weaker, less relevant, or less binding than one
+    /// written here.
+    pub written_elsewhere: Option<bool>,
+}
+
+/// Pair each caveat a commitment retained with the part that wrote it.
+pub fn retained_authorship(
+    graph: &crate::EpistemicGraph,
+    commitment: crate::NodeId,
+    name_of: impl Fn(crate::NodeId) -> Option<String>,
+) -> Vec<RetainedCaveat> {
+    let by = graph.origin(commitment);
+    graph
+        .edges
+        .iter()
+        .filter(|edge| edge.from == commitment && edge.relation == Relation::Retains)
+        .filter_map(|edge| {
+            let written_by = graph.origin(edge.to);
+            Some(RetainedCaveat {
+                caveat: name_of(edge.to)?,
+                written_by: written_by.map(str::to_string),
+                written_elsewhere: by.zip(written_by).map(|(by, wrote)| by != wrote),
+            })
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Default)]
@@ -231,7 +277,7 @@ impl CaveatMap {
 
         for statement in &program.statements {
             match statement {
-                Statement::Reactive(_) => {}
+                Statement::Reactive(_) | Statement::Origin { .. } => {}
                 Statement::Presentation(directive) => presentation.push(directive.clone()),
                 Statement::Require { action, condition } => requirements.push(MapRequirement {
                     action: action.clone(),
@@ -286,6 +332,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "claim".into(),
                     source: None,
+                    written_by: written_by(&evaluation, name),
                     consequence: None,
                     display: evaluation.display.get(name).cloned(),
                 }),
@@ -293,6 +340,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "evidence".into(),
                     source: Some(source.clone()),
+                    written_by: written_by(&evaluation, name),
                     consequence: None,
                     display: evaluation.display.get(name).cloned(),
                 }),
@@ -300,6 +348,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "caveat".into(),
                     source: None,
+                    written_by: written_by(&evaluation, name),
                     consequence: Some(format!("{consequence:?}").to_lowercase()),
                     display: evaluation.display.get(name).cloned(),
                 }),
@@ -405,6 +454,7 @@ impl CaveatMap {
                     name: name.clone(),
                     kind: "commitment".into(),
                     source: None,
+                    written_by: written_by(&evaluation, name),
                     consequence: None,
                     display: evaluation.display.get(name).cloned(),
                 });
@@ -461,6 +511,9 @@ impl CaveatMap {
                 action: name.clone(),
                 open: *open,
                 retained,
+                retained_authorship: retained_authorship(&evaluation.graph, *id, |node| {
+                    symbol_name(&evaluation, node)
+                }),
                 reopened_by,
             });
         }
@@ -491,7 +544,7 @@ impl CaveatMap {
     }
 
     pub fn from_source(source: &str) -> Result<Self, String> {
-        let program = crate::parser::parse(source)?;
+        let program = crate::parser::parse(&crate::link::link(source)?)?;
         Self::build(&program)
     }
 
@@ -1207,6 +1260,13 @@ fn relation_name(relation: Relation) -> String {
         Relation::ReliesOn => "relies_on".into(),
         _ => format!("{relation:?}").to_lowercase(),
     }
+}
+
+/// Which part declared a symbol, asked of the graph rather than recovered
+/// from the shape of its linked name.
+fn written_by(evaluation: &eval::Evaluation, name: &str) -> Option<String> {
+    let id = evaluation.symbols.get(name)?;
+    evaluation.graph.origin(*id).map(str::to_string)
 }
 
 fn symbol_name(evaluation: &eval::Evaluation, id: crate::NodeId) -> Option<String> {

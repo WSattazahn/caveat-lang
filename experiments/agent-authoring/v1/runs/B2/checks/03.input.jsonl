@@ -1,0 +1,14 @@
+{"event":"advance","payload":{"dt":0.3}}
+{"event":"submit","payload":{"code":1}}
+{"event":"advance","payload":{"dt":2}}
+{"resume":true}
+{"event":"approve","payload":{}}
+{"event":"advance","payload":{"dt":0}}
+{"event":"advance","payload":{"dt":0.000000000000001}}
+{"event":"submit","payload":{"code":2}}
+{"event":"submit","payload":{"code":5}}
+{"event":"approve","payload":{}}
+{"event":"advance","payload":{"dt":1.9999999999999998}}
+{"resume":true}
+{"event":"revoke","payload":{"code":1}}
+{"event":"revoke","payload":{"code":2}}

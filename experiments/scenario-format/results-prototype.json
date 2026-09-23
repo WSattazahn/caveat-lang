@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "runner": "prototype-runner.mjs",
+  "runtime": {
+    "revision": "541e09d61f131dbd25e546f96600e12d845f3592",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc",
+    "reactiveWasmSha256": "0b03a2419ead6d4f53c3d89d1dd071a8eed0de31ce81a2045f56db227ec2fa6b"
+  },
+  "runs": [
+    {
+      "file": "examples/thermostat_history.scenarios.json",
+      "exit": 0,
+      "output": [
+        "PASS T01  (3 events, 0 rejected, 1 resumes)",
+        "PASS T02  (3 events, 3 rejected, 0 resumes)",
+        "2/2 scenarios passed"
+      ]
+    },
+    {
+      "file": "examples/trail_rescue.scenarios.json",
+      "exit": 0,
+      "output": [
+        "PASS R01  (6 events, 3 rejected, 1 resumes)",
+        "1/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-bare-rejected-on-input.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL R01 step 8 send [primary]: {\"message\":\"unexpected outcome\",\"expected\":true,\"outcome\":{\"outcome\":\"rejected\",\"origin\":\"input\",\"code\":\"bound_exceeded\",\"message\":\"dt must be finite and in 0..30\"},\"repetition\":1}",
+        "0/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-evaluation-bound.scenarios.json",
+      "exit": 0,
+      "output": [
+        "PASS F01  (2 events, 1 rejected, 0 resumes)",
+        "1/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-expected-accept-got-reject.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL R01 step 5 send [primary]: {\"message\":\"unexpected outcome\",\"expected\":\"accepted\",\"outcome\":{\"outcome\":\"rejected\",\"origin\":\"policy\",\"code\":\"reject\",\"message\":\"Reconsider the existing plan first.\"},\"repetition\":1}",
+        "0/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-fatal-not-a-rejection.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL F02 step 1 send [primary]: {\"message\":\"fatal outcome\",\"outcome\":{\"outcome\":\"fatal\",\"message\":\"{\\\"schema\\\":\\\"caveat-dispatch/0.1\\\",\\\"outcome\\\":\\\"fatal\\\",\\\"code\\\":\\\"unclassified\\\",\\\"message\\\":\\\"event peek, rule 2: history index 5 is out of range for sample\\\"}\"},\"repetition\":1}",
+        "0/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-invalid-absent-false.scenarios.json",
+      "exit": 2,
+      "output": [
+        "INVALID faults/neg-invalid-absent-false.scenarios.json: T02 step 4 /sequence: $absent is true and names a path or object member"
+      ]
+    },
+    {
+      "file": "faults/neg-invalid-host-origin.scenarios.json",
+      "exit": 2,
+      "output": [
+        "INVALID faults/neg-invalid-host-origin.scenarios.json: T02 step 1: origin must be one of policy, input, evaluation, limit"
+      ]
+    },
+    {
+      "file": "faults/neg-invalid-input-message.scenarios.json",
+      "exit": 2,
+      "output": [
+        "INVALID faults/neg-invalid-input-message.scenarios.json: T02 step 1: only a policy rejection has a stable message"
+      ]
+    },
+    {
+      "file": "faults/neg-invalid-mixed-matcher.scenarios.json",
+      "exit": 2,
+      "output": [
+        "INVALID faults/neg-invalid-mixed-matcher.scenarios.json: T02 step 4 /bindings: a matcher must be its object's only key; write a literal object with $exact"
+      ]
+    },
+    {
+      "file": "faults/neg-invalid-unknown-field.scenarios.json",
+      "exit": 2,
+      "output": [
+        "INVALID faults/neg-invalid-unknown-field.scenarios.json: file: unknown field extra"
+      ]
+    },
+    {
+      "file": "faults/neg-journal-order.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL T01 step 9 expect [primary]: {\"path\":\"/decision_journal/0/change\",\"expected\":\"reopened\",\"actual\":\"committed\"}",
+        "PASS T02  (3 events, 3 rejected, 0 resumes)",
+        "1/2 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-lineage-order-matters.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL T01 step 5 expect [primary]: {\"path\":\"/commitment_bases/heating@2/provenance/evidence/0\",\"expected\":\"temperature@2\",\"actual\":\"temperature@1\"}",
+        "PASS T02  (3 events, 3 rejected, 0 resumes)",
+        "1/2 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-pass-lineage-as-set.scenarios.json",
+      "exit": 0,
+      "output": [
+        "PASS T01  (3 events, 0 rejected, 1 resumes)",
+        "PASS T02  (3 events, 3 rejected, 0 resumes)",
+        "2/2 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-repeat.scenarios.json",
+      "exit": 0,
+      "output": [
+        "PASS P01  (45 events, 2 rejected, 1 resumes)",
+        "1/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-same-as-before-changed.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL T01 step 6 same_as [primary]: {\"path\":\"/commitment_grounds\",\"expected\":{\"heating@1\":{\"evidence\":[\"temperature@1\"],\"caveats\":[\"calibration_offset\"]}},\"actual\":{\"heating@1\":{\"evidence\":[\"temperature@1\"],\"caveats\":[\"calibration_offset\"]},\"heating@2\":{\"evidence\":[\"temperature@2\"],\"caveats\":[\"calibration_offset\"]}}}",
+        "PASS T02  (3 events, 3 rejected, 0 resumes)",
+        "1/2 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-size-bound.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL T01 step 5 size: {\"path\":\"save\",\"expected\":\"at most 200 bytes\",\"actual\":\"3590 bytes\"}",
+        "0/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-wrong-policy-message.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL R01 step 5 send [primary]: {\"message\":\"unexpected outcome\",\"expected\":\"Some other message.\",\"outcome\":{\"outcome\":\"rejected\",\"origin\":\"policy\",\"code\":\"reject\",\"message\":\"Reconsider the existing plan first.\"},\"repetition\":1}",
+        "0/1 scenarios passed"
+      ]
+    },
+    {
+      "file": "faults/neg-wrong-value.scenarios.json",
+      "exit": 1,
+      "output": [
+        "FAIL T01 step 5 expect [primary]: {\"path\":\"/bindings/heating/text\",\"expected\":\"50%\",\"actual\":\"0%\"}",
+        "PASS T02  (3 events, 3 rejected, 0 resumes)",
+        "1/2 scenarios passed"
+      ]
+    }
+  ]
+}

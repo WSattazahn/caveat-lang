@@ -1,14 +1,136 @@
 # CAVEAT
 
-An experimental programming language for computation with claims, evidence, caveats, provisional commitments, and reopening.
+**Programs that remember why.** For the thinking behind it, read
+[The Caveatist way](docs/WHY_CAVEAT.md#the-caveatist-way).
 
-CAVEAT explores a persistent epistemic graph rather than reducing every computation immediately to a single settled value. Contradictory positions may coexist; evidence carries provenance; commitments can retain unresolved caveats; later evidence can reopen earlier commitments.
+> Say what you know, and what it rests on.  
+> Carry the caveats honestly.  
+> Give uncertainty the attention its consequences deserve.  
+> Act when there is enough to proceed.  
+> Remember why you chose, and remain willing to choose again.
+
+These are the project's principles. They are not additional license
+conditions: Caveat is under the [MIT License](LICENSE), and using it does not
+require adopting them.
+
+Caveat is a programming language for programs that act on what they know and keep track of how they know it:
+
+- **Values carry their evidence.** Every number computed from an observation carries that evidence and its caveats through every sum, comparison and label.
+- **Explanations can't lie.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something that never counted.
+- **Decisions remember.** A decision records what it was made on, reopens when the world disagrees, and keeps a journal.
+- **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
+
+**[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
+
+Start with **Change what you know** at the top of that page. Make a decision in one click, learn something new in a second, and see what changed, why the decision reopened, and the original reasons it kept.
+
+**Trail Rescue** is a new, complete mechanic: spend three scout tokens, weigh
+fallible reports, choose a tunnel and reconsider when its evidence changes or
+ages. Its [requirements and 24 scenarios](experiments/trail-rescue/PROTOCOL.md)
+were committed before implementation. The [Caveat program](game/trail_rescue.cav)
+owns the rules; the [browser page](web/trail-rescue.html) displays its decisions
+and frozen explanations. Build and run it with `npm run build`, `npm run serve`,
+then open `http://127.0.0.1:4173/trail-rescue.html`.
+
+The mechanic added [state caveat queries](spec/caveat-state-caveats-0.1.md):
+`has_caveat(plan_basis, stale)` checks the actual grounds of a saved basis, and
+`reopen route because caveated(plan_basis, stale)` cites the precise observations
+that have gone stale. The journal now preserves elapsed time and the chosen
+numeric value, and restore checks its consistency with commitments and evidence.
+See the [implementation record](experiments/trail-rescue/RESULTS.md).
+
+**Fresh-agent authoring:** six fresh contexts authored three specified policies
+using a frozen documentation packet, without private-test feedback. Two first
+submissions and all six final submissions passed the registered corpus: 20,512
+final-source events and 4,788 restores. All four initial failures exposed an
+unclear numeric-bound restriction, now documented. Two final programs still
+have known clock-horizon contract violations outside the corpus. The
+[study report](experiments/agent-authoring/v1/RESULTS.md) preserves those limits,
+every revision and the independent verification.
+
+Reactive source can now read the runtime clock directly with
+[`elapsed()`](spec/caveat-elapsed-0.1.md): `bind hud.elapsed = elapsed();`.
+It uses the same time as scheduled caveats and decision journals, survives
+save/restore, and removes the need for a separate bounded state timer.
+
+A [four-context follow-up](experiments/agent-authoring/v2/RESULTS.md) repeated
+the two clock tasks with this read and the updated guide. Three first submissions
+and all four final submissions passed: 13,704 event dispatches and 3,158 restores.
+All four used `elapsed()` directly, without a separate state clock. The remaining
+first-source failure was unsupported comment syntax, repaired by its author.
+This is evidence on two repeated tasks, not a general reliability claim.
+
+The reactive runtime also offers [structured dispatch outcomes](spec/caveat-dispatch-0.1.md).
+`dispatch_outcome` distinguishes an authored policy rejection from invalid input,
+state-bound failure and execution-budget exhaustion. Unclassified errors remain
+fatal. Existing dispatch methods retain their behavior; new integrations can use
+the explicit outcome contract when testing why an event was refused.
+
+## What only Caveat does
+
+| | Caveat | A general-purpose language |
+| --- | --- | --- |
+| **Explanations** | `bind label = "Could be a duskcap" when … because contradiction;` The runtime checks the citation: it may leave dependencies out, never add one. | A list you maintain by hand. Nothing checks it. |
+| **Caveats through computation** | `qualified(1, taste, tasted_in_dark)` flows through every sum, condition, decision and label that uses it. | Thread a caveat list through every function. |
+| **Late caveats** | `qualify taste with taste_faded;` reaches every current value built on the taste. Decisions made earlier keep theirs. | Find every derived value by hand, and remember to freeze the ones that were decisions. |
+| **Decisions that remember** | `commit`, `reopen`, and revisions of a decision series. Each revision is grounded on exactly what it used, and `decision_journal` records them in order. | History arrays, basis snapshots and bookkeeping code. |
+| **Grounds and lineage** | *Lineage* is everything that could have influenced a value. *Grounds* is what it is based on. Guards are control, never content, and grounds ⊆ lineage always. | One or the other, by convention. |
+| **Atomic events** | `reject "already absorbed";` No partial update survives a rejected event. | Validate everything before the first write, by discipline. |
+
+## The evidence: the glowcap benchmark
+
+The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game beat twice, in TypeScript and in Caveat:
+
+- a frozen, pre-registered scenario suite;
+- twelve change requests, eight committed before either implementation changed for those rounds;
+- seeded differential fuzz comparing accepted and rejected events, views, and save/resume behavior.
+
+| Round | Change cost, Caveat vs TypeScript | Result |
+| --- | --- | --- |
+| 1 · first version | 55 vs 57 (CR1–4) | Parity. The weak spots became the language's work list. |
+| 3 · blind requests | 97 vs 53 (CR5–8) | TypeScript. Caveat's lineage fought the designer's meaning. |
+| 5 · replay after language changes | **71 vs 110** (CR1–8) | Caveat, with 134 lines against 164. Written knowing the requests. |
+| 6 · blind requests | **92 vs 103** (CR9–12) | TypeScript. Caveat passed two of four phases on the first run, capped regrowth at eight lives, and exceeded the 1 ms event budget. |
+| 6 · replay after language changes | **88 vs 103** (CR9–12 plus correction) | Lower change cost; mixed size (168 vs 233 lines, 12,701 vs 11,586 bytes). Three of four phases passed on the first run. Written knowing the requests. |
+
+The earlier losses led to [grounded explanations](spec/caveat-explanations-0.1.md), [grounds](spec/caveat-explanations-0.2.md), [reject](spec/caveat-reject-0.1.md), [define](spec/caveat-define-0.1.md), [typed parameters](spec/caveat-typed-parameters-0.1.md), [the view](spec/caveat-view-0.1.md), [late qualification](spec/caveat-late-qualification-0.1.md) and the [decision journal](spec/caveat-decision-journal-0.1.md).
+
+Round 6 led to [incremental evaluation](spec/caveat-incremental-evaluation-0.1.md), a load-time [observation-order check](spec/caveat-observation-order-0.1.md), [procedures that take evidence](spec/caveat-procedure-symbols-0.1.md), [renewable evidence and timed caveats](spec/caveat-renewal-0.1.md), and [save/restore without event replay](spec/caveat-save-0.1.md). The replay passes all 38 scenarios and a separate twelve-life regrowth check beyond the old eight-life cap. Its evidence still has a declared limit of 1,024 lives per mushroom: the request for unlimited regrowth remains unmet. Its first save-format attempt exceeded the size limit; that failed run remains in the results.
+
+The replay's first 2,000-sequence fuzz found five disagreements in about 7.3 million events. JSON parsing changed some floating-point values by one unit in the last place, moving timed behavior across a boundary. Exact round-trip parsing fixed those timing differences. Final review then found the fuzz was hiding a decision-basis ordering bug by sorting that list. The adapter now uses the journal's ordered evidence, and an order-sensitive comparator checks it. That correction adds two changed lines to the original 86. The five captured sequences and both stricter 2,000-sequence fuzz runs now agree: 14,443,471 fuzz events with zero divergences. The blind round remains a TypeScript win, and this replay does not establish an adoption win under the same rule: size is mixed and only change cost is clearly better.
+
+What Caveat still costs, honestly:
+
+- 51.6 µs median per event plus view for the replay program, against 2.5 µs for TypeScript, measured after the fuzz;
+- 482,716 gzipped bytes (about 483 KB) for the Caveat policy, adapter and runtime;
+- rounds 4, 5 and the round-6 replay were written knowing the requests, so another blind round is needed to test generalization.
+
+## A taste
+
+```caveat
+event absorb target kind mushroom, sort in glowcap duskcap;
+
+for mushroom as $m {
+    on absorb when $m_here and $m_consumed == 1 reject "already absorbed";
+    on absorb when $m_here and sort == sort.glowcap
+        set support = support + qualified(1, absorb_$m);
+    on absorb when $m_here and sort == sort.duskcap and committed(trust)
+        reopen trust because absorb_$m;
+    on tick when $m_tasted_at >= 0 and now - $m_tasted_at >= 60
+        qualify taste_$m with taste_faded;
+
+    bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
+    bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because contradiction;
+};
+```
+
+Read [Why Caveat](docs/WHY_CAVEAT.md) for side-by-side code and the Caveatist way of working. To write your first program, start from the [authoring guide](docs/AI_AUTHORING.md).
 
 ## Status
 
 CAVEAT 0.3 is executable, and the **0.4 game profile** adds executable knowledge requirements, evidence-dependent outcomes, and source-authored spatial presentation. The Rust reference runtime parses source, evaluates the epistemic graph, exposes the CAVEAT Map, and runs the same game program in a terminal or a WebAssembly browser session. The new features are specified in [Draft 0.4](spec/caveat-0.4-draft.md).
 
-The newest playable proof-of-use is **Light the Way**, a direct-control ferry rescue powered by the new reactive CAVEAT profile. Movement, scouting, collisions, damage, score, and outcomes are source rules. **The Last Beacon** remains a separate 3D island mystery whose available decisions, evidence, retained uncertainty, nine outcomes, locations, cameras, and paths are authored in `game/the_last_beacon.cav`. **Moon Garden** remains a short mobile-first mystery with both a 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
+Other playable examples include **Light the Way**, a direct-control ferry rescue powered by the new reactive CAVEAT profile. Movement, scouting, collisions, damage, score, and outcomes are source rules. **The Last Beacon** remains a separate 3D island mystery whose available decisions, evidence, retained uncertainty, nine outcomes, locations, cameras, and paths are authored in `game/the_last_beacon.cav`. **Moon Garden** remains a short mobile-first mystery with both a 2D presentation and a separate **Moon Garden 3D** presentation driven by the same CAVEAT session. The earlier **The Door** scenario remains the world/action stress test.
 
 **CAVEAT 3D 0.2** now consumes normalized Rust action-runtime executions (`Move`, `Inspect`, `Operate`, `Open`, `Observe`, `Stay`) and maps those commands to semantic place/entity/symbol presentation bindings. Moon Garden no longer needs normal per-action camera choreography. See `spec/caveat3d-0.2.md`. The remaining graphics problem is art-direction automation: semantic identifiers can now drive the scene, but attractive camera composition and assets still require authored presentation bindings.
 
@@ -41,6 +163,32 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 [Reactive 0.6](spec/caveat-reactive-0.6.md) makes retained history available to source computation through `history_count`, zero-based `history_at`, and `fold_history`. Reducers are ordinary pure Caveat functions: summing, calculating a range, or choosing a history-based policy requires no corresponding Rust algorithm. Results retain the observations, caveats, and selection dependencies involved. Invalid indexes, reducer errors, and bounded-work failures roll back the whole event. The thermostat calculates mean/range/trend in source, while the game compares archived readings to report a measured flow reversal. This is bounded history computation, not yet arbitrary collections or self-hosting.
 
 [Reactive 0.7](spec/caveat-reactive-0.7.md) adds reusable effect procedures. A `proc` can share input handling or a sequence of observation and revision steps across source events. Calls freeze their numeric arguments and entry guard, retain every argument's qualifications, and run within the calling event's atomic transaction. The game shares keyboard cleanup, held-input activation, and aim movement; the thermostat records and revises through a source procedure. Rust provides bounded calls and validation, while the behavior remains Caveat source.
+
+[Explanations 0.1](spec/caveat-explanations-0.1.md) lets a binding say what it cites: `bind label.text = "…" when … because contradiction;`. The runtime checks the citation against the binding's lineage, so an explanation may leave dependencies out but can never cite evidence or a caveat the value and its conditions did not read. The full lineage stays available for audit.
+
+[Explanations 0.2](spec/caveat-explanations-0.2.md) separates what a value is *based on* (its grounds) from everything that could have influenced it (its lineage). A rule’s guard, a skipped rule, the guard that revealed evidence, and a decision’s predecessor all stay in lineage but never enter grounds. Citations read grounds, `set x = e because c` narrows them, and grounds are always a subset of lineage.
+
+[Reject 0.1](spec/caveat-reject-0.1.md) adds `reject "MESSAGE"`: an event that is not allowed fails atomically with that message, without a dummy state or a `require` trick.
+
+[Define 0.1](spec/caveat-define-0.1.md) adds `define NAME = EXPRESSION;`, a named expression over state and the graph that is inlined wherever it is read, including per member inside a `for` block.
+
+[View 0.1](spec/caveat-view-0.1.md) adds `dispatch_view`: the same transaction as `dispatch`, returning only what a host redraws after an event (bindings and their citations, cues, effects, commitments and their grounds, relations) as compact JSON.
+
+[Typed Parameters 0.1](spec/caveat-typed-parameters-0.1.md) lets an event take an entity by name (`target kind mushroom`) or one of a list of names (`sort in glowcap duskcap`). The host sends names; the source reads positions, with `sort.duskcap` and `target.pool` as constants.
+
+[Late Qualification 0.1](spec/caveat-late-qualification-0.1.md) adds `qualify EVIDENCE with CAVEAT`: a caveat learned after the fact reaches every current value built on that evidence, while decisions already made keep what they were made on.
+
+[Decision Journal 0.1](spec/caveat-decision-journal-0.1.md) publishes every commitment and reopening, in order, with the evidence each was based on in the order it was observed.
+
+[Observation Order 0.1](spec/caveat-observation-order-0.1.md) rejects, when a program loads, a rule that qualifies a value with evidence only a later rule of the same event can reveal: a use that can only fail. Uses that could succeed on some dispatch are left to the runtime.
+
+[Procedure Symbols 0.1](spec/caveat-procedure-symbols-0.1.md) lets a procedure take evidence, a claim or a caveat by name (`proc learn(e evidence, sort)`), so every way of observing something can share one set of rules. Each call is specialized for the names it passes when the program loads.
+
+[Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
+
+[Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: `WebReactiveSession.save()` and `WebReactiveSession.restore(source, saved)`. Restoring costs what loading costs plus the size of the save. Restore validates the saved names, values and histories; mutation tests check that an altered save is either refused or remains playable without a crash.
+
+[Incremental Evaluation 0.1](spec/caveat-incremental-evaluation-0.1.md) makes an event cost what it touches: a binding is evaluated again only when something it reads changed, and a transaction copies only what its effects write. Round 6's 32-entity program went from 1.1 ms to 0.16 ms per event with identical results, checked against full evaluation after every event in the test suite.
 
 Water time and accumulated rain travel now come from Caveat state too. The source-defined `wrap` function keeps travel bounded; the renderer maps those values onto its existing wave shader and seeded rain geometry. Pausing or replaying a session preserves the corresponding weather pose.
 
@@ -96,6 +244,8 @@ npm run build
 npm run serve
 ```
 
+The build also writes `dist/pkg-reactive/`: the same runtime without the sequential, graphics and 3D sessions, for hosts that only run reactive programs (`cargo build --no-default-features`). It is about a fifth smaller.
+
 Open [Light the Way locally](http://127.0.0.1:4173/rescue.html). The earlier [story experiment](http://127.0.0.1:4173/last-beacon.html) remains available. The build compiles the Rust runtime to WebAssembly and assembles `dist/` with game sources, browser assets, and a local copy of Three.js. Existing games remain available in the same build.
 
 To play the earlier Last Beacon story in a terminal, without a browser or JavaScript:
@@ -133,3 +283,11 @@ Reactive runtime tests check atomic rollback and malformed input, and rescue sim
 - `scripts/` — reproducible browser build, local server, and game verification
 
 > Do not save CAVEAT by redefining it. If the computational model collapses into an existing paradigm, record the result.
+
+## License
+
+Caveat's code and documentation are available under the [MIT License](LICENSE).
+Third-party components keep their own licenses: the Rust crates compiled into
+the WebAssembly runtime are listed with their notices in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the site's copy of
+three.js ships with its license as `vendor/THREE-LICENSE.txt`.

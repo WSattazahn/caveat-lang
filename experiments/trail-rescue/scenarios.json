@@ -1,0 +1,1994 @@
+{
+  "schemaVersion": 1,
+  "title": "Trail Rescue frozen scenarios",
+  "initialView": {
+    "now": 0,
+    "scoutsRemaining": 3,
+    "outcome": "pending",
+    "canRescue": false,
+    "evidence": [],
+    "tunnels": {
+      "stone": {
+        "status": "unknown",
+        "clearBy": [],
+        "blockedBy": [],
+        "because": [],
+        "caveats": [],
+        "canScout": true,
+        "canReport": true,
+        "canPlan": false
+      },
+      "reed": {
+        "status": "unknown",
+        "clearBy": [],
+        "blockedBy": [],
+        "because": [],
+        "caveats": [],
+        "canScout": true,
+        "canReport": true,
+        "canPlan": false
+      }
+    },
+    "decision": {
+      "state": "none",
+      "tunnel": null,
+      "basis": [],
+      "caveats": [],
+      "reopenedBy": [],
+      "history": []
+    }
+  },
+  "scenarios": [
+    {
+      "id": "TR01",
+      "title": "A qualified report can justify a successful rescue",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          },
+          "expect": {
+            "/scoutsRemaining": 3,
+            "/tunnels/stone/status": "clear",
+            "/tunnels/stone/clearBy": [
+              "report_stone"
+            ],
+            "/tunnels/stone/caveats": [
+              "secondhand"
+            ],
+            "/tunnels/stone/canReport": false
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/canRescue": true,
+            "/decision/state": "committed",
+            "/decision/basis": [
+              "report_stone"
+            ],
+            "/decision/caveats": [
+              "secondhand"
+            ],
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "report_stone"
+                ],
+                "caveats": [
+                  "secondhand"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued",
+            "/canRescue": false,
+            "/tunnels/stone/canScout": false,
+            "/tunnels/reed/canReport": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR02",
+      "title": "Scouting reads the physical world and spends exactly one token",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "scout"
+          },
+          "expect": {
+            "/scoutsRemaining": 2,
+            "/evidence/0/condition": "blocked",
+            "/evidence/0/id": "scout_reed_1",
+            "/tunnels/reed/status": "blocked"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "reed"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/scoutsRemaining": 1,
+            "/tunnels/stone/status": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR03",
+      "title": "Unsupported rescue and planning reject without creating decisions",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "reed"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/evidence/0/id": "scout_stone_1",
+            "/scoutsRemaining": 2
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR04",
+      "title": "Conflicting observations remain disputed until they age",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "blocked"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/tunnels/stone/status": "disputed",
+            "/tunnels/stone/because": [
+              "report_stone",
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/clearBy": [
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/blockedBy": [
+              "report_stone"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 30
+          },
+          "expect": {
+            "/tunnels/stone/status": "unknown",
+            "/tunnels/stone/because": [],
+            "/evidence/0/caveats": [
+              "secondhand",
+              "stale"
+            ],
+            "/evidence/1/caveats": [
+              "stale"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/evidence/2/id": "scout_stone_2",
+            "/scoutsRemaining": 1
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/decision/basis": [
+              "scout_stone_2"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR05",
+      "title": "A fresh contradiction reopens and another tunnel can rescue",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/decision/basis": [
+              "report_stone"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "stone",
+            "condition": "blocked"
+          },
+          "expect": {
+            "/decision/state": "committed",
+            "/tunnels/stone/status": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/decision/state": "reopened",
+            "/decision/basis": [
+              "report_stone"
+            ],
+            "/decision/caveats": [
+              "secondhand"
+            ],
+            "/decision/reopenedBy": [
+              "scout_stone_2"
+            ],
+            "/decision/history/1": {
+              "change": "reopened",
+              "tunnel": "stone",
+              "at": 0,
+              "because": [
+                "scout_stone_2"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "reed",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "reed"
+          },
+          "expect": {
+            "/decision/basis": [
+              "scout_reed_1"
+            ],
+            "/decision/caveats": [],
+            "/decision/reopenedBy": [],
+            "/decision/history/2": {
+              "change": "committed",
+              "tunnel": "reed",
+              "at": 0,
+              "because": [
+                "scout_reed_1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued",
+            "/scoutsRemaining": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR06",
+      "title": "A mistaken visitor can justify a plan that really fails",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "reed"
+          },
+          "expect": {
+            "/decision/caveats": [
+              "secondhand"
+            ]
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "failed",
+            "/decision/state": "committed",
+            "/decision/basis": [
+              "report_reed"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR07",
+      "title": "A direct basis ages at the exact boundary across restore",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 29.5
+          },
+          "expect": {
+            "/decision/state": "committed",
+            "/evidence/0/caveats": []
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.5
+          },
+          "expect": {
+            "/now": 30,
+            "/decision/state": "reopened",
+            "/decision/caveats": [],
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ],
+            "/decision/history/1": {
+              "change": "reopened",
+              "tunnel": "stone",
+              "at": 30,
+              "because": [
+                "scout_stone_1"
+              ],
+              "caveats": [
+                "stale"
+              ]
+            }
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "reject": true
+        }
+      ]
+    },
+    {
+      "id": "TR08",
+      "title": "A frozen report commitment never acquires a later stale caveat",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 30
+          },
+          "expect": {
+            "/decision/caveats": [
+              "secondhand"
+            ],
+            "/decision/history/0": {
+              "change": "committed",
+              "tunnel": "stone",
+              "at": 0,
+              "because": [
+                "report_stone"
+              ],
+              "caveats": [
+                "secondhand"
+              ]
+            },
+            "/decision/history/1": {
+              "change": "reopened",
+              "tunnel": "stone",
+              "at": 30,
+              "because": [
+                "report_stone"
+              ],
+              "caveats": [
+                "secondhand",
+                "stale"
+              ]
+            }
+          }
+        },
+        {
+          "op": "resume"
+        }
+      ]
+    },
+    {
+      "id": "TR09",
+      "title": "New support does not silently refresh an old commitment",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 10
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          },
+          "expect": {
+            "/decision/basis": [
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/because": [
+              "scout_stone_1",
+              "report_stone"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 20
+          },
+          "expect": {
+            "/tunnels/stone/status": "clear",
+            "/tunnels/stone/clearBy": [
+              "report_stone"
+            ],
+            "/decision/state": "reopened",
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/canPlan": true
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/decision/basis": [
+              "report_stone"
+            ],
+            "/decision/caveats": [
+              "secondhand"
+            ],
+            "/decision/reopenedBy": []
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 10
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "report_stone"
+            ],
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "scout_stone_1"
+                ],
+                "caveats": []
+              },
+              {
+                "change": "reopened",
+                "tunnel": "stone",
+                "at": 30,
+                "because": [
+                  "scout_stone_1"
+                ],
+                "caveats": [
+                  "stale"
+                ]
+              },
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 30,
+                "because": [
+                  "report_stone"
+                ],
+                "caveats": [
+                  "secondhand"
+                ]
+              },
+              {
+                "change": "reopened",
+                "tunnel": "stone",
+                "at": 40,
+                "because": [
+                  "report_stone"
+                ],
+                "caveats": [
+                  "secondhand",
+                  "stale"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR10",
+      "title": "Simultaneously stale basis members produce one ordered reopening",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/decision/basis": [
+              "report_stone",
+              "scout_stone_1"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 30
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "report_stone",
+              "scout_stone_1"
+            ],
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "report_stone",
+                  "scout_stone_1"
+                ],
+                "caveats": [
+                  "secondhand"
+                ]
+              },
+              {
+                "change": "reopened",
+                "tunnel": "stone",
+                "at": 30,
+                "because": [
+                  "report_stone",
+                  "scout_stone_1"
+                ],
+                "caveats": [
+                  "secondhand",
+                  "stale"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0
+          },
+          "expect": {
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "report_stone",
+                  "scout_stone_1"
+                ],
+                "caveats": [
+                  "secondhand"
+                ]
+              },
+              {
+                "change": "reopened",
+                "tunnel": "stone",
+                "at": 30,
+                "because": [
+                  "report_stone",
+                  "scout_stone_1"
+                ],
+                "caveats": [
+                  "secondhand",
+                  "stale"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR11",
+      "title": "Unrelated stale evidence and physical changes do not reopen",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 5
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 25
+          },
+          "expect": {
+            "/tunnels/reed/status": "unknown",
+            "/decision/state": "committed",
+            "/decision/reopenedBy": [],
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 5,
+                "because": [
+                  "scout_stone_1"
+                ],
+                "caveats": []
+              }
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "reed",
+            "condition": "clear"
+          },
+          "expect": {
+            "/decision/state": "committed"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR12",
+      "title": "Malformed JSON events are atomic",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "unknown"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "bogus"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "stone",
+            "condition": "maybe"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "guess"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": 1
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout",
+            "condition": "clear"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": -1
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 30.1
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": "1"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "method": "scout"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": 0
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/now": 0,
+            "/scoutsRemaining": 2,
+            "/evidence/0/id": "scout_stone_1",
+            "/evidence/0/condition": "clear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR13",
+      "title": "Three scouts total and free reports remain separate resources",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/scoutsRemaining": 0,
+            "/evidence/2/id": "scout_stone_2",
+            "/tunnels/stone/canScout": false,
+            "/tunnels/reed/canScout": false
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "scout"
+          },
+          "reject": true
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "clear"
+          },
+          "expect": {
+            "/scoutsRemaining": 0,
+            "/evidence/3/id": "report_reed",
+            "/tunnels/reed/status": "disputed"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "reject": true
+        }
+      ]
+    },
+    {
+      "id": "TR14",
+      "title": "Reports are limited per tunnel and duplicate rejection is atomic",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "blocked"
+          },
+          "reject": true
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "blocked"
+          },
+          "expect": {
+            "/scoutsRemaining": 3,
+            "/evidence/1/id": "report_reed",
+            "/tunnels/stone/status": "clear",
+            "/tunnels/stone/canReport": false,
+            "/tunnels/reed/canReport": false
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "clear"
+          },
+          "reject": true
+        }
+      ]
+    },
+    {
+      "id": "TR15",
+      "title": "A committed plan cannot be replaced before a challenge",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/tunnels/stone/canPlan": false,
+            "/tunnels/reed/canPlan": false
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "reed"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR16",
+      "title": "A stale contradiction stops voting without erasing history",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "blocked"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 10
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/tunnels/stone/status": "disputed"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 20
+          },
+          "expect": {
+            "/tunnels/stone/status": "clear",
+            "/tunnels/stone/because": [
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/caveats": [],
+            "/evidence/0/caveats": [
+              "secondhand",
+              "stale"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/decision/basis": [
+              "scout_stone_1"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR17",
+      "title": "A hidden changed condition can defeat an unchanged justified plan",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "stone",
+            "condition": "blocked"
+          },
+          "expect": {
+            "/tunnels/stone/status": "clear",
+            "/decision/state": "committed",
+            "/decision/reopenedBy": []
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "failed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR18",
+      "title": "Terminal sessions reject every gameplay event and resume intact",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "reed"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "failed"
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 1
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "reed",
+            "condition": "clear"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          },
+          "reject": true
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "reject": true
+        }
+      ]
+    },
+    {
+      "id": "TR19",
+      "title": "Already reopened plans keep the first cause and immutable history",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "change",
+            "tunnel": "stone",
+            "condition": "blocked"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 30
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ],
+            "/decision/caveats": [
+              "secondhand"
+            ],
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "report_stone"
+                ],
+                "caveats": [
+                  "secondhand"
+                ]
+              },
+              {
+                "change": "reopened",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "scout_stone_1"
+                ],
+                "caveats": []
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR20",
+      "title": "Basis follows acquisition order, not lexical evidence ids",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "reed",
+            "method": "report",
+            "condition": "blocked"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          },
+          "expect": {
+            "/decision/basis": [
+              "scout_stone_1",
+              "report_stone",
+              "scout_stone_2"
+            ],
+            "/tunnels/stone/because": [
+              "scout_stone_1",
+              "report_stone",
+              "scout_stone_2"
+            ],
+            "/decision/history/0": {
+              "change": "committed",
+              "tunnel": "stone",
+              "at": 0,
+              "because": [
+                "scout_stone_1",
+                "report_stone",
+                "scout_stone_2"
+              ],
+              "caveats": [
+                "secondhand"
+              ]
+            }
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR21",
+      "title": "Different basis ages reopen on the first age without later duplicates",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 1
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "clear"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 29
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/status": "clear",
+            "/decision/history/1": {
+              "change": "reopened",
+              "tunnel": "stone",
+              "at": 30,
+              "because": [
+                "scout_stone_1"
+              ],
+              "caveats": [
+                "stale"
+              ]
+            }
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 1
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ],
+            "/tunnels/stone/status": "unknown",
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 1,
+                "because": [
+                  "scout_stone_1",
+                  "report_stone"
+                ],
+                "caveats": [
+                  "secondhand"
+                ]
+              },
+              {
+                "change": "reopened",
+                "tunnel": "stone",
+                "at": 30,
+                "because": [
+                  "scout_stone_1"
+                ],
+                "caveats": [
+                  "stale"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR22",
+      "title": "A blocked report reopens with its own caveat frozen",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "report",
+            "condition": "blocked"
+          },
+          "expect": {
+            "/decision/reopenedBy": [
+              "report_stone"
+            ],
+            "/decision/history/1": {
+              "change": "reopened",
+              "tunnel": "stone",
+              "at": 0,
+              "because": [
+                "report_stone"
+              ],
+              "caveats": [
+                "secondhand"
+              ]
+            },
+            "/tunnels/stone/status": "disputed"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 30
+          },
+          "expect": {
+            "/decision/history/1": {
+              "change": "reopened",
+              "tunnel": "stone",
+              "at": 0,
+              "because": [
+                "report_stone"
+              ],
+              "caveats": [
+                "secondhand"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "TR23",
+      "title": "Zero time leaves freshness and history alone",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0
+          },
+          "expect": {
+            "/now": 0
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0
+          },
+          "expect": {
+            "/evidence/0/caveats": [],
+            "/decision/state": "committed",
+            "/decision/history": [
+              {
+                "change": "committed",
+                "tunnel": "stone",
+                "at": 0,
+                "because": [
+                  "scout_stone_1"
+                ],
+                "caveats": []
+              }
+            ]
+          }
+        },
+        {
+          "op": "resume"
+        }
+      ]
+    },
+    {
+      "id": "TR24",
+      "title": "Mixed fractional time and observation numbering survive repeated resume",
+      "steps": [
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.05
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/evidence/0/id": "scout_stone_1"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 29.5
+          }
+        },
+        {
+          "op": "resume"
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "tick",
+            "dt": 0.5
+          },
+          "expect": {
+            "/decision/state": "reopened",
+            "/decision/reopenedBy": [
+              "scout_stone_1"
+            ]
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "observe",
+            "tunnel": "stone",
+            "method": "scout"
+          },
+          "expect": {
+            "/evidence/1/id": "scout_stone_2"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "plan",
+            "tunnel": "stone"
+          }
+        },
+        {
+          "op": "dispatch",
+          "event": {
+            "type": "rescue"
+          },
+          "expect": {
+            "/outcome": "rescued"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -60,6 +60,8 @@ jobs:
       - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+      - name: Third-party notices match the locked crates
+        run: node scripts/third-party-notices.mjs --check
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
       - uses: actions/setup-node@v7
         with:
@@ -70,6 +72,18 @@ jobs:
         run: npm run build
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
+      - name: Elapsed clock WebAssembly checks
+        run: npm run test:elapsed-clock
+      - name: Structured dispatch WebAssembly checks
+        run: npm run test:dispatch-outcomes
+      - name: Glowcap explanations against the lean runtime
+        run: npm run test:glowcap
+      - name: Trail Rescue registered scenarios, invariants and restore
+        run: npm run test:trail-rescue
+      - name: Developer kit session library and scenario runner
+        run: npm run test:kit
+      - name: Converted Trail Rescue and Glowcap scenarios
+        run: npm run test:scenario-conversion
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav
@@ -83,6 +97,11 @@ jobs:
         with:
           name: slime-glow-wasm-report
           path: test-results/slime-glow-wasm.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: trail-rescue-policy-report
+          path: test-results/trail-rescue.json
       - uses: actions/upload-artifact@v7
         with:
           name: browser-dist
@@ -125,7 +144,7 @@ jobs:
       - name: Require identical bytes
         run: |
           first="$GITHUB_WORKSPACE/first-build"
-          for file in pkg/caveat_runtime_bg.wasm pkg/caveat_runtime.js build-info.json; do
+          for file in pkg/caveat_runtime_bg.wasm pkg/caveat_runtime.js pkg-reactive/caveat_runtime_bg.wasm pkg-reactive/caveat_runtime.js build-info.json; do
             sha256sum "$first/$file" "dist/$file"
             cmp "$first/$file" "dist/$file"
           done
@@ -134,6 +153,57 @@ jobs:
             exit 1
           fi
           cat dist/build-info.json
+
+  glowcap-page:
+    name: Evidence games browser QA
+    needs: core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Play the glowcap explainer
+        run: npm run test:glowcap-page
+      - name: Play Trail Rescue on desktop and mobile
+        run: npm run test:trail-rescue-page
+      - name: Developer kit session library and runner in Chromium
+        run: npm run test:kit-browser
+      - name: Pack the developer kit and use it from a fresh install
+        id: kit_package
+        run: npm run test:kit-package
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: kit-package-report
+          path: test-results/kit-package/*/report.json
+      - name: Retain the tested developer kit candidate
+        uses: actions/upload-artifact@v7
+        if: steps.kit_package.outcome == 'success'
+        with:
+          name: kit-package-candidate
+          path: |
+            test-results/kit-package/*/*.tgz
+            test-results/kit-package/*/report.json
+            test-results/kit-package/*/build-info.json
+            test-results/kit-package/*/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: glowcap-page-qa
+          path: |
+            test-results/glowcap-page.png
+            test-results/trail-rescue-*.png
 
   last-beacon:
     name: The Last Beacon browser QA

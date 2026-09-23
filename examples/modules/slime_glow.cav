@@ -1,0 +1,26 @@
+# examples/slime_glow_ability.cav, split in two.
+#
+# The program owns the host's event names and the rules that route them. The
+# ability itself is in glow.cav. Binding targets are host names and are not
+# namespaced by linking, so `ability.learned` reads exactly as it does from the
+# single-file policy.
+#
+# tests/modules.rs asserts this produces the same bindings as the single file
+# for the same sequence of events.
+scene "Record authored ruin escape and mushroom discovery; expose Glow only when the host verifies its renderer.";
+
+use glow;
+
+event cave_entered;
+event clearing_started;
+event ruin_escaped;
+event absorb_mushroom;
+event toggle_glow;
+event glow_renderer_ready;
+
+on cave_entered when not observed(glow::cave_threshold) reveal glow::cave_threshold supports glow::cave_entered;
+on clearing_started when not observed(glow::clearing_context) reveal glow::clearing_context supports glow::clearing_started;
+on ruin_escaped when observed(glow::clearing_context) and not observed(glow::ruin_exit) call glow::record_ruin_escape();
+on glow_renderer_ready when not observed(glow::glow_renderer) call glow::enable_glow_renderer();
+on absorb_mushroom when not observed(glow::first_mushroom) call glow::learn_glow();
+on toggle_glow when glow::learned == 1 and glow::renderer_ready == 1 call glow::toggle_glow_state();

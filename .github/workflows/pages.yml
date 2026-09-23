@@ -79,11 +79,15 @@ jobs:
         with:
           name: caveat-runtime-${{ github.sha }}
           path: |
+            dist/LICENSE
+            dist/THIRD_PARTY_NOTICES.md
             dist/build-info.json
             dist/slime_glow_ability.cav
             dist/slime-glow-policy.js
             dist/pkg/caveat_runtime.js
             dist/pkg/caveat_runtime_bg.wasm
+            dist/pkg-reactive/caveat_runtime.js
+            dist/pkg-reactive/caveat_runtime_bg.wasm
           retention-days: 90
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

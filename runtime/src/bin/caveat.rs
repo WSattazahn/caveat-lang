@@ -2,12 +2,13 @@ use caveat_runtime::{
     ast::{EpistemicCondition, Program, Statement},
     eval,
     game_session::{GamePending, GameSession, GameSnapshot},
-    parser, NodeKind,
+    link, parser, NodeKind,
 };
 use std::{
     collections::HashMap,
-    env, fs,
+    env,
     io::{self, Write},
+    path::Path,
     process,
 };
 
@@ -224,32 +225,43 @@ fn play_game(source: &str) -> Result<(), String> {
 fn main() {
     let mut interactive = false;
     let mut game = false;
+    let mut emit_bundle = false;
     let mut path = None;
     for argument in env::args().skip(1) {
         if argument == "-i" || argument == "--interactive" {
             interactive = true;
         } else if argument == "--game" {
             game = true;
+        } else if argument == "--link" {
+            emit_bundle = true;
         } else {
             path = Some(argument);
         }
     }
     let path = path.unwrap_or_else(|| {
-        eprintln!("usage: caveat [-i | --game] file.cav");
+        eprintln!("usage: caveat [-i | --game | --link] file.cav");
         process::exit(2)
     });
     if game && interactive {
         eprintln!("choose either --game or --interactive");
         process::exit(2);
     }
-    let source = fs::read_to_string(&path)
-        .unwrap_or_else(|error| fail(format!("cannot read {path}: {error}")));
+    // Resolves `use NAME;` to NAME.cav beside the entry file. A program with
+    // no imports is returned byte-for-byte.
+    let source = link::disk::load(Path::new(&path))
+        .unwrap_or_else(|error| fail(format!("cannot load {path}: {error}")));
+    if emit_bundle {
+        print!("{source}");
+        return;
+    }
     if game {
         play_game(&source).unwrap_or_else(|error| fail(format!("game error: {error}")));
         return;
     }
-    let mut program =
-        parser::parse(&source).unwrap_or_else(|error| fail(format!("parse error: {error}")));
+    let mut program = parser::parse(
+        &link::link(&source).unwrap_or_else(|error| fail(format!("link error: {error}"))),
+    )
+    .unwrap_or_else(|error| fail(format!("parse error: {error}")));
 
     if interactive {
         let interaction_indices: Vec<usize> = program

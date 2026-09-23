@@ -23,8 +23,14 @@ event tick dt min 0 max 0.1;
 
 State initializers are numeric expressions. They can reference previously
 declared states and read-only source positions. Explicit state bounds are
-optional; the default is `-1e12..1e12`. Values are finite double-precision
-numbers. Out-of-range results reject the event; they are not silently clamped.
+optional; the default is `-1e12..1e12`. This is also the hard inclusive limit:
+explicit state bounds and numeric event parameter bounds must have finite
+endpoints satisfying `-1e12 <= min <= max <= 1e12`. An explicit declaration
+cannot widen that limit.
+
+Values are finite double-precision numbers. State initializers must fit their
+declared range. An assignment outside that range rejects the entire event
+atomically, including any earlier effects; values are not silently clamped.
 Use the `clamp` function when saturation is intended.
 
 Each event declares all its numeric parameters and their required inclusive
@@ -88,6 +94,14 @@ coordinates, parentheses, unary signs, `+`, `-`, `*`, `/`, and these functions:
 | `clamp(x, low, high)` | Inclusive saturation |
 | `sqrt(x)` | Square root of a nonnegative value |
 | `sin(x)`, `cos(x)` | Trigonometric functions, radians |
+| `elapsed()` | Current session clock in seconds; see [Elapsed 0.1](caveat-elapsed-0.1.md) |
+
+`elapsed()` reads the existing runtime clock, initially zero, without adding
+evidence or grounds. Clock events accumulate their `dt` before due scheduled
+qualifications and rules, and a rejected event rolls that update back. Reads
+are not subject to state bounds; assigning the result to a state still is.
+The later [Elapsed 0.1](caveat-elapsed-0.1.md) profile specifies clock selection,
+pure-function boundaries, incremental bindings and save/restore behavior.
 
 Boolean expressions support `true`, `false`, `==`, `!=`, `<`, `<=`, `>`, `>=`,
 `and`, `or`, `not`, and the graph predicates below. Conditions must be boolean;

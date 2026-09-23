@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "source": "Unchanged v1 A/B oracle and registered event sequences",
+  "tasks": {
+    "A": {
+      "heldOutScenarios": 14,
+      "seededSequences": 100,
+      "cases": 114,
+      "casesSha256": "ae3a1be552d810c7231c087f14a6d9d714dd4ff6ff0e26a5e31a0786b81cce23",
+      "steps": 4095,
+      "events": 3440,
+      "accepted": 1336,
+      "rejected": 2104,
+      "resumeSteps": 655,
+      "maximumElapsed": 11.399999999999999
+    },
+    "B": {
+      "heldOutScenarios": 16,
+      "seededSequences": 100,
+      "cases": 116,
+      "casesSha256": "9acbce2b085b7d35689bd1bba28ab1468926c802f4c675b16884c9818e71b10a",
+      "steps": 4106,
+      "events": 3412,
+      "accepted": 1496,
+      "rejected": 1916,
+      "resumeSteps": 694,
+      "maximumElapsed": 10.799999999999999
+    }
+  }
+}
