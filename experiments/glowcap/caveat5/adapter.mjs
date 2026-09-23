@@ -17,17 +17,21 @@ export function createPolicy() {
     shown = JSON.parse(session.dispatch_view(event.type, JSON.stringify(payload)));
   }
 
+  // The runtime names a regrown mushroom's evidence absorb_cave@2; the
+  // protocol calls it absorb_cave_2.
+  const named = (evidence) => evidence.map((name) => name.replace('@', '_'));
+
   function view() {
     const { bindings, binding_explanations: cites, relations, commitments, commitment_grounds: grounds, decision_journal: journal, decision_series: series } = shown;
-    const bearing = (relation) => relations.filter((r) => r.relation === relation && r.to === 'glowing_is_safe').map((r) => r.from);
+    const bearing = (relation) => named(relations.filter((r) => r.relation === relation && r.to === 'glowing_is_safe').map((r) => r.from));
     const current = series.trust.current;
     const trust = commitments.find((c) => c.action === current);
     return {
       slime: { ...bindings.slime },
-      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: cites[id].label.evidence, caveats: cites[id].label.caveats }])),
+      mushrooms: Object.fromEntries(mushrooms.map((id) => [id, { ...bindings[id], because: named(cites[id].label.evidence), caveats: cites[id].label.caveats }])),
       belief: { ...bindings.belief, supportedBy: bearing('supports'), contradictedBy: bearing('opposes'), caveats: cites.belief.state.caveats },
-      decision: { state: bindings.decision.state, basis: grounds[current]?.evidence ?? [], reopenedBy: trust?.reopened_by ?? [], caveats: grounds[current]?.caveats ?? [],
-        history: journal.filter((entry) => entry.decision === 'trust').map(({ change, because }) => ({ change, because })) },
+      decision: { state: bindings.decision.state, basis: named(grounds[current]?.evidence ?? []), reopenedBy: named(trust?.reopened_by ?? []), caveats: grounds[current]?.caveats ?? [],
+        history: journal.filter((entry) => entry.decision === 'trust').map(({ change, because }) => ({ change, because: named(because) })) },
     };
   }
 
