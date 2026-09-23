@@ -94,15 +94,15 @@ for (let sequence = 0; sequence < SEQUENCES; sequence += 1) {
     // Accept/reject is compared on every event; views once per step, since a
     // burst of ticks only matters where it ends.
     let difference = null;
-    const events = randomStep();
-    if (events === 'resume') {
+    const burst = randomStep();
+    if (burst === 'resume') {
       history.push({ type: 'resume' });
       ts = factories.ts(JSON.parse(JSON.stringify(ts.save())));
       const resumed = factories.caveat(JSON.parse(JSON.stringify(caveat.save())));
       caveat.free?.();
       caveat = resumed;
     }
-    for (const event of events === 'resume' ? [] : events) {
+    for (const event of burst === 'resume' ? [] : burst) {
       history.push(event);
       events += 1;
       const outcome = { ts: attempt(ts, event), caveat: attempt(caveat, event) };

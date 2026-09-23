@@ -256,3 +256,9 @@ None to the behaviour, scenarios, measurements or decision rule after
 `cfcc881`. One check was added after the fact and is labelled as such in
 [RESULTS.md](RESULTS.md): `differential.mjs`, a seeded differential fuzz of
 the two implementations.
+
+Round 6: the round-6 fuzz mode committed in `653bf24` crashed on its first
+run because a new local variable (`events`) shadowed the event counter. It
+was renamed; what the fuzz generates and compares did not change. The round-6
+fuzz ran 300 sequences rather than the default 2000, because the Caveat side
+had become slow enough (see RESULTS) that 2000 would take about five hours.

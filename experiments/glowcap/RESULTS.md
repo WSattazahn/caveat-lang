@@ -32,6 +32,16 @@ TypeScript's 53. Across all eight requests that makes 71 against 110. The
 program is 134 lines against 164. Also written knowing every request. Details
 are [below](#round-5-late-qualification-and-the-decision-journal).
 
+**Round 6, blind change requests on the current language: TypeScript.**
+Four new requests, committed before either side changed. Caveat changed
+fewer lines, 92 against 103, but got two of four phases green on the first
+run against TypeScript's four. It could not express unbounded regrowth, and
+the workaround, with the round's other additions, made every event about ten
+times slower: 1.1 ms, over the 1 ms limit the protocol sets. Its save and
+resume is a replay of events, so resuming ten minutes of play takes 8
+seconds. The gaps it found are the next language work list. Details are
+[below](#round-6-blind-change-requests-on-the-current-language).
+
 ## Measurements
 
 All numbers come from `runs.jsonl`, `harness.mjs --measure`, `--bench`, and
@@ -320,6 +330,94 @@ correct without any code.
   round 3 was blind. The next confirmation is another blind round on the
   current language.
 
+## Round 6: blind change requests on the current language
+
+Rounds 4 and 5 were written knowing the requests. This round asks whether the
+improvements hold on requests the language was not shaped for. CR9–CR12 and
+scenarios S28–S38 were committed in `653bf24`, with a prediction for each,
+before either implementation changed. `caveat4/` continued from its CR8 state
+with the runtime frozen at `feat/grounded-explanations` 70d4c7b. TypeScript
+went first in every phase.
+
+| | TypeScript | Caveat | Better |
+| --- | --- | --- | --- |
+| **1. Correctness**: phases green on first run | 4 of 4 | 2 of 4 | TypeScript |
+| Harness runs / failing runs | 4 / 0 | 7 / 3 | TypeScript |
+| Meets every request | yes | no: regrowth stops after eight lives | TypeScript |
+| **2. Size** (final, code lines) | 233 | 162 + 46 = 208 | Caveat, −11% |
+| Size (final, bytes) | 11,586 | 11,778 + 3,525 = 15,303 | TypeScript, −24% |
+| **3. Change cost**, code lines, CR9–CR12 | 103 | 92 | Caveat, −11% |
+| Runs that broke earlier scenarios | 0 | 2 | TypeScript |
+| **4. Explanation failures** | 0 | 0 | tie |
+| **5. Dispatch + view**, median / p95 | 2.6 µs / 4.8 µs | 1,090 µs / 1,467 µs | Caveat **over** the 1 ms gate |
+| Resume ten minutes of play | under 1 ms | 8.0 s | TypeScript |
+| Save after ten minutes | 624 bytes | 97 bytes | Caveat |
+| Differential fuzz | — | pending | |
+
+By the decision rule, Caveat is better on at most two measures (size in
+lines, change cost), and each of those is offset by a worse number in the same
+row group (bytes, regressions). Its dispatch cost is over the 1 ms gate as
+well (median 1,090 µs and 1,115 µs on two runs), which fails the rule on its
+own. TypeScript wins the round.
+
+| Request | TypeScript | Caveat | Predicted | Outcome |
+| --- | --- | --- | --- | --- |
+| CR9: watching others eat | **12** | 16 | TypeScript | as predicted |
+| CR10: mushrooms regrow | **28** | 50 | TypeScript | as predicted, and worse than predicted |
+| CR11: say why not | 24 | **17** | Caveat | as predicted on lines; needed a second run |
+| CR12: save and resume | 39 | **9** | TypeScript | **failed** on lines; right on runtime cost |
+
+**CR9.** A second way to observe a mushroom meant restating the twelve
+absorb rules for `witness`, because procedures take numbers and the rules
+differ only in which evidence they name. TypeScript called its existing
+`learn(evidence, kind)`. Explanations cost nothing on either side: the
+`secondhand` caveat reached labels, the belief and the decision through a
+qualified value in Caveat and through the caveat map in TypeScript.
+
+**CR10.** This one breaks the frozen language. Evidence is declared, and a
+mushroom that regrows is a new mushroom with new evidence, without limit.
+Caveat's only route is to declare the lives: 28 entities (`cave_2` …
+`grove_8`), so `for mushroom as $m` generates their evidence, with the
+adapter routing each event to the current life. It passes every scenario,
+which go up to six lives, but a ninth life is refused (checked directly:
+TypeScript regrows a ninth time, Caveat reports the mushroom still eaten).
+The runtime evaluates every rule for every declared entity, so eight times
+the entities made the median event about seven times slower: 114 µs at CR8,
+828 µs after CR10, and 1,090 µs after CR11 added seven bindings per life.
+Two of the three failing runs were adapter bugs in this
+phase: a name collision and a regular expression that lost its backslash.
+
+**CR11.** The reasons are ordinary bindings with `because`, and the evidence
+that consumed a mushroom is simply the grounds of its `consumed` value, so
+"Already eaten, because another creature ate it (secondhand)" needed no
+bookkeeping. TypeScript added a `consumedBy` field and a function that
+restates the rule order. The failing run was an ordering trap: `qualified(1,
+absorb_$m)` placed before the rule that reveals `absorb_$m` in the same event
+is an error. Moving it after the reveal fixed every scenario.
+
+**CR12.** The runtime has no way to restore a session, so the adapter saves
+the accepted events, with runs of equal ticks folded together, and replays
+them on resume. That is 9 lines against TypeScript's 39, and a 97-byte save.
+But resume costs as much as replaying the whole session: 8.0 seconds for ten
+minutes of play, growing linearly. The prediction was wrong about lines and
+right about the thing that matters in a game.
+
+**The work list this round leaves.** Each item is a gap a real game hits:
+
+1. **Identity that is born at runtime.** Regrowth, spawning, a second copy of
+   an item: evidence and entities need a declared family whose members are
+   created by events, not declarations.
+2. **Save and restore in the runtime.** A session snapshot of values,
+   provenance, grounds, relations, commitments and the journal, restored in
+   time proportional to the state rather than the history.
+3. **Cost that follows the event, not the program.** Rules guarded by
+   `target == $index` should be indexed by target, so declaring more entities
+   does not slow every event.
+4. **Procedures over evidence.** `proc learn(e)` taking an evidence name
+   would have made CR9 three lines.
+5. **The ordering trap.** Qualifying with evidence that the same event
+   reveals later should either work or be caught when the program loads.
+
 ## Reproduce
 
 ```sh
@@ -337,4 +435,7 @@ node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat3
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=13 --against=caveat3
 node experiments/glowcap/harness.mjs --phase=cr8 --impl=caveat4
 node experiments/glowcap/differential.mjs --sequences=1000 --length=30 --seed=17 --against=caveat4
+node experiments/glowcap/harness.mjs --phase=cr12 --impl=ts
+node experiments/glowcap/harness.mjs --phase=cr12 --impl=caveat4
+node experiments/glowcap/differential.mjs --round=6 --sequences=300 --seed=6 --against=caveat4
 ```
