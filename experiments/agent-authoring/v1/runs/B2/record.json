@@ -1,0 +1,78 @@
+{
+  "id": "B2",
+  "started": "2026-09-23T05:47:36.845Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "2f82bc3d0e9435656be520af1f5b68b7b8156fb95a1323a35ed5e62cf7145b78",
+      "submittedAt": "2026-09-23T05:47:36.846Z",
+      "file": "versions/01.cav"
+    },
+    {
+      "number": 2,
+      "sha256": "e8857e43a6a3e3512bace74fc1ad67aafd0b7b61b66b81ed84c62fe31d53b893",
+      "submittedAt": "2026-09-23T05:48:20.248Z",
+      "file": "versions/02.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T05:47:36.848Z",
+      "log": "checks/01.jsonl",
+      "status": "error",
+      "error": "line 17, column 1: reactive bounds must be ordered and within +/-1e12",
+      "durationMs": 32
+    },
+    {
+      "index": 2,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:48:20.251Z",
+      "log": "checks/02.jsonl",
+      "status": "completed",
+      "durationMs": 103
+    },
+    {
+      "index": 3,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:48:39.450Z",
+      "log": "checks/03.jsonl",
+      "status": "completed",
+      "durationMs": 67
+    },
+    {
+      "index": 4,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:49:22.695Z",
+      "log": "checks/04.jsonl",
+      "status": "completed",
+      "durationMs": 102
+    },
+    {
+      "index": 5,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:49:56.195Z",
+      "log": "checks/05.jsonl",
+      "status": "completed",
+      "durationMs": 75
+    },
+    {
+      "index": 6,
+      "command": "replay",
+      "version": 2,
+      "started": "2026-09-23T05:50:12.578Z",
+      "log": "checks/06.jsonl",
+      "status": "completed",
+      "durationMs": 65
+    }
+  ],
+  "finished": "2026-09-23T05:51:46.158Z",
+  "finalVersion": 2,
+  "finalSha256": "e8857e43a6a3e3512bace74fc1ad67aafd0b7b61b66b81ed84c62fe31d53b893"
+}

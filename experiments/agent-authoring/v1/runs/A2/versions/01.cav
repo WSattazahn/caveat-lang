@@ -1,0 +1,44 @@
+claim dispatch_safe;
+evidence sensor_reading from "cold-storage temperature sensor";
+renewable sensor_reading limit 4;
+caveat calibration_uncertain consequence material;
+caveat stale consequence material;
+calibration_uncertain qualifies sensor_reading;
+decisions dispatch limit 3;
+
+state reading_count = 0 min 0 max 4;
+state current_temperature = 0 min -10 max 20;
+state plan_basis = 0;
+state revision_count = 0 min 0 max 3;
+state elapsed_time = 0 min 0 max 1000000000000000000000000000000;
+
+event read temperature min -10 max 20;
+event decide;
+event advance dt min 0 max 2;
+clock advance every 1;
+
+on read when reading_count >= 4 reject "reading capacity exhausted";
+on read when reading_count > 0 renew sensor_reading;
+on read when temperature <= 4 reveal sensor_reading supports dispatch_safe;
+on read when temperature > 4 reveal sensor_reading opposes dispatch_safe;
+on read set current_temperature = temperature;
+on read set reading_count = reading_count + 1;
+on read qualify sensor_reading with stale after 2;
+
+on decide when not observed(sensor_reading) reject "a reading is required";
+on decide when carries(sensor_reading, stale) reject "the latest reading is stale";
+on decide set plan_basis = qualified(if(current_temperature <= 4, 1, 0), sensor_reading);
+on decide commit dispatch because enough using plan_basis;
+on decide set revision_count = revision_count + 1;
+
+on advance set elapsed_time = elapsed_time + dt;
+on advance when committed(dispatch) and not reopened(dispatch) and has_caveat(plan_basis, stale)
+    reopen dispatch because caveated(plan_basis, stale);
+
+bind hud.readings = reading_count;
+bind hud.temperature = current_temperature;
+bind hud.recommendation = if(reading_count == 0, "waiting", if(carries(sensor_reading, stale), "stale", if(current_temperature <= 4, "release", "block")));
+bind hud.decision = if(not committed(dispatch), "none", if(reopened(dispatch), "review", if(latest(dispatch) == 1, "release", "block")));
+bind hud.frozen = if(committed(dispatch), latest(dispatch), -1);
+bind hud.revision = revision_count;
+bind hud.elapsed = elapsed_time;

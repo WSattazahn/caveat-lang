@@ -1,0 +1,89 @@
+{
+  "id": "C2",
+  "started": "2026-09-23T05:47:37.858Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "4ccdfdb96107c5b72d65463cdd04ae5aeb7be50c730e4ee34275cffa692fe1b3",
+      "submittedAt": "2026-09-23T05:47:37.859Z",
+      "file": "versions/01.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T05:47:37.861Z",
+      "log": "checks/01.jsonl",
+      "status": "completed",
+      "durationMs": 55
+    },
+    {
+      "index": 2,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:47:43.559Z",
+      "log": "checks/02.jsonl",
+      "status": "completed",
+      "durationMs": 141
+    },
+    {
+      "index": 3,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:48:25.485Z",
+      "log": "checks/03.jsonl",
+      "status": "completed",
+      "durationMs": 73
+    },
+    {
+      "index": 4,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:48:42.583Z",
+      "log": "checks/04.jsonl",
+      "status": "completed",
+      "durationMs": 98
+    },
+    {
+      "index": 5,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:48:42.768Z",
+      "log": "checks/05.jsonl",
+      "status": "completed",
+      "durationMs": 82
+    },
+    {
+      "index": 6,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:48:42.918Z",
+      "log": "checks/06.jsonl",
+      "status": "completed",
+      "durationMs": 74
+    },
+    {
+      "index": 7,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:49:29.895Z",
+      "log": "checks/07.jsonl",
+      "status": "completed",
+      "durationMs": 101
+    },
+    {
+      "index": 8,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:49:30.077Z",
+      "log": "checks/08.jsonl",
+      "status": "completed",
+      "durationMs": 74
+    }
+  ],
+  "finished": "2026-09-23T05:50:49.081Z",
+  "finalVersion": 1,
+  "finalSha256": "4ccdfdb96107c5b72d65463cdd04ae5aeb7be50c730e4ee34275cffa692fe1b3"
+}

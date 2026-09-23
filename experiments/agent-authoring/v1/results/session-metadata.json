@@ -1,0 +1,4723 @@
+{
+  "schema": 1,
+  "at": "2026-09-23T05:55:53.155Z",
+  "scope": "Post-score supplemental runtime elapsed/sequence checks; original registered scores preserved.",
+  "corruptionChecks": 2,
+  "runtimeSha256": "dd113703a7534ca3620f6471c2031b559ed29755d8ef72c6aa6798bac1d972b7",
+  "runs": [
+    {
+      "id": "A1",
+      "stages": {
+        "first": {
+          "sha256": "1be53fd9afd7e0ef56a5ab537385d9e255fe19c49af266a747c6a27f7df41716",
+          "loadError": "line 14, column 1: reactive bounds must be ordered and within +/-1e12",
+          "passed": 0,
+          "total": 114,
+          "pass": false,
+          "cases": []
+        },
+        "final": {
+          "sha256": "b2bb9f5f3cca36c61aa9a8bc66ef27ba5392df26d88e682d478a9edf5b8600e6",
+          "loadError": null,
+          "passed": 114,
+          "total": 114,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-and-zero-clock",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "threshold-and-closed-decision",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "block-and-frozen-number",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "exact-expiry",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "old-basis-new-fresh-reading",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "latest-expires-without-decision",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "multiple-due-and-single-reopen",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "all-four-readings-capacity",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "three-revisions-and-fourth-rejected",
+              "pass": true,
+              "checks": 14
+            },
+            {
+              "id": "atomic-input-rejection",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "fractional-time-and-save-timer",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "reopened-replacement-remains-frozen",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "binary64-fractional-timer-boundary",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-a17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "B1",
+      "stages": {
+        "first": {
+          "sha256": "20bfb94d2e760bff6cfdda3d7ca69e3d281adccff9e0361668fe43d34cb0bbc4",
+          "loadError": "line 20, column 1: reactive bounds must be ordered and within +/-1e12",
+          "passed": 0,
+          "total": 116,
+          "pass": false,
+          "cases": []
+        },
+        "final": {
+          "sha256": "3fa730b5dc2f4fd3e09a2653ef4ccba774f22635afa829622b2b9fc777dbb61c",
+          "loadError": null,
+          "passed": 116,
+          "total": 116,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-admission",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "contradiction-and-tie",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "opposition-alone",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "observation-order-not-alphabetical",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "new-opposition-reopens-and-support-does-not",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "multiple-reopening-witnesses",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "revocation-changes-live-only",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "expiry-changes-live-only",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "revoked-and-expired",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "fresh-and-expired-votes",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "duplicate-and-fractional-codes",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "decision-capacity",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "challenge-before-decision",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "expired-opposition-revoked-after-approval",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "binary64-fractional-timer-boundary",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-b17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "C1",
+      "stages": {
+        "first": {
+          "sha256": "40604c43dc11f4d92d511bb90ad27649be3d0a4c793c074128019e9f62c67ec4",
+          "loadError": null,
+          "passed": 114,
+          "total": 114,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-admission",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "success-terminal",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "alternative-causes-coexist",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "repeated-cause-latest-basis",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "latest-zero-prevents-choice",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "three-token-boundary",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "failure-next-and-fresh-diagnosis-required",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "second-failure-terminal-investigation",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "awaiting-does-not-spend",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "failed-needs-next",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "integer-and-shape-validation",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "repeat-motor-identity-after-save",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "zero-score-is-real-observation",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-c17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        },
+        "final": {
+          "sha256": "40604c43dc11f4d92d511bb90ad27649be3d0a4c793c074128019e9f62c67ec4",
+          "loadError": null,
+          "passed": 114,
+          "total": 114,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-admission",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "success-terminal",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "alternative-causes-coexist",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "repeated-cause-latest-basis",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "latest-zero-prevents-choice",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "three-token-boundary",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "failure-next-and-fresh-diagnosis-required",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "second-failure-terminal-investigation",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "awaiting-does-not-spend",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "failed-needs-next",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "integer-and-shape-validation",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "repeat-motor-identity-after-save",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "zero-score-is-real-observation",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-c17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "A2",
+      "stages": {
+        "first": {
+          "sha256": "b17acbe9a95b89e0eb55f04546c8c7cac48ef232459ff0140a47dbf430876316",
+          "loadError": "line 13, column 1: reactive bounds must be ordered and within +/-1e12",
+          "passed": 0,
+          "total": 114,
+          "pass": false,
+          "cases": []
+        },
+        "final": {
+          "sha256": "6ead5f54697f7b0c7aae77ff3d038b934480254f984f9159fe42d41df55821c3",
+          "loadError": null,
+          "passed": 114,
+          "total": 114,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-and-zero-clock",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "threshold-and-closed-decision",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "block-and-frozen-number",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "exact-expiry",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "old-basis-new-fresh-reading",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "latest-expires-without-decision",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "multiple-due-and-single-reopen",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "all-four-readings-capacity",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "three-revisions-and-fourth-rejected",
+              "pass": true,
+              "checks": 14
+            },
+            {
+              "id": "atomic-input-rejection",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "fractional-time-and-save-timer",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "reopened-replacement-remains-frozen",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "binary64-fractional-timer-boundary",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-a17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-a17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "B2",
+      "stages": {
+        "first": {
+          "sha256": "2f82bc3d0e9435656be520af1f5b68b7b8156fb95a1323a35ed5e62cf7145b78",
+          "loadError": "line 17, column 1: reactive bounds must be ordered and within +/-1e12",
+          "passed": 0,
+          "total": 116,
+          "pass": false,
+          "cases": []
+        },
+        "final": {
+          "sha256": "e8857e43a6a3e3512bace74fc1ad67aafd0b7b61b66b81ed84c62fe31d53b893",
+          "loadError": null,
+          "passed": 116,
+          "total": 116,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-admission",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "contradiction-and-tie",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "opposition-alone",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "observation-order-not-alphabetical",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "new-opposition-reopens-and-support-does-not",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "multiple-reopening-witnesses",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "revocation-changes-live-only",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "expiry-changes-live-only",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "revoked-and-expired",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "fresh-and-expired-votes",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "duplicate-and-fractional-codes",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "decision-capacity",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "challenge-before-decision",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "expired-opposition-revoked-after-approval",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "binary64-fractional-timer-boundary",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-b17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-b17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "C2",
+      "stages": {
+        "first": {
+          "sha256": "4ccdfdb96107c5b72d65463cdd04ae5aeb7be50c730e4ee34275cffa692fe1b3",
+          "loadError": null,
+          "passed": 114,
+          "total": 114,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-admission",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "success-terminal",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "alternative-causes-coexist",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "repeated-cause-latest-basis",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "latest-zero-prevents-choice",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "three-token-boundary",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "failure-next-and-fresh-diagnosis-required",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "second-failure-terminal-investigation",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "awaiting-does-not-spend",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "failed-needs-next",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "integer-and-shape-validation",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "repeat-motor-identity-after-save",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "zero-score-is-real-observation",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-c17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        },
+        "final": {
+          "sha256": "4ccdfdb96107c5b72d65463cdd04ae5aeb7be50c730e4ee34275cffa692fe1b3",
+          "loadError": null,
+          "passed": 114,
+          "total": 114,
+          "pass": true,
+          "cases": [
+            {
+              "id": "empty-admission",
+              "pass": true,
+              "checks": 6
+            },
+            {
+              "id": "success-terminal",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "alternative-causes-coexist",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "repeated-cause-latest-basis",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "latest-zero-prevents-choice",
+              "pass": true,
+              "checks": 7
+            },
+            {
+              "id": "three-token-boundary",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "failure-next-and-fresh-diagnosis-required",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "second-failure-terminal-investigation",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "awaiting-does-not-spend",
+              "pass": true,
+              "checks": 9
+            },
+            {
+              "id": "failed-needs-next",
+              "pass": true,
+              "checks": 11
+            },
+            {
+              "id": "integer-and-shape-validation",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "repeat-motor-identity-after-save",
+              "pass": true,
+              "checks": 12
+            },
+            {
+              "id": "zero-score-is-real-observation",
+              "pass": true,
+              "checks": 10
+            },
+            {
+              "id": "invalid-input-types",
+              "pass": true,
+              "checks": 8
+            },
+            {
+              "id": "seed-c17001-1",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-2",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-3",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-4",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-5",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-6",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-7",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-8",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-9",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-10",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-11",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-12",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-13",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-14",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-15",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-16",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-17",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-18",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-19",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-20",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-21",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-22",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-23",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-24",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-25",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-26",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-27",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-28",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-29",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-30",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-31",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-32",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-33",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-34",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-35",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-36",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-37",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-38",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-39",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-40",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-41",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-42",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-43",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-44",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-45",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-46",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-47",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-48",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-49",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-50",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-51",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-52",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-53",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-54",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-55",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-56",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-57",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-58",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-59",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-60",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-61",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-62",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-63",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-64",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-65",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-66",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-67",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-68",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-69",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-70",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-71",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-72",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-73",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-74",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-75",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-76",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-77",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-78",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-79",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-80",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-81",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-82",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-83",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-84",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-85",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-86",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-87",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-88",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-89",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-90",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-91",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-92",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-93",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-94",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-95",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-96",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-97",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-98",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-99",
+              "pass": true,
+              "checks": 42
+            },
+            {
+              "id": "seed-c17001-100",
+              "pass": true,
+              "checks": 42
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

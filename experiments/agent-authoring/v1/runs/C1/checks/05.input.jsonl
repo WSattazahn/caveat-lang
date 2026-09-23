@@ -1,0 +1,13 @@
+{"event":"inspect","payload":{"cause":1,"score":1}}
+{"event":"choose","payload":{"repair":1}}
+{"event":"outcome","payload":{"success":0}}
+{"event":"next","payload":{}}
+{"resume":true}
+{"event":"inspect","payload":{"cause":1,"score":2}}
+{"event":"inspect","payload":{"cause":1,"score":1}}
+{"event":"choose","payload":{"repair":1}}
+{"resume":true}
+{"event":"outcome","payload":{"success":1}}
+{"resume":true}
+{"event":"next","payload":{}}
+{"event":"outcome","payload":{"success":0}}

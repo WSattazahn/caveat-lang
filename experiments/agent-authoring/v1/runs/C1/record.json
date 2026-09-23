@@ -1,0 +1,71 @@
+{
+  "id": "C1",
+  "started": "2026-09-23T05:41:04.847Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "40604c43dc11f4d92d511bb90ad27649be3d0a4c793c074128019e9f62c67ec4",
+      "submittedAt": "2026-09-23T05:41:04.848Z",
+      "file": "versions/01.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T05:41:04.849Z",
+      "log": "checks/01.jsonl",
+      "status": "completed",
+      "durationMs": 34
+    },
+    {
+      "index": 2,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:41:31.752Z",
+      "log": "checks/02.jsonl",
+      "status": "completed",
+      "durationMs": 89
+    },
+    {
+      "index": 3,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:42:03.506Z",
+      "log": "checks/03.jsonl",
+      "status": "completed",
+      "durationMs": 61
+    },
+    {
+      "index": 4,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:42:14.442Z",
+      "log": "checks/04.jsonl",
+      "status": "completed",
+      "durationMs": 61
+    },
+    {
+      "index": 5,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:42:14.945Z",
+      "log": "checks/05.jsonl",
+      "status": "completed",
+      "durationMs": 59
+    },
+    {
+      "index": 6,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T05:42:50.865Z",
+      "log": "checks/06.jsonl",
+      "status": "completed",
+      "durationMs": 77
+    }
+  ],
+  "finished": "2026-09-23T05:44:07.585Z",
+  "finalVersion": 1,
+  "finalSha256": "40604c43dc11f4d92d511bb90ad27649be3d0a4c793c074128019e9f62c67ec4"
+}

@@ -10,5 +10,13 @@
     },
     "forkTurns": "none"
   },
-  "wave2": null
+  "wave2": {
+    "dispatchedAt": "2026-09-23T05:46:32.383Z",
+    "agents": {
+      "A2": "/root/author_a2",
+      "B2": "/root/author_b2",
+      "C2": "/root/author_c2"
+    },
+    "forkTurns": "none"
+  }
 }

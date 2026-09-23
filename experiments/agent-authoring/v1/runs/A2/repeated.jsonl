@@ -1,0 +1,13 @@
+{"event":"read","payload":{"temperature":4}}
+{"event":"decide","payload":{}}
+{"event":"read","payload":{"temperature":4}}
+{"event":"read","payload":{"temperature":4}}
+{"event":"read","payload":{"temperature":4}}
+{"event":"read","payload":{"temperature":4}}
+{"resume":true}
+{"event":"advance","payload":{"dt":1.9999999999999998}}
+{"event":"advance","payload":{"dt":0}}
+{"event":"advance","payload":{"dt":0.0000000000000002220446049250313}}
+{"event":"advance","payload":{"dt":0}}
+{"event":"decide","payload":{}}
+{"resume":true}
