@@ -54,6 +54,14 @@ functions, not the rest of their containing program.
 
 ## An authoring loop
 
+For integrations that need to distinguish authored refusals from invalid inputs
+and execution failures, use the [structured dispatch API](../spec/caveat-dispatch-0.1.md).
+`dispatch_outcome` returns accepted/rejected reports. Bare rejection assertions
+mean an authored policy `reject`; other origins must be named. Every thrown
+error is fatal and requires discarding the session. Some existing runtime errors
+are deliberately still unclassified and fatal in this API; legacy dispatch
+methods retain their existing behavior. The initial code catalog is in the spec.
+
 Use `#` or `//` for line comments outside strings; `--` is not a comment marker.
 The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quoting.
 

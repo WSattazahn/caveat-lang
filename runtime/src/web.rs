@@ -34,6 +34,17 @@ impl WebReactiveSession {
             .and_then(|snapshot| to_json_pretty(&snapshot))
     }
 
+    /// Structured refusals are returned values; every thrown error is fatal.
+    /// Uses the same interpreter/transaction as dispatch. See Dispatch 0.1.
+    pub fn dispatch_outcome(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
+        match self.inner.dispatch_outcome_json(event, payload_json) {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
     /// The per-event view, as compact JSON. See spec/caveat-view-0.1.md.
     pub fn view(&self) -> String {
         serde_json::to_string(&self.inner.view()).expect("finite reactive view")

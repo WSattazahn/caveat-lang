@@ -40,6 +40,13 @@ pub use save::{
     Compact, ReactiveSave, SavedGraph, SavedNode, SavedResources, SavedState, REACTIVE_SAVE_SCHEMA,
 };
 
+#[path = "reactive_outcome.rs"]
+mod outcome;
+use outcome::DispatchFailure;
+pub use outcome::{
+    DispatchFatal, DispatchOutcome, DispatchResult, RejectionCode, RejectionOrigin, DISPATCH_SCHEMA,
+};
+
 /// Compile the standard library through the same parser and function checker
 /// as application source. Nothing in the host implements these algorithms.
 pub(crate) fn prelude_functions() -> Result<BTreeMap<String, FunctionDef>, String> {
@@ -289,22 +296,49 @@ struct ExecutionBudget {
 }
 
 impl ExecutionBudget {
-    fn spend(&mut self) -> Result<(), String> {
-        self.remaining = self
-            .remaining
-            .checked_sub(1)
-            .ok_or_else(|| format!("event exceeds work limit {MAX_EVENT_STEPS}"))?;
+    fn spend(&mut self) -> Result<(), DispatchFailure> {
+        self.remaining = self.remaining.checked_sub(1).ok_or_else(|| {
+            DispatchFailure::rejected(
+                RejectionOrigin::Limit,
+                RejectionCode::WorkLimit,
+                format!("event exceeds work limit {MAX_EVENT_STEPS}"),
+            )
+        })?;
         Ok(())
     }
 
-    fn enter(&mut self) -> Result<(), String> {
+    fn enter(&mut self) -> Result<(), DispatchFailure> {
         if self.depth >= MAX_PROCEDURE_DEPTH {
-            return Err(format!(
-                "procedure exceeds call depth limit {MAX_PROCEDURE_DEPTH}"
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Limit,
+                RejectionCode::DepthLimit,
+                format!("procedure exceeds call depth limit {MAX_PROCEDURE_DEPTH}"),
             ));
         }
         self.depth += 1;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod dispatch_budget_tests {
+    use super::*;
+
+    #[test]
+    fn defensive_depth_failure_is_classified_without_changing_legacy_text() {
+        let mut budget = ExecutionBudget {
+            remaining: MAX_EVENT_STEPS,
+            depth: MAX_PROCEDURE_DEPTH,
+        };
+        let failure = budget.enter().unwrap_err();
+        assert_eq!(
+            failure.to_string(),
+            format!("procedure exceeds call depth limit {MAX_PROCEDURE_DEPTH}")
+        );
+        let report = serde_json::to_value(failure.outcome().unwrap()).unwrap();
+        assert_eq!(report["origin"], "limit");
+        assert_eq!(report["code"], "depth_limit");
+        assert_eq!(budget.depth, MAX_PROCEDURE_DEPTH);
     }
 }
 
@@ -2440,7 +2474,7 @@ impl ReactiveSession {
         effect: &Effect,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
-    ) -> Result<(), String> {
+    ) -> Result<(), DispatchFailure> {
         if let Effect::Call { name, .. } = effect {
             budget.enter()?;
             let procedures = Arc::clone(&self.procedures);
@@ -2470,21 +2504,29 @@ impl ReactiveSession {
                 {
                     return Ok(());
                 }
-                return self.states.cell_mut(slot).value.provenance.merge(guard);
+                return self
+                    .states
+                    .cell_mut(slot)
+                    .value
+                    .provenance
+                    .merge(guard)
+                    .map_err(Into::into);
             }
             Effect::Sample { stream, .. } => {
                 return Arc::make_mut(&mut self.reading_streams)
                     .get_mut(stream)
                     .expect("validated stream")
                     .selection_qualifications
-                    .merge(guard);
+                    .merge(guard)
+                    .map_err(Into::into);
             }
             Effect::Commit { action, .. } if self.decision_series.contains_key(action) => {
                 return Arc::make_mut(&mut self.decision_series)
                     .get_mut(action)
                     .unwrap()
                     .selection_qualifications
-                    .merge(guard);
+                    .merge(guard)
+                    .map_err(Into::into);
             }
             Effect::Reveal { evidence, .. } | Effect::Renew { evidence } => {
                 Some(("observed", self.occurrence(evidence).to_string()))
@@ -2517,8 +2559,27 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveSnapshot, String> {
-        let payload = self.resolve_payload(event, payload_json)?;
+        let payload = self
+            .resolve_payload(event, payload_json)
+            .map_err(|error| error.to_string())?;
         self.dispatch(event, &payload)
+    }
+
+    /// Dispatch through the same transaction as the legacy API, preserving
+    /// classified refusals as values. Unclassified errors are fatal: callers
+    /// must discard the session on Err or an escaped panic/trap.
+    pub fn dispatch_outcome_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<DispatchOutcome, DispatchFatal> {
+        let result = self
+            .resolve_payload(event, payload_json)
+            .and_then(|payload| self.apply_classified(event, &payload));
+        match result {
+            Ok(()) => Ok(DispatchOutcome::accepted(self.snapshot())),
+            Err(failure) => failure.outcome(),
+        }
     }
 
     /// Parse a JSON payload and turn each typed parameter's name into its
@@ -2529,10 +2590,15 @@ impl ReactiveSession {
         &self,
         event: &str,
         payload_json: &str,
-    ) -> Result<BTreeMap<String, f64>, String> {
+    ) -> Result<BTreeMap<String, f64>, DispatchFailure> {
         // Typed map parsing rejects duplicate fields instead of last-write wins.
-        let payload: Payload = serde_json::from_str(payload_json)
-            .map_err(|error| format!("invalid event payload: {error}"))?;
+        let payload: Payload = serde_json::from_str(payload_json).map_err(|error| {
+            DispatchFailure::rejected(
+                RejectionOrigin::Input,
+                RejectionCode::PayloadInvalid,
+                format!("invalid event payload: {error}"),
+            )
+        })?;
         let signature = self.events.get(event);
         payload
             .0
@@ -2548,15 +2614,16 @@ impl ReactiveSession {
                             .iter()
                             .position(|member| *member == text)
                             .ok_or_else(|| {
-                                format!(
+                                DispatchFailure::rejected(RejectionOrigin::Input, RejectionCode::PayloadInvalid, format!(
                                     "event {event} parameter {name} does not accept {text}; expected one of {}",
                                     domain.members().join(", ")
-                                )
+                                ))
                             })?;
                         (position + 1) as f64
                     }
                     (PayloadValue::Text(_), _) => {
-                        return Err(format!("event {event} parameter {name} expects a number"))
+                        return Err(DispatchFailure::rejected(RejectionOrigin::Input, RejectionCode::PayloadInvalid,
+                            format!("event {event} parameter {name} expects a number")))
                     }
                 };
                 Ok((name, number))
@@ -2566,17 +2633,31 @@ impl ReactiveSession {
 
     /// Run one event as a transaction. Any failure leaves the session as it was.
     pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
-        let signature = self
-            .events
-            .get(event)
-            .ok_or_else(|| format!("undeclared event {event}"))?;
+        self.apply_classified(event, parameters)
+            .map_err(|error| error.to_string())
+    }
+
+    fn apply_classified(
+        &mut self,
+        event: &str,
+        parameters: &BTreeMap<String, f64>,
+    ) -> Result<(), DispatchFailure> {
+        let signature = self.events.get(event).ok_or_else(|| {
+            DispatchFailure::rejected(
+                RejectionOrigin::Input,
+                RejectionCode::UnknownEvent,
+                format!("undeclared event {event}"),
+            )
+        })?;
         if signature.len() != parameters.len()
             || parameters
                 .keys()
                 .any(|name| !signature.iter().any(|parameter| &parameter.name == name))
         {
-            return Err(format!(
-                "event {event} requires exactly its declared parameters"
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Input,
+                RejectionCode::PayloadInvalid,
+                format!("event {event} requires exactly its declared parameters"),
             ));
         }
         for parameter in signature {
@@ -2588,7 +2669,14 @@ impl ReactiveSession {
                 *value,
                 parameter.min.value(),
                 parameter.max.value(),
-            )?;
+            )
+            .map_err(|message| {
+                DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::BoundExceeded,
+                    message,
+                )
+            })?;
         }
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after
@@ -2615,7 +2703,7 @@ impl ReactiveSession {
         old: &Self,
         event: &str,
         parameters: &BTreeMap<String, f64>,
-    ) -> Result<(), String> {
+    ) -> Result<(), DispatchFailure> {
         self.effects.clear();
         self.cues.clear();
         self.cue_qualifications.clear();
@@ -2647,14 +2735,14 @@ impl ReactiveSession {
                 &Provenance::default(),
                 &mut budget,
             );
-            result.map_err(|error| format!("event {event}, rule {}: {error}", index + 1))?;
+            result.map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
         }
         // Binding failures roll back the same numeric/graph/cue transaction.
         let changes = Changes::between(old, self);
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
-        result
+        result.map_err(Into::into)
     }
 
     fn take_shown(&mut self) -> Shown {
@@ -2688,7 +2776,9 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveView<'_>, String> {
-        let payload = self.resolve_payload(event, payload_json)?;
+        let payload = self
+            .resolve_payload(event, payload_json)
+            .map_err(|error| error.to_string())?;
         self.apply(event, &payload)?;
         Ok(self.view())
     }
@@ -2769,7 +2859,7 @@ impl ReactiveSession {
         parameters: &BTreeMap<String, Tracked<f64>>,
         inherited: &Provenance,
         budget: &mut ExecutionBudget,
-    ) -> Result<(), String> {
+    ) -> Result<(), DispatchFailure> {
         budget.spend()?;
         let condition = self.evaluate(condition, parameters)?;
         let guard = inherited.union(&condition.provenance)?;
@@ -3168,7 +3258,7 @@ impl ReactiveSession {
         parameters: &BTreeMap<String, Tracked<f64>>,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
-    ) -> Result<(), String> {
+    ) -> Result<(), DispatchFailure> {
         match effect {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
@@ -3181,7 +3271,7 @@ impl ReactiveSession {
                 for (parameter, argument) in procedure.parameters.iter().zip(arguments) {
                     let value = self.evaluate(argument, parameters)?;
                     let Value::Number(number) = value.value else {
-                        return Err(format!("procedure {name} requires numeric arguments"));
+                        return Err(format!("procedure {name} requires numeric arguments").into());
                     };
                     inherited.merge(&value.provenance)?;
                     locals.insert(parameter.clone(), Tracked::new(number, value.provenance)?);
@@ -3195,7 +3285,9 @@ impl ReactiveSession {
                         &inherited,
                         budget,
                     )
-                    .map_err(|error| format!("procedure {name}, step {}: {error}", index + 1))?;
+                    .map_err(|error| {
+                        error.context(format!("procedure {name}, step {}", index + 1))
+                    })?;
                 }
                 budget.depth -= 1;
             }
@@ -3210,12 +3302,13 @@ impl ReactiveSession {
                     return Err(format!(
                         "reading stream {stream} reached its history limit {}",
                         readings.limit
-                    ));
+                    )
+                    .into());
                 }
                 let ordinal = readings.occurrences.len() as u64 + 1;
                 let name = format!("{stream}@{ordinal}");
                 if self.symbols.contains_key(&name) {
-                    return Err(format!("generated reading identity {name} already exists"));
+                    return Err(format!("generated reading identity {name} already exists").into());
                 }
                 let template = self.symbols[&readings.template];
                 let value = self.evaluate(value, parameters)?;
@@ -3280,7 +3373,7 @@ impl ReactiveSession {
                     target: claim.clone(),
                 });
             }
-            Effect::Reject { message } => return Err(format!("rejected: {message}")),
+            Effect::Reject { message } => return Err(DispatchFailure::policy(message)),
             Effect::Qualify {
                 evidence,
                 caveat,
@@ -3288,7 +3381,7 @@ impl ReactiveSession {
             } => {
                 let occurrence = self.occurrence(evidence).to_string();
                 if !self.predicate("observed", &occurrence)? {
-                    return Err(format!("cannot qualify unobserved evidence {occurrence}"));
+                    return Err(format!("cannot qualify unobserved evidence {occurrence}").into());
                 }
                 match after {
                     None => self.apply_qualification(&occurrence, caveat, guard)?,
@@ -3305,7 +3398,7 @@ impl ReactiveSession {
                         if self.scheduled.len() >= MAX_SCHEDULED_QUALIFICATIONS {
                             return Err(format!(
                                 "scheduled qualifications exceed limit {MAX_SCHEDULED_QUALIFICATIONS}"
-                            ));
+                            ).into());
                         }
                         let scheduled = ScheduledQualification {
                             evidence: occurrence,
@@ -3324,12 +3417,13 @@ impl ReactiveSession {
                     return Err(format!(
                         "renewable {evidence} reached its limit {}",
                         renewal.limit
-                    ));
+                    )
+                    .into());
                 }
                 let ordinal = renewal.occurrences.len() + 1;
                 let name = format!("{evidence}@{ordinal}");
                 if self.symbols.contains_key(&name) {
-                    return Err(format!("generated occurrence {name} already exists"));
+                    return Err(format!("generated occurrence {name} already exists").into());
                 }
                 let template_caveats = renewal.template_caveats.clone();
                 let NodeKind::Evidence {
@@ -3377,7 +3471,13 @@ impl ReactiveSession {
                     return Err("numeric state expression returned a boolean".into());
                 };
                 let range = &self.ranges[name];
-                check_range(name, number, range.min, range.max)?;
+                check_range(name, number, range.min, range.max).map_err(|message| {
+                    DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::BoundExceeded,
+                        message,
+                    )
+                })?;
                 let lineage = value.provenance.union(guard)?;
                 // Grounds are read against the state before this write, like
                 // the value itself, and never take the rule's guard.
@@ -3467,7 +3567,7 @@ impl ReactiveSession {
                     .get(action)
                     .and_then(|series| series.current.clone());
                 if self.symbols.contains_key(action) {
-                    return Err(format!("commitment {action} already exists"));
+                    return Err(format!("commitment {action} already exists").into());
                 }
                 let mut provenance = guard.clone();
                 let mut ordinal = None;
@@ -3476,13 +3576,14 @@ impl ReactiveSession {
                         return Err(format!(
                             "decision series {action} reached its history limit {}",
                             series.limit
-                        ));
+                        )
+                        .into());
                     }
                     ordinal = Some(series.revisions.len() as u64 + 1);
                     if previous.is_some() {
                         let reopened = self.predicate_tracked("reopened", action)?;
                         if !reopened.value {
-                            return Err(format!("current decision in {action} must be explicitly reopened before revision"));
+                            return Err(format!("current decision in {action} must be explicitly reopened before revision").into());
                         }
                         provenance.merge(&reopened.provenance)?;
                     }
@@ -3491,9 +3592,9 @@ impl ReactiveSession {
                     .map(|ordinal| format!("{action}@{ordinal}"))
                     .unwrap_or_else(|| action.clone());
                 if self.symbols.contains_key(&name) {
-                    return Err(format!(
-                        "generated commitment identity {name} already exists"
-                    ));
+                    return Err(
+                        format!("generated commitment identity {name} already exists").into(),
+                    );
                 }
                 // Grounds: what the decision was made on, i.e. its `using`
                 // content and retained caveats. The guard and a predecessor's
@@ -3535,7 +3636,8 @@ impl ReactiveSession {
                     if !self.predicate("observed", evidence)? {
                         return Err(format!(
                             "commitment basis includes unobserved evidence {evidence}"
-                        ));
+                        )
+                        .into());
                     }
                     Arc::make_mut(&mut self.graph).relate(
                         id,
@@ -3628,7 +3730,7 @@ impl ReactiveSession {
                         if selected.is_empty() {
                             return Err(format!(
                                 "caveated({state}, {caveat}) selects no observed evidence carrying {caveat} from the state's grounds"
-                            ));
+                            ).into());
                         }
                         (self.in_observation_order(selected.into_iter()), cause)
                     }

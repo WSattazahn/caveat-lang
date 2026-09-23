@@ -72,6 +72,8 @@ jobs:
         run: npm run test:slime-glow
       - name: Elapsed clock WebAssembly checks
         run: npm run test:elapsed-clock
+      - name: Structured dispatch WebAssembly checks
+        run: npm run test:dispatch-outcomes
       - name: Glowcap explanations against the lean runtime
         run: npm run test:glowcap
       - name: Trail Rescue registered scenarios, invariants and restore

@@ -47,6 +47,12 @@ All four used `elapsed()` directly, without a separate state clock. The remainin
 first-source failure was unsupported comment syntax, repaired by its author.
 This is evidence on two repeated tasks, not a general reliability claim.
 
+The reactive runtime also offers [structured dispatch outcomes](spec/caveat-dispatch-0.1.md).
+`dispatch_outcome` distinguishes an authored policy rejection from invalid input,
+state-bound failure and execution-budget exhaustion. Unclassified errors remain
+fatal. Existing dispatch methods retain their behavior; new integrations can use
+the explicit outcome contract when testing why an event was refused.
+
 ## What only Caveat does
 
 | | Caveat | A general-purpose language |
