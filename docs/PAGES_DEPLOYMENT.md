@@ -20,7 +20,9 @@ retrying a failed deploy can use the successful build from an earlier attempt.
 
 The retained host artifact is named `caveat-runtime-<source SHA>` and includes
 `LICENSE`, `THIRD_PARTY_NOTICES.md` and `build-info.json`. Both it and the
-runtime workflow's tested `browser-dist` are retained for 90 days. The SHA is
+runtime workflow's tested `browser-dist` from pushes to `main` are retained
+for 90 days. Other `browser-dist` artifacts, including pull request builds,
+are retained for 7 days. The SHA is
 the tested source revision, not the default-branch SHA attached to a delayed
 `workflow_run` event.
 
@@ -47,6 +49,13 @@ runtime workflow and let its successful completion trigger Pages. If runtime
 CI fails, fix that failure; the gate does not rebuild or bypass the checks.
 If `main` advances while a deployment waits, the old deployment stops and the
 new revision's successful runtime run supplies its replacement.
+
+Live QA runs after deployment. A failure leaves that deployment live; there
+is no automatic rollback. Investigate the failure before retrying the live
+checks. A manual redeploy can only publish the tested current `main`, not an
+older good revision. To restore earlier behavior, merge a revert or fix to
+`main`, then let its successful runtime CI trigger a new deployment. Keep
+release tagging blocked until that deployment and its live checks pass.
 
 ## Verification before tagging
 

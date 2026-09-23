@@ -111,7 +111,7 @@ jobs:
           name: browser-dist
           overwrite: true
           path: dist
-          retention-days: 90
+          retention-days: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 90 || 7 }}
 
   # Vessel pins the sha256 of the published WASM. That pin only means something
   # if another Linux machine gets the same bytes, so rebuild from a different
