@@ -1,0 +1,54 @@
+{
+  "schema": 2,
+  "sourceCommit": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+  "build": {
+    "revision": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+    "clean": true,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+  },
+  "transformations": [
+    {
+      "file": "docs/AI_AUTHORING.md",
+      "marker": "## Evidence from fresh authors",
+      "operation": "Remove the final section beginning with the exact heading, including its heading; preserve every preceding byte.",
+      "sourceSha256": "00aa28ee4ba9e7492dfb7909969dba5cc1c4f7c79b5f115337c60d0fc881a7c1",
+      "packetSha256": "27c7a8e06e7ec0c738ad364fb44da0407afc1f9bbd12647e77e2c96383553b37"
+    }
+  ],
+  "references": {
+    "docs/AI_AUTHORING.md": "27c7a8e06e7ec0c738ad364fb44da0407afc1f9bbd12647e77e2c96383553b37",
+    "docs/CAVEAT_ESSENCE.md": "79ee7f760084eafe2eb47909c6f21f2a2cd598dd0c7f6b96e2feaec99a2f4af0",
+    "runtime/prelude.cav": "017c7e6bd06fc70afdf049c43da753b63984478db8113fd544c4b94d74ab5864",
+    "spec/caveat-reactive-0.1.md": "bc16e436602be0c9b14ef7d72b2bbc04a515c96a9d5034500c4c5ea85c06c817",
+    "spec/caveat-reactive-0.2.md": "22a7ad15f0e5cf2f35de2c1bd467295d0d20a84ec56898ccb0f81fec6d012bc4",
+    "spec/caveat-reactive-0.3.md": "628fd24e1fd39b5c1412e7b0a57ef39c92be5aa9233baad30a4f5d2e48b6330e",
+    "spec/caveat-reactive-0.4.md": "09547985ab839c85e15a39aff313809f67d4e85c268f008829ebcf1f974507ed",
+    "spec/caveat-reactive-0.5.md": "93b1867ae01d9014bb1f3db2bb469a6238a60f39c5c5e0bd7542181dba646a9c",
+    "spec/caveat-reactive-0.6.md": "8df44120a9fc197ac36be708033a71fbab1c8657009fb2a2304c8cf66f62e729",
+    "spec/caveat-reactive-0.7.md": "e64eeb8e3eb3b45eb43f7122e6b11fbbb55ad3762fb781a707afe5fde968014c",
+    "spec/caveat-0.1.md": "b68d49205944e816726595dd9b545069653dd96ac9b0f1bd0713b3267f8baa46",
+    "spec/caveat-define-0.1.md": "5704211a4be1894307e6566fce993eb2b38a008a03cfd32384eb5b50d32d1a8c",
+    "spec/caveat-repetition-0.1.md": "a8a2ba71387a140c478915160360fc3d17e2f99369afd88e164aaef45a5e5818",
+    "spec/caveat-procedure-symbols-0.1.md": "6c5c8e89a40eefe67e45a4a0018a337b44e06626129312459d17ce2647de2a2e",
+    "spec/caveat-typed-parameters-0.1.md": "ebf62f7f0de259e768e167c01a7fba90a80cc26177a8e0f037715c8263745148",
+    "spec/caveat-text-0.1.md": "6644e01b56d4fb92b9ed427002b085496865e54d8d5ba5aad1b6b58219906bd4",
+    "spec/caveat-reject-0.1.md": "569e3f2f0c4463b5cc7aa160a8284f096f0188a1fe3a6576dace31d66b841e53",
+    "spec/caveat-explanations-0.1.md": "ac17ebe980cf8c418146c236f08c92dc82ed858d66c88341d182fbb4f85dfbb2",
+    "spec/caveat-explanations-0.2.md": "476fb141c9a2f956b96cafd3c01e274381f3bfcd7592a5ad237307c93bd988f7",
+    "spec/caveat-decision-journal-0.1.md": "e21ba216c80cb953e40411fdc98a3484b8eb58f334af3cba56d498fccd09771e",
+    "spec/caveat-late-qualification-0.1.md": "73b3c00a98bb46ec86db68fe075d6cf3e4aacef0a369489fa6b20992ef86a18c",
+    "spec/caveat-renewal-0.1.md": "2538c2ff1438df5b2967f7a3b202def085c66252d27993813ead552130fd408f",
+    "spec/caveat-state-caveats-0.1.md": "2a3a7f07bfd3ec5cdc71374b2ee4fc80b33b00dbf99a09596f1e4df884a75786",
+    "spec/caveat-observation-order-0.1.md": "4925c8d1bb0b3eedffdf281b9487b8959c1c0aa0dd3af749009da95c8c37ffd3",
+    "spec/caveat-save-0.1.md": "0fb4e8dd4a1f0dcb925de105002b8a5a8512a2ee1399d989c6bab7fa8b184c0d",
+    "spec/caveat-view-0.1.md": "234541c5e09cb5e5ae8f79109ec874f7d6b80e7eeff2a32fff01654cfc900729",
+    "spec/caveat-elapsed-0.1.md": "d7aac3fb02e4990c2d6b0eae33d4a280377012af4f974f8912b3741cd5837ed1"
+  },
+  "runtime": {
+    "caveat_runtime.js": "33a41153ec243c186a6f3e402e4c06cca5900e3910d46a384f12603ea6241df1",
+    "caveat_runtime_bg.wasm": "d92dd03d9a368b035a9d9b2a8a604139afaaf0e716344994e6ebd98471c285ec"
+  }
+}

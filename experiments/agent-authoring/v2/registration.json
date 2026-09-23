@@ -1,0 +1,85 @@
+{
+  "schema": 2,
+  "registeredAt": "2026-09-23T14:31:12.646Z",
+  "runtimeCommit": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+  "runs": [
+    "A1",
+    "B1",
+    "A2",
+    "B2"
+  ],
+  "sourceVersionsPerRun": 3,
+  "runtimeChecksPerRun": 12,
+  "randomSequencesPerTask": 100,
+  "stepsPerRandomSequence": 40,
+  "seeds": {
+    "A": "0xa17001",
+    "B": "0xb17001"
+  },
+  "cases": {
+    "A": {
+      "heldOutScenarios": 14,
+      "seededSequences": 100,
+      "cases": 114,
+      "casesSha256": "ae3a1be552d810c7231c087f14a6d9d714dd4ff6ff0e26a5e31a0786b81cce23",
+      "steps": 4095,
+      "events": 3440,
+      "accepted": 1336,
+      "rejected": 2104,
+      "resumeSteps": 655,
+      "maximumElapsed": 11.399999999999999
+    },
+    "B": {
+      "heldOutScenarios": 16,
+      "seededSequences": 100,
+      "cases": 116,
+      "casesSha256": "9acbce2b085b7d35689bd1bba28ab1468926c802f4c675b16884c9818e71b10a",
+      "steps": 4106,
+      "events": 3412,
+      "accepted": 1496,
+      "rejected": 1916,
+      "resumeSteps": 694,
+      "maximumElapsed": 10.799999999999999
+    }
+  },
+  "primaryIncludesSnapshotElapsedAndSequence": true,
+  "sha256": {
+    ".gitignore": "e23b6c81cc0a5522365b276b00b3c5e3e5dfe7479ac98e499e3d51f88b3ee3cd",
+    "runs/.gitattributes": "fa255d6084cec5eadda3fb99cfa3bfb0100ad642305f71d647cd7b73697e665d",
+    "PROTOCOL.md": "cd5754b74d967c46d0aa48a964c0f29248b61b6a87609959055444c1fa9c5749",
+    "README.md": "289b1c85a98ad0f38e411a079972ff1052df3ad592fae2e7ef80803285c02a0c",
+    "study.json": "1d66c028e4b78228d2c682265ee5059a07926e1b14a9998ca10a0d3b2e21a632",
+    "prepare-packet.mjs": "c9e832551cd866dfbc1ae8fb5fabf39680f2471abafa8fd2b6128b1bc7f76544",
+    "packet-transform.mjs": "b95b5d716fcab4e734da8eea33918b389fff5436425b096814a5947340430627",
+    "packet/README.md": "19930ce6b02e0994aa2b07a7a7bc1330f41dc0341897afe8fa1c6b553f4910c4",
+    "packet/runner.mjs": "4f73b884b6d625cbcb5361c6db774f986c561143212b18d17c161a869ed6c160",
+    "packet/transport.mjs": "f70db523a2b76660180f193d1d0b124a032808daeb80ade0b9d37eb931d35a29",
+    "packet/manifest.json": "b414974f9e04e8a3e4c8fb29e9a996ba1d9fac8bbbd918d747d18adf46882060",
+    "checks.mjs": "c7c33940b3dd14f175b0cf1405b51ddc8a0cf3d67dd9af5b7020e0aabbf726b8",
+    "checks.test.mjs": "eed78a05f908438cb73d50fc2bb23053648dbd82a1379e9a73b5322b865bc820",
+    "infra.test.mjs": "b3ba8b89dcb8624a13a1be44b3e45cfb495da1a7353cd9e9df6c1fc79bc1af61",
+    "verify.mjs": "ebca080490cde449723bd330c103eee23ed4b94197755c72520786fb11e8424e",
+    "integrity.mjs": "2af72ec378cdbccc40bf4c013bea1aa027d3a974fbeaa0a8c74ca9bfa0b64e27",
+    "audit.mjs": "18c28fb7b96185d6fac23de7e61d21b4d8d061c1b22c8f81e65486e33be89b68",
+    "register.mjs": "5a8676bdaa64764a471f1db832f7c50364c0c5caecb6e90409febaebc1165292",
+    "corpus.mjs": "4d3e2b0cf63ffc1e1608980956853fbb0f81993150373bff6983495eb4f5a1d9",
+    "corpus.json": "b3c44f830d3d0f3be4657054e93e58497a25227873c7c78e65d9c413d00a0f70",
+    "tasks/cold-storage.md": "b511f465695b91976d64a3dd9ab61effbd0f3ce837faf0383070d3de8ff87b9c",
+    "tasks/access-review.md": "7bc7da394257a31d1d3f66d329d8de82bec626222afbec8367739b37616414de",
+    "private/oracles.mjs": "47212b223d27d79867fffc2696402a39f0d5aa7eedff3d557f5a80251fe9b5c8",
+    "prompts/A1.md": "1073b49da20a18813cf748ca1fb58e1b1ada36387c7862aeba4f50fedb8869b6",
+    "prompts/B1.md": "7eb1d54da81a2204671e0f76d46f28bb385779a353e7ad52b89f01596c8ecfa6",
+    "prompts/A2.md": "95b8bc83ec57f57c8979694f9998901f63a350fd8137bc186f312000c35e8185",
+    "prompts/B2.md": "dfdc89a903856a95564908a3e7f91ac5f91ec405c6653276dd42df7061727a44"
+  },
+  "priorStudy": "v1 (preserved unchanged); repeated A/B contracts and corpus; runtime and documentation changed together",
+  "packetBuild": {
+    "revision": "c4b25e18ffdab96f328c45da4266069255c32ecf",
+    "clean": true,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+  },
+  "authorIsolation": "Fresh contexts and instructions; shared filesystem, not a security sandbox"
+}

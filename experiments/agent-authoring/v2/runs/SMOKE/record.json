@@ -1,0 +1,35 @@
+{
+  "id": "SMOKE",
+  "started": "2026-09-23T14:30:30.248Z",
+  "versions": [
+    {
+      "number": 1,
+      "sha256": "792650e248d7b36765d915603fbf84d62814c4b183e2cfda774a5d35cb83509f",
+      "submittedAt": "2026-09-23T14:30:30.249Z",
+      "file": "versions/01.cav"
+    }
+  ],
+  "checks": [
+    {
+      "index": 1,
+      "command": "validate",
+      "version": 1,
+      "started": "2026-09-23T14:30:30.250Z",
+      "log": "checks/01.jsonl",
+      "status": "completed",
+      "durationMs": 29
+    },
+    {
+      "index": 2,
+      "command": "replay",
+      "version": 1,
+      "started": "2026-09-23T14:30:30.959Z",
+      "log": "checks/02.jsonl",
+      "status": "completed",
+      "durationMs": 39
+    }
+  ],
+  "finished": "2026-09-23T14:30:31.454Z",
+  "finalVersion": 1,
+  "finalSha256": "792650e248d7b36765d915603fbf84d62814c4b183e2cfda774a5d35cb83509f"
+}

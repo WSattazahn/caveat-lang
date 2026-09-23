@@ -1,0 +1,5 @@
+{"event":"advance","payload":{"dt":0.25}}
+{"event":"idle","payload":null}
+{"resume":true}
+{"event":"idle"}
+{"event":"advance","payload":{"dt":1.75}}
