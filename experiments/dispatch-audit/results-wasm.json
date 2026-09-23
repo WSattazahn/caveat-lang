@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "buildInfo": {
+    "revision": "541e09d61f131dbd25e546f96600e12d845f3592",
+    "clean": true,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+  },
+  "buildInfoSha256": "d57c04a8aeaeb7e3fa213166e6cd38c6489d2d2532c4da298b49fd86a7b17252",
+  "scriptSha256": "56d4b63481db747810c6f3a95a5bee921281311600c34689099bade4e8bfba4d",
+  "runtimes": {
+    "pkg": {
+      "wasmPath": "dist/pkg/caveat_runtime_bg.wasm",
+      "runtimeSha256": "47d2db23da4f3bdc87e03f2ed9b184d1529e303721753d36e65ed28d13fb99b3",
+      "modulePath": "dist/pkg/caveat_runtime.js",
+      "moduleSha256": "3d34d73e52855b956fcd66b431a42d4249d46442c1799093e08570378f552d88"
+    },
+    "pkg-reactive": {
+      "wasmPath": "dist/pkg-reactive/caveat_runtime_bg.wasm",
+      "runtimeSha256": "0b03a2419ead6d4f53c3d89d1dd071a8eed0de31ce81a2045f56db227ec2fa6b",
+      "modulePath": "dist/pkg-reactive/caveat_runtime.js",
+      "moduleSha256": "8db318a5ab462629b6883a55f50d1856b8e34840554562134555c4ea246e0932"
+    }
+  },
+  "fixtureSha256": {
+    "accepted": "a20f9f3e894025eb3c9e8ae37e1dd9a7c750de3bbb6dc401b57c0cbfb5619b4e",
+    "policy-direct": "cb3492741927547b67077091f15e592b64ea26c07cd72ceb3d309b2682f3ae17",
+    "policy-nested": "bbfd4881474aff3e357799c383382643c1fa42c41779b030cdf86a048459f5fb",
+    "input": "e90f23e03c366c63e351d5c061bea6ef676a69bebe4eae45ee1c5ee63e6ac677",
+    "clock-only": "ae34e73b7ea8c3ca2f13ba3c5e6557981d5086b54fd59eb2ed17a2d61ddb3898",
+    "work-true": "9a65615aef8d17dbbf28275ee6c8ca5a43b71ff464068b774ab794c49289ef49",
+    "work-false": "2b60152c95afbbad2ed1201b920e8814d47c0062939d7f7e4a249137b1346bec",
+    "fatal-require": "af936dc46a52b1b78938b64360e2b6bd2b551de3c4e5ae7799736142140974b9",
+    "fatal-division": "06787f3432f53619755d0af813fe33cbf95fef2ec42cde5e014ba5a6da5df5af"
+  },
+  "checks": [
+    "pkg: accepted full snapshot and legacy view equivalence",
+    "pkg: release clock-only bindings follow the fractional timetable",
+    "pkg: direct policy literal, atomic timer rollback and release clock timetable",
+    "pkg: nested policy literal, atomic timer rollback and release clock timetable",
+    "pkg: malformed duplicate null and typed payloads remain input rejections",
+    "pkg: input bounds and evaluation bounds have distinct origins",
+    "pkg: live and skipped work exhaustion are atomic limit rejections",
+    "pkg: require failure throws fatal JSON and is never a returned rejection",
+    "pkg: division failure throws fatal JSON and is never a returned rejection",
+    "pkg-reactive: accepted full snapshot and legacy view equivalence",
+    "pkg-reactive: release clock-only bindings follow the fractional timetable",
+    "pkg-reactive: direct policy literal, atomic timer rollback and release clock timetable",
+    "pkg-reactive: nested policy literal, atomic timer rollback and release clock timetable",
+    "pkg-reactive: malformed duplicate null and typed payloads remain input rejections",
+    "pkg-reactive: input bounds and evaluation bounds have distinct origins",
+    "pkg-reactive: live and skipped work exhaustion are atomic limit rejections",
+    "pkg-reactive: require failure throws fatal JSON and is never a returned rejection",
+    "pkg-reactive: division failure throws fatal JSON and is never a returned rejection"
+  ]
+}
