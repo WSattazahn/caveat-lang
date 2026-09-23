@@ -199,9 +199,26 @@ pub struct Rule {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Procedure {
     pub name: String,
+    /// Numeric parameters, in order.
     pub parameters: Vec<String>,
+    /// Parameters that name a graph symbol. A procedure with any is a
+    /// template: each call is specialized with the names it passes. See
+    /// spec/caveat-procedure-symbols-0.1.md.
+    pub symbol_parameters: Vec<SymbolParameter>,
     pub body: Vec<GuardedEffect>,
 }
+
+/// `NAME evidence`, `NAME claim` or `NAME caveat` in a parameter list.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolParameter {
+    /// Its position among all the procedure's parameters, from 0.
+    pub position: usize,
+    pub name: String,
+    pub kind: String,
+}
+
+/// How many procedures specialization may add, over the declared ones.
+const MAX_SPECIALIZED_PROCEDURES: usize = 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GuardedEffect {
@@ -1276,6 +1293,7 @@ impl ReactiveSession {
             )?;
         }
         session.validate_procedures()?;
+        session.specialize_procedures()?;
         session.validate_rules()?;
         session.check_observation_order()?;
         session.group_bindings();
@@ -1289,6 +1307,134 @@ impl ReactiveSession {
         session.rules_by_event = Arc::new(rules_by_event);
         session.evaluate_bindings(None)?;
         Ok(session)
+    }
+
+    /// Replace every call of a procedure with symbol parameters by a call of
+    /// its specialization for the names passed, created once per distinct set
+    /// of names, and drop the templates. Names come from the declared symbols,
+    /// so this ends even for calls that pass names on; a cycle among the
+    /// templates was already rejected by `validate_procedures`.
+    fn specialize_procedures(&mut self) -> Result<(), String> {
+        let (templates, plain): (BTreeMap<_, _>, BTreeMap<_, _>) = self
+            .procedures
+            .iter()
+            .map(|(name, procedure)| (name.clone(), procedure.clone()))
+            .partition(|(_, procedure)| !procedure.symbol_parameters.is_empty());
+        if templates.is_empty() {
+            return Ok(());
+        }
+        for template in templates.values() {
+            let mut names = HashSet::new();
+            for parameter in &template.symbol_parameters {
+                if !names.insert(&parameter.name) || template.parameters.contains(&parameter.name) {
+                    return Err(format!(
+                        "duplicate parameter {} for procedure {}",
+                        parameter.name, template.name
+                    ));
+                }
+                if self.symbols.contains_key(&parameter.name)
+                    || self.states.contains_key(&parameter.name)
+                    || self.constants.contains_key(&parameter.name)
+                {
+                    return Err(format!(
+                        "procedure {} parameter {} shadows a declared name",
+                        template.name, parameter.name
+                    ));
+                }
+            }
+        }
+        let mut procedures = plain;
+        let mut pending = procedures.keys().cloned().collect::<Vec<_>>();
+        let mut rules = (*self.rules).clone();
+        for rule in &mut rules {
+            self.specialize_call(&mut rule.effect, &templates, &mut procedures, &mut pending)?;
+        }
+        while let Some(name) = pending.pop() {
+            let mut body = procedures[&name].body.clone();
+            for step in &mut body {
+                self.specialize_call(&mut step.effect, &templates, &mut procedures, &mut pending)?;
+            }
+            procedures.get_mut(&name).expect("pending procedure").body = body;
+        }
+        self.rules = Arc::new(rules);
+        self.procedures = Arc::new(procedures);
+        Ok(())
+    }
+
+    fn specialize_call(
+        &self,
+        effect: &mut Effect,
+        templates: &BTreeMap<String, Procedure>,
+        procedures: &mut BTreeMap<String, Procedure>,
+        pending: &mut Vec<String>,
+    ) -> Result<(), String> {
+        let Effect::Call { name, arguments } = effect else {
+            return Ok(());
+        };
+        let Some(template) = templates.get(name) else {
+            return Ok(());
+        };
+        let expected = template.parameters.len() + template.symbol_parameters.len();
+        if arguments.len() != expected {
+            return Err(format!(
+                "procedure {name} expects {expected} arguments, got {}",
+                arguments.len()
+            ));
+        }
+        let mut names = HashMap::new();
+        let mut passed = Vec::new();
+        for parameter in &template.symbol_parameters {
+            let symbol = arguments[parameter.position]
+                .as_name()
+                .filter(|symbol| self.require_kind(symbol, &parameter.kind).is_ok())
+                .ok_or_else(|| {
+                    format!(
+                        "procedure {name} parameter {} takes the name of a declared {}",
+                        parameter.name, parameter.kind
+                    )
+                })?;
+            names.insert(parameter.name.clone(), symbol.to_string());
+            passed.push(symbol.to_string());
+        }
+        let specialized = format!("{name}[{}]", passed.join(", "));
+        if !procedures.contains_key(&specialized) {
+            if procedures.len() >= self.procedures.len() + MAX_SPECIALIZED_PROCEDURES {
+                return Err(format!(
+                    "procedure specialization exceeds limit {MAX_SPECIALIZED_PROCEDURES}"
+                ));
+            }
+            let body = template
+                .body
+                .iter()
+                .map(|step| GuardedEffect {
+                    condition: step.condition.rename_symbols(&names),
+                    effect: rename_effect(&step.effect, &names),
+                })
+                .collect();
+            procedures.insert(
+                specialized.clone(),
+                Procedure {
+                    name: specialized.clone(),
+                    parameters: template.parameters.clone(),
+                    symbol_parameters: Vec::new(),
+                    body,
+                },
+            );
+            pending.push(specialized.clone());
+        }
+        let symbols = template
+            .symbol_parameters
+            .iter()
+            .map(|parameter| parameter.position)
+            .collect::<HashSet<_>>();
+        *arguments = std::mem::take(arguments)
+            .into_iter()
+            .enumerate()
+            .filter(|(position, _)| !symbols.contains(position))
+            .map(|(_, argument)| argument)
+            .collect();
+        *name = specialized;
+        Ok(())
     }
 
     /// A use of evidence that can only fail is an error when the program
@@ -3328,6 +3474,81 @@ impl ReactiveSession {
     }
 }
 
+/// An effect with graph symbol names replaced, for a specialized procedure.
+fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
+    let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
+    match effect {
+        Effect::Call { name, arguments } => Effect::Call {
+            name: name.clone(),
+            arguments: arguments
+                .iter()
+                .map(|argument| argument.rename_symbols(names))
+                .collect(),
+        },
+        Effect::Sample {
+            stream,
+            value,
+            relation,
+            claim,
+        } => Effect::Sample {
+            stream: stream.clone(),
+            value: value.rename_symbols(names),
+            relation: *relation,
+            claim: rename(claim),
+        },
+        Effect::Emit { .. } | Effect::Reject { .. } => effect.clone(),
+        Effect::Qualify { evidence, caveat } => Effect::Qualify {
+            evidence: rename(evidence),
+            caveat: rename(caveat),
+        },
+        Effect::Set {
+            name,
+            value,
+            because,
+        } => Effect::Set {
+            name: name.clone(),
+            value: value.rename_symbols(names),
+            because: because.as_ref().map(|citations| {
+                citations
+                    .iter()
+                    .map(|citation| citation.rename_symbols(names))
+                    .collect()
+            }),
+        },
+        Effect::Reveal {
+            evidence,
+            relation,
+            claim,
+        } => Effect::Reveal {
+            evidence: rename(evidence),
+            relation: *relation,
+            claim: rename(claim),
+        },
+        Effect::Examine { caveat, cost } => Effect::Examine {
+            caveat: rename(caveat),
+            cost: *cost,
+        },
+        Effect::Commit {
+            action,
+            reason,
+            using,
+            retaining,
+        } => Effect::Commit {
+            action: action.clone(),
+            reason: reason.clone(),
+            using: using.as_ref().map(|value| value.rename_symbols(names)),
+            retaining: retaining.iter().map(rename).collect(),
+        },
+        Effect::Reopen { action, because } => Effect::Reopen {
+            action: action.clone(),
+            because: match because {
+                EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
+                EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(stream.clone()),
+            },
+        },
+    }
+}
+
 /// Stop showing `TARGET.PROPERTY`, and the target once it shows nothing.
 fn remove_shown<T>(
     shown: &mut BTreeMap<String, BTreeMap<String, T>>,
@@ -3667,14 +3888,26 @@ fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<
         .trim()
         .strip_suffix(')')
         .ok_or("proc parameter list requires closing parenthesis")?;
-    let parameters = if parameters.trim().is_empty() {
-        Vec::new()
-    } else {
-        parameters
-            .split(',')
-            .map(|name| identifier(name.trim()))
-            .collect::<Result<_, _>>()?
-    };
+    let mut numeric = Vec::new();
+    let mut symbol_parameters = Vec::new();
+    if !parameters.trim().is_empty() {
+        for (position, parameter) in parameters.split(',').enumerate() {
+            match parameter.split_whitespace().collect::<Vec<_>>()[..] {
+                [name] => numeric.push(identifier(name)?),
+                [name, kind @ ("evidence" | "claim" | "caveat")] => {
+                    symbol_parameters.push(SymbolParameter {
+                        position,
+                        name: identifier(name)?,
+                        kind: kind.into(),
+                    })
+                }
+                _ => return Err(format!(
+                    "proc parameter {} must be NAME, or NAME evidence, NAME claim or NAME caveat",
+                    parameter.trim()
+                )),
+            }
+        }
+    }
     let body = line[open + 1..]
         .trim_end()
         .strip_suffix('}')
@@ -3690,7 +3923,8 @@ fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<
         .collect::<Result<_, _>>()?;
     Ok(Directive::Procedure(Procedure {
         name: identifier(name.trim())?,
-        parameters,
+        parameters: numeric,
+        symbol_parameters,
         body,
     }))
 }

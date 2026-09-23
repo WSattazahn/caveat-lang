@@ -379,6 +379,9 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                     for parameter in &procedure.parameters {
                         parameters.push((parameter.clone(), procedure.name.clone()));
                     }
+                    for parameter in &procedure.symbol_parameters {
+                        parameters.push((parameter.name.clone(), procedure.name.clone()));
+                    }
                     Some(procedure.name.clone())
                 }
                 Directive::Event {

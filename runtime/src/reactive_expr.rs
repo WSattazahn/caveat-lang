@@ -5,7 +5,7 @@
 
 use crate::presentation::Number;
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
@@ -483,6 +483,75 @@ impl Expr {
                 }
                 body.collect_reads(reads);
             }
+        }
+    }
+
+    /// The name, if this expression is a bare name.
+    pub fn as_name(&self) -> Option<&str> {
+        match &self.node {
+            Node::Variable(name) => Some(name),
+            _ => None,
+        }
+    }
+
+    /// The same expression with names replaced: graph symbols wherever a
+    /// predicate or `qualified` names one, and bare names, so that an argument
+    /// can pass a name on. Histories are not renamed. Used to specialize a
+    /// procedure for the symbols it is called with.
+    pub fn rename_symbols(&self, names: &HashMap<String, String>) -> Expr {
+        let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
+        let child = |expression: &Expr| Box::new(expression.rename_symbols(names));
+        let node = match &self.node {
+            Node::Number(_)
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => self.node.clone(),
+            Node::Variable(name) => Node::Variable(rename(name)),
+            Node::Predicate(kind, target) => Node::Predicate(kind.clone(), rename(target)),
+            Node::Qualified(value, evidence, caveats) => Node::Qualified(
+                child(value),
+                rename(evidence),
+                caveats.iter().map(rename).collect(),
+            ),
+            Node::Unary(operator, operand) => Node::Unary(*operator, child(operand)),
+            Node::Binary(operator, left, right) => {
+                Node::Binary(*operator, child(left), child(right))
+            }
+            Node::Require(condition, value) => Node::Require(child(condition), child(value)),
+            Node::If(condition, yes, no) => Node::If(child(condition), child(yes), child(no)),
+            Node::HistoryAt(history, index) => Node::HistoryAt(history.clone(), child(index)),
+            Node::Fold(history, initial, reducer) => {
+                Node::Fold(history.clone(), child(initial), reducer.clone())
+            }
+            Node::ExpandedFold(history, initial, body) => {
+                Node::ExpandedFold(history.clone(), child(initial), child(body))
+            }
+            Node::Function(function, arguments) => Node::Function(
+                *function,
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+            ),
+            Node::UserCall(name, arguments) => Node::UserCall(
+                name.clone(),
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+            ),
+            Node::ExpandedCall(arguments, body) => Node::ExpandedCall(
+                arguments
+                    .iter()
+                    .map(|argument| argument.rename_symbols(names))
+                    .collect(),
+                child(body),
+            ),
+        };
+        Expr {
+            node,
+            depth: self.depth,
         }
     }
 
