@@ -187,29 +187,50 @@ These checks run without being written. Every scenario starts a new session.
 6. A source that fails to load fails the scenario at step 0 with the runtime's
    diagnostic.
 
-The first failure ends its scenario; other scenarios still run. The runner
-adds no randomness and reads no clock, so time passes only through the
-program's own events.
+The first failure ends its scenario; other scenarios still run. After a
+WebAssembly trap the runner loads a fresh runtime before the next scenario,
+because a trap leaves the whole instance in an unknown state. The runner adds
+no randomness and reads no clock, so time passes only through the program's
+own events.
 
 ## Results
 
-A human report shows one line per scenario. A failure gives the scenario,
-the step number, the step kind, the session (`primary` or `shadow N`), and
-then either the pointer with expected and actual values, or the expected and
-actual outcome. For example:
+A human report shows one line per scenario. A failure gives the scenario, the
+step number, the failure kind and the session, then what differed: a pointer
+with expected and actual values, or the expected and actual outcome. For
+example:
 
 ```text
 FAIL T01 step 5 expect [primary]: /bindings/heating/text expected "50%", actual "0%"
 FAIL R01 step 8 send [primary]: expected a policy rejection; got input/bound_exceeded "dt must be finite and in 0..30"
 ```
 
-The machine report has schema `caveat-scenario-report/0.1`. It records the
-outcome schema, the runtime build identity, each source's SHA-256, and per
-scenario `pass`, event counts and the first failure with the same fields as
-the human report.
+Step 0 is creating the session, and the step after the last is the final
+restore. Sessions are named `primary` (the newest), `shadow N` (the Nth
+session created, so `shadow 1` is the session the scenario started with), or
+`final restore`.
 
-Exit status is 0 when every scenario passes, 1 when any fails, and 2 when the
-file is invalid or cannot be read. Nothing runs with status 2.
+| Kind | Category | Failure |
+| --- | --- | --- |
+| `send` | `expectation` | The outcome differs from the expected outcome. |
+| `expect`, `same_as`, `size` | `expectation` | A value or size differs. |
+| `fatal` | `fatal` | A fatal outcome or escaped exception. |
+| `load` | `load` | The source did not load or could not be read. |
+| `atomicity` | `runtime-invariant` | A rejected event changed the save, view or snapshot. |
+| `agreement` | `runtime-invariant` | A resumed session's outcome or snapshot differs from the primary's. |
+| `resume`, `final-resume` | `runtime-invariant` | A restore changed the snapshot or view, or failed. |
+| `grounds` | `runtime-invariant` | A grounded name is not in its lineage. |
+
+The machine report, schema `caveat-scenario-report/0.1`, covers one run of
+one or more files. It records the outcome schema, the runtime build identity,
+and for each file the SHA-256 of each source it read and, per scenario,
+`pass`, event, rejection and resume counts, and the first failure with the
+fields above: `step`, `kind`, `category`, `session`, and `path`, `expected`,
+`actual`, `outcome`, `repetition` or `message` as they apply.
+
+Exit status is 0 when every scenario passes, 1 when any fails, and 2 when a
+file is invalid or cannot be read, or the runtime cannot load. Every file is
+validated first, and nothing runs with status 2.
 
 ## Examples
 
@@ -221,6 +242,10 @@ invalid files were refused. Three more files exercised `repeat`, `$set`,
 growth bounds and a state-bound `evaluation` rejection. The prototype, these
 files and their recorded results are kept in
 [`experiments/scenario-format`](../experiments/scenario-format/README.md).
+The [kit runner](../kit/README.md) implements this document and runs those
+files in its tests. Trail Rescue's 24 and Glowcap's 38 scenarios are
+[converted](../experiments/scenario-conversion/README.md) as its acceptance
+check.
 
 `thermostat_history.scenarios.json`, the authoring guide's walkthrough:
 

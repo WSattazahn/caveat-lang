@@ -8,6 +8,11 @@ stay exactly as recorded, and the standard runner runs alongside them.
 Scope is the reactive profile. The inventory was taken at runtime revision
 `c4b25e1` and updated for the dispatch outcomes of `541e09d`.
 
+The [kit runner](../kit/README.md) makes the checks below. Trail Rescue's 24
+scenarios and Glowcap's 38 `cr12` scenarios are
+[converted](../experiments/scenario-conversion/README.md) and pass it; the
+original harnesses are unchanged.
+
 ## Destinations
 
 - **S — standard scenario.** Caveat events sent to a `.cav` source, with

@@ -80,6 +80,8 @@ jobs:
         run: npm run test:trail-rescue
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
+      - name: Converted Trail Rescue and Glowcap scenarios
+        run: npm run test:scenario-conversion
       - name: CLI and CAVEAT Map playthroughs
         run: |
           printf 'latch_sensor_recently_serviced\nopen\ncontinue\n' | cargo run --manifest-path runtime/Cargo.toml --bin caveat -- --interactive game/the_door_round2.cav

@@ -3,8 +3,9 @@
 This directory preserves the evidence behind
 [Scenarios 0.1](../../spec/caveat-scenarios-0.1.md) as first drafted. It is
 not the developer kit. `prototype-runner.mjs` was a throwaway used to execute
-the spec's examples; the kit's runner replaces it and keeps these files as
-fixtures.
+the spec's examples. The [kit runner](../../kit/README.md) replaces it:
+`kit/test/evidence.test.mjs` runs every file here and requires the same
+results as the table below.
 
 The prototype predates the review corrections in `f8b289d`. It does not refuse
 `before` ahead of the first `send`, does not count repeats in `$includes`, and

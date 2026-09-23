@@ -22,7 +22,9 @@
     "test:dispatch-outcomes": "node scripts/test-dispatch-outcomes.mjs",
     "test:trail-rescue": "node experiments/trail-rescue/harness.mjs",
     "test:trail-rescue-page": "node scripts/test-trail-rescue-page.mjs",
-    "test:kit": "npm --prefix kit test"
+    "test:kit": "npm --prefix kit test",
+    "test:scenario-conversion": "node experiments/scenario-conversion/convert.mjs --check",
+    "check:scenario-mutations": "node experiments/scenario-conversion/mutation-check.mjs"
   },
   "dependencies": {
     "three": "0.186.0"
