@@ -413,3 +413,42 @@ fn grounds_that_differ_from_lineage_survive_a_save() {
     assert_eq!(resumed.snapshot().value_grounds["level"], *grounds);
     assert_eq!(resumed.snapshot().qualified_values["level"], *level);
 }
+
+#[test]
+fn a_restored_number_is_the_same_number_to_the_last_bit() {
+    // Time summed from 0.05 s ticks needs up to 17 significant digits, and a
+    // parser that rounds the last one moves a `>= 45` test by a tick: the
+    // round-6 fuzz found exactly that. Check every value on the way.
+    let mut game = ReactiveSession::from_source(PROGRAM).unwrap();
+    for tick in 0..200 {
+        send(&mut game, "tick", &[("dt", 0.05)]);
+        let snapshot = game.snapshot();
+        let resumed = ReactiveSession::restore_json(PROGRAM, &game.save_json().unwrap()).unwrap();
+        let restored = resumed.snapshot();
+        assert_eq!(
+            restored.values["now"].to_bits(),
+            snapshot.values["now"].to_bits(),
+            "tick {tick}: {} came back as {}",
+            snapshot.values["now"],
+            restored.values["now"]
+        );
+        assert_eq!(
+            restored.elapsed.to_bits(),
+            snapshot.elapsed.to_bits(),
+            "tick {tick}"
+        );
+    }
+}
+
+#[test]
+fn a_number_a_host_sends_arrives_exactly() {
+    // A frame time computed by a host needs every digit too. Both numbers
+    // come back one unit off from a parser that is not exact.
+    let mut game = ReactiveSession::from_source(PROGRAM).unwrap();
+    for dt in ["0.0013580246789999999", "0.0018518518349999998"] {
+        game.dispatch_json("tick", &format!(r#"{{"dt": {dt}}}"#))
+            .unwrap();
+    }
+    let expected = 0.0013580246789999999_f64 + 0.0018518518349999998_f64;
+    assert_eq!(game.snapshot().values["now"].to_bits(), expected.to_bits());
+}
