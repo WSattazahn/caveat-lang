@@ -39,6 +39,8 @@ on eat qualify bite with faded after 30;
 on eat emit ping;
 on regrow renew bite;
 on check examine stale cost 1;
+// A guard that reads qualified state: the lineage gains it, the grounds do not.
+on check when support > 0 set level = level + 1;
 bind hud.text = "ok" because nothing;
 bind hud.text = "faded" when carries(bite, faded) because support;
 bind hud.level = level;
@@ -396,5 +398,18 @@ fn a_save_is_a_plain_value_a_host_can_inspect() {
     let save: ReactiveSave = serde_json::from_str(&played().save_json().unwrap()).unwrap();
     assert_eq!(save.schema, "caveat-reactive-save/0.1");
     assert_eq!(save.renewals["bite"], ["bite", "bite@2"]);
-    assert_eq!(save.states["level"].value, 20.0);
+    assert_eq!(save.states["level"].value, 21.0);
+}
+
+#[test]
+fn grounds_that_differ_from_lineage_survive_a_save() {
+    let original = played();
+    let level = &original.snapshot().qualified_values["level"];
+    let grounds = &original.snapshot().value_grounds["level"];
+    assert_ne!(&level.provenance, grounds, "the fixture must exercise this");
+    let save = original.save().unwrap();
+    assert!(save.states["level"].grounds.is_some());
+    let resumed = ReactiveSession::restore(PROGRAM, &save).unwrap();
+    assert_eq!(resumed.snapshot().value_grounds["level"], *grounds);
+    assert_eq!(resumed.snapshot().qualified_values["level"], *level);
 }
