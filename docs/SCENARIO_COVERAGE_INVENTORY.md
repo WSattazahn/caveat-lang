@@ -73,7 +73,7 @@ Scenarios apply to phases through `since` and `until`.
 | Script | Destination | Notes |
 | --- | --- | --- |
 | `test-glowcap.mjs` | S for program facts; H for `web/glowcap-explain.js` text | Labels, grounds, journal, late caveats, and two rejections: `already absorbed` (policy) and `does not accept meadow` (input). It already parses rejection text with a helper. |
-| `test-slime-glow.mjs` | S for program assertions; R for build freshness | Needs comparison with an earlier step (relations and commitment bases unchanged since acquisition), a snapshot growth bound (+128 bytes) and "reset equals initial". Vessel consumes this program; its side is not covered here. |
+| `test-slime-glow.mjs` | S for program assertions; H for the wrapper's `reset()` and `free()`; R for build freshness | Needs comparison with an earlier step (relations and commitment bases unchanged since acquisition) and a snapshot growth bound (+128 bytes). `reset()` replaces the session inside `SlimeGlowPolicy`, so "reset equals initial" tests the wrapper. Vessel consumes this program; its side is not covered here. |
 | `test-elapsed-clock.mjs` | R (runtime conformance) | Clock-only invalidation, rollback, a manufactured save above `1e12`, signed zero. The manufactured and signed-zero saves are the first candidates for save-compatibility fixtures. |
 | `test-beacon.mjs`, `test-rescue.mjs`, `test-launch.mjs`, `test-glowcap-page.mjs` | R | Browser flows; the beacon and rescue games use sessions outside the reactive profile. `test-rescue.mjs`'s `historyComputation` is a browser smoke test of `thermostat_history.cav`. |
 
@@ -94,6 +94,9 @@ Both studies are registered and frozen. Their files are not edited.
 There are 404 tests in 45 files. They stay in `cargo` (R) and also cover the
 native interface.
 
+- Malformed JSON text and duplicate payload keys stay here and in the WASM
+  dispatch checks (`scripts/test-dispatch-outcomes.mjs`). A parsed scenario
+  file cannot express them, and signed zero stays in `test-elapsed-clock.mjs`.
 - 86 `unwrap_err()` sites assert failures by substring, such as
   `contains("rejected: already absorbed")`. Existing APIs are preserved, so they
   keep passing. Moving them to typed outcomes belongs to the outcome

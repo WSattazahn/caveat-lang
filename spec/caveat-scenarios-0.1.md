@@ -52,10 +52,15 @@ Each step has exactly one of `send`, `expect`, `same_as`, `checkpoint`,
 { "send": "advance", "payload": { "dt": 31 }, "rejected": { "origin": "input", "code": "bound_exceeded" } }
 ```
 
-`send` names the event. An omitted `payload` is `{}`; any other JSON value is
-sent exactly as written, so malformed payloads can be tested. `repeat` sends
-the same event 1 to 10,000 times, and every repetition must have the expected
-outcome.
+`send` names the event. An omitted `payload` is `{}`. Any other JSON value,
+including `null`, an array or a scalar, is serialized with standard JSON and
+sent. Wrong types, missing or extra parameters and unknown members can
+therefore be tested. Malformed JSON text and duplicate keys cannot be written
+in a parsed scenario file; they stay in runtime conformance tests. A payload
+number that parses as non-finite, such as `1e999`, makes the file invalid,
+because standard JSON would silently send it as `null`. Negative zero is sent
+as `0`. `repeat` sends the same event 1 to 10,000 times, and every repetition
+must have the expected outcome.
 
 Without `rejected`, the event must be accepted. Otherwise:
 
@@ -86,8 +91,9 @@ session after a fatal.
 ```
 
 Each key is a JSON Pointer ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901))
-into the current snapshot. The view's fields are the snapshot's fields, so a
-pointer that works on the view works here too. The snapshot adds `elapsed`,
+into the current snapshot. The view's fields are the snapshot's fields, except
+`/schema`, which names each document's own schema. A pointer that works on the
+rest of the view works here too. The snapshot adds `elapsed`,
 `qualified_values`, `commitment_bases` and the rest of the lineage.
 
 - Scalars must be equal.
@@ -101,11 +107,15 @@ A matcher is an object whose only member's name starts with `$`:
 | Matcher | Matches |
 | --- | --- |
 | `{"$exact": value}` | Equal, with no extra members at any depth. |
-| `{"$set": [...]}` | An array with exactly these elements, in any order. Elements are compared exactly. |
-| `{"$includes": [...]}` | An array that contains each of these elements exactly, anywhere. |
+| `{"$set": [...]}` | An array with exactly these elements in any order, counting repeats. |
+| `{"$includes": [...]}` | An array that contains these elements anywhere, counting repeats. |
 | `{"$absent": true}` | The pointer, or this object member, does not exist. |
 
-Order is significant unless `$set` says otherwise. Journals, revisions and
+Elements of `$set` and `$includes` are compared exactly, and both count
+repeats: `["a", "b"]` does not match `{"$set": ["a", "a"]}`, and
+`{"$includes": ["a", "a"]}` needs two occurrences of `"a"`.
+
+Order is significant unless `$set` or `$includes` says otherwise. Journals, revisions and
 reopenings are ordered; a harness that sorted every list once hid an ordering
 bug. A literal object whose only member starts with `$` is written with
 `$exact`. An object that mixes a matcher with other members is invalid.
@@ -118,15 +128,22 @@ bug. A literal object whose only member starts with `$` is written with
 ```
 
 `checkpoint` stores the current snapshot under a new name. `same_as` requires
-the values at `paths` to equal those in a stored snapshot exactly. Besides
-checkpoints, two names are always defined:
+the values at `paths` to equal those in a stored snapshot exactly. Every path
+must exist in both snapshots; a path missing from either fails, so two absent
+values never count as equal. `paths` must be a non-empty array. A whole
+snapshot always differs after an accepted event, because its sequence
+advances.
+
+Besides checkpoints, two names are defined:
 
 - `initial`: the snapshot when the session was created.
-- `before`: the snapshot just before the most recent `send` step, before its
-  first repetition.
+- `before`: the primary session's snapshot just before the most recent `send`
+  step, before its first repetition. It exists only after the scenario's first
+  `send` step. A file that names `before` earlier, in `same_as` or in a `size`
+  bound, is invalid.
 
-`paths` is required. A whole snapshot always differs after an accepted event,
-because its sequence advances.
+A checkpoint must be defined by an earlier step of the same scenario. Its name
+must be new and cannot be `initial` or `before`.
 
 ### `resume`
 
