@@ -853,12 +853,22 @@ fn rewrite(
     let imported = used_modules(&part.source)?;
     let stripped = strip_headers(&part.source);
     let tags = tag_offsets(&stripped);
+    // Like other intrinsics, a module's own function may shadow elapsed().
+    // Other declarations named elapsed coexist with the clock instead. Only
+    // inspect declaration kinds for the modules where that distinction matters.
+    let elapsed_is_function = module.is_some()
+        && declared.iter().any(|name| name == "elapsed")
+        && crate::parser::parse(&stripped)?.statements.iter().any(|statement| {
+            matches!(statement, Statement::Reactive(Directive::Function(function)) if function.name == "elapsed")
+        });
     let mut out = String::with_capacity(stripped.len());
     let mut chars = stripped.char_indices().peekable();
     let source = stripped.as_str();
+    let mut previous_word = None;
 
     while let Some((index, ch)) = chars.next() {
         if ch == '"' {
+            previous_word = None;
             out.push(ch);
             let mut escaped = false;
             for (_, ch) in chars.by_ref() {
@@ -884,6 +894,9 @@ fn rewrite(
             continue;
         }
         if !is_identifier_start(ch) {
+            if !ch.is_whitespace() {
+                previous_word = None;
+            }
             out.push(ch);
             continue;
         }
@@ -947,19 +960,43 @@ fn rewrite(
             while chars.peek().map(|(next, _)| *next < symbol_end) == Some(true) {
                 chars.next();
             }
+            previous_word = Some(symbol);
             continue;
         }
 
+        // Procedure declarations/calls still name the module's procedure;
+        // expression calls read the intrinsic even beside a state or define
+        // named elapsed. Comments are whitespace at this grammar boundary.
+        let clock_read = word == "elapsed"
+            && !elapsed_is_function
+            && !matches!(previous_word, Some("proc" | "call"))
+            && after_trivia(&source[end..]).starts_with('(');
         match module {
             Some(module)
-                if !member && !is_reserved(word) && declared.iter().any(|name| name == word) =>
+                if !member
+                    && !clock_read
+                    && !is_reserved(word)
+                    && declared.iter().any(|name| name == word) =>
             {
                 out.push_str(&flat(module, word));
             }
             _ => out.push_str(word),
         }
+        previous_word = Some(word);
     }
     Ok(out)
+}
+
+/// The next code token after whitespace and the parser's line comments.
+fn after_trivia(mut source: &str) -> &str {
+    loop {
+        source = source.trim_start();
+        if source.starts_with('#') || source.starts_with("//") {
+            source = source.split_once('\n').map_or("", |(_, rest)| rest);
+        } else {
+            return source;
+        }
+    }
 }
 
 fn flat(module: &str, symbol: &str) -> String {

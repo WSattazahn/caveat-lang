@@ -66,16 +66,16 @@ functions, not the rest of their containing program.
 5. Change one policy and replay the same inputs. Check both the changed decision
    and the records that should remain unchanged.
 
-Plan numeric ranges before writing accumulators or clocks. State and numeric
+Plan numeric ranges before writing state accumulators. State and numeric
 event bounds must be finite, ordered, and within the inclusive hard limit
 `-1e12..1e12`; an explicit larger `max` is invalid even when the initial value
 fits. For a state accumulator such as `total = total + dt`, choose its units,
 maximum supported duration, and representation so every update fits the
 declared range. If the required duration would overflow it, redesign the
 representation before coding. Exceeding the range rejects the whole event,
-without advancing that accumulator. A state accumulator and the runtime's
-snapshot `elapsed` are separate values; this state-bound rule does not specify
-the runtime clock's limit. Validate early and replay boundary cases.
+without advancing that accumulator. For session time, read `elapsed()` rather
+than maintaining a second clock in bounded state. Validate early and replay
+boundary cases.
 
 For the thermostat fixture, the input sequence is 17, 25, 17. The expected
 heating bases are 1, 0, 1, with three distinct temperature occurrences and
@@ -88,6 +88,32 @@ The latest profiles describe [history computation](../spec/caveat-reactive-0.6.m
 and [procedures](../spec/caveat-reactive-0.7.md). The
 [essence document](CAVEAT_ESSENCE.md) records the invariants that edits must
 preserve. Runtime tests are executable examples, including adversarial inputs.
+
+## Read the session clock
+
+```caveat
+event advance dt min 0 max 3600;
+clock advance every 1;
+bind hud.elapsed = elapsed();
+```
+
+[`elapsed()`](../spec/caveat-elapsed-0.1.md) reads the runtime's existing session
+time in seconds. It starts at zero and adds each accepted clock event's `dt`
+before scheduled qualifications and rules run. An explicit `clock` selects the
+time event; otherwise `tick` advances it. With neither, it remains zero.
+Rejected events roll back the clock along with every other effect.
+
+Use it in guards, bindings, `define` expressions and procedures, or pass it to
+a pure function such as `time_text(elapsed())`. Pure functions cannot capture
+the clock themselves. A clock read introduces no evidence of its own; the
+usual qualification of enclosing expressions and guards still applies.
+
+The clock is finite binary64 and reading it has no state duration cap. Copying
+it into a state still enforces that state's bounds. Use direct reads for
+display and current-time comparisons; keep bounded state only for values the
+policy needs to retain. Saves already preserve the clock, and restored
+bindings read that saved value. A custom clock admitting negative `dt` can
+move backward, so assume monotonic time only when its declared bounds ensure it.
 
 ## Reconsider a decision when its evidence ages
 

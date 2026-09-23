@@ -94,6 +94,14 @@ coordinates, parentheses, unary signs, `+`, `-`, `*`, `/`, and these functions:
 | `clamp(x, low, high)` | Inclusive saturation |
 | `sqrt(x)` | Square root of a nonnegative value |
 | `sin(x)`, `cos(x)` | Trigonometric functions, radians |
+| `elapsed()` | Current session clock in seconds; see [Elapsed 0.1](caveat-elapsed-0.1.md) |
+
+`elapsed()` reads the existing runtime clock, initially zero, without adding
+evidence or grounds. Clock events accumulate their `dt` before due scheduled
+qualifications and rules, and a rejected event rolls that update back. Reads
+are not subject to state bounds; assigning the result to a state still is.
+The later [Elapsed 0.1](caveat-elapsed-0.1.md) profile specifies clock selection,
+pure-function boundaries, incremental bindings and save/restore behavior.
 
 Boolean expressions support `true`, `false`, `==`, `!=`, `<`, `<=`, `>`, `>=`,
 `and`, `or`, `not`, and the graph predicates below. Conditions must be boolean;

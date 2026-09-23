@@ -18,6 +18,7 @@
     "test:slime-glow": "node scripts/test-slime-glow.mjs",
     "test:glowcap": "node scripts/test-glowcap.mjs",
     "test:glowcap-page": "node scripts/test-glowcap-page.mjs",
+    "test:elapsed-clock": "node scripts/test-elapsed-clock.mjs",
     "test:trail-rescue": "node experiments/trail-rescue/harness.mjs",
     "test:trail-rescue-page": "node scripts/test-trail-rescue-page.mjs"
   },

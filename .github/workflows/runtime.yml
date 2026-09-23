@@ -70,6 +70,8 @@ jobs:
         run: npm run build
       - name: Slime glow WebAssembly policy checks
         run: npm run test:slime-glow
+      - name: Elapsed clock WebAssembly checks
+        run: npm run test:elapsed-clock
       - name: Glowcap explanations against the lean runtime
         run: npm run test:glowcap
       - name: Trail Rescue registered scenarios, invariants and restore

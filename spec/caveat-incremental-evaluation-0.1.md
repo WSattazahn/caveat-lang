@@ -31,13 +31,19 @@ is taken or not:
 
 - a **state** it names. It counts as changed when its value, its lineage or its
   grounds differ after the event;
+- **the runtime clock**, through [`elapsed()`](caveat-elapsed-0.1.md). It counts
+  as changed when the session's elapsed value changes, even if no state or
+  graph record changed. Reads through a `define` or a pure function argument
+  retain this dependency;
 - **the graph**, through `observed`, `examined`, `committed`, `reopened`,
   `qualified`, `latest`, `has_sample` or a history read. It counts as changed
   when the event revealed, qualified, examined, committed, reopened or sampled
   anything, or changed a record those read.
 
-For an author this means a binding that reads `now` is evaluated on every tick,
-and one that reads only `support` is evaluated when `support` changes.
+For an author this means `bind hud.elapsed = elapsed();` is evaluated when the
+clock changes, and a binding that reads only `support` is evaluated when
+`support` changes. The runtime clock dependency is distinct from any state
+named `elapsed`; an ordinary event does not invalidate it merely by dispatching.
 
 ## What a transaction copies
 

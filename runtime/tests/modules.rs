@@ -1022,6 +1022,169 @@ fn a_module_may_shadow_a_function_only_with_a_function() {
 }
 
 #[test]
+fn a_module_state_named_elapsed_stays_separate_from_clock_calls() {
+    for gap in ["", " \t", " # clock read\n", " // clock read\n"] {
+        let module = format!(
+            "module timer;\n\
+             state elapsed = 7;\n\
+             event advance dt min 0 max 1;\n\
+             clock advance every 1;\n\
+             on advance set elapsed = elapsed + 1;\n\
+             bind hud.now = elapsed{gap}();\n\
+             bind hud.authored = elapsed;\n"
+        );
+        let text = bundle(&[("timer", &module), ("main", "use timer;\n")]);
+        let source = link::link(&text).expect("clock and state link together");
+        assert!(source.contains("state timer__elapsed = 7;"), "{source}");
+        assert!(
+            source.contains(&format!("bind hud.now = elapsed{gap}();")),
+            "{source}"
+        );
+        assert!(
+            source.contains("bind hud.authored = timer__elapsed;"),
+            "{source}"
+        );
+
+        let mut session = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+            .expect("clock and state run together");
+        let before = session.snapshot();
+        assert_eq!(before.bindings["hud"]["now"], BindingValue::Number(0.0));
+        assert_eq!(before.values["timer__elapsed"], 7.0);
+        let after = session
+            .dispatch_json("timer__advance", r#"{"dt":0.25}"#)
+            .expect("module clock advances");
+        assert_eq!(after.elapsed, 0.25);
+        assert_eq!(after.bindings["hud"]["now"], BindingValue::Number(0.25));
+        assert_eq!(after.bindings["hud"]["authored"], BindingValue::Number(8.0));
+        assert_eq!(after.values["timer__elapsed"], 8.0);
+    }
+}
+
+#[test]
+fn a_module_define_named_elapsed_does_not_replace_clock_calls() {
+    let text = bundle(&[
+        (
+            "timer",
+            "module timer;\n\
+             define elapsed = 7;\n\
+             event advance dt min 0 max 1;\n\
+             clock advance every 1;\n\
+             bind hud.now = elapsed();\n\
+             bind hud.authored = elapsed;\n",
+        ),
+        ("main", "use timer;\n"),
+    ]);
+    let mut session = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+        .expect("clock and define run together");
+    let after = session
+        .dispatch_json("timer__advance", r#"{"dt":0.25}"#)
+        .expect("module clock advances");
+    assert_eq!(after.bindings["hud"]["now"], BindingValue::Number(0.25));
+    assert_eq!(after.bindings["hud"]["authored"], BindingValue::Number(7.0));
+}
+
+#[test]
+fn a_module_procedure_named_elapsed_can_call_and_read_the_clock() {
+    let text = bundle(&[
+        (
+            "timer",
+            "module timer;\n\
+             state captured = 0;\n\
+             event advance dt min 0 max 1;\n\
+             clock advance every 1;\n\
+             proc # declaration\n elapsed // parameters\n(value) {\n\
+                 set captured = value + elapsed();\n\
+             };\n\
+             on advance call // target\n elapsed # arguments\n(elapsed());\n\
+             bind hud.now = elapsed();\n",
+        ),
+        ("main", "use timer;\n"),
+    ]);
+    let source = link::link(&text).expect("procedure and clock link together");
+    assert!(source.contains("timer__elapsed // parameters"), "{source}");
+    assert!(source.contains("timer__elapsed # arguments"), "{source}");
+    let mut session = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+        .expect("procedure and clock run together");
+    let after = session
+        .dispatch_json("timer__advance", r#"{"dt":0.25}"#)
+        .expect("module procedure runs");
+    assert_eq!(after.bindings["hud"]["now"], BindingValue::Number(0.25));
+    assert_eq!(after.values["timer__captured"], 0.5);
+}
+
+#[test]
+fn a_module_function_named_elapsed_keeps_explicit_intrinsic_shadowing() {
+    let text = bundle(&[
+        (
+            "timer",
+            "module timer;\n\
+             fn # declaration\n elapsed // parameters\n() = 7;\n\
+             fn later(value) = elapsed() + value;\n\
+             bind hud.local = elapsed();\n\
+             bind hud.later = later(1);\n",
+        ),
+        (
+            "main",
+            "use timer;\n\
+             event tick dt min 0 max 0.1;\n\
+             bind hud.imported = timer::elapsed();\n\
+             bind hud.now = elapsed();\n",
+        ),
+    ]);
+    let source = link::link(&text).expect("module function shadows the intrinsic");
+    assert!(
+        source.contains("bind hud.local = timer__elapsed();"),
+        "{source}"
+    );
+    let mut session = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+        .expect("module function runs");
+    let after = session
+        .dispatch_json("tick", r#"{"dt":0.0625}"#)
+        .expect("global clock advances");
+    for property in ["local", "imported"] {
+        assert_eq!(after.bindings["hud"][property], BindingValue::Number(7.0));
+    }
+    assert_eq!(after.bindings["hud"]["later"], BindingValue::Number(8.0));
+    assert_eq!(after.bindings["hud"]["now"], BindingValue::Number(0.0625));
+}
+
+#[test]
+fn a_module_function_named_elapsed_keeps_its_own_arity() {
+    let text = bundle(&[
+        (
+            "timer",
+            "module timer;\n\
+             fn elapsed(value) = value + 7;\n\
+             fn later(value) = elapsed(value);\n\
+             bind hud.local = elapsed(1);\n\
+             bind hud.nested = elapsed(elapsed(2));\n\
+             bind hud.later = later(3);\n",
+        ),
+        (
+            "main",
+            "use timer;\n\
+             event tick dt min 0 max 0.1;\n\
+             bind hud.imported = timer::elapsed(4);\n\
+             bind hud.now = elapsed();\n",
+        ),
+    ]);
+    let mut session = caveat_runtime::reactive::ReactiveSession::from_source(&text)
+        .expect("module function retains its authored arity");
+    let after = session
+        .dispatch_json("tick", r#"{"dt":0.0625}"#)
+        .expect("global clock advances");
+    for (property, value) in [
+        ("local", 8.0),
+        ("nested", 16.0),
+        ("later", 10.0),
+        ("imported", 11.0),
+    ] {
+        assert_eq!(after.bindings["hud"][property], BindingValue::Number(value));
+    }
+    assert_eq!(after.bindings["hud"]["now"], BindingValue::Number(0.0625));
+}
+
+#[test]
 fn the_reserved_list_does_not_drift_from_the_standard_library() {
     // The standard library is source, not a hand-kept list here. If a prelude
     // function is added and not listed, a module could declare its name as a

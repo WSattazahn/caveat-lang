@@ -743,6 +743,7 @@ struct BindingGroup {
 struct Changes {
     names: HashSet<String>,
     graph: bool,
+    clock: bool,
 }
 
 impl Changes {
@@ -770,12 +771,18 @@ impl Changes {
             || !same(&old.reading_streams, &new.reading_streams)
             || !same(&old.decision_series, &new.decision_series)
             || !same(&old.renewals, &new.renewals);
-        Self { names, graph }
+        Self {
+            names,
+            graph,
+            // Signed zero is observable, for example through atan2.
+            clock: old.elapsed.to_bits() != new.elapsed.to_bits(),
+        }
     }
 
     fn touch(&self, reads: &Reads) -> bool {
         reads.anything
             || (reads.graph && self.graph)
+            || (reads.clock && self.clock)
             || reads.names.iter().any(|name| self.names.contains(name))
     }
 }
@@ -1286,6 +1293,7 @@ impl ReactiveSession {
                         .cloned()
                         .collect();
                     if initial.validate(&numeric, &|kind, name| match kind {
+                        "runtime_clock" => Ok(()),
                         "qualification_evidence" => session.require_kind(name, "evidence"),
                         "qualification_caveat" => session.require_kind(name, "caveat"),
                         "numeric_history" => session.require_history(name),
@@ -1300,6 +1308,9 @@ impl ReactiveSession {
                     }
                     let value = initial.evaluate_tracked_with_histories(
                         &|name| {
+                            if name == reactive_expr::ELAPSED_READ {
+                                return Ok(Some(Tracked::plain(session.elapsed)));
+                            }
                             Ok(session.states.value(name).cloned().or_else(|| {
                                 session.constants.get(name).copied().map(Tracked::plain)
                             }))
@@ -1622,7 +1633,8 @@ impl ReactiveSession {
                 .iter()
                 .map(|parameter| parameter.name.as_str())
                 .collect::<HashSet<_>>();
-            // True for the whole event: reads only its parameters and constants.
+            // Fixed throughout the rules: parameters, constants, or the clock
+            // (which advances before any rule, never between rules).
             let fixed = |conjunct: &Expr| {
                 let mut reads = Reads::default();
                 conjunct.collect_reads(&mut reads);
@@ -1867,6 +1879,7 @@ impl ReactiveSession {
         }
         let validate_predicate = |kind: &str, symbol: &str| -> Result<(), String> {
             match kind {
+                "runtime_clock" => Ok(()),
                 "observed" => self.require_kind(symbol, "evidence"),
                 "examined" => self.require_kind(symbol, "caveat"),
                 "qualification_evidence" => self.require_kind(symbol, "evidence"),
@@ -2774,6 +2787,9 @@ impl ReactiveSession {
     ) -> Result<Tracked<Value>, String> {
         expression.evaluate_tracked_with_histories(
             &|name| {
+                if name == reactive_expr::ELAPSED_READ {
+                    return Ok(Some(Tracked::plain(self.elapsed)));
+                }
                 Ok(self.states.value(name).cloned().or_else(|| {
                     parameters
                         .get(name)
@@ -2800,6 +2816,9 @@ impl ReactiveSession {
     ) -> Result<Tracked<Value>, String> {
         expression.evaluate_tracked_with_histories(
             &|name| {
+                if name == reactive_expr::ELAPSED_READ {
+                    return Ok(Some(Tracked::plain(self.elapsed)));
+                }
                 if let Some(cell) = self.states.get(name) {
                     return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
                 }

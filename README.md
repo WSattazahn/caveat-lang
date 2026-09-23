@@ -35,6 +35,11 @@ have known clock-horizon contract violations outside the corpus. The
 [study report](experiments/agent-authoring/v1/RESULTS.md) preserves those limits,
 every revision and the independent verification.
 
+Reactive source can now read the runtime clock directly with
+[`elapsed()`](spec/caveat-elapsed-0.1.md): `bind hud.elapsed = elapsed();`.
+It uses the same time as scheduled caveats and decision journals, survives
+save/restore, and removes the need for a separate bounded state timer.
+
 ## What only Caveat does
 
 | | Caveat | A general-purpose language |

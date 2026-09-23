@@ -16,6 +16,8 @@ const MAX_EVALUATED_NODES: usize = 65_536;
 const MAX_FOLD_RECORDS: usize = 256;
 const FOLD_ACC: &str = "$fold_acc";
 const FOLD_VALUE: &str = "$fold_value";
+/// Internal numeric-host request; source identifiers cannot spell this name.
+pub(crate) const ELAPSED_READ: &str = "$elapsed";
 type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), String> + 'a;
 
 /// Read-only requests against one immutable event snapshot.
@@ -168,6 +170,8 @@ pub struct Reads {
     pub names: BTreeSet<String>,
     /// Queries the epistemic graph, a reading stream or a decision series.
     pub graph: bool,
+    /// Reads the session clock independently of numeric state and the graph.
+    pub clock: bool,
     /// Could read anything; never skip it.
     pub anything: bool,
     /// Evidence named by `observed(...)`.
@@ -193,6 +197,7 @@ pub struct FunctionDef {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     Number(Number),
+    Elapsed,
     Bool(bool),
     Text(String),
     Variable(String),
@@ -427,6 +432,7 @@ impl Expr {
     pub fn collect_reads(&self, reads: &mut Reads) {
         match &self.node {
             Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Elapsed => reads.clock = true,
             Node::Variable(name) => {
                 reads.names.insert(name.clone());
             }
@@ -510,6 +516,7 @@ impl Expr {
         let child = |expression: &Expr| Box::new(expression.rename_symbols(names));
         let node = match &self.node {
             Node::Number(_)
+            | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Latest(_)
@@ -620,6 +627,7 @@ impl Expr {
                 initial.qualified_unconditionally(evidence)
             }
             Node::Number(_)
+            | Node::Elapsed
             | Node::Bool(_)
             | Node::Text(_)
             | Node::Variable(_)
@@ -681,6 +689,10 @@ impl Expr {
     ) -> Result<ValueType, String> {
         match &self.node {
             Node::Number(_) => Ok(ValueType::Number),
+            Node::Elapsed => {
+                predicate("runtime_clock", "elapsed")?;
+                Ok(ValueType::Number)
+            }
             Node::Bool(_) => Ok(ValueType::Bool),
             Node::Text(_) => Ok(ValueType::Text),
             Node::Variable(name) => {
@@ -928,6 +940,11 @@ impl Expr {
         remaining.set(budget - 1);
         match &self.node {
             Node::Number(value) => Ok(Value::Number(value.value())),
+            Node::Elapsed => {
+                let value =
+                    numbers(ELAPSED_READ)?.ok_or("elapsed() requires a reactive session")?;
+                Ok(Value::Number(finite(value)?))
+            }
             Node::Bool(value) => Ok(Value::Bool(*value)),
             Node::Text(value) => {
                 check_text_size(value.len())?;
@@ -1390,6 +1407,15 @@ impl Parser {
         if nesting > MAX_NESTING {
             return Err(format!("expression exceeds nesting limit {MAX_NESTING}"));
         }
+        // Before linking, an explicit module-local function may shadow this
+        // name with its own arity. Defer nonempty calls until that name has
+        // been resolved; a remaining global elapsed call still takes no args.
+        if name == "elapsed"
+            && (!self.allow_user_functions || self.peek() == Some(&TokenKind::RightParen))
+        {
+            self.expect(TokenKind::RightParen, "')' after elapsed (no arguments)")?;
+            return Ok(Node::Elapsed);
+        }
         if matches!(name.as_str(), "if" | "require") {
             let condition = self.expression(0, nesting)?;
             self.expect(TokenKind::Comma, "',' after condition")?;
@@ -1640,6 +1666,7 @@ pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(
             || matches!(
                 name.as_str(),
                 "qualified"
+                    | "elapsed"
                     | "has_caveat"
                     | "if"
                     | "require"
@@ -1751,7 +1778,14 @@ fn infer_function(
         .body
         .validate_calls(
             &parameters,
-            &|_, _| Err("pure source functions cannot query graph predicates".into()),
+            &|kind, _| {
+                Err(if kind == "runtime_clock" {
+                    "pure source functions cannot capture the runtime clock"
+                } else {
+                    "pure source functions cannot query graph predicates"
+                }
+                .into())
+            },
             &|called, arity| {
                 let callee = functions
                     .get(called)
@@ -1796,6 +1830,12 @@ impl Expander<'_> {
     ) -> Result<Expr, String> {
         let node = match &expression.node {
             Node::Number(number) => Node::Number(number.clone()),
+            Node::Elapsed => {
+                if parameters.is_some() {
+                    return Err("pure source functions cannot capture the runtime clock".into());
+                }
+                Node::Elapsed
+            }
             Node::Bool(value) => Node::Bool(*value),
             Node::Text(value) => Node::Text(value.clone()),
             Node::Variable(name) => {
@@ -1914,6 +1954,9 @@ impl Expander<'_> {
                 Box::new(self.walk(body, parameters)?),
             ),
             Node::UserCall(name, arguments) => {
+                if name == "elapsed" {
+                    return Err("elapsed() requires no arguments".into());
+                }
                 let functions = self.functions;
                 let definition = functions
                     .get(name)
