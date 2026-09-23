@@ -1,0 +1,21 @@
+{
+  "name": "caveat-kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Run Caveat reactive programs and scenario files from Node. Unpublished: name, version and runtime bundling are decided at release.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "caveat": "bin/caveat.mjs"
+  },
+  "exports": {
+    "./session": "./lib/session.mjs",
+    "./node": "./lib/node.mjs",
+    "./scenarios": "./lib/scenarios.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

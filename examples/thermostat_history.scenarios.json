@@ -1,0 +1,147 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "thermostat_history.cav",
+  "scenarios": [
+    {
+      "id": "T01",
+      "title": "Each reading revises heating; earlier decisions keep what they knew",
+      "steps": [
+        {
+          "send": "read",
+          "payload": {
+            "value": 17
+          }
+        },
+        {
+          "expect": {
+            "/bindings/heating/text": "100%",
+            "/commitment_grounds/heating@1": {
+              "evidence": [
+                "temperature@1"
+              ],
+              "caveats": [
+                "calibration_offset"
+              ]
+            }
+          }
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "read",
+          "payload": {
+            "value": 25
+          }
+        },
+        {
+          "expect": {
+            "/bindings/heating/text": "0%",
+            "/bindings/change/text": "Rising",
+            "/commitment_grounds/heating@2/evidence": [
+              "temperature@2"
+            ],
+            "/commitment_bases/heating@2/provenance/evidence": [
+              "temperature@1",
+              "temperature@2"
+            ]
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_bases/heating@1",
+            "/commitment_grounds/heating@1"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "read",
+          "payload": {
+            "value": 17
+          }
+        },
+        {
+          "expect": {
+            "/bindings/heating/text": "100%",
+            "/decision_series/heating/current": "heating@3",
+            "/decision_journal": [
+              {
+                "commitment": "heating@1",
+                "change": "committed",
+                "because": [
+                  "temperature@1"
+                ]
+              },
+              {
+                "commitment": "heating@1",
+                "change": "reopened",
+                "because": [
+                  "temperature@2"
+                ]
+              },
+              {
+                "commitment": "heating@2",
+                "change": "committed",
+                "value": 0
+              },
+              {
+                "commitment": "heating@2",
+                "change": "reopened",
+                "because": [
+                  "temperature@3"
+                ]
+              },
+              {
+                "commitment": "heating@3",
+                "change": "committed",
+                "caveats": [
+                  "calibration_offset"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "T02",
+      "title": "Invalid readings are refused by the core and leave nothing behind",
+      "steps": [
+        {
+          "send": "read",
+          "payload": {
+            "value": 41
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "send": "read",
+          "rejected": {
+            "origin": "input",
+            "code": "payload_invalid"
+          }
+        },
+        {
+          "send": "warm",
+          "rejected": {
+            "origin": "input",
+            "code": "unknown_event"
+          }
+        },
+        {
+          "expect": {
+            "/sequence": 0,
+            "/bindings/heating/text": "Awaiting a reading",
+            "/decision_journal": []
+          }
+        }
+      ]
+    }
+  ]
+}
