@@ -1,0 +1,17 @@
+{
+  "run": "A",
+  "phase": 1,
+  "sha256": "9099a48cdca0ed65abbd307a708fe878f805f6d05727cb119199c0598d96db63",
+  "frozenAt": "2026-09-24T13:35:54.440Z",
+  "programModified": "2026-09-24T13:31:54.684Z",
+  "promptSha256": "476f76928a7612beee9475725919e3a48d039fcad36ca91e396200ff2fdaa5b0",
+  "files": {
+    "NOTES.md": "9c941cb59c73fa74f88bf9298a663045a70bab5b7e3adff43b441d3df3c14b01",
+    "explore.mjs": "b87d4a5cb3c9225f3642292fa16d681d34834c2f86902ac0b4e12b289f59f04c",
+    "fuzz.mjs": "83281e099d7d4a7e79e8d704d94c0ce113c0539ff40693dcf661d3a10c1d6d2e",
+    "inspect.mjs": "e39da34829766609ecf2cf3826b621263a3f747874b654910449d9d49d0e3774",
+    "package.json": "929e26b093533e40be6a5658d6ea6ea3ea01664b77e1578605fe4d87ab986950",
+    "pond.cav": "9099a48cdca0ed65abbd307a708fe878f805f6d05727cb119199c0598d96db63",
+    "pond.scenarios.json": "26c3639d0194b3e296aaad3a8a2ef8e88c53dbfedd89fa4d6db4271c9aefa1fa"
+  }
+}

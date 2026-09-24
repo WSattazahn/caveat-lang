@@ -1,0 +1,2195 @@
+{
+  "schema": 1,
+  "phase": 2,
+  "at": "2026-09-24T14:33:35.661Z",
+  "kit": {
+    "tarball": "caveat-lang-0.1.0-rc.1.tgz",
+    "sha256": "be0dac790b006cfe3e63bfbf0513aa642d144a4fab0a5b6c714e0e7efcb5ec32",
+    "tag": "v0.1.0-rc.1",
+    "commit": "aa5f4fc5b1a4e8f4b803bb5b981e2c6474d28ca5"
+  },
+  "runs": {
+    "A2": {
+      "phase": 2,
+      "maintains": "A",
+      "sha256": "6ee3cdf50cf2f64bdacf7e3a15258fd834904a9fbef8cc9dacab5ffea99bdcbc",
+      "loadError": null,
+      "passed": 120,
+      "total": 120,
+      "pass": true,
+      "cases": [
+        {
+          "id": "P2-unchanged-empty-session",
+          "kind": "targeted",
+          "pass": true,
+          "events": 3,
+          "accepted": 1,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-malformed-inputs-change-nothing",
+          "kind": "targeted",
+          "pass": true,
+          "events": 24,
+          "accepted": 2,
+          "rejected": 22,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-three-measurements-before-deciding",
+          "kind": "targeted",
+          "pass": true,
+          "events": 7,
+          "accepted": 4,
+          "rejected": 3,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-thinnest-of-all-and-exact-boundaries",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 5,
+          "rejected": 1,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-open-rink-reopened-by-thin-reading",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 8,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-crack-reopens-open-rink",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 7,
+          "rejected": 1,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-crack-before-any-decision",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 7,
+          "rejected": 1,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-closed-rink-stays-closed",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 6,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-three-decisions",
+          "kind": "targeted",
+          "pass": true,
+          "events": 10,
+          "accepted": 9,
+          "rejected": 1,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-eight-measurements-then-refused",
+          "kind": "targeted",
+          "pass": true,
+          "events": 12,
+          "accepted": 10,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-reopened-stays-reopened",
+          "kind": "targeted",
+          "pass": true,
+          "events": 9,
+          "accepted": 9,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-zero-and-fractional-values",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 5,
+          "rejected": 1,
+          "restores": 2
+        },
+        {
+          "id": "P2-malformed-scans",
+          "kind": "targeted",
+          "pass": true,
+          "events": 10,
+          "accepted": 2,
+          "rejected": 8,
+          "restores": 2
+        },
+        {
+          "id": "P2-three-readings-from-either-instrument",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 4,
+          "rejected": 2,
+          "restores": 1
+        },
+        {
+          "id": "P2-sonar-only-decision",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 6,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-mixed-grounds-and-order",
+          "kind": "targeted",
+          "pass": true,
+          "events": 7,
+          "accepted": 7,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-thin-scan-reopens-open-rink",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 8,
+          "rejected": 0,
+          "restores": 1
+        },
+        {
+          "id": "P2-thinnest-across-instruments",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 8,
+          "rejected": 0,
+          "restores": 1
+        },
+        {
+          "id": "P2-eight-each-counted-separately",
+          "kind": "targeted",
+          "pass": true,
+          "events": 13,
+          "accepted": 11,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-crack-and-scans",
+          "kind": "targeted",
+          "pass": true,
+          "events": 9,
+          "accepted": 7,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-1",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-2",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 17,
+          "rejected": 18,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-3",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-4",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-5",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-6",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 15,
+          "rejected": 22,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-7",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-8",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-9",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-10",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-11",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-12",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 17,
+          "rejected": 21,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-13",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-14",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-15",
+          "kind": "seeded",
+          "pass": true,
+          "events": 32,
+          "accepted": 16,
+          "rejected": 16,
+          "restores": 9
+        },
+        {
+          "id": "seed-90d002-16",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 13,
+          "rejected": 25,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-17",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-18",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-19",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 19,
+          "rejected": 18,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-20",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-21",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-22",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-23",
+          "kind": "seeded",
+          "pass": true,
+          "events": 34,
+          "accepted": 18,
+          "rejected": 16,
+          "restores": 7
+        },
+        {
+          "id": "seed-90d002-24",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 17,
+          "rejected": 22,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-25",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-26",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-27",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 15,
+          "rejected": 22,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-28",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 17,
+          "rejected": 20,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-29",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-30",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-31",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-32",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-33",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-34",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 15,
+          "rejected": 20,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-35",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 17,
+          "rejected": 18,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-36",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-37",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-38",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-39",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-40",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-41",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-42",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-43",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-44",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-45",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 15,
+          "rejected": 21,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-46",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-47",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-48",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-49",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-50",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-51",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-52",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 17,
+          "rejected": 20,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-53",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-54",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-55",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-56",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-57",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-58",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-59",
+          "kind": "seeded",
+          "pass": true,
+          "events": 34,
+          "accepted": 17,
+          "rejected": 17,
+          "restores": 7
+        },
+        {
+          "id": "seed-90d002-60",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 19,
+          "rejected": 17,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-61",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-62",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 19,
+          "rejected": 17,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-63",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-64",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 16,
+          "rejected": 19,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-65",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-66",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-67",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-68",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 15,
+          "rejected": 20,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-69",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 19,
+          "rejected": 19,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-70",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-71",
+          "kind": "seeded",
+          "pass": true,
+          "events": 32,
+          "accepted": 15,
+          "rejected": 17,
+          "restores": 9
+        },
+        {
+          "id": "seed-90d002-72",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-73",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 14,
+          "rejected": 24,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-74",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 13,
+          "rejected": 25,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-75",
+          "kind": "seeded",
+          "pass": true,
+          "events": 33,
+          "accepted": 19,
+          "rejected": 14,
+          "restores": 8
+        },
+        {
+          "id": "seed-90d002-76",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-77",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-78",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-79",
+          "kind": "seeded",
+          "pass": true,
+          "events": 34,
+          "accepted": 17,
+          "rejected": 17,
+          "restores": 7
+        },
+        {
+          "id": "seed-90d002-80",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-1",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-2",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-3",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-4",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-5",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 10,
+          "rejected": 26,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d003-6",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-7",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-8",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-9",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-10",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 10,
+          "rejected": 26,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d003-11",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-12",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-13",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-14",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-15",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-16",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-17",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-18",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-19",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-20",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 10,
+          "rejected": 30,
+          "restores": 1
+        }
+      ]
+    },
+    "B2": {
+      "phase": 2,
+      "maintains": "B",
+      "sha256": "31c85e8c682694b7479b92720e51853f627e4e4837ef88c5b4213097f132020c",
+      "loadError": null,
+      "passed": 120,
+      "total": 120,
+      "pass": true,
+      "cases": [
+        {
+          "id": "P2-unchanged-empty-session",
+          "kind": "targeted",
+          "pass": true,
+          "events": 3,
+          "accepted": 1,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-malformed-inputs-change-nothing",
+          "kind": "targeted",
+          "pass": true,
+          "events": 24,
+          "accepted": 2,
+          "rejected": 22,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-three-measurements-before-deciding",
+          "kind": "targeted",
+          "pass": true,
+          "events": 7,
+          "accepted": 4,
+          "rejected": 3,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-thinnest-of-all-and-exact-boundaries",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 5,
+          "rejected": 1,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-open-rink-reopened-by-thin-reading",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 8,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-crack-reopens-open-rink",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 7,
+          "rejected": 1,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-crack-before-any-decision",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 7,
+          "rejected": 1,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-closed-rink-stays-closed",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 6,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-three-decisions",
+          "kind": "targeted",
+          "pass": true,
+          "events": 10,
+          "accepted": 9,
+          "rejected": 1,
+          "restores": 1
+        },
+        {
+          "id": "P2-unchanged-eight-measurements-then-refused",
+          "kind": "targeted",
+          "pass": true,
+          "events": 12,
+          "accepted": 10,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-reopened-stays-reopened",
+          "kind": "targeted",
+          "pass": true,
+          "events": 9,
+          "accepted": 9,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-unchanged-zero-and-fractional-values",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 5,
+          "rejected": 1,
+          "restores": 2
+        },
+        {
+          "id": "P2-malformed-scans",
+          "kind": "targeted",
+          "pass": true,
+          "events": 10,
+          "accepted": 2,
+          "rejected": 8,
+          "restores": 2
+        },
+        {
+          "id": "P2-three-readings-from-either-instrument",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 4,
+          "rejected": 2,
+          "restores": 1
+        },
+        {
+          "id": "P2-sonar-only-decision",
+          "kind": "targeted",
+          "pass": true,
+          "events": 6,
+          "accepted": 6,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-mixed-grounds-and-order",
+          "kind": "targeted",
+          "pass": true,
+          "events": 7,
+          "accepted": 7,
+          "rejected": 0,
+          "restores": 2
+        },
+        {
+          "id": "P2-thin-scan-reopens-open-rink",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 8,
+          "rejected": 0,
+          "restores": 1
+        },
+        {
+          "id": "P2-thinnest-across-instruments",
+          "kind": "targeted",
+          "pass": true,
+          "events": 8,
+          "accepted": 8,
+          "rejected": 0,
+          "restores": 1
+        },
+        {
+          "id": "P2-eight-each-counted-separately",
+          "kind": "targeted",
+          "pass": true,
+          "events": 13,
+          "accepted": 11,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "P2-crack-and-scans",
+          "kind": "targeted",
+          "pass": true,
+          "events": 9,
+          "accepted": 7,
+          "rejected": 2,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-1",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-2",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 17,
+          "rejected": 18,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-3",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-4",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-5",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-6",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 15,
+          "rejected": 22,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-7",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-8",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-9",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-10",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-11",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-12",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 17,
+          "rejected": 21,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-13",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-14",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-15",
+          "kind": "seeded",
+          "pass": true,
+          "events": 32,
+          "accepted": 16,
+          "rejected": 16,
+          "restores": 9
+        },
+        {
+          "id": "seed-90d002-16",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 13,
+          "rejected": 25,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-17",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-18",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-19",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 19,
+          "rejected": 18,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-20",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-21",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-22",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-23",
+          "kind": "seeded",
+          "pass": true,
+          "events": 34,
+          "accepted": 18,
+          "rejected": 16,
+          "restores": 7
+        },
+        {
+          "id": "seed-90d002-24",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 17,
+          "rejected": 22,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-25",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-26",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-27",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 15,
+          "rejected": 22,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-28",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 17,
+          "rejected": 20,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-29",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-30",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-31",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-32",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-33",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-34",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 15,
+          "rejected": 20,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-35",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 17,
+          "rejected": 18,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-36",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-37",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-38",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-39",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-40",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-41",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-42",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-43",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 18,
+          "rejected": 21,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d002-44",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-45",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 15,
+          "rejected": 21,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-46",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-47",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-48",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-49",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-50",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-51",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-52",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 17,
+          "rejected": 20,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-53",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-54",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-55",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 18,
+          "rejected": 22,
+          "restores": 1
+        },
+        {
+          "id": "seed-90d002-56",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-57",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-58",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-59",
+          "kind": "seeded",
+          "pass": true,
+          "events": 34,
+          "accepted": 17,
+          "rejected": 17,
+          "restores": 7
+        },
+        {
+          "id": "seed-90d002-60",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 19,
+          "rejected": 17,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-61",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-62",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 19,
+          "rejected": 17,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-63",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 18,
+          "rejected": 19,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d002-64",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 16,
+          "rejected": 19,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-65",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-66",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-67",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 17,
+          "rejected": 19,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-68",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 15,
+          "rejected": 20,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-69",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 19,
+          "rejected": 19,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-70",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d002-71",
+          "kind": "seeded",
+          "pass": true,
+          "events": 32,
+          "accepted": 15,
+          "rejected": 17,
+          "restores": 9
+        },
+        {
+          "id": "seed-90d002-72",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-73",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 14,
+          "rejected": 24,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-74",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 13,
+          "rejected": 25,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-75",
+          "kind": "seeded",
+          "pass": true,
+          "events": 33,
+          "accepted": 19,
+          "rejected": 14,
+          "restores": 8
+        },
+        {
+          "id": "seed-90d002-76",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 18,
+          "rejected": 18,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d002-77",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-78",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 18,
+          "rejected": 20,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d002-79",
+          "kind": "seeded",
+          "pass": true,
+          "events": 34,
+          "accepted": 17,
+          "rejected": 17,
+          "restores": 7
+        },
+        {
+          "id": "seed-90d002-80",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 18,
+          "rejected": 17,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-1",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-2",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-3",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-4",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-5",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 10,
+          "rejected": 26,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d003-6",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-7",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-8",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-9",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-10",
+          "kind": "seeded",
+          "pass": true,
+          "events": 36,
+          "accepted": 10,
+          "rejected": 26,
+          "restores": 5
+        },
+        {
+          "id": "seed-90d003-11",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-12",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-13",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-14",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-15",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-16",
+          "kind": "seeded",
+          "pass": true,
+          "events": 38,
+          "accepted": 10,
+          "rejected": 28,
+          "restores": 3
+        },
+        {
+          "id": "seed-90d003-17",
+          "kind": "seeded",
+          "pass": true,
+          "events": 35,
+          "accepted": 10,
+          "rejected": 25,
+          "restores": 6
+        },
+        {
+          "id": "seed-90d003-18",
+          "kind": "seeded",
+          "pass": true,
+          "events": 37,
+          "accepted": 10,
+          "rejected": 27,
+          "restores": 4
+        },
+        {
+          "id": "seed-90d003-19",
+          "kind": "seeded",
+          "pass": true,
+          "events": 39,
+          "accepted": 10,
+          "rejected": 29,
+          "restores": 2
+        },
+        {
+          "id": "seed-90d003-20",
+          "kind": "seeded",
+          "pass": true,
+          "events": 40,
+          "accepted": 10,
+          "rejected": 30,
+          "restores": 1
+        }
+      ]
+    }
+  }
+}

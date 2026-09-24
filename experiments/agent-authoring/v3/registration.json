@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "registeredAt": "2026-09-24T13:29:20.996Z",
+  "kit": {
+    "tarball": "caveat-lang-0.1.0-rc.1.tgz",
+    "sha256": "be0dac790b006cfe3e63bfbf0513aa642d144a4fab0a5b6c714e0e7efcb5ec32",
+    "tag": "v0.1.0-rc.1",
+    "commit": "aa5f4fc5b1a4e8f4b803bb5b981e2c6474d28ca5"
+  },
+  "public": {
+    "PROTOCOL.md": "31271015b3e267d07a0b1e1c4bc166ddae7bf42a1cb3c0c1ad6104df12fb7fd2",
+    "tasks/pond.md": "3a0454317ddfc51756e44792fbedefa8b7cc64da1940b743bf4cf0a0b2eb9d20",
+    "prompts/author.md": "4d494f314f11fdb887db76fbbaf56dc72697d459fc7febe5491f62a852c4a307",
+    "prompts/maintainer.md": "b86ade4ffa373d7192f9a9d956334f72cd5e1692cf3fff7361cff346b0fc7b70",
+    "private/oracle.mjs": "1841e1411599cf0a98b2822d37c67de3ec9067ced66a8270648679182d99f939",
+    "private/corpus.mjs": "2173cc4ba4736657fe8c4007704b5b1c81d2ca154c01f8e150d87d4b542fabe8",
+    "private/score-lib.mjs": "c6554d188ee0e6d6d96a3b160dbc776e68da3b2dde64e142660dbe30a8d9cc92",
+    "score.mjs": "475c640081b745f1f5d31b53d4b9a241eae27be44d3046368da4431118666bde",
+    "register.mjs": "64d6d7875764d50bcaf09dd6db3f7d144645ceb11b343f2dda63dd92df0515f6"
+  },
+  "sealed": {
+    "tasks/pond-change.md": "f9899edfdc1532e4c46c866518a30c8b8e31f45db2ef773dafda5755c0976d95",
+    "private/change-oracle.mjs": "eeeea921926d40ed21f1c0144154404c65b22fbfd62d87a621cd857115f35827",
+    "references/phase1.cav": "b254b29781a34c03612abc59fcd3d79a21a1b9232b5079477017b8a490be3898",
+    "references/phase2.cav": "2e4992507b9156476a23504e945089f4013c4d541d02b1de28b60fe95d142755"
+  },
+  "runs": {
+    "A": {
+      "phase": 1
+    },
+    "B": {
+      "phase": 1
+    },
+    "A2": {
+      "phase": 2,
+      "maintains": "A"
+    },
+    "B2": {
+      "phase": 2,
+      "maintains": "B"
+    }
+  }
+}

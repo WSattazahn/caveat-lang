@@ -1,0 +1,107 @@
+scene "Decide whether the village rink on the pond may open.";
+
+# What the program can believe, and where its knowledge comes from.
+claim ice_safe;
+
+evidence auger from "a hand auger drilled through the ice";
+evidence sonar from "a sonar gauge on the ice";
+evidence crack_report from "a skater";
+
+caveat single_hole consequence material;
+single_hole qualifies auger;
+display single_hole "Each hole shows the ice at one spot only.";
+
+caveat uncalibrated_sonar consequence material;
+uncalibrated_sonar qualifies sonar;
+display uncalibrated_sonar "The sonar gauge has not been calibrated against the auger.";
+
+caveat secondhand consequence low;
+secondhand qualifies crack_report;
+display secondhand "A skater's report, not a measurement.";
+
+# Every accepted measurement or scan is its own reading; every decision its own revision.
+# Measurements and scans are kept in separate streams and counted separately.
+readings thickness from auger limit 8;
+readings sonar_thickness from sonar limit 8;
+decisions rink limit 3;
+
+event measure cm min 0 max 60;
+event scan cm min 0 max 60;
+event crack;
+event decide;
+
+# The thinnest reading so far from each instrument: the minimum over every
+# accepted reading in that stream. Each is only valid once its stream has a
+# reading; guard it with has_sample(...).
+define thinnest_measurement = fold_history(thickness, latest(thickness), min);
+define thinnest_scan = fold_history(sonar_thickness, latest(sonar_thickness), min);
+
+# True once either instrument has taken a reading.
+define any_reading = has_sample(thickness) or has_sample(sonar_thickness);
+
+# The thinnest reading from either instrument. Only valid when any_reading holds.
+# It reads every reading of every stream that has one, so a decision made
+# using it is grounded on all of them and their caveats.
+define thinnest_so_far = if(has_sample(thickness),
+    if(has_sample(sonar_thickness), min(thinnest_measurement, thinnest_scan), thinnest_measurement),
+    thinnest_scan);
+
+# Measurements and scans together.
+define total_readings = history_count(thickness) + history_count(sonar_thickness);
+
+# The rink is open while the current decision is in force and at least 10 cm.
+define rink_open = committed(rink) and not reopened(rink) and latest(rink) >= 10;
+
+# --- measure -----------------------------------------------------------------
+# At most eight holes. Refuse the ninth before anything else happens.
+on measure when history_count(thickness) >= 8 reject "Eight holes have already been drilled.";
+# Record the reading. The guards read only the payload, so a reading's
+# provenance is just its own occurrence and the auger's caveat.
+on measure when cm >= 10 sample thickness = cm supports ice_safe;
+on measure when cm < 10 sample thickness = cm opposes ice_safe;
+# Thin ice found while the rink is open reopens the decision, citing this reading.
+on measure when cm < 10 and rink_open reopen rink because latest(thickness);
+
+# --- scan --------------------------------------------------------------------
+# At most eight scans, counted separately from the holes.
+on scan when history_count(sonar_thickness) >= 8 reject "Eight scans have already been taken.";
+# Record the scan. As for a measurement, the guards read only the payload, so
+# a scan's provenance is its own occurrence and the sonar's caveat.
+on scan when cm >= 10 sample sonar_thickness = cm supports ice_safe;
+on scan when cm < 10 sample sonar_thickness = cm opposes ice_safe;
+# A thin scan while the rink is open reopens the decision, citing this scan.
+on scan when cm < 10 and rink_open reopen rink because latest(sonar_thickness);
+
+# --- crack -------------------------------------------------------------------
+on crack when observed(crack_report) reject "A crack has already been reported.";
+on crack reveal crack_report opposes ice_safe;
+on crack when rink_open reopen rink because crack_report;
+
+# --- decide ------------------------------------------------------------------
+on decide when total_readings < 3 reject "At least three readings are needed before deciding.";
+on decide when committed(rink) and not reopened(rink) reject "The current decision is still in force.";
+# Defensive: the policy above already makes a fourth decision impossible.
+on decide when history_count(rink) >= 3 reject "No further decisions can be recorded.";
+# The decision's value, and its grounds, are the whole archive of both instruments.
+on decide commit rink because enough using thinnest_so_far;
+
+# --- display -----------------------------------------------------------------
+bind hud.readings = history_count(thickness);
+
+bind hud.scans = history_count(sonar_thickness);
+
+bind hud.thinnest = -1;
+bind hud.thinnest = thinnest_so_far when any_reading;
+
+bind hud.cracked = 0;
+bind hud.cracked = 1 when observed(crack_report);
+
+bind hud.decision = "none";
+bind hud.decision = "open" when committed(rink) and latest(rink) >= 10;
+bind hud.decision = "closed" when committed(rink) and latest(rink) < 10;
+bind hud.decision = "review" when reopened(rink);
+
+bind hud.frozen = -1;
+bind hud.frozen = latest(rink) when committed(rink);
+
+bind hud.revision = history_count(rink);

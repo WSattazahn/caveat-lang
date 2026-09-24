@@ -1,0 +1,434 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "pond.cav",
+  "note": "TASK.md as amended by CHANGE.md (sonar gauge).",
+  "scenarios": [
+    {
+      "id": "P01",
+      "title": "Before any reading the display has exactly its seven properties at their defaults",
+      "steps": [
+        { "expect": {
+            "/sequence": 0,
+            "/bindings/hud": { "$exact": { "readings": 0, "scans": 0, "thinnest": -1, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } },
+            "/decision_journal": [],
+            "/decision_series/rink/limit": 3,
+            "/decision_series/rink/current": null,
+            "/reading_streams/thickness/template": "auger",
+            "/reading_streams/thickness/limit": 8,
+            "/reading_streams/sonar_thickness/template": "sonar",
+            "/reading_streams/sonar_thickness/limit": 8
+        } },
+        { "expect": {
+            "/symbols": { "$includes": [
+              { "name": "auger", "kind": "evidence", "source": "a hand auger drilled through the ice", "written_by": null, "consequence": null, "display": null, "attention": null },
+              { "name": "sonar", "kind": "evidence", "source": "a sonar gauge on the ice", "written_by": null, "consequence": null, "display": null, "attention": null },
+              { "name": "crack_report", "kind": "evidence", "source": "a skater", "written_by": null, "consequence": null, "display": null, "attention": null },
+              { "name": "single_hole", "kind": "caveat", "source": null, "written_by": null, "consequence": "material", "display": null, "attention": "unexamined" },
+              { "name": "uncalibrated_sonar", "kind": "caveat", "source": null, "written_by": null, "consequence": "material", "display": null, "attention": "unexamined" },
+              { "name": "secondhand", "kind": "caveat", "source": null, "written_by": null, "consequence": "low", "display": null, "attention": "unexamined" }
+            ] },
+            "/relations": { "$includes": [
+              { "from": "single_hole", "relation": "qualifies", "to": "auger", "origin": "live" },
+              { "from": "uncalibrated_sonar", "relation": "qualifies", "to": "sonar", "origin": "live" },
+              { "from": "secondhand", "relation": "qualifies", "to": "crack_report", "origin": "live" }
+            ] }
+        } }
+      ]
+    },
+    {
+      "id": "P02",
+      "title": "Malformed, out-of-range and unknown events are refused by the core and change nothing",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 60.5 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "measure", "payload": { "cm": -0.1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "scan", "payload": { "cm": 61 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "scan", "payload": { "cm": -1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "scan", "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "measure", "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "scan", "payload": { "cm": "12" }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "scan", "payload": { "cm": 12, "depth": 1 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "scan", "payload": { "thickness": 12 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "measure", "payload": { "cm": null }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "crack", "payload": { "cm": 1 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "decide", "payload": { "now": 1 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "decide", "payload": null, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "sonar", "payload": { "cm": 12 }, "rejected": { "origin": "input", "code": "unknown_event" } },
+        { "send": "decide", "rejected": "Take at least three readings, by auger or sonar, before deciding." },
+        { "expect": {
+            "/sequence": 0,
+            "/bindings/hud": { "$exact": { "readings": 0, "scans": 0, "thinnest": -1, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } },
+            "/reading_streams/thickness/occurrences": [],
+            "/reading_streams/sonar_thickness/occurrences": []
+        } },
+        { "send": "measure", "payload": { "cm": 0 } },
+        { "send": "scan", "payload": { "cm": 60 } },
+        { "expect": {
+            "/sequence": 2,
+            "/bindings/hud": { "$exact": { "readings": 1, "scans": 1, "thinnest": 0, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } }
+        } }
+      ]
+    },
+    {
+      "id": "P03",
+      "title": "Each scan is its own sonar reading carrying uncalibrated_sonar; 10 cm or more supports, thinner opposes",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 10 } },
+        { "send": "scan", "payload": { "cm": 9.99 } },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 0, "scans": 2, "thinnest": 9.99, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } },
+            "/reading_streams/sonar_thickness/current": "sonar_thickness@2",
+            "/reading_streams/sonar_thickness/occurrences": [
+              { "id": "sonar_thickness@1", "ordinal": 1, "event": "scan", "value": 10, "relation": "supports", "claim": "ice_safe",
+                "provenance": { "evidence": ["sonar_thickness@1"], "caveats": ["uncalibrated_sonar"] } },
+              { "id": "sonar_thickness@2", "ordinal": 2, "event": "scan", "value": 9.99, "relation": "opposes", "claim": "ice_safe",
+                "provenance": { "evidence": ["sonar_thickness@2"], "caveats": ["uncalibrated_sonar"] } }
+            ],
+            "/reading_streams/thickness/occurrences": [],
+            "/relations": { "$includes": [
+              { "from": "sonar_thickness@1", "relation": "supports", "to": "ice_safe", "origin": "live" },
+              { "from": "uncalibrated_sonar", "relation": "qualifies", "to": "sonar_thickness@1", "origin": "live" },
+              { "from": "sonar_thickness@2", "relation": "opposes", "to": "ice_safe", "origin": "live" },
+              { "from": "uncalibrated_sonar", "relation": "qualifies", "to": "sonar_thickness@2", "origin": "live" }
+            ] }
+        } },
+        { "resume": true },
+        { "send": "measure", "payload": { "cm": 10 } },
+        { "send": "measure", "payload": { "cm": 9.5 } },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 2, "thinnest": 9.5, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } },
+            "/reading_streams/thickness/occurrences": [
+              { "id": "thickness@1", "event": "measure", "value": 10, "relation": "supports", "claim": "ice_safe",
+                "provenance": { "evidence": ["thickness@1"], "caveats": ["single_hole"] } },
+              { "id": "thickness@2", "event": "measure", "value": 9.5, "relation": "opposes", "claim": "ice_safe",
+                "provenance": { "evidence": ["thickness@2"], "caveats": ["single_hole"] } }
+            ],
+            "/reading_streams/sonar_thickness/occurrences/2": { "$absent": true }
+        } }
+      ]
+    },
+    {
+      "id": "P04",
+      "title": "Eight measurements and eight scans are accepted, counted separately; a ninth of either is refused",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 20 }, "repeat": 8 },
+        { "expect": { "/bindings/hud/readings": 8, "/bindings/hud/scans": 0, "/reading_streams/thickness/current": "thickness@8" } },
+        { "send": "measure", "payload": { "cm": 5 }, "rejected": "Eight holes have already been drilled; no more measurements are accepted." },
+        { "send": "scan", "payload": { "cm": 21 }, "repeat": 8 },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 8, "scans": 8, "thinnest": 20, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } },
+            "/reading_streams/sonar_thickness/current": "sonar_thickness@8"
+        } },
+        { "send": "scan", "payload": { "cm": 5 }, "rejected": "Eight sonar scans have already been taken; no more scans are accepted." },
+        { "resume": true },
+        { "send": "scan", "payload": { "cm": 5 }, "rejected": "Eight sonar scans have already been taken; no more scans are accepted." },
+        { "send": "measure", "payload": { "cm": 5 }, "rejected": "Eight holes have already been drilled; no more measurements are accepted." },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 8, "scans": 8, "thinnest": 20, "cracked": 0, "decision": "open", "frozen": 20, "revision": 1 } } } }
+      ]
+    },
+    {
+      "id": "P05",
+      "title": "Scans fill up without using the measurement allowance",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 15 }, "repeat": 8 },
+        { "send": "scan", "payload": { "cm": 15 }, "rejected": true },
+        { "send": "measure", "payload": { "cm": 14 }, "repeat": 8 },
+        { "send": "measure", "payload": { "cm": 14 }, "rejected": true },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 8, "scans": 8, "thinnest": 14, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } } } }
+      ]
+    },
+    {
+      "id": "P06",
+      "title": "decide needs three readings in total, from either instrument",
+      "steps": [
+        { "send": "decide", "rejected": "Take at least three readings, by auger or sonar, before deciding." },
+        { "send": "measure", "payload": { "cm": 12 } },
+        { "send": "decide", "rejected": "Take at least three readings, by auger or sonar, before deciding." },
+        { "send": "scan", "payload": { "cm": 15 } },
+        { "send": "decide", "rejected": "Take at least three readings, by auger or sonar, before deciding." },
+        { "send": "crack" },
+        { "send": "decide", "rejected": "Take at least three readings, by auger or sonar, before deciding." },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 1, "scans": 1, "thinnest": 12, "cracked": 1, "decision": "none", "frozen": -1, "revision": 0 } }, "/decision_journal": [] } },
+        { "send": "scan", "payload": { "cm": 11 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 1, "scans": 2, "thinnest": 11, "cracked": 1, "decision": "open", "frozen": 11, "revision": 1 } } } }
+      ]
+    },
+    {
+      "id": "P07",
+      "title": "Three scans alone are enough to decide, and that decision carries only the sonar caveat",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 12 } },
+        { "send": "scan", "payload": { "cm": 13 } },
+        { "send": "scan", "payload": { "cm": 14 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 0, "scans": 3, "thinnest": 12, "cracked": 0, "decision": "open", "frozen": 12, "revision": 1 } },
+            "/commitment_grounds/rink@1": { "$exact": { "evidence": ["sonar_thickness@1", "sonar_thickness@2", "sonar_thickness@3"], "caveats": ["uncalibrated_sonar"] } },
+            "/decision_journal": [
+              { "decision": "rink", "commitment": "rink@1", "change": "committed", "event": "decide", "value": 12,
+                "because": ["sonar_thickness@1", "sonar_thickness@2", "sonar_thickness@3"], "caveats": ["uncalibrated_sonar"] }
+            ]
+        } }
+      ]
+    },
+    {
+      "id": "P08",
+      "title": "Three measurements alone are enough to decide, and that decision carries only the auger caveat",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 9 } },
+        { "send": "measure", "payload": { "cm": 13 } },
+        { "send": "measure", "payload": { "cm": 14 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 3, "scans": 0, "thinnest": 9, "cracked": 0, "decision": "closed", "frozen": 9, "revision": 1 } },
+            "/commitment_grounds/rink@1": { "$exact": { "evidence": ["thickness@1", "thickness@2", "thickness@3"], "caveats": ["single_hole"] } },
+            "/decision_journal": [
+              { "decision": "rink", "commitment": "rink@1", "change": "committed", "value": 9,
+                "because": ["thickness@1", "thickness@2", "thickness@3"], "caveats": ["single_hole"] }
+            ]
+        } }
+      ]
+    },
+    {
+      "id": "P09",
+      "title": "A decision freezes the thinnest reading from either instrument and rests on every reading with their caveats",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 25 } },
+        { "send": "measure", "payload": { "cm": 14 } },
+        { "send": "scan", "payload": { "cm": 12.5 } },
+        { "send": "measure", "payload": { "cm": 30 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 2, "thinnest": 12.5, "cracked": 0, "decision": "open", "frozen": 12.5, "revision": 1 } },
+            "/commitment_grounds/rink@1": {
+              "evidence": { "$set": ["sonar_thickness@1", "thickness@1", "sonar_thickness@2", "thickness@2"] },
+              "caveats": { "$set": ["single_hole", "uncalibrated_sonar"] } },
+            "/commitment_bases/rink@1/value": 12.5,
+            "/decision_series/rink/current": "rink@1",
+            "/decision_journal": [
+              { "decision": "rink", "commitment": "rink@1", "change": "committed", "event": "decide", "value": 12.5,
+                "because": ["sonar_thickness@1", "thickness@1", "sonar_thickness@2", "thickness@2"],
+                "caveats": { "$set": ["single_hole", "uncalibrated_sonar"] } }
+            ]
+        } },
+        { "checkpoint": "decided" },
+        { "send": "scan", "payload": { "cm": 40 } },
+        { "send": "measure", "payload": { "cm": 11 } },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 3, "scans": 3, "thinnest": 11, "cracked": 0, "decision": "open", "frozen": 12.5, "revision": 1 } },
+            "/decision_journal/1": { "$absent": true }
+        } },
+        { "same_as": "decided", "paths": ["/commitment_grounds/rink@1", "/commitment_bases/rink@1", "/decision_journal", "/decision_series/rink"] },
+        { "resume": true },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened before deciding again." },
+        { "same_as": "decided", "paths": ["/commitment_grounds/rink@1", "/decision_journal"] }
+      ]
+    },
+    {
+      "id": "P10",
+      "title": "A thin scan reopens an open rink because of that scan; later evidence against safe ice adds no further reopening",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 15 } },
+        { "send": "measure", "payload": { "cm": 20 } },
+        { "send": "scan", "payload": { "cm": 18 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "open", "/bindings/hud/frozen": 15 } },
+        { "send": "scan", "payload": { "cm": 9 } },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 2, "thinnest": 9, "cracked": 0, "decision": "review", "frozen": 15, "revision": 1 } },
+            "/decision_journal/1": { "decision": "rink", "commitment": "rink@1", "change": "reopened", "event": "scan", "value": 15,
+              "because": ["sonar_thickness@2"], "caveats": ["uncalibrated_sonar"] },
+            "/decision_journal/2": { "$absent": true }
+        } },
+        { "checkpoint": "reopened" },
+        { "resume": true },
+        { "send": "measure", "payload": { "cm": 4 } },
+        { "send": "crack" },
+        { "send": "scan", "payload": { "cm": 3 } },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 3, "scans": 3, "thinnest": 3, "cracked": 1, "decision": "review", "frozen": 15, "revision": 1 } }
+        } },
+        { "same_as": "reopened", "paths": ["/decision_journal", "/commitment_grounds", "/decision_series/rink"] },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 3, "scans": 3, "thinnest": 3, "cracked": 1, "decision": "closed", "frozen": 3, "revision": 2 } },
+            "/commitment_grounds/rink@2": {
+              "evidence": { "$set": ["thickness@1", "thickness@2", "sonar_thickness@1", "sonar_thickness@2", "thickness@3", "sonar_thickness@3"] },
+              "caveats": { "$set": ["single_hole", "uncalibrated_sonar"] } },
+            "/decision_journal/2": { "commitment": "rink@2", "change": "committed", "value": 3,
+              "because": ["thickness@1", "thickness@2", "sonar_thickness@1", "sonar_thickness@2", "thickness@3", "sonar_thickness@3"] },
+            "/decision_journal/3": { "$absent": true }
+        } },
+        { "same_as": "reopened", "paths": ["/commitment_grounds/rink@1", "/decision_journal/0", "/decision_journal/1"] },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened before deciding again." },
+        { "send": "scan", "payload": { "cm": 1 } },
+        { "expect": { "/bindings/hud/decision": "closed", "/decision_journal/3": { "$absent": true } } }
+      ]
+    },
+    {
+      "id": "P11",
+      "title": "A thin measurement reopens an open rink because of that reading; a later thin scan adds nothing",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 12 } },
+        { "send": "scan", "payload": { "cm": 13 } },
+        { "send": "scan", "payload": { "cm": 14 } },
+        { "send": "decide" },
+        { "send": "measure", "payload": { "cm": 9.9 } },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 1, "scans": 3, "thinnest": 9.9, "cracked": 0, "decision": "review", "frozen": 12, "revision": 1 } },
+            "/decision_journal/1": { "commitment": "rink@1", "change": "reopened", "event": "measure", "because": ["thickness@1"], "caveats": ["single_hole"] }
+        } },
+        { "send": "scan", "payload": { "cm": 2 } },
+        { "expect": { "/decision_journal/2": { "$absent": true }, "/bindings/hud/decision": "review" } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 1, "scans": 4, "thinnest": 2, "cracked": 0, "decision": "closed", "frozen": 2, "revision": 2 } }
+        } }
+      ]
+    },
+    {
+      "id": "P12",
+      "title": "A thick scan or measurement never reopens; a reading of exactly 10 cm keeps the rink open",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 10 } },
+        { "send": "scan", "payload": { "cm": 11 } },
+        { "send": "measure", "payload": { "cm": 12 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "open", "/bindings/hud/frozen": 10 } },
+        { "send": "scan", "payload": { "cm": 10 } },
+        { "send": "measure", "payload": { "cm": 10 } },
+        { "expect": { "/bindings/hud/decision": "open", "/decision_journal/1": { "$absent": true } } },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened before deciding again." }
+      ]
+    },
+    {
+      "id": "P13",
+      "title": "The crack report reopens an open rink, is never part of the grounds, can be reported only once, and the series ends at three",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 12 } },
+        { "send": "scan", "payload": { "cm": 11 } },
+        { "send": "measure", "payload": { "cm": 13 } },
+        { "send": "decide" },
+        { "send": "crack" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 1, "thinnest": 11, "cracked": 1, "decision": "review", "frozen": 11, "revision": 1 } },
+            "/decision_journal/1": { "commitment": "rink@1", "change": "reopened", "event": "crack", "because": ["crack_report"], "caveats": ["secondhand"] },
+            "/relations": { "$includes": [ { "from": "crack_report", "relation": "opposes", "to": "ice_safe", "origin": "live" } ] }
+        } },
+        { "send": "crack", "rejected": "A crack has already been reported." },
+        { "resume": true },
+        { "send": "crack", "rejected": "A crack has already been reported." },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 1, "thinnest": 11, "cracked": 1, "decision": "open", "frozen": 11, "revision": 2 } },
+            "/commitment_grounds/rink@2": {
+              "evidence": { "$set": ["thickness@1", "sonar_thickness@1", "thickness@2"] },
+              "caveats": { "$set": ["single_hole", "uncalibrated_sonar"] } }
+        } },
+        { "send": "scan", "payload": { "cm": 9 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 2, "thinnest": 9, "cracked": 1, "decision": "closed", "frozen": 9, "revision": 3 } },
+            "/decision_series/rink/current": "rink@3",
+            "/commitment_grounds/rink@3": {
+              "evidence": { "$set": ["thickness@1", "sonar_thickness@1", "thickness@2", "sonar_thickness@2"] },
+              "caveats": { "$set": ["single_hole", "uncalibrated_sonar"] } },
+            "/decision_journal": [
+              { "commitment": "rink@1", "change": "committed", "value": 11, "because": ["thickness@1", "sonar_thickness@1", "thickness@2"] },
+              { "commitment": "rink@1", "change": "reopened", "because": ["crack_report"], "caveats": ["secondhand"] },
+              { "commitment": "rink@2", "change": "committed", "value": 11, "because": ["thickness@1", "sonar_thickness@1", "thickness@2"] },
+              { "commitment": "rink@2", "change": "reopened", "event": "scan", "because": ["sonar_thickness@2"], "caveats": ["uncalibrated_sonar"] },
+              { "commitment": "rink@3", "change": "committed", "value": 9, "because": ["thickness@1", "sonar_thickness@1", "thickness@2", "sonar_thickness@2"] }
+            ]
+        } },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened before deciding again." },
+        { "send": "measure", "payload": { "cm": 1 } },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened before deciding again." },
+        { "expect": { "/bindings/hud/revision": 3, "/decision_journal/5": { "$absent": true } } }
+      ]
+    },
+    {
+      "id": "P14",
+      "title": "A crack before any decision reopens nothing and stays out of a later decision's grounds",
+      "steps": [
+        { "send": "crack" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 0, "scans": 0, "thinnest": -1, "cracked": 1, "decision": "none", "frozen": -1, "revision": 0 } },
+            "/decision_journal": []
+        } },
+        { "send": "scan", "payload": { "cm": 20 } },
+        { "send": "scan", "payload": { "cm": 22 } },
+        { "send": "measure", "payload": { "cm": 21 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 1, "scans": 2, "thinnest": 20, "cracked": 1, "decision": "open", "frozen": 20, "revision": 1 } },
+            "/commitment_grounds/rink@1": {
+              "evidence": { "$set": ["sonar_thickness@1", "sonar_thickness@2", "thickness@1"] },
+              "caveats": { "$set": ["single_hole", "uncalibrated_sonar"] } }
+        } },
+        { "send": "scan", "payload": { "cm": 6 } },
+        { "expect": { "/bindings/hud/decision": "review", "/decision_journal/1": { "change": "reopened", "because": ["sonar_thickness@3"] } } }
+      ]
+    },
+    {
+      "id": "P15",
+      "title": "A decision that closed the rink is never reopened and stays in force",
+      "steps": [
+        { "send": "measure", "payload": { "cm": 8 } },
+        { "send": "scan", "payload": { "cm": 30 } },
+        { "send": "scan", "payload": { "cm": 40 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 1, "scans": 2, "thinnest": 8, "cracked": 0, "decision": "closed", "frozen": 8, "revision": 1 } } } },
+        { "checkpoint": "closed" },
+        { "send": "crack" },
+        { "send": "scan", "payload": { "cm": 5 } },
+        { "resume": true },
+        { "send": "measure", "payload": { "cm": 3 } },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened before deciding again." },
+        { "expect": {
+            "/bindings/hud": { "$exact": { "readings": 2, "scans": 3, "thinnest": 3, "cracked": 1, "decision": "closed", "frozen": 8, "revision": 1 } }
+        } },
+        { "same_as": "closed", "paths": ["/decision_journal", "/commitment_grounds", "/decision_series/rink", "/commitments"] }
+      ]
+    },
+    {
+      "id": "P16",
+      "title": "The thinnest reading is taken over every reading, however old",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 5 } },
+        { "send": "measure", "payload": { "cm": 30 }, "repeat": 8 },
+        { "send": "scan", "payload": { "cm": 40 }, "repeat": 7 },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 8, "scans": 8, "thinnest": 5, "cracked": 0, "decision": "none", "frozen": -1, "revision": 0 } } } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "closed",
+            "/bindings/hud/frozen": 5,
+            "/commitment_bases/rink@1/value": 5,
+            "/decision_journal/0/value": 5,
+            "/commitment_grounds/rink@1/caveats": { "$set": ["single_hole", "uncalibrated_sonar"] },
+            "/commitment_grounds/rink@1/evidence": { "$set": [
+              "sonar_thickness@1", "sonar_thickness@2", "sonar_thickness@3", "sonar_thickness@4",
+              "sonar_thickness@5", "sonar_thickness@6", "sonar_thickness@7", "sonar_thickness@8",
+              "thickness@1", "thickness@2", "thickness@3", "thickness@4",
+              "thickness@5", "thickness@6", "thickness@7", "thickness@8"
+            ] }
+        } }
+      ]
+    },
+    {
+      "id": "P17",
+      "title": "Fractional readings are kept exactly and the thinnest may come from a measurement after scans",
+      "steps": [
+        { "send": "scan", "payload": { "cm": 10.25 } },
+        { "send": "scan", "payload": { "cm": 10.5 } },
+        { "send": "measure", "payload": { "cm": 10.125 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 1, "scans": 2, "thinnest": 10.125, "cracked": 0, "decision": "open", "frozen": 10.125, "revision": 1 } } } },
+        { "resume": true },
+        { "send": "scan", "payload": { "cm": 9.875 } },
+        { "expect": { "/bindings/hud": { "$exact": { "readings": 1, "scans": 3, "thinnest": 9.875, "cracked": 0, "decision": "review", "frozen": 10.125, "revision": 1 } } } }
+      ]
+    }
+  ]
+}

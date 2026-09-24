@@ -1,0 +1,19 @@
+ok  grounds from a state copy of the minimum     2/112
+ok  closed rink reopened by thin reading         52/112
+ok  second crack accepted                        16/112
+ok  no guard before the reading limit (fatal)    11/112
+ok  decide with two readings                     75/112
+ok  value is the latest reading                  2/112
+ok  crack report without its caveat              3/112
+ok  10 cm counted as thin                        70/112
+ok  crack also reopens a closed rink             69/112
+ok  decide allowed while in force                8/112
+ok  hud shows latest as thinnest                 5/112
+ok  extra hud property                           0/112
+ok  sonar left out of the value                  39/120
+ok  readings counts both instruments             32/120
+ok  thin scan does not reopen                    115/120
+ok  decide still needs three auger readings      74/120
+ok  scan cap shared with measurements            40/120
+ok  sonar without its caveat                     32/120
+18/18 mutants fail as they should
