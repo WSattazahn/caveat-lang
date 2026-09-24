@@ -1,0 +1,5 @@
+runtime aa5f4fc5b1a4e8f4b803bb5b981e2c6474d28ca5
+ok  phase 1 reference-phase1.cav                     112/112 (expected pass)
+ok  phase 2 reference-phase2.cav                     120/120 (expected pass)
+ok  phase 2 reference-phase1.cav                     0/120 (expected fail)
+ok  phase 1 reference-phase2.cav                     0/112 (expected fail)
