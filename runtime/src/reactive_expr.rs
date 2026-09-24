@@ -508,19 +508,16 @@ impl Expr {
     }
 
     /// The same expression with names replaced: graph symbols wherever a
-    /// predicate or `qualified` names one, and bare names, so that an argument
-    /// can pass a name on. Histories are not renamed. Used to specialize a
-    /// procedure for the symbols it is called with.
+    /// predicate or `qualified` names one, histories wherever a history read
+    /// names one, and bare names, so that an argument can pass a name on.
+    /// Used to specialize a procedure for the names it is called with.
     pub fn rename_symbols(&self, names: &HashMap<String, String>) -> Expr {
         let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
         let child = |expression: &Expr| Box::new(expression.rename_symbols(names));
         let node = match &self.node {
-            Node::Number(_)
-            | Node::Elapsed
-            | Node::Bool(_)
-            | Node::Text(_)
-            | Node::Latest(_)
-            | Node::HistoryCount(_) => self.node.clone(),
+            Node::Number(_) | Node::Elapsed | Node::Bool(_) | Node::Text(_) => self.node.clone(),
+            Node::Latest(history) => Node::Latest(rename(history)),
+            Node::HistoryCount(history) => Node::HistoryCount(rename(history)),
             Node::Variable(name) => Node::Variable(rename(name)),
             Node::Predicate(kind, target) => {
                 let qualified = ["carries:", "has_caveat:"]
@@ -545,12 +542,12 @@ impl Expr {
             }
             Node::Require(condition, value) => Node::Require(child(condition), child(value)),
             Node::If(condition, yes, no) => Node::If(child(condition), child(yes), child(no)),
-            Node::HistoryAt(history, index) => Node::HistoryAt(history.clone(), child(index)),
+            Node::HistoryAt(history, index) => Node::HistoryAt(rename(history), child(index)),
             Node::Fold(history, initial, reducer) => {
-                Node::Fold(history.clone(), child(initial), reducer.clone())
+                Node::Fold(rename(history), child(initial), reducer.clone())
             }
             Node::ExpandedFold(history, initial, body) => {
-                Node::ExpandedFold(history.clone(), child(initial), child(body))
+                Node::ExpandedFold(rename(history), child(initial), child(body))
             }
             Node::Function(function, arguments) => Node::Function(
                 *function,

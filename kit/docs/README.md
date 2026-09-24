@@ -38,7 +38,7 @@ Features added alongside the profiles:
 - [Repetition](reference/spec/caveat-repetition-0.1.md): declarations repeated
   for each entity of a kind, `for KIND as $x { … };`.
 - [Procedure symbols](reference/spec/caveat-procedure-symbols-0.1.md):
-  procedures that take evidence and other symbols as parameters.
+  procedures that take evidence, other symbols and histories as parameters.
 - [Typed parameters](reference/spec/caveat-typed-parameters-0.1.md): event
   parameters that name an entity or a member instead of a number.
 - [Source text](reference/spec/caveat-text-0.1.md): statements, comments and

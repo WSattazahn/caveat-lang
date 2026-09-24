@@ -241,7 +241,8 @@ pub struct Procedure {
     pub body: Vec<GuardedEffect>,
 }
 
-/// `NAME evidence`, `NAME claim` or `NAME caveat` in a parameter list.
+/// `NAME evidence`, `NAME claim`, `NAME caveat`, `NAME readings` or
+/// `NAME decisions` in a parameter list.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SymbolParameter {
     /// Its position among all the procedure's parameters, from 0.
@@ -1534,6 +1535,8 @@ impl ReactiveSession {
                     ));
                 }
                 if self.symbols.contains_key(&parameter.name)
+                    || self.reading_streams.contains_key(&parameter.name)
+                    || self.decision_series.contains_key(&parameter.name)
                     || self.states.contains_key(&parameter.name)
                     || self.constants.contains_key(&parameter.name)
                 {
@@ -1587,11 +1590,20 @@ impl ReactiveSession {
         for parameter in &template.symbol_parameters {
             let symbol = arguments[parameter.position]
                 .as_name()
-                .filter(|symbol| self.require_kind(symbol, &parameter.kind).is_ok())
+                .filter(|symbol| match parameter.kind.as_str() {
+                    "readings" => self.reading_streams.contains_key(*symbol),
+                    "decisions" => self.decision_series.contains_key(*symbol),
+                    kind => self.require_kind(symbol, kind).is_ok(),
+                })
                 .ok_or_else(|| {
+                    let kind = match parameter.kind.as_str() {
+                        "readings" => "reading stream",
+                        "decisions" => "decision series",
+                        kind => kind,
+                    };
                     format!(
-                        "procedure {name} parameter {} takes the name of a declared {}",
-                        parameter.name, parameter.kind
+                        "procedure {name} parameter {} takes the name of a declared {kind}",
+                        parameter.name
                     )
                 })?;
             names.insert(parameter.name.clone(), symbol.to_string());
@@ -4004,7 +4016,8 @@ impl ReactiveSession {
     }
 }
 
-/// An effect with graph symbol names replaced, for a specialized procedure.
+/// An effect with graph symbol and history names replaced, for a specialized
+/// procedure.
 fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
     let rename = |name: &String| names.get(name).cloned().unwrap_or_else(|| name.clone());
     match effect {
@@ -4021,7 +4034,7 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             relation,
             claim,
         } => Effect::Sample {
-            stream: stream.clone(),
+            stream: rename(stream),
             value: value.rename_symbols(names),
             relation: *relation,
             claim: rename(claim),
@@ -4072,16 +4085,16 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             using,
             retaining,
         } => Effect::Commit {
-            action: action.clone(),
+            action: rename(action),
             reason: reason.clone(),
             using: using.as_ref().map(|value| value.rename_symbols(names)),
             retaining: retaining.iter().map(rename).collect(),
         },
         Effect::Reopen { action, because } => Effect::Reopen {
-            action: action.clone(),
+            action: rename(action),
             because: match because {
                 EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
-                EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(stream.clone()),
+                EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
                 EvidenceSelector::Caveated { state, caveat } => EvidenceSelector::Caveated {
                     state: state.clone(),
                     caveat: rename(caveat),
@@ -4447,7 +4460,7 @@ fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<
         for (position, parameter) in parameters.split(',').enumerate() {
             match parameter.split_whitespace().collect::<Vec<_>>()[..] {
                 [name] => numeric.push(identifier(name)?),
-                [name, kind @ ("evidence" | "claim" | "caveat")] => {
+                [name, kind @ ("evidence" | "claim" | "caveat" | "readings" | "decisions")] => {
                     symbol_parameters.push(SymbolParameter {
                         position,
                         name: identifier(name)?,
@@ -4456,7 +4469,7 @@ fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<
                 }
                 _ => {
                     return Err(format!(
-                    "proc parameter {} must be NAME, or NAME evidence, NAME claim or NAME caveat",
+                    "proc parameter {} must be NAME, or NAME followed by evidence, claim, caveat, readings or decisions",
                     parameter.trim()
                 ))
                 }
