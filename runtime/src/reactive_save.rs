@@ -718,13 +718,22 @@ impl ReactiveSession {
             }
         }
         for (kind, targets) in &save.predicate_qualifications {
-            if !matches!(
-                kind.as_str(),
-                "observed" | "examined" | "committed" | "reopened"
-            ) {
+            // A skipped withdrawal keeps its guard under "withdrawn" with no
+            // withdrawal record, since none happened; its target is evidence.
+            let withdrawal = kind == WITHDRAWN && self.withdraws();
+            if !withdrawal
+                && !matches!(
+                    kind.as_str(),
+                    "observed" | "examined" | "committed" | "reopened"
+                )
+            {
                 return Err(format!("unknown predicate {kind}"));
             }
             for (name, provenance) in targets {
+                if withdrawal {
+                    self.require_kind(name, "evidence")
+                        .map_err(|_| format!("withdrawn({name}) names unknown evidence"))?;
+                }
                 self.check_provenance(&format!("{kind}({name})"), &provenance.0)?;
             }
         }

@@ -414,3 +414,59 @@ fn save_and_restore_keep_withdrawals_and_refuse_inconsistent_ones() {
         .unwrap();
     assert!(error.contains("does not withdraw"), "{error}");
 }
+
+#[test]
+fn a_skipped_withdrawal_can_be_saved_and_restored() {
+    // Found in review of #32: a skipped withdrawal keeps its guard's evidence
+    // under predicate_qualifications["withdrawn"], which restore refused.
+    let source = format!(
+        "{LEDGER}\nevent consider;\non consider when not observed(recheck) reveal recheck supports misreading;\non consider when not observed(gate) withdraw latest(checks) because recheck;"
+    );
+    let mut game = session(&source);
+    assert_eq!(go(&mut game, "open_gate")["outcome"], "accepted");
+    assert_eq!(
+        send(&mut game, "check", json!({ "result": 1 }))["outcome"],
+        "accepted"
+    );
+    assert_eq!(go(&mut game, "consider")["outcome"], "accepted");
+    let saved = game.save_json().unwrap();
+    let data: Value = serde_json::from_str(&saved).unwrap();
+    assert!(
+        data["predicate_qualifications"].get("withdrawn").is_some(),
+        "{data}"
+    );
+    assert!(
+        data.get("withdrawals").is_none(),
+        "the withdrawal was skipped"
+    );
+
+    let mut restored = ReactiveSession::restore_json(&source, &saved)
+        .expect("a valid skipped-withdrawal save must restore");
+    assert_eq!(snapshot(&restored), snapshot(&game));
+    for session in [&mut game, &mut restored] {
+        go(session, "misread");
+    }
+    assert_eq!(snapshot(&restored), snapshot(&game));
+
+    // The metadata is still checked: its target must be evidence, and only a
+    // program that withdraws may hold it.
+    let mut wrong = data.clone();
+    wrong["predicate_qualifications"]["withdrawn"] =
+        json!({ "nowhere": wrong["predicate_qualifications"]["withdrawn"]["checks@1"].clone() });
+    let error = ReactiveSession::restore_json(&source, &wrong.to_string())
+        .err()
+        .unwrap();
+    assert!(
+        error.contains("withdrawn(nowhere) names unknown evidence"),
+        "{error}"
+    );
+    let plain = "state x = 0;\nevent go;\non go set x = 1;";
+    let mut other = session(plain);
+    other.apply("go", &BTreeMap::new()).unwrap();
+    let mut save: Value = serde_json::from_str(&other.save_json().unwrap()).unwrap();
+    save["predicate_qualifications"] = json!({ "withdrawn": {} });
+    let error = ReactiveSession::restore_json(plain, &save.to_string())
+        .err()
+        .unwrap();
+    assert!(error.contains("unknown predicate withdrawn"), "{error}");
+}
