@@ -13,7 +13,7 @@ it exists:
 
 ```sh
 npm init -y
-npm install /path/to/caveat-lang-0.1.0-rc.1.tgz
+npm install /path/to/caveat-lang-0.1.0-rc.2.tgz
 ```
 
 Run `npm init -y` first: in a directory without its own `package.json`, npm

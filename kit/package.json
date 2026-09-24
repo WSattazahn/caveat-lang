@@ -1,6 +1,6 @@
 {
   "name": "caveat-lang",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.2",
   "private": true,
   "description": "The Caveat reactive runtime with a session library and scenario runner for Node and browsers.",
   "license": "MIT",
