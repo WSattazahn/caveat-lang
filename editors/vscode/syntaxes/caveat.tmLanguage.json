@@ -1059,13 +1059,13 @@
     },
     "builtin-calls": {
       "name": "support.function.builtin.caveat",
-      "match": "(?<![.\\w$])(?:observed|committed|reopened|examined|has_caveat|caveated|carries|qualified|latest|has_sample|history_at|history_count|fold_history|elapsed|require|text|abs|atan2|ceil|floor|round|sqrt|sin|cos|clamp|wrap|number_text|percent_text|time_second_text|time_total_text|time_text|min|max)\\b(?=\\s*\\()"
+      "match": "(?<![.\\w$])(?:observed|committed|reopened|examined|has_caveat|caveated|carries|qualified|latest|has_sample|history_at|history_count|fold_history|elapsed|require|text|abs|atan2|ceil|floor|round|sqrt|sin|cos|clamp|wrap|number_text|percent_text|time_second_text|time_total_text|time_text|min|max|id_text)\\b(?=\\s*\\()"
     },
     "keywords": {
       "patterns": [
         {
           "name": "storage.type.caveat",
-          "match": "(?<![.\\w$])(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use)\\b"
+          "match": "(?<![.\\w$])(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|identifiers|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use)\\b"
         },
         {
           "name": "keyword.control.caveat",
@@ -1085,7 +1085,7 @@
         },
         {
           "name": "keyword.other.caveat",
-          "match": "(?<![.\\w$])(?:from|limit|because|using|retaining|after|with|cost|consequence|kind|at|to|via|through|toward)\\b"
+          "match": "(?<![.\\w$])(?:from|limit|because|using|retaining|after|with|cost|consequence|kind|id|at|to|via|through|toward)\\b"
         }
       ]
     },

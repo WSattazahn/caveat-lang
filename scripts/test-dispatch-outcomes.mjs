@@ -277,6 +277,29 @@ try {
       });
     });
 
+    check('identifiers go in as text, are handles inside, and a refused event adds none', () => {
+      const sha = '602bdbec0a047a5319f53e83f336b9f7aec0e5ed';
+      const source = fixture('identifiers', `identifiers limit 2; state head = 0;
+        event pushed commit id; event pair first id, second id;
+        on pushed set head = commit; on pair reject "Not now.";
+        bind pr.head = id_text(head);`);
+      withSessions(source, 1, session => {
+        const accepted = dispatch(session, 'pushed', JSON.stringify({ commit: sha }));
+        assert.deepEqual(accepted.snapshot.identifiers, [sha]);
+        assert.equal(accepted.snapshot.values.head, 1);
+        assert.equal(accepted.snapshot.bindings.pr.head, sha);
+        rejected(session, 'pushed', '{"commit":1}', 'input', 'payload_invalid');
+        rejected(session, 'pushed', '{"commit":""}', 'input', 'payload_invalid');
+        rejected(session, 'pair', '{"first":"a","second":"b"}', 'limit', 'identifier_limit');
+        rejected(session, 'pair', JSON.stringify({ first: 'a', second: sha }), 'policy', 'reject');
+        const restored = WebReactiveSession.restore(source, session.save());
+        try {
+          assert.deepEqual(checkpoint(restored), checkpoint(session));
+          assert.equal(dispatch(restored, 'pushed', '{"commit":"b"}').snapshot.values.head, 2);
+        } finally { restored.free(); }
+      });
+    });
+
     for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;

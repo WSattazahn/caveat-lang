@@ -38,6 +38,10 @@ pub struct ReactiveSave {
     /// Each renewable evidence's occurrences, first to current.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub renewals: BTreeMap<String, Vec<String>>,
+    /// Texts received for `id` parameters, in handle order. Saves made before
+    /// spec/caveat-identifiers-0.1.md have none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub identifiers: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -310,6 +314,7 @@ impl ReactiveSession {
                 .filter(|(_, renewal)| renewal.occurrences.len() > 1)
                 .map(|(name, renewal)| (name.clone(), renewal.occurrences.clone()))
                 .collect(),
+            identifiers: self.identifiers.texts().to_vec(),
             scheduled_qualifications: (*self.scheduled).clone(),
             observation_qualifications: compact_map(&self.observation_qualifications),
             examination_qualifications: compact_map(&self.examination_qualifications),
@@ -380,6 +385,10 @@ impl ReactiveSession {
         self.sequence = save.sequence;
         self.last_event = save.last_event.clone();
         self.elapsed = save.elapsed;
+        self.identifiers = Arc::new(Identifiers::restore(
+            self.identifiers.limit(),
+            save.identifiers.clone(),
+        )?);
         self.restore_graph(&save.graph)?;
         self.restore_states(&save.states)?;
         self.restore_records(save)?;

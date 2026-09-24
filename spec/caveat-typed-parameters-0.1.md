@@ -25,6 +25,9 @@ NAME in A B C...    -- one of these names, sent as text
 NAME min N max M    -- a number, as before
 ```
 
+Names that are not in the source, such as a commit SHA the program first hears
+about while it runs, are [identifiers](caveat-identifiers-0.1.md): `NAME id`.
+
 ## Meaning
 
 A typed parameter is still a number inside the program: the position of the

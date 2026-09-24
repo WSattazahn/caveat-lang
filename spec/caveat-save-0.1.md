@@ -41,6 +41,9 @@ everything an event can change, named as the program names it:
   scheduled qualifications, observation, examination, reopening and predicate
   records, and the decision journal;
 - the attention budget;
+- the identifiers received for `id` parameters, in handle order
+  ([Identifiers 0.1](caveat-identifiers-0.1.md)). A save without them, such as
+  one made before that profile, holds none;
 - the last event's effects, and its cues by id.
 
 Bindings are not saved. They are computed from the state when a session is

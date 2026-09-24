@@ -137,6 +137,30 @@ lineage. It is permission, and Caveat has no word for it, or for its scope.
   for this pull request at this head, as the correction above shows.
 - One day, one repository, and one kind of decision.
 
+## Follow-up: identifiers
+
+[Identifiers 0.1](../../spec/caveat-identifiers-0.1.md) answers item 1 for
+commits.
+- [`ledger-identifiers.cav`](ledger-identifiers.cav) is the same ledger with
+  `commit id`.
+- [`session-2026-09-24-identifiers.jsonl`](session-2026-09-24-identifiers.jsonl)
+  is the same history with full SHAs.
+
+Replayed, it gives the same outcome for every event as the numeric version,
+and shows the commits as themselves:
+
+```text
+  pr29.head = "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+```
+
+[`ledger-identifiers.scenarios.json`](ledger-identifiers.scenarios.json)
+tests two things:
+- two SHAs that share their first eight hex digits stay two commits;
+- a refused event keeps no identifier.
+
+Pull requests are still declared in the source: declarations made per
+identifier are not part of that profile.
+
 ## Suggested order for the language work
 
 1. Identifiers known only at run time. Without them the ledger cannot be used

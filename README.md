@@ -184,6 +184,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Procedure Symbols 0.1](spec/caveat-procedure-symbols-0.1.md) lets a procedure take evidence, a claim, a caveat, a reading stream or a decision series by name (`proc learn(e evidence, sort)`), so every way of observing something can share one set of rules. Each call is specialized for the names it passes when the program loads.
 
+[Identifiers 0.1](spec/caveat-identifiers-0.1.md) lets an event carry text the program first learns while it runs, such as a commit SHA (`event pushed commit id;`). The program sees a numeric handle for each distinct text, and `id_text` shows the text again.
+
 [Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
 
 [Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: `WebReactiveSession.save()` and `WebReactiveSession.restore(source, saved)`. Restoring costs what loading costs plus the size of the save. Restore validates the saved names, values and histories; mutation tests check that an altered save is either refused or remains playable without a crash.

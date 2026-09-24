@@ -72,6 +72,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
+| `limit` | `identifier_limit` | The event would add an identifier past the program's `identifiers` limit or 1 MiB of identifier text ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
 
 Payload bounds are `input`; state bounds are `evaluation`. This choice depends
 on where the failure occurs, not on the wording of the shared range diagnostic.
@@ -133,3 +134,8 @@ from an outcome schema match; the save contract governs restoration.
   rolled the event back. The rollback and the diagnostic text are unchanged.
   Both fresh authors in the v3 authoring trial guarded their programs
   against it by hand.
+- `limit/identifier_limit` classifies an event that would hold more
+  identifiers than the program declares, or more than 1 MiB of their text.
+  It arrived with [Identifiers 0.1](caveat-identifiers-0.1.md), so no earlier
+  behavior changes. An identifier payload that is not 1 to 1,024 bytes of text
+  is `input/payload_invalid`, like any other malformed payload.

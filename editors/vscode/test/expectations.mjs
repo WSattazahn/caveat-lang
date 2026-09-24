@@ -20,8 +20,8 @@ export const groups = [
   },
   {
     name: 'declarations',
-    words: ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 'readings', 'decisions', 'renewable', 'define',
-      'fn', 'proc', 'bind', 'cue', 'control', 'clock', 'budget', 'entity', 'display', 'module', 'use'],
+    words: ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 'readings', 'decisions', 'renewable', 'identifiers',
+      'define', 'fn', 'proc', 'bind', 'cue', 'control', 'clock', 'budget', 'entity', 'display', 'module', 'use'],
     probe: '@ x;',
     scope: 'storage.type',
   },
@@ -93,7 +93,7 @@ export const groups = [
   { name: 'booleans', words: ['true', 'false'], probe: 'x = @;', scope: 'constant.language.boolean' },
   {
     name: 'clauses',
-    words: ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'at', 'to',
+    words: ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'at', 'to',
       'via', 'through', 'toward'],
     probe: 'x @ y;',
     scope: 'keyword.other',
@@ -149,7 +149,7 @@ export const groups = [
     words: ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified', 'latest',
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
-      'time_total_text', 'time_text', 'min', 'max'],
+      'time_total_text', 'time_text', 'min', 'max', 'id_text'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],

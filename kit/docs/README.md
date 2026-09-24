@@ -41,6 +41,8 @@ Features added alongside the profiles:
   procedures that take evidence, other symbols and histories as parameters.
 - [Typed parameters](reference/spec/caveat-typed-parameters-0.1.md): event
   parameters that name an entity or a member instead of a number.
+- [Identifiers](reference/spec/caveat-identifiers-0.1.md): event parameters
+  that carry text learned at run time, such as a commit SHA: `NAME id`.
 - [Source text](reference/spec/caveat-text-0.1.md): statements, comments and
   quoting.
 - [Reject](reference/spec/caveat-reject-0.1.md): refusing an event so nothing it

@@ -1,0 +1,45 @@
+scene "A thermostat can revise its heating decision without erasing earlier readings.";
+
+claim warm_enough;
+evidence thermistor from "room thermistor";
+caveat calibration_offset consequence material;
+calibration_offset qualifies thermistor;
+display calibration_offset "The thermistor may have a calibration offset.";
+
+readings temperature from thermistor limit 8;
+decisions heating limit 8;
+fn heating_demand(measured, target) = clamp((target - measured) / 4, 0, 1);
+fn add_reading(total, reading) = total + reading;
+
+// These summaries describe the stored observations, not a certified current
+// room temperature. They retain the sensor's calibration caveat.
+state recorded_mean = 0;
+state recorded_low = 0;
+state recorded_high = 0;
+state change = 0;
+
+event read value min 0 max 40;
+
+// One source procedure handles every new reading. Body guards see the history
+// reached by earlier steps; measurement is frozen at the call boundary.
+proc record_temperature(measurement) {
+    when measurement >= 21 sample temperature = measurement supports warm_enough;
+    when measurement < 21 sample temperature = measurement opposes warm_enough;
+    set recorded_mean = fold_history(temperature, 0, add_reading) / history_count(temperature);
+    set recorded_low = fold_history(temperature, latest(temperature), min);
+    set recorded_high = fold_history(temperature, latest(temperature), max);
+    when history_count(temperature) >= 2 set change = latest(temperature) - history_at(temperature, history_count(temperature) - 2);
+    when committed(heating) and not reopened(heating) reopen heating because latest(temperature);
+    commit heating because enough using heating_demand(latest(temperature), 21);
+};
+
+on read call record_temperature(value);
+
+bind temperature.text = "No reading";
+bind temperature.text = number_text(latest(temperature)) + " C" when has_sample(temperature);
+bind heating.text = "Awaiting a reading";
+bind heating.text = percent_text(latest(heating)) when committed(heating);
+bind history.text = "No recorded temperatures";
+bind history.text = number_text(history_count(temperature)) + " readings; mean " + number_text(recorded_mean) + " C; range " + number_text(recorded_low) + " to " + number_text(recorded_high) + " C" when has_sample(temperature);
+bind change.text = "Need two readings";
+bind change.text = if(change > 0, "Rising", if(change < 0, "Falling", "Unchanged")) when history_count(temperature) >= 2;

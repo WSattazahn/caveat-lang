@@ -64,6 +64,8 @@ const RESERVED: &[&str] = &[
     "fn",
     "for",
     "from",
+    "id",
+    "identifiers",
     "if",
     "kind",
     "limit",
@@ -150,6 +152,7 @@ const CALLABLE: &[&str] = &[
     "clamp",
     "cos",
     "floor",
+    "id_text",
     "max",
     "min",
     "number_text",
@@ -407,6 +410,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                 // Respond or project, but introduce no name of their own.
                 Directive::Rule(_)
                 | Directive::Renewable { .. }
+                | Directive::Identifiers { .. }
                 | Directive::Binding(_)
                 | Directive::Cue(_)
                 | Directive::Clock(_) => None,
