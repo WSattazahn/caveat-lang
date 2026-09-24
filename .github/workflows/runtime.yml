@@ -524,3 +524,39 @@ jobs:
         with:
           name: caveat-all-route-visual-qa
           path: door-*.png
+
+  vscode-extension:
+    name: VS Code extension
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+      - run: npm ci --prefix editors/vscode
+      - name: Highlighting tests with VS Code's tokenizer
+        run: npm test --prefix editors/vscode
+      - name: Package the .vsix and check what it holds
+        run: npm run package --prefix editors/vscode
+      - name: Provide a display for VS Code
+        run: command -v xvfb-run || (sudo apt-get update && sudo apt-get install -y xvfb)
+      - name: Install the .vsix in the oldest supported VS Code and compare its tokens
+        run: xvfb-run -a npm run test:editor --prefix editors/vscode
+      - name: Install the .vsix in current VS Code and compare its tokens
+        run: xvfb-run -a npm run test:editor --prefix editors/vscode
+        env:
+          CAVEAT_VSCODE_VERSION: stable
+      - name: Retain the tested .vsix
+        uses: actions/upload-artifact@v7
+        with:
+          name: caveat-vscode-extension
+          path: |
+            test-results/vscode/*.vsix
+            test-results/vscode/report.json
+            test-results/vscode/SHA256SUMS
+            test-results/vscode-editor/*/summary.json
+          if-no-files-found: error
+          retention-days: 90
