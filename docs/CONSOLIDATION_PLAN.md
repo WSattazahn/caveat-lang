@@ -216,21 +216,20 @@ measurement logs as original trial evidence. Run timings after fuzz finishes.
 
 ### Pages deployment gap
 
-Pushing main triggers both `runtime.yml` and `pages.yml`. Pages validates Rust,
-builds and runs slime-glow policy checks, then deploys. Its deploy job depends
-on its own build, **not** on the complete runtime workflow or browser matrix.
-Its live browser checks run after deployment and cover Mr. Caveat, Moon Garden
-2D/3D and conditional Legacy Door; they do not cover Glowcap, Trail Rescue,
-Last Beacon or Light the Way.
+The original consolidation workflow rebuilt and deployed Pages independently
+of the full runtime/browser checks. The follow-up [Pages deployment
+gate](PAGES_DEPLOYMENT.md) consumes the exact tested distribution after the
+complete runtime workflow succeeds, checks the current main revision again
+before deployment, and adds live Glowcap and Trail Rescue smoke checks.
+It retains the existing Mr. Caveat, Moon Garden 2D/3D and conditional Legacy
+Door live checks.
 
-Before the release merge, choose and review a deployment control: either make
-the Pages deployment consume the tested build and wait for the full required
-gates, or configure an environment approval that waits for those exact-commit
-results. That workflow/settings change is proposed, not implemented here.
-Regardless, a release is not complete until both final-main workflows succeed
-and the deployed revision/build hashes match. Add live smoke checks for the
-new evidence games and retained Beacon/rescue games, including desktop/mobile
-screenshots. Local success is not evidence about the public URL.
+The gate's first run on the default branch must pass before tagging a release
+candidate; a pull request cannot prove the `workflow_run` deployment trigger.
+A release is not complete until both final-main workflows succeed and the
+deployed revision/build hashes match. Also run live smoke checks for the
+retained Beacon/rescue games, including desktop/mobile screenshots. Local
+success is not evidence about the public URL.
 
 ## Preserve and reproduce registered studies
 
