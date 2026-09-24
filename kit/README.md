@@ -9,12 +9,16 @@ stays set until publishing is explicitly authorized. The package can be
 installed from a tested tarball without Rust:
 
 ```sh
+npm init -y
 npm install ./caveat-lang-0.1.0-rc.1.tgz
 npx --no-install caveat test my.scenarios.json
 ```
 
-Program and scenario files are supplied by the caller; the tarball does not
-include the repository's examples or test suites.
+Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
+directory to a tested program in about fifteen minutes. The
+[documentation index](docs/README.md) lists the authoring guide, the language
+reference and the thermostat example that ship in the package. The
+repository's test suites are not included.
 
 ## Run scenario files
 
@@ -116,7 +120,11 @@ These commands run from a repository checkout, after `npm run build`.
   lineage, fatal reports, unrecognised outcomes and traps. Each is caught and
   the misbehaving session is named;
 - the [spec evidence](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/experiments/scenario-format/README.md) fixtures and
-  the CLI's exit codes.
+  the CLI's exit codes;
+- the packaged documentation: every source exists, every link in the kit's
+  own documents resolves inside the package, the authoring guide's script
+  runs, and the getting-started guide, followed step by step, prints what it
+  shows. The package test follows the guide again from the installed tarball.
 
 `npm run test:scenario-conversion` runs the
 [converted Trail Rescue and Glowcap suites](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/experiments/scenario-conversion/README.md).

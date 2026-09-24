@@ -1,83 +1,75 @@
 name: deploy-pages
 
 on:
-  push:
+  workflow_run:
+    workflows: [runtime]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  actions: read
 
 jobs:
-  changes:
-    name: regression scope
+  candidate:
+    name: Select tested main artifact
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     outputs:
-      legacy_door: ${{ steps.scope.outputs.legacy_door }}
+      source_sha: ${{ steps.select.outputs.source_sha }}
+      runtime_run_id: ${{ steps.select.outputs.runtime_run_id }}
+      runtime_run_attempt: ${{ steps.select.outputs.runtime_run_attempt }}
+      artifact_id: ${{ steps.select.outputs.artifact_id }}
+      legacy_door: ${{ steps.select.outputs.legacy_door }}
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
-      - id: scope
-        shell: bash
-        run: |
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            legacy=true
-          else
-            base="${{ github.event.before }}"
-            head="$GITHUB_SHA"
-            if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
-              legacy=true
-            else
-              files="$(git diff --name-only "$base" "$head")"
-              printf '%s\n' "$files"
-              if printf '%s\n' "$files" | grep -Eq '^(runtime/|game/the_door_round2\.cav$|web/3d\.html$|web/the_door_round2\.cav$)'; then
-                legacy=true
-              else
-                legacy=false
-              fi
-            fi
-          fi
-          echo "legacy_door=$legacy" >> "$GITHUB_OUTPUT"
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Require successful runtime CI for current main
+        id: select
+        run: node scripts/pages-gate.mjs select
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
   build:
+    name: Prepare the tested Pages artifact
+    needs: candidate
     runs-on: ubuntu-24.04
+    outputs:
+      pages_artifact_name: ${{ steps.pages_name.outputs.artifact_name }}
     steps:
       - uses: actions/checkout@v5
-      - name: Install the toolchain rust-toolchain.toml pins
-        run: rustup toolchain install && rustc --version
-      - uses: actions/cache@v5
         with:
-          path: ~/.cargo/bin/wasm-bindgen
-          key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
-      - name: Validate runtime
-        run: |
-          cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
-          cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
-          cargo test --manifest-path runtime/Cargo.toml --all-targets
-      - name: Install wasm-bindgen
-        run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
+          ref: ${{ needs.candidate.outputs.source_sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Download the exact distribution tested by runtime CI
+        uses: actions/download-artifact@v8
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Build site
-        run: npm run build
-      - name: Slime glow WebAssembly policy checks
-        run: npm run test:slime-glow
+          artifact-ids: ${{ needs.candidate.outputs.artifact_id }}
+          run-id: ${{ needs.candidate.outputs.runtime_run_id }}
+          github-token: ${{ github.token }}
+          path: dist
+          merge-multiple: true
+      - name: Verify source revision, Linux provenance and legal files
+        run: node scripts/pages-gate.mjs verify-build
+        env:
+          PAGE_SOURCE_SHA: ${{ needs.candidate.outputs.source_sha }}
       # The bytes a host pins. Pages keeps only the latest build, so this is
       # where an older revision's runtime can still be fetched from.
       - name: Keep the published runtime for host pinning
         uses: actions/upload-artifact@v7
         with:
-          name: caveat-runtime-${{ github.sha }}
+          name: caveat-runtime-${{ needs.candidate.outputs.source_sha }}
           path: |
             dist/LICENSE
             dist/THIRD_PARTY_NOTICES.md
@@ -89,23 +81,94 @@ jobs:
             dist/pkg-reactive/caveat_runtime.js
             dist/pkg-reactive/caveat_runtime_bg.wasm
           retention-days: 90
-      - uses: actions/configure-pages@v6
+          overwrite: true
+          if-no-files-found: error
+      - name: Name the Pages artifact for this build attempt
+        id: pages_name
+        run: echo "artifact_name=github-pages-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
+          name: ${{ steps.pages_name.outputs.artifact_name }}
 
   deploy:
-    needs: build
+    needs: [candidate, build]
     runs-on: ubuntu-24.04
+    # Ineligible runtime completions cannot cancel a valid deployment. Recheck
+    # main after acquiring this lock so an older queued build cannot roll back.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     outputs:
       page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.candidate.outputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - uses: actions/configure-pages@v6
+      - name: Refuse a superseded revision or runtime result
+        run: node scripts/pages-gate.mjs recheck
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PAGE_SOURCE_SHA: ${{ needs.candidate.outputs.source_sha }}
+          PAGE_RUNTIME_RUN_ID: ${{ needs.candidate.outputs.runtime_run_id }}
+          PAGE_RUNTIME_RUN_ATTEMPT: ${{ needs.candidate.outputs.runtime_run_attempt }}
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          artifact_name: ${{ needs.build.outputs.pages_artifact_name }}
+
+  evidence-games:
+    name: live evidence games QA
+    needs: [candidate, deploy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SITE_URL: ${{ needs.deploy.outputs.page_url }}
+      PAGE_SOURCE_SHA: ${{ needs.candidate.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.candidate.outputs.source_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Require the live build to name the tested source
+        run: |
+          node --input-type=module <<'NODE'
+          import { validateBuildInfo } from './scripts/pages-gate.mjs';
+          const base = process.env.SITE_URL.replace(/\/?$/, '/');
+          const response = await fetch(new URL(`build-info.json?revision=${process.env.PAGE_SOURCE_SHA}`, base));
+          if (!response.ok) throw new Error(`Live build-info HTTP ${response.status}`);
+          validateBuildInfo(await response.json(), process.env.PAGE_SOURCE_SHA);
+          NODE
+      - name: Play live Glowcap on desktop and mobile
+        run: npm run test:glowcap-page
+      - name: Play live Trail Rescue on desktop and mobile
+        run: npm run test:trail-rescue-page
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: evidence-games-live-visuals
+          path: |
+            test-results/glowcap-*.png
+            test-results/trail-rescue-*.png
 
   visual-mr-caveat:
     name: live Mr. Caveat QA
@@ -243,8 +306,8 @@ jobs:
 
   visual-door:
     name: live legacy Door QA
-    needs: [deploy, changes]
-    if: needs.changes.outputs.legacy_door == 'true'
+    needs: [deploy, candidate]
+    if: needs.candidate.outputs.legacy_door == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:

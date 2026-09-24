@@ -21,6 +21,7 @@
     "bin/",
     "lib/",
     "runtime/",
+    "docs/",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
