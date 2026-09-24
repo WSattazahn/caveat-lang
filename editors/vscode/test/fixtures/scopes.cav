@@ -134,6 +134,81 @@
 # ^^^^^^ !keyword !storage
 #        ^^^^^^^^ keyword.operator.relation
 
+# Relations, only where the parsers read them
+
+ place supports kind dock;
+#^^^^^ keyword.other.statement
+#      ^^^^^^^^ !keyword
+ claim qualifies;
+#^^^^^ storage.type
+#      ^^^^^^^^^ !keyword
+ event opposes;
+#      ^^^^^^^ entity.name.function.event !keyword
+ reveal lens_salt then present_bearing supports holding_viable;
+#^^^^^^ keyword.other.effect
+#                 ^^^^ keyword.control
+#                                      ^^^^^^^^ keyword.operator.relation
+ when_committed wait smoke_report opposes door_unsafe;
+#^^^^^^^^^^^^^^ keyword.control
+#                                 ^^^^^^^ keyword.operator.relation
+ on read when value > 26 sample temperature = value opposes comfortable;
+#                        ^^^^^^ keyword.other.effect
+#                   ^ keyword.operator.comparison
+#                                                   ^^^^^^^ keyword.operator.relation
+ on lit reveal glow::lamp supports glow::seen;
+#                         ^^^^^^^^ keyword.operator.relation
+ on lit reveal lamp qualifies seen;
+#                   ^^^^^^^^^ !keyword
+ lookout
+#^^^^^^^ !keyword !storage
+   supports landing_clear;
+#  ^^^^^^^^ keyword.operator.relation
+ on alarm reveal smoke_report
+#         ^^^^^^ keyword.other.effect
+   opposes door_safe;
+#  ^^^^^^^ keyword.operator.relation
+ on read sample depth = value +
+#        ^^^^^^ keyword.other.effect
+   offset supports charted;
+#  ^^^^^^ !keyword
+#         ^^^^^^^^ keyword.operator.relation
+ when_committed wait smoke_report opposes
+#                                 ^^^^^^^ keyword.operator.relation
+   door_unsafe;
+#  ^^^^^^^^^^^ !keyword
+ sensor # note
+   supports ready;
+#  ^^^^^^^^ keyword.operator.relation
+ sensor // note
+   opposes ready;
+#  ^^^^^^^ keyword.operator.relation
+ on inspect reveal sensor supports ready # note
+#                         ^^^^^^^^ keyword.operator.relation
+#                                        ^^^^^^ comment.line
+ ;
+ proc check() {
+   reveal
+#  ^^^^^^ keyword.other.effect
+     sensor supports ready;
+#           ^^^^^^^^ keyword.operator.relation
+   sample
+#  ^^^^^^ keyword.other.effect
+     depth = value opposes ready;
+#                  ^^^^^^^ keyword.operator.relation
+ };
+ evidence place from "sensor";
+ place
+   supports ready;
+#  ^^^^^^^^ keyword.operator.relation
+ claim
+#^^^^^ storage.type
+   qualifies ready;
+#  ^^^^^^^^^ keyword.operator.relation
+ caveat sample consequence high;
+ sample
+   qualifies sensor;
+#  ^^^^^^^^^ keyword.operator.relation
+
 # Repetition
 
  entity reef_one kind reef at sea;
@@ -202,6 +277,29 @@
    camera supports $b_seen;
 #  ^^^^^^ !keyword !storage
 #         ^^^^^^^^ keyword.operator.relation
+   $b_sounding qualifies charted_$b;
+#              ^^^^^^^^^ keyword.operator.relation
+#                                ^^ variable.other.template
+   $b_echo
+#  ^^ variable.other.template
+     supports charted_$b;
+#    ^^^^^^^^ keyword.operator.relation
+#                     ^^ variable.other.template
+   place // note
+     opposes clear_$b;
+#    ^^^^^^^ keyword.operator.relation
+   place supports kind $b;
+#  ^^^^^ keyword.other.statement
+#        ^^^^^^^^ !keyword
+   claim qualifies;
+#        ^^^^^^^^^ !keyword
+   on sweep reveal $b_ping opposes clear_$b;
+#           ^^^^^^ keyword.other.effect
+#                          ^^^^^^^ keyword.operator.relation
+   on read sample depth_$b = value + $index supports charted_$b;
+#          ^^^^^^ keyword.other.effect
+#                                    ^^^^^^ variable.other.template
+#                                           ^^^^^^^^ keyword.operator.relation
  };
 #^ punctuation.section.block.end meta.block.repeat
  for buoy as $b { position $b_mark at 1 2 3; };
@@ -221,3 +319,8 @@
  state after_emoji = "😀"; set after_emoji = 2;
 #                          ^^^ keyword.other.effect
 #                                            ^ constant.numeric
+
+# The last statement may omit its semicolon
+
+ lookout supports landing_clear
+#        ^^^^^^^^ keyword.operator.relation

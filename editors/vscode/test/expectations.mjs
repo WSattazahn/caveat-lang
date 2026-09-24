@@ -32,7 +32,63 @@ export const groups = [
     probe: 'x @ y;',
     scope: 'keyword.other.effect',
   },
-  { name: 'relations', words: ['supports', 'opposes', 'qualifies'], probe: 'a @ b;', scope: 'keyword.operator.relation' },
+  // Relations only in the forms the parsers read (see relations() in
+  // reference.mjs); anywhere else the three words are names.
+  {
+    name: 'relation statements',
+    words: ['supports', 'opposes', 'qualifies'],
+    probe: ['a @ b;', 'glow::a @ glow::b;', 'x = 1; a @ b;', 'for k as $r {\n  $r_a @ b_$r;\n};',
+      // Wrapped over lines, and the last statement without its `;`.
+      'a\n  @ b;', 'a @\n  b;', 'a @ b\n;', 'x = 1;\na @ b', 'glow::a\n  @ b;',
+      // FROM may be a word that begins other statements.
+      'camera @ glow::door;', 'camera @ b\n;', 'x = 1;\ncamera @ b',
+      // A template at column 0 and straight after `{`.
+      'for k as $r {\n$r_a @ b_$r;\n};', 'for k as $r {$r_a @ b_$r;};', 'for k as $r {\n  $r_a\n    @ b_$r;\n};'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['claim @;', 'place @ kind dock;', 'state @ = 1;', 'event @;', 'a @ b c;', 'claim\n  @;',
+      'for k as $r {\n  claim @;\n};', 'for k as $r {\n  place @ kind $r;\n};', 'for k as $r {\nclaim @;\n};'],
+  },
+  // A wrapped relation may begin with any name, keywords included: the
+  // runtime accepts `evidence place from "sensor";` and a relation on it.
+  {
+    name: 'wrapped relations from keyword-named evidence',
+    words: ['supports', 'opposes', 'qualifies'],
+    probe: ['place\n  @ c;', 'claim\n  @ c;', 'supports\n  @ c;', 'observe # note\n  @ c;', 'for k as $r {\n  place\n    @ $r;\n};',
+      'for k as $r {\n  claim // note\n    @ $r;\n};',
+      // `sample` names a caveat here, not the sampling effect.
+      'sample\n  @ c;', 'sample # note\n  @ c;', 'sample @\n  c;', 'for k as $r {\n  sample\n    @ $r;\n};'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['@\n  supports c;'],
+  },
+  // A comment may end any line a relation is wrapped across.
+  {
+    name: 'relations wrapped across comments',
+    words: ['supports', 'opposes'],
+    probe: ['sensor # note\n  @ ready;', 'sensor // note\n  @ ready;', 'sensor @ # note\n  ready;', 'sensor @ ready # note\n;',
+      'camera @ ready // note\n;', 'on inspect reveal sensor @ ready # note\n;', 'on inspect reveal sensor @ ready // note\n;',
+      'on e sample s = a + b // note\n  @ c;', 'when_committed act a # note\n  @ b;'],
+    scope: 'keyword.operator.relation',
+  },
+  {
+    name: 'relations in effects',
+    words: ['supports', 'opposes'],
+    probe: ['on e when x reveal a @ b;', 'reveal c then a @ b;', 'when_committed act a @ b;', 'on e sample s = x + 1 @ c;',
+      'proc p() {\n  reveal a @ b;\n};', 'for k as $r {\n  on e reveal $r_a @ c;\n};', 'for k as $r {\n  on e sample s_$r = $index @ c;\n};',
+      // Wrapped over lines.
+      'on e reveal a\n  @ b;', 'on e reveal a @\n  b;', 'reveal c then\n  a @ b;', 'when_committed act a\n  @ b;',
+      'on e sample s = a +\n  b\n  @ c;', 'for k as $r {\n  on e sample s_$r = $index\n    @ c;\n};',
+      // The keyword alone on its line: the effect's region carries on.
+      'proc p() {\n  reveal\n    a @ b;\n};', 'reveal\n  c then a @ b;', 'when_committed\n  act a @ b;', 'on e sample\n  s = a @ c;',
+      'for k as $r {\n  reveal\n    $r_a @ c;\n};', 'for k as $r {\n  sample\n    s_$r = 1 @ c;\n};'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['on e reveal a @ b c;', 'on e sample s = @;', 'reveal c then a @;'],
+  },
+  {
+    name: 'qualification is a statement',
+    words: ['qualifies'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['on e reveal a @ b;', 'reveal c then a @ b;', 'on e sample s = 1 @ c;'],
+  },
   { name: 'logical operators', words: ['and', 'or', 'not'], probe: 'x = a @ b;', scope: 'keyword.operator.logical' },
   { name: 'booleans', words: ['true', 'false'], probe: 'x = @;', scope: 'constant.language.boolean' },
   {
