@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "registration": "d8eb2966e748ec7471fe28726d8679ee01ada16f",
+  "runs": {
+    "A": {
+      "phase": 1,
+      "prompt": "prompts/author.md",
+      "promptSha256": "476f76928a7612beee9475725919e3a48d039fcad36ca91e396200ff2fdaa5b0",
+      "directory": "<trial>/A",
+      "dispatchedAt": "2026-09-24T13:29:54.288Z",
+      "agent": "fresh general-purpose sub-agent, no parent context",
+      "completedAt": "2026-09-24T13:35:54.621Z",
+      "durationMs": 329931,
+      "toolUses": 31,
+      "tokens": 177536,
+      "frozenSha256": "9099a48cdca0ed65abbd307a708fe878f805f6d05727cb119199c0598d96db63"
+    },
+    "B": {
+      "phase": 1,
+      "prompt": "prompts/author.md",
+      "promptSha256": "57fdfbdd234cbca6b84b1868bdbb35e5b31fdc04ed6706c28bd81d97fff6eb36",
+      "directory": "<trial>/B",
+      "dispatchedAt": "2026-09-24T13:29:54.289Z",
+      "agent": "fresh general-purpose sub-agent, no parent context",
+      "completedAt": "2026-09-24T13:35:43.690Z",
+      "durationMs": 309933,
+      "toolUses": 24,
+      "tokens": 178074,
+      "frozenSha256": "5286c80c9d5a826f41f165190de9bd768c526c637da293780cd54c9bdd9112cd"
+    },
+    "A2": {
+      "phase": 2,
+      "maintains": "A",
+      "prompt": "prompts/maintainer.md",
+      "promptSha256": "d406a3eee004d591a96de191797627f776ae0633e3fc165138c6dff8d8054f5a",
+      "directory": "<trial>/A2",
+      "inherited": "9099a48cdca0ed65abbd307a708fe878f805f6d05727cb119199c0598d96db63",
+      "dispatchedAt": "2026-09-24T13:37:00.113Z",
+      "agent": "fresh general-purpose sub-agent, no parent context",
+      "interruptions": [
+        {
+          "at": "2026-09-24T14:25:47.214Z",
+          "cause": "API usage limit (HTTP 429) stopped the agent early; pond.cav was still unchanged from the inherited program",
+          "resumedWith": "Your session stopped because of a service interruption (an API usage limit), not because of anything you did. Please continue your task from where you left off, with the same instructions and rules as before. When you have finished, write NOTES.md as instructed, mentioning this interruption, and reply with your summary."
+        }
+      ],
+      "completedAt": "2026-09-24T14:33:25.155Z",
+      "durationMsAfterResume": 433887,
+      "toolUsesAfterResume": 16,
+      "tokensAfterResume": 210899,
+      "frozenSha256": "6ee3cdf50cf2f64bdacf7e3a15258fd834904a9fbef8cc9dacab5ffea99bdcbc"
+    },
+    "B2": {
+      "phase": 2,
+      "maintains": "B",
+      "prompt": "prompts/maintainer.md",
+      "promptSha256": "6a11b27d09f1697d2f3419a59da430b711efa0e0bdb38a78b04c7949bbb7a1ed",
+      "directory": "<trial>/B2",
+      "inherited": "5286c80c9d5a826f41f165190de9bd768c526c637da293780cd54c9bdd9112cd",
+      "dispatchedAt": "2026-09-24T13:37:00.114Z",
+      "agent": "fresh general-purpose sub-agent, no parent context",
+      "interruptions": [
+        {
+          "at": "2026-09-24T14:25:47.214Z",
+          "cause": "API usage limit (HTTP 429) stopped the agent early; pond.cav was still unchanged from the inherited program",
+          "resumedWith": "Your session stopped because of a service interruption (an API usage limit), not because of anything you did. Please continue your task from where you left off, with the same instructions and rules as before. When you have finished, write NOTES.md as instructed, mentioning this interruption, and reply with your summary."
+        }
+      ],
+      "completedAt": "2026-09-24T14:32:52.145Z",
+      "durationMsAfterResume": 335659,
+      "toolUsesAfterResume": 14,
+      "tokensAfterResume": 202134,
+      "frozenSha256": "31c85e8c682694b7479b92720e51853f627e4e4837ef88c5b4213097f132020c"
+    }
+  }
+}

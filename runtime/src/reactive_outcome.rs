@@ -25,6 +25,7 @@ pub enum RejectionCode {
     BoundExceeded,
     WorkLimit,
     DepthLimit,
+    HistoryLimit,
 }
 
 #[derive(Debug, Serialize)]

@@ -1,0 +1,14 @@
+import { readFile } from 'node:fs/promises';
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
+const source = await readFile(new URL('./pond.cav', import.meta.url), 'utf8');
+const runtime = await loadRuntimeFromDirectory();
+const s = runtime.open(source);
+for (const [e,p] of [['measure',{cm:12}],['measure',{cm:13}],['measure',{cm:14}],['decide',{}],['crack',{}]]) s.dispatch(e,p);
+const snap = s.snapshot();
+console.log(JSON.stringify(snap.relations));
+console.log(JSON.stringify(snap.commitments));
+console.log(JSON.stringify(snap.qualified_values));
+console.log(JSON.stringify(snap.values));
+console.log(Object.keys(snap));
+console.log(s.save());
+s.close();

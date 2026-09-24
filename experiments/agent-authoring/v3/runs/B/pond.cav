@@ -1,0 +1,72 @@
+scene "Decide whether the village rink on the pond may open.";
+
+# What the program can believe, and where its knowledge comes from.
+claim ice_safe;
+
+evidence auger from "a hand auger drilled through the ice";
+evidence crack_report from "a skater";
+
+caveat single_hole consequence material;
+single_hole qualifies auger;
+display single_hole "Each hole shows the ice at one spot only.";
+
+caveat secondhand consequence low;
+secondhand qualifies crack_report;
+display secondhand "A skater's report, not a measurement.";
+
+# Every accepted measurement is its own reading; every decision its own revision.
+readings thickness from auger limit 8;
+decisions rink limit 3;
+
+event measure cm min 0 max 60;
+event crack;
+event decide;
+
+# The thinnest measurement so far: the minimum over every accepted reading.
+# Only valid once there is a reading; guard it with has_sample(thickness).
+define thinnest_so_far = fold_history(thickness, latest(thickness), min);
+
+# The rink is open while the current decision is in force and at least 10 cm.
+define rink_open = committed(rink) and not reopened(rink) and latest(rink) >= 10;
+
+# --- measure -----------------------------------------------------------------
+# At most eight holes. Refuse the ninth before anything else happens.
+on measure when history_count(thickness) >= 8 reject "Eight holes have already been drilled.";
+# Record the reading. The guards read only the payload, so a reading's
+# provenance is just its own occurrence and the auger's caveat.
+on measure when cm >= 10 sample thickness = cm supports ice_safe;
+on measure when cm < 10 sample thickness = cm opposes ice_safe;
+# Thin ice found while the rink is open reopens the decision, citing this reading.
+on measure when cm < 10 and rink_open reopen rink because latest(thickness);
+
+# --- crack -------------------------------------------------------------------
+on crack when observed(crack_report) reject "A crack has already been reported.";
+on crack reveal crack_report opposes ice_safe;
+on crack when rink_open reopen rink because crack_report;
+
+# --- decide ------------------------------------------------------------------
+on decide when history_count(thickness) < 3 reject "At least three measurements are needed before deciding.";
+on decide when committed(rink) and not reopened(rink) reject "The current decision is still in force.";
+# Defensive: the policy above already makes a fourth decision impossible.
+on decide when history_count(rink) >= 3 reject "No further decisions can be recorded.";
+# The decision's value, and its grounds, are the whole measurement archive.
+on decide commit rink because enough using thinnest_so_far;
+
+# --- display -----------------------------------------------------------------
+bind hud.readings = history_count(thickness);
+
+bind hud.thinnest = -1;
+bind hud.thinnest = thinnest_so_far when has_sample(thickness);
+
+bind hud.cracked = 0;
+bind hud.cracked = 1 when observed(crack_report);
+
+bind hud.decision = "none";
+bind hud.decision = "open" when committed(rink) and latest(rink) >= 10;
+bind hud.decision = "closed" when committed(rink) and latest(rink) < 10;
+bind hud.decision = "review" when reopened(rink);
+
+bind hud.frozen = -1;
+bind hud.frozen = latest(rink) when committed(rink);
+
+bind hud.revision = history_count(rink);

@@ -3311,11 +3311,14 @@ impl ReactiveSession {
             } => {
                 let readings = &self.reading_streams[stream];
                 if readings.occurrences.len() >= readings.limit {
-                    return Err(format!(
-                        "reading stream {stream} reached its history limit {}",
-                        readings.limit
-                    )
-                    .into());
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Limit,
+                        RejectionCode::HistoryLimit,
+                        format!(
+                            "reading stream {stream} reached its history limit {}",
+                            readings.limit
+                        ),
+                    ));
                 }
                 let ordinal = readings.occurrences.len() as u64 + 1;
                 let name = format!("{stream}@{ordinal}");
@@ -3585,11 +3588,14 @@ impl ReactiveSession {
                 let mut ordinal = None;
                 if let Some(series) = self.decision_series.get(action) {
                     if series.revisions.len() >= series.limit {
-                        return Err(format!(
-                            "decision series {action} reached its history limit {}",
-                            series.limit
-                        )
-                        .into());
+                        return Err(DispatchFailure::rejected(
+                            RejectionOrigin::Limit,
+                            RejectionCode::HistoryLimit,
+                            format!(
+                                "decision series {action} reached its history limit {}",
+                                series.limit
+                            ),
+                        ));
                     }
                     ordinal = Some(series.revisions.len() as u64 + 1);
                     if previous.is_some() {

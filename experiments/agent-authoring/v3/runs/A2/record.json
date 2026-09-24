@@ -1,0 +1,32 @@
+{
+  "run": "A2",
+  "phase": 2,
+  "maintains": "A",
+  "sha256": "6ee3cdf50cf2f64bdacf7e3a15258fd834904a9fbef8cc9dacab5ffea99bdcbc",
+  "frozenAt": "2026-09-24T14:33:24.954Z",
+  "programModified": "2026-09-24T14:26:33.021Z",
+  "promptSha256": "d406a3eee004d591a96de191797627f776ae0633e3fc165138c6dff8d8054f5a",
+  "files": {
+    "NOTES.md": "6ef41f492185c94c493ec9470a88e4bf465bcac9222b0d3eeaadfb4e6463d305",
+    "dump.mjs": "00752feb5916655e44075f0920c03e04ca354a7dfb173995bd914a1ee040471a",
+    "explore.mjs": "dbb0369c779e336c349287cbc73ba927b51d984764166336e47e468a10b20fd1",
+    "fuzz.mjs": "cdbdfca7c44595497dc98c5ce4884bb13ff704fb112d65dc27ce7f2a52089347",
+    "mutants/m1_no_scan_reopen/pond.cav": "623bb01367e71f2ffe34cc6a1e4acd6eab03695f5e6464190cd690b6480727e0",
+    "mutants/m1_no_scan_reopen/pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86",
+    "mutants/m2_count_auger_only/pond.cav": "4b365e40329fb478c2351bd942d6e818452f68c7e97c5f45b66d1a08d6bfce11",
+    "mutants/m2_count_auger_only/pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86",
+    "mutants/m3_scan_limit_missing/pond.cav": "22f019611648aa1ab31c1c5bd9222695498d80f0289e006d5b77d4b217cbd2e0",
+    "mutants/m3_scan_limit_missing/pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86",
+    "mutants/m4_thinnest_auger_only/pond.cav": "c9abf5b4f3b7f1e56213e1bd76d7dbbb3dfc0fee50afa14c4c6d5657754cf39e",
+    "mutants/m4_thinnest_auger_only/pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86",
+    "mutants/m5_scans_reopen_closed/pond.cav": "f18397a7661dce30fe7f6e3f9fc2f9c47a86ee6fa3cb96dad22bbb55bc809d66",
+    "mutants/m5_scans_reopen_closed/pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86",
+    "mutants/m6_shared_limit/pond.cav": "a26cb026f3e704eda4c0290c006dae9241ea84c598771ccc9d38f785d1a9070f",
+    "mutants/m6_shared_limit/pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86",
+    "mutants/make.mjs": "fc7975b8e716352451d45051870f1bbc5ba5e56d09a1c90d8e1ed4bcde5976e4",
+    "package.json": "c658ec80fa58ac18ea9f2ea928088150ba06d3e184ace3f9c9fb56fb8c9a5379",
+    "pond.cav": "6ee3cdf50cf2f64bdacf7e3a15258fd834904a9fbef8cc9dacab5ffea99bdcbc",
+    "pond.original.cav": "9099a48cdca0ed65abbd307a708fe878f805f6d05727cb119199c0598d96db63",
+    "pond.scenarios.json": "1f3f6ab22813c880bea59f25fe551ed042b7645b2a118d698e94dfa13aceaa86"
+  }
+}

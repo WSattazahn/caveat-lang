@@ -1,0 +1,65 @@
+scene "Skating on the village pond: may the rink open?";
+
+claim ice_safe;
+evidence auger from "a hand auger drilled through the ice";
+evidence sonar from "a sonar gauge on the ice";
+evidence crack_report from "a skater";
+caveat single_hole consequence material;
+caveat uncalibrated_sonar consequence material;
+caveat secondhand consequence low;
+single_hole qualifies auger;
+uncalibrated_sonar qualifies sonar;
+secondhand qualifies crack_report;
+
+readings thickness from auger limit 8;
+readings sonar_thickness from sonar limit 8;
+decisions rink limit 3;
+state cracked = 0 min 0 max 1;
+
+event measure cm min 0 max 60;
+event scan cm min 0 max 60;
+event crack;
+event decide;
+
+fn thinner(a, b) = min(a, b);
+define auger_min = fold_history(thickness, latest(thickness), thinner);
+define sonar_min = fold_history(sonar_thickness, latest(sonar_thickness), thinner);
+define thinnest = if(has_sample(thickness) and has_sample(sonar_thickness), min(auger_min, sonar_min),
+    if(has_sample(thickness), auger_min, sonar_min));
+define open_rink = committed(rink) and not reopened(rink);
+
+on measure when history_count(thickness) >= 8 reject "Eight holes have already been drilled.";
+on measure when cm >= 10 sample thickness = cm supports ice_safe;
+on measure when cm < 10 sample thickness = cm opposes ice_safe;
+on measure when cm < 10 and open_rink and latest(rink) >= 10
+  reopen rink because latest(thickness);
+
+on scan when history_count(sonar_thickness) >= 8 reject "Eight scans have already been taken.";
+on scan when cm >= 10 sample sonar_thickness = cm supports ice_safe;
+on scan when cm < 10 sample sonar_thickness = cm opposes ice_safe;
+on scan when cm < 10 and open_rink and latest(rink) >= 10
+  reopen rink because latest(sonar_thickness);
+
+on crack when cracked == 1 reject "A crack has already been reported.";
+on crack reveal crack_report opposes ice_safe;
+on crack set cracked = 1;
+on crack when open_rink and latest(rink) >= 10 reopen rink because crack_report;
+
+on decide when history_count(thickness) + history_count(sonar_thickness) < 3
+  reject "Take at least three readings first.";
+on decide when open_rink reject "The rink decision is already in force.";
+on decide when history_count(rink) >= 3 reject "The rink has already been decided three times.";
+on decide commit rink because enough using thinnest;
+
+bind hud.readings = history_count(thickness);
+bind hud.scans = history_count(sonar_thickness);
+bind hud.thinnest = -1;
+bind hud.thinnest = thinnest when has_sample(thickness) or has_sample(sonar_thickness);
+bind hud.cracked = cracked;
+bind hud.decision = "none";
+bind hud.decision = "open" when committed(rink) and latest(rink) >= 10;
+bind hud.decision = "closed" when committed(rink) and latest(rink) < 10;
+bind hud.decision = "review" when reopened(rink);
+bind hud.frozen = -1;
+bind hud.frozen = latest(rink) when committed(rink);
+bind hud.revision = history_count(rink);

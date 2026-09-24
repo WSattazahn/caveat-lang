@@ -1,0 +1,91 @@
+scene "Decide whether the village rink on the pond may open.";
+
+# What the program can believe, and where its knowledge comes from.
+claim ice_safe;
+
+evidence auger from "a hand auger drilled through the ice";
+caveat single_hole consequence material;
+single_hole qualifies auger;
+
+evidence sonar from "a sonar gauge on the ice";
+caveat uncalibrated_sonar consequence material;
+uncalibrated_sonar qualifies sonar;
+
+evidence crack_report from "a skater";
+caveat secondhand consequence low;
+secondhand qualifies crack_report;
+
+# Every accepted measurement is its own reading: thickness@1, thickness@2, ...
+readings thickness from auger limit 8;
+# Every accepted scan is its own reading: sonar_thickness@1, sonar_thickness@2, ...
+readings sonar_thickness from sonar limit 8;
+# Each decide makes a new revision: rink@1, rink@2, rink@3.
+decisions rink limit 3;
+
+event measure cm min 0 max 60;
+event scan cm min 0 max 60;
+event crack;
+event decide;
+
+# Readings from both instruments, counted together.
+define reading_total = history_count(thickness) + history_count(sonar_thickness);
+define has_reading = has_sample(thickness) or has_sample(sonar_thickness);
+# The thinnest reading from either instrument, over every accepted reading.
+# Only read when at least one reading exists (has_reading).
+define thinnest_so_far = if(has_sample(thickness),
+    fold_history(sonar_thickness, fold_history(thickness, latest(thickness), min), min),
+    fold_history(sonar_thickness, latest(sonar_thickness), min));
+# A decision is in force until it is reopened.
+define in_force = committed(rink) and not reopened(rink);
+# The rink is open while a decision of 10 cm or more is in force.
+define rink_open = committed(rink) and not reopened(rink) and latest(rink) >= 10;
+
+# --- measure -------------------------------------------------------------
+on measure when history_count(thickness) >= 8
+  reject "Eight holes have already been drilled; no more measurements are accepted.";
+on measure when cm >= 10 sample thickness = cm supports ice_safe;
+on measure when cm < 10 sample thickness = cm opposes ice_safe;
+# A thin reading reopens an open rink, because of that new reading.
+on measure when cm < 10 and rink_open reopen rink because latest(thickness);
+
+# --- scan ----------------------------------------------------------------
+on scan when history_count(sonar_thickness) >= 8
+  reject "Eight sonar scans have already been taken; no more scans are accepted.";
+on scan when cm >= 10 sample sonar_thickness = cm supports ice_safe;
+on scan when cm < 10 sample sonar_thickness = cm opposes ice_safe;
+# A thin scan reopens an open rink, because of that new scan.
+on scan when cm < 10 and rink_open reopen rink because latest(sonar_thickness);
+
+# --- crack ---------------------------------------------------------------
+on crack when observed(crack_report)
+  reject "A crack has already been reported.";
+on crack reveal crack_report opposes ice_safe;
+# The crack report reopens an open rink, because of the report.
+on crack when rink_open reopen rink because crack_report;
+
+# --- decide --------------------------------------------------------------
+on decide when reading_total < 3
+  reject "Take at least three readings, by auger or sonar, before deciding.";
+on decide when in_force
+  reject "A decision is in force; it must be reopened before deciding again.";
+on decide commit rink because enough using thinnest_so_far;
+
+# --- what to show --------------------------------------------------------
+bind hud.readings = history_count(thickness);
+bind hud.scans = history_count(sonar_thickness);
+
+bind hud.thinnest = -1;
+bind hud.thinnest = thinnest_so_far when has_reading;
+
+bind hud.cracked = 0;
+bind hud.cracked = 1 when observed(crack_report);
+
+bind hud.decision = "none";
+bind hud.decision = "open" when committed(rink) and latest(rink) >= 10;
+bind hud.decision = "closed" when committed(rink) and latest(rink) < 10;
+bind hud.decision = "review" when committed(rink) and reopened(rink);
+
+bind hud.frozen = -1;
+bind hud.frozen = latest(rink) when committed(rink);
+
+bind hud.revision = history_count(rink);

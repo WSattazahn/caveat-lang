@@ -1,0 +1,9 @@
+You are taking part in a study of how a newcomer learns the Caveat programming language. You have never used it before; everything you need is in the package you will install. Your run ID is {RUN}, and your working directory is {DIR}. It contains two files: `caveat-lang-0.1.0-rc.1.tgz`, the Caveat package, and `TASK.md`, the program to write.
+
+Rules. Work only inside {DIR}. Read only files inside it, including the package once it is installed there. Do not read or list anything else on this computer, do not use the web, and do not start or contact other agents. Do not use git.
+
+1. Install the package. In {DIR}, run `npm init -y`, then `npm install ./caveat-lang-0.1.0-rc.1.tgz`. Its documentation is in `node_modules/caveat-lang/`; start with its `README.md` and the `docs/` directory.
+2. Write the program `TASK.md` asks for as `{DIR}/pond.cav`. Test it as much as you like, with the package's `caveat` command or your own scripts. Keep any tests you write in {DIR}.
+3. When you have finished, write `{DIR}/NOTES.md` with: the documentation you read, how you tested the program, anything you are unsure of, and any departure from the rules above.
+
+Then reply with a short summary. If you cannot complete everything, leave your best version of `pond.cav` and say what is missing.
