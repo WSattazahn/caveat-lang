@@ -1,0 +1,21 @@
+{
+  "run": "A2",
+  "phase": 2,
+  "maintains": "A",
+  "session": "session_01RgmuJdCM8Uka8FMr6WiTvd",
+  "model": "claude-opus-5-5",
+  "dispatchedAt": "2026-09-24T17:27:41.657015Z",
+  "promptSha256": "48a428bf89e905b2e318c9da3a95175af4bc51741fe23dc8cc39e3b7c11e96c5",
+  "source": "trial/v4-packet-A2",
+  "outcome": "trial/v4-run-A2",
+  "inherited": "e5fef462359c32a8625fc23559acc9b5402b1ffb7a5bb62e07a41d04416f4580",
+  "branch": "trial/v4-run-A2",
+  "commit": "b426981206e69519f12314cccb61708fc1a79c3a",
+  "frozenAt": "2026-09-24T17:35:32.257Z",
+  "sha256": "0fca0377e41afce2c8954182053ce1ab0cb220943bc578d7bd07ada6f95c63e3",
+  "lines": 90,
+  "change": {
+    "added": 21,
+    "removed": 4
+  }
+}

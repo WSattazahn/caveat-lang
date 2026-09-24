@@ -1,0 +1,90 @@
+scene "May the island ferry make its crossing? (synthetic policy for an authoring study)";
+
+# What the program can believe, where its knowledge comes from, and what could
+# be wrong with it.
+claim crossing_safe;
+evidence anemometer from "the mast anemometer at the landing";
+evidence pier_anemometer from "the anemometer at the end of the pier";
+evidence buoy from "the harbour buoy";
+evidence storm_warning from "the coastguard radio";
+caveat sheltered_mast consequence material;
+caveat unverified_pier consequence material;
+caveat buoy_drift consequence low;
+caveat regional_forecast consequence low;
+sheltered_mast qualifies anemometer;
+unverified_pier qualifies pier_anemometer;
+buoy_drift qualifies buoy;
+regional_forecast qualifies storm_warning;
+
+readings wind from anemometer limit 10;
+readings pier_wind from pier_anemometer limit 6;
+readings swell from buoy limit 10;
+decisions crossing limit 4;
+
+event gust kt min 0 max 90;
+event pier_gust kt min 0 max 90;
+event wave m min 0 max 6;
+event warning;
+event decide;
+
+fn wind_limit() = 30;
+fn wave_limit() = 1.5;
+
+# The ferry may go: a decision is in force, not reopened, and its frozen value
+# is within the wind limit. A decision that holds the ferry is never reopened.
+define may_go = committed(crossing) and not reopened(crossing)
+    and latest(crossing) <= wind_limit();
+define in_force = committed(crossing) and not reopened(crossing);
+
+# The strongest gust from either anemometer. Gusts are never negative, so -1
+# stands for "no gust from this anemometer yet" and never wins against one.
+define strongest_gust = max(fold_history(wind, -1, max), fold_history(pier_wind, -1, max));
+
+# Gusts. Refusals run first; a refused event keeps nothing.
+on gust when history_count(wind) >= 10 reject "Ten gusts have already been recorded.";
+on gust when kt <= wind_limit() sample wind = kt supports crossing_safe;
+on gust when kt > wind_limit() sample wind = kt opposes crossing_safe;
+on gust when kt > wind_limit() and may_go reopen crossing because latest(wind);
+
+# Pier gusts, counted separately from the mast's.
+on pier_gust when history_count(pier_wind) >= 6 reject "Six pier gusts have already been recorded.";
+on pier_gust when kt <= wind_limit() sample pier_wind = kt supports crossing_safe;
+on pier_gust when kt > wind_limit() sample pier_wind = kt opposes crossing_safe;
+on pier_gust when kt > wind_limit() and may_go reopen crossing because latest(pier_wind);
+
+# Waves.
+on wave when history_count(swell) >= 10 reject "Ten waves have already been recorded.";
+on wave when m <= wave_limit() sample swell = m supports crossing_safe;
+on wave when m > wave_limit() sample swell = m opposes crossing_safe;
+on wave when m > wave_limit() and may_go reopen crossing because latest(swell);
+
+# The storm warning.
+on warning when observed(storm_warning) reject "A storm warning has already been broadcast.";
+on warning reveal storm_warning opposes crossing_safe;
+on warning when may_go reopen crossing because storm_warning;
+
+# The decision: the strongest gust so far from either anemometer, grounded on
+# every gust reading from both.
+on decide when history_count(crossing) >= 4 reject "Four decisions have already been made.";
+on decide when in_force reject "A decision is in force; it must be reopened before deciding again.";
+on decide when history_count(wind) + history_count(pier_wind) < 2 reject "At least two gusts must be recorded before deciding.";
+on decide when history_count(swell) < 2 reject "At least two waves must be recorded before deciding.";
+on decide commit crossing because enough using strongest_gust;
+
+# What to show.
+bind hud.gusts = history_count(wind);
+bind hud.pier_gusts = history_count(pier_wind);
+bind hud.waves = history_count(swell);
+bind hud.strongest = -1;
+bind hud.strongest = strongest_gust when has_sample(wind) or has_sample(pier_wind);
+bind hud.highest = -1;
+bind hud.highest = fold_history(swell, latest(swell), max) when has_sample(swell);
+bind hud.warned = 0;
+bind hud.warned = 1 when observed(storm_warning);
+bind hud.decision = "none";
+bind hud.decision = "go" when committed(crossing) and latest(crossing) <= wind_limit();
+bind hud.decision = "hold" when committed(crossing) and latest(crossing) > wind_limit();
+bind hud.decision = "review" when committed(crossing) and reopened(crossing);
+bind hud.frozen = -1;
+bind hud.frozen = latest(crossing) when committed(crossing);
+bind hud.revision = history_count(crossing);

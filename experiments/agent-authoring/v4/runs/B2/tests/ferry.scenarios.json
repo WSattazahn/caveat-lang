@@ -1,0 +1,198 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "../ferry.cav",
+  "scenarios": [
+    {
+      "id": "F01",
+      "title": "Initial display has exactly the nine hud properties",
+      "steps": [
+        { "expect": { "/bindings": { "$exact": { "hud": {
+          "gusts": 0, "pier_gusts": 0, "waves": 0, "strongest": -1, "highest": -1,
+          "warned": 0, "decision": "none", "frozen": -1, "revision": 0 } } } } }
+      ]
+    },
+    {
+      "id": "F02",
+      "title": "Pier gusts are recorded with their caveat and count toward strongest",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 18.5 } },
+        { "send": "pier_gust", "payload": { "kt": 33 } },
+        { "send": "gust", "payload": { "kt": 20 } },
+        { "expect": {
+          "/bindings/hud": { "gusts": 1, "pier_gusts": 2, "strongest": 33 },
+          "/reading_streams/pier_wind/occurrences": [
+            { "id": "pier_wind@1", "value": 18.5, "relation": "supports", "claim": "crossing_safe", "provenance": { "evidence": ["pier_wind@1"], "caveats": ["unverified_pier"] } },
+            { "id": "pier_wind@2", "value": 33, "relation": "opposes", "claim": "crossing_safe", "provenance": { "evidence": ["pier_wind@2"], "caveats": ["unverified_pier"] } }
+          ],
+          "/reading_streams/pier_wind/template": "pier_anemometer",
+          "/reading_streams/wind/occurrences/0/id": "wind@1"
+        } }
+      ]
+    },
+    {
+      "id": "F03",
+      "title": "Two pier gusts alone satisfy the gust requirement; grounds are pier gusts only",
+      "steps": [
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.5 } },
+        { "send": "pier_gust", "payload": { "kt": 10 } },
+        { "send": "decide", "rejected": "At least two gusts and two waves are needed." },
+        { "send": "pier_gust", "payload": { "kt": 30 } },
+        { "send": "decide" },
+        { "expect": {
+          "/bindings/hud": { "gusts": 0, "pier_gusts": 2, "decision": "go", "frozen": 30, "revision": 1, "strongest": 30 },
+          "/commitment_grounds/crossing@1": { "$exact": { "evidence": ["pier_wind@1", "pier_wind@2"], "caveats": ["unverified_pier"] } },
+          "/decision_journal": [ { "commitment": "crossing@1", "change": "committed", "value": 30, "because": ["pier_wind@1", "pier_wind@2"], "caveats": ["unverified_pier"] } ]
+        } }
+      ]
+    },
+    {
+      "id": "F04",
+      "title": "One mast plus one pier gust is enough; decision value is the max of both; grounds cover both, not waves",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 22 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "wave", "payload": { "m": 1.2 } },
+        { "send": "decide", "rejected": "At least two gusts and two waves are needed." },
+        { "send": "pier_gust", "payload": { "kt": 27.5 } },
+        { "send": "warning" },
+        { "send": "decide" },
+        { "expect": {
+          "/bindings/hud": { "decision": "go", "frozen": 27.5, "strongest": 27.5, "gusts": 1, "pier_gusts": 1, "warned": 1 },
+          "/commitment_grounds/crossing@1": { "evidence": { "$set": ["wind@1", "pier_wind@1"] }, "caveats": { "$set": ["sheltered_mast", "unverified_pier"] } }
+        } },
+        { "checkpoint": "decided" },
+        { "resume": true },
+        { "send": "gust", "payload": { "kt": 25 } },
+        { "expect": { "/bindings/hud": { "decision": "go", "strongest": 27.5 } } },
+        { "same_as": "decided", "paths": ["/commitment_grounds/crossing@1", "/decision_journal/0"] }
+      ]
+    },
+    {
+      "id": "F05",
+      "title": "A strong pier gust reopens a go decision because of that pier gust; later evidence adds no reopening",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 12 } },
+        { "send": "pier_gust", "payload": { "kt": 14 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide" },
+        { "send": "pier_gust", "payload": { "kt": 30 } },
+        { "expect": { "/bindings/hud/decision": "go", "/decision_journal": [ { "change": "committed" } ] } },
+        { "send": "pier_gust", "payload": { "kt": 30.5 } },
+        { "expect": {
+          "/bindings/hud": { "decision": "review", "frozen": 14, "strongest": 30.5, "pier_gusts": 3 },
+          "/decision_journal/1": { "commitment": "crossing@1", "change": "reopened", "because": ["pier_wind@3"], "caveats": ["unverified_pier"] }
+        } },
+        { "resume": true },
+        { "send": "gust", "payload": { "kt": 50 } },
+        { "send": "wave", "payload": { "m": 3 } },
+        { "send": "warning" },
+        { "send": "pier_gust", "payload": { "kt": 60 } },
+        { "expect": { "/decision_journal": { "$exact": [
+          { "decision": "crossing", "commitment": "crossing@1", "change": "committed", "sequence": 5, "event": "decide", "elapsed": 0, "value": 14, "because": ["wind@1", "pier_wind@1"], "caveats": ["sheltered_mast", "unverified_pier"] },
+          { "decision": "crossing", "commitment": "crossing@1", "change": "reopened", "sequence": 7, "event": "pier_gust", "elapsed": 0, "value": 14, "because": ["pier_wind@3"], "caveats": ["unverified_pier"] }
+        ] } } },
+        { "send": "decide" },
+        { "expect": {
+          "/bindings/hud": { "decision": "hold", "frozen": 60, "revision": 2 },
+          "/commitment_grounds/crossing@2": { "evidence": { "$set": ["wind@1", "wind@2", "pier_wind@1", "pier_wind@2", "pier_wind@3", "pier_wind@4"] }, "caveats": { "$set": ["sheltered_mast", "unverified_pier"] } }
+        } }
+      ]
+    },
+    {
+      "id": "F06",
+      "title": "A hold decision is never reopened by a strong pier gust",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 45 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide" },
+        { "send": "pier_gust", "payload": { "kt": 80 } },
+        { "send": "gust", "payload": { "kt": 80 } },
+        { "send": "wave", "payload": { "m": 5 } },
+        { "send": "warning" },
+        { "expect": { "/bindings/hud": { "decision": "hold", "frozen": 45, "strongest": 80 }, "/decision_journal": [ { "change": "committed" } ] } },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened first." }
+      ]
+    },
+    {
+      "id": "F07",
+      "title": "At most six pier gusts, counted separately from ten mast gusts",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 10 }, "repeat": 6 },
+        { "send": "pier_gust", "payload": { "kt": 10 }, "rejected": "No more than six pier gusts can be recorded." },
+        { "send": "gust", "payload": { "kt": 10 }, "repeat": 10 },
+        { "send": "gust", "payload": { "kt": 10 }, "rejected": "No more than ten gusts can be recorded." },
+        { "send": "pier_gust", "payload": { "kt": 40 }, "rejected": "No more than six pier gusts can be recorded." },
+        { "expect": { "/bindings/hud": { "gusts": 10, "pier_gusts": 6, "strongest": 10 }, "/sequence": 16 } }
+      ]
+    },
+    {
+      "id": "F08",
+      "title": "Invalid pier_gust payloads are refused and change nothing",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 90.5 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "pier_gust", "payload": { "kt": -0.1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "pier_gust", "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "pier_gust", "payload": { "kt": 5, "m": 1 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "pier_gust", "payload": { "kt": "5" }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "pier", "payload": { "kt": 5 }, "rejected": { "origin": "input", "code": "unknown_event" } },
+        { "send": "pier_gust", "payload": { "kt": 90 } },
+        { "send": "pier_gust", "payload": { "kt": 0 } },
+        { "expect": { "/bindings/hud": { "pier_gusts": 2, "strongest": 90 }, "/sequence": 2 } }
+      ]
+    },
+    {
+      "id": "F09",
+      "title": "Original behaviour kept: mast gusts, waves, warning, four decisions",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 12 } },
+        { "send": "gust", "payload": { "kt": 25.5 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide", "rejected": "At least two gusts and two waves are needed." },
+        { "send": "wave", "payload": { "m": 1.5 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud": { "decision": "go", "frozen": 25.5, "revision": 1 },
+          "/commitment_grounds/crossing@1": { "$exact": { "evidence": ["wind@1", "wind@2"], "caveats": ["sheltered_mast"] } } } },
+        { "send": "decide", "rejected": "A decision is in force; it must be reopened first." },
+        { "send": "wave", "payload": { "m": 1.6 } },
+        { "expect": { "/bindings/hud": { "decision": "review", "highest": 1.6 }, "/decision_journal/1": { "change": "reopened", "because": ["swell@3"], "caveats": ["buoy_drift"] } } },
+        { "send": "decide" },
+        { "send": "warning" },
+        { "expect": { "/bindings/hud": { "decision": "review", "warned": 1 }, "/decision_journal/3": { "change": "reopened", "because": ["storm_warning"], "caveats": ["regional_forecast"] } } },
+        { "send": "warning", "rejected": "The storm warning has already been broadcast." },
+        { "send": "decide" },
+        { "send": "gust", "payload": { "kt": 31 } },
+        { "expect": { "/bindings/hud/decision": "review", "/decision_journal/5": { "change": "reopened", "because": ["wind@3"], "caveats": ["sheltered_mast"] } } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud": { "decision": "hold", "frozen": 31, "revision": 4 } } },
+        { "resume": true },
+        { "send": "decide", "rejected": true },
+        { "send": "gust", "payload": { "kt": 2 } },
+        { "expect": { "/bindings/hud": { "gusts": 4, "strongest": 31, "decision": "hold" } } }
+      ]
+    },
+    {
+      "id": "F10",
+      "title": "Four decisions: a reopened fourth still refuses decide",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 1 } },
+        { "send": "pier_gust", "payload": { "kt": 1 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2 } },
+        { "send": "decide" },
+        { "send": "pier_gust", "payload": { "kt": 31 } },
+        { "expect": { "/bindings/hud": { "decision": "review", "revision": 4, "frozen": 1 } } },
+        { "send": "decide", "rejected": "Four decisions have already been made." }
+      ]
+    }
+  ]
+}

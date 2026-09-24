@@ -1,0 +1,73 @@
+scene "May the ferry cross?";
+
+claim crossing_safe;
+evidence anemometer from "the mast anemometer at the landing";
+evidence pier_anemometer from "the anemometer at the end of the pier";
+evidence buoy from "the harbour buoy";
+evidence storm_warning from "the coastguard radio";
+
+caveat sheltered_mast consequence material;
+sheltered_mast qualifies anemometer;
+caveat unverified_pier consequence material;
+unverified_pier qualifies pier_anemometer;
+caveat buoy_drift consequence low;
+buoy_drift qualifies buoy;
+caveat regional_forecast consequence low;
+regional_forecast qualifies storm_warning;
+
+readings wind from anemometer limit 10;
+readings pier_wind from pier_anemometer limit 6;
+readings swell from buoy limit 10;
+decisions crossing limit 4;
+
+event gust kt min 0 max 90;
+event pier_gust kt min 0 max 90;
+event wave m min 0 max 6;
+event warning;
+event decide;
+
+on gust when kt <= 30 sample wind = kt supports crossing_safe;
+on gust when kt > 30 sample wind = kt opposes crossing_safe;
+on gust when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30 and kt > 30
+    reopen crossing because latest(wind);
+
+on pier_gust when kt <= 30 sample pier_wind = kt supports crossing_safe;
+on pier_gust when kt > 30 sample pier_wind = kt opposes crossing_safe;
+on pier_gust when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30 and kt > 30
+    reopen crossing because latest(pier_wind);
+
+on wave when m <= 1.5 sample swell = m supports crossing_safe;
+on wave when m > 1.5 sample swell = m opposes crossing_safe;
+on wave when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30 and m > 1.5
+    reopen crossing because latest(swell);
+
+on warning when observed(storm_warning) reject "a storm warning has already been broadcast";
+on warning when not observed(storm_warning) reveal storm_warning opposes crossing_safe;
+on warning when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30
+    reopen crossing because storm_warning;
+
+on decide when history_count(wind) + history_count(pier_wind) < 2 or history_count(swell) < 2
+    reject "at least two gusts and two waves are needed before deciding";
+on decide when committed(crossing) and not reopened(crossing)
+    reject "the current crossing decision is still in force";
+on decide when history_count(wind) + history_count(pier_wind) >= 2 and history_count(swell) >= 2
+    and not (committed(crossing) and not reopened(crossing))
+    commit crossing because enough using max(fold_history(wind, -1, max), fold_history(pier_wind, -1, max));
+
+bind hud.gusts = history_count(wind);
+bind hud.pier_gusts = history_count(pier_wind);
+bind hud.waves = history_count(swell);
+bind hud.strongest = -1;
+bind hud.strongest = max(fold_history(wind, -1, max), fold_history(pier_wind, -1, max))
+    when has_sample(wind) or has_sample(pier_wind);
+bind hud.highest = -1;
+bind hud.highest = fold_history(swell, latest(swell), max) when has_sample(swell);
+bind hud.warned = 0;
+bind hud.warned = 1 when observed(storm_warning);
+bind hud.decision = "none";
+bind hud.decision = "go" when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30;
+bind hud.decision = "hold" when committed(crossing) and not reopened(crossing) and latest(crossing) > 30;
+bind hud.decision = "review" when committed(crossing) and reopened(crossing);
+bind hud.frozen = -1;
+bind hud.frozen = latest(crossing) when committed(crossing);
+bind hud.revision = history_count(crossing);

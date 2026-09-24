@@ -1,0 +1,80 @@
+scene "Decide whether the island ferry may make its crossing.";
+
+# What the program can believe, and where its knowledge comes from.
+claim crossing_safe;
+evidence anemometer from "the mast anemometer at the landing";
+evidence pier_anemometer from "the anemometer at the end of the pier";
+evidence buoy from "the harbour buoy";
+evidence storm_warning from "the coastguard radio";
+
+caveat sheltered_mast consequence material;
+caveat buoy_drift consequence low;
+caveat regional_forecast consequence low;
+caveat unverified_pier consequence material;
+sheltered_mast qualifies anemometer;
+buoy_drift qualifies buoy;
+regional_forecast qualifies storm_warning;
+unverified_pier qualifies pier_anemometer;
+
+readings wind from anemometer limit 10;
+readings pier_wind from pier_anemometer limit 6;
+readings swell from buoy limit 10;
+decisions crossing limit 4;
+
+fn highest_of(best, reading) = max(best, reading);
+
+event gust kt min 0 max 90;
+event pier_gust kt min 0 max 90;
+event wave m min 0 max 6;
+event warning;
+event decide;
+
+# The current decision lets the ferry go and has not been reopened.
+define may_go = committed(crossing) and not reopened(crossing) and latest(crossing) <= 30;
+
+# The strongest gust from either anemometer, or -1 before any gust.
+define strongest_gust = max(fold_history(wind, -1, highest_of), fold_history(pier_wind, -1, highest_of));
+
+# Gusts: at most ten; 30 kt or less supports a safe crossing.
+on gust when history_count(wind) >= 10 reject "No more than ten gusts can be recorded.";
+on gust when kt <= 30 sample wind = kt supports crossing_safe;
+on gust when kt > 30 sample wind = kt opposes crossing_safe;
+on gust when kt > 30 and may_go reopen crossing because latest(wind);
+
+# Pier gusts: at most six, counted apart from mast gusts; same thresholds.
+on pier_gust when history_count(pier_wind) >= 6 reject "No more than six pier gusts can be recorded.";
+on pier_gust when kt <= 30 sample pier_wind = kt supports crossing_safe;
+on pier_gust when kt > 30 sample pier_wind = kt opposes crossing_safe;
+on pier_gust when kt > 30 and may_go reopen crossing because latest(pier_wind);
+
+# Waves: at most ten; 1.5 m or less supports a safe crossing.
+on wave when history_count(swell) >= 10 reject "No more than ten waves can be recorded.";
+on wave when m <= 1.5 sample swell = m supports crossing_safe;
+on wave when m > 1.5 sample swell = m opposes crossing_safe;
+on wave when m > 1.5 and may_go reopen crossing because latest(swell);
+
+# The storm warning: broadcast at most once; it opposes a safe crossing.
+on warning when observed(storm_warning) reject "The storm warning has already been broadcast.";
+on warning reveal storm_warning opposes crossing_safe;
+on warning when may_go reopen crossing because storm_warning;
+
+# Deciding: the value is the strongest gust recorded so far, from either anemometer.
+on decide when history_count(crossing) >= 4 reject "Four decisions have already been made.";
+on decide when committed(crossing) and not reopened(crossing) reject "A decision is in force; it must be reopened first.";
+on decide when history_count(wind) + history_count(pier_wind) < 2 or history_count(swell) < 2 reject "At least two gusts and two waves are needed.";
+on decide commit crossing because enough using strongest_gust;
+
+bind hud.gusts = history_count(wind);
+bind hud.pier_gusts = history_count(pier_wind);
+bind hud.waves = history_count(swell);
+bind hud.strongest = strongest_gust;
+bind hud.highest = fold_history(swell, -1, highest_of);
+bind hud.warned = 0;
+bind hud.warned = 1 when observed(storm_warning);
+bind hud.decision = "none";
+bind hud.decision = "go" when committed(crossing) and latest(crossing) <= 30;
+bind hud.decision = "hold" when committed(crossing) and latest(crossing) > 30;
+bind hud.decision = "review" when committed(crossing) and reopened(crossing);
+bind hud.frozen = -1;
+bind hud.frozen = latest(crossing) when committed(crossing);
+bind hud.revision = history_count(crossing);

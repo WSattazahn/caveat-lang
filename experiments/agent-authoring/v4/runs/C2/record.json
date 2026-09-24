@@ -1,0 +1,21 @@
+{
+  "run": "C2",
+  "phase": 2,
+  "maintains": "C",
+  "session": "session_01MUKVrRGZ1kVqrsdSwhzD4L",
+  "model": "claude-sonnet-5",
+  "dispatchedAt": "2026-09-24T17:27:52.102522Z",
+  "promptSha256": "3ef54c72da973bd10325a8bef21d9e8b904971359aced2daea2cbde53e1092ec",
+  "source": "trial/v4-packet-C2",
+  "outcome": "trial/v4-run-C2",
+  "inherited": "4a740d2fd398e5505d1625eafe8754cf92631a6162fa06892c1e69860217834f",
+  "branch": "trial/v4-run-C2",
+  "commit": "bf8add29314c368ae6ceb4f02ffb1a9c3f9e815e",
+  "frozenAt": "2026-09-24T17:35:32.407Z",
+  "sha256": "0d3e93f55bf93930ac39db3f03356507ba95be43be1f5266aa4044ca9325cffe",
+  "lines": 72,
+  "change": {
+    "added": 15,
+    "removed": 3
+  }
+}
