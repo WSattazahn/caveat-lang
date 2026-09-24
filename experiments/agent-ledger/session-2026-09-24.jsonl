@@ -18,3 +18,6 @@
 {"event": "pushed", "payload": {"target": "pr29", "commit": 1613487084}}
 {"event": "checks", "payload": {"target": "pr28", "commit": 827595347, "result": "passed"}}
 {"event": "merge", "payload": {"target": "pr28"}}
+{"event": "checks", "payload": {"target": "pr29", "commit": 1613487084, "result": "passed"}}
+{"event": "approved", "payload": {"target": "pr29"}}
+{"event": "merge", "payload": {"target": "pr29"}}
