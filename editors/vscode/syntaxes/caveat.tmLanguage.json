@@ -185,12 +185,6 @@
           "include": "#block-strings"
         },
         {
-          "include": "#template"
-        },
-        {
-          "include": "#nested-block"
-        },
-        {
           "include": "#block-relation-statement"
         },
         {
@@ -198,6 +192,12 @@
         },
         {
           "include": "#block-profile-statement"
+        },
+        {
+          "include": "#template"
+        },
+        {
+          "include": "#nested-block"
         },
         {
           "include": "#block-code"
@@ -225,12 +225,6 @@
           "include": "#block-strings"
         },
         {
-          "include": "#template"
-        },
-        {
-          "include": "#nested-block"
-        },
-        {
           "include": "#block-relation-statement"
         },
         {
@@ -240,122 +234,169 @@
           "include": "#block-profile-statement"
         },
         {
+          "include": "#template"
+        },
+        {
+          "include": "#nested-block"
+        },
+        {
           "include": "#block-code"
         }
       ]
     },
     "relation-statement": {
-      "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+(supports|opposes|qualifies)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*;)",
-      "captures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#stray-template"
+      "patterns": [
+        {
+          "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+((?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*(?:;|$))",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            },
+            "2": {
+              "name": "keyword.operator.relation.caveat"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
             }
-          ]
+          }
         },
-        "2": {
-          "name": "keyword.operator.relation.caveat"
-        },
-        "3": {
+        {
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use|on|when|for|as|if|then|otherwise|when_committed|set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|renew|defer|from|limit|because|using|retaining|after|with|cost|consequence|kind|at|to|via|through|toward|action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|and|or|not|true|false|supports|opposes|qualifies|rule)\\b)([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b|\\s*$)",
+          "beginCaptures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            }
+          },
+          "end": "(?=\\S)",
+          "applyEndPatternLast": true,
           "patterns": [
             {
-              "include": "#stray-template"
+              "include": "#comments"
+            },
+            {
+              "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "name": "keyword.operator.relation.caveat"
             }
           ]
         }
-      }
+      ]
     },
     "block-relation-statement": {
-      "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+(supports|opposes|qualifies)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*;)",
-      "captures": {
-        "1": {
-          "patterns": [
-            {
-              "include": "#template"
+      "patterns": [
+        {
+          "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+((?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*(?:;|$))",
+          "captures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            },
+            "2": {
+              "name": "keyword.operator.relation.caveat"
+            },
+            "3": {
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
             }
-          ]
+          }
         },
-        "2": {
-          "name": "keyword.operator.relation.caveat"
-        },
-        "3": {
+        {
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use|on|when|for|as|if|then|otherwise|when_committed|set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|renew|defer|from|limit|because|using|retaining|after|with|cost|consequence|kind|at|to|via|through|toward|action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|and|or|not|true|false|supports|opposes|qualifies|rule)\\b)([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b|\\s*$)",
+          "beginCaptures": {
+            "1": {
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            }
+          },
+          "end": "(?=\\S)",
+          "applyEndPatternLast": true,
           "patterns": [
             {
-              "include": "#template"
+              "include": "#block-comments"
+            },
+            {
+              "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "name": "keyword.operator.relation.caveat"
             }
           ]
         }
-      }
+      ]
     },
     "relation-effects": {
       "patterns": [
         {
-          "match": "(?<![.\\w$])(reveal)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+(?:(then)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+)?(supports|opposes)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*[;}])",
-          "captures": {
+          "begin": "(?<![.\\w$])(reveal)\\b",
+          "beginCaptures": {
             "1": {
               "name": "keyword.other.effect.caveat"
+            }
+          },
+          "end": "(?=[;}])",
+          "patterns": [
+            {
+              "include": "#comments"
             },
-            "2": {
-              "patterns": [
-                {
-                  "include": "#stray-template"
-                }
-              ]
+            {
+              "include": "#strings"
             },
-            "3": {
-              "name": "keyword.control.caveat"
+            {
+              "include": "#stray-template"
             },
-            "4": {
-              "patterns": [
-                {
-                  "include": "#stray-template"
-                }
-              ]
-            },
-            "5": {
+            {
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
               "name": "keyword.operator.relation.caveat"
             },
-            "6": {
-              "patterns": [
-                {
-                  "include": "#stray-template"
-                }
-              ]
+            {
+              "include": "#code"
             }
-          }
+          ]
         },
         {
-          "match": "(?:^|(?<=[;{}]))\\s*(when_committed)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+(supports|opposes)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*;)",
-          "captures": {
+          "begin": "(?:^|(?<=[;{}]))\\s*(when_committed)\\b",
+          "beginCaptures": {
             "1": {
               "name": "keyword.control.caveat"
+            }
+          },
+          "end": "(?=[;}])",
+          "patterns": [
+            {
+              "include": "#comments"
             },
-            "2": {
-              "patterns": [
-                {
-                  "include": "#stray-template"
-                }
-              ]
+            {
+              "include": "#strings"
             },
-            "3": {
-              "patterns": [
-                {
-                  "include": "#stray-template"
-                }
-              ]
+            {
+              "include": "#stray-template"
             },
-            "4": {
+            {
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
               "name": "keyword.operator.relation.caveat"
             },
-            "5": {
-              "patterns": [
-                {
-                  "include": "#stray-template"
-                }
-              ]
+            {
+              "include": "#code"
             }
-          }
+          ]
         },
         {
           "begin": "(?<![.\\w$])(sample)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*=)",
@@ -376,19 +417,8 @@
               "include": "#stray-template"
             },
             {
-              "match": "(?<![.\\w$])(supports|opposes)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*[;}])",
-              "captures": {
-                "1": {
-                  "name": "keyword.operator.relation.caveat"
-                },
-                "2": {
-                  "patterns": [
-                    {
-                      "include": "#stray-template"
-                    }
-                  ]
-                }
-              }
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "name": "keyword.operator.relation.caveat"
             },
             {
               "include": "#code"
@@ -400,71 +430,58 @@
     "block-relation-effects": {
       "patterns": [
         {
-          "match": "(?<![.\\w$])(reveal)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+(?:(then)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+)?(supports|opposes)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*[;}])",
-          "captures": {
+          "begin": "(?<![.\\w$])(reveal)\\b",
+          "beginCaptures": {
             "1": {
               "name": "keyword.other.effect.caveat"
+            }
+          },
+          "end": "(?=[;}])",
+          "patterns": [
+            {
+              "include": "#block-comments"
             },
-            "2": {
-              "patterns": [
-                {
-                  "include": "#template"
-                }
-              ]
+            {
+              "include": "#block-strings"
             },
-            "3": {
-              "name": "keyword.control.caveat"
+            {
+              "include": "#template"
             },
-            "4": {
-              "patterns": [
-                {
-                  "include": "#template"
-                }
-              ]
-            },
-            "5": {
+            {
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
               "name": "keyword.operator.relation.caveat"
             },
-            "6": {
-              "patterns": [
-                {
-                  "include": "#template"
-                }
-              ]
+            {
+              "include": "#block-code"
             }
-          }
+          ]
         },
         {
-          "match": "(?:^|(?<=[;{}]))\\s*(when_committed)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+(supports|opposes)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*;)",
-          "captures": {
+          "begin": "(?:^|(?<=[;{}]))\\s*(when_committed)\\b",
+          "beginCaptures": {
             "1": {
               "name": "keyword.control.caveat"
+            }
+          },
+          "end": "(?=[;}])",
+          "patterns": [
+            {
+              "include": "#block-comments"
             },
-            "2": {
-              "patterns": [
-                {
-                  "include": "#template"
-                }
-              ]
+            {
+              "include": "#block-strings"
             },
-            "3": {
-              "patterns": [
-                {
-                  "include": "#template"
-                }
-              ]
+            {
+              "include": "#template"
             },
-            "4": {
+            {
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
               "name": "keyword.operator.relation.caveat"
             },
-            "5": {
-              "patterns": [
-                {
-                  "include": "#template"
-                }
-              ]
+            {
+              "include": "#block-code"
             }
-          }
+          ]
         },
         {
           "begin": "(?<![.\\w$])(sample)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*=)",
@@ -485,19 +502,8 @@
               "include": "#template"
             },
             {
-              "match": "(?<![.\\w$])(supports|opposes)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*[;}])",
-              "captures": {
-                "1": {
-                  "name": "keyword.operator.relation.caveat"
-                },
-                "2": {
-                  "patterns": [
-                    {
-                      "include": "#template"
-                    }
-                  ]
-                }
-              }
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "name": "keyword.operator.relation.caveat"
             },
             {
               "include": "#block-code"

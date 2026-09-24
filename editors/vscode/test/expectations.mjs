@@ -37,16 +37,25 @@ export const groups = [
   {
     name: 'relation statements',
     words: ['supports', 'opposes', 'qualifies'],
-    probe: ['a @ b;', 'glow::a @ glow::b;', 'x = 1; a @ b;', 'for k as $r {\n  $r_a @ b_$r;\n};'],
+    probe: ['a @ b;', 'glow::a @ glow::b;', 'x = 1; a @ b;', 'for k as $r {\n  $r_a @ b_$r;\n};',
+      // Wrapped over lines, and the last statement without its `;`.
+      'a\n  @ b;', 'a @\n  b;', 'a @ b\n;', 'x = 1;\na @ b', 'glow::a\n  @ b;',
+      // FROM may be a word that begins other statements.
+      'camera @ glow::door;', 'camera @ b\n;', 'x = 1;\ncamera @ b',
+      // A template at column 0 and straight after `{`.
+      'for k as $r {\n$r_a @ b_$r;\n};', 'for k as $r {$r_a @ b_$r;};', 'for k as $r {\n  $r_a\n    @ b_$r;\n};'],
     scope: 'keyword.operator.relation',
-    notKeyword: ['claim @;', 'place @ kind dock;', 'state @ = 1;', 'event @;', 'a @ b c;', 'for k as $r {\n  claim @;\n};',
-      'for k as $r {\n  place @ kind $r;\n};'],
+    notKeyword: ['claim @;', 'place @ kind dock;', 'state @ = 1;', 'event @;', 'a @ b c;', 'claim\n  @;', 'place @\n  kind dock;',
+      'for k as $r {\n  claim @;\n};', 'for k as $r {\n  place @ kind $r;\n};', 'for k as $r {\nclaim @;\n};'],
   },
   {
     name: 'relations in effects',
     words: ['supports', 'opposes'],
     probe: ['on e when x reveal a @ b;', 'reveal c then a @ b;', 'when_committed act a @ b;', 'on e sample s = x + 1 @ c;',
-      'proc p() {\n  reveal a @ b;\n};', 'for k as $r {\n  on e reveal $r_a @ c;\n};', 'for k as $r {\n  on e sample s_$r = $index @ c;\n};'],
+      'proc p() {\n  reveal a @ b;\n};', 'for k as $r {\n  on e reveal $r_a @ c;\n};', 'for k as $r {\n  on e sample s_$r = $index @ c;\n};',
+      // Wrapped over lines.
+      'on e reveal a\n  @ b;', 'on e reveal a @\n  b;', 'reveal c then\n  a @ b;', 'when_committed act a\n  @ b;',
+      'on e sample s = a +\n  b\n  @ c;', 'for k as $r {\n  on e sample s_$r = $index\n    @ c;\n};'],
     scope: 'keyword.operator.relation',
     notKeyword: ['on e reveal a @ b c;', 'on e sample s = @;', 'reveal c then a @;'],
   },

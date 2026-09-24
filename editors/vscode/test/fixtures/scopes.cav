@@ -159,6 +159,23 @@
 #                         ^^^^^^^^ keyword.operator.relation
  on lit reveal lamp qualifies seen;
 #                   ^^^^^^^^^ !keyword
+ lookout
+#^^^^^^^ !keyword !storage
+   supports landing_clear;
+#  ^^^^^^^^ keyword.operator.relation
+ on alarm reveal smoke_report
+#         ^^^^^^ keyword.other.effect
+   opposes door_safe;
+#  ^^^^^^^ keyword.operator.relation
+ on read sample depth = value +
+#        ^^^^^^ keyword.other.effect
+   offset supports charted;
+#  ^^^^^^ !keyword
+#         ^^^^^^^^ keyword.operator.relation
+ when_committed wait smoke_report opposes
+#                                 ^^^^^^^ keyword.operator.relation
+   door_unsafe;
+#  ^^^^^^^^^^^ !keyword
 
 # Repetition
 
@@ -231,6 +248,11 @@
    $b_sounding qualifies charted_$b;
 #              ^^^^^^^^^ keyword.operator.relation
 #                                ^^ variable.other.template
+   $b_echo
+#  ^^ variable.other.template
+     supports charted_$b;
+#    ^^^^^^^^ keyword.operator.relation
+#                     ^^ variable.other.template
    place supports kind $b;
 #  ^^^^^ keyword.other.statement
 #        ^^^^^^^^ !keyword
@@ -262,3 +284,8 @@
  state after_emoji = "😀"; set after_emoji = 2;
 #                          ^^^ keyword.other.effect
 #                                            ^ constant.numeric
+
+# The last statement may omit its semicolon
+
+ lookout supports landing_clear
+#        ^^^^^^^^ keyword.operator.relation

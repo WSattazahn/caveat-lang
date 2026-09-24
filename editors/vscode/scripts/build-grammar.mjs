@@ -65,17 +65,18 @@ const blockComment = (marker, scope) => ({
   patterns: [{ include: '#template' }],
 });
 
+// Statement rules come before the template rule, so a statement that starts
+// with a template (`$b_sounding supports charted_$b;`) is still read whole.
 const blockBody = [
   { include: '#block-comments' },
   { include: '#block-strings' },
-  { include: '#template' },
-  { include: '#nested-block' },
   { include: '#block-relation-statement' },
   { include: '#block-rule-statement' },
   { include: '#block-profile-statement' },
+  { include: '#template' },
+  { include: '#nested-block' },
   { include: '#block-code' },
 ];
-
 // What a rule refers to in each context: at the top level, or in a `for` body,
 // where names may be built from templates and `$` is substituted. `referred`
 // is a name a statement refers to, which a module may qualify (`glow::lamp`).
@@ -106,55 +107,73 @@ const statementStart = String.raw`(?:^|(?<=[;{}]))\s*`;
 
 // Relations, in the forms the parsers accept (runtime/src/parser.rs and the
 // effects in runtime/src/reactive.rs). Elsewhere the three words are names:
-// `claim qualifies;`, `place supports kind dock;`.
+// `claim qualifies;`, `place supports kind dock;`. The parsers split words
+// on any whitespace, so a relation may be wrapped onto following lines, and
+// a program's last statement may omit its `;`. TextMate matches one line at
+// a time, so the wrapped forms are regions that carry the context across.
+const relationWords = String.raw`(?:supports|opposes|qualifies)\b`;
+const evidential = String.raw`(?:supports|opposes)\b`;
 const relation = () => ({ name: 'keyword.operator.relation.caveat' });
 const reference = context => ({ patterns: [{ include: context.dollar }] });
+// A relation word followed by its one last name and the end of the statement,
+// or by the end of the line, where what follows cannot be seen.
+const relationAt = (context, relations) => ({
+  match: String.raw`${notProperty}${relations}(?=\s+${context.referred}\s*(?:[;}]|$)|\s*$)`,
+  ...relation(),
+});
+// Words that begin some other statement, so cannot begin a wrapped relation.
+const notRelationSource = [...declarations, ...control, ...effects, ...modifiers, ...profileHeads,
+  'and', 'or', 'not', 'true', 'false', 'supports', 'opposes', 'qualifies', 'rule'];
 
 // `FROM supports|opposes|qualifies TO;`, the whole statement.
-const relationStatement = context => ({
-  match: String.raw`${statementStart}(${context.referred})\s+(supports|opposes|qualifies)\s+(${context.referred})(?=\s*;)`,
-  captures: { 1: reference(context), 2: relation(), 3: reference(context) },
-});
-
-function relationEffects(context) {
+function relationStatement(context) {
   const n = context.referred;
   return {
     patterns: [
-      // `reveal CAVEAT then FROM REL TO` (core) and `reveal EVIDENCE REL CLAIM`
-      // (a reactive effect), each ending its statement.
+      // On one line, whatever FROM is: `camera supports door_open;`.
       {
-        match: String.raw`${notProperty}(reveal)\s+(${n})\s+(?:(then)\s+(${n})\s+)?(supports|opposes)\s+(${n})(?=\s*[;}])`,
-        captures: {
-          1: { name: 'keyword.other.effect.caveat' },
-          2: reference(context),
-          3: { name: 'keyword.control.caveat' },
-          4: reference(context),
-          5: relation(),
-          6: reference(context),
-        },
+        match: String.raw`${statementStart}(${n})\s+(${relationWords})\s+(${n})(?=\s*(?:;|$))`,
+        captures: { 1: reference(context), 2: relation(), 3: reference(context) },
       },
-      // `when_committed ACTION FROM REL TO;`
+      // Wrapped: a statement that begins with a plain name, then the relation
+      // on the same line or the next.
       {
-        match: String.raw`${statementStart}(when_committed)\s+(${n})\s+(${n})\s+(supports|opposes)\s+(${n})(?=\s*;)`,
-        captures: { 1: { name: 'keyword.control.caveat' }, 2: reference(context), 3: reference(context), 4: relation(), 5: reference(context) },
-      },
-      // `sample STREAM = EXPRESSION REL CLAIM`: the relation is the effect's
-      // second-to-last word.
-      {
-        begin: String.raw`${notProperty}(sample)\b(?=\s+${n}\s*=)`,
-        beginCaptures: { 1: { name: 'keyword.other.effect.caveat' } },
-        end: '(?=[;}])',
+        begin: String.raw`${statementStart}(?!(?:${words(notRelationSource)})\b)(${n})(?=\s+${relationWords}|\s*$)`,
+        beginCaptures: { 1: reference(context) },
+        end: String.raw`(?=\S)`,
+        applyEndPatternLast: true,
         patterns: [
           { include: context.comments },
-          { include: context.strings },
-          { include: context.dollar },
-          {
-            match: String.raw`${notProperty}(supports|opposes)\s+(${n})(?=\s*[;}])`,
-            captures: { 1: relation(), 2: reference(context) },
-          },
-          { include: context.code },
+          relationAt(context, relationWords),
         ],
       },
+    ],
+  };
+}
+
+// Statements and effects whose relation may sit on any of their lines: each is
+// a region from its keyword to the end of the statement.
+function relationEffects(context) {
+  const region = (begin, scope, relations) => ({
+    begin,
+    beginCaptures: { 1: { name: scope } },
+    end: '(?=[;}])',
+    patterns: [
+      { include: context.comments },
+      { include: context.strings },
+      { include: context.dollar },
+      relationAt(context, relations),
+      { include: context.code },
+    ],
+  });
+  return {
+    patterns: [
+      // `reveal CAVEAT then FROM REL TO` (core), `reveal EVIDENCE REL CLAIM`.
+      region(String.raw`${notProperty}(reveal)\b`, 'keyword.other.effect.caveat', evidential),
+      // `when_committed ACTION FROM REL TO`
+      region(String.raw`${statementStart}(when_committed)\b`, 'keyword.control.caveat', evidential),
+      // `sample STREAM = EXPRESSION REL CLAIM`
+      region(String.raw`${notProperty}(sample)\b(?=\s+${context.referred}\s*=)`, 'keyword.other.effect.caveat', evidential),
     ],
   };
 }

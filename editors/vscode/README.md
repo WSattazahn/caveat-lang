@@ -46,7 +46,9 @@ The package lands in `test-results/vscode/`.
   read: the statement `FROM REL TO;`, `reveal … then FROM REL TO`,
   `when_committed ACTION FROM REL TO`, and the effects `reveal EVIDENCE REL
   CLAIM` and `sample STREAM = EXPRESSION REL CLAIM`. Anywhere else the three
-  words are names: `claim qualifies;`, `place supports kind dock;`.
+  words are names: `claim qualifies;`, `place supports kind dock;`. As in the
+  parsers, a relation may wrap onto following lines, and a program's last
+  statement may omit its `;`.
 - Words that mean something only in one place: stop reasons after `because`,
   consequence levels after `consequence`, cue kinds after `cue NAME`, `min`
   and `max` as bounds before a number (and as functions elsewhere), `every` in
@@ -115,6 +117,9 @@ before it could be proposed to Linguist.
   or letters or digits follow a shorter bound name directly (`$rx` with `$r`
   bound). The corpus test checks every tracked program agrees.
 - A `for` header must be on one line, up to its `{`.
+- On one line, a relation word counts only when it is followed by exactly one
+  name and the end of its statement. Where the relation word ends its line,
+  the grammar cannot see what follows, and colors it as a relation.
 - A statement starts at the beginning of a line or after `;`, `{` or `}`. A
   statement that continues onto a line beginning with a profile word, such
   as `observe`, has that word read as a new statement.
