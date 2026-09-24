@@ -45,8 +45,27 @@ export const groups = [
       // A template at column 0 and straight after `{`.
       'for k as $r {\n$r_a @ b_$r;\n};', 'for k as $r {$r_a @ b_$r;};', 'for k as $r {\n  $r_a\n    @ b_$r;\n};'],
     scope: 'keyword.operator.relation',
-    notKeyword: ['claim @;', 'place @ kind dock;', 'state @ = 1;', 'event @;', 'a @ b c;', 'claim\n  @;', 'place @\n  kind dock;',
+    notKeyword: ['claim @;', 'place @ kind dock;', 'state @ = 1;', 'event @;', 'a @ b c;', 'claim\n  @;',
       'for k as $r {\n  claim @;\n};', 'for k as $r {\n  place @ kind $r;\n};', 'for k as $r {\nclaim @;\n};'],
+  },
+  // A wrapped relation may begin with any name, keywords included: the
+  // runtime accepts `evidence place from "sensor";` and a relation on it.
+  {
+    name: 'wrapped relations from keyword-named evidence',
+    words: ['supports', 'opposes', 'qualifies'],
+    probe: ['place\n  @ c;', 'claim\n  @ c;', 'supports\n  @ c;', 'observe # note\n  @ c;', 'for k as $r {\n  place\n    @ $r;\n};',
+      'for k as $r {\n  claim // note\n    @ $r;\n};'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['@\n  supports c;'],
+  },
+  // A comment may end any line a relation is wrapped across.
+  {
+    name: 'relations wrapped across comments',
+    words: ['supports', 'opposes'],
+    probe: ['sensor # note\n  @ ready;', 'sensor // note\n  @ ready;', 'sensor @ # note\n  ready;', 'sensor @ ready # note\n;',
+      'camera @ ready // note\n;', 'on inspect reveal sensor @ ready # note\n;', 'on inspect reveal sensor @ ready // note\n;',
+      'on e sample s = a + b // note\n  @ c;', 'when_committed act a # note\n  @ b;'],
+    scope: 'keyword.operator.relation',
   },
   {
     name: 'relations in effects',

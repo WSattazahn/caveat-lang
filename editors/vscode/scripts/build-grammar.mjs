@@ -115,15 +115,14 @@ const relationWords = String.raw`(?:supports|opposes|qualifies)\b`;
 const evidential = String.raw`(?:supports|opposes)\b`;
 const relation = () => ({ name: 'keyword.operator.relation.caveat' });
 const reference = context => ({ patterns: [{ include: context.dollar }] });
+// Where a line's code ends: at the line's end, or where a comment begins.
+const lineEnd = String.raw`(?:$|#|//)`;
 // A relation word followed by its one last name and the end of the statement,
-// or by the end of the line, where what follows cannot be seen.
+// or by the end of the line's code, where what follows cannot be seen.
 const relationAt = (context, relations) => ({
-  match: String.raw`${notProperty}${relations}(?=\s+${context.referred}\s*(?:[;}]|$)|\s*$)`,
+  match: String.raw`${notProperty}${relations}(?=\s+${context.referred}\s*(?:[;}]|${lineEnd})|\s*${lineEnd})`,
   ...relation(),
 });
-// Words that begin some other statement, so cannot begin a wrapped relation.
-const notRelationSource = [...declarations, ...control, ...effects, ...modifiers, ...profileHeads,
-  'and', 'or', 'not', 'true', 'false', 'supports', 'opposes', 'qualifies', 'rule'];
 
 // `FROM supports|opposes|qualifies TO;`, the whole statement.
 function relationStatement(context) {
@@ -132,14 +131,16 @@ function relationStatement(context) {
     patterns: [
       // On one line, whatever FROM is: `camera supports door_open;`.
       {
-        match: String.raw`${statementStart}(${n})\s+(${relationWords})\s+(${n})(?=\s*(?:;|$))`,
+        match: String.raw`${statementStart}(${n})\s+(${relationWords})\s+(${n})(?=\s*(?:;|${lineEnd}))`,
         captures: { 1: reference(context), 2: relation(), 3: reference(context) },
       },
-      // Wrapped: a statement that begins with a plain name, then the relation
-      // on the same line or the next.
+      // Wrapped: FROM ends its line, or the relation does. FROM may be any
+      // name a program declares, keywords included (`evidence place from
+      // "sensor";`), so it keeps the color it has on its own. A profile word
+      // is left to its statement, which also finds a wrapped relation.
       {
-        begin: String.raw`${statementStart}(?!(?:${words(notRelationSource)})\b)(${n})(?=\s+${relationWords}|\s*$)`,
-        beginCaptures: { 1: reference(context) },
+        begin: String.raw`${statementStart}(?!(?:${words(profileHeads)})\b)(${n})(?=\s+${relationWords}\s*${lineEnd}|\s*${lineEnd})`,
+        beginCaptures: { 1: { patterns: [{ include: context.dollar }, { include: context.code }] } },
         end: String.raw`(?=\S)`,
         applyEndPatternLast: true,
         patterns: [
@@ -205,6 +206,9 @@ const profileStatement = context => ({
       captures: { 1: { name: 'keyword.other.statement.caveat' } },
     },
     { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(profileClauses)})\b` },
+    // A profile word may also name evidence: `place` on one line, then
+    // `supports c;` on the next.
+    relationAt(context, relationWords),
     { include: context.code },
   ],
 });

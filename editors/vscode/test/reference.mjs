@@ -132,10 +132,10 @@ export function statementHeads(text, classes = classify(text)) {
 // breaks included, as the parsers split them, within each piece of code
 // between `;`, `{` and `}`; the last statement may omit its `;`
 // (scan_statements in parser.rs). Returns the relation words' positions, and
-// the positions of the FROM names of relation statements.
+// for each relation statement, where its FROM name starts and its TO name ends.
 export function relations(text, classes = classify(text)) {
   const found = new Set();
-  const fromNames = new Set();
+  const fromNames = new Map();
   const any = new Set(['supports', 'opposes', 'qualifies']);
   const evidential = new Set(['supports', 'opposes']);
   let words = [];
@@ -152,7 +152,7 @@ export function relations(text, classes = classify(text)) {
     const statementEnd = terminator === ';' || terminator === null;
     if (n === 3 && any.has(w[1]) && statementEnd) {
       found.add(at(1));
-      fromNames.add(at(0));
+      fromNames.set(at(0), at(2) + w[2].length);
     }
     if (n === 6 && w[0] === 'reveal' && w[2] === 'then' && evidential.has(w[4])) found.add(at(4));
     if (n === 5 && w[0] === 'when_committed' && evidential.has(w[3]) && statementEnd) found.add(at(3));

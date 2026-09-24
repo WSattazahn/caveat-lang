@@ -176,6 +176,24 @@
 #                                 ^^^^^^^ keyword.operator.relation
    door_unsafe;
 #  ^^^^^^^^^^^ !keyword
+ sensor # note
+   supports ready;
+#  ^^^^^^^^ keyword.operator.relation
+ sensor // note
+   opposes ready;
+#  ^^^^^^^ keyword.operator.relation
+ on inspect reveal sensor supports ready # note
+#                         ^^^^^^^^ keyword.operator.relation
+#                                        ^^^^^^ comment.line
+ ;
+ evidence place from "sensor";
+ place
+   supports ready;
+#  ^^^^^^^^ keyword.operator.relation
+ claim
+#^^^^^ storage.type
+   qualifies ready;
+#  ^^^^^^^^^ keyword.operator.relation
 
 # Repetition
 
@@ -253,6 +271,9 @@
      supports charted_$b;
 #    ^^^^^^^^ keyword.operator.relation
 #                     ^^ variable.other.template
+   place // note
+     opposes clear_$b;
+#    ^^^^^^^ keyword.operator.relation
    place supports kind $b;
 #  ^^^^^ keyword.other.statement
 #        ^^^^^^^^ !keyword

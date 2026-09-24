@@ -118,8 +118,13 @@ before it could be proposed to Linguist.
   bound). The corpus test checks every tracked program agrees.
 - A `for` header must be on one line, up to its `{`.
 - On one line, a relation word counts only when it is followed by exactly one
-  name and the end of its statement. Where the relation word ends its line,
-  the grammar cannot see what follows, and colors it as a relation.
+  name and the end of its statement. Where the line's code ends first, at the
+  end of the line or at a comment, the grammar cannot see the rest, and colors
+  the word as a relation: `place supports` followed by `kind dock;` on the
+  next line is colored as though `place` named evidence.
+- A wrapped relation may begin with any name, keywords included, and that
+  name keeps the color it has on its own: `claim` on one line and `supports
+  ready;` on the next colors `claim` as a declaration.
 - A statement starts at the beginning of a line or after `;`, `{` or `}`. A
   statement that continues onto a line beginning with a profile word, such
   as `observe`, has that word read as a new statement.

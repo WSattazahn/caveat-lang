@@ -247,7 +247,7 @@
     "relation-statement": {
       "patterns": [
         {
-          "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+((?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*(?:;|$))",
+          "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)\\s+((?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*(?:;|(?:$|#|//)))",
           "captures": {
             "1": {
               "patterns": [
@@ -269,12 +269,15 @@
           }
         },
         {
-          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use|on|when|for|as|if|then|otherwise|when_committed|set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|renew|defer|from|limit|because|using|retaining|after|with|cost|consequence|kind|at|to|via|through|toward|action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|and|or|not|true|false|supports|opposes|qualifies|rule)\\b)([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b|\\s*$)",
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b)([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
           "beginCaptures": {
             "1": {
               "patterns": [
                 {
                   "include": "#stray-template"
+                },
+                {
+                  "include": "#code"
                 }
               ]
             }
@@ -286,7 +289,7 @@
               "include": "#comments"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             }
           ]
@@ -296,7 +299,7 @@
     "block-relation-statement": {
       "patterns": [
         {
-          "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+((?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*(?:;|$))",
+          "match": "(?:^|(?<=[;{}]))\\s*([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)\\s+((?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s*(?:;|(?:$|#|//)))",
           "captures": {
             "1": {
               "patterns": [
@@ -318,12 +321,15 @@
           }
         },
         {
-          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use|on|when|for|as|if|then|otherwise|when_committed|set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|renew|defer|from|limit|because|using|retaining|after|with|cost|consequence|kind|at|to|via|through|toward|action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin|and|or|not|true|false|supports|opposes|qualifies|rule)\\b)([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b|\\s*$)",
+          "begin": "(?:^|(?<=[;{}]))\\s*(?!(?:action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b)([A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*)(?=\\s+(?:supports|opposes|qualifies)\\b\\s*(?:$|#|//)|\\s*(?:$|#|//))",
           "beginCaptures": {
             "1": {
               "patterns": [
                 {
                   "include": "#template"
+                },
+                {
+                  "include": "#block-code"
                 }
               ]
             }
@@ -335,7 +341,7 @@
               "include": "#block-comments"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             }
           ]
@@ -363,7 +369,7 @@
               "include": "#stray-template"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             },
             {
@@ -390,7 +396,7 @@
               "include": "#stray-template"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             },
             {
@@ -417,7 +423,7 @@
               "include": "#stray-template"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             },
             {
@@ -448,7 +454,7 @@
               "include": "#template"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             },
             {
@@ -475,7 +481,7 @@
               "include": "#template"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             },
             {
@@ -502,7 +508,7 @@
               "include": "#template"
             },
             {
-              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|$)|\\s*$)",
+              "match": "(?<![.\\w$])(?:supports|opposes)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
               "name": "keyword.operator.relation.caveat"
             },
             {
@@ -586,6 +592,10 @@
           "match": "(?<![.\\w$])(?:options|requires_open|steps)\\b"
         },
         {
+          "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
+          "name": "keyword.operator.relation.caveat"
+        },
+        {
           "include": "#code"
         }
       ]
@@ -630,6 +640,10 @@
         {
           "name": "keyword.other.caveat",
           "match": "(?<![.\\w$])(?:options|requires_open|steps)\\b"
+        },
+        {
+          "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b(?=\\s+[A-Za-z_$][A-Za-z0-9_$]*(?:::[A-Za-z_$][A-Za-z0-9_$]*)*\\s*(?:[;}]|(?:$|#|//))|\\s*(?:$|#|//))",
+          "name": "keyword.operator.relation.caveat"
         },
         {
           "include": "#block-code"

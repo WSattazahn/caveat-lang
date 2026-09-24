@@ -99,11 +99,13 @@ for (const file of files) {
 
     // Statement heads: keywords get their category's scope, and a head that
     // is not a keyword is left a name. So is the first name of a relation
-    // statement: `camera supports door_open` is about evidence named camera.
+    // statement on one line: `camera supports door_open` is about evidence
+    // named camera. Wrapped, the name keeps the color it has on its own.
     const { found: relationWords, fromNames } = relations(text, classes);
     for (const head of statementHeads(text, classes)) {
       totals.heads += 1;
-      const expected = fromNames.has(head.index) ? null : expectedHeadScope(head.word);
+      const oneLine = fromNames.has(head.index) && !text.slice(head.index, fromNames.get(head.index)).includes('\n');
+      const expected = oneLine ? null : expectedHeadScope(head.word);
       const got = scopes[head.index];
       if (expected) check(has(got, expected), head.index, `statement head ${head.word} should be ${expected}`);
       else check(!got.some(scope => /^(keyword|storage|support|constant)\./.test(scope)), head.index, `statement head ${head.word} is a name, not a keyword`);
