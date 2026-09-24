@@ -101,7 +101,7 @@ try {
   const dry = JSON.parse(npm(['pack', '--dry-run', '--json'], kit))[0];
   const files = dry.files.map(file => file.path).sort();
   assert.deepEqual(files, [
-    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/session.mjs', 'package.json',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/explain.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/session.mjs', 'package.json',
     'runtime/build-info.json', 'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm',
     ...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library, command, runtime, documentation, license and notices');
@@ -185,6 +185,11 @@ const json = JSON.parse(node([cli, 'test', '--json', 'thermostat_history.scenari
 const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 'utf8'));
 assert.equal(json.runtime.revision, buildInfo.revision, 'the report names the bundled runtime');
 report.runtime = json.runtime;
+await writeFile(path.join(consumer, 'readings.jsonl'), '{"event":"read","payload":{"value":17}}\n{"event":"read","payload":{"value":99}}\n');
+const explained = node([cli, 'explain', 'thermostat_history.cav', 'readings.jsonl'], consumer);
+assert.equal(explained.status, 0, explained.stdout + explained.stderr);
+assert.match(explained.stdout, /heating@1 = 1 {2}in force\n {6}based on temperature@1 \(caveats: calibration_offset\)/);
+assert.match(explained.stdout, /read \{"value":99\} {2}refused \(input\/bound_exceeded\)/);
 report.checks.command = true;
 
 // The library, imported by package name from the consumer.
@@ -195,6 +200,7 @@ import { readFile } from 'node:fs/promises';
 import { loadRuntimeFromDirectory } from '${manifest.name}/node';
 import { CaveatError } from '${manifest.name}/session';
 import { parseScenarioFile } from '${manifest.name}/scenarios';
+import { explain } from '${manifest.name}/explain';
 const runtime = await loadRuntimeFromDirectory();
 const source = await readFile('thermostat_history.cav', 'utf8');
 const session = runtime.open(source);
@@ -213,6 +219,7 @@ const clock = runtime.open(clockSource);
 clock.dispatch('advance', { dt: 2.5 });
 assert.equal(runtime.restore(clockSource, clock.save()).view().bindings.hud.elapsed, 2.5);
 parseScenarioFile(await readFile('thermostat_history.scenarios.json', 'utf8'));
+assert.deepEqual(explain(session.snapshot()).decisions[0].revisions.map(revision => revision.id), ['heating@1', 'heating@2']);
 console.log(JSON.stringify(runtime.identity));
 `);
 const used = node(['use.mjs'], consumer);
@@ -232,7 +239,7 @@ const help = shell('npx --no-install caveat help', reader);
 assert.equal(help.status, 0, help.stdout + help.stderr);
 const guide = await readFile(path.join(reader, 'node_modules', manifest.name, 'docs', 'GETTING_STARTED.md'), 'utf8');
 const followed = await followGuide(guide, { directory: reader, run: shell });
-assert.equal(followed.length, 3);
+assert.equal(followed.length, 4);
 for (const result of followed) {
   assert.equal(result.status, result.expected.includes('FAIL') ? 1 : 0, `${result.command}\n${result.stdout}${result.stderr}`);
   assert.equal(result.actual, result.expected, `the guide's output for ${result.command}`);

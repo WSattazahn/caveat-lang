@@ -15,6 +15,7 @@
     "./session": "./lib/session.mjs",
     "./node": "./lib/node.mjs",
     "./scenarios": "./lib/scenarios.mjs",
+    "./explain": "./lib/explain.mjs",
     "./runtime/*": "./runtime/*"
   },
   "files": [
