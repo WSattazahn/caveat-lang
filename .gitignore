@@ -7,3 +7,5 @@
 /kit/runtime/
 /kit/LICENSE
 /kit/THIRD_PARTY_NOTICES.md
+/editors/vscode/node_modules/
+/editors/vscode/LICENSE

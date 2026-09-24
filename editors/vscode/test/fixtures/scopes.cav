@@ -1,0 +1,175 @@
+# Highlighting cases, checked by test/fixture.test.mjs.
+#
+# A line of carets under a line of code names scopes the marked characters
+# must have; a scope written !scope is one they must not have. Scopes match
+# by prefix: keyword.other matches keyword.other.effect.caveat. Carets start
+# after the comment marker, so column 0 is not checked here; the word-list
+# test covers statements that begin at column 0.
+
+
+# Quoted text and comments
+
+ scene "Semicolons; # hashes and // slashes stay inside text";
+#      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ string.quoted.double !comment
+#                                                            ^ punctuation.terminator
+ display d "a \"quoted\" word, a \\ backslash, \n \t";
+#             ^^ constant.character.escape string.quoted.double
+#                                ^^ constant.character.escape
+#                                              ^^ constant.character.escape
+#                                                 ^^ constant.character.escape
+ display e "\q is not an escape";
+#           ^^ invalid.illegal.escape
+ state x = 1; # a comment after code
+#             ^^^^^^^^^^^^^^^^^^^^^^ comment.line.number-sign
+ state y = 2; // so is this
+#             ^^^^^^^^^^^^^ comment.line.double-slash
+ set x = y -- 1;
+#          ^^ keyword.operator.arithmetic !comment
+#             ^ constant.numeric
+ display cost "costs $5 at $noon";
+#                    ^^^^^^^^^^^ string.quoted.double !invalid !variable.other.template
+
+# Numbers, as the expression tokenizer reads them
+
+ set a = 2 + 2. + .5 + 1e-3 + 6.02E23 + x2;
+#        ^ constant.numeric
+#            ^^ constant.numeric
+#                 ^^ constant.numeric
+#                      ^^^^ constant.numeric
+#                             ^^^^^^^ constant.numeric
+#                                       ^^ !constant.numeric
+
+# Declarations and their names
+
+ state level = 0 min -5 max 10;
+#^^^^^ storage.type
+#      ^^^^^ !keyword !storage
+#                ^^^ keyword.other.bound
+#                       ^^^ keyword.other.bound
+ event observe min 0 max 1;
+#^^^^^ storage.type
+#      ^^^^^^^ entity.name.function.event !keyword
+ clock tick every 0.5;
+#      ^^^^ entity.name.function.event
+#           ^^^^^ keyword.other
+ control reading = observe reset;
+#                  ^^^^^^^ !keyword
+#                          ^^^^^ keyword.other
+ fn heat(t) = clamp(max(t, 0), 0, 1);
+#^^ storage.type.function
+#   ^^^^ entity.name.function !entity.name.function.call
+#             ^^^^^ support.function.builtin
+#                   ^^^ support.function.builtin
+ define warm = heat(latest(readings_t)) > 0.5;
+#       ^^^^ variable.other.constant
+#              ^^^^ entity.name.function.call
+#                   ^^^^^^ support.function.builtin
+#                                       ^ keyword.operator.comparison
+ cue ping sound 440 0.1 0.2;
+#^^^ storage.type
+#    ^^^^ entity.name.function.cue
+#         ^^^^^ keyword.other.cue-kind
+ entity lens kind camera at hall;
+#            ^^^^ keyword.other
+#                 ^^^^^^ entity.name.type.kind !keyword
+ bind toast.text = "Saved";
+#     ^^^^^ !keyword
+#           ^^^^ variable.other.property !support
+ bind marker.ring.color = "#fff";
+#            ^^^^ variable.other.property !keyword
+#                 ^^^^^ variable.other.property
+
+# Evidence, caveats and commitments
+
+ evidence scout from "trail camera";
+#^^^^^^^^ storage.type
+#               ^^^^ keyword.other
+ scout supports route_clear;
+#^^^^^ !keyword !storage
+#      ^^^^^^^^ keyword.operator.relation
+ secondhand qualifies witness_report;
+#^^^^^^^^^^ !keyword !storage
+#           ^^^^^^^^^ keyword.operator.relation
+ caveat secondhand consequence high;
+#                  ^^^^^^^^^^^ keyword.other
+#                              ^^^^ constant.language.consequence
+ commit go because enough retaining camera, secondhand;
+#^^^^^^ keyword.other.effect
+#                  ^^^^^^ constant.language.stop-reason
+#                         ^^^^^^^^^ keyword.other
+#                                   ^^^^^^ !keyword
+ on observe when not observed(scout) and route_clear == true reopen route because scout;
+#^^ keyword.control
+#   ^^^^^^^ entity.name.function.event !keyword
+#                ^^^ keyword.operator.logical
+#                    ^^^^^^^^ support.function.builtin
+#                                                       ^^^^ constant.language.boolean
+#                                                            ^^^^^^ keyword.other.effect
+#                                                                   ^^^^^ !keyword
+ bind note.text = "" because nothing;
+#                            ^^^^^^^ constant.language.nothing
+
+# Statements of the other profiles begin a line
+
+  observe spare_key;
+# ^^^^^^^ keyword.other.statement
+  action search from hall to yard steps move yard, observe footprints;
+# ^^^^^^ keyword.other.statement
+#                                 ^^^^^ keyword.other
+#                                       ^^^^ keyword.other.statement
+#                                                  ^^^^^^^ keyword.other.statement
+#                                                          ^^^^^^^^^^ !keyword
+  choice next options open, wait, reroute retaining smoke;
+#             ^^^^^^^ keyword.other
+#                     ^^^^ !keyword
+#                                         ^^^^^^^^^ keyword.other
+  rule viable when clear, lit => safe;
+# ^^^^ keyword.other.statement
+#      ^^^^^^ entity.name.function.rule
+#                             ^^ keyword.operator.implication
+
+# Repetition
+
+ entity reef_one kind reef at sea;
+#                     ^^^^ entity.name.type.kind
+ for reef as $r {
+#^^^ keyword.control.repeat meta.block.repeat
+#    ^^^^ entity.name.type.kind
+#            ^^ variable.parameter.template
+   state $r_seen = 0;
+#        ^^ variable.other.template meta.block.repeat
+#          ^^^^^ !variable.other.template
+   cue $r_ring ring $r "#ffe3a0" 0.75;
+#      ^^ entity.name.function.cue variable.other.template
+#        ^^^^^ entity.name.function.cue !variable.other.template
+#              ^^^^ keyword.other.cue-kind
+#                   ^^ variable.other.template
+   on sweep_$r when $r_seen == 0 and contact == $index set $r_seen = 1;
+#     ^^^^^^^^ entity.name.function.event
+#           ^^ variable.other.template
+#                                               ^^^^^^ variable.other.template
+   display $r_note "Reef $r, number $index, costs 5";
+#                        ^^ variable.other.template string.quoted.double
+#                                   ^^^^^^ variable.other.template string.quoted.double
+#                                           ^^^^^^^ string.quoted.double !constant.numeric
+   // $r is substituted in comments too
+#     ^^ variable.other.template comment.line
+   bind $r.reveal.opacity = 0.25 when observed($r_seen);
+#       ^^ variable.other.template
+#          ^^^^^^ variable.other.property !keyword
+#                                     ^^^^^^^^ support.function.builtin
+   proc mark_$r() { set $r_seen = 2; };
+#       ^^^^^^^ entity.name.function
+#                 ^ punctuation.section.block.begin
+#                       ^^ variable.other.template
+#                                    ^ punctuation.section.block.end meta.block.repeat
+ };
+#^ punctuation.section.block.end meta.block.repeat
+ state later = $r;
+#              ^^ invalid.illegal.template !meta.block.repeat !variable.other.template
+ for reef as $r2 {
+#            ^^^ variable.parameter.template
+   state $r2_seen = $index;
+#        ^^^ variable.other.template
+#           ^^^^^ !variable.other.template
+ };
