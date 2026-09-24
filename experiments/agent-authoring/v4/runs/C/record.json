@@ -1,0 +1,15 @@
+{
+  "run": "C",
+  "phase": 1,
+  "session": "session_016uh9GKEsLL8VXrVEMWNnJ6",
+  "model": "claude-sonnet-5",
+  "dispatchedAt": "2026-09-24T17:16:43.319558Z",
+  "promptSha256": "39fafea1d943c62932732292944737fe8045205d4a1fad7a48cd66544fb693b0",
+  "source": "trial/v4-packet-author",
+  "outcome": "trial/v4-run-C",
+  "branch": "trial/v4-run-C",
+  "commit": "2d7f5e573c229af1e0015c5fcbde4e2f60c1dde1",
+  "frozenAt": "2026-09-24T17:26:27.597Z",
+  "sha256": "4a740d2fd398e5505d1625eafe8754cf92631a6162fa06892c1e69860217834f",
+  "lines": 60
+}

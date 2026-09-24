@@ -1,0 +1,9 @@
+{"event":"gust","payload":{"kt":12}}
+{"event":"gust","payload":{"kt":25.5}}
+{"event":"wave","payload":{"m":1}}
+{"event":"wave","payload":{"m":1.2}}
+{"event":"decide"}
+{"event":"gust","payload":{"kt":35}}
+{"event":"wave","payload":{"m":2}}
+{"event":"warning"}
+{"event":"decide"}

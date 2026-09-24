@@ -1,0 +1,198 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ferry.cav",
+  "scenarios": [
+    {
+      "id": "F01",
+      "title": "Initial HUD is empty",
+      "steps": [
+        { "expect": {
+            "/bindings/hud/gusts": 0,
+            "/bindings/hud/pier_gusts": 0,
+            "/bindings/hud/waves": 0,
+            "/bindings/hud/strongest": -1,
+            "/bindings/hud/highest": -1,
+            "/bindings/hud/warned": 0,
+            "/bindings/hud/decision": "none",
+            "/bindings/hud/frozen": -1,
+            "/bindings/hud/revision": 0
+        } }
+      ]
+    },
+    {
+      "id": "F02",
+      "title": "Out-of-range and unknown-shape events are refused and change nothing",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 91 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "pier_gust", "payload": { "kt": -1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "expect": { "/bindings/hud/gusts": 0, "/bindings/hud/pier_gusts": 0 } }
+      ]
+    },
+    {
+      "id": "F02b",
+      "title": "Unknown events, missing/extra parameters and non-finite payloads are refused",
+      "steps": [
+        { "send": "nonexistent_event", "payload": {}, "rejected": { "origin": "input", "code": "unknown_event" } },
+        { "send": "gust", "payload": {}, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "gust", "payload": { "kt": 10, "extra": 1 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "wave", "payload": { "m": "NaN" }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "expect": { "/bindings/hud/gusts": 0, "/bindings/hud/waves": 0 } }
+      ]
+    },
+    {
+      "id": "F03",
+      "title": "Mast and pier gusts count separately but combine for strongest and decide's gate",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "pier_gust", "payload": { "kt": 25 } },
+        { "expect": {
+            "/bindings/hud/gusts": 1,
+            "/bindings/hud/pier_gusts": 1,
+            "/bindings/hud/strongest": 25
+        } },
+        { "send": "decide", "rejected": "at least two gusts and two waves are needed before deciding" },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.8 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "go",
+            "/bindings/hud/frozen": 25,
+            "/bindings/hud/revision": 1,
+            "/commitment_grounds/crossing@1": { "evidence": { "$set": ["wind@1", "pier_wind@1"] }, "caveats": { "$set": ["sheltered_mast", "unverified_pier"] } },
+            "/decision_journal/0": { "because": ["wind@1", "pier_wind@1"] }
+        } }
+      ]
+    },
+    {
+      "id": "F04",
+      "title": "A decision can be reached from pier gusts alone, and a strong pier gust reopens it",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 12 } },
+        { "send": "pier_gust", "payload": { "kt": 18 } },
+        { "send": "wave", "payload": { "m": 0.2 } },
+        { "send": "wave", "payload": { "m": 0.3 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "go",
+            "/bindings/hud/frozen": 18,
+            "/commitment_grounds/crossing@1": { "evidence": { "$set": ["pier_wind@1", "pier_wind@2"] }, "caveats": { "$set": ["unverified_pier"] } }
+        } },
+        { "send": "pier_gust", "payload": { "kt": 40 } },
+        { "expect": {
+            "/bindings/hud/decision": "review",
+            "/bindings/hud/frozen": 18,
+            "/decision_journal/1": { "change": "reopened", "because": ["pier_wind@3"] }
+        } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "hold",
+            "/bindings/hud/frozen": 40,
+            "/bindings/hud/strongest": 40,
+            "/bindings/hud/revision": 2
+        } }
+      ]
+    },
+    {
+      "id": "F05",
+      "title": "A held decision never reopens even on further strong evidence",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 45 } },
+        { "send": "gust", "payload": { "kt": 50 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.6 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "hold", "/bindings/hud/frozen": 50 } },
+        { "send": "wave", "payload": { "m": 3.0 } },
+        { "send": "warning" },
+        { "send": "pier_gust", "payload": { "kt": 80 } },
+        { "expect": { "/bindings/hud/decision": "hold", "/bindings/hud/frozen": 50, "/bindings/hud/revision": 1 } }
+      ]
+    },
+    {
+      "id": "F06",
+      "title": "Capacity limits refuse the 7th pier gust and the 11th mast gust",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "expect": { "/bindings/hud/pier_gusts": 6 } },
+        { "send": "pier_gust", "payload": { "kt": 5 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/pier_gusts": 6 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "expect": { "/bindings/hud/gusts": 10 } },
+        { "send": "gust", "payload": { "kt": 5 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/gusts": 10 } }
+      ]
+    },
+    {
+      "id": "F07",
+      "title": "decide is refused once four decisions have been made, and a second warning is refused",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 40 } },
+        { "send": "wave", "payload": { "m": 0.2 } },
+        { "send": "wave", "payload": { "m": 0.3 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "hold", "/bindings/hud/revision": 1 } },
+        { "send": "warning" },
+        { "expect": { "/bindings/hud/warned": 1, "/bindings/hud/decision": "hold" } },
+        { "send": "warning", "rejected": "a storm warning has already been broadcast" },
+        { "expect": { "/bindings/hud/warned": 1 } }
+      ]
+    },
+    {
+      "id": "F08",
+      "title": "Save and restore preserve HUD state and future behavior",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 20 } },
+        { "send": "pier_gust", "payload": { "kt": 15 } },
+        { "send": "wave", "payload": { "m": 0.4 } },
+        { "send": "wave", "payload": { "m": 0.9 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go", "/bindings/hud/frozen": 20 } },
+        { "checkpoint": "decided" },
+        { "resume": true },
+        { "send": "pier_gust", "payload": { "kt": 60 } },
+        { "expect": { "/bindings/hud/decision": "review" } },
+        { "same_as": "decided", "paths": ["/decision_journal/0", "/commitment_grounds/crossing@1"] }
+      ]
+    },
+    {
+      "id": "F09",
+      "title": "decide is refused once four decisions have been made",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go", "/bindings/hud/revision": 1 } },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go", "/bindings/hud/revision": 2 } },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go", "/bindings/hud/revision": 3 } },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go", "/bindings/hud/revision": 4 } },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "expect": { "/bindings/hud/decision": "review", "/bindings/hud/revision": 4 } },
+        { "send": "decide", "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/decision": "review", "/bindings/hud/revision": 4 } }
+      ]
+    }
+  ]
+}

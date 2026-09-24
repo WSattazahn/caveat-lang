@@ -1,0 +1,131 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ferry.cav",
+  "scenarios": [
+    {
+      "id": "F01",
+      "title": "A mast gust and a pier gust together satisfy the two-gust minimum, and the decision's grounds cite both",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "pier_gust", "payload": { "kt": 15 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "go",
+            "/bindings/hud/strongest": 15,
+            "/bindings/hud/gusts": 1,
+            "/bindings/hud/pier_gusts": 1,
+            "/bindings/hud/waves": 2,
+            "/bindings/hud/frozen": 15,
+            "/bindings/hud/revision": 1,
+            "/commitment_grounds/crossing@1": { "evidence": ["pier_wind@1", "wind@1"], "caveats": ["sheltered_mast", "unverified_pier"] }
+        } }
+      ]
+    },
+    {
+      "id": "F02",
+      "title": "A single mast gust alone is not enough to decide, even with two waves",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide", "rejected": "at least two gusts and two waves are needed before deciding" },
+        { "expect": { "/bindings/hud/decision": "none", "/bindings/hud/revision": 0 } }
+      ]
+    },
+    {
+      "id": "F03",
+      "title": "The strongest gust may come from either anemometer, and a strong pier gust reopens a go decision",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 12 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go", "/bindings/hud/strongest": 12, "/bindings/hud/frozen": 12 } },
+        { "checkpoint": "went" },
+        { "send": "pier_gust", "payload": { "kt": 40 } },
+        { "expect": {
+            "/bindings/hud/decision": "review",
+            "/bindings/hud/strongest": 40,
+            "/bindings/hud/frozen": 12,
+            "/bindings/hud/pier_gusts": 1,
+            "/decision_journal/1": { "change": "reopened", "because": ["pier_wind@1"] }
+        } },
+        { "same_as": "went", "paths": ["/decision_journal/0", "/commitment_grounds/crossing@1"] },
+        { "send": "pier_gust", "payload": { "kt": 45 } },
+        { "expect": { "/bindings/hud/decision": "review", "/bindings/hud/strongest": 45 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "hold", "/bindings/hud/frozen": 45, "/bindings/hud/revision": 2 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "wave", "payload": { "m": 3 } },
+        { "send": "pier_gust", "payload": { "kt": 50 } },
+        { "expect": { "/bindings/hud/decision": "hold", "/bindings/hud/revision": 2 } }
+      ]
+    },
+    {
+      "id": "F04",
+      "title": "The pier anemometer accepts at most six gusts; a seventh is refused",
+      "steps": [
+        { "send": "pier_gust", "payload": { "kt": 1 } },
+        { "send": "pier_gust", "payload": { "kt": 2 } },
+        { "send": "pier_gust", "payload": { "kt": 3 } },
+        { "send": "pier_gust", "payload": { "kt": 4 } },
+        { "send": "pier_gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 6 } },
+        { "expect": { "/bindings/hud/pier_gusts": 6 } },
+        { "send": "pier_gust", "payload": { "kt": 7 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/pier_gusts": 6 } }
+      ]
+    },
+    {
+      "id": "F05",
+      "title": "Mast gusts still accept at most ten, counted separately from pier gusts",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 1 } },
+        { "send": "gust", "payload": { "kt": 2 } },
+        { "send": "gust", "payload": { "kt": 3 } },
+        { "send": "gust", "payload": { "kt": 4 } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "gust", "payload": { "kt": 6 } },
+        { "send": "gust", "payload": { "kt": 7 } },
+        { "send": "gust", "payload": { "kt": 8 } },
+        { "send": "gust", "payload": { "kt": 9 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "expect": { "/bindings/hud/gusts": 10 } },
+        { "send": "gust", "payload": { "kt": 11 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "send": "pier_gust", "payload": { "kt": 20 } },
+        { "expect": { "/bindings/hud/gusts": 10, "/bindings/hud/pier_gusts": 1, "/bindings/hud/strongest": 20 } }
+      ]
+    },
+    {
+      "id": "F06",
+      "title": "A storm warning still reopens a go decision, and a resumed session behaves the same",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "pier_gust", "payload": { "kt": 6 } },
+        { "send": "wave", "payload": { "m": 0.2 } },
+        { "send": "wave", "payload": { "m": 0.3 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go" } },
+        { "checkpoint": "before_warning" },
+        { "resume": true },
+        { "send": "warning" },
+        { "expect": { "/bindings/hud/decision": "review", "/bindings/hud/warned": 1 } },
+        { "send": "warning", "rejected": "a storm warning has already been broadcast" },
+        { "expect": { "/bindings/hud/warned": 1 } }
+      ]
+    },
+    {
+      "id": "F07",
+      "title": "An unknown event and an out-of-range payload are refused and change nothing",
+      "steps": [
+        { "send": "nope", "rejected": { "origin": "input" } },
+        { "send": "pier_gust", "payload": { "kt": 91 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "pier_gust", "payload": { "kt": -1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "expect": { "/bindings/hud/pier_gusts": 0, "/bindings/hud/strongest": -1 } }
+      ]
+    }
+  ]
+}
