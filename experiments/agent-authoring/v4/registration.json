@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "registeredAt": "2026-09-24T17:16:09.894Z",
+  "kit": {
+    "tarball": "caveat-lang-0.1.0-rc.2.tgz",
+    "sha256": "58781f56a623d91e8f49b4aec60aaafaef6399a007cf313827764ba3977fc35c",
+    "tag": "v0.1.0-rc.2",
+    "commit": "066d44024ef638644cdaed2bcc77cf4d3844d522"
+  },
+  "public": {
+    "PROTOCOL.md": "616a7a02665dc3b96023b28ed946c2fb61dc5fd086eca5f6ae2af1b3a032f38e",
+    "README.md": "ed479b2a17a4f6c83b751d36fc0b4f36f27f45023b56d7c3efa63f29d549fd22",
+    "tasks/ferry.md": "7ba067c31acf0a32fe4a8b8854a4a651198e68b04307f5ca05f8c7945df2e65b",
+    "prompts/author.md": "48d1a1ccaa1380bfc30b5ce0420b2b5b8db42c964eec26ca983ea9f9422e583f",
+    "prompts/maintainer.md": "c6f0f8b01ccb161c929eec1826c4f6759c1dfe337048a79e15bb61fe94be0507",
+    "private/score-lib.mjs": "c6554d188ee0e6d6d96a3b160dbc776e68da3b2dde64e142660dbe30a8d9cc92",
+    "score.mjs": "25e07ab5206c1a828558b602f5114c36b0791e55d944f3235d4160a002912545",
+    "register.mjs": "5a4e509d3abe38aff422cdb16f73ae41439ec1dffc395e25f3210b0516652848"
+  },
+  "sealed": {
+    "private/oracle.mjs": {
+      "unsealAfterPhase": 1,
+      "sha256": "3c8326f16a8cb9646ba54a6fbd9ff3c033ac787a43209d7fb8de6e4bb8a9fda9"
+    },
+    "private/corpus.mjs": {
+      "unsealAfterPhase": 1,
+      "sha256": "5e8878e33afe900453621c3620fc6cec0f8fddb5bfa9b8109c089de9453551fa"
+    },
+    "tasks/ferry-change.md": {
+      "unsealAfterPhase": 2,
+      "sha256": "8404759ca5a7f731ead4d87e0770edf75d692bac84c7844e025eb83a7039ae28"
+    },
+    "private/change-oracle.mjs": {
+      "unsealAfterPhase": 2,
+      "sha256": "c9f2f8926e711b57462cd359224ef5c60587593cfd5e3108e019d5acd16bd8cb"
+    },
+    "references/phase1.cav": {
+      "unsealAfterPhase": 2,
+      "sha256": "037e8cd6abd57a4db1430d4b2a9cfd282588bb18e32e44f97937a04ad317630b"
+    },
+    "references/phase2.cav": {
+      "unsealAfterPhase": 2,
+      "sha256": "7c6d55241e0edabd8b38a0ab0b0713082484008456b2cbb81f35adeb351f6c43"
+    }
+  },
+  "runs": {
+    "A": {
+      "phase": 1,
+      "model": "claude-opus-5-5"
+    },
+    "A2": {
+      "phase": 2,
+      "maintains": "A",
+      "model": "claude-opus-5-5"
+    },
+    "B": {
+      "phase": 1,
+      "model": "claude-opus-5-5"
+    },
+    "B2": {
+      "phase": 2,
+      "maintains": "B",
+      "model": "claude-opus-5-5"
+    },
+    "C": {
+      "phase": 1,
+      "model": "claude-sonnet-5"
+    },
+    "C2": {
+      "phase": 2,
+      "maintains": "C",
+      "model": "claude-sonnet-5"
+    },
+    "D": {
+      "phase": 1,
+      "model": "claude-sonnet-5"
+    },
+    "D2": {
+      "phase": 2,
+      "maintains": "D",
+      "model": "claude-sonnet-5"
+    }
+  }
+}
