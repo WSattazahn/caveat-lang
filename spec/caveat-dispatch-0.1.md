@@ -71,6 +71,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range. |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
+| `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
 
 Payload bounds are `input`; state bounds are `evaluation`. This choice depends
 on where the failure occurs, not on the wording of the shared range diagnostic.
@@ -86,9 +87,9 @@ exception must not be labelled `host` and accepted as an ordinary rejection.
 This catalog deliberately classifies specific sites only. Every other existing
 string error is fatal `unclassified`, even if its message contains
 `rejected: `. For example, an expression `require(false, ...)`, arithmetic
-failure, unavailable history item, or a history-capacity failure is not yet a
-classified rejection. New callers must not downgrade these errors to pass an
-expected-rejection assertion. Their legacy behavior remains unchanged.
+failure or unavailable history item is not yet a classified rejection. New
+callers must not downgrade these errors to pass an expected-rejection
+assertion. Their legacy behavior remains unchanged.
 
 ## Atomicity and scenario interpretation
 
@@ -123,3 +124,12 @@ or assuming success: preserve the code/origin in diagnostics, and fail any
 assertion whose required classification is not met. An unknown origin/schema
 is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
+
+## Changes
+
+- `limit/history_limit` classifies a `sample` or `commit` on a full reading
+  stream or decision series. Before it, such an event was fatal
+  `unclassified`: a host lost the session, although the runtime had already
+  rolled the event back. The rollback and the diagnostic text are unchanged.
+  Both fresh authors in the v3 authoring trial guarded their programs
+  against it by hand.
