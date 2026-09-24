@@ -124,6 +124,9 @@ const relationAt = (context, relations) => ({
   ...relation(),
 });
 
+// First words with a statement of their own, which must keep their region.
+const notRelationSource = [...profileHeads, 'reveal', 'sample', 'when_committed'];
+
 // `FROM supports|opposes|qualifies TO;`, the whole statement.
 function relationStatement(context) {
   const n = context.referred;
@@ -137,9 +140,11 @@ function relationStatement(context) {
       // Wrapped: FROM ends its line, or the relation does. FROM may be any
       // name a program declares, keywords included (`evidence place from
       // "sensor";`), so it keeps the color it has on its own. A profile word
-      // is left to its statement, which also finds a wrapped relation.
+      // is left to its statement, which also finds a wrapped relation, and
+      // so are the words that open an effect region (`reveal` alone on its
+      // line); the parsers read those first words as their own statements.
       {
-        begin: String.raw`${statementStart}(?!(?:${words(profileHeads)})\b)(${n})(?=\s+${relationWords}\s*${lineEnd}|\s*${lineEnd})`,
+        begin: String.raw`${statementStart}(?!(?:${words(notRelationSource)})\b)(${n})(?=\s+${relationWords}\s*${lineEnd}|\s*${lineEnd})`,
         beginCaptures: { 1: { patterns: [{ include: context.dollar }, { include: context.code }] } },
         end: String.raw`(?=\S)`,
         applyEndPatternLast: true,
@@ -173,8 +178,8 @@ function relationEffects(context) {
       region(String.raw`${notProperty}(reveal)\b`, 'keyword.other.effect.caveat', evidential),
       // `when_committed ACTION FROM REL TO`
       region(String.raw`${statementStart}(when_committed)\b`, 'keyword.control.caveat', evidential),
-      // `sample STREAM = EXPRESSION REL CLAIM`
-      region(String.raw`${notProperty}(sample)\b(?=\s+${context.referred}\s*=)`, 'keyword.other.effect.caveat', evidential),
+      // `sample STREAM = EXPRESSION REL CLAIM`, which may wrap after `sample`
+      region(String.raw`${notProperty}(sample)\b(?=\s+${context.referred}\s*=|\s*${lineEnd})`, 'keyword.other.effect.caveat', evidential),
     ],
   };
 }

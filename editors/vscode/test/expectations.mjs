@@ -74,7 +74,10 @@ export const groups = [
       'proc p() {\n  reveal a @ b;\n};', 'for k as $r {\n  on e reveal $r_a @ c;\n};', 'for k as $r {\n  on e sample s_$r = $index @ c;\n};',
       // Wrapped over lines.
       'on e reveal a\n  @ b;', 'on e reveal a @\n  b;', 'reveal c then\n  a @ b;', 'when_committed act a\n  @ b;',
-      'on e sample s = a +\n  b\n  @ c;', 'for k as $r {\n  on e sample s_$r = $index\n    @ c;\n};'],
+      'on e sample s = a +\n  b\n  @ c;', 'for k as $r {\n  on e sample s_$r = $index\n    @ c;\n};',
+      // The keyword alone on its line: the effect's region carries on.
+      'proc p() {\n  reveal\n    a @ b;\n};', 'reveal\n  c then a @ b;', 'when_committed\n  act a @ b;', 'on e sample\n  s = a @ c;',
+      'for k as $r {\n  reveal\n    $r_a @ c;\n};', 'for k as $r {\n  sample\n    s_$r = 1 @ c;\n};'],
     scope: 'keyword.operator.relation',
     notKeyword: ['on e reveal a @ b c;', 'on e sample s = @;', 'reveal c then a @;'],
   },

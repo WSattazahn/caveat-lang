@@ -186,6 +186,16 @@
 #                         ^^^^^^^^ keyword.operator.relation
 #                                        ^^^^^^ comment.line
  ;
+ proc check() {
+   reveal
+#  ^^^^^^ keyword.other.effect
+     sensor supports ready;
+#           ^^^^^^^^ keyword.operator.relation
+   sample
+#  ^^^^^^ keyword.other.effect
+     depth = value opposes ready;
+#                  ^^^^^^^ keyword.operator.relation
+ };
  evidence place from "sensor";
  place
    supports ready;
