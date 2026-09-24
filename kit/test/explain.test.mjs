@@ -88,10 +88,23 @@ test('without events, the command explains the initial session', () => {
   assert.match(result.stdout, /after 0 events \(sequence 0\)\n\nDecisions\n {2}heating: 0 of at most 8\n/);
 });
 
-test('a fatal event stops the replay and the explanation is of the session before it', async () => {
-  const limited = 'claim c;\nevidence e from "a";\nreadings r from e limit 1;\nevent read value min 0 max 9;\non read sample r = value supports c;';
-  await withFiles({ 'limited.cav': limited, 'events.jsonl': '{"event":"read","payload":{"value":1}}\n{"event":"read","payload":{"value":2}}\n{"event":"read","payload":{"value":3}}\n' }, async file => {
+const threeReads = '{"event":"read","payload":{"value":1}}\n{"event":"read","payload":{"value":2}}\n{"event":"read","payload":{"value":3}}\n';
+
+test('a full history refuses the event and the replay continues', async () => {
+  const limited = 'claim c;\nevidence e from "a";\nreadings r from e limit 2;\nevent read value min 0 max 9;\non read sample r = value supports c;';
+  await withFiles({ 'limited.cav': limited, 'events.jsonl': threeReads }, async file => {
     const result = run(file('limited.cav'), file('events.jsonl'));
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, / {4}3 {2}read \{"value":3\} {2}refused \(limit\/history_limit\): /);
+    assert.match(result.stdout, /r@2 = 2 supports c/);
+    assert.doesNotMatch(result.stdout, /r@3/);
+  });
+});
+
+test('a fatal event stops the replay and the explanation is of the session before it', async () => {
+  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read set share = 1 / (value - 2);';
+  await withFiles({ 'dividing.cav': dividing, 'events.jsonl': threeReads }, async file => {
+    const result = run(file('dividing.cav'), file('events.jsonl'));
     assert.equal(result.status, 1);
     assert.match(result.stdout, / {4}2 {2}read \{"value":2\} {2}failed: /);
     assert.doesNotMatch(result.stdout, / {4}3 {2}read/);
