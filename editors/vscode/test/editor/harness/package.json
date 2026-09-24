@@ -1,0 +1,10 @@
+{
+  "name": "caveat-editor-check",
+  "description": "An empty extension that hosts test/editor/suite.cjs; the extension under test is the installed .vsix.",
+  "version": "0.0.0",
+  "publisher": "caveat-lang",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  }
+}

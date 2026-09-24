@@ -1,0 +1,53 @@
+{
+  "name": "caveat",
+  "displayName": "Caveat",
+  "description": "Syntax highlighting for the Caveat programming language (.cav files).",
+  "version": "0.1.0",
+  "publisher": "caveat-lang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WSattazahn/caveat-lang"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "caveat",
+        "aliases": [
+          "Caveat",
+          "caveat"
+        ],
+        "extensions": [
+          ".cav"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "caveat",
+        "scopeName": "source.caveat",
+        "path": "./syntaxes/caveat.tmLanguage.json"
+      }
+    ]
+  },
+  "private": true,
+  "scripts": {
+    "build:grammar": "node scripts/build-grammar.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "package": "node scripts/package.mjs",
+    "test:editor": "node scripts/editor-check.mjs"
+  },
+  "devDependencies": {
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "vscode-oniguruma": "2.0.1",
+    "vscode-textmate": "9.3.2"
+  }
+}

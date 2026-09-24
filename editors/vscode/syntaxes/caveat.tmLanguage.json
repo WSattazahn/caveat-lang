@@ -1,0 +1,798 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Caveat",
+  "scopeName": "source.caveat",
+  "fileTypes": [
+    "cav"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#for-block"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#stray-template"
+    },
+    {
+      "include": "#rule-statement"
+    },
+    {
+      "include": "#profile-statement"
+    },
+    {
+      "include": "#code"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.caveat",
+          "match": "(#).*$",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.comment.caveat"
+            }
+          }
+        },
+        {
+          "name": "comment.line.double-slash.caveat",
+          "match": "(//).*$",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.comment.caveat"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.caveat",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.caveat"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.caveat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#string-escapes"
+        }
+      ]
+    },
+    "string-escapes": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.caveat",
+          "match": "\\\\[\"\\\\nrt]"
+        },
+        {
+          "name": "invalid.illegal.escape.caveat",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "block-strings": {
+      "name": "string.quoted.double.caveat",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.caveat"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.caveat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#string-escapes"
+        },
+        {
+          "include": "#template"
+        }
+      ]
+    },
+    "block-comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.caveat",
+          "begin": "(#)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.comment.caveat"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#template"
+            }
+          ]
+        },
+        {
+          "name": "comment.line.double-slash.caveat",
+          "begin": "(//)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.comment.caveat"
+            }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "include": "#template"
+            }
+          ]
+        }
+      ]
+    },
+    "template": {
+      "name": "variable.other.template.caveat",
+      "match": "\\$(?:index|[A-Za-z][A-Za-z0-9]*)"
+    },
+    "stray-template": {
+      "name": "invalid.illegal.template.caveat",
+      "match": "\\$(?:[A-Za-z_][A-Za-z0-9_]*)?"
+    },
+    "for-block": {
+      "name": "meta.block.repeat.caveat",
+      "begin": "(?<![.\\w$])(for)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(as)\\s+(\\$[A-Za-z_][A-Za-z0-9_]*)\\s*(\\{)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.repeat.caveat"
+        },
+        "2": {
+          "name": "entity.name.type.kind.caveat"
+        },
+        "3": {
+          "name": "keyword.control.caveat"
+        },
+        "4": {
+          "name": "variable.parameter.template.caveat"
+        },
+        "5": {
+          "name": "punctuation.section.block.begin.caveat"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.block.end.caveat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#block-comments"
+        },
+        {
+          "include": "#block-strings"
+        },
+        {
+          "include": "#template"
+        },
+        {
+          "include": "#nested-block"
+        },
+        {
+          "include": "#block-rule-statement"
+        },
+        {
+          "include": "#block-profile-statement"
+        },
+        {
+          "include": "#block-code"
+        }
+      ]
+    },
+    "nested-block": {
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.block.begin.caveat"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.block.end.caveat"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#block-comments"
+        },
+        {
+          "include": "#block-strings"
+        },
+        {
+          "include": "#template"
+        },
+        {
+          "include": "#nested-block"
+        },
+        {
+          "include": "#block-rule-statement"
+        },
+        {
+          "include": "#block-profile-statement"
+        },
+        {
+          "include": "#block-code"
+        }
+      ]
+    },
+    "rule-statement": {
+      "match": "(?:^|(?<=[;{}]))\\s*(rule)(?!\\s+(?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.statement.caveat"
+        },
+        "2": {
+          "name": "entity.name.function.rule.caveat",
+          "patterns": [
+            {
+              "include": "#stray-template"
+            }
+          ]
+        }
+      }
+    },
+    "block-rule-statement": {
+      "match": "(?:^|(?<=[;{}]))\\s*(rule)(?!\\s+(?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.statement.caveat"
+        },
+        "2": {
+          "name": "entity.name.function.rule.caveat",
+          "patterns": [
+            {
+              "include": "#template"
+            }
+          ]
+        }
+      }
+    },
+    "profile-statement": {
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b(?!\\s*\\()(?!\\s+(?:supports|opposes|qualifies)\\b)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.statement.caveat"
+        }
+      },
+      "end": "(?=[;}])",
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#stray-template"
+        },
+        {
+          "match": "(?<![.\\w$])(steps)\\s+(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "keyword.other.statement.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<=,)\\s*(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.statement.caveat"
+            }
+          }
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])(?:options|requires_open|steps)\\b"
+        },
+        {
+          "include": "#code"
+        }
+      ]
+    },
+    "block-profile-statement": {
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b(?!\\s*\\()(?!\\s+(?:supports|opposes|qualifies)\\b)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.statement.caveat"
+        }
+      },
+      "end": "(?=[;}])",
+      "patterns": [
+        {
+          "include": "#block-comments"
+        },
+        {
+          "include": "#block-strings"
+        },
+        {
+          "include": "#template"
+        },
+        {
+          "match": "(?<![.\\w$])(steps)\\s+(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "keyword.other.statement.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<=,)\\s*(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.statement.caveat"
+            }
+          }
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])(?:options|requires_open|steps)\\b"
+        },
+        {
+          "include": "#block-code"
+        }
+      ]
+    },
+    "code": {
+      "patterns": [
+        {
+          "include": "#declaration-names"
+        },
+        {
+          "include": "#clause-values"
+        },
+        {
+          "include": "#bounds"
+        },
+        {
+          "include": "#builtin-calls"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#function-calls"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        },
+        {
+          "include": "#properties"
+        }
+      ]
+    },
+    "block-code": {
+      "patterns": [
+        {
+          "include": "#block-declaration-names"
+        },
+        {
+          "include": "#clause-values"
+        },
+        {
+          "include": "#bounds"
+        },
+        {
+          "include": "#builtin-calls"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#function-calls"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        },
+        {
+          "include": "#properties"
+        }
+      ]
+    },
+    "declaration-names": {
+      "patterns": [
+        {
+          "match": "(?<![.\\w$])(fn|proc)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.caveat",
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(clock)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(every)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.event.caveat",
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            },
+            "3": {
+              "name": "keyword.other.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(event)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.event.caveat",
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(on)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.event.caveat",
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(define)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "variable.other.constant.caveat",
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(cue)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(sound|toast|flash|ring)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.cue.caveat",
+              "patterns": [
+                {
+                  "include": "#stray-template"
+                }
+              ]
+            },
+            "3": {
+              "name": "keyword.other.cue-kind.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(kind)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "entity.name.type.kind.caveat"
+            }
+          }
+        }
+      ]
+    },
+    "block-declaration-names": {
+      "patterns": [
+        {
+          "match": "(?<![.\\w$])(fn|proc)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.caveat",
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(clock)\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s+(every)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.event.caveat",
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            },
+            "3": {
+              "name": "keyword.other.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(event)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.event.caveat",
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(on)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.control.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.event.caveat",
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(define)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "variable.other.constant.caveat",
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(cue)\\s+([A-Za-z_$][A-Za-z0-9_$]*)\\s+(sound|toast|flash|ring)\\b",
+          "captures": {
+            "1": {
+              "name": "storage.type.caveat"
+            },
+            "2": {
+              "name": "entity.name.function.cue.caveat",
+              "patterns": [
+                {
+                  "include": "#template"
+                }
+              ]
+            },
+            "3": {
+              "name": "keyword.other.cue-kind.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(kind)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "entity.name.type.kind.caveat"
+            }
+          }
+        }
+      ]
+    },
+    "clause-values": {
+      "patterns": [
+        {
+          "match": "(?<![.\\w$])(because)\\s+(enough|budget|deadline)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "constant.language.stop-reason.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(because)\\s+(nothing)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "constant.language.nothing.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<![.\\w$])(consequence)\\s+(negligible|low|material|high|catastrophic)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "constant.language.consequence.caveat"
+            }
+          }
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])reset\\b(?=\\s*;)"
+        }
+      ]
+    },
+    "bounds": {
+      "name": "keyword.other.bound.caveat",
+      "match": "(?<![.\\w$])(?:min|max)\\b(?=\\s+-?\\d)"
+    },
+    "builtin-calls": {
+      "name": "support.function.builtin.caveat",
+      "match": "(?<![.\\w$])(?:observed|committed|reopened|examined|has_caveat|caveated|carries|qualified|latest|has_sample|history_at|history_count|fold_history|elapsed|require|text|abs|atan2|ceil|floor|round|sqrt|sin|cos|clamp|wrap|number_text|percent_text|time_second_text|time_total_text|time_text|min|max)\\b(?=\\s*\\()"
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "storage.type.caveat",
+          "match": "(?<![.\\w$])(?:scene|claim|evidence|caveat|state|event|readings|decisions|renewable|define|fn|proc|bind|cue|control|clock|budget|entity|display|module|use)\\b"
+        },
+        {
+          "name": "keyword.control.caveat",
+          "match": "(?<![.\\w$])(?:on|when|for|as|if|then|otherwise|when_committed)\\b"
+        },
+        {
+          "name": "keyword.other.effect.caveat",
+          "match": "(?<![.\\w$])(?:set|sample|reveal|examine|commit|reopen|emit|call|reject|qualify|renew|defer)\\b"
+        },
+        {
+          "name": "keyword.operator.relation.caveat",
+          "match": "(?<![.\\w$])(?:supports|opposes|qualifies)\\b"
+        },
+        {
+          "name": "keyword.operator.logical.caveat",
+          "match": "(?<![.\\w$])(?:and|or|not)\\b"
+        },
+        {
+          "name": "constant.language.boolean.caveat",
+          "match": "(?<![.\\w$])(?:true|false)\\b"
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])(?:from|limit|because|using|retaining|after|with|cost|consequence|kind|at|to|via|through|toward)\\b"
+        }
+      ]
+    },
+    "function-calls": {
+      "name": "entity.name.function.call.caveat",
+      "match": "(?<![.\\w$])[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()"
+    },
+    "numbers": {
+      "name": "constant.numeric.caveat",
+      "match": "(?<![\\w$])(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?"
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.implication.caveat",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.comparison.caveat",
+          "match": "==|!=|>=|<=|>|<"
+        },
+        {
+          "name": "keyword.operator.assignment.caveat",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.arithmetic.caveat",
+          "match": "[+\\-*/]"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.terminator.statement.caveat",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.comma.caveat",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.caveat",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.section.parens.caveat",
+          "match": "[()]"
+        }
+      ]
+    },
+    "properties": {
+      "name": "variable.other.property.caveat",
+      "match": "(?<=\\.)[A-Za-z_][A-Za-z0-9_]*"
+    }
+  }
+}

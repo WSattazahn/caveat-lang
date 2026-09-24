@@ -28,7 +28,9 @@
     "test:kit-package": "node scripts/test-kit-package.mjs",
     "check:notices": "node scripts/third-party-notices.mjs --check",
     "test:scenario-conversion": "node experiments/scenario-conversion/convert.mjs --check",
-    "check:scenario-mutations": "node experiments/scenario-conversion/mutation-check.mjs"
+    "check:scenario-mutations": "node experiments/scenario-conversion/mutation-check.mjs",
+    "test:vscode": "npm --prefix editors/vscode test",
+    "package:vscode": "npm --prefix editors/vscode run package"
   },
   "dependencies": {
     "three": "0.186.0"
