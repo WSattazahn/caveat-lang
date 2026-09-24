@@ -53,7 +53,7 @@ happened when the ledger needed it.
 - An event can name a pull request only if the source declares it
   (`entity pr29 kind pr`). Every new pull request means editing the program.
 - A commit has to be a number. The ledger uses the first 8 hex digits of
-  the SHA, so the decision above reads `= 2869574427`, not `ab0a3b1b`.
+  the SHA, so the decision above reads `= 1613487084`, not `602bdbec`.
 - The event log needs its own translation table to be read by a person.
 
 **2. Newer observations that supersede older ones: expressible, by hand.**
