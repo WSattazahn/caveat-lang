@@ -213,6 +213,51 @@ between evidence and claims (`relations`) and the session clock (`elapsed`).
 `session.save()` returns text you can restore later with
 `runtime.restore(source, saved)`.
 
+To ask why without writing a script, list the events in a file, one JSON object
+per line, and let `caveat explain` send them. Save this as `events.jsonl`:
+
+<!-- file: events.jsonl -->
+```jsonl
+{"event": "read_forecast", "payload": {"chance": 70}}
+{"event": "clear_sky"}
+{"event": "leave"}
+{"event": "leave"}
+```
+
+<!-- run: npx --no-install caveat explain umbrella.cav events.jsonl -->
+```sh
+npx --no-install caveat explain umbrella.cav events.jsonl
+```
+
+```text
+umbrella.cav after 4 events (sequence 3)
+
+Events
+    1  read_forecast {"chance":70}  accepted
+    2  clear_sky  accepted
+    3  leave  accepted
+    4  leave  refused (policy): You have already left.
+
+Decisions
+  umbrella: 1 of at most 4
+    umbrella@1 = 70  reopened
+      based on rain_chance@1 (caveats: forecast_is_old)
+      #1 read_forecast: committed because rain_chance@1 (caveats: forecast_is_old)
+      #2 clear_sky: reopened because sky
+
+Evidence
+  rain_chance@1 = 70 supports rain_likely  (#1 read_forecast)  caveats: forecast_is_old
+  sky opposes rain_likely
+
+Displayed
+  advice.text = "Think again: the sky has cleared"  because rain_chance@1, sky (caveats: forecast_is_old)
+```
+
+Each decision shows its value, whether it is still in force, what it is based
+on, and every time it was committed or reopened and why. The refused `leave`
+is listed but changed nothing. Add `--json` to get the same explanation as
+data, for a program or an agent to read.
+
 ## 6. Keep going
 
 - [The documentation index](README.md) lists everything in this package.

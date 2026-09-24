@@ -52,7 +52,7 @@ test('links in the kit documentation resolve inside the package', async () => {
 
 test('the getting-started guide marks its files, edits and commands', async () => {
   const steps = guideSteps(await readFile(path.join(kit, 'docs/GETTING_STARTED.md'), 'utf8'));
-  assert.deepEqual(steps.map(step => step.kind), ['file', 'file', 'run', 'edit', 'run', 'edit', 'file', 'run']);
+  assert.deepEqual(steps.map(step => step.kind), ['file', 'file', 'run', 'edit', 'run', 'edit', 'file', 'run', 'file', 'run']);
 });
 
 test('the authoring guide\'s script runs against its example', async () => {
@@ -86,7 +86,7 @@ test('following the getting-started guide prints what it shows', async () => {
       return spawnSync(process.execPath, args, { cwd, encoding: 'utf8' });
     },
   });
-  assert.equal(results.length, 3);
+  assert.equal(results.length, 4);
   for (const result of results) {
     assert.equal(result.status, result.expected.includes('FAIL') ? 1 : 0, `${result.command}\n${result.stdout}${result.stderr}`);
     assert.equal(result.actual, result.expected, result.command);

@@ -46,6 +46,27 @@ FAIL T01 step 5 expect [primary]: /bindings/heating/text expected "50%", actual 
 FAIL R01 step 8 send [primary]: expected a policy rejection; got input/bound_exceeded "dt must be finite and in 0..30"
 ```
 
+## Ask why
+
+`caveat explain` sends a list of events to a program and shows what it decided
+and why: each decision with its value, whether it is still in force, what it is
+based on, what else could have influenced it, and every time it was committed
+or reopened; each piece of evidence with its caveats; and the evidence behind
+each displayed value. Refused events are listed and change nothing.
+
+```sh
+npx --no-install caveat explain program.cav events.jsonl
+npx --no-install caveat explain --json program.cav events.jsonl
+```
+
+The events file has one JSON object per line, `{"event": "read", "payload":
+{"value": 17}}`; the payload may be left out when an event takes none. With no
+events file, the program's initial state is explained. Exit status is 0 when
+the explanation is complete, 1 when an event failed fatally (the explanation is
+of the session before it), and 2 when the program or the events file cannot be
+used. From code, `explain(snapshot, events)` in `caveat-lang/explain` returns
+the same report as data, and `formatExplanation` renders it as text.
+
 ## Use a session from code
 
 With the package installed, save the
@@ -121,6 +142,8 @@ These commands run from a repository checkout, after `npm run build`.
   the misbehaving session is named;
 - the [spec evidence](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/experiments/scenario-format/README.md) fixtures and
   the CLI's exit codes;
+- `explain`: the report matches the snapshot decision by decision, and the
+  command lists refusals, stops at a fatal event and refuses bad input;
 - the packaged documentation: every source exists, every link in the kit's
   own documents resolves inside the package, the authoring guide's script
   runs, and the getting-started guide, followed step by step, prints what it
@@ -141,9 +164,10 @@ with `fetch`, including a failing one. Set `PLAYWRIGHT_CHANNEL=chrome` or
 `kit/runtime/`, packs the kit, and removes `kit/runtime/` again so development
 never uses a stale copy. It installs the tarball offline into a fresh consumer
 directory under `test-results/kit-package/` and uses it only through the
-install: the `caveat` command (exit statuses 0, 1 and 2), the library imported
-as `caveat-lang/node`, `caveat-lang/session` and `caveat-lang/scenarios`, and the
-browser check above. The tarball holds the command, the three library files,
+install: the `caveat` command (`test` with exit statuses 0, 1 and 2, and
+`explain`), the library imported as `caveat-lang/node`, `caveat-lang/session`,
+`caveat-lang/scenarios` and `caveat-lang/explain`, and the browser check above.
+The tarball holds the command, the four library files,
 the runtime, this README, the license and the notices, and nothing else.
 
 The package is MIT licensed. Packing copies the repository's `LICENSE` and
