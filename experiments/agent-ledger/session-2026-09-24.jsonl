@@ -2,7 +2,6 @@
 {"event": "pushed", "payload": {"target": "pr21", "commit": 1346730341}}
 {"event": "pushed", "payload": {"target": "pr21", "commit": 2869574427}}
 {"event": "checks", "payload": {"target": "pr21", "commit": 2869574427, "result": "passed"}}
-{"event": "approved", "payload": {"target": "pr21"}}
 {"event": "merge", "payload": {"target": "pr21"}}
 {"event": "pushed", "payload": {"target": "pr26", "commit": 1025799386}}
 {"event": "pushed", "payload": {"target": "pr26", "commit": 520981051}}
@@ -10,14 +9,12 @@
 {"event": "checks", "payload": {"target": "pr26", "commit": 90147877, "result": "passed"}}
 {"event": "merged_elsewhere", "payload": {"target": "pr26"}}
 {"event": "gates", "payload": {"target": "pr26", "commit": 90147877, "result": "passed"}}
-{"event": "approved", "payload": {"target": "pr26"}}
+{"event": "approved", "payload": {"target": "pr26", "commit": 90147877}}
 {"event": "merge", "payload": {"target": "pr26"}}
 {"event": "pushed", "payload": {"target": "pr28", "commit": 827595347}}
-{"event": "approved", "payload": {"target": "pr28"}}
 {"event": "merge", "payload": {"target": "pr28"}}
 {"event": "pushed", "payload": {"target": "pr29", "commit": 1613487084}}
 {"event": "checks", "payload": {"target": "pr28", "commit": 827595347, "result": "passed"}}
 {"event": "merge", "payload": {"target": "pr28"}}
 {"event": "checks", "payload": {"target": "pr29", "commit": 1613487084, "result": "passed"}}
-{"event": "approved", "payload": {"target": "pr29"}}
 {"event": "merge", "payload": {"target": "pr29"}}
