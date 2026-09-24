@@ -30,8 +30,9 @@ export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_c
   'time_total_text', 'time_text', 'min', 'max'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
-// `retaining camera`, `reopen route`), so they are keywords only where a line
-// starts with them.
+// `retaining camera`, `reopen route`), so they are keywords only where a
+// statement starts with them, and not where they name the evidence of a
+// relation (`camera supports door_open`).
 export const profileHeads = ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer',
   'require', 'observe', 'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route',
   'overview', 'start_at', 'program', 'origin'];
@@ -69,8 +70,56 @@ const blockBody = [
   { include: '#block-strings' },
   { include: '#template' },
   { include: '#nested-block' },
+  { include: '#block-rule-statement' },
+  { include: '#block-profile-statement' },
   { include: '#block-code' },
 ];
+
+// What a rule refers to in each context: at the top level, or in a `for` body,
+// where names may be built from templates and `$` is substituted.
+const top = { comments: '#comments', strings: '#strings', dollar: '#stray-template', code: '#code', declared: name };
+const block = {
+  comments: '#block-comments',
+  strings: '#block-strings',
+  dollar: '#template',
+  code: '#block-code',
+  declared: String.raw`[A-Za-z_$][A-Za-z0-9_$]*`,
+};
+
+// Where a statement starts: a line, or after `;`, `{` or `}` on the same line.
+const statementStart = String.raw`(?:^|(?<=[;{}]))\s*`;
+const notRelation = String.raw`(?!\s+(?:supports|opposes|qualifies)\b)`;
+
+// `rule NAME when A, B => C;` (core profile).
+const ruleStatement = context => ({
+  match: String.raw`${statementStart}(rule)${notRelation}\s+(${context.declared})`,
+  captures: {
+    1: { name: 'keyword.other.statement.caveat' },
+    2: { name: 'entity.name.function.rule.caveat', patterns: [{ include: context.dollar }] },
+  },
+});
+
+const profileStatement = context => ({
+  begin: String.raw`${statementStart}(${words(profileHeads)})\b(?!\s*\()${notRelation}`,
+  beginCaptures: { 1: { name: 'keyword.other.statement.caveat' } },
+  end: '(?=[;}])',
+  patterns: [
+    { include: context.comments },
+    { include: context.strings },
+    { include: context.dollar },
+    // `steps move a, observe b`: a step names what it acts on.
+    {
+      match: String.raw`${notProperty}(steps)\s+(${words(actionSteps)})(?=\s+[A-Za-z_$])`,
+      captures: { 1: { name: 'keyword.other.caveat' }, 2: { name: 'keyword.other.statement.caveat' } },
+    },
+    {
+      match: String.raw`(?<=,)\s*(${words(actionSteps)})(?=\s+[A-Za-z_$])`,
+      captures: { 1: { name: 'keyword.other.statement.caveat' } },
+    },
+    { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(profileClauses)})\b` },
+    { include: context.code },
+  ],
+});
 
 const code = declarations => ({
   patterns: [
@@ -192,32 +241,10 @@ export const grammar = {
       endCaptures: { 0: { name: 'punctuation.section.block.end.caveat' } },
       patterns: blockBody,
     },
-    // `rule NAME when A, B => C;` (core profile).
-    'rule-statement': {
-      match: String.raw`^\s*(rule)\s+(${name})`,
-      captures: { 1: { name: 'keyword.other.statement.caveat' }, 2: { name: 'entity.name.function.rule.caveat' } },
-    },
-    'profile-statement': {
-      begin: String.raw`^\s*(${words(profileHeads)})\b(?!\s*\()`,
-      beginCaptures: { 1: { name: 'keyword.other.statement.caveat' } },
-      end: '(?=;)',
-      patterns: [
-        { include: '#comments' },
-        { include: '#strings' },
-        { include: '#stray-template' },
-        // `steps move a, observe b`: a step names what it acts on.
-        {
-          match: String.raw`${notProperty}(steps)\s+(${words(actionSteps)})(?=\s+[A-Za-z_])`,
-          captures: { 1: { name: 'keyword.other.caveat' }, 2: { name: 'keyword.other.statement.caveat' } },
-        },
-        {
-          match: String.raw`(?<=,)\s*(${words(actionSteps)})(?=\s+[A-Za-z_])`,
-          captures: { 1: { name: 'keyword.other.statement.caveat' } },
-        },
-        { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(profileClauses)})\b` },
-        { include: '#code' },
-      ],
-    },
+    'rule-statement': ruleStatement(top),
+    'block-rule-statement': ruleStatement(block),
+    'profile-statement': profileStatement(top),
+    'block-profile-statement': profileStatement(block),
     code: code('#declaration-names'),
     'block-code': code('#block-declaration-names'),
     'declaration-names': declarationNames(name, '#stray-template'),

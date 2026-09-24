@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { downloadAndUnzipVSCode, resolveCliPathFromVSCodeExecutablePath, runTests } from '@vscode/test-electron';
 import { root, trackedCavFiles } from '../test/corpus.mjs';
+import { difference } from '../test/editor/compare.mjs';
 import { scopesOf } from '../test/tokenize.mjs';
 
 const here = fileURLToPath(new URL('../', import.meta.url));
@@ -52,19 +53,15 @@ const result = JSON.parse(readFileSync(resultPath, 'utf8'));
 assert.equal(result.extension.version, manifest.version);
 assert.ok(result.extension.path.startsWith(join(work, 'extensions')), `the extension was not loaded from the installed .vsix: ${result.extension.path}`);
 
-let characters = 0;
+let codeUnits = 0;
 for (const file of files) {
   const { languageId, tokens } = result.files[file];
   assert.equal(languageId, 'caveat', `${file} opened as ${languageId}`);
-  // Per character, the scopes VS Code gave it and the scopes the tests saw.
   const text = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
-  const expected = (await scopesOf(text)).filter((_, index) => text[index] !== '\n').map(scopes => scopes.join(' '));
-  const editor = tokens.flatMap(([content, scopes]) => Array.from(content, () => scopes));
-  assert.equal(tokens.map(([content]) => content).join(''), text.replace(/\n/g, ''), `${file}: VS Code tokenized different text`);
-  const differs = expected.findIndex((scopes, index) => scopes !== editor[index]);
-  assert.equal(differs, -1, `${file}: character ${differs} is "${editor[differs]}" in VS Code, "${expected[differs]}" in the tests`);
-  characters += expected.length;
+  const differs = difference(text, await scopesOf(text), tokens);
+  assert.equal(differs, null, `${file}: ${differs?.message}`);
+  codeUnits += text.replace(/\n/g, '').length;
 }
-const summary = { vscode: result.vscode, extension: result.extension.id, files: files.length, characters };
+const summary = { vscode: result.vscode, extension: result.extension.id, files: files.length, codeUnits };
 writeFileSync(join(work, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
-console.log(`VS Code ${result.vscode}: ${files.length} files, ${characters} characters tokenized as the tests expect`);
+console.log(`VS Code ${result.vscode}: ${files.length} files, ${codeUnits} UTF-16 code units tokenized as the tests expect`);

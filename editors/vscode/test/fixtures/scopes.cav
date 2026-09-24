@@ -109,7 +109,7 @@
  bind note.text = "" because nothing;
 #                            ^^^^^^^ constant.language.nothing
 
-# Statements of the other profiles begin a line
+# Statements of the other profiles
 
   observe spare_key;
 # ^^^^^^^ keyword.other.statement
@@ -127,6 +127,12 @@
 # ^^^^ keyword.other.statement
 #      ^^^^^^ entity.name.function.rule
 #                             ^^ keyword.operator.implication
+  start_at harbor; observe spare;
+# ^^^^^^^^ keyword.other.statement
+#                  ^^^^^^^ keyword.other.statement
+  camera supports door_open;
+# ^^^^^^ !keyword !storage
+#        ^^^^^^^^ keyword.operator.relation
 
 # Repetition
 
@@ -173,3 +179,45 @@
 #        ^^^ variable.other.template
 #           ^^^^^ !variable.other.template
  };
+
+# Profile statements in a for body
+
+ entity buoy_one kind buoy at harbor;
+#                     ^^^^ entity.name.type.kind
+ for buoy as $b {
+#            ^^ variable.parameter.template
+   action visit_$b from harbor to harbor steps inspect $b, observe sounding;
+#  ^^^^^^ keyword.other.statement meta.block.repeat
+#               ^^ variable.other.template
+#                                        ^^^^^ keyword.other
+#                                              ^^^^^^^ keyword.other.statement
+#                                                      ^^ variable.other.template
+#                                                          ^^^^^^^ keyword.other.statement
+#                                                                  ^^^^^^^^ !keyword
+   position $b at $index 0 2;
+#  ^^^^^^^^ keyword.other.statement meta.block.repeat
+#           ^^ variable.other.template
+#                 ^^^^^^ variable.other.template
+#                        ^ constant.numeric
+   camera supports $b_seen;
+#  ^^^^^^ !keyword !storage
+#         ^^^^^^^^ keyword.operator.relation
+ };
+#^ punctuation.section.block.end meta.block.repeat
+ for buoy as $b { position $b_mark at 1 2 3; };
+#                 ^^^^^^^^ keyword.other.statement meta.block.repeat
+#                          ^^ variable.other.template
+#                                            ^ punctuation.section.block.end meta.block.repeat
+#                                             ^ !meta.block.repeat
+
+# Text beyond ASCII
+
+ display hello "Glühwein 😀 and ü";
+#              ^^^^^^^^^^^^^^^^^^^ string.quoted.double
+#                        ^^ string.quoted.double !invalid
+ state z = 1; # 😀 then text
+#             ^^^^^^^^^^^^^^ comment.line.number-sign
+#                  ^^^^ comment.line !keyword
+ state after_emoji = "😀"; set after_emoji = 2;
+#                          ^^^ keyword.other.effect
+#                                            ^ constant.numeric

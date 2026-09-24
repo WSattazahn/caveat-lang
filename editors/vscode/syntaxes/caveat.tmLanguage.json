@@ -188,6 +188,12 @@
           "include": "#nested-block"
         },
         {
+          "include": "#block-rule-statement"
+        },
+        {
+          "include": "#block-profile-statement"
+        },
+        {
           "include": "#block-code"
         }
       ]
@@ -219,29 +225,56 @@
           "include": "#nested-block"
         },
         {
+          "include": "#block-rule-statement"
+        },
+        {
+          "include": "#block-profile-statement"
+        },
+        {
           "include": "#block-code"
         }
       ]
     },
     "rule-statement": {
-      "match": "^\\s*(rule)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "match": "(?:^|(?<=[;{}]))\\s*(rule)(?!\\s+(?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_][A-Za-z0-9_]*)",
       "captures": {
         "1": {
           "name": "keyword.other.statement.caveat"
         },
         "2": {
-          "name": "entity.name.function.rule.caveat"
+          "name": "entity.name.function.rule.caveat",
+          "patterns": [
+            {
+              "include": "#stray-template"
+            }
+          ]
+        }
+      }
+    },
+    "block-rule-statement": {
+      "match": "(?:^|(?<=[;{}]))\\s*(rule)(?!\\s+(?:supports|opposes|qualifies)\\b)\\s+([A-Za-z_$][A-Za-z0-9_$]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.statement.caveat"
+        },
+        "2": {
+          "name": "entity.name.function.rule.caveat",
+          "patterns": [
+            {
+              "include": "#template"
+            }
+          ]
         }
       }
     },
     "profile-statement": {
-      "begin": "^\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b(?!\\s*\\()",
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b(?!\\s*\\()(?!\\s+(?:supports|opposes|qualifies)\\b)",
       "beginCaptures": {
         "1": {
           "name": "keyword.other.statement.caveat"
         }
       },
-      "end": "(?=;)",
+      "end": "(?=[;}])",
       "patterns": [
         {
           "include": "#comments"
@@ -253,7 +286,7 @@
           "include": "#stray-template"
         },
         {
-          "match": "(?<![.\\w$])(steps)\\s+(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_])",
+          "match": "(?<![.\\w$])(steps)\\s+(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
           "captures": {
             "1": {
               "name": "keyword.other.caveat"
@@ -264,7 +297,7 @@
           }
         },
         {
-          "match": "(?<=,)\\s*(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_])",
+          "match": "(?<=,)\\s*(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
           "captures": {
             "1": {
               "name": "keyword.other.statement.caveat"
@@ -277,6 +310,52 @@
         },
         {
           "include": "#code"
+        }
+      ]
+    },
+    "block-profile-statement": {
+      "begin": "(?:^|(?<=[;{}]))\\s*(action|choice|select|resolve|investigate|inspect|converge|infer|require|observe|open|operate|move|stay|relate|place|connect|position|camera|route|overview|start_at|program|origin)\\b(?!\\s*\\()(?!\\s+(?:supports|opposes|qualifies)\\b)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.other.statement.caveat"
+        }
+      },
+      "end": "(?=[;}])",
+      "patterns": [
+        {
+          "include": "#block-comments"
+        },
+        {
+          "include": "#block-strings"
+        },
+        {
+          "include": "#template"
+        },
+        {
+          "match": "(?<![.\\w$])(steps)\\s+(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.caveat"
+            },
+            "2": {
+              "name": "keyword.other.statement.caveat"
+            }
+          }
+        },
+        {
+          "match": "(?<=,)\\s*(inspect|operate|open|through|move|observe)(?=\\s+[A-Za-z_$])",
+          "captures": {
+            "1": {
+              "name": "keyword.other.statement.caveat"
+            }
+          }
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])(?:options|requires_open|steps)\\b"
+        },
+        {
+          "include": "#block-code"
         }
       ]
     },

@@ -65,9 +65,9 @@ async function scopesAt(probe, word) {
 for (const group of [...groups, { name: 'not source words', ...notSourceWords }]) {
   test(group.name, async () => {
     for (const word of group.words) {
-      if (group.probe) {
-        for (const scopes of await scopesAt(group.probe, word)) {
-          assert.ok(has(scopes, group.scope), `${JSON.stringify(group.probe.replace('@', word))}: ${word} is ${scopes.join(' ')}, not ${group.scope}`);
+      for (const probe of [group.probe ?? []].flat()) {
+        for (const scopes of await scopesAt(probe, word)) {
+          assert.ok(has(scopes, group.scope), `${JSON.stringify(probe.replace('@', word))}: ${word} is ${scopes.join(' ')}, not ${group.scope}`);
         }
       }
       if (group.alsoProbe) {

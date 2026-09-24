@@ -1,6 +1,6 @@
 // What the tests expect of the grammar, written independently of
 // scripts/build-grammar.mjs. Each group says which words it covers, where they
-// mean what they mean (a probe: `@` stands for the word), and the scope they
+// mean what they mean (probes: `@` stands for the word), and the scope they
 // must get there. words.test.mjs checks the groups account for every word the
 // runtime lists and that each probe holds; corpus.test.mjs uses them to judge
 // real programs.
@@ -11,10 +11,12 @@ export const groups = [
     words: ['action', 'choice', 'select', 'resolve', 'investigate', 'inspect', 'converge', 'infer', 'require', 'observe',
       'open', 'operate', 'move', 'stay', 'relate', 'place', 'connect', 'position', 'camera', 'route', 'overview',
       'start_at', 'program', 'origin', 'rule'],
-    probe: '@ x;',
+    // At a statement start, including in a `for` body.
+    probe: ['@ x;', 'y; @ x;', 'for k as $r {\n  @ $r;\n};', 'for k as $r { @ $r_x; };'],
     scope: 'keyword.other.statement',
-    // Reactive programs use these as names: `event observe`, `retaining camera`.
-    notKeyword: ['on @ when x;', 'commit x because enough retaining @;'],
+    // Reactive programs use these as names: `event observe`, `retaining
+    // camera`, and evidence in a relation, `camera supports door_open`.
+    notKeyword: ['on @ when x;', 'commit x because enough retaining @;', '@ supports x;', 'for k as $r {\n  @ qualifies $r;\n};'],
   },
   {
     name: 'declarations',
@@ -76,14 +78,14 @@ export const groups = [
   {
     name: 'sequential clauses',
     words: ['options', 'requires_open', 'steps'],
-    probe: 'action a from x to y @ z;',
+    probe: ['action a from x to y @ z;', 'for k as $r {\n  action a_$r from x to y @ $r;\n};'],
     scope: 'keyword.other',
     notKeyword: ['state @ = 1;'],
   },
   {
     name: 'action steps',
     words: ['inspect', 'operate', 'open', 'through', 'move', 'observe'],
-    probe: 'action a from x to y steps move y, @ z;',
+    probe: ['action a from x to y steps move y, @ z;', 'for k as $r {\n  action a from x to y steps @ $r, move $r;\n};'],
     scope: 'keyword.other.statement',
   },
   {

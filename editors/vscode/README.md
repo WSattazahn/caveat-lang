@@ -49,7 +49,11 @@ The package lands in `test-results/vscode/`.
   `clock`, `reset` in `control`, and an entity's `kind`, which is a name even
   when it is a word like `camera`.
 - Statements of the core, sequential, map and presentation profiles
-  (`action`, `choice`, `observe`, `place`, `camera`…) where they begin a line.
+  (`action`, `choice`, `observe`, `position`, `camera`…) where they begin a
+  statement, in a `for` body too. Reactive programs use several of these
+  words as names (`event observe`, `retaining camera`), so elsewhere they are
+  names, as they are when they begin a relation (`camera supports
+  door_open`).
 - Declared names, calls to built-in functions, other calls, numbers as the
   expression tokenizer reads them (`2`, `2.`, `.5`, `1e-3`), and names after
   a dot, which are always properties.
@@ -80,7 +84,8 @@ tokenizer and regular-expression engine VS Code itself uses.
 - `npm run test:editor` then checks the package in VS Code itself. It installs
   the `.vsix` into a fresh profile with VS Code's command line, opens every
   tracked `.cav` file and the fixture, and requires that each opens as Caveat
-  and that VS Code's tokens match the tests' character for character. It
+  and that VS Code's tokens match the tests' at every UTF-16 code unit, the
+  unit VS Code counts positions in, so text beyond ASCII is compared too. It
   downloads the oldest VS Code the manifest supports, or another version named
   by `CAVEAT_VSCODE_VERSION`. To use an installed VS Code instead, set
   `CAVEAT_VSCODE` to its executable. On Linux without a display, run it under
@@ -106,9 +111,9 @@ before it could be proposed to Linguist.
   or letters or digits follow a shorter bound name directly (`$rx` with `$r`
   bound). The corpus test checks every tracked program agrees.
 - A `for` header must be on one line, up to its `{`.
-- Profile statements are recognised only at the start of a line, because
-  reactive programs use several of the same words as names (`event observe`,
-  `retaining camera`).
+- A statement starts at the beginning of a line or after `;`, `{` or `}`. A
+  statement that continues onto a line beginning with a profile word, such
+  as `observe`, has that word read as a new statement.
 - Highlighting is lexical. Apart from a stray `$` and an unknown escape, it
   does not report what the runtime would refuse.
 

@@ -98,14 +98,14 @@ for (const file of files) {
     }
 
     // Statement heads: keywords get their category's scope, and a head that
-    // is not a keyword (`secondhand qualifies witness`) is left a name.
+    // is not a keyword is left a name. So is a profile word that begins a
+    // relation: `camera supports door_open` is about evidence named camera.
     for (const head of statementHeads(text, classes)) {
       totals.heads += 1;
-      const expected = expectedHeadScope(head.word);
+      const next = /^\s+([A-Za-z_]\w*)/.exec(text.slice(head.index + head.word.length))?.[1];
+      const relation = ['supports', 'opposes', 'qualifies'].includes(next);
+      const expected = relation && profileHeads.includes(head.word) ? null : expectedHeadScope(head.word);
       const got = scopes[head.index];
-      if (profileHeads.includes(head.word)) {
-        check(head.lineStart, head.index, `${head.word} begins a statement mid-line, where the grammar cannot see it`);
-      }
       if (expected) check(has(got, expected), head.index, `statement head ${head.word} should be ${expected}`);
       else check(!got.some(scope => /^(keyword|storage|support|constant)\./.test(scope)), head.index, `statement head ${head.word} is a name, not a keyword`);
     }

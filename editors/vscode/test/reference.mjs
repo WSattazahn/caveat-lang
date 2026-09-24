@@ -104,8 +104,7 @@ export function substitutions(text, block) {
 }
 
 // The first word of every statement, at any depth: after the start of the
-// text, a `;`, `{` or `}` in code. `lineStart` says whether only whitespace
-// precedes it on its line.
+// text, a `;`, `{` or `}` in code.
 export function statementHeads(text, classes = classify(text)) {
   const heads = [];
   let expectHead = true;
@@ -118,8 +117,7 @@ export function statementHeads(text, classes = classify(text)) {
     if (expectHead && identifierStart(ch)) {
       let end = index + 1;
       while (end < text.length && identifierChar(text[end])) end += 1;
-      const lineStart = /^[ \t]*$/.test(text.slice(text.lastIndexOf('\n', index - 1) + 1, index));
-      heads.push({ index, word: text.slice(index, end), lineStart });
+      heads.push({ index, word: text.slice(index, end) });
     }
     expectHead = false;
   }
