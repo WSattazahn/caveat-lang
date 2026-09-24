@@ -3,14 +3,14 @@
 A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
-The selected release candidate is **`caveat-lang@0.1.0-rc.1`**, with the command
+The selected release candidate is **`caveat-lang@0.1.0-rc.2`**, with the command
 `caveat` and npm publication tag `next`. It is not published: `private: true`
 stays set until publishing is explicitly authorized. The package can be
 installed from a tested tarball without Rust:
 
 ```sh
 npm init -y
-npm install ./caveat-lang-0.1.0-rc.1.tgz
+npm install ./caveat-lang-0.1.0-rc.2.tgz
 npx --no-install caveat test my.scenarios.json
 ```
 
