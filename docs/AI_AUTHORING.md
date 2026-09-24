@@ -1,11 +1,64 @@
 # Authoring and checking Caveat programs
 
 An agent can use Caveat through the same source, interpreter, and tests as a
-human developer. The current tools support validation and deterministic event
-replay. They do not authenticate evidence, inspect a model's internal reasoning,
-or authorize external actions.
+human developer. The `caveat-lang` package runs programs and checks them against
+scenario files without Rust; a repository checkout also has a native replay
+command. These tools do not authenticate evidence, inspect a model's internal
+reasoning, or authorize external actions.
 
-## Run a reactive program without a browser
+## Check a program with the kit
+
+Install the package into a project directory: run `npm init -y`, then
+`npm install` the tarball or the published package. The getting-started guide
+that ships with the package (`docs/GETTING_STARTED.md`) walks through a first
+program.
+
+State what a program should do in a scenario file
+([Scenarios 0.1](../spec/caveat-scenarios-0.1.md)) and run it:
+
+```sh
+npx --no-install caveat test my.scenarios.json
+```
+
+Each scenario starts a new session, sends events and checks expectations:
+JSON Pointer paths into the snapshot, an expected acceptance or rejection for
+every event, `checkpoint` and `same_as` for records that must not change, and
+`resume` to continue from a save. Without being asked, the runner also checks
+that every rejected event changed nothing, that a resumed session agrees with
+the one it came from, that a final save restores, and that grounds stay within
+lineage. It exits 0 when every scenario passes, 1 when one fails and 2 when a
+file is invalid; a failure names the step, the path, and the expected and
+actual values.
+
+A bare `"rejected": true` expects the program's own `reject`. A refusal the
+runtime makes before any rule runs, such as a payload outside its declared
+range, has origin `input` and must be named:
+`{"origin": "input", "code": "bound_exceeded"}`. Origins and codes are listed
+in [Dispatch outcomes 0.1](../spec/caveat-dispatch-0.1.md). Some runtime errors
+are deliberately unclassified: they are fatal, and a fatal outcome never
+matches an expected rejection.
+
+To see what a program does after each event, open a session from a script:
+
+```js
+import { readFile } from 'node:fs/promises';
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
+
+const source = await readFile('thermostat_history.cav', 'utf8');
+const runtime = await loadRuntimeFromDirectory();
+const session = runtime.open(source);
+const outcome = session.dispatch('read', { value: 17 });
+console.log(outcome.outcome, session.snapshot().decision_journal);
+session.close();
+```
+
+`runtime.open` throws a `CaveatError` of kind `load` with the runtime's
+diagnostic when a program does not load. `dispatch` returns
+`{outcome: "accepted", snapshot}` or `{outcome: "rejected", origin, code,
+message}`; anything else throws, and the session must then be discarded.
+`session.save()` returns text that `runtime.restore(source, saved)` resumes.
+
+## Replay with the native command line (repository checkout)
 
 From the repository root:
 
@@ -54,28 +107,22 @@ functions, not the rest of their containing program.
 
 ## An authoring loop
 
-For integrations that need to distinguish authored refusals from invalid inputs
-and execution failures, use the [structured dispatch API](../spec/caveat-dispatch-0.1.md).
-`dispatch_outcome` returns accepted/rejected reports. Bare rejection assertions
-mean an authored policy `reject`; other origins must be named. Every thrown
-error is fatal and requires discarding the session. Some existing runtime errors
-are deliberately still unclassified and fatal in this API; legacy dispatch
-methods retain their existing behavior. The initial code catalog is in the spec.
-
 Use `#` or `//` for line comments outside strings; `--` is not a comment marker.
 The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quoting.
 
 1. Read the event contract and the relevant reactive profile. Keep observations,
    proposed policies, physical conditions, and committed decisions distinct.
-2. Write a small program and an explicit event history. Mark which inputs are
-   observations and which are ordinary controls. An evidence source label is
-   descriptive metadata, not an authentication mechanism.
-3. Validate, replay, and inspect `qualified_values`, `reading_streams`,
-   `commitment_bases`, `decision_series`, and `relations` in the snapshots.
+2. Write a small program and a scenario file with an explicit event history.
+   Mark which inputs are observations and which are ordinary controls. An
+   evidence source label is descriptive metadata, not an authentication
+   mechanism.
+3. Run the scenarios, and inspect `qualified_values`, `reading_streams`,
+   `commitment_bases`, `decision_series`, and `relations` in the snapshots,
+   from a script or with the native replay.
 4. Exercise missing observations, contradictory readings, repeated equal
    readings, reopened decisions, and failures late in an event.
-5. Change one policy and replay the same inputs. Check both the changed decision
-   and the records that should remain unchanged.
+5. Change one policy and run the same scenarios. Check both the changed
+   decision and the records that should remain unchanged.
 
 Plan numeric ranges before writing state accumulators. State and numeric
 event bounds must be finite, ordered, and within the inclusive hard limit
@@ -85,8 +132,8 @@ maximum supported duration, and representation so every update fits the
 declared range. If the required duration would overflow it, redesign the
 representation before coding. Exceeding the range rejects the whole event,
 without advancing that accumulator. For session time, read `elapsed()` rather
-than maintaining a second clock in bounded state. Validate early and replay
-boundary cases.
+than maintaining a second clock in bounded state. Load the program early and
+test boundary cases.
 
 For the thermostat fixture, the input sequence is 17, 25, 17. The expected
 heating bases are 1, 0, 1, with three distinct temperature occurrences and
