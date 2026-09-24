@@ -1,5 +1,6 @@
 use caveat_runtime::game_session::{GamePending, GameSession};
 use caveat_runtime::session::Session;
+#[cfg(feature = "games")]
 use caveat_runtime::web::{WebGameSession, WebSession};
 
 const SOURCE: &str = r#"
@@ -254,6 +255,7 @@ inspect retry first cost 1;
     assert_eq!(session.discoveries(), discoveries);
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn web_bridge_returns_serialized_live_state_and_restores_it() {
     let mut session = WebGameSession::new(SOURCE).unwrap();

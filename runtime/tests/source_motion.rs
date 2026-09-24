@@ -1,10 +1,15 @@
 use caveat_runtime::action_runtime::{ActionExecution, WorldCommand};
 use caveat_runtime::source_library::{FunctionValue, SourceLibrary};
+#[cfg(feature = "games")]
 use caveat_runtime::web::Web3DSession;
-use caveat_runtime::world3d::{PlaceAnchor3D, Vec3, World3D, WorldEvent3D};
+use caveat_runtime::world3d::World3D;
+#[cfg(feature = "games")]
+use caveat_runtime::world3d::{PlaceAnchor3D, Vec3, WorldEvent3D};
+#[cfg(feature = "games")]
 use serde_json::Value;
 
 const DOOR: &str = include_str!("../../game/the_door_round2.cav");
+#[cfg(feature = "games")]
 const WEB_DOOR: &str = include_str!("../../web/the_door_round2.cav");
 
 fn number(library: &SourceLibrary, name: &str, arguments: &[f32]) -> f32 {
@@ -31,16 +36,19 @@ fn boolean(library: &SourceLibrary, name: &str, arguments: &[f32]) -> bool {
     value
 }
 
+#[cfg(feature = "games")]
 fn world(session: &Web3DSession) -> Value {
     serde_json::from_str(&session.world()).unwrap()
 }
 
+#[cfg(feature = "games")]
 fn after_inspection(source: &str) -> Web3DSession {
     let mut session = Web3DSession::new(source).unwrap();
     session.apply("latch_sensor_recently_serviced").unwrap();
     session
 }
 
+#[cfg(feature = "games")]
 fn move_to(place: &str) -> ActionExecution {
     ActionExecution {
         action: "move".into(),
@@ -54,6 +62,7 @@ fn move_to(place: &str) -> ActionExecution {
     }
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn canonical_source_and_compatibility_constructor_use_the_same_motion_policy() {
     // The web build overwrites this legacy source copy with game/*.cav. Direct
@@ -137,6 +146,7 @@ fn source_motion_preserves_native_float_boundaries_and_signed_half_turns() {
     }
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn default_policy_retains_parent_hinges_waypoints_and_precise_camera_geometry() {
     let mut session = after_inspection(DOOR);
@@ -190,6 +200,7 @@ fn default_policy_retains_parent_hinges_waypoints_and_precise_camera_geometry() 
     );
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn editing_only_caveat_changes_real_commands_without_changing_evidence_or_materials() {
     let changed = DOOR
@@ -249,6 +260,7 @@ fn editing_only_caveat_changes_real_commands_without_changing_evidence_or_materi
     }
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn invalid_motion_signatures_are_rejected_before_creating_a_session() {
     for (before, after) in [
@@ -268,6 +280,7 @@ fn invalid_motion_signatures_are_rejected_before_creating_a_session() {
     }
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn a_late_source_policy_failure_rolls_back_the_entire_web_action() {
     for replacement in [

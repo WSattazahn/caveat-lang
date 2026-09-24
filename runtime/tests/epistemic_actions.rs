@@ -1,6 +1,7 @@
 use caveat_runtime::ast::EpistemicCondition;
 use caveat_runtime::game_session::{GamePending, GameSession};
 use caveat_runtime::map::CaveatMap;
+#[cfg(feature = "games")]
 use caveat_runtime::web::WebGameSession;
 
 const SOURCE: &str = r#"
@@ -249,6 +250,7 @@ fn malformed_references_and_ambiguous_rules_are_rejected_when_compiling() {
     );
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn maps_describe_rules_while_web_snapshots_expose_only_reached_results() {
     let map = CaveatMap::from_source(SOURCE).unwrap();

@@ -1,6 +1,8 @@
 use caveat_runtime::reactive::{Provenance, Tracked};
 use caveat_runtime::source_library::{FunctionValue, SourceLibrary};
+#[cfg(feature = "games")]
 use caveat_runtime::web_source_library::WebSourceLibrary;
+#[cfg(feature = "games")]
 use serde_json::json;
 
 fn tracked(value: f64, evidence: &str, caveat: &str) -> Tracked<f64> {
@@ -227,6 +229,7 @@ fn compiler_bounds_total_retained_nodes_and_literal_bytes() {
         .contains("source limit"));
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn source_only_policy_edits_change_native_and_web_results_identically() {
     let original = "fn response(value) = value * 2;";
@@ -246,6 +249,7 @@ fn source_only_policy_edits_change_native_and_web_results_identically() {
     }
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn web_adapter_uses_numeric_arrays_and_serializes_typed_results_with_metadata() {
     let web = WebSourceLibrary::new(
