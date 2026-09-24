@@ -42,6 +42,10 @@ pub struct ReactiveSave {
     /// spec/caveat-identifiers-0.1.md have none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub identifiers: Vec<String>,
+    /// Withdrawn observations. Saves made before
+    /// spec/caveat-withdrawal-0.1.md have none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub withdrawals: Vec<Withdrawal>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -315,6 +319,7 @@ impl ReactiveSession {
                 .map(|(name, renewal)| (name.clone(), renewal.occurrences.clone()))
                 .collect(),
             identifiers: self.identifiers.texts().to_vec(),
+            withdrawals: (*self.withdrawals).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             observation_qualifications: compact_map(&self.observation_qualifications),
             examination_qualifications: compact_map(&self.examination_qualifications),
@@ -390,9 +395,62 @@ impl ReactiveSession {
             save.identifiers.clone(),
         )?);
         self.restore_graph(&save.graph)?;
+        self.restore_withdrawals(save)?;
         self.restore_states(&save.states)?;
         self.restore_records(save)?;
         self.evaluate_bindings(None)
+    }
+
+    /// Withdrawals must agree with the program and with the restored graph:
+    /// each needs its `withdrawn qualifies E` relation, and each such relation
+    /// its withdrawal.
+    fn restore_withdrawals(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        if save.withdrawals.is_empty() && !self.withdraws() {
+            return Ok(());
+        }
+        if !self.withdraws() {
+            return Err("save holds withdrawals but the program does not withdraw".into());
+        }
+        let mut withdrawn = BTreeSet::new();
+        for withdrawal in &save.withdrawals {
+            for name in [&withdrawal.evidence, &withdrawal.because] {
+                self.require_kind(name, "evidence")
+                    .map_err(|_| format!("a withdrawal names unknown evidence {name}"))?;
+            }
+            if !withdrawn.insert(withdrawal.evidence.as_str()) {
+                return Err(format!("{} is withdrawn twice", withdrawal.evidence));
+            }
+            if withdrawal.sequence == 0 || withdrawal.sequence > save.sequence {
+                return Err(format!(
+                    "the withdrawal of {} is out of sequence",
+                    withdrawal.evidence
+                ));
+            }
+            if !self.events.contains_key(&withdrawal.event) {
+                return Err(format!(
+                    "the withdrawal of {} names unknown event {}",
+                    withdrawal.evidence, withdrawal.event
+                ));
+            }
+        }
+        let caveat = self.symbols[WITHDRAWN];
+        let names = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect::<HashMap<_, _>>();
+        let qualified = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.from == caveat && edge.relation == Relation::Qualifies)
+            .map(|edge| names[&edge.to])
+            .collect::<BTreeSet<_>>();
+        if qualified != withdrawn {
+            return Err("withdrawals disagree with the graph's withdrawn relations".into());
+        }
+        self.withdrawals = Arc::new(save.withdrawals.clone());
+        Ok(())
     }
 
     fn restore_graph(&mut self, saved: &SavedGraph) -> Result<(), String> {
@@ -709,6 +767,7 @@ impl ReactiveSession {
                 EffectReport::Reopen { action, because } => vec![action, because],
                 EffectReport::Qualify { evidence, caveat } => vec![evidence, caveat],
                 EffectReport::Renew { occurrence, .. } => vec![occurrence],
+                EffectReport::Withdraw { evidence, because } => vec![evidence, because],
             };
             if let Some(name) = names
                 .into_iter()

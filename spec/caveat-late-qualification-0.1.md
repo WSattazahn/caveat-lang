@@ -11,6 +11,9 @@ caveat taste_faded consequence material;
 on tick when taste_age >= 60 qualify taste_pool with taste_faded;
 ```
 
+To record that an observation is no longer stood behind, rather than add a
+caveat to it, see [Withdrawal 0.1](caveat-withdrawal-0.1.md).
+
 ## Syntax
 
 ```text

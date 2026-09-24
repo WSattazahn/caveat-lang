@@ -1,5 +1,5 @@
 {
-  "note": "Repository files copied into the package when it is packed, each at docs/reference/ plus its repository path, so links between them keep working. The first 27 are the reference set the v2 authoring study used; the kit adds its three specs, identifiers and the thermostat example.",
+  "note": "Repository files copied into the package when it is packed, each at docs/reference/ plus its repository path, so links between them keep working. The first 27 are the reference set the v2 authoring study used; the kit adds its three specs, identifiers, withdrawal and the thermostat example.",
   "reference": [
     "docs/AI_AUTHORING.md",
     "docs/CAVEAT_ESSENCE.md",
@@ -17,6 +17,7 @@
     "spec/caveat-procedure-symbols-0.1.md",
     "spec/caveat-typed-parameters-0.1.md",
     "spec/caveat-identifiers-0.1.md",
+    "spec/caveat-withdrawal-0.1.md",
     "spec/caveat-text-0.1.md",
     "spec/caveat-reject-0.1.md",
     "spec/caveat-explanations-0.1.md",

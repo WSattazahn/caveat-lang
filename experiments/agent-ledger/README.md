@@ -161,6 +161,22 @@ tests two things:
 Pull requests are still declared in the source: declarations made per
 identifier are not part of that profile.
 
+## Follow-up: withdrawal
+
+[Withdrawal 0.1](../../spec/caveat-withdrawal-0.1.md) answers item 4. The
+identifier ledger's `misread` event withdraws a pull request's latest check
+result because the agent re-read it. It does not record a failure in its place.
+A merge decision grounded on that result reopens, by a rule the ledger states,
+and keeps what it was made on. Scenario I03 in
+[`ledger-identifiers.scenarios.json`](ledger-identifiers.scenarios.json) tests
+this, and `caveat explain` shows it:
+
+```text
+    pr29_merge@1 = 1  reopened
+      based on pr29_checks@1, pr29_go
+      pr29_checks@1 has since been withdrawn at #5 because pr29_recheck
+```
+
 ## Suggested order for the language work
 
 1. Identifiers known only at run time. Without them the ledger cannot be used

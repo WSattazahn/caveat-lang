@@ -44,6 +44,8 @@ everything an event can change, named as the program names it:
 - the identifiers received for `id` parameters, in handle order
   ([Identifiers 0.1](caveat-identifiers-0.1.md)). A save without them, such as
   one made before that profile, holds none;
+- the withdrawn observations ([Withdrawal 0.1](caveat-withdrawal-0.1.md)),
+  checked against the graph's `withdrawn` relations when restored;
 - the last event's effects, and its cues by id.
 
 Bindings are not saved. They are computed from the state when a session is

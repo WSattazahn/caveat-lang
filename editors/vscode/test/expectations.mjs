@@ -28,7 +28,7 @@ export const groups = [
   { name: 'control', words: ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'], probe: 'x @ y;', scope: 'keyword.control' },
   {
     name: 'effects',
-    words: ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'renew', 'defer'],
+    words: ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'renew', 'withdraw', 'defer'],
     probe: 'x @ y;',
     scope: 'keyword.other.effect',
   },
@@ -149,7 +149,7 @@ export const groups = [
     words: ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified', 'latest',
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
-      'time_total_text', 'time_text', 'min', 'max', 'id_text'],
+      'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],

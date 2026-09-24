@@ -10,12 +10,14 @@ use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
 use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType};
 pub use crate::reactive_expr::{Provenance, Tracked};
-use crate::{Attention, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
+use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 const LIMIT: f64 = 1_000_000_000_000.0;
+/// The caveat a withdrawal applies. See spec/caveat-withdrawal-0.1.md.
+const WITHDRAWN: &str = "withdrawn";
 const MAX_HISTORY_LIMIT: usize = 256;
 const MAX_DECLARED_HISTORY_CAPACITY: usize = 1024;
 const MAX_PROCEDURES: usize = 128;
@@ -189,6 +191,13 @@ pub enum Effect {
     /// new, unobserved piece of evidence. See spec/caveat-renewal-0.1.md.
     Renew {
         evidence: String,
+    },
+    /// `withdraw EVIDENCE because REASON;` or `withdraw latest(STREAM) …`:
+    /// record that an observation is no longer stood behind. The target is
+    /// `Named` or `Latest`. See spec/caveat-withdrawal-0.1.md.
+    Withdraw {
+        target: EvidenceSelector,
+        because: String,
     },
     Set {
         name: String,
@@ -754,6 +763,20 @@ impl<'a> OrderStep<'a> {
                 guard.clone(),
                 format!("reopen because {evidence}"),
             )),
+            Effect::Withdraw { target, because } => {
+                if let EvidenceSelector::Named(evidence) = target {
+                    uses.push((
+                        evidence.clone(),
+                        guard.clone(),
+                        format!("withdraw {evidence}"),
+                    ));
+                }
+                uses.push((
+                    because.clone(),
+                    guard.clone(),
+                    format!("withdraw because {because}"),
+                ));
+            }
             _ => {}
         }
         for expression in expressions {
@@ -870,6 +893,21 @@ pub enum EffectReport {
         evidence: String,
         occurrence: String,
     },
+    Withdraw {
+        evidence: String,
+        because: String,
+    },
+}
+
+/// One withdrawn observation, resolved to its occurrence when it was
+/// withdrawn. See spec/caveat-withdrawal-0.1.md.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Withdrawal {
+    pub evidence: String,
+    pub because: String,
+    pub sequence: u64,
+    pub event: String,
 }
 
 /// One change to a decision, in the order it happened. See
@@ -929,6 +967,9 @@ pub struct ReactiveSnapshot {
     /// Texts received for `id` parameters: the entry at index 0 has handle 1.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub identifiers: Vec<String>,
+    /// Withdrawn observations, in the order they were withdrawn.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub withdrawals: Vec<Withdrawal>,
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
@@ -987,6 +1028,8 @@ pub struct ReactiveSession {
     renewals: Arc<BTreeMap<String, Renewal>>,
     /// Texts received for `id` parameters, in handle order.
     identifiers: Arc<Identifiers>,
+    /// Withdrawn observations, in the order they were withdrawn.
+    withdrawals: Arc<Vec<Withdrawal>>,
     /// Qualifications waiting for time to pass, in the order scheduled.
     scheduled: Arc<Vec<ScheduledQualification>>,
     /// Seconds counted from the time event's `dt`.
@@ -1149,6 +1192,7 @@ impl ReactiveSession {
             decision_series: Arc::default(),
             renewals: Arc::default(),
             identifiers: Arc::default(),
+            withdrawals: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
@@ -1536,6 +1580,7 @@ impl ReactiveSession {
             .map(Arc::from);
         session.validate_procedures()?;
         session.specialize_procedures()?;
+        session.declare_withdrawal_caveat()?;
         session.validate_rules()?;
         session.check_observation_order()?;
         session.group_bindings();
@@ -1974,9 +2019,15 @@ impl ReactiveSession {
                 "observed" => self.require_kind(symbol, "evidence"),
                 "examined" => self.require_kind(symbol, "caveat"),
                 "qualification_evidence" => self.require_kind(symbol, "evidence"),
-                "qualification_caveat" => self.require_kind(symbol, "caveat"),
+                "qualification_caveat" => {
+                    self.not_the_withdrawal_caveat(symbol, "qualified")?;
+                    self.require_kind(symbol, "caveat")
+                }
                 "numeric_history" => self.require_history(symbol),
-                "has_sample" => self.require_readings(symbol),
+                "has_sample" | "withdrawn_latest" => self.require_readings(symbol),
+                "withdrawn" => self.require_kind(symbol, "evidence"),
+                "rests_on_withdrawn" if commitments.contains(symbol) => Ok(()),
+                "rests_on_withdrawn" => Err(format!("unknown reactive commitment {symbol}")),
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
                 _ if kind.starts_with(CARRIES) => {
@@ -2068,6 +2119,7 @@ impl ReactiveSession {
                 } => {
                     self.require_kind(evidence, "evidence")?;
                     self.require_kind(caveat, "caveat")?;
+                    self.not_the_withdrawal_caveat(caveat, "qualify")?;
                     if let Some(after) = after {
                         if self.time_event.is_none() {
                             return Err(format!(
@@ -2085,6 +2137,18 @@ impl ReactiveSession {
                             "renew {evidence}: declare it renewable first (renewable {evidence} limit N;)"
                         ));
                     }
+                }
+                Effect::Withdraw { target, because } => {
+                    match target {
+                        EvidenceSelector::Named(evidence) => {
+                            self.require_kind(evidence, "evidence")?
+                        }
+                        EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
+                        EvidenceSelector::Caveated { .. } => {
+                            return Err("withdraw names evidence or latest(STREAM)".into())
+                        }
+                    }
+                    self.require_kind(because, "evidence")?;
                 }
                 Effect::Emit { name } => {
                     if !self.cue_definitions.contains_key(name) {
@@ -2116,6 +2180,7 @@ impl ReactiveSession {
                 }
                 Effect::Examine { caveat, .. } => {
                     self.require_kind(caveat, "caveat")?;
+                    self.not_the_withdrawal_caveat(caveat, "examine")?;
                     if self.resources.is_none() {
                         return Err("reactive examination requires an attention budget".into());
                     }
@@ -2131,6 +2196,7 @@ impl ReactiveSession {
                     let mut retained = HashSet::new();
                     for caveat in retaining {
                         self.require_kind(caveat, "caveat")?;
+                        self.not_the_withdrawal_caveat(caveat, "retaining")?;
                         if !retained.insert(caveat) {
                             return Err(format!("duplicate retained caveat {caveat}"));
                         }
@@ -2470,7 +2536,7 @@ impl ReactiveSession {
                 }
                 HistoryRead::Latest => unreachable!(),
             };
-            return Tracked::new(value, provenance);
+            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         if let Some(series) = self.decision_series.get(name) {
             let mut provenance = series.selection_qualifications.clone();
@@ -2493,7 +2559,7 @@ impl ReactiveSession {
                 }
                 HistoryRead::Latest => unreachable!(),
             };
-            return Tracked::new(value, provenance);
+            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
         }
         Err(format!("unknown history {name}"))
     }
@@ -2506,7 +2572,9 @@ impl ReactiveSession {
                 .ok_or_else(|| format!("reading stream {name} has no reached sample"))?;
             return Tracked::new(
                 reading.value,
-                reading.provenance.union(&stream.selection_qualifications)?,
+                self.with_current_withdrawals(
+                    reading.provenance.union(&stream.selection_qualifications)?,
+                )?,
             );
         }
         if let Some(series) = self.decision_series.get(name) {
@@ -2520,7 +2588,9 @@ impl ReactiveSession {
                 .ok_or_else(|| format!("current decision {current} has no numeric using value"))?;
             return Tracked::new(
                 value,
-                basis.provenance.union(&series.selection_qualifications)?,
+                self.with_current_withdrawals(
+                    basis.provenance.union(&series.selection_qualifications)?,
+                )?,
             );
         }
         Err(format!("unknown history {name}"))
@@ -2588,6 +2658,9 @@ impl ReactiveSession {
             Effect::Reveal { evidence, .. } | Effect::Renew { evidence } => {
                 Some(("observed", self.occurrence(evidence).to_string()))
             }
+            Effect::Withdraw { target, .. } => self
+                .withdrawal_target(target)
+                .map(|occurrence| (WITHDRAWN, occurrence)),
             Effect::Examine { caveat, .. } => Some(("examined", caveat.clone())),
             Effect::Commit { action, .. } => Some(("committed", action.clone())),
             Effect::Reopen { action, .. } => {
@@ -3077,6 +3150,9 @@ impl ReactiveSession {
     }
 
     fn predicate_grounds(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if let Some(result) = self.withdrawal_predicate(kind, name, true)? {
+            return Ok(result);
+        }
         if let Some(caveat) = kind.strip_prefix(HAS_CAVEAT) {
             let state = self.state_with_caveat(name, caveat)?;
             return Tracked::new(
@@ -3275,6 +3351,16 @@ impl ReactiveSession {
     }
 
     fn predicate_tracked(&self, kind: &str, name: &str) -> Result<Tracked<bool>, String> {
+        if let Some(mut result) = self.withdrawal_predicate(kind, name, false)? {
+            if let Some(dependency) = self
+                .predicate_qualifications
+                .get(WITHDRAWN)
+                .and_then(|targets| targets.get(name))
+            {
+                result.provenance.merge(dependency)?;
+            }
+            return Ok(result);
+        }
         if let Some(caveat) = kind.strip_prefix(HAS_CAVEAT) {
             let state = self.state_with_caveat(name, caveat)?;
             return Tracked::new(
@@ -3565,6 +3651,34 @@ impl ReactiveSession {
                         };
                         Arc::make_mut(&mut self.scheduled).push(scheduled);
                     }
+                }
+            }
+            Effect::Withdraw { target, because } => {
+                let evidence = self.withdrawal_target(target).ok_or_else(|| {
+                    format!("cannot withdraw {target:?}: its stream has no reading")
+                })?;
+                let because = self.occurrence(because).to_string();
+                for (name, role) in [(&evidence, "withdraw"), (&because, "withdraw because")] {
+                    if !self.predicate("observed", name)? {
+                        return Err(format!("cannot {role} unobserved evidence {name}").into());
+                    }
+                }
+                if !self
+                    .withdrawals
+                    .iter()
+                    .any(|withdrawal| withdrawal.evidence == evidence)
+                {
+                    Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
+                        evidence: evidence.clone(),
+                        because: because.clone(),
+                        sequence: self.sequence,
+                        event: self.last_event.clone().unwrap_or_default(),
+                    });
+                    self.apply_qualification(&evidence, WITHDRAWN, guard)?;
+                    // apply_qualification reported a qualify: this is a withdrawal.
+                    self.effects.pop();
+                    self.effects
+                        .push(EffectReport::Withdraw { evidence, because });
                 }
             }
             Effect::Renew { evidence } => {
@@ -4019,8 +4133,143 @@ impl ReactiveSession {
 
     /// A predicate's target as the source names it, resolved: predicates on
     /// evidence mean its current occurrence.
+    /// A program that withdraws has the built-in caveat `withdrawn`, and may
+    /// not declare, apply or examine it any other way.
+    fn declare_withdrawal_caveat(&mut self) -> Result<(), String> {
+        let withdraws = self
+            .rules
+            .iter()
+            .map(|rule| &rule.effect)
+            .chain(
+                self.procedures
+                    .values()
+                    .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
+            )
+            .any(|effect| matches!(effect, Effect::Withdraw { .. }));
+        if !withdraws {
+            return Ok(());
+        }
+        if self.symbols.contains_key(WITHDRAWN)
+            || self.states.contains_key(WITHDRAWN)
+            || self.constants.contains_key(WITHDRAWN)
+            || self.reading_streams.contains_key(WITHDRAWN)
+            || self.decision_series.contains_key(WITHDRAWN)
+        {
+            return Err(
+                "withdrawn is the caveat a withdrawal applies; a program that withdraws cannot declare it"
+                    .into(),
+            );
+        }
+        let graph = Arc::make_mut(&mut self.graph);
+        let id = graph.add_caveat(
+            "withdrawn: the observation is no longer stood behind",
+            Consequence::Material,
+        );
+        Arc::make_mut(&mut self.symbols).insert(WITHDRAWN.into(), id);
+        Ok(())
+    }
+
+    fn not_the_withdrawal_caveat(&self, caveat: &str, place: &str) -> Result<(), String> {
+        if caveat == WITHDRAWN && self.withdraws() {
+            return Err(format!(
+                "{place} cannot apply withdrawn: only withdraw applies it"
+            ));
+        }
+        Ok(())
+    }
+
+    /// Whether this program has the built-in `withdrawn` caveat.
+    fn withdraws(&self) -> bool {
+        self.symbols.get(WITHDRAWN).is_some_and(|id| {
+            matches!(self.graph.nodes.get(id), Some(NodeKind::Caveat { .. }))
+                && self
+                    .rules
+                    .iter()
+                    .map(|rule| &rule.effect)
+                    .chain(
+                        self.procedures
+                            .values()
+                            .flat_map(|procedure| procedure.body.iter().map(|step| &step.effect)),
+                    )
+                    .any(|effect| matches!(effect, Effect::Withdraw { .. }))
+        })
+    }
+
+    /// The occurrence a withdrawal names now: named evidence's current
+    /// occurrence, or the stream's current reading.
+    fn withdrawal_target(&self, target: &EvidenceSelector) -> Option<String> {
+        match target {
+            EvidenceSelector::Named(evidence) => Some(self.occurrence(evidence).to_string()),
+            EvidenceSelector::Latest(stream) => self.reading_streams[stream].current.clone(),
+            EvidenceSelector::Caveated { .. } => None,
+        }
+    }
+
+    fn withdrawal_of(&self, evidence: &str) -> Option<&Withdrawal> {
+        self.withdrawals
+            .iter()
+            .find(|withdrawal| withdrawal.evidence == evidence)
+    }
+
+    /// A value newly read from history carries `withdrawn` if what it rests on
+    /// has since been withdrawn. The record itself is unchanged.
+    fn with_current_withdrawals(&self, mut provenance: Provenance) -> Result<Provenance, String> {
+        if provenance
+            .evidence
+            .iter()
+            .any(|evidence| self.withdrawal_of(evidence).is_some())
+        {
+            provenance.merge(&Provenance::from_names([], [WITHDRAWN.to_string()])?)?;
+        }
+        Ok(provenance)
+    }
+
+    /// `withdrawn(E)`, `withdrawn(latest(S))` and `rests_on_withdrawn(D)`.
+    /// Each answer carries the reasons of the withdrawals it found.
+    fn withdrawal_predicate(
+        &self,
+        kind: &str,
+        name: &str,
+        grounds: bool,
+    ) -> Result<Option<Tracked<bool>>, String> {
+        let withdrawn: Vec<&Withdrawal> = match kind {
+            WITHDRAWN => self.withdrawal_of(name).into_iter().collect(),
+            "withdrawn_latest" => self
+                .reading_streams
+                .get(name)
+                .and_then(|stream| stream.current.as_deref())
+                .and_then(|current| self.withdrawal_of(current))
+                .into_iter()
+                .collect(),
+            "rests_on_withdrawn" => {
+                let current = match self.decision_series.get(name) {
+                    Some(series) => series.current.as_deref(),
+                    None => Some(name),
+                };
+                let evidence = current
+                    .and_then(|current| self.commitment_grounds.get(current))
+                    .map(|grounds| grounds.evidence.clone())
+                    .unwrap_or_default();
+                evidence
+                    .iter()
+                    .filter_map(|evidence| self.withdrawal_of(evidence))
+                    .collect()
+            }
+            _ => return Ok(None),
+        };
+        let mut provenance = Provenance::default();
+        for withdrawal in &withdrawn {
+            provenance.merge(&if grounds {
+                self.qualify_core(&withdrawal.because, &[])?
+            } else {
+                self.qualify(&withdrawal.because, &[])?
+            })?;
+        }
+        Tracked::new(!withdrawn.is_empty(), provenance).map(Some)
+    }
+
     fn predicate_target<'a>(&'a self, kind: &str, name: &'a str) -> &'a str {
-        if kind == "observed" || kind.starts_with(CARRIES) {
+        if kind == "observed" || kind == WITHDRAWN || kind.starts_with(CARRIES) {
             self.occurrence(name)
         } else {
             name
@@ -4100,6 +4349,7 @@ impl ReactiveSession {
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
             identifiers: self.identifiers.texts().to_vec(),
+            withdrawals: (*self.withdrawals).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
@@ -4190,6 +4440,14 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             evidence: rename(evidence),
             caveat: rename(caveat),
             after: after.as_ref().map(|after| after.rename_symbols(names)),
+        },
+        Effect::Withdraw { target, because } => Effect::Withdraw {
+            target: match target {
+                EvidenceSelector::Named(evidence) => EvidenceSelector::Named(rename(evidence)),
+                EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
+                selector => selector.clone(),
+            },
+            because: rename(because),
         },
         Effect::Renew { evidence } => Effect::Renew {
             evidence: rename(evidence),
@@ -4576,6 +4834,7 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
                     | "reject"
                     | "qualify"
                     | "renew"
+                    | "withdraw"
             )
         {
             candidates.push(index);
@@ -4951,6 +5210,31 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
         ["renew", evidence] => Ok(Effect::Renew {
             evidence: identifier(evidence)?,
         }),
+        ["withdraw", rest @ ..] if rest.contains(&"because") => {
+            let split = rest.iter().position(|word| *word == "because").unwrap();
+            let (target, reason) = (rest[..split].join(" "), &rest[split + 1..]);
+            let [reason] = reason else {
+                return Err("withdraw expects EVIDENCE because EVIDENCE".into());
+            };
+            let target = match target
+                .strip_prefix("latest")
+                .map(str::trim)
+                .and_then(|rest| rest.strip_prefix('('))
+            {
+                Some(arguments) => EvidenceSelector::Latest(identifier(
+                    arguments
+                        .trim()
+                        .strip_suffix(')')
+                        .ok_or("withdraw latest requires a closing parenthesis")?
+                        .trim(),
+                )?),
+                None => EvidenceSelector::Named(identifier(&target)?),
+            };
+            Ok(Effect::Withdraw {
+                target,
+                because: identifier(reason)?,
+            })
+        }
         ["reject", rest @ ..] if !rest.is_empty() => {
             let text = rest.join(" ");
             let (message, trailing) = quoted_prefix(&text)?;
