@@ -182,7 +182,7 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Observation Order 0.1](spec/caveat-observation-order-0.1.md) rejects, when a program loads, a rule that qualifies a value with evidence only a later rule of the same event can reveal: a use that can only fail. Uses that could succeed on some dispatch are left to the runtime.
 
-[Procedure Symbols 0.1](spec/caveat-procedure-symbols-0.1.md) lets a procedure take evidence, a claim or a caveat by name (`proc learn(e evidence, sort)`), so every way of observing something can share one set of rules. Each call is specialized for the names it passes when the program loads.
+[Procedure Symbols 0.1](spec/caveat-procedure-symbols-0.1.md) lets a procedure take evidence, a claim, a caveat, a reading stream or a decision series by name (`proc learn(e evidence, sort)`), so every way of observing something can share one set of rules. Each call is specialized for the names it passes when the program loads.
 
 [Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
 

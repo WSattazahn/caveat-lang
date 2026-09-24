@@ -31,7 +31,8 @@ Definitions can refer to later procedure definitions.
 
 Parameters and arguments are numeric; [Procedure Symbols
 0.1](caveat-procedure-symbols-0.1.md) adds parameters that name evidence, a
-claim or a caveat. Argument count must match exactly.
+claim, a caveat, a reading stream or a decision series. Argument count must
+match exactly.
 There are no return values, local declarations, nested procedure declarations,
 dynamic procedure names, loops, or recursive calls. Use pure `fn` declarations
 for reusable calculations. Procedure names cannot duplicate one another or
