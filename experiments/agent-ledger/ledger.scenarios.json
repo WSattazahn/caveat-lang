@@ -1,0 +1,363 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ledger.cav",
+  "scenarios": [
+    {
+      "id": "L01",
+      "title": "A merge needs passing checks on the head and a go-ahead, and rests on both",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr28/status": "decided to merge",
+            "/commitment_grounds/pr28_merge@1": {
+              "evidence": [
+                "pr28_checks@1",
+                "pr28_go"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "Already decided to merge."
+        }
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "A push after the decision reopens it and needs a fresh go-ahead; the decision keeps what it was made on",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "checkpoint": "decided"
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 16
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr29/status": "reconsider: new commit since the decision",
+            "/decision_journal/1": {
+              "change": "reopened",
+              "because": [
+                "pr29_push@2"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "decided",
+          "paths": [
+            "/commitment_grounds/pr29_merge@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084,
+            "result": "passed"
+          },
+          "rejected": "Checks for a commit that is not the head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 16,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          },
+          "rejected": "A go-ahead for a commit that is not the head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 16
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/decision_series/pr29_merge/current": "pr29_merge@2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "Merged by someone else: a later merge is refused",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr26",
+            "commit": 90147877
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr26",
+            "commit": 90147877,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr26"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr26",
+            "commit": 90147877
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr26"
+          },
+          "rejected": "Someone else has already merged it."
+        },
+        {
+          "expect": {
+            "/bindings/pr26/status": "merged by someone else"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L04",
+      "title": "A misread pass can only be followed by a failure; the decision made on it still cites it",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr21"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427,
+            "result": "failed"
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal/1": {
+              "change": "reopened",
+              "because": [
+                "pr21_checks@2"
+              ]
+            },
+            "/commitment_grounds/pr21_merge@1": {
+              "evidence": [
+                "pr21_checks@1",
+                "pr21_go"
+              ],
+              "caveats": []
+            },
+            "/reading_streams/pr21_checks/occurrences/0/relation": "supports"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L05",
+      "title": "Only an explicit go-ahead for later revisions carries over a push, and the decision then rests on it",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 16
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 16,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr29_merge@1": {
+              "evidence": [
+                "pr29_checks@1",
+                "pr29_scope"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "Later revisions are already approved."
+        }
+      ]
+    }
+  ]
+}
