@@ -1,5 +1,6 @@
 use caveat_runtime::action_runtime::ActionRuntime;
 use caveat_runtime::map::CaveatMap;
+#[cfg(feature = "games")]
 use caveat_runtime::web::Web3DSession;
 
 const DOOR: &str = include_str!("../../game/the_door_round2.cav");
@@ -83,6 +84,7 @@ fn wait_and_reroute_do_not_make_cross_corridor_actions_available() {
     assert!(!rerouted.is_available(&map, "continue"));
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn web_session_initially_exposes_the_investigation_actions() {
     let session = Web3DSession::new(DOOR).expect("Web3D session should initialize");
@@ -93,6 +95,7 @@ fn web_session_initially_exposes_the_investigation_actions() {
     assert!(pending.contains("camera_has_blind_spot"));
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn web_session_stops_offering_impossible_revised_routes_after_wait() {
     let mut session = Web3DSession::new(DOOR).expect("Web3D session should initialize");
@@ -104,6 +107,7 @@ fn web_session_stops_offering_impossible_revised_routes_after_wait() {
     assert_eq!(session.pending(), "{\"kind\":\"complete\"}");
 }
 
+#[cfg(feature = "games")]
 #[test]
 fn web_3d_uses_entity_parent_hinges_and_endpoint_pitch() {
     let mut session = Web3DSession::new(DOOR).expect("Web3D session should initialize");

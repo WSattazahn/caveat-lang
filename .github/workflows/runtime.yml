@@ -60,6 +60,10 @@ jobs:
       - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+      - name: Lint the reactive-only runtime
+        run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
+      - name: Test the reactive-only runtime
+        run: cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features
       - name: Third-party notices match the locked crates
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
