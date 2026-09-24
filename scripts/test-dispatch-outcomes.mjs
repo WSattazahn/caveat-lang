@@ -261,6 +261,22 @@ try {
       }
     });
 
+    check('full reading and decision histories are atomic limit rejections', () => {
+      const source = fixture('history-limit', `claim safe; evidence gauge from "a gauge";
+        readings depth from gauge limit 1; decisions route limit 1;
+        event read value min 0 max 9; event decide; event doubt;
+        on read sample depth = value supports safe;
+        on decide commit route because enough using latest(depth);
+        on doubt when committed(route) and not reopened(route) reopen route because latest(depth);`);
+      withSessions(source, 1, session => {
+        dispatch(session, 'read', '{"value":1}');
+        rejected(session, 'read', '{"value":2}', 'limit', 'history_limit');
+        dispatch(session, 'decide', '{}');
+        dispatch(session, 'doubt', '{}');
+        rejected(session, 'decide', '{}', 'limit', 'history_limit');
+      });
+    });
+
     for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;

@@ -264,6 +264,70 @@ fn live_and_skipped_procedure_work_share_the_classified_event_budget() {
     }
 }
 
+// A full reading stream or decision series refuses the event that would add
+// to it, classified, and the session goes on; it is not a fatal fault.
+#[test]
+fn full_histories_refuse_the_event_and_the_session_continues() {
+    let mut game = session(
+        r#"
+        claim safe;
+        evidence gauge from "a gauge";
+        readings depth from gauge limit 2;
+        decisions route limit 1;
+        state doubts = 0 min 0 max 9;
+        event read value min 0 max 9;
+        event decide;
+        event doubt;
+        on read sample depth = value supports safe;
+        on decide commit route because enough using latest(depth);
+        on doubt when committed(route) and not reopened(route) reopen route because latest(depth);
+        on doubt set doubts = doubts + 1;
+    "#,
+    );
+    game.dispatch("read", r#"{"value":1}"#).unwrap();
+    game.dispatch("read", r#"{"value":2}"#).unwrap();
+    let refused = rejected(
+        &mut game,
+        "read",
+        r#"{"value":3}"#,
+        "limit",
+        "history_limit",
+    );
+    // Like other diagnostics, the message keeps its rule prefix.
+    assert_eq!(
+        refused["message"],
+        "event read, rule 1: reading stream depth reached its history limit 2"
+    );
+
+    game.dispatch("decide", "{}").unwrap();
+    game.dispatch("doubt", "{}").unwrap();
+    let refused = rejected(&mut game, "decide", "{}", "limit", "history_limit");
+    assert!(refused["message"]
+        .as_str()
+        .unwrap()
+        .ends_with("decision series route reached its history limit 1"));
+
+    // Still usable: the next event is accepted and nothing was published by the
+    // refused ones.
+    let accepted = json(&game.dispatch_outcome("doubt", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    assert_eq!(accepted["snapshot"]["values"]["doubts"], 2.0);
+    assert_eq!(
+        accepted["snapshot"]["reading_streams"]["depth"]["occurrences"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        accepted["snapshot"]["decision_series"]["route"]["revisions"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+
 #[test]
 fn the_maximum_valid_procedure_depth_still_dispatches() {
     let mut source = String::from("state output = 0; event run; proc p0() { set output = 1; };");

@@ -213,6 +213,9 @@ record capacity; that is an error rather than permission to discard its basis.
 Any failure rejects the complete event, including samples, revisions, reopening
 edges, numeric updates, attention spending, cues, and head-selection metadata.
 An aborted event consumes neither a published sequence nor an occurrence ID.
+A `sample` or `commit` on a history that already holds its declared capacity
+is refused as `limit/history_limit` ([dispatch outcomes](caveat-dispatch-0.1.md)),
+and the session continues.
 
 The standard library additionally provides the ordinary Caveat function
 `wrap(value, period) = require(period > 0, value - floor(value / period) * period)`.

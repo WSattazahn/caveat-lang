@@ -13,6 +13,9 @@ existing meaning or origin requires a new schema. The initial catalog is
 deliberately narrow: arithmetic, `require`, and history-capacity failures remain
 unclassified fatal errors for new callers. A bare expected rejection means
 policy only. The future scenario runner must enforce that interpretation.
+Since this audit, a full history is refused as `limit/history_limit`
+([changes](../../spec/caveat-dispatch-0.1.md#changes)); the audit below
+describes the runtime it examined.
 
 ## Evidence
 
