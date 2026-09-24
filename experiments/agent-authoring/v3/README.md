@@ -17,9 +17,9 @@ out a change request on those programs. The design is in
 
 ## Reproducing the scores
 
-`score.mjs` needs the registered tarball, `caveat-lang-0.1.0-rc.1.tgz` from
-the `kit-package-candidate` artifact of the tagged commit's CI run (its SHA-256
-is in `registration.json`). It checks every registered file, installs the
+`score.mjs` needs the registered tarball, `caveat-lang-0.1.0-rc.1.tgz`,
+attached to the [v0.1.0-rc.1 pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.1) (its
+SHA-256 is in `registration.json`). It checks every registered file, installs the
 tarball offline into `test-results/agent-authoring-v3/`, and scores the frozen
 programs through the installed package:
 
