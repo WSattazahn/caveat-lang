@@ -102,6 +102,7 @@ const RESERVED: &[&str] = &[
     "via",
     "when",
     "with",
+    "withdraw",
     // closed value words
     "catastrophic",
     "deadline",
@@ -135,6 +136,8 @@ const RESERVED: &[&str] = &[
     "observed",
     "qualified",
     "reopened",
+    "rests_on_withdrawn",
+    "withdrawn",
 ];
 
 /// Names that are already callable: the runtime's primitives and the standard

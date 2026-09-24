@@ -1551,6 +1551,16 @@ impl Parser {
             self.expect(TokenKind::RightParen, "')' after history identifier")?;
             return Ok(Node::Latest(history));
         }
+        // `withdrawn(latest(STREAM))`: whether the stream's current reading is
+        // withdrawn. See spec/caveat-withdrawal-0.1.md.
+        if name == "withdrawn" && self.peek() == Some(&TokenKind::Identifier("latest".into())) {
+            self.cursor += 1;
+            self.expect(TokenKind::LeftParen, "'(' after withdrawn(latest")?;
+            let history = self.graph_identifier("withdrawn latest history")?;
+            self.expect(TokenKind::RightParen, "')' after the history")?;
+            self.expect(TokenKind::RightParen, "')' after the withdrawn target")?;
+            return Ok(Node::Predicate("withdrawn_latest".into(), history));
+        }
         if predicate_name(&name) {
             let offset = self.offset();
             let Some(TokenKind::Identifier(target)) = self.take() else {
@@ -1697,7 +1707,13 @@ fn plain_identifier(name: &str) -> bool {
 fn predicate_name(name: &str) -> bool {
     matches!(
         name,
-        "observed" | "examined" | "committed" | "reopened" | "has_sample"
+        "observed"
+            | "examined"
+            | "committed"
+            | "reopened"
+            | "has_sample"
+            | "withdrawn"
+            | "rests_on_withdrawn"
     )
 }
 

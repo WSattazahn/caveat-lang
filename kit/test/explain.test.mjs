@@ -138,3 +138,25 @@ test('parseEvents accepts blank lines and CRLF, and defaults the payload', () =>
   assert.throws(() => parseEvents('[]'), /line 1: expected an object/);
   assert.throws(() => parseEvents('{"payload":{}}'), /line 1: "event" must name an event/);
 });
+
+test('a withdrawn observation is marked where a decision rests on it, which keeps its grounds', () => {
+  const session = real.open(`claim safe; claim misreading;
+    evidence ci from "checks"; evidence recheck from "a re-read";
+    readings checks from ci limit 4; decisions merge limit 2;
+    event check; event decide; event misread;
+    on check sample checks = 1 supports safe;
+    on decide commit merge because enough using latest(checks);
+    on misread reveal recheck supports misreading;
+    on misread withdraw latest(checks) because recheck;`);
+  for (const event of ['check', 'decide', 'misread']) session.dispatch(event, {});
+  const snapshot = session.snapshot();
+  session.close();
+  const report = explain(snapshot);
+  const [revision] = report.decisions[0].revisions;
+  assert.deepEqual(revision.grounds.evidence, ['checks@1']);
+  assert.deepEqual(revision.withdrawn, [{ evidence: 'checks@1', because: 'recheck', sequence: 3, event: 'misread' }]);
+  assert.deepEqual(report.evidence.find(item => item.id === 'checks@1').withdrawn, { because: 'recheck', sequence: 3, event: 'misread' });
+  const text = formatExplanation(report, 'ledger');
+  assert.match(text, /based on checks@1\n {6}checks@1 has since been withdrawn at #3 because recheck/);
+  assert.match(text, /checks@1 = 1 supports safe .*withdrawn at #3 because recheck/);
+});

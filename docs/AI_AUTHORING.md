@@ -242,6 +242,21 @@ renewal and cites simultaneous causes in observation order. An empty selection
 rejects atomically. An explicit extra caveat on a value is not automatically a
 caveat on its evidence. See [state caveats](../spec/caveat-state-caveats-0.1.md).
 
+When an observation turns out to be wrong, such as a test result read
+incorrectly, withdraw it rather than recording a contrary one:
+
+```caveat
+on misread reveal recheck supports misreading;
+on misread withdraw latest(checks) because recheck;
+on misread when committed(merge) and not reopened(merge) and rests_on_withdrawn(merge)
+    reopen merge because recheck;
+```
+
+The withdrawal is recorded with its reason. Current values, and any later read
+of the reading, carry a `withdrawn` caveat. The decision keeps what it was made
+on, and reopens only because a rule says so. See
+[withdrawal](../spec/caveat-withdrawal-0.1.md).
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source

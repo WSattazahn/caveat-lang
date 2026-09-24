@@ -56,6 +56,9 @@ Features added alongside the profiles:
   caveats learned after the fact, `qualify EVIDENCE with CAVEAT;`.
 - [Renewal](reference/spec/caveat-renewal-0.1.md): evidence that can be observed
   again, and caveats that arrive after a delay.
+- [Withdrawal](reference/spec/caveat-withdrawal-0.1.md): recording that an
+  observation is no longer stood behind, without erasing what rested on it,
+  `withdraw E because R;`.
 - [State caveats](reference/spec/caveat-state-caveats-0.1.md): asking which
   caveats a retained value carries, and reopening because of them.
 - [Observation order](reference/spec/caveat-observation-order-0.1.md): uses of

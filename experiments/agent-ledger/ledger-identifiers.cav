@@ -23,6 +23,8 @@ event approved target kind pr, commit id;
 event approved_revisions target kind pr;
 event merge target kind pr;
 event merged_elsewhere target kind pr;
+# A check result read wrongly: withdrawn, not replaced by a failure.
+event misread target kind pr;
 
 for pr as $p {
     claim $p_ready;
@@ -34,6 +36,8 @@ for pr as $p {
     evidence $p_scope from "the user's go-ahead for later revisions too";
     evidence $p_push from "a new commit on the branch";
     evidence $p_elsewhere from "GitHub: merged by someone else";
+    evidence $p_recheck from "the agent re-read the checks";
+    claim $p_misreading;
     renewable $p_go limit 16;
     renewable $p_push limit 64;
     readings $p_checks from $p_ci limit 32;
@@ -87,6 +91,15 @@ for pr as $p {
     on merge when target == $index and $p_approved_head != $p_head and $p_revisions == 1
         commit $p_merge because enough using qualified(latest($p_checks), $p_scope);
 
+    # Withdrawing the misread result reopens a decision grounded on it.
+    # The decision keeps what it was made on (spec/caveat-withdrawal-0.1.md).
+    on misread when target == $index and not has_sample($p_checks) reject "No check result to withdraw.";
+    on misread when target == $index and not observed($p_recheck) reveal $p_recheck supports $p_misreading;
+    on misread when target == $index withdraw latest($p_checks) because $p_recheck;
+    on misread when target == $index set $p_green = 0;
+    on misread when target == $index and committed($p_merge) and not reopened($p_merge) and rests_on_withdrawn($p_merge)
+        reopen $p_merge because $p_recheck;
+
     on merged_elsewhere when target == $index and $p_merged == 1 reject "Already recorded as merged.";
     on merged_elsewhere when target == $index reveal $p_elsewhere supports $p_closed;
     on merged_elsewhere when target == $index set $p_merged = 1;
@@ -95,6 +108,7 @@ for pr as $p {
     bind $p.status = "checks pass on the head" when $p_green == 1;
     bind $p.status = "decided to merge" when committed($p_merge) and not reopened($p_merge);
     bind $p.status = "reconsider: new commit since the decision" when reopened($p_merge) and $p_merged == 0;
+    bind $p.status = "reconsider: a result it rests on was withdrawn" when reopened($p_merge) and rests_on_withdrawn($p_merge) and $p_merged == 0;
     bind $p.status = "merged by someone else" when $p_merged == 1;
     bind $p.head = id_text($p_head);
     bind $p.approved_for = id_text($p_approved_head);

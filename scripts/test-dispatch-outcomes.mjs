@@ -300,6 +300,36 @@ try {
       });
     });
 
+    check('a withdrawal is recorded, keeps what decisions rest on, and a refused event withdraws nothing', () => {
+      const source = fixture('withdrawal', `claim safe; claim misreading;
+        evidence ci from "checks"; evidence recheck from "a re-read";
+        readings checks from ci limit 4; decisions merge limit 2; state estimate = 0;
+        event check; event decide; event misread; event refused_misread;
+        on check sample checks = 1 supports safe;
+        on decide commit merge because enough using latest(checks);
+        on misread reveal recheck supports misreading;
+        on misread withdraw latest(checks) because recheck;
+        on misread set estimate = latest(checks);
+        on refused_misread reveal recheck supports misreading;
+        on refused_misread withdraw latest(checks) because recheck;
+        on refused_misread reject "Not now.";`);
+      withSessions(source, 1, session => {
+        dispatch(session, 'check');
+        const decided = dispatch(session, 'decide').snapshot;
+        const after = dispatch(session, 'misread').snapshot;
+        assert.deepEqual(after.withdrawals, [{ evidence: 'checks@1', because: 'recheck', sequence: 3, event: 'misread' }]);
+        assert.deepEqual(after.commitment_grounds, decided.commitment_grounds);
+        assert(after.qualified_values.estimate.provenance.caveats.includes('withdrawn'));
+        const restored = WebReactiveSession.restore(source, session.save());
+        try { assert.deepEqual(checkpoint(restored), checkpoint(session)); } finally { restored.free(); }
+      });
+      withSessions(source, 1, session => {
+        dispatch(session, 'check');
+        rejected(session, 'refused_misread', '{}', 'policy', 'reject');
+        assert.equal(parse(session.snapshot()).withdrawals, undefined);
+      });
+    });
+
     for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;

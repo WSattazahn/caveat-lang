@@ -175,6 +175,86 @@
           }
         }
       ]
+    },
+    {
+      "id": "I03",
+      "title": "A misread check is withdrawn: the merge decision reopens and keeps what it was made on",
+      "steps": [
+        {
+          "send": "misread",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No check result to withdraw."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "checkpoint": "decided"
+        },
+        {
+          "send": "misread",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/withdrawals/0": {
+              "evidence": "pr29_checks@1",
+              "because": "pr29_recheck"
+            },
+            "/decision_journal/1": {
+              "change": "reopened",
+              "because": [
+                "pr29_recheck"
+              ]
+            },
+            "/bindings/pr29/status": "reconsider: a result it rests on was withdrawn",
+            "/reading_streams/pr29_checks/occurrences/0/relation": "supports"
+          }
+        },
+        {
+          "same_as": "decided",
+          "paths": [
+            "/commitment_grounds/pr29_merge@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No passing checks on the current head."
+        }
+      ]
     }
   ]
 }

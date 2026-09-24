@@ -24,6 +24,9 @@ function caveatsByEvidence(snapshot) {
  */
 export function explain(snapshot, events = []) {
   const qualifiedBy = caveatsByEvidence(snapshot);
+  // Withdrawn observations (spec/caveat-withdrawal-0.1.md), by evidence.
+  const withdrawals = new Map((snapshot.withdrawals ?? []).map(({ evidence, because, sequence, event }) =>
+    [evidence, { because, sequence, event }]));
   const readings = new Map();
   for (const stream of Object.values(snapshot.reading_streams ?? {})) {
     for (const occurrence of stream.occurrences ?? []) readings.set(occurrence.id, occurrence);
@@ -36,6 +39,7 @@ export function explain(snapshot, events = []) {
         id: relation.from, relation: relation.relation, claim: relation.to,
         value: reading?.value ?? null, sequence: reading?.sequence ?? null, event: reading?.event ?? null,
         caveats: qualifiedBy[relation.from] ?? [],
+        withdrawn: withdrawals.get(relation.from) ?? null,
       };
     });
 
@@ -49,12 +53,17 @@ export function explain(snapshot, events = []) {
         change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
       }));
       const reopened = history.some(entry => entry.change === 'reopened');
+      const grounds = snapshot.commitment_grounds?.[revision.id] ?? none();
       return {
         id: revision.id,
         value: snapshot.commitment_bases?.[revision.id]?.value ?? null,
         status: revision.id !== series.current ? 'superseded' : reopened ? 'reopened' : 'in force',
-        grounds: snapshot.commitment_grounds?.[revision.id] ?? none(),
+        grounds,
         lineage: snapshot.commitment_bases?.[revision.id]?.provenance ?? none(),
+        // Grounds withdrawn since the decision was made. The grounds themselves
+        // stay as they were.
+        withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
+          .map(name => ({ evidence: name, ...withdrawals.get(name) })),
         history,
       };
     }),
@@ -69,6 +78,7 @@ export function explain(snapshot, events = []) {
 }
 
 const list = values => (values.length ? values.join(', ') : 'nothing');
+const withdrawnNote = ({ sequence, because }) => `withdrawn at #${sequence} because ${because}`;
 const withCaveats = ({ evidence, caveats }) => `${list(evidence)}${caveats.length ? ` (caveats: ${caveats.join(', ')})` : ''}`;
 const show = value => (typeof value === 'string' ? JSON.stringify(value) : String(value));
 
@@ -97,6 +107,7 @@ export function formatExplanation(report, title = 'the program') {
     for (const revision of series.revisions) {
       lines.push(`    ${revision.id} = ${show(revision.value)}  ${revision.status}`);
       lines.push(`      based on ${withCaveats(revision.grounds)}`);
+      for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
       const also = revision.lineage.evidence.filter(name => !revision.grounds.evidence.includes(name));
       if (also.length) lines.push(`      could also have been influenced by ${list(also)}`);
       for (const entry of revision.history) {
@@ -109,7 +120,8 @@ export function formatExplanation(report, title = 'the program') {
   for (const item of report.evidence) {
     const value = item.value === null ? '' : ` = ${show(item.value)}`;
     const when = item.sequence === null ? '' : `  (#${item.sequence} ${item.event})`;
-    lines.push(`  ${item.id}${value} ${item.relation} ${item.claim}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}`);
+    const withdrawn = item.withdrawn ? `  ${withdrawnNote(item.withdrawn)}` : '';
+    lines.push(`  ${item.id}${value} ${item.relation} ${item.claim}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}${withdrawn}`);
   }
   lines.push('', 'Displayed');
   if (!report.displayed.length) lines.push('  nothing bound');
