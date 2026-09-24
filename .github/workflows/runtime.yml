@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # A manual run re-validates a branch, for when GitHub drops a push event.
+  # Pages still deploys only from a run started by a push to main.
+  workflow_dispatch:
 
 concurrency:
   group: runtime-${{ github.workflow }}-${{ github.ref }}
