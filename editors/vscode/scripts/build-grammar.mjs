@@ -70,29 +70,98 @@ const blockBody = [
   { include: '#block-strings' },
   { include: '#template' },
   { include: '#nested-block' },
+  { include: '#block-relation-statement' },
   { include: '#block-rule-statement' },
   { include: '#block-profile-statement' },
   { include: '#block-code' },
 ];
 
 // What a rule refers to in each context: at the top level, or in a `for` body,
-// where names may be built from templates and `$` is substituted.
-const top = { comments: '#comments', strings: '#strings', dollar: '#stray-template', code: '#code', declared: name };
+// where names may be built from templates and `$` is substituted. `referred`
+// is a name a statement refers to, which a module may qualify (`glow::lamp`).
+const blockName = String.raw`[A-Za-z_$][A-Za-z0-9_$]*`;
+const top = {
+  comments: '#comments',
+  strings: '#strings',
+  dollar: '#stray-template',
+  code: '#code',
+  declarations: '#declaration-names',
+  relations: '#relation-effects',
+  declared: name,
+  referred: String.raw`${name}(?:::${name})*`,
+};
 const block = {
   comments: '#block-comments',
   strings: '#block-strings',
   dollar: '#template',
   code: '#block-code',
-  declared: String.raw`[A-Za-z_$][A-Za-z0-9_$]*`,
+  declarations: '#block-declaration-names',
+  relations: '#block-relation-effects',
+  declared: blockName,
+  referred: String.raw`${blockName}(?:::${blockName})*`,
 };
 
 // Where a statement starts: a line, or after `;`, `{` or `}` on the same line.
 const statementStart = String.raw`(?:^|(?<=[;{}]))\s*`;
-const notRelation = String.raw`(?!\s+(?:supports|opposes|qualifies)\b)`;
+
+// Relations, in the forms the parsers accept (runtime/src/parser.rs and the
+// effects in runtime/src/reactive.rs). Elsewhere the three words are names:
+// `claim qualifies;`, `place supports kind dock;`.
+const relation = () => ({ name: 'keyword.operator.relation.caveat' });
+const reference = context => ({ patterns: [{ include: context.dollar }] });
+
+// `FROM supports|opposes|qualifies TO;`, the whole statement.
+const relationStatement = context => ({
+  match: String.raw`${statementStart}(${context.referred})\s+(supports|opposes|qualifies)\s+(${context.referred})(?=\s*;)`,
+  captures: { 1: reference(context), 2: relation(), 3: reference(context) },
+});
+
+function relationEffects(context) {
+  const n = context.referred;
+  return {
+    patterns: [
+      // `reveal CAVEAT then FROM REL TO` (core) and `reveal EVIDENCE REL CLAIM`
+      // (a reactive effect), each ending its statement.
+      {
+        match: String.raw`${notProperty}(reveal)\s+(${n})\s+(?:(then)\s+(${n})\s+)?(supports|opposes)\s+(${n})(?=\s*[;}])`,
+        captures: {
+          1: { name: 'keyword.other.effect.caveat' },
+          2: reference(context),
+          3: { name: 'keyword.control.caveat' },
+          4: reference(context),
+          5: relation(),
+          6: reference(context),
+        },
+      },
+      // `when_committed ACTION FROM REL TO;`
+      {
+        match: String.raw`${statementStart}(when_committed)\s+(${n})\s+(${n})\s+(supports|opposes)\s+(${n})(?=\s*;)`,
+        captures: { 1: { name: 'keyword.control.caveat' }, 2: reference(context), 3: reference(context), 4: relation(), 5: reference(context) },
+      },
+      // `sample STREAM = EXPRESSION REL CLAIM`: the relation is the effect's
+      // second-to-last word.
+      {
+        begin: String.raw`${notProperty}(sample)\b(?=\s+${n}\s*=)`,
+        beginCaptures: { 1: { name: 'keyword.other.effect.caveat' } },
+        end: '(?=[;}])',
+        patterns: [
+          { include: context.comments },
+          { include: context.strings },
+          { include: context.dollar },
+          {
+            match: String.raw`${notProperty}(supports|opposes)\s+(${n})(?=\s*[;}])`,
+            captures: { 1: relation(), 2: reference(context) },
+          },
+          { include: context.code },
+        ],
+      },
+    ],
+  };
+}
 
 // `rule NAME when A, B => C;` (core profile).
 const ruleStatement = context => ({
-  match: String.raw`${statementStart}(rule)${notRelation}\s+(${context.declared})`,
+  match: String.raw`${statementStart}(rule)\s+(${context.declared})`,
   captures: {
     1: { name: 'keyword.other.statement.caveat' },
     2: { name: 'entity.name.function.rule.caveat', patterns: [{ include: context.dollar }] },
@@ -100,7 +169,7 @@ const ruleStatement = context => ({
 });
 
 const profileStatement = context => ({
-  begin: String.raw`${statementStart}(${words(profileHeads)})\b(?!\s*\()${notRelation}`,
+  begin: String.raw`${statementStart}(${words(profileHeads)})\b(?!\s*\()`,
   beginCaptures: { 1: { name: 'keyword.other.statement.caveat' } },
   end: '(?=[;}])',
   patterns: [
@@ -121,9 +190,10 @@ const profileStatement = context => ({
   ],
 });
 
-const code = declarations => ({
+const code = context => ({
   patterns: [
-    { include: declarations },
+    { include: context.declarations },
+    { include: context.relations },
     { include: '#clause-values' },
     { include: '#bounds' },
     { include: '#builtin-calls' },
@@ -185,6 +255,7 @@ export const grammar = {
     { include: '#for-block' },
     { include: '#strings' },
     { include: '#stray-template' },
+    { include: '#relation-statement' },
     { include: '#rule-statement' },
     { include: '#profile-statement' },
     { include: '#code' },
@@ -241,12 +312,16 @@ export const grammar = {
       endCaptures: { 0: { name: 'punctuation.section.block.end.caveat' } },
       patterns: blockBody,
     },
+    'relation-statement': relationStatement(top),
+    'block-relation-statement': relationStatement(block),
+    'relation-effects': relationEffects(top),
+    'block-relation-effects': relationEffects(block),
     'rule-statement': ruleStatement(top),
     'block-rule-statement': ruleStatement(block),
     'profile-statement': profileStatement(top),
     'block-profile-statement': profileStatement(block),
-    code: code('#declaration-names'),
-    'block-code': code('#block-declaration-names'),
+    code: code(top),
+    'block-code': code(block),
     'declaration-names': declarationNames(name, '#stray-template'),
     // In a `for` body a declared name may be built from templates:
     // `cue $r_ring ring $r ...`, `on absorb_$m ...`.
@@ -284,7 +359,6 @@ export const grammar = {
         { name: 'storage.type.caveat', match: String.raw`${notProperty}(?:${words(declarations)})\b` },
         { name: 'keyword.control.caveat', match: String.raw`${notProperty}(?:${words(control)})\b` },
         { name: 'keyword.other.effect.caveat', match: String.raw`${notProperty}(?:${words(effects)})\b` },
-        { name: 'keyword.operator.relation.caveat', match: String.raw`${notProperty}(?:supports|opposes|qualifies)\b` },
         { name: 'keyword.operator.logical.caveat', match: String.raw`${notProperty}(?:and|or|not)\b` },
         { name: 'constant.language.boolean.caveat', match: String.raw`${notProperty}(?:true|false)\b` },
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}(?:${words(modifiers)})\b` },

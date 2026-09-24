@@ -32,7 +32,30 @@ export const groups = [
     probe: 'x @ y;',
     scope: 'keyword.other.effect',
   },
-  { name: 'relations', words: ['supports', 'opposes', 'qualifies'], probe: 'a @ b;', scope: 'keyword.operator.relation' },
+  // Relations only in the forms the parsers read (see relations() in
+  // reference.mjs); anywhere else the three words are names.
+  {
+    name: 'relation statements',
+    words: ['supports', 'opposes', 'qualifies'],
+    probe: ['a @ b;', 'glow::a @ glow::b;', 'x = 1; a @ b;', 'for k as $r {\n  $r_a @ b_$r;\n};'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['claim @;', 'place @ kind dock;', 'state @ = 1;', 'event @;', 'a @ b c;', 'for k as $r {\n  claim @;\n};',
+      'for k as $r {\n  place @ kind $r;\n};'],
+  },
+  {
+    name: 'relations in effects',
+    words: ['supports', 'opposes'],
+    probe: ['on e when x reveal a @ b;', 'reveal c then a @ b;', 'when_committed act a @ b;', 'on e sample s = x + 1 @ c;',
+      'proc p() {\n  reveal a @ b;\n};', 'for k as $r {\n  on e reveal $r_a @ c;\n};', 'for k as $r {\n  on e sample s_$r = $index @ c;\n};'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['on e reveal a @ b c;', 'on e sample s = @;', 'reveal c then a @;'],
+  },
+  {
+    name: 'qualification is a statement',
+    words: ['qualifies'],
+    scope: 'keyword.operator.relation',
+    notKeyword: ['on e reveal a @ b;', 'reveal c then a @ b;', 'on e sample s = 1 @ c;'],
+  },
   { name: 'logical operators', words: ['and', 'or', 'not'], probe: 'x = a @ b;', scope: 'keyword.operator.logical' },
   { name: 'booleans', words: ['true', 'false'], probe: 'x = @;', scope: 'constant.language.boolean' },
   {

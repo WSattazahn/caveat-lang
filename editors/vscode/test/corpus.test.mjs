@@ -6,14 +6,14 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { root, trackedCavFiles } from './corpus.mjs';
 import {
-  classify, forBlocks, identifiers, numbers, statementHeads, substitutions,
+  classify, forBlocks, identifiers, numbers, relations, statementHeads, substitutions,
 } from './reference.mjs';
 import { has, scopesOf } from './tokenize.mjs';
-import { expectedHeadScope, highlightedWords, isBuiltin, profileHeads } from './expectations.mjs';
+import { expectedHeadScope, highlightedWords, isBuiltin } from './expectations.mjs';
 
 const files = trackedCavFiles();
 
-const totals = { files: 0, strings: 0, comments: 0, blocks: 0, substitutions: 0, heads: 0, builtins: 0, properties: 0, numbers: 0 };
+const totals = { files: 0, strings: 0, comments: 0, blocks: 0, substitutions: 0, heads: 0, relations: 0, builtins: 0, properties: 0, numbers: 0 };
 
 function position(text, index) {
   const before = text.slice(0, index);
@@ -98,13 +98,12 @@ for (const file of files) {
     }
 
     // Statement heads: keywords get their category's scope, and a head that
-    // is not a keyword is left a name. So is a profile word that begins a
-    // relation: `camera supports door_open` is about evidence named camera.
+    // is not a keyword is left a name. So is the first name of a relation
+    // statement: `camera supports door_open` is about evidence named camera.
+    const { found: relationWords, fromNames } = relations(text, classes);
     for (const head of statementHeads(text, classes)) {
       totals.heads += 1;
-      const next = /^\s+([A-Za-z_]\w*)/.exec(text.slice(head.index + head.word.length))?.[1];
-      const relation = ['supports', 'opposes', 'qualifies'].includes(next);
-      const expected = relation && profileHeads.includes(head.word) ? null : expectedHeadScope(head.word);
+      const expected = fromNames.has(head.index) ? null : expectedHeadScope(head.word);
       const got = scopes[head.index];
       if (expected) check(has(got, expected), head.index, `statement head ${head.word} should be ${expected}`);
       else check(!got.some(scope => /^(keyword|storage|support|constant)\./.test(scope)), head.index, `statement head ${head.word} is a name, not a keyword`);
@@ -135,8 +134,11 @@ for (const file of files) {
           check(has(got, 'entity.name.function.call'), index, `${word}( is not a call`);
         }
       }
+      // A relation word is a relation exactly where a parser reads one.
       if (['supports', 'opposes', 'qualifies'].includes(word)) {
-        check(has(got, 'keyword.operator.relation'), index, `${word} is not a relation`);
+        if (relationWords.has(index)) totals.relations += 1;
+        check(relationWords.has(index) === has(got, 'keyword.operator.relation'), index,
+          relationWords.has(index) ? `${word} is not a relation` : `${word} is a name here, not a relation`);
       }
     }
 

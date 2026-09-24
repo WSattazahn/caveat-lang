@@ -134,6 +134,32 @@
 # ^^^^^^ !keyword !storage
 #        ^^^^^^^^ keyword.operator.relation
 
+# Relations, only where the parsers read them
+
+ place supports kind dock;
+#^^^^^ keyword.other.statement
+#      ^^^^^^^^ !keyword
+ claim qualifies;
+#^^^^^ storage.type
+#      ^^^^^^^^^ !keyword
+ event opposes;
+#      ^^^^^^^ entity.name.function.event !keyword
+ reveal lens_salt then present_bearing supports holding_viable;
+#^^^^^^ keyword.other.effect
+#                 ^^^^ keyword.control
+#                                      ^^^^^^^^ keyword.operator.relation
+ when_committed wait smoke_report opposes door_unsafe;
+#^^^^^^^^^^^^^^ keyword.control
+#                                 ^^^^^^^ keyword.operator.relation
+ on read when value > 26 sample temperature = value opposes comfortable;
+#                        ^^^^^^ keyword.other.effect
+#                   ^ keyword.operator.comparison
+#                                                   ^^^^^^^ keyword.operator.relation
+ on lit reveal glow::lamp supports glow::seen;
+#                         ^^^^^^^^ keyword.operator.relation
+ on lit reveal lamp qualifies seen;
+#                   ^^^^^^^^^ !keyword
+
 # Repetition
 
  entity reef_one kind reef at sea;
@@ -202,6 +228,21 @@
    camera supports $b_seen;
 #  ^^^^^^ !keyword !storage
 #         ^^^^^^^^ keyword.operator.relation
+   $b_sounding qualifies charted_$b;
+#              ^^^^^^^^^ keyword.operator.relation
+#                                ^^ variable.other.template
+   place supports kind $b;
+#  ^^^^^ keyword.other.statement
+#        ^^^^^^^^ !keyword
+   claim qualifies;
+#        ^^^^^^^^^ !keyword
+   on sweep reveal $b_ping opposes clear_$b;
+#           ^^^^^^ keyword.other.effect
+#                          ^^^^^^^ keyword.operator.relation
+   on read sample depth_$b = value + $index supports charted_$b;
+#          ^^^^^^ keyword.other.effect
+#                                    ^^^^^^ variable.other.template
+#                                           ^^^^^^^^ keyword.operator.relation
  };
 #^ punctuation.section.block.end meta.block.repeat
  for buoy as $b { position $b_mark at 1 2 3; };

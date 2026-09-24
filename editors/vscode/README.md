@@ -41,8 +41,12 @@ The package lands in `test-results/vscode/`.
   and any other escape is marked invalid.
 - Keywords, by what they do: declarations (`state`, `evidence`, `bind`…),
   control (`on`, `when`, `for`…), effects (`set`, `reveal`, `commit`…),
-  relations (`supports`, `opposes`, `qualifies`), clauses, booleans and
-  logical operators.
+  clauses, booleans and logical operators.
+- Relations (`supports`, `opposes`, `qualifies`) in the forms the parsers
+  read: the statement `FROM REL TO;`, `reveal … then FROM REL TO`,
+  `when_committed ACTION FROM REL TO`, and the effects `reveal EVIDENCE REL
+  CLAIM` and `sample STREAM = EXPRESSION REL CLAIM`. Anywhere else the three
+  words are names: `claim qualifies;`, `place supports kind dock;`.
 - Words that mean something only in one place: stop reasons after `because`,
   consequence levels after `consequence`, cue kinds after `cue NAME`, `min`
   and `max` as bounds before a number (and as functions elsewhere), `every` in
