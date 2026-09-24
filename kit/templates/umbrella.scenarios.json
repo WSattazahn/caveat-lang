@@ -1,0 +1,36 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "umbrella.cav",
+  "scenarios": [
+    {
+      "id": "U01",
+      "title": "A rainy forecast decides; a clear sky reopens the decision, which keeps its reasons",
+      "steps": [
+        { "expect": { "/bindings/advice/text": "No decision yet" } },
+        { "send": "read_forecast", "payload": { "chance": 70 } },
+        { "expect": {
+            "/bindings/advice/text": "Take the umbrella",
+            "/commitment_grounds/umbrella@1": { "evidence": ["rain_chance@1"], "caveats": ["forecast_is_old"] }
+        } },
+        { "checkpoint": "decided" },
+        { "resume": true },
+        { "send": "clear_sky" },
+        { "expect": {
+            "/bindings/advice/text": "Think again: the sky has cleared",
+            "/decision_journal/1": { "change": "reopened", "because": ["sky"] }
+        } },
+        { "same_as": "decided", "paths": ["/decision_journal/0", "/commitment_grounds/umbrella@1"] }
+      ]
+    },
+    {
+      "id": "U02",
+      "title": "Refused events leave nothing behind",
+      "steps": [
+        { "send": "read_forecast", "payload": { "chance": 120 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "leave" },
+        { "send": "leave", "rejected": "You have already left." },
+        { "expect": { "/bindings/advice/text": "No decision yet" } }
+      ]
+    }
+  ]
+}

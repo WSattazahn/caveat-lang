@@ -28,7 +28,9 @@ npx --no-install caveat help
 ## 2. Write a program
 
 A Caveat program says what it knows, what that knowledge rests on, and what it
-decides. Save this as `umbrella.cav`:
+decides. Save this as `umbrella.cav`. (`npx --no-install caveat init` writes
+this program and the two other files this guide uses, if you would rather not
+copy them.)
 
 <!-- file: umbrella.cav -->
 ```caveat
@@ -257,6 +259,44 @@ Each decision shows its value, whether it is still in force, what it is based
 on, and every time it was committed or reopened and why. The refused `leave`
 is listed but changed nothing. Add `--json` to get the same explanation as
 data, for a program or an agent to read.
+
+`caveat explain` answers what each decision rests on. To ask the other way
+round, what rests on one piece of evidence, use `caveat dependents`:
+
+<!-- run: npx --no-install caveat dependents umbrella.cav sky events.jsonl -->
+```sh
+npx --no-install caveat dependents umbrella.cav sky events.jsonl
+```
+
+```text
+What rests on sky in umbrella.cav after 4 events (sequence 3)
+
+Decisions
+  nothing
+
+Decision changes
+  #2 clear_sky: umbrella@1 reopened because sky
+
+Values
+  nothing
+
+Displayed
+  advice.text = "Think again: the sky has cleared"  cites sky
+```
+
+No decision is based on the sky: it reopened one, and the advice cites it.
+Ask about `rain_chance` and the decision itself is listed as based on it. Ask
+about a caveat such as `forecast_is_old` and you get everything based on
+evidence it qualifies. Ask this before acting on something when a piece of
+evidence turns out to be wrong.
+
+Three more commands:
+
+- `caveat validate umbrella.cav` lists what a program declares.
+- `caveat replay umbrella.cav events.jsonl` prints each event's outcome and
+  snapshot as JSON lines.
+- `caveat serve umbrella.cav` keeps a session open for another program to
+  drive (see [Serve 0.1](reference/spec/caveat-serve-0.1.md)).
 
 ## 6. Keep going
 

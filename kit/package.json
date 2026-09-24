@@ -16,11 +16,13 @@
     "./node": "./lib/node.mjs",
     "./scenarios": "./lib/scenarios.mjs",
     "./explain": "./lib/explain.mjs",
+    "./serve": "./lib/serve.mjs",
     "./runtime/*": "./runtime/*"
   },
   "files": [
     "bin/",
     "lib/",
+    "templates/",
     "runtime/",
     "docs/",
     "README.md",

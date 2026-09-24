@@ -101,7 +101,8 @@ try {
   const dry = JSON.parse(npm(['pack', '--dry-run', '--json'], kit))[0];
   const files = dry.files.map(file => file.path).sort();
   assert.deepEqual(files, [
-    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/explain.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/session.mjs', 'package.json',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/explain.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/serve.mjs', 'lib/session.mjs', 'package.json',
+    'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', 'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm',
     ...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library, command, runtime, documentation, license and notices');
@@ -190,6 +191,20 @@ const explained = node([cli, 'explain', 'thermostat_history.cav', 'readings.json
 assert.equal(explained.status, 0, explained.stdout + explained.stderr);
 assert.match(explained.stdout, /heating@1 = 1 {2}in force\n {6}based on temperature@1 \(caveats: calibration_offset\)/);
 assert.match(explained.stdout, /read \{"value":99\} {2}refused \(input\/bound_exceeded\)/);
+const rests = node([cli, 'dependents', 'thermostat_history.cav', 'temperature@1', 'readings.jsonl'], consumer);
+assert.equal(rests.status, 0, rests.stdout + rests.stderr);
+assert.match(rests.stdout, /heating@1 = 1 {2}in force {2}based on temperature@1/);
+assert.match(node([cli, 'validate', 'thermostat_history.cav'], consumer).stdout, /^thermostat_history\.cav loads\./);
+const replayed = node([cli, 'replay', 'thermostat_history.cav', 'readings.jsonl'], consumer);
+const lines = text => text.trim().split('\n').map(line => JSON.parse(line));
+assert.deepEqual(lines(replayed.stdout).map(record => record.outcome ?? record.record), ['initial', 'accepted', 'rejected']);
+const served = spawnSync(process.execPath, [cli, 'serve', 'thermostat_history.cav'], {
+  cwd: consumer, encoding: 'utf8', input: '{"id":1,"op":"dispatch","event":"read","payload":{"value":17}}\n{"id":2,"op":"close"}\n',
+});
+assert.equal(served.status, 0, served.stderr);
+assert.deepEqual(lines(served.stdout).map(line => line.ready ?? line.outcome ?? line.ok), [true, 'accepted', true]);
+assert.equal(node([cli, 'init', 'started'], consumer).status, 0);
+assert.equal(node([cli, 'test', 'umbrella.scenarios.json'], path.join(consumer, 'started')).status, 0);
 report.checks.command = true;
 
 // The library, imported by package name from the consumer.
@@ -200,7 +215,8 @@ import { readFile } from 'node:fs/promises';
 import { loadRuntimeFromDirectory } from '${manifest.name}/node';
 import { CaveatError } from '${manifest.name}/session';
 import { parseScenarioFile } from '${manifest.name}/scenarios';
-import { explain } from '${manifest.name}/explain';
+import { dependents, explain } from '${manifest.name}/explain';
+import { createServer } from '${manifest.name}/serve';
 const runtime = await loadRuntimeFromDirectory();
 const source = await readFile('thermostat_history.cav', 'utf8');
 const session = runtime.open(source);
@@ -220,6 +236,10 @@ clock.dispatch('advance', { dt: 2.5 });
 assert.equal(runtime.restore(clockSource, clock.save()).view().bindings.hud.elapsed, 2.5);
 parseScenarioFile(await readFile('thermostat_history.scenarios.json', 'utf8'));
 assert.deepEqual(explain(session.snapshot()).decisions[0].revisions.map(revision => revision.id), ['heating@1', 'heating@2']);
+assert.deepEqual(dependents(session.snapshot(), 'temperature@2').decisions.map(item => [item.id, item.basis]), [['heating@2', 'grounds']]);
+const server = createServer({ runtime, source });
+assert.equal(server.handle(JSON.stringify({ op: 'dispatch', event: 'read', payload: { value: 17 } })).response.outcome, 'accepted');
+server.close();
 console.log(JSON.stringify(runtime.identity));
 `);
 const used = node(['use.mjs'], consumer);
@@ -239,7 +259,7 @@ const help = shell('npx --no-install caveat help', reader);
 assert.equal(help.status, 0, help.stdout + help.stderr);
 const guide = await readFile(path.join(reader, 'node_modules', manifest.name, 'docs', 'GETTING_STARTED.md'), 'utf8');
 const followed = await followGuide(guide, { directory: reader, run: shell });
-assert.equal(followed.length, 4);
+assert.equal(followed.length, 5);
 for (const result of followed) {
   assert.equal(result.status, result.expected.includes('FAIL') ? 1 : 0, `${result.command}\n${result.stdout}${result.stderr}`);
   assert.equal(result.actual, result.expected, `the guide's output for ${result.command}`);
