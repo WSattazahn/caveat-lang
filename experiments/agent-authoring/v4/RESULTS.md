@@ -142,6 +142,11 @@ No case, model or scoring rule changed after registration, and no program was
 repaired. `score.mjs` re-checks every file against `registration.json` before
 it scores.
 
+The registered tarball is attached to the
+[v0.1.0-rc.2 pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.2). The `trial/v4-*`
+branches were deleted after this report; every program is frozen in
+`runs/<id>/`, and each matched its recorded SHA-256 before the deletion.
+
 ## Next
 
 Make history parameters discoverable. The authoring guide should show a
