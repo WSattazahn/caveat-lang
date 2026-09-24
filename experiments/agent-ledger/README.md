@@ -18,7 +18,7 @@ use. It is the investigator's own use, not an outside project.
 | --- | --- |
 | [`ledger.cav`](ledger.cav) | Pull requests, their pushes, checks, local gates, go-aheads and merges |
 | [`ledger.scenarios.json`](ledger.scenarios.json) | The ledger's rules, tested: `caveat test ledger.scenarios.json` |
-| [`session-2026-09-24.jsonl`](session-2026-09-24.jsonl) | That day's real history for #21, #26, #28 and #29, entered by hand afterwards |
+| [`session-2026-09-24.jsonl`](session-2026-09-24.jsonl) | That day's real history for #21, #26, #28 and #29 |
 
 ```sh
 npx --no-install caveat explain ledger.cav session-2026-09-24.jsonl
@@ -35,11 +35,13 @@ should not have attempted:
    17  merge {"target":"pr28"}  refused (policy): No passing checks on the current head.
 ```
 
-It also shows the one it allowed, and on what:
+For #28 and #29 the agent recorded the checks as they finished. It asked
+the ledger before merging, and merged only once the ledger decided to. Each
+decision shows what it rests on:
 
 ```text
-    pr21_merge@1 = 2869574427  in force
-      based on pr21_checks@1, pr21_go
+    pr29_merge@1 = 1613487084  in force
+      based on pr29_checks@1, pr29_go
 ```
 
 ## What the language made hard
@@ -68,7 +70,7 @@ happened when the ledger needed it.
 directly:
 
 ```text
-What rests on pr21_go in ledger.cav after 18 events (sequence 16)
+What rests on pr21_go in ledger.cav after 23 events (sequence 21)
 
 Decisions
   pr21_merge@1 = 2869574427  in force  based on pr21_go
@@ -102,8 +104,9 @@ lineage. It is permission, and Caveat has no word for it.
 
 ## Limits
 
-- The history was entered by the agent afterwards, from its transcript and
-  GitHub. Nothing fed the ledger live.
+- The agent typed every entry. The first 18 were entered afterwards, from
+  its transcript and GitHub; those for #28's and #29's checks and merges
+  were entered as they happened. Nothing fed the ledger automatically.
 - The agent judged which messages counted as a go-ahead for which pull
   request. The ledger cannot check that an approval was meant for this pull
   request and this commit.
