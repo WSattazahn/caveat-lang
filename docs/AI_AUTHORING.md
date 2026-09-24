@@ -34,7 +34,10 @@ A bare `"rejected": true` expects the program's own `reject`. A refusal the
 runtime makes before any rule runs, such as a payload outside its declared
 range, has origin `input` and must be named:
 `{"origin": "input", "code": "bound_exceeded"}`. Origins and codes are listed
-in [Dispatch outcomes 0.1](../spec/caveat-dispatch-0.1.md). Some runtime errors
+in [Dispatch outcomes 0.1](../spec/caveat-dispatch-0.1.md). A `sample` or
+`commit` on a history that already holds its declared limit is refused as
+`{"origin": "limit", "code": "history_limit"}`, and the session continues, so a
+program needs its own guard only to give its own message. Some runtime errors
 are deliberately unclassified: they are fatal, and a fatal outcome never
 matches an expected rejection.
 
@@ -115,7 +118,8 @@ The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quo
 2. Write a small program and a scenario file with an explicit event history.
    Mark which inputs are observations and which are ordinary controls. An
    evidence source label is descriptive metadata, not an authentication
-   mechanism.
+   mechanism. When several inputs follow the same rules, write the rules once
+   as a procedure ([below](#share-rules-with-a-procedure)).
 3. Run the scenarios, and inspect `qualified_values`, `reading_streams`,
    `commitment_bases`, `decision_series`, and `relations` in the snapshots,
    from a script or with the native replay.
@@ -146,6 +150,49 @@ The latest profiles describe [history computation](../spec/caveat-reactive-0.6.m
 and [procedures](../spec/caveat-reactive-0.7.md). The
 [essence document](CAVEAT_ESSENCE.md) records the invariants that edits must
 preserve. Runtime tests are executable examples, including adversarial inputs.
+
+## Share rules with a procedure
+
+When several inputs follow the same rules, such as two instruments measuring
+the same thing, write the rules once as a `proc` and call it once for each
+input:
+
+```caveat
+claim frost_risk;
+evidence probe from "a soil probe";
+evidence drone from "a survey drone";
+caveat uncalibrated consequence material;
+uncalibrated qualifies drone;
+readings soil from probe limit 12;
+readings aerial from drone limit 12;
+decisions uncover limit 4;
+event probe_read celsius min -40 max 60;
+event drone_read celsius min -40 max 60;
+
+proc record(s readings, d decisions, celsius) {
+    when celsius <= 2 sample s = celsius supports frost_risk;
+    when celsius > 2 sample s = celsius opposes frost_risk;
+    when celsius <= 2 and committed(d) and not reopened(d)
+        reopen d because latest(s);
+};
+on probe_read call record(soil, uncover, celsius);
+on drone_read call record(aerial, uncover, celsius);
+```
+
+A parameter followed by `readings` names a reading stream, and one followed by
+`decisions` names a decision series. `evidence`, `claim` and `caveat` name
+those symbols. A parameter with no kind is a number, frozen when the procedure
+is called.
+
+Each call passes names fixed in the source, so the program loads one copy of
+the procedure for each set of names, named `record[soil, uncover]` in
+diagnostics. That copy runs exactly as the rules would if written out by hand.
+Each stream keeps the evidence, caveats and limit of its own declaration: here
+only aerial readings carry `uncalibrated`. A procedure's steps run in order
+and see the effects of earlier steps in the same event, and a `reject` inside
+one refuses the whole event. When a change adds another instrument, it adds
+declarations and a call, not another copy of the rules. See
+[procedure symbols](../spec/caveat-procedure-symbols-0.1.md).
 
 ## Read the session clock
 
@@ -238,3 +285,13 @@ author repaired it without private feedback. The comment reminder above was
 added after this cohort and is not part of its frozen packet. These are small,
 repeated-task results for the runtime and documentation together; they do not
 isolate causality or establish reliability on new tasks.
+
+Two later trials gave fresh agents only the packaged release candidate and a
+task nobody had attempted. In [v3](../experiments/agent-authoring/v3/RESULTS.md)
+two authors wrote programs, and two more agents each carried out a sealed
+change request on one of them; all four passed their registered cases.
+[v4](../experiments/agent-authoring/v4/RESULTS.md) repeated that design with a
+new task and eight agents on separate machines, using two models; all eight
+passed. Neither trial estimates how often an agent succeeds. The procedure
+section above was added after v4, in which every author wrote parallel
+instruments' rules out by hand.
