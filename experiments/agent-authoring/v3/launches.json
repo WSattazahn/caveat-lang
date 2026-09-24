@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "registration": "d8eb2966e748ec7471fe28726d8679ee01ada16f",
+  "runs": {
+    "A": {
+      "phase": 1,
+      "prompt": "prompts/author.md",
+      "promptSha256": "476f76928a7612beee9475725919e3a48d039fcad36ca91e396200ff2fdaa5b0",
+      "directory": "<trial>/A",
+      "dispatchedAt": "2026-09-24T13:29:54.288Z",
+      "agent": "fresh general-purpose sub-agent, no parent context",
+      "completedAt": "2026-09-24T13:35:54.621Z",
+      "durationMs": 329931,
+      "toolUses": 31,
+      "tokens": 177536,
+      "frozenSha256": "9099a48cdca0ed65abbd307a708fe878f805f6d05727cb119199c0598d96db63"
+    },
+    "B": {
+      "phase": 1,
+      "prompt": "prompts/author.md",
+      "promptSha256": "57fdfbdd234cbca6b84b1868bdbb35e5b31fdc04ed6706c28bd81d97fff6eb36",
+      "directory": "<trial>/B",
+      "dispatchedAt": "2026-09-24T13:29:54.289Z",
+      "agent": "fresh general-purpose sub-agent, no parent context",
+      "completedAt": "2026-09-24T13:35:43.690Z",
+      "durationMs": 309933,
+      "toolUses": 24,
+      "tokens": 178074,
+      "frozenSha256": "5286c80c9d5a826f41f165190de9bd768c526c637da293780cd54c9bdd9112cd"
+    }
+  }
+}
