@@ -42,6 +42,10 @@ pub use save::{
 
 #[path = "reactive_outcome.rs"]
 mod outcome;
+
+#[path = "reactive_identifiers.rs"]
+mod identifiers;
+use identifiers::{Identifiers, MAX_IDENTIFIER_LIMIT};
 use outcome::DispatchFailure;
 pub use outcome::{
     DispatchFatal, DispatchOutcome, DispatchResult, RejectionCode, RejectionOrigin, DISPATCH_SCHEMA,
@@ -132,6 +136,11 @@ pub enum ParameterDomain {
     Member {
         members: Vec<String>,
     },
+    /// `NAME id`: any text, learned at run time. Its value is the text's
+    /// handle in the session. See spec/caveat-identifiers-0.1.md.
+    Identifier {
+        limit: usize,
+    },
 }
 
 impl ParameterDomain {
@@ -141,7 +150,7 @@ impl ParameterDomain {
 
     fn members(&self) -> &[String] {
         match self {
-            Self::Numeric => &[],
+            Self::Numeric | Self::Identifier { .. } => &[],
             Self::Entity { members, .. } | Self::Member { members } => members,
         }
     }
@@ -358,6 +367,10 @@ pub enum Directive {
     /// `renewable EVIDENCE limit N;`
     Renewable {
         evidence: String,
+        limit: usize,
+    },
+    /// `identifiers limit N;`
+    Identifiers {
         limit: usize,
     },
     Function(FunctionDef),
@@ -913,6 +926,9 @@ pub struct ReactiveSnapshot {
     /// Seconds counted from the time event's `dt`.
     pub elapsed: f64,
     pub renewals: BTreeMap<String, Renewal>,
+    /// Texts received for `id` parameters: the entry at index 0 has handle 1.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub identifiers: Vec<String>,
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
@@ -969,6 +985,8 @@ pub struct ReactiveSession {
     reading_streams: Arc<BTreeMap<String, ReadingStream>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     renewals: Arc<BTreeMap<String, Renewal>>,
+    /// Texts received for `id` parameters, in handle order.
+    identifiers: Arc<Identifiers>,
     /// Qualifications waiting for time to pass, in the order scheduled.
     scheduled: Arc<Vec<ScheduledQualification>>,
     /// Seconds counted from the time event's `dt`.
@@ -1130,6 +1148,7 @@ impl ReactiveSession {
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             renewals: Arc::default(),
+            identifiers: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
@@ -1166,6 +1185,21 @@ impl ReactiveSession {
             scenes: Arc::new(map.scenes),
             effects: Vec::new(),
         };
+        let mut declared_identifiers = false;
+        for directive in &directives {
+            if let Directive::Identifiers { limit } = directive {
+                if declared_identifiers {
+                    return Err("identifiers is declared more than once".into());
+                }
+                if *limit == 0 || *limit > MAX_IDENTIFIER_LIMIT {
+                    return Err(format!(
+                        "identifiers limit must be in 1..{MAX_IDENTIFIER_LIMIT}"
+                    ));
+                }
+                declared_identifiers = true;
+                session.identifiers = Arc::new(Identifiers::declared(*limit));
+            }
+        }
         let mut history_capacity = 0_usize;
         for directive in &directives {
             let (name, limit) = match directive {
@@ -1241,7 +1275,8 @@ impl ReactiveSession {
                 }
                 Directive::Function(_)
                 | Directive::Readings { .. }
-                | Directive::Decisions { .. } => {}
+                | Directive::Decisions { .. }
+                | Directive::Identifiers { .. } => {}
                 Directive::Renewable { evidence, limit } => {
                     session.require_kind(evidence, "evidence")?;
                     if *limit == 0 || *limit > MAX_RENEWAL_LIMIT {
@@ -1394,6 +1429,16 @@ impl ReactiveSession {
                                 ));
                             }
                             parameter.max = Number::parse(&members.len().to_string())?;
+                        }
+                        if let ParameterDomain::Identifier { limit } = &mut parameter.domain {
+                            *limit = session.identifiers.limit();
+                            if *limit == 0 {
+                                return Err(format!(
+                                    "parameter {} of event {name} is an identifier: declare identifiers limit N",
+                                    parameter.name
+                                ));
+                            }
+                            parameter.max = Number::parse(&limit.to_string())?;
                         }
                         // PARAMETER.MEMBER names each value in source.
                         for (position, member) in parameter.domain.members().iter().enumerate() {
@@ -2571,10 +2616,12 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveSnapshot, String> {
-        let payload = self
+        let (payload, new_identifiers) = self
             .resolve_payload(event, payload_json)
             .map_err(|error| error.to_string())?;
-        self.dispatch(event, &payload)
+        self.apply_classified(event, &payload, new_identifiers)
+            .map_err(|error| error.to_string())?;
+        Ok(self.snapshot())
     }
 
     /// Dispatch through the same transaction as the legacy API, preserving
@@ -2585,9 +2632,11 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchOutcome, DispatchFatal> {
-        let result = self
-            .resolve_payload(event, payload_json)
-            .and_then(|payload| self.apply_classified(event, &payload));
+        let result =
+            self.resolve_payload(event, payload_json)
+                .and_then(|(payload, new_identifiers)| {
+                    self.apply_classified(event, &payload, new_identifiers)
+                });
         match result {
             Ok(()) => Ok(DispatchOutcome::accepted(self.snapshot())),
             Err(failure) => failure.outcome(),
@@ -2596,13 +2645,18 @@ impl ReactiveSession {
 
     /// Parse a JSON payload and turn each typed parameter's name into its
     /// position. Numeric parameters take numbers; typed parameters take the
-    /// name of an entity or member, or its position as a number. Bounds and the
-    /// exact parameter set are checked by `apply` as for any payload.
+    /// name of an entity or member, or its position as a number; identifier
+    /// parameters take text only, and become handles. Bounds and the exact
+    /// parameter set are checked by `apply` as for any payload.
+    ///
+    /// Also returns the identifiers the session does not hold yet, in the
+    /// order the event declares its parameters. Their handles follow the
+    /// session's; `apply_classified` adds them inside the event's transaction.
     fn resolve_payload(
         &self,
         event: &str,
         payload_json: &str,
-    ) -> Result<BTreeMap<String, f64>, DispatchFailure> {
+    ) -> Result<(BTreeMap<String, f64>, Vec<String>), DispatchFailure> {
         // Typed map parsing rejects duplicate fields instead of last-write wins.
         let payload: Payload = serde_json::from_str(payload_json).map_err(|error| {
             DispatchFailure::rejected(
@@ -2612,47 +2666,93 @@ impl ReactiveSession {
             )
         })?;
         let signature = self.events.get(event);
-        payload
+        let payload_invalid = |message: String| {
+            DispatchFailure::rejected(
+                RejectionOrigin::Input,
+                RejectionCode::PayloadInvalid,
+                message,
+            )
+        };
+        // Identifier texts wait until the others resolve, so that handles are
+        // given in declaration order whatever order the payload lists them in.
+        let mut texts = BTreeMap::new();
+        let mut resolved = payload
             .0
             .into_iter()
-            .map(|(name, value)| {
+            .filter_map(|(name, value)| {
                 let parameter = signature
                     .and_then(|parameters| parameters.iter().find(|p| p.name == name));
                 let number = match (value, parameter.map(|p| &p.domain)) {
+                    (PayloadValue::Text(text), Some(ParameterDomain::Identifier { .. })) => {
+                        if let Err(message) = Identifiers::check_text(&text) {
+                            return Some(Err(payload_invalid(format!(
+                                "event {event} parameter {name}: {message}"
+                            ))));
+                        }
+                        texts.insert(name, text);
+                        return None;
+                    }
+                    (PayloadValue::Number(_), Some(ParameterDomain::Identifier { .. })) => {
+                        return Some(Err(payload_invalid(format!(
+                            "event {event} parameter {name} is an identifier: send its text"
+                        ))))
+                    }
                     (PayloadValue::Number(number), _) => number,
                     (PayloadValue::Text(text), Some(domain)) if !domain.is_numeric() => {
-                        let position = domain
-                            .members()
-                            .iter()
-                            .position(|member| *member == text)
-                            .ok_or_else(|| {
-                                DispatchFailure::rejected(RejectionOrigin::Input, RejectionCode::PayloadInvalid, format!(
-                                    "event {event} parameter {name} does not accept {text}; expected one of {}",
-                                    domain.members().join(", ")
-                                ))
-                            })?;
+                        let Some(position) =
+                            domain.members().iter().position(|member| *member == text)
+                        else {
+                            return Some(Err(payload_invalid(format!(
+                                "event {event} parameter {name} does not accept {text}; expected one of {}",
+                                domain.members().join(", ")
+                            ))));
+                        };
                         (position + 1) as f64
                     }
                     (PayloadValue::Text(_), _) => {
-                        return Err(DispatchFailure::rejected(RejectionOrigin::Input, RejectionCode::PayloadInvalid,
-                            format!("event {event} parameter {name} expects a number")))
+                        return Some(Err(payload_invalid(format!(
+                            "event {event} parameter {name} expects a number"
+                        ))))
                     }
                 };
-                Ok((name, number))
+                Some(Ok((name, number)))
             })
-            .collect()
+            .collect::<Result<BTreeMap<_, _>, _>>()?;
+        let mut new_identifiers: Vec<String> = Vec::new();
+        for parameter in signature.into_iter().flatten() {
+            let Some(text) = texts.remove(&parameter.name) else {
+                continue;
+            };
+            let handle = match self.identifiers.handle(&text) {
+                Some(handle) => handle,
+                None => match new_identifiers.iter().position(|new| *new == text) {
+                    Some(index) => self.identifiers.len() + index + 1,
+                    None => {
+                        new_identifiers.push(text);
+                        self.identifiers.len() + new_identifiers.len()
+                    }
+                },
+            };
+            resolved.insert(parameter.name.clone(), handle as f64);
+        }
+        Ok((resolved, new_identifiers))
     }
 
     /// Run one event as a transaction. Any failure leaves the session as it was.
+    /// An identifier parameter takes the handle of an identifier the session
+    /// already holds: numbers cannot name a new one.
     pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
-        self.apply_classified(event, parameters)
+        self.apply_classified(event, parameters, Vec::new())
             .map_err(|error| error.to_string())
     }
 
+    /// `new_identifiers` are texts the session does not hold, whose handles
+    /// follow its own; the event adds them only if it succeeds.
     fn apply_classified(
         &mut self,
         event: &str,
         parameters: &BTreeMap<String, f64>,
+        new_identifiers: Vec<String>,
     ) -> Result<(), DispatchFailure> {
         let signature = self.events.get(event).ok_or_else(|| {
             DispatchFailure::rejected(
@@ -2672,10 +2772,24 @@ impl ReactiveSession {
                 format!("event {event} requires exactly its declared parameters"),
             ));
         }
+        let handles = self.identifiers.len() + new_identifiers.len();
         for parameter in signature {
             let value = parameters
                 .get(&parameter.name)
                 .ok_or_else(|| format!("missing event parameter {}", parameter.name))?;
+            if let ParameterDomain::Identifier { .. } = parameter.domain {
+                if value.fract() != 0.0 || *value < 1.0 || *value > handles as f64 {
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Input,
+                        RejectionCode::PayloadInvalid,
+                        format!(
+                            "event {event} parameter {} is not the handle of an identifier",
+                            parameter.name
+                        ),
+                    ));
+                }
+                continue;
+            }
             check_range(
                 &parameter.name,
                 *value,
@@ -2693,9 +2807,25 @@ impl ReactiveSession {
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after
         // it has succeeded, so a failed event hands them back untouched.
+        if !self.identifiers.has_room_for(&new_identifiers) {
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Limit,
+                RejectionCode::IdentifierLimit,
+                format!(
+                    "event {event} would hold more identifiers than the limit {} or 1 MiB of text",
+                    self.identifiers.limit()
+                ),
+            ));
+        }
         let shown = self.take_shown();
         let mut next = self.clone();
         next.put_shown(shown);
+        if !new_identifiers.is_empty() {
+            let identifiers = Arc::make_mut(&mut next.identifiers);
+            for text in new_identifiers {
+                identifiers.push(text);
+            }
+        }
         match next.run_event(self, event, parameters) {
             Ok(()) => {
                 *self = next;
@@ -2788,10 +2918,11 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<ReactiveView<'_>, String> {
-        let payload = self
+        let (payload, new_identifiers) = self
             .resolve_payload(event, payload_json)
             .map_err(|error| error.to_string())?;
-        self.apply(event, &payload)?;
+        self.apply_classified(event, &payload, new_identifiers)
+            .map_err(|error| error.to_string())?;
         Ok(self.view())
     }
 
@@ -2887,7 +3018,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &BTreeMap<String, Tracked<f64>>,
     ) -> Result<Tracked<Value>, String> {
-        expression.evaluate_tracked_with_histories(
+        expression.evaluate_tracked_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
@@ -2902,7 +3033,16 @@ impl ReactiveSession {
             &|kind, name| self.predicate_tracked(kind, self.predicate_target(kind, name)),
             &|evidence, caveats| self.qualify(self.occurrence(evidence), caveats),
             &|name, query| self.history_read(name, query),
+            &|handle| self.identifier_text(handle),
         )
+    }
+
+    /// `id_text(handle)`: the text of an identifier the session holds.
+    fn identifier_text(&self, handle: f64) -> Result<String, String> {
+        self.identifiers
+            .text(handle)
+            .map(str::to_owned)
+            .ok_or_else(|| format!("id_text: {handle} is not the handle of an identifier"))
     }
 
     /// Evaluate an expression for its grounds: the same value, with each read
@@ -2916,7 +3056,7 @@ impl ReactiveSession {
         expression: &Expr,
         parameters: &BTreeMap<String, Tracked<f64>>,
     ) -> Result<Tracked<Value>, String> {
-        expression.evaluate_tracked_with_histories(
+        expression.evaluate_tracked_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
                     return Ok(Some(Tracked::plain(self.elapsed)));
@@ -2932,6 +3072,7 @@ impl ReactiveSession {
             &|kind, name| self.predicate_grounds(kind, self.predicate_target(kind, name)),
             &|evidence, caveats| self.qualify_core(self.occurrence(evidence), caveats),
             &|name, query| self.history_read(name, query),
+            &|handle| self.identifier_text(handle),
         )
     }
 
@@ -3958,6 +4099,7 @@ impl ReactiveSession {
             decision_journal: (*self.journal).clone(),
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
+            identifiers: self.identifiers.texts().to_vec(),
             scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
@@ -4243,6 +4385,7 @@ pub(crate) fn parse_directive_at(
             | "readings"
             | "decisions"
             | "renewable"
+            | "identifiers"
             | "proc"
             | "define"
     ) {
@@ -4270,6 +4413,14 @@ pub(crate) fn parse_directive_at(
                     .map_err(|_| "renewable limit must be an unsigned integer")?,
             }),
             _ => Err("renewable expects EVIDENCE limit CAPACITY".into()),
+        },
+        "identifiers" => match words.as_slice() {
+            ["identifiers", "limit", limit] => Ok(Directive::Identifiers {
+                limit: limit
+                    .parse()
+                    .map_err(|_| "identifiers limit must be an unsigned integer")?,
+            }),
+            _ => Err("identifiers expects limit CAPACITY".into()),
         },
         "decisions" => match words.as_slice() {
             ["decisions", name, "limit", limit] => Ok(Directive::Decisions {
@@ -4361,6 +4512,14 @@ pub(crate) fn parse_directive_at(
                                 members: Vec::new(),
                             },
                         }),
+                        // The limit is filled in when the event is registered,
+                        // from the program's `identifiers` declaration.
+                        [name, "id"] => parameters.push(Parameter {
+                            name: identifier(name)?,
+                            min: Number::parse("1")?,
+                            max: Number::parse("1")?,
+                            domain: ParameterDomain::Identifier { limit: 0 },
+                        }),
                         [name, "in", members @ ..] if !members.is_empty() => {
                             let members = members
                                 .iter()
@@ -4374,7 +4533,7 @@ pub(crate) fn parse_directive_at(
                             });
                         }
                         _ => {
-                            return Err("event parameter must be NAME min NUMBER max NUMBER, NAME kind KIND, or NAME in NAME...".into())
+                            return Err("event parameter must be NAME min NUMBER max NUMBER, NAME kind KIND, NAME in NAME..., or NAME id".into())
                         }
                     }
                 }

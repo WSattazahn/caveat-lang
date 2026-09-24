@@ -70,6 +70,8 @@ test('validate lists what a program declares, and fails on one that does not loa
     // Typed parameters read as the source declares them.
     const trail = caveat(['validate', path.join(kit, '..', 'game', 'trail_rescue.cav')]);
     assert.match(trail.stdout, /observe \(target kind tunnel, method in report scout, condition 0\.\.2\)/);
+    const ledger = caveat(['validate', path.join(kit, '..', 'experiments', 'agent-ledger', 'ledger-identifiers.cav')]);
+    assert.match(ledger.stdout, /pushed \(target kind pr, commit id\)/);
   });
 });
 

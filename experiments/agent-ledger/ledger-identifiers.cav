@@ -1,0 +1,101 @@
+scene "What an agent may do with each pull request, and on what grounds.";
+
+# The ledger of ledger.cav, with commits as identifiers
+# (spec/caveat-identifiers-0.1.md): full SHAs in, handles inside, SHAs out.
+identifiers limit 1024;
+
+# Every pull request must be declared before an event can name it: event
+# parameters take a declared entity, a listed name or a number, never an
+# identifier learned at run time. A new pull request means a new line here.
+place repo kind repo;
+entity pr21 kind pr at repo;
+entity pr26 kind pr at repo;
+entity pr28 kind pr at repo;
+entity pr29 kind pr at repo;
+
+# A commit is its full SHA, sent as text.
+event pushed target kind pr, commit id;
+event checks target kind pr, commit id, result in failed passed;
+event gates target kind pr, commit id, result in failed passed;
+# A go-ahead names the head commit it was given for. A broader one, for later
+# revisions too, is its own event: nothing infers it.
+event approved target kind pr, commit id;
+event approved_revisions target kind pr;
+event merge target kind pr;
+event merged_elsewhere target kind pr;
+
+for pr as $p {
+    claim $p_ready;
+    claim $p_changed;
+    claim $p_closed;
+    evidence $p_ci from "the pull request's CI checks";
+    evidence $p_local from "gates the agent ran itself";
+    evidence $p_go from "the user's go-ahead in chat, for one head";
+    evidence $p_scope from "the user's go-ahead for later revisions too";
+    evidence $p_push from "a new commit on the branch";
+    evidence $p_elsewhere from "GitHub: merged by someone else";
+    renewable $p_go limit 16;
+    renewable $p_push limit 64;
+    readings $p_checks from $p_ci limit 32;
+    readings $p_gates from $p_local limit 32;
+    decisions $p_merge limit 8;
+    state $p_head = 0 min 0 max 4294967295;
+    state $p_green = 0 min 0 max 1;
+    state $p_merged = 0 min 0 max 1;
+    state $p_approved_head = 0 min 0 max 4294967295;
+    state $p_revisions = 0 min 0 max 1;
+
+    # A push makes every earlier check about another commit. Nothing in the
+    # language says so: these rules say it by hand.
+    on pushed when target == $index and observed($p_push) renew $p_push;
+    on pushed when target == $index reveal $p_push supports $p_changed;
+    on pushed when target == $index set $p_head = commit;
+    on pushed when target == $index set $p_green = 0;
+    on pushed when target == $index and committed($p_merge) and not reopened($p_merge) and $p_merged == 0
+        reopen $p_merge because $p_push;
+
+    # A reading records which commit it was about. A result for any other
+    # commit is refused rather than kept with a caveat.
+    on checks when target == $index and commit != $p_head reject "Checks for a commit that is not the head.";
+    on checks when target == $index and result == result.passed sample $p_checks = commit supports $p_ready;
+    on checks when target == $index and result == result.failed sample $p_checks = commit opposes $p_ready;
+    on checks when target == $index set $p_green = if(result == result.passed, 1, 0);
+    on checks when target == $index and result == result.failed and committed($p_merge) and not reopened($p_merge) and $p_merged == 0
+        reopen $p_merge because latest($p_checks);
+
+    on gates when target == $index and commit != $p_head reject "Gates for a commit that is not the head.";
+    on gates when target == $index and result == result.passed sample $p_gates = commit supports $p_ready;
+    on gates when target == $index and result == result.failed sample $p_gates = commit opposes $p_ready;
+
+    on approved when target == $index and commit != $p_head reject "A go-ahead for a commit that is not the head.";
+    on approved when target == $index and observed($p_go) renew $p_go;
+    on approved when target == $index reveal $p_go supports $p_ready;
+    on approved when target == $index set $p_approved_head = commit;
+
+    on approved_revisions when target == $index and $p_revisions == 1 reject "Later revisions are already approved.";
+    on approved_revisions when target == $index reveal $p_scope supports $p_ready;
+    on approved_revisions when target == $index set $p_revisions = 1;
+
+    on merge when target == $index and $p_merged == 1 reject "Someone else has already merged it.";
+    on merge when target == $index and $p_green == 0 reject "No passing checks on the current head.";
+    on merge when target == $index and $p_approved_head != $p_head and $p_revisions == 0 reject "No go-ahead for the current head.";
+    on merge when target == $index and committed($p_merge) and not reopened($p_merge) reject "Already decided to merge.";
+    # The go-ahead is part of what the decision rests on only if it is part of
+    # its value: a reject rule that let the event through leaves no trace.
+    on merge when target == $index and $p_approved_head == $p_head
+        commit $p_merge because enough using qualified(latest($p_checks), $p_go);
+    on merge when target == $index and $p_approved_head != $p_head and $p_revisions == 1
+        commit $p_merge because enough using qualified(latest($p_checks), $p_scope);
+
+    on merged_elsewhere when target == $index and $p_merged == 1 reject "Already recorded as merged.";
+    on merged_elsewhere when target == $index reveal $p_elsewhere supports $p_closed;
+    on merged_elsewhere when target == $index set $p_merged = 1;
+
+    bind $p.status = "open";
+    bind $p.status = "checks pass on the head" when $p_green == 1;
+    bind $p.status = "decided to merge" when committed($p_merge) and not reopened($p_merge);
+    bind $p.status = "reconsider: new commit since the decision" when reopened($p_merge) and $p_merged == 0;
+    bind $p.status = "merged by someone else" when $p_merged == 1;
+    bind $p.head = id_text($p_head);
+    bind $p.approved_for = id_text($p_approved_head);
+};

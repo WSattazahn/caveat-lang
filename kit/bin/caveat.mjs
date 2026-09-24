@@ -180,11 +180,13 @@ async function dependentsOf(options) {
 }
 
 // As the source declares it: `target kind mushroom`, `sort in glowcap
-// duskcap` (spec/caveat-typed-parameters-0.1.md) or `value 0..100`.
+// duskcap` (spec/caveat-typed-parameters-0.1.md), `commit id`
+// (spec/caveat-identifiers-0.1.md) or `value 0..100`.
 function describeParameter(parameter) {
-  const { entity, member } = parameter.domain ?? {};
+  const { entity, member, identifier } = parameter.domain ?? {};
   if (entity) return `${parameter.name} kind ${entity.kind}`;
   if (member) return `${parameter.name} in ${member.members.join(' ')}`;
+  if (identifier) return `${parameter.name} id`;
   return `${parameter.name} ${parameter.min}..${parameter.max}`;
 }
 

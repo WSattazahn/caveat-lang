@@ -252,6 +252,7 @@ enum Function {
     Ceil,
     Round,
     Text,
+    IdText,
 }
 
 impl Function {
@@ -265,6 +266,7 @@ impl Function {
             "ceil" => Some(Self::Ceil),
             "round" => Some(Self::Round),
             "text" => Some(Self::Text),
+            "id_text" => Some(Self::IdText),
             _ => None,
         }
     }
@@ -279,6 +281,7 @@ impl Function {
             Self::Ceil => "ceil",
             Self::Round => "round",
             Self::Text => "text",
+            Self::IdText => "id_text",
         }
     }
 
@@ -819,7 +822,7 @@ impl Expr {
                     Node::ExpandedCall(_, body) => {
                         body.validate_calls(numeric, predicate, user_call)
                     }
-                    Node::Function(Function::Text, _) => Ok(ValueType::Text),
+                    Node::Function(Function::Text | Function::IdText, _) => Ok(ValueType::Text),
                     _ => Ok(ValueType::Number),
                 }
             }
@@ -887,6 +890,21 @@ impl Expr {
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, String>,
     ) -> Result<Tracked<Value>, String> {
+        self.evaluate_tracked_with_identifiers(numbers, predicate, qualify, history, &|_| {
+            Err("id_text requires a session that holds identifiers".into())
+        })
+    }
+
+    /// As `evaluate_tracked_with_histories`, with `identifiers` giving the text
+    /// of an identifier handle for `id_text`. See spec/caveat-identifiers-0.1.md.
+    pub fn evaluate_tracked_with_identifiers(
+        &self,
+        numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
+        predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, String>,
+        identifiers: &impl Fn(f64) -> Result<String, String>,
+    ) -> Result<Tracked<Value>, String> {
         // The existing evaluator already visits precisely the operands that
         // contribute to this evaluation. Accumulating at those reads gives
         // identical propagation without copying full traces at every AST node.
@@ -912,6 +930,7 @@ impl Expr {
                 provenance.borrow_mut().merge(&tracked.provenance)?;
                 Ok(value)
             },
+            identifiers,
             &Cell::new(MAX_EVALUATED_NODES),
         )?;
         Ok(Tracked {
@@ -926,6 +945,7 @@ impl Expr {
         predicate: &dyn Fn(&str, &str) -> Result<bool, String>,
         qualify: &QualificationSink<'_>,
         history: &dyn Fn(&str, HistoryRead) -> Result<f64, String>,
+        identifiers: &dyn Fn(f64) -> Result<String, String>,
         remaining: &Cell<usize>,
     ) -> Result<Value, String> {
         let budget = remaining.get();
@@ -959,7 +979,7 @@ impl Expr {
             }
             Node::HistoryAt(name, index) => {
                 let index = index
-                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .number()?;
                 if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
                     return Err("history index must be an integer in 0..256".into());
@@ -972,7 +992,7 @@ impl Expr {
             Node::Fold(_, _, _) => Err("fold reducer must be expanded before evaluation".into()),
             Node::ExpandedFold(name, initial, body) => {
                 let mut accumulator = initial
-                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .number()?;
                 let count = finite(history(name, HistoryRead::Count)?)?;
                 if count < 0.0 || count.fract() != 0.0 || count > MAX_FOLD_RECORDS as f64 {
@@ -994,6 +1014,7 @@ impl Expr {
                             predicate,
                             qualify,
                             history,
+                            identifiers,
                             remaining,
                         )?
                         .number()?;
@@ -1002,29 +1023,36 @@ impl Expr {
             }
             Node::Qualified(value, evidence, caveats) => {
                 let value = value
-                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .number()?;
                 qualify(evidence, caveats)?;
                 Ok(Value::Number(value))
             }
             Node::If(condition, yes, no) => {
                 if condition
-                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .boolean()?
                 {
-                    yes.evaluate_values(numbers, predicate, qualify, history, remaining)
+                    yes.evaluate_values(
+                        numbers,
+                        predicate,
+                        qualify,
+                        history,
+                        identifiers,
+                        remaining,
+                    )
                 } else {
-                    no.evaluate_values(numbers, predicate, qualify, history, remaining)
+                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
                 }
             }
             Node::Require(condition, value) => {
                 if !condition
-                    .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .boolean()?
                 {
                     return Err("source expression requirement failed".into());
                 }
-                value.evaluate_values(numbers, predicate, qualify, history, remaining)
+                value.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
             }
             Node::UserCall(name, _) => Err(format!(
                 "source function {name} must be expanded before evaluation"
@@ -1032,14 +1060,27 @@ impl Expr {
             Node::ExpandedCall(arguments, body) => {
                 for argument in arguments {
                     argument
-                        .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                        .evaluate_values(
+                            numbers,
+                            predicate,
+                            qualify,
+                            history,
+                            identifiers,
+                            remaining,
+                        )?
                         .number()?;
                 }
-                body.evaluate_values(numbers, predicate, qualify, history, remaining)
+                body.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
             }
             Node::Unary(operator, child) => {
-                let value =
-                    child.evaluate_values(numbers, predicate, qualify, history, remaining)?;
+                let value = child.evaluate_values(
+                    numbers,
+                    predicate,
+                    qualify,
+                    history,
+                    identifiers,
+                    remaining,
+                )?;
                 match operator {
                     Unary::Positive => Ok(Value::Number(value.number()?)),
                     Unary::Negative => Ok(Value::Number(-value.number()?)),
@@ -1047,14 +1088,27 @@ impl Expr {
                 }
             }
             Node::Binary(operator, left, right) => {
-                let left = left.evaluate_values(numbers, predicate, qualify, history, remaining)?;
+                let left = left.evaluate_values(
+                    numbers,
+                    predicate,
+                    qualify,
+                    history,
+                    identifiers,
+                    remaining,
+                )?;
                 match operator {
                     Binary::And if !left.boolean()? => return Ok(Value::Bool(false)),
                     Binary::Or if left.boolean()? => return Ok(Value::Bool(true)),
                     _ => {}
                 }
-                let right =
-                    right.evaluate_values(numbers, predicate, qualify, history, remaining)?;
+                let right = right.evaluate_values(
+                    numbers,
+                    predicate,
+                    qualify,
+                    history,
+                    identifiers,
+                    remaining,
+                )?;
                 match operator {
                     Binary::And | Binary::Or => Ok(Value::Bool(right.boolean()?)),
                     Binary::Equal | Binary::NotEqual => {
@@ -1112,7 +1166,14 @@ impl Expr {
                     .iter()
                     .map(|argument| {
                         argument
-                            .evaluate_values(numbers, predicate, qualify, history, remaining)?
+                            .evaluate_values(
+                                numbers,
+                                predicate,
+                                qualify,
+                                history,
+                                identifiers,
+                                remaining,
+                            )?
                             .number()
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -1136,6 +1197,12 @@ impl Expr {
                             arguments[0].to_string()
                         }))
                     }
+                    // Handle 0 is "no identifier"; the host refuses any other
+                    // number that is not a handle it holds.
+                    Function::IdText if arguments[0] == 0.0 => {
+                        return Ok(Value::Text(String::new()))
+                    }
+                    Function::IdText => return Ok(Value::Text(identifiers(arguments[0])?)),
                 };
                 Ok(Value::Number(finite(result)?))
             }

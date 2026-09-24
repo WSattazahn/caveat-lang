@@ -1,0 +1,180 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ledger-identifiers.cav",
+  "scenarios": [
+    {
+      "id": "I01",
+      "title": "Two SHAs that share their first eight hex digits stay two commits",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec11111111111111111111111111111111",
+            "result": "passed"
+          },
+          "rejected": "Checks for a commit that is not the head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec11111111111111111111111111111111"
+          },
+          "rejected": "A go-ahead for a commit that is not the head."
+        },
+        {
+          "expect": {
+            "/identifiers": [
+              "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+            ]
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr29/head": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+            "/bindings/pr29/approved_for": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+            "/commitment_grounds/pr29_merge@1": {
+              "evidence": [
+                "pr29_checks@1",
+                "pr29_go"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec11111111111111111111111111111111"
+          }
+        },
+        {
+          "expect": {
+            "/identifiers": [
+              "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+              "602bdbec11111111111111111111111111111111"
+            ],
+            "/bindings/pr29/head": "602bdbec11111111111111111111111111111111",
+            "/bindings/pr29/status": "reconsider: new commit since the decision"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec11111111111111111111111111111111",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec11111111111111111111111111111111"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/decision_series/pr29_merge/current": "pr29_merge@2",
+            "/bindings/pr29/approved_for": "602bdbec11111111111111111111111111111111"
+          }
+        }
+      ]
+    },
+    {
+      "id": "I02",
+      "title": "Commits are texts: a number is refused, and a refused event keeps no identifier",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "payload_invalid"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": ""
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "payload_invalid"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "31541a5300baf3b6651da2c973b0f43b3e8f8bd5"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": "an-older-commit",
+            "result": "passed"
+          },
+          "rejected": "Gates for a commit that is not the head."
+        },
+        {
+          "expect": {
+            "/identifiers": [
+              "31541a5300baf3b6651da2c973b0f43b3e8f8bd5"
+            ],
+            "/bindings/pr28/head": "31541a5300baf3b6651da2c973b0f43b3e8f8bd5"
+          }
+        }
+      ]
+    }
+  ]
+}
