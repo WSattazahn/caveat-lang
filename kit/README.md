@@ -67,6 +67,63 @@ of the session before it), and 2 when the program or the events file cannot be
 used. From code, `explain(snapshot, events)` in `caveat-lang/explain` returns
 the same report as data, and `formatExplanation` renders it as text.
 
+`caveat dependents` asks the reverse question: what rests on one piece of
+evidence, reading stream or caveat. It lists:
+
+- the decisions based on it, or that it could have influenced;
+- the decision changes it caused;
+- the values based on it;
+- the displayed values that cite it.
+
+A reading stream, or the evidence it reads from, stands for every reading in
+it.
+
+```sh
+npx --no-install caveat dependents program.cav sky events.jsonl
+npx --no-install caveat dependents --json program.cav forecast_is_old events.jsonl
+```
+
+The exit statuses are those of `explain`, and 2 also means the program
+declares no such name. From code, `dependents(snapshot, name)` in
+`caveat-lang/explain` returns the report.
+
+## Check, replay, start
+
+```sh
+npx --no-install caveat validate program.cav
+npx --no-install caveat replay program.cav events.jsonl
+npx --no-install caveat init my-project
+```
+
+- `validate` loads a program and lists its events, reading streams, decision
+  series and displayed values. `--json` prints them as data. It exits with 0
+  if the program loads and 2 if it does not.
+- `replay` prints one JSON record per line. First comes the initial snapshot.
+  Then each event gets a record with its line in the file and its outcome,
+  plus the snapshot after it if it was accepted. A fatal event's record is
+  last, and `replay` then exits with 1.
+- `init` writes the getting-started program, its scenarios and an events
+  file. It refuses to overwrite any of them.
+
+## Drive a session from another program
+
+`caveat serve program.cav` keeps one session open. It reads requests from
+standard input, one JSON object per line, and answers each on standard output.
+The operations are `dispatch`, `snapshot`, `explain`, `dependents`, `save`,
+`restore` and `close`.
+
+```text
+> {"id":1,"op":"dispatch","event":"read_forecast","payload":{"chance":70}}
+< {"id":1,"ok":true,"outcome":"accepted","sequence":1}
+> {"id":2,"op":"dependents","of":"sky"}
+< {"id":2,"ok":true,"report":{"schema":"caveat-dependents/0.1",…}}
+```
+
+A malformed request gets an error response and changes nothing. A fatal
+outcome ends the server with status 1. [Serve 0.1](docs/reference/spec/caveat-serve-0.1.md)
+is the protocol. From code, `createServer` in `caveat-lang/serve` handles
+lines without any I/O.
+
 ## Use a session from code
 
 With the package installed, save the
@@ -144,6 +201,14 @@ These commands run from a repository checkout, after `npm run build`.
   the CLI's exit codes;
 - `explain`: the report matches the snapshot decision by decision, and the
   command lists refusals, stops at a fatal event and refuses bad input;
+- `dependents`: the answer is checked against the snapshot's grounds and
+  lineage for evidence, reading streams and caveats, and an unknown name is
+  refused;
+- `serve`: dispatch, explain, dependents, save and restore over the protocol;
+  malformed requests answered without effect; a fatal outcome ending the
+  server; and the process itself on standard input and output;
+- `validate`, `replay` and `init`: exit statuses, line numbers, typed
+  parameters, and `init`'s files staying identical to the guide's;
 - the packaged documentation: every source exists, every link in the kit's
   own documents resolves inside the package, the authoring guide's script
   runs, and the getting-started guide, followed step by step, prints what it
@@ -164,11 +229,13 @@ with `fetch`, including a failing one. Set `PLAYWRIGHT_CHANNEL=chrome` or
 `kit/runtime/`, packs the kit, and removes `kit/runtime/` again so development
 never uses a stale copy. It installs the tarball offline into a fresh consumer
 directory under `test-results/kit-package/` and uses it only through the
-install: the `caveat` command (`test` with exit statuses 0, 1 and 2, and
-`explain`), the library imported as `caveat-lang/node`, `caveat-lang/session`,
-`caveat-lang/scenarios` and `caveat-lang/explain`, and the browser check above.
-The tarball holds the command, the four library files,
-the runtime, this README, the license and the notices, and nothing else.
+install: the `caveat` command (`test` with exit statuses 0, 1 and 2,
+`explain`, `dependents`, `validate`, `replay`, `serve` and `init`), the
+library imported as `caveat-lang/node`, `caveat-lang/session`,
+`caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
+the browser check above. The tarball holds the command, the five library files,
+`init`'s templates, the runtime, this README, the license and the notices, and
+nothing else.
 
 The package is MIT licensed. Packing copies the repository's `LICENSE` and
 `THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the
@@ -187,7 +254,6 @@ for the remaining release gates.
 
 ## Not yet
 
-- `init`, `validate` and `replay` commands.
 - Publication on npm.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.

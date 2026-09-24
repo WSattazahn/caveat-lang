@@ -120,6 +120,94 @@ export function formatExplanation(report, title = 'the program') {
   return lines.join('\n');
 }
 
+export const DEPENDENTS_SCHEMA = 'caveat-dependents/0.1';
+
+// What a subject stands for. A caveat stands for itself. Evidence stands for
+// itself and its occurrences (NAME@1, NAME@2, ...); a reading stream, and the
+// evidence a stream reads from, stand for the stream's readings. Null when the
+// program declares no such evidence, stream or caveat.
+function resolveSubject(snapshot, subject) {
+  const kinds = new Map((snapshot.symbols ?? []).map(symbol => [symbol.name, symbol.kind]));
+  if (kinds.get(subject) === 'caveat') return { kind: 'caveat', ids: new Set([subject]) };
+  const streams = snapshot.reading_streams ?? {};
+  const known = kinds.get(subject) === 'evidence' || Object.hasOwn(streams, subject)
+    || Object.values(streams).some(stream => stream.template === subject);
+  if (!known) return null;
+  const ids = new Set();
+  for (const [name, kind] of kinds) {
+    const suffix = name.startsWith(`${subject}@`) ? name.slice(subject.length + 1) : null;
+    if (kind === 'evidence' && (name === subject || (suffix && /^\d+$/.test(suffix)))) ids.add(name);
+  }
+  for (const [name, stream] of Object.entries(streams)) {
+    if (name === subject || stream.template === subject) for (const reading of stream.occurrences ?? []) ids.add(reading.id);
+  }
+  return { kind: 'evidence', ids };
+}
+
+/**
+ * Everything in `snapshot` that rests on `subject`, which names evidence, a
+ * reading stream or a caveat: the decisions and values based on it or that it
+ * could have influenced, the decision changes it caused, and the displayed
+ * values that cite it or could have been influenced by it. The reverse of
+ * `explain`. Throws an Error when the program declares no such name.
+ */
+export function dependents(snapshot, subject) {
+  const resolved = resolveSubject(snapshot, subject);
+  if (!resolved) throw new Error(`${subject} is not evidence, a reading stream or a caveat in this program`);
+  const via = provenance => {
+    const names = resolved.kind === 'caveat' ? provenance?.caveats : provenance?.evidence;
+    return (names ?? []).filter(name => resolved.ids.has(name));
+  };
+  const basis = (primary, primaryLabel, lineage) => {
+    const direct = via(primary);
+    if (direct.length) return { basis: primaryLabel, via: direct };
+    const possible = via(lineage);
+    return possible.length ? { basis: 'lineage', via: possible } : null;
+  };
+
+  const decisions = explain(snapshot).decisions.flatMap(series => series.revisions.flatMap(revision => {
+    const found = basis(revision.grounds, 'grounds', revision.lineage);
+    return found ? [{ id: revision.id, value: revision.value, status: revision.status, ...found }] : [];
+  }));
+  const changes = (snapshot.decision_journal ?? []).flatMap(entry => {
+    const names = resolved.kind === 'caveat' ? entry.caveats : entry.because;
+    const found = (names ?? []).filter(name => resolved.ids.has(name));
+    return found.length ? [{ sequence: entry.sequence, event: entry.event, commitment: entry.commitment, change: entry.change, via: found }] : [];
+  });
+  const values = Object.entries(snapshot.qualified_values ?? {}).flatMap(([name, value]) => {
+    const found = basis(snapshot.value_grounds?.[name], 'grounds', value.provenance);
+    return found ? [{ name, value: value.value, ...found }] : [];
+  });
+  const displayed = Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
+    Object.entries(properties).flatMap(([property, value]) => {
+      const found = basis(snapshot.binding_explanations?.[target]?.[property], 'cites',
+        snapshot.binding_qualifications?.[target]?.[property]);
+      return found ? [{ name: `${target}.${property}`, value, ...found }] : [];
+    }));
+
+  return {
+    schema: DEPENDENTS_SCHEMA, subject, kind: resolved.kind, sequence: snapshot.sequence,
+    decisions, changes, values, displayed,
+  };
+}
+
+/** The dependents report as text for a person. `title` names the program. */
+export function formatDependents(report, title = 'the program', events = 0) {
+  const through = names => (report.kind === 'caveat' ? `evidence with ${list(names)}` : list(names));
+  const label = { grounds: 'based on', cites: 'cites', lineage: 'could have been influenced by' };
+  const lines = [`What rests on ${report.subject} in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
+  const section = (heading, items, line) => {
+    lines.push('', heading);
+    if (!items.length) lines.push('  nothing');
+    for (const item of items) lines.push(`  ${line(item)}`);
+  };
+  section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${through(item.via)}`);
+  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} because ${through(item.via)}`);
+  section('Values', report.values, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
+  section('Displayed', report.displayed, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
+  return lines.join('\n');
+}
+
 /**
  * Parses an events file: one JSON object per line, `{"event": NAME}` with an
  * optional `"payload"` object. Blank lines are skipped. Throws an Error that

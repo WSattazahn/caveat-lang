@@ -1,0 +1,28 @@
+scene "Decide whether to carry an umbrella.";
+
+claim rain_likely;
+evidence forecast from "the morning forecast";
+evidence sky from "a look at the sky";
+caveat forecast_is_old consequence material;
+forecast_is_old qualifies forecast;
+
+readings rain_chance from forecast limit 4;
+decisions umbrella limit 4;
+state gone = 0 min 0 max 1;
+
+event read_forecast chance min 0 max 100;
+event clear_sky;
+event leave;
+
+on read_forecast sample rain_chance = chance supports rain_likely;
+on read_forecast when latest(rain_chance) >= 50 and not committed(umbrella)
+  commit umbrella because enough using latest(rain_chance);
+on clear_sky when not observed(sky) reveal sky opposes rain_likely;
+on clear_sky when committed(umbrella) and not reopened(umbrella)
+  reopen umbrella because sky;
+on leave when gone == 1 reject "You have already left.";
+on leave set gone = 1;
+
+bind advice.text = "No decision yet";
+bind advice.text = "Take the umbrella" when committed(umbrella) and not reopened(umbrella);
+bind advice.text = "Think again: the sky has cleared" when reopened(umbrella);

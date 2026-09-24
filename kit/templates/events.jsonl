@@ -1,0 +1,4 @@
+{"event": "read_forecast", "payload": {"chance": 70}}
+{"event": "clear_sky"}
+{"event": "leave"}
+{"event": "leave"}
