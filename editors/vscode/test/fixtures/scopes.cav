@@ -204,6 +204,10 @@
 #^^^^^ storage.type
    qualifies ready;
 #  ^^^^^^^^^ keyword.operator.relation
+ caveat sample consequence high;
+ sample
+   qualifies sensor;
+#  ^^^^^^^^^ keyword.operator.relation
 
 # Repetition
 

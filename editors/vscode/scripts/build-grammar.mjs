@@ -124,8 +124,12 @@ const relationAt = (context, relations) => ({
   ...relation(),
 });
 
-// First words with a statement of their own, which must keep their region.
-const notRelationSource = [...profileHeads, 'reveal', 'sample', 'when_committed'];
+// First words the parsers always read as a statement of their own
+// (parser.rs dispatches on `reveal` and `when_committed`), which must keep
+// their region. `sample` is not one: a caveat may be named `sample`. Alone
+// on its line it is left to the sample region, which reads what follows
+// either way; followed by a relation word it may begin a wrapped relation.
+const notRelationSource = String.raw`(?:${words([...profileHeads, 'reveal', 'when_committed'])})\b|sample\s*${lineEnd}`;
 
 // `FROM supports|opposes|qualifies TO;`, the whole statement.
 function relationStatement(context) {
@@ -142,9 +146,9 @@ function relationStatement(context) {
       // "sensor";`), so it keeps the color it has on its own. A profile word
       // is left to its statement, which also finds a wrapped relation, and
       // so are the words that open an effect region (`reveal` alone on its
-      // line); the parsers read those first words as their own statements.
+      // line).
       {
-        begin: String.raw`${statementStart}(?!(?:${words(notRelationSource)})\b)(${n})(?=\s+${relationWords}\s*${lineEnd}|\s*${lineEnd})`,
+        begin: String.raw`${statementStart}(?!${notRelationSource})(${n})(?=\s+${relationWords}\s*${lineEnd}|\s*${lineEnd})`,
         beginCaptures: { 1: { patterns: [{ include: context.dollar }, { include: context.code }] } },
         end: String.raw`(?=\S)`,
         applyEndPatternLast: true,
@@ -178,8 +182,12 @@ function relationEffects(context) {
       region(String.raw`${notProperty}(reveal)\b`, 'keyword.other.effect.caveat', evidential),
       // `when_committed ACTION FROM REL TO`
       region(String.raw`${statementStart}(when_committed)\b`, 'keyword.control.caveat', evidential),
-      // `sample STREAM = EXPRESSION REL CLAIM`, which may wrap after `sample`
-      region(String.raw`${notProperty}(sample)\b(?=\s+${context.referred}\s*=|\s*${lineEnd})`, 'keyword.other.effect.caveat', evidential),
+      // `sample STREAM = EXPRESSION REL CLAIM`
+      region(String.raw`${notProperty}(sample)\b(?=\s+${context.referred}\s*=)`, 'keyword.other.effect.caveat', evidential),
+      // `sample` ending its line: the next line decides between that effect
+      // and a relation from a caveat or evidence named `sample`
+      // (`caveat sample consequence high;`), so any relation word counts.
+      region(String.raw`${notProperty}(sample)\b(?=\s*${lineEnd})`, 'keyword.other.effect.caveat', relationWords),
     ],
   };
 }

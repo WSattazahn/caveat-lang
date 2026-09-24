@@ -54,7 +54,9 @@ export const groups = [
     name: 'wrapped relations from keyword-named evidence',
     words: ['supports', 'opposes', 'qualifies'],
     probe: ['place\n  @ c;', 'claim\n  @ c;', 'supports\n  @ c;', 'observe # note\n  @ c;', 'for k as $r {\n  place\n    @ $r;\n};',
-      'for k as $r {\n  claim // note\n    @ $r;\n};'],
+      'for k as $r {\n  claim // note\n    @ $r;\n};',
+      // `sample` names a caveat here, not the sampling effect.
+      'sample\n  @ c;', 'sample # note\n  @ c;', 'sample @\n  c;', 'for k as $r {\n  sample\n    @ $r;\n};'],
     scope: 'keyword.operator.relation',
     notKeyword: ['@\n  supports c;'],
   },
