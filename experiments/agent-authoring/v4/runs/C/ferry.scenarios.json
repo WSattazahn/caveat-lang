@@ -1,0 +1,179 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ferry.cav",
+  "scenarios": [
+    {
+      "id": "F01",
+      "title": "Two calm gusts and waves let the ferry go, grounded only on the gusts",
+      "steps": [
+        { "expect": { "/bindings/hud/decision": "none", "/bindings/hud/frozen": -1, "/bindings/hud/gusts": 0, "/bindings/hud/waves": 0, "/bindings/hud/strongest": -1, "/bindings/hud/highest": -1, "/bindings/hud/warned": 0, "/bindings/hud/revision": 0 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 20 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "go",
+            "/bindings/hud/frozen": 20,
+            "/bindings/hud/strongest": 20,
+            "/bindings/hud/highest": 1.0,
+            "/bindings/hud/gusts": 2,
+            "/bindings/hud/waves": 2,
+            "/bindings/hud/revision": 1,
+            "/commitment_grounds/crossing@1": { "evidence": ["wind@1", "wind@2"], "caveats": ["sheltered_mast"] },
+            "/decision_journal": [
+              { "decision": "crossing", "commitment": "crossing@1", "change": "committed", "value": 20, "because": ["wind@1", "wind@2"], "caveats": ["sheltered_mast"] }
+            ]
+        } }
+      ]
+    },
+    {
+      "id": "F02",
+      "title": "A strong gust reopens a go decision; a second decide revises it, keeping the first revision's basis",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 20 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "checkpoint": "first_decision" },
+        { "send": "gust", "payload": { "kt": 45 } },
+        { "expect": {
+            "/bindings/hud/decision": "review",
+            "/bindings/hud/frozen": 20,
+            "/bindings/hud/strongest": 45,
+            "/decision_journal/1": { "decision": "crossing", "commitment": "crossing@1", "change": "reopened", "because": ["wind@3"] }
+        } },
+        { "same_as": "first_decision", "paths": ["/commitment_bases/crossing@1", "/commitment_grounds/crossing@1"] },
+        { "resume": true },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "hold",
+            "/bindings/hud/frozen": 45,
+            "/bindings/hud/revision": 2,
+            "/commitment_grounds/crossing@2/evidence": ["wind@1", "wind@2", "wind@3"]
+        } }
+      ]
+    },
+    {
+      "id": "F03",
+      "title": "A held decision is never reopened by later evidence, even a storm warning",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 40 } },
+        { "send": "gust", "payload": { "kt": 45 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "hold", "/bindings/hud/frozen": 45 } },
+        { "send": "gust", "payload": { "kt": 50 } },
+        { "send": "wave", "payload": { "m": 3.0 } },
+        { "send": "warning" },
+        { "expect": {
+            "/bindings/hud/decision": "hold",
+            "/bindings/hud/frozen": 45,
+            "/commitments/0": { "action": "crossing@1", "open": false }
+        } }
+      ]
+    },
+    {
+      "id": "F04",
+      "title": "A wave over 1.5m and a storm warning each reopen a go decision on their own evidence",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 12 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "expect": {
+            "/bindings/hud/decision": "review",
+            "/decision_journal/1": { "commitment": "crossing@1", "change": "reopened", "because": ["swell@3"] }
+        } },
+        { "resume": true },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/decision": "go" } },
+        { "send": "warning" },
+        { "expect": {
+            "/bindings/hud/decision": "review",
+            "/bindings/hud/warned": 1,
+            "/decision_journal/3": { "commitment": "crossing@2", "change": "reopened", "because": ["storm_warning"] }
+        } },
+        { "send": "warning", "rejected": "a storm warning has already been broadcast" }
+      ]
+    },
+    {
+      "id": "F05",
+      "title": "decide is refused with too few readings, while a decision is in force, and out-of-range events are refused; nothing changes",
+      "steps": [
+        { "send": "decide", "rejected": true },
+        { "send": "gust", "payload": { "kt": 91 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "wave", "payload": { "m": -1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "capsize", "rejected": { "origin": "input", "code": "unknown_event" } },
+        { "send": "gust", "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "expect": { "/sequence": 0, "/decision_journal": [], "/bindings/hud/gusts": 0, "/bindings/hud/waves": 0 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 12 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "send": "decide", "rejected": "the current crossing decision is still in force" },
+        { "checkpoint": "in_force" },
+        { "same_as": "in_force", "paths": ["/decision_journal", "/bindings/hud/decision"] }
+      ]
+    },
+    {
+      "id": "F06",
+      "title": "An eleventh gust and eleventh wave are refused once ten are recorded, each stream counted separately",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 1 }, "repeat": 10 },
+        { "send": "wave", "payload": { "m": 0.2 }, "repeat": 10 },
+        { "expect": { "/bindings/hud/gusts": 10, "/bindings/hud/waves": 10 } },
+        { "send": "gust", "payload": { "kt": 2 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "send": "wave", "payload": { "m": 0.3 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/gusts": 10, "/bindings/hud/waves": 10 } }
+      ]
+    },
+    {
+      "id": "F07",
+      "title": "Exactly 30kt and exactly 1.5m are safe, at the boundary of each threshold",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 30 } },
+        { "send": "gust", "payload": { "kt": 30 } },
+        { "send": "wave", "payload": { "m": 1.5 } },
+        { "send": "wave", "payload": { "m": 1.5 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "go",
+            "/bindings/hud/frozen": 30,
+            "/bindings/hud/strongest": 30,
+            "/bindings/hud/highest": 1.5,
+            "/relations": { "$includes": [
+              { "relation": "supports", "from": "wind@1", "to": "crossing_safe", "origin": "live" },
+              { "relation": "supports", "from": "swell@1", "to": "crossing_safe", "origin": "live" }
+            ] }
+        } }
+      ]
+    },
+    {
+      "id": "F08",
+      "title": "A go decision can be reopened and revised up to the four-decision cap; a fifth decide is refused at the limit",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 12 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.5 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.6 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/revision": 4, "/bindings/hud/decision": "go", "/bindings/hud/strongest": 12 } },
+        { "send": "wave", "payload": { "m": 2.7 } },
+        { "send": "decide", "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/revision": 4, "/bindings/hud/decision": "review" } }
+      ]
+    }
+  ]
+}

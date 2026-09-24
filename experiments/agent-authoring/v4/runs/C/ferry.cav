@@ -1,0 +1,60 @@
+scene "Decide whether the island ferry may make its crossing.";
+
+claim crossing_safe;
+
+evidence anemometer from "the mast anemometer at the landing";
+evidence buoy from "the harbour buoy";
+evidence storm_warning from "the coastguard radio";
+
+caveat sheltered_mast consequence material;
+sheltered_mast qualifies anemometer;
+caveat buoy_drift consequence low;
+buoy_drift qualifies buoy;
+caveat regional_forecast consequence low;
+regional_forecast qualifies storm_warning;
+
+readings wind from anemometer limit 10;
+readings swell from buoy limit 10;
+decisions crossing limit 4;
+
+state warned = 0 min 0 max 1;
+
+event gust kt min 0 max 90;
+event wave m min 0 max 6;
+event warning;
+event decide;
+
+on gust when kt <= 30 sample wind = kt supports crossing_safe;
+on gust when kt > 30 sample wind = kt opposes crossing_safe;
+on gust when kt > 30 and committed(crossing) and not reopened(crossing) and latest(crossing) <= 30
+    reopen crossing because latest(wind);
+
+on wave when m <= 1.5 sample swell = m supports crossing_safe;
+on wave when m > 1.5 sample swell = m opposes crossing_safe;
+on wave when m > 1.5 and committed(crossing) and not reopened(crossing) and latest(crossing) <= 30
+    reopen crossing because latest(swell);
+
+on warning when warned == 1 reject "a storm warning has already been broadcast";
+on warning reveal storm_warning opposes crossing_safe;
+on warning set warned = 1;
+on warning when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30
+    reopen crossing because storm_warning;
+
+on decide when history_count(wind) < 2 or history_count(swell) < 2
+    reject "at least two gusts and two waves are needed before deciding";
+on decide when committed(crossing) and not reopened(crossing)
+    reject "the current crossing decision is still in force";
+on decide commit crossing because enough using fold_history(wind, -1, max);
+
+bind hud.gusts = history_count(wind);
+bind hud.waves = history_count(swell);
+bind hud.strongest = fold_history(wind, -1, max);
+bind hud.highest = fold_history(swell, -1, max);
+bind hud.warned = warned;
+bind hud.decision = "none";
+bind hud.decision = "review" when committed(crossing) and reopened(crossing);
+bind hud.decision = "go" when committed(crossing) and not reopened(crossing) and latest(crossing) <= 30;
+bind hud.decision = "hold" when committed(crossing) and not reopened(crossing) and latest(crossing) > 30;
+bind hud.frozen = -1;
+bind hud.frozen = latest(crossing) when committed(crossing);
+bind hud.revision = history_count(crossing);

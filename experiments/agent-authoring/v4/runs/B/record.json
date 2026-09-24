@@ -1,0 +1,15 @@
+{
+  "run": "B",
+  "phase": 1,
+  "session": "session_01AoZse9BnCo6MdD37bZLvhQ",
+  "model": "claude-opus-5-5",
+  "dispatchedAt": "2026-09-24T17:16:38.832553Z",
+  "promptSha256": "d1c8d0ff3e572dc7ced80cd3c3be4f2e2d56db03f84e031d5ec762bdeaf017a8",
+  "source": "trial/v4-packet-author",
+  "outcome": "trial/v4-run-B",
+  "branch": "trial/v4-run-B",
+  "commit": "afdcb51ca2303ef9d431b295190af3b55298d1c9",
+  "frozenAt": "2026-09-24T17:26:27.524Z",
+  "sha256": "57742c4f4a26a4578fcf00eddf10be216c2c3ca2b438dd857336f25aae8e17a8",
+  "lines": 65
+}

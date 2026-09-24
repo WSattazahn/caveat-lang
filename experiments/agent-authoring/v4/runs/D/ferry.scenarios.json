@@ -1,0 +1,124 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ferry.cav",
+  "scenarios": [
+    {
+      "id": "F01",
+      "title": "Two gusts and two waves let the ferry go; a strong gust reopens and holds it",
+      "steps": [
+        { "expect": {
+            "/bindings/hud/gusts": 0,
+            "/bindings/hud/waves": 0,
+            "/bindings/hud/strongest": -1,
+            "/bindings/hud/highest": -1,
+            "/bindings/hud/warned": 0,
+            "/bindings/hud/decision": "none",
+            "/bindings/hud/frozen": -1,
+            "/bindings/hud/revision": 0
+        } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 20 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 1.0 } },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/gusts": 2,
+            "/bindings/hud/waves": 2,
+            "/bindings/hud/strongest": 20,
+            "/bindings/hud/highest": 1,
+            "/bindings/hud/decision": "go",
+            "/bindings/hud/frozen": 20,
+            "/bindings/hud/revision": 1,
+            "/commitment_grounds/crossing@1": { "evidence": ["wind@1", "wind@2"], "caveats": ["sheltered_mast"] }
+        } },
+        { "checkpoint": "decided" },
+        { "resume": true },
+        { "send": "gust", "payload": { "kt": 40 } },
+        { "expect": {
+            "/bindings/hud/decision": "review",
+            "/bindings/hud/strongest": 40,
+            "/bindings/hud/frozen": 20,
+            "/decision_journal/1": { "commitment": "crossing@1", "change": "reopened", "because": ["wind@3"] }
+        } },
+        { "same_as": "decided", "paths": ["/commitment_bases/crossing@1", "/commitment_grounds/crossing@1"] },
+        { "send": "decide" },
+        { "expect": {
+            "/bindings/hud/decision": "hold",
+            "/bindings/hud/frozen": 40,
+            "/bindings/hud/revision": 2,
+            "/commitment_grounds/crossing@2": { "evidence": ["wind@1", "wind@2", "wind@3"], "caveats": ["sheltered_mast"] }
+        } },
+        { "send": "gust", "payload": { "kt": 5 } },
+        { "send": "wave", "payload": { "m": 3 } },
+        { "send": "warning" },
+        { "expect": { "/bindings/hud/decision": "hold" } },
+        { "send": "decide", "rejected": "the current crossing decision is still in force" }
+      ]
+    },
+    {
+      "id": "F02",
+      "title": "Refused events change nothing: bad input, decide too early, repeat warning, full streams",
+      "steps": [
+        { "send": "decide", "rejected": "at least two gusts and two waves are needed before deciding" },
+        { "send": "gust", "payload": { "kt": 91 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "gust", "payload": { "kt": -1 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "send": "gust", "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "gust", "payload": { "kt": 10, "extra": 1 }, "rejected": { "origin": "input", "code": "payload_invalid" } },
+        { "send": "not_a_real_event", "rejected": { "origin": "input", "code": "unknown_event" } },
+        { "send": "wave", "payload": { "m": 7 }, "rejected": { "origin": "input", "code": "bound_exceeded" } },
+        { "expect": { "/sequence": 0, "/bindings/hud/gusts": 0, "/bindings/hud/waves": 0, "/decision_journal": [] } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "expect": { "/bindings/hud/gusts": 10 } },
+        { "send": "gust", "payload": { "kt": 10 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/gusts": 10 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "expect": { "/bindings/hud/waves": 10 } },
+        { "send": "wave", "payload": { "m": 0.5 }, "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "send": "warning" },
+        { "expect": { "/bindings/hud/warned": 1 } },
+        { "send": "warning", "rejected": "a storm warning has already been broadcast" },
+        { "expect": { "/bindings/hud/warned": 1 } }
+      ]
+    },
+    {
+      "id": "F03",
+      "title": "A decision may be revised at most four times",
+      "steps": [
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "gust", "payload": { "kt": 10 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "wave", "payload": { "m": 0.5 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "send": "decide" },
+        { "expect": { "/bindings/hud/revision": 4, "/decision_series/crossing/current": "crossing@4" } },
+        { "send": "wave", "payload": { "m": 2.0 } },
+        { "expect": { "/bindings/hud/decision": "review" } },
+        { "send": "decide", "rejected": { "origin": "limit", "code": "history_limit" } },
+        { "expect": { "/bindings/hud/revision": 4 } }
+      ]
+    }
+  ]
+}
