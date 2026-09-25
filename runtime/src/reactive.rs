@@ -3021,6 +3021,21 @@ impl ReactiveSession {
                     message,
                 )
             })?;
+            // A typed parameter's number is a member's position, so it must be
+            // whole: a fraction inside the range names no member. The range
+            // check above runs first, so an isolated out-of-range value keeps
+            // its code. Exact, on the parsed number; no rounding.
+            if !parameter.domain.is_numeric() && value.fract() != 0.0 {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::PayloadInvalid,
+                    format!(
+                        "event {event} parameter {} takes a whole number from 1 to {} or a member's name, not {value}",
+                        parameter.name,
+                        parameter.max.value()
+                    ),
+                ));
+            }
         }
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after

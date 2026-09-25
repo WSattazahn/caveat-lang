@@ -67,7 +67,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `policy` | `reject` | An executed source `reject` effect, including inside a procedure. |
 | `policy` | `not_permitted` | A commit's `permitted by` clause found its grant missing, withdrawn, or for another value ([Permission 0.1](caveat-permission-0.1.md)). |
 | `input` | `unknown_event` | A well-formed payload reaches admission for an undeclared event. |
-| `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type. |
+| `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range. |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range. |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
@@ -146,3 +146,8 @@ from an outcome schema match; the save contract governs restoration.
   Its origin is `policy` because the program's own clause states the
   requirement, so a bare expected rejection matches it. Its message is
   runtime text, not a literal from the source.
+- `input/payload_invalid` also classifies a fraction sent for a typed
+  parameter (`in` or `kind`) inside its range, which names no member. Such a
+  payload used to be accepted. An isolated value outside the range is still
+  `input/bound_exceeded`. See
+  [Typed parameters 0.1](caveat-typed-parameters-0.1.md#changes).

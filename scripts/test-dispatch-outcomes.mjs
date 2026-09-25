@@ -251,6 +251,22 @@ try {
       });
     });
 
+    // Typed parameters 0.1, Changes: a fraction inside the range names no
+    // member. An isolated value outside the range keeps bound_exceeded.
+    check('a fraction for a typed parameter names no member', () => {
+      withSessions(inputSource, 1, session => {
+        dispatch(session, 'set_value', '{"value":0.5}');
+        for (const payload of ['{"target":1.5,"sort":1}', '{"target":1,"sort":1.5}', '{"target":2,"sort":1.0000001}']) {
+          rejected(session, 'choose', payload, 'input', 'payload_invalid');
+        }
+        for (const payload of ['{"target":0.5,"sort":1}', '{"target":1,"sort":2.5}']) {
+          rejected(session, 'choose', payload, 'input', 'bound_exceeded');
+        }
+        assert.equal(dispatch(session, 'choose', '{"target":2.0,"sort":1e0}').outcome, 'accepted');
+        assert.equal(dispatch(session, 'set_value', '{"value":0.25}').outcome, 'accepted');
+      });
+    });
+
     check('live and skipped work exhaustion are atomic limit rejections', () => {
       const body = 'set output = output + 1;'.repeat(2048);
       for (const guard of ['true', 'false']) {
