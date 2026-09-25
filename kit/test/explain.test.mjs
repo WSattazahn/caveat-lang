@@ -160,3 +160,31 @@ test('a withdrawn observation is marked where a decision rests on it, which keep
   assert.match(text, /based on checks@1\n {6}checks@1 has since been withdrawn at #3 because recheck/);
   assert.match(text, /checks@1 = 1 supports safe .*withdrawn at #3 because recheck/);
 });
+
+test('a permission is shown as what permitted a decision, apart from what it rests on', async () => {
+  const { dependents } = await import('../lib/explain.mjs');
+  const session = real.open(`identifiers limit 8; claim ready; claim may_merge;
+    evidence ci from "checks"; evidence go from "the go-ahead";
+    readings checks from ci limit 4; readings approvals from go limit 4; decisions merge limit 2;
+    state head = 0;
+    event pushed commit id; event check; event approved commit id; event merge;
+    on pushed set head = commit;
+    on check sample checks = 1 supports ready;
+    on approved sample approvals = commit supports may_merge;
+    on merge commit merge because enough using latest(checks) permitted by latest(approvals) for head;`);
+  session.dispatch('pushed', { commit: 'abc' });
+  session.dispatch('check', {});
+  session.dispatch('approved', { commit: 'abc' });
+  session.dispatch('merge', {});
+  const snapshot = session.snapshot();
+  session.close();
+  const [revision] = explain(snapshot).decisions[0].revisions;
+  assert.deepEqual(revision.grounds.evidence, ['checks@1']);
+  assert.deepEqual(revision.permission, { grant: 'approvals@1', scope: { granted: 1, required: 1 } });
+  assert.match(formatExplanation(explain(snapshot), 'ledger'), /based on checks@1\n {6}permitted by approvals@1 for 1\n/);
+  for (const subject of ['approvals@1', 'approvals', 'go']) {
+    const report = dependents(snapshot, subject);
+    assert.deepEqual(report.decisions.map(item => [item.id, item.basis, item.via]), [['merge@1', 'permission', ['approvals@1']]], subject);
+  }
+  assert.deepEqual(dependents(snapshot, 'checks@1').decisions.map(item => item.basis), ['grounds']);
+});

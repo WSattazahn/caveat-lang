@@ -257,6 +257,20 @@ of the reading, carry a `withdrawn` caveat. The decision keeps what it was made
 on, and reopens only because a rule says so. See
 [withdrawal](../spec/caveat-withdrawal-0.1.md).
 
+When a decision also needs someone's permission, say what permits it rather
+than folding the permission into the value it rests on:
+
+```caveat
+on approved sample approvals = commit supports may_merge;
+on merge commit merge because enough using latest(checks)
+    permitted by latest(approvals) for head;
+```
+
+Without a go-ahead for this head, the merge is refused as
+`{"origin": "policy", "code": "not_permitted"}`. The decision records its grant
+apart from its grounds. The check is made when the decision is made. See
+[permission](../spec/caveat-permission-0.1.md).
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source

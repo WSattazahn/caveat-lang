@@ -21,13 +21,14 @@ const declarations = ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 
 const control = ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'];
 const effects = ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'renew', 'withdraw', 'defer'];
 const modifiers = ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind',
-  'id', 'at', 'to', 'via', 'through', 'toward'];
+  'id', 'permitted', 'by', 'at', 'to', 'via', 'through', 'toward'];
 // Epistemic predicates, expression functions and callable primitives: names
 // that are functions only where a call follows.
 export const builtins = ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified',
   'latest', 'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2',
   'ceil', 'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
-  'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn'];
+  'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
+  'permission_withdrawn'];
 // Statement heads of the core, sequential, map and presentation profiles.
 // Several are ordinary names in reactive programs (`event observe`,
 // `retaining camera`, `reopen route`), so they are keywords only where a

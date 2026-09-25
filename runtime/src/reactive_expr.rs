@@ -1714,6 +1714,7 @@ fn predicate_name(name: &str) -> bool {
             | "has_sample"
             | "withdrawn"
             | "rests_on_withdrawn"
+            | "permission_withdrawn"
     )
 }
 

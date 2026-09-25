@@ -59,6 +59,9 @@ Features added alongside the profiles:
 - [Withdrawal](reference/spec/caveat-withdrawal-0.1.md): recording that an
   observation is no longer stood behind, without erasing what rested on it,
   `withdraw E because R;`.
+- [Permission](reference/spec/caveat-permission-0.1.md): what permitted a
+  decision, recorded apart from what it rests on,
+  `commit D … permitted by latest(approvals) for head;`.
 - [State caveats](reference/spec/caveat-state-caveats-0.1.md): asking which
   caveats a retained value carries, and reopening because of them.
 - [Observation order](reference/spec/caveat-observation-order-0.1.md): uses of

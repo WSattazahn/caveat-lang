@@ -60,6 +60,9 @@ export function explain(snapshot, events = []) {
         status: revision.id !== series.current ? 'superseded' : reopened ? 'reopened' : 'in force',
         grounds,
         lineage: snapshot.commitment_bases?.[revision.id]?.provenance ?? none(),
+        // What permitted it, frozen (spec/caveat-permission-0.1.md): not its
+        // grounds, though its grant is in its lineage.
+        permission: snapshot.commitment_permissions?.[revision.id] ?? null,
         // Grounds withdrawn since the decision was made. The grounds themselves
         // stay as they were.
         withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
@@ -108,6 +111,13 @@ export function formatExplanation(report, title = 'the program') {
       lines.push(`    ${revision.id} = ${show(revision.value)}  ${revision.status}`);
       lines.push(`      based on ${withCaveats(revision.grounds)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
+      if (revision.permission) {
+        const { grant, scope, caveats } = revision.permission;
+        const checked = scope ? ` for ${show(scope.required)}` : '';
+        lines.push(`      permitted by ${grant}${checked}${caveats?.length ? ` (caveats: ${caveats.join(', ')})` : ''}`);
+        const revoked = report.evidence.find(item => item.id === grant)?.withdrawn;
+        if (revoked) lines.push(`      ${grant} has since been ${withdrawnNote(revoked)}`);
+      }
       const also = revision.lineage.evidence.filter(name => !revision.grounds.evidence.includes(name));
       if (also.length) lines.push(`      could also have been influenced by ${list(also)}`);
       for (const entry of revision.history) {
@@ -178,7 +188,10 @@ export function dependents(snapshot, subject) {
   };
 
   const decisions = explain(snapshot).decisions.flatMap(series => series.revisions.flatMap(revision => {
-    const found = basis(revision.grounds, 'grounds', revision.lineage);
+    // A grant is in the lineage, but its role is permission.
+    const grant = revision.permission?.grant;
+    const permitted = resolved.kind === 'evidence' && grant && resolved.ids.has(grant) && !via(revision.grounds).length;
+    const found = permitted ? { basis: 'permission', via: [grant] } : basis(revision.grounds, 'grounds', revision.lineage);
     return found ? [{ id: revision.id, value: revision.value, status: revision.status, ...found }] : [];
   }));
   const changes = (snapshot.decision_journal ?? []).flatMap(entry => {
@@ -206,7 +219,7 @@ export function dependents(snapshot, subject) {
 /** The dependents report as text for a person. `title` names the program. */
 export function formatDependents(report, title = 'the program', events = 0) {
   const through = names => (report.kind === 'caveat' ? `evidence with ${list(names)}` : list(names));
-  const label = { grounds: 'based on', cites: 'cites', lineage: 'could have been influenced by' };
+  const label = { grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by' };
   const lines = [`What rests on ${report.subject} in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
   const section = (heading, items, line) => {
     lines.push('', heading);

@@ -146,7 +146,7 @@ commits.
 - [`session-2026-09-24-identifiers.jsonl`](session-2026-09-24-identifiers.jsonl)
   is the same history with full SHAs.
 
-Replayed, it gives the same outcome for every event as the numeric version,
+Replayed, it accepts and refuses exactly the events the numeric version does,
 and shows the commits as themselves:
 
 ```text
@@ -176,6 +176,32 @@ this, and `caveat explain` shows it:
       based on pr29_checks@1, pr29_go
       pr29_checks@1 has since been withdrawn at #5 because pr29_recheck
 ```
+
+## Follow-up: permission
+
+[Permission 0.1](../../spec/caveat-permission-0.1.md) answers the new item.
+
+In the identifier ledger, a go-ahead is a reading whose value is the commit it
+approves. The merge rule names what permits it:
+
+```caveat
+on merge when target == $index and $p_revisions == 0
+    commit $p_merge because enough using latest($p_checks)
+    permitted by latest($p_approvals) for $p_head;
+```
+
+- **What changed.** The merge decision now rests on the checks alone. Its
+  permission is recorded apart from its grounds, as
+  `commitment_permissions`, and in the journal as `permitted_by`. The
+  `qualified(…)` workaround and the hand-written approval check are gone.
+- **The refusals.** Without a go-ahead for the head, the merge is refused as
+  `policy/not_permitted`. The day's history is refused and accepted exactly as
+  before. #21, #28 and #29 are now refused by the permission clause, not by a
+  `reject` rule.
+- **What stays.** The rule that reopens a decision when the head changes: the
+  clause checks the head when the commitment is made, not afterwards. A
+  go-ahead for later revisions is still a separate grant that a separate rule
+  names.
 
 ## Suggested order for the language work
 

@@ -93,7 +93,7 @@ export const groups = [
   { name: 'booleans', words: ['true', 'false'], probe: 'x = @;', scope: 'constant.language.boolean' },
   {
     name: 'clauses',
-    words: ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'at', 'to',
+    words: ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind', 'id', 'permitted', 'by', 'at', 'to',
       'via', 'through', 'toward'],
     probe: 'x @ y;',
     scope: 'keyword.other',
@@ -149,7 +149,8 @@ export const groups = [
     words: ['observed', 'committed', 'reopened', 'examined', 'has_caveat', 'caveated', 'carries', 'qualified', 'latest',
       'has_sample', 'history_at', 'history_count', 'fold_history', 'elapsed', 'require', 'text', 'abs', 'atan2', 'ceil',
       'floor', 'round', 'sqrt', 'sin', 'cos', 'clamp', 'wrap', 'number_text', 'percent_text', 'time_second_text',
-      'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn'],
+      'time_total_text', 'time_text', 'min', 'max', 'id_text', 'withdrawn', 'rests_on_withdrawn',
+      'permission_withdrawn'],
     probe: 'set x = @(y);',
     scope: 'support.function.builtin',
     notKeyword: ['state @ = 1;'],
