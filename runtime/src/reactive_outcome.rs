@@ -27,6 +27,7 @@ pub enum RejectionCode {
     DepthLimit,
     HistoryLimit,
     IdentifierLimit,
+    NotPermitted,
 }
 
 #[derive(Debug, Serialize)]

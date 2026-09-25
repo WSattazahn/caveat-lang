@@ -46,6 +46,9 @@ everything an event can change, named as the program names it:
   one made before that profile, holds none;
 - the withdrawn observations ([Withdrawal 0.1](caveat-withdrawal-0.1.md)),
   checked against the graph's `withdrawn` relations when restored;
+- each permitted commitment's frozen permission record
+  ([Permission 0.1](caveat-permission-0.1.md)), checked against the journal's
+  `permitted_by` when restored;
 - the last event's effects, and its cues by id.
 
 Bindings are not saved. They are computed from the state when a session is

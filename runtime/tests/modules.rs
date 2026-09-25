@@ -1260,6 +1260,9 @@ fn literals_in_group(
     close: char,
 ) -> (Vec<String>, usize) {
     let bytes: Vec<char> = source[open_at..].chars().collect();
+    // `index` counts characters; the position returned is a byte offset into
+    // `source`, so a multi-byte character inside the group must not shift it.
+    let offsets: Vec<usize> = source[open_at..].char_indices().map(|(at, _)| at).collect();
     let mut literals = Vec::new();
     let mut depth = 0usize;
     let mut index = 0usize;
@@ -1283,7 +1286,7 @@ fn literals_in_group(
         } else if ch == close {
             depth -= 1;
             if depth == 0 {
-                return (literals, open_at + index + 1);
+                return (literals, open_at + offsets[index] + close.len_utf8());
             }
         }
         index += 1;

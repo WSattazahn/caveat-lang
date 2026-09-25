@@ -46,6 +46,10 @@ pub struct ReactiveSave {
     /// spec/caveat-withdrawal-0.1.md have none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub withdrawals: Vec<Withdrawal>,
+    /// Each permitted commitment's frozen permission record. Saves made
+    /// before spec/caveat-permission-0.1.md have none.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub commitment_permissions: BTreeMap<String, PermissionRecord>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -320,6 +324,7 @@ impl ReactiveSession {
                 .collect(),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (*self.withdrawals).clone(),
+            commitment_permissions: (*self.commitment_permissions).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             observation_qualifications: compact_map(&self.observation_qualifications),
             examination_qualifications: compact_map(&self.examination_qualifications),
@@ -398,6 +403,7 @@ impl ReactiveSession {
         self.restore_withdrawals(save)?;
         self.restore_states(&save.states)?;
         self.restore_records(save)?;
+        self.restore_permissions(save)?;
         self.evaluate_bindings(None)
     }
 
@@ -450,6 +456,80 @@ impl ReactiveSession {
             return Err("withdrawals disagree with the graph's withdrawn relations".into());
         }
         self.withdrawals = Arc::new(save.withdrawals.clone());
+        Ok(())
+    }
+
+    /// Permission records must name restored commitments, known evidence,
+    /// finite scope values and declared caveats, and agree with the journal's
+    /// `permitted_by` in both directions.
+    fn restore_permissions(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        for (commitment, record) in &save.commitment_permissions {
+            if !self.commitment_bases.contains_key(commitment) {
+                return Err(format!(
+                    "a permission names unknown commitment {commitment}"
+                ));
+            }
+            self.require_kind(&record.grant, "evidence").map_err(|_| {
+                format!(
+                    "the permission of {commitment} names unknown evidence {}",
+                    record.grant
+                )
+            })?;
+            if let Some(scope) = &record.scope {
+                if !scope.granted.is_finite() || !scope.required.is_finite() {
+                    return Err(format!(
+                        "the permission of {commitment} has a scope that is not finite"
+                    ));
+                }
+                // The commitment happened only because the two were equal.
+                if scope.granted != scope.required {
+                    return Err(format!(
+                        "the permission of {commitment} records a scope that was not met"
+                    ));
+                }
+            }
+            // The record must describe the decision it belongs to: the grant
+            // was observed and is in the commitment's frozen lineage. Whether
+            // it is still unwithdrawn, or still matches today's head, is not
+            // checked: later changes do not rewrite the record.
+            if !self.predicate("observed", &record.grant)? {
+                return Err(format!(
+                    "the permission of {commitment} names a grant that was never observed, {}",
+                    record.grant
+                ));
+            }
+            if !self.commitment_bases[commitment]
+                .provenance
+                .evidence
+                .contains(&record.grant)
+            {
+                return Err(format!(
+                    "the permission of {commitment} names {}, which is not in its lineage",
+                    record.grant
+                ));
+            }
+            for caveat in &record.caveats {
+                self.require_kind(caveat, "caveat")?;
+            }
+        }
+        for entry in &save.decision_journal {
+            let recorded = save
+                .commitment_permissions
+                .get(&entry.commitment)
+                .map(|record| &record.grant);
+            let expected = if entry.change == "committed" {
+                recorded
+            } else {
+                None
+            };
+            if entry.permitted_by.as_ref() != expected {
+                return Err(format!(
+                    "the journal's permission for {} disagrees with its record",
+                    entry.commitment
+                ));
+            }
+        }
+        self.commitment_permissions = Arc::new(save.commitment_permissions.clone());
         Ok(())
     }
 

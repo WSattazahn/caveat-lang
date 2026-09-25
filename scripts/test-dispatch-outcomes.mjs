@@ -330,6 +330,32 @@ try {
       });
     });
 
+    check('a missing or mismatched permission is refused as not_permitted, and a granted one is recorded', () => {
+      const source = fixture('permission', `identifiers limit 8; claim ready; claim may_merge;
+        evidence ci from "checks"; evidence go from "a go-ahead";
+        readings checks from ci limit 4; readings approvals from go limit 4; decisions merge limit 2;
+        state head = 0;
+        event pushed commit id; event check; event approved commit id; event merge;
+        on pushed set head = commit;
+        on check sample checks = 1 supports ready;
+        on approved sample approvals = commit supports may_merge;
+        on merge commit merge because enough using latest(checks) permitted by latest(approvals) for head;`);
+      withSessions(source, 1, session => {
+        dispatch(session, 'pushed', '{"commit":"a"}');
+        dispatch(session, 'check');
+        rejected(session, 'merge', '{}', 'policy', 'not_permitted');
+        dispatch(session, 'approved', '{"commit":"b"}');
+        rejected(session, 'merge', '{}', 'policy', 'not_permitted');
+        dispatch(session, 'approved', '{"commit":"a"}');
+        const merged = dispatch(session, 'merge').snapshot;
+        assert.deepEqual(merged.commitment_permissions['merge@1'], { grant: 'approvals@2', scope: { granted: 1, required: 1 } });
+        assert.deepEqual(merged.commitment_grounds['merge@1'].evidence, ['checks@1']);
+        assert.equal(merged.decision_journal[0].permitted_by, 'approvals@2');
+        const restored = WebReactiveSession.restore(source, session.save());
+        try { assert.deepEqual(checkpoint(restored), checkpoint(session)); } finally { restored.free(); }
+      });
+    });
+
     for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;

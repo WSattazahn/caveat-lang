@@ -65,6 +65,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | Origin | Code | Classified failure site |
 | --- | --- | --- |
 | `policy` | `reject` | An executed source `reject` effect, including inside a procedure. |
+| `policy` | `not_permitted` | A commit's `permitted by` clause found its grant missing, withdrawn, or for another value ([Permission 0.1](caveat-permission-0.1.md)). |
 | `input` | `unknown_event` | A well-formed payload reaches admission for an undeclared event. |
 | `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type. |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
@@ -139,3 +140,9 @@ from an outcome schema match; the save contract governs restoration.
   It arrived with [Identifiers 0.1](caveat-identifiers-0.1.md), so no earlier
   behavior changes. An identifier payload that is not 1 to 1,024 bytes of text
   is `input/payload_invalid`, like any other malformed payload.
+- `policy/not_permitted` classifies a commit whose `permitted by` clause
+  finds no usable grant. It arrived with
+  [Permission 0.1](caveat-permission-0.1.md), so no earlier behavior changes.
+  Its origin is `policy` because the program's own clause states the
+  requirement, so a bare expected rejection matches it. Its message is
+  runtime text, not a literal from the source.

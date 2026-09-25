@@ -188,6 +188,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Withdrawal 0.1](spec/caveat-withdrawal-0.1.md) records that an observation is no longer stood behind (`withdraw latest(checks) because recheck;`). Nothing is erased: decisions keep what they were made on, current values and later reads carry a `withdrawn` caveat, and `rests_on_withdrawn(D)` lets a program decide what the withdrawal means for a decision.
 
+[Permission 0.1](spec/caveat-permission-0.1.md) records what permitted a decision, apart from what it rests on (`commit merge … permitted by latest(approvals) for head;`). A missing, withdrawn or mismatched grant refuses the commit as `policy/not_permitted`, and the frozen record says which grant permitted it, for which value.
+
 [Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
 
 [Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: `WebReactiveSession.save()` and `WebReactiveSession.restore(source, saved)`. Restoring costs what loading costs plus the size of the save. Restore validates the saved names, values and histories; mutation tests check that an altered save is either refused or remains playable without a crash.

@@ -64,11 +64,11 @@
             "/bindings/pr29/approved_for": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
             "/commitment_grounds/pr29_merge@1": {
               "evidence": [
-                "pr29_checks@1",
-                "pr29_go"
+                "pr29_checks@1"
               ],
               "caveats": []
-            }
+            },
+            "/commitment_permissions/pr29_merge@1/grant": "pr29_approvals@1"
           }
         },
         {
@@ -101,7 +101,10 @@
           "payload": {
             "target": "pr29"
           },
-          "rejected": "No go-ahead for the current head."
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
         },
         {
           "send": "approved",

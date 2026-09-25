@@ -117,4 +117,5 @@ This profile does not include:
 - undoing a withdrawal;
 - judging whether a reason is good enough;
 - withdrawing a reading by its value, such as "the reading about commit X";
-- permission.
+- permission: see [Permission 0.1](caveat-permission-0.1.md), which uses
+  withdrawal to revoke a grant.

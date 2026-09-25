@@ -26,6 +26,7 @@ change it made, in the order it made them:
 | `value` | the concrete commitment's frozen numeric `using` value; absent when none was supplied or in older saved entries |
 | `because` | for `committed`, the commitment's [grounds](caveat-explanations-0.2.md) evidence; for `reopened`, the evidence that reopened it |
 | `caveats` | the caveats of that evidence at that moment |
+| `permitted_by` | for a `committed` entry made with `permitted by`, the concrete grant ([Permission 0.1](caveat-permission-0.1.md)); absent otherwise and in older saves |
 
 `because` lists evidence in the order it was **first observed**, not in
 alphabetical order. A revision's entry shows what that revision was made on,

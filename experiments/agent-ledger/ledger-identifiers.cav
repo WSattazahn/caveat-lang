@@ -32,21 +32,22 @@ for pr as $p {
     claim $p_closed;
     evidence $p_ci from "the pull request's CI checks";
     evidence $p_local from "gates the agent ran itself";
+    claim $p_permitted;
     evidence $p_go from "the user's go-ahead in chat, for one head";
     evidence $p_scope from "the user's go-ahead for later revisions too";
     evidence $p_push from "a new commit on the branch";
     evidence $p_elsewhere from "GitHub: merged by someone else";
     evidence $p_recheck from "the agent re-read the checks";
     claim $p_misreading;
-    renewable $p_go limit 16;
     renewable $p_push limit 64;
     readings $p_checks from $p_ci limit 32;
     readings $p_gates from $p_local limit 32;
+    # Each go-ahead is a reading whose value is the commit it approves.
+    readings $p_approvals from $p_go limit 16;
     decisions $p_merge limit 8;
     state $p_head = 0 min 0 max 4294967295;
     state $p_green = 0 min 0 max 1;
     state $p_merged = 0 min 0 max 1;
-    state $p_approved_head = 0 min 0 max 4294967295;
     state $p_revisions = 0 min 0 max 1;
 
     # A push makes every earlier check about another commit. Nothing in the
@@ -72,24 +73,24 @@ for pr as $p {
     on gates when target == $index and result == result.failed sample $p_gates = commit opposes $p_ready;
 
     on approved when target == $index and commit != $p_head reject "A go-ahead for a commit that is not the head.";
-    on approved when target == $index and observed($p_go) renew $p_go;
-    on approved when target == $index reveal $p_go supports $p_ready;
-    on approved when target == $index set $p_approved_head = commit;
+    on approved when target == $index sample $p_approvals = commit supports $p_permitted;
 
     on approved_revisions when target == $index and $p_revisions == 1 reject "Later revisions are already approved.";
-    on approved_revisions when target == $index reveal $p_scope supports $p_ready;
+    on approved_revisions when target == $index reveal $p_scope supports $p_permitted;
     on approved_revisions when target == $index set $p_revisions = 1;
 
     on merge when target == $index and $p_merged == 1 reject "Someone else has already merged it.";
     on merge when target == $index and $p_green == 0 reject "No passing checks on the current head.";
-    on merge when target == $index and $p_approved_head != $p_head and $p_revisions == 0 reject "No go-ahead for the current head.";
     on merge when target == $index and committed($p_merge) and not reopened($p_merge) reject "Already decided to merge.";
-    # The go-ahead is part of what the decision rests on only if it is part of
-    # its value: a reject rule that let the event through leaves no trace.
-    on merge when target == $index and $p_approved_head == $p_head
-        commit $p_merge because enough using qualified(latest($p_checks), $p_go);
-    on merge when target == $index and $p_approved_head != $p_head and $p_revisions == 1
-        commit $p_merge because enough using qualified(latest($p_checks), $p_scope);
+    # The decision rests on the checks and is permitted by a go-ahead for this
+    # head (spec/caveat-permission-0.1.md). Without one it is refused as
+    # policy/not_permitted. Only an explicit go-ahead for later revisions is
+    # used instead, and only because this rule names it.
+    on merge when target == $index and $p_revisions == 0
+        commit $p_merge because enough using latest($p_checks)
+        permitted by latest($p_approvals) for $p_head;
+    on merge when target == $index and $p_revisions == 1
+        commit $p_merge because enough using latest($p_checks) permitted by $p_scope;
 
     # Withdrawing the misread result reopens a decision grounded on it.
     # The decision keeps what it was made on (spec/caveat-withdrawal-0.1.md).
@@ -111,5 +112,6 @@ for pr as $p {
     bind $p.status = "reconsider: a result it rests on was withdrawn" when reopened($p_merge) and rests_on_withdrawn($p_merge) and $p_merged == 0;
     bind $p.status = "merged by someone else" when $p_merged == 1;
     bind $p.head = id_text($p_head);
-    bind $p.approved_for = id_text($p_approved_head);
+    bind $p.approved_for = "";
+    bind $p.approved_for = id_text(latest($p_approvals)) when has_sample($p_approvals);
 };

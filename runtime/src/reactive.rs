@@ -219,6 +219,8 @@ pub enum Effect {
         action: String,
         reason: StopReason,
         using: Option<Expr>,
+        /// `permitted by GRANT [for X]`. See spec/caveat-permission-0.1.md.
+        permission: Option<PermissionClause>,
         retaining: Vec<String>,
     },
     Reopen {
@@ -291,13 +293,18 @@ fn expand_effect(
             }
         }
         Effect::Sample { value, .. }
-        | Effect::Commit {
-            using: Some(value), ..
-        }
         | Effect::Qualify {
             after: Some(value), ..
         } => {
             *value = reactive_expr::expand_with(value, functions, defines)?;
+        }
+        Effect::Commit {
+            using, permission, ..
+        } => {
+            let scope = permission.as_mut().and_then(|clause| clause.scope.as_mut());
+            for value in using.iter_mut().chain(scope) {
+                *value = reactive_expr::expand_with(value, functions, defines)?;
+            }
         }
         Effect::Call { arguments, .. } => {
             for argument in arguments {
@@ -740,10 +747,22 @@ impl<'a> OrderStep<'a> {
                 expressions.push(value);
                 expressions.extend(because.iter().flatten());
             }
-            Effect::Sample { value, .. }
-            | Effect::Commit {
-                using: Some(value), ..
-            } => expressions.push(value),
+            Effect::Sample { value, .. } => expressions.push(value),
+            Effect::Commit {
+                using, permission, ..
+            } => {
+                expressions.extend(using);
+                if let Some(clause) = permission {
+                    if let EvidenceSelector::Named(grant) = &clause.grant {
+                        uses.push((
+                            grant.clone(),
+                            guard.clone(),
+                            format!("permitted by {grant}"),
+                        ));
+                    }
+                    expressions.extend(&clause.scope);
+                }
+            }
             Effect::Call { arguments, .. } => expressions.extend(arguments),
             Effect::Qualify {
                 evidence, after, ..
@@ -899,6 +918,36 @@ pub enum EffectReport {
     },
 }
 
+/// `permitted by GRANT [for X]` on a commit: the grant is named evidence or
+/// `latest(STREAM)`, and `for X` only takes a stream's reading.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PermissionClause {
+    pub grant: EvidenceSelector,
+    pub scope: Option<Expr>,
+}
+
+/// What a commitment was permitted by, frozen when it was made. Not its
+/// grounds; the grant is in its lineage. See spec/caveat-permission-0.1.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PermissionRecord {
+    /// The concrete grant occurrence.
+    pub grant: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<PermissionScope>,
+    /// The caveats the grant carried when the commitment was made.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub caveats: Vec<String>,
+}
+
+/// The two values `for X` compared: the grant's and the required one.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PermissionScope {
+    pub granted: f64,
+    pub required: f64,
+}
+
 /// One withdrawn observation, resolved to its occurrence when it was
 /// withdrawn. See spec/caveat-withdrawal-0.1.md.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -932,6 +981,9 @@ pub struct JournalEntry {
     /// that reopened it; either way in the order it was first observed.
     pub because: Vec<String>,
     pub caveats: Vec<String>,
+    /// For a commitment made with `permitted by`, its grant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub permitted_by: Option<String>,
 }
 
 /// What a host redraws after an event: bindings and what they cite, cues and
@@ -970,6 +1022,9 @@ pub struct ReactiveSnapshot {
     /// Withdrawn observations, in the order they were withdrawn.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub withdrawals: Vec<Withdrawal>,
+    /// What each permitted commitment was permitted by, frozen.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub commitment_permissions: BTreeMap<String, PermissionRecord>,
     pub scheduled_qualifications: Vec<ScheduledQualification>,
     pub last_event: Option<String>,
     pub values: BTreeMap<String, f64>,
@@ -1030,6 +1085,8 @@ pub struct ReactiveSession {
     identifiers: Arc<Identifiers>,
     /// Withdrawn observations, in the order they were withdrawn.
     withdrawals: Arc<Vec<Withdrawal>>,
+    /// Each permitted commitment's frozen permission record.
+    commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
     /// Qualifications waiting for time to pass, in the order scheduled.
     scheduled: Arc<Vec<ScheduledQualification>>,
     /// Seconds counted from the time event's `dt`.
@@ -1193,6 +1250,7 @@ impl ReactiveSession {
             renewals: Arc::default(),
             identifiers: Arc::default(),
             withdrawals: Arc::default(),
+            commitment_permissions: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
@@ -2026,8 +2084,12 @@ impl ReactiveSession {
                 "numeric_history" => self.require_history(symbol),
                 "has_sample" | "withdrawn_latest" => self.require_readings(symbol),
                 "withdrawn" => self.require_kind(symbol, "evidence"),
-                "rests_on_withdrawn" if commitments.contains(symbol) => Ok(()),
-                "rests_on_withdrawn" => Err(format!("unknown reactive commitment {symbol}")),
+                "rests_on_withdrawn" | "permission_withdrawn" if commitments.contains(symbol) => {
+                    Ok(())
+                }
+                "rests_on_withdrawn" | "permission_withdrawn" => {
+                    Err(format!("unknown reactive commitment {symbol}"))
+                }
                 "committed" | "reopened" if commitments.contains(symbol) => Ok(()),
                 "committed" | "reopened" => Err(format!("unknown reactive commitment {symbol}")),
                 _ if kind.starts_with(CARRIES) => {
@@ -2186,11 +2248,35 @@ impl ReactiveSession {
                     }
                 }
                 Effect::Commit {
-                    using, retaining, ..
+                    using,
+                    permission,
+                    retaining,
+                    ..
                 } => {
                     if let Some(value) = using {
                         if value.validate(&numeric, &validate_predicate)? != ValueType::Number {
                             return Err("commit using requires a numeric expression".into());
+                        }
+                    }
+                    if let Some(clause) = permission {
+                        match &clause.grant {
+                            EvidenceSelector::Named(grant) => {
+                                self.require_kind(grant, "evidence")?
+                            }
+                            EvidenceSelector::Latest(stream) => self.require_readings(stream)?,
+                            EvidenceSelector::Caveated { .. } => {
+                                return Err("permitted by names evidence or latest(STREAM)".into())
+                            }
+                        }
+                        if let Some(scope) = &clause.scope {
+                            if !matches!(clause.grant, EvidenceSelector::Latest(_)) {
+                                return Err("permitted by … for X needs a grant from latest(STREAM), which has a value".into());
+                            }
+                            if scope.validate(&numeric, &validate_predicate)? != ValueType::Number {
+                                return Err(
+                                    "permitted by … for requires a numeric expression".into()
+                                );
+                            }
                         }
                     }
                     let mut retained = HashSet::new();
@@ -3830,6 +3916,7 @@ impl ReactiveSession {
                 action,
                 reason,
                 using,
+                permission,
                 retaining,
             } => {
                 let previous = self
@@ -3869,6 +3956,17 @@ impl ReactiveSession {
                         format!("generated commitment identity {name} already exists").into(),
                     );
                 }
+                // Permission is checked before anything is recorded. Its grant
+                // controls whether the decision happens: lineage, not grounds.
+                let permission = match permission {
+                    Some(clause) => {
+                        let (record, lineage) =
+                            self.check_permission(action, clause, parameters)?;
+                        provenance.merge(&lineage)?;
+                        Some(record)
+                    }
+                    None => None,
+                };
                 // Grounds: what the decision was made on, i.e. its `using`
                 // content and retained caveats. The guard and a predecessor's
                 // basis stay in the lineage recorded below.
@@ -3925,6 +4023,10 @@ impl ReactiveSession {
                         provenance,
                     },
                 );
+                if let Some(record) = &permission {
+                    Arc::make_mut(&mut self.commitment_permissions)
+                        .insert(name.clone(), record.clone());
+                }
                 if let Some(ordinal) = ordinal {
                     let series = Arc::make_mut(&mut self.decision_series)
                         .get_mut(action)
@@ -3953,6 +4055,7 @@ impl ReactiveSession {
                     value: used_value,
                     because: self.in_observation_order(grounds.evidence.iter()),
                     caveats: grounds.caveats.iter().cloned().collect(),
+                    permitted_by: permission.map(|record| record.grant),
                 };
                 Arc::make_mut(&mut self.journal).push(entry);
                 self.effects.push(EffectReport::Commit {
@@ -4049,6 +4152,7 @@ impl ReactiveSession {
                             .and_then(|basis| basis.value),
                         because,
                         caveats: caveats.into_iter().collect(),
+                        permitted_by: None,
                     };
                     Arc::make_mut(&mut self.journal).push(entry);
                 }
@@ -4205,6 +4309,82 @@ impl ReactiveSession {
         }
     }
 
+    /// A `permitted by` clause, when its commit runs. A missing, withdrawn or
+    /// mismatched grant is a refusal; any other failure keeps its own
+    /// classification. Returns the frozen record and the lineage the check
+    /// read. See spec/caveat-permission-0.1.md.
+    fn check_permission(
+        &self,
+        action: &str,
+        clause: &PermissionClause,
+        parameters: &BTreeMap<String, Tracked<f64>>,
+    ) -> Result<(PermissionRecord, Provenance), DispatchFailure> {
+        let refuse = |why: String| {
+            DispatchFailure::rejected(
+                RejectionOrigin::Policy,
+                RejectionCode::NotPermitted,
+                format!("commit {action} is not permitted: {why}"),
+            )
+        };
+        let (grant, value, mut lineage) = match &clause.grant {
+            EvidenceSelector::Named(evidence) => {
+                let grant = self.occurrence(evidence).to_string();
+                if !self.predicate("observed", &grant)? {
+                    return Err(refuse(format!("{grant} is not observed")));
+                }
+                let lineage = self.qualify(&grant, &[])?;
+                (grant, None, lineage)
+            }
+            EvidenceSelector::Latest(stream) => {
+                // An empty stream is "no grant yet", recognised as such rather
+                // than by catching the error an empty read raises.
+                let Some(grant) = self.reading_streams[stream].current.clone() else {
+                    return Err(refuse(format!("{stream} holds no grant yet")));
+                };
+                let reading = self.latest(stream)?;
+                (grant, Some(reading.value), reading.provenance)
+            }
+            EvidenceSelector::Caveated { .. } => {
+                return Err("permitted by names evidence or latest(STREAM)".into())
+            }
+        };
+        let caveats = lineage.caveats.iter().cloned().collect();
+        if let Some(withdrawal) = self.withdrawal_of(&grant) {
+            return Err(refuse(format!(
+                "{grant} was withdrawn at #{} because {}",
+                withdrawal.sequence, withdrawal.because
+            )));
+        }
+        let scope = match &clause.scope {
+            None => None,
+            Some(expression) => {
+                let required = self.evaluate(expression, parameters)?;
+                let Value::Number(required_value) = required.value else {
+                    return Err("permitted by … for requires a number".into());
+                };
+                lineage.merge(&required.provenance)?;
+                let granted = value.expect("validated: for takes latest(STREAM)");
+                if granted != required_value {
+                    return Err(refuse(format!(
+                        "{grant} permits {granted}, not {required_value}"
+                    )));
+                }
+                Some(PermissionScope {
+                    granted,
+                    required: required_value,
+                })
+            }
+        };
+        Ok((
+            PermissionRecord {
+                grant,
+                scope,
+                caveats,
+            },
+            lineage,
+        ))
+    }
+
     fn withdrawal_of(&self, evidence: &str) -> Option<&Withdrawal> {
         self.withdrawals
             .iter()
@@ -4241,6 +4421,17 @@ impl ReactiveSession {
                 .and_then(|current| self.withdrawal_of(current))
                 .into_iter()
                 .collect(),
+            "permission_withdrawn" => {
+                let current = match self.decision_series.get(name) {
+                    Some(series) => series.current.as_deref(),
+                    None => Some(name),
+                };
+                current
+                    .and_then(|current| self.commitment_permissions.get(current))
+                    .and_then(|record| self.withdrawal_of(&record.grant))
+                    .into_iter()
+                    .collect()
+            }
             "rests_on_withdrawn" => {
                 let current = match self.decision_series.get(name) {
                     Some(series) => series.current.as_deref(),
@@ -4350,6 +4541,7 @@ impl ReactiveSession {
             renewals: (*self.renewals).clone(),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (*self.withdrawals).clone(),
+            commitment_permissions: (*self.commitment_permissions).clone(),
             scheduled_qualifications: (*self.scheduled).clone(),
             cues: self.cues.clone(),
             cue_qualifications: self.cue_qualifications.clone(),
@@ -4483,11 +4675,23 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
             action,
             reason,
             using,
+            permission,
             retaining,
         } => Effect::Commit {
             action: rename(action),
             reason: reason.clone(),
             using: using.as_ref().map(|value| value.rename_symbols(names)),
+            permission: permission.as_ref().map(|clause| PermissionClause {
+                grant: match &clause.grant {
+                    EvidenceSelector::Named(grant) => EvidenceSelector::Named(rename(grant)),
+                    EvidenceSelector::Latest(stream) => EvidenceSelector::Latest(rename(stream)),
+                    selector => selector.clone(),
+                },
+                scope: clause
+                    .scope
+                    .as_ref()
+                    .map(|scope| scope.rename_symbols(names)),
+            }),
             retaining: retaining.iter().map(rename).collect(),
         },
         Effect::Reopen { action, because } => Effect::Reopen {
@@ -5316,38 +5520,86 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                     .map(|name| identifier(name.trim()))
                     .collect()
             };
-            let (using, retaining) = match rest {
-                [] => (None, Vec::new()),
-                ["retaining", names @ ..] => (None, parse_retained(names)?),
-                ["using", expression @ ..] if !expression.is_empty() => {
-                    let mut depth = 0_i64;
-                    let mut boundary = None;
-                    for (index, token) in expression.iter().enumerate() {
-                        if index > 0 && depth == 0 && *token == "retaining" {
-                            boundary = Some(index);
-                            break;
-                        }
-                        depth += expression_depth_delta(token);
+            // Clauses, in order: using, permitted by … [for …], retaining. Their
+            // keywords count only outside parentheses.
+            let mut depth = 0_i64;
+            let (mut permitted, mut retained_at) = (None, None);
+            for (index, token) in rest.iter().enumerate() {
+                if depth == 0 && retained_at.is_none() {
+                    if *token == "permitted"
+                        && rest.get(index + 1) == Some(&"by")
+                        && permitted.is_none()
+                    {
+                        permitted = Some(index);
+                    } else if *token == "retaining" {
+                        retained_at = Some(index);
                     }
-                    let end = boundary.unwrap_or(expression.len());
-                    let using = reactive_expr::parse_unresolved(&expression[..end].join(" "))?;
-                    let retaining = boundary
-                        .map(|index| parse_retained(&expression[index + 1..]))
-                        .transpose()?
-                        .unwrap_or_default();
-                    (Some(using), retaining)
+                }
+                depth += expression_depth_delta(token);
+            }
+            let usage = &rest[..permitted.or(retained_at).unwrap_or(rest.len())];
+            let using = match usage {
+                [] => None,
+                ["using", expression @ ..] if !expression.is_empty() => {
+                    Some(reactive_expr::parse_unresolved(&expression.join(" "))?)
                 }
                 _ => {
                     return Err(
-                        "commit expects [using NUMERIC_EXPRESSION] [retaining CAVEAT, CAVEAT]"
+                        "commit expects [using NUMERIC_EXPRESSION] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, CAVEAT]"
                             .into(),
                     )
                 }
             };
+            let permission = match permitted {
+                None => None,
+                Some(start) => {
+                    let clause = &rest[start + 2..retained_at.unwrap_or(rest.len())];
+                    let mut depth = 0_i64;
+                    let mut scope_at = None;
+                    for (index, token) in clause.iter().enumerate() {
+                        if depth == 0 && *token == "for" {
+                            scope_at = Some(index);
+                            break;
+                        }
+                        depth += expression_depth_delta(token);
+                    }
+                    let grant = clause[..scope_at.unwrap_or(clause.len())].join(" ");
+                    if grant.is_empty() {
+                        return Err("permitted by needs a grant: EVIDENCE or latest(STREAM)".into());
+                    }
+                    let grant = match grant
+                        .strip_prefix("latest")
+                        .map(str::trim)
+                        .and_then(|rest| rest.strip_prefix('('))
+                    {
+                        Some(arguments) => EvidenceSelector::Latest(identifier(
+                            arguments
+                                .trim()
+                                .strip_suffix(')')
+                                .ok_or("permitted by latest requires a closing parenthesis")?
+                                .trim(),
+                        )?),
+                        None => EvidenceSelector::Named(identifier(&grant)?),
+                    };
+                    let scope = match scope_at {
+                        None => None,
+                        Some(index) if index + 1 < clause.len() => Some(
+                            reactive_expr::parse_unresolved(&clause[index + 1..].join(" "))?,
+                        ),
+                        Some(_) => return Err("permitted by … for needs an expression".into()),
+                    };
+                    Some(PermissionClause { grant, scope })
+                }
+            };
+            let retaining = retained_at
+                .map(|index| parse_retained(&rest[index + 1..]))
+                .transpose()?
+                .unwrap_or_default();
             Ok(Effect::Commit {
                 action: identifier(action)?,
                 reason,
                 using,
+                permission,
                 retaining,
             })
         }
