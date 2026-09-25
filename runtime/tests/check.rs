@@ -292,6 +292,44 @@ fn an_allow_comment_on_the_line_above_moves_a_warning_to_suppressed() {
 }
 
 #[test]
+fn allow_must_be_a_whole_word() {
+    for comment in [
+        "# caveat check: allowance C002",
+        "# caveat check: allowC002",
+        "// caveat check: allowed C002",
+        "# caveat check: allow,C002",
+    ] {
+        let source = format!("{DECLARATIONS}{DECIDE}").replacen(
+            "decisions uncover",
+            &format!("{comment}\ndecisions uncover"),
+            1,
+        );
+        let report = check(&source);
+        assert_eq!(
+            codes(&report),
+            [("C002", line_of(&source, "decisions uncover"))],
+            "{comment}"
+        );
+        assert!(report.suppressed.is_empty(), "{comment}");
+    }
+    // Names after the word, separated by commas or spaces, still work.
+    for comment in [
+        "# caveat check: allow C002",
+        "# caveat check: allow C001, no-reopening-path",
+        "//caveat check:   allow\tC002",
+    ] {
+        let source = format!("{DECLARATIONS}{DECIDE}").replacen(
+            "decisions uncover",
+            &format!("{comment}\ndecisions uncover"),
+            1,
+        );
+        let report = check(&source);
+        assert_eq!(codes(&report), [], "{comment}");
+        assert_eq!(report.suppressed.len(), 1, "{comment}");
+    }
+}
+
+#[test]
 fn a_last_statement_without_its_semicolon_is_checked() {
     let source = format!("{DECLARATIONS}{}", DECIDE.trim_end().trim_end_matches(';'));
     assert_eq!(

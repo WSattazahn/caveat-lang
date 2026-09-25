@@ -11,8 +11,9 @@ reasoning, or authorize external actions.
 Install the package into a project directory: run `npm init -y`, then
 `npm install` the tarball or the published package. The getting-started guide
 that ships with the package (`docs/GETTING_STARTED.md`) walks through a first
-program, and the one-page reference (`docs/REFERENCE.md`) is a complete, tested
-program with the syntax and outcomes on one page.
+program. The one-page reference (`docs/REFERENCE.md`) gives the syntax,
+outcomes and common mistakes in brief, and the worked example
+(`docs/WORKED_EXAMPLE.md`) takes one program through every command.
 
 State what a program should do in a scenario file
 ([Scenarios 0.1](../spec/caveat-scenarios-0.1.md)) and run it:

@@ -112,10 +112,13 @@ silences that warning:
 decisions season_plan limit 1;
 ```
 
-The comment names the check by code or name. Several are separated by commas
-or spaces. `//` comments work the same way. Only the line directly above
-counts, and only a check the comment names is silenced. A silenced warning is
-still reported, as allowed, so nothing is hidden. `--strict` ignores it.
+After the comment marker come the words `caveat check: allow`, then the
+checks by code or name, separated by commas or spaces. Each of those words
+stands alone, separated by whitespace, so `allowance C002` and `allow,C002`
+are not the directive. `//` comments work the same way. Only the line directly
+above counts, and only a check the comment names is silenced. A silenced
+warning is still reported, as allowed, so nothing is hidden. `--strict`
+ignores it.
 
 ## The report
 
@@ -124,7 +127,7 @@ still reported, as allowed, so nothing is hidden. `--strict` ignores it.
 ```json
 {
   "schema": "caveat-check/0.1",
-  "program": "frost.cav",
+  "program": "instruments.cav",
   "loads": true,
   "strict": false,
   "diagnostics": [

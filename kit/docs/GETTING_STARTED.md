@@ -302,8 +302,9 @@ Four more commands:
 
 ## 6. Keep going
 
-- [Caveat on one page](REFERENCE.md) is the working reference: a complete,
-  tested program, the syntax, outcomes and common mistakes.
+- [Caveat on one page](REFERENCE.md) is the language in brief: syntax,
+  outcomes and common mistakes. The [worked example](WORKED_EXAMPLE.md) takes a
+  larger program through every command.
 - [The documentation index](README.md) lists everything in this package.
 - The [authoring guide](reference/docs/AI_AUTHORING.md) covers time, evidence
   that ages, reconsidering decisions, and a checklist for testing policies.

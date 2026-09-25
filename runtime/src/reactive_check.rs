@@ -159,11 +159,15 @@ fn allowed(lines: &[&str], diagnostic: &Diagnostic) -> bool {
     else {
         return false;
     };
-    comment.trim().strip_prefix(ALLOW).is_some_and(|names| {
-        names
-            .split([',', ' '])
-            .any(|name| name == diagnostic.code || name == diagnostic.name)
-    })
+    // Whole words, so `allowance C002` is not a directive.
+    let words = comment.split_whitespace().collect::<Vec<_>>();
+    let ["caveat", "check:", "allow", names @ ..] = words.as_slice() else {
+        return false;
+    };
+    names
+        .iter()
+        .flat_map(|word| word.split(','))
+        .any(|name| name == diagnostic.code || name == diagnostic.name)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

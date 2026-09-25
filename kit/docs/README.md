@@ -8,9 +8,12 @@ background, not required reading.
 
 - [Getting started](GETTING_STARTED.md): install, write a first program, check
   it with a scenario file, and look inside a session.
-- [Caveat on one page](REFERENCE.md): the working reference. One complete
-  program, tested, with the commands, the syntax, the outcomes and common
-  mistakes, and links to everything below.
+- [Caveat on one page](REFERENCE.md): the language in brief. The commands,
+  the core, the syntax, outcomes and common mistakes, with links to
+  everything below.
+- [Worked example](WORKED_EXAMPLE.md): one complete program taken through
+  `validate`, `check`, `test` and `explain`. The package's tests follow it and
+  check the output it shows.
 - [Authoring guide](reference/docs/AI_AUTHORING.md): the authoring loop, numeric
   ranges, the session clock, evidence that ages and decisions that are
   reconsidered.
