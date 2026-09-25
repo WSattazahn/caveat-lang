@@ -481,6 +481,32 @@ impl ReactiveSession {
                         "the permission of {commitment} has a scope that is not finite"
                     ));
                 }
+                // The commitment happened only because the two were equal.
+                if scope.granted != scope.required {
+                    return Err(format!(
+                        "the permission of {commitment} records a scope that was not met"
+                    ));
+                }
+            }
+            // The record must describe the decision it belongs to: the grant
+            // was observed and is in the commitment's frozen lineage. Whether
+            // it is still unwithdrawn, or still matches today's head, is not
+            // checked: later changes do not rewrite the record.
+            if !self.predicate("observed", &record.grant)? {
+                return Err(format!(
+                    "the permission of {commitment} names a grant that was never observed, {}",
+                    record.grant
+                ));
+            }
+            if !self.commitment_bases[commitment]
+                .provenance
+                .evidence
+                .contains(&record.grant)
+            {
+                return Err(format!(
+                    "the permission of {commitment} names {}, which is not in its lineage",
+                    record.grant
+                ));
             }
             for caveat in &record.caveats {
                 self.require_kind(caveat, "caveat")?;

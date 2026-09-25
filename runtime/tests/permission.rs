@@ -366,3 +366,74 @@ fn saves_restore_granted_refused_and_skipped_paths_and_refuse_inconsistent_permi
         assert!(error.contains(expected), "{expected}: {error}");
     }
 }
+
+/// A saved, permitted decision, with a way to edit its save.
+fn permitted_save(extra: &[&str]) -> Value {
+    let mut game = session(LEDGER);
+    ready_at(&mut game, A);
+    for event in extra {
+        accepted(go(&mut game, event));
+    }
+    accepted(send(&mut game, "approved", json!({ "commit": A })));
+    accepted(go(&mut game, "merge"));
+    serde_json::from_str(&game.save_json().unwrap()).unwrap()
+}
+
+#[test]
+fn restore_rejects_a_permission_with_mismatched_saved_scope() {
+    // Found in review of #33: the scope must have been met.
+    let mut saved = permitted_save(&[]);
+    let scope = &mut saved["commitment_permissions"]["merge@1"]["scope"];
+    let granted = scope["granted"].as_f64().unwrap();
+    scope["required"] = json!(granted + 1.0);
+    let error = ReactiveSession::restore_json(LEDGER, &saved.to_string()).err();
+    assert!(
+        error.is_some(),
+        "restore accepted a permission whose granted and required scopes differ"
+    );
+    assert!(error.unwrap().contains("scope that was not met"));
+}
+
+#[test]
+fn restore_rejects_a_substituted_grant_even_when_record_and_journal_agree() {
+    // Found in review of #33. Record and journal are changed together, so
+    // only the check against the decision itself can catch it.
+    let substitute = |saved: &mut Value, grant: &str| {
+        saved["commitment_permissions"]["merge@1"]["grant"] = json!(grant);
+        saved["decision_journal"][0]["permitted_by"] = json!(grant);
+    };
+    // A declared grant that was never observed.
+    let mut saved = permitted_save(&[]);
+    substitute(&mut saved, "broad");
+    let error = ReactiveSession::restore_json(LEDGER, &saved.to_string()).err();
+    assert!(
+        error
+            .as_deref()
+            .is_some_and(|error| error.contains("never observed")),
+        "{error:?}"
+    );
+    // An observed grant the decision did not use.
+    let mut saved = permitted_save(&["approve_any"]);
+    substitute(&mut saved, "broad");
+    let error = ReactiveSession::restore_json(LEDGER, &saved.to_string()).err();
+    assert!(
+        error
+            .as_deref()
+            .is_some_and(|error| error.contains("not in its lineage")),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn a_decision_whose_grant_was_withdrawn_or_whose_head_moved_still_restores() {
+    let mut game = session(LEDGER);
+    ready_at(&mut game, A);
+    accepted(send(&mut game, "approved", json!({ "commit": A })));
+    accepted(go(&mut game, "merge"));
+    accepted(go(&mut game, "revoke"));
+    ready_at(&mut game, B);
+    let saved = game.save_json().unwrap();
+    let restored = ReactiveSession::restore_json(LEDGER, &saved).unwrap();
+    assert_eq!(snapshot(&restored), snapshot(&game));
+    assert_eq!(snapshot(&restored)["bindings"]["status"]["withdrawn"], 1.0);
+}
