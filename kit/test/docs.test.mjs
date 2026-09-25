@@ -51,6 +51,14 @@ test('links in the kit documentation resolve inside the package', async () => {
   }
 });
 
+// A version change must say what the new version is: a release candidate, or
+// a development version that is not released.
+test('the kit README names the package\'s version', async () => {
+  const { version } = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
+  const readme = await readFile(path.join(kit, 'README.md'), 'utf8');
+  assert.ok(readme.includes(version), `README.md does not mention ${version}`);
+});
+
 test('the getting-started guide marks its files, edits and commands', async () => {
   const steps = guideSteps(await readFile(path.join(kit, 'docs/GETTING_STARTED.md'), 'utf8'));
   assert.deepEqual(steps.map(step => step.kind), ['file', 'file', 'run', 'edit', 'run', 'edit', 'file', 'run', 'file', 'run', 'run']);

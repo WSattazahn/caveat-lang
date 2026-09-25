@@ -23,6 +23,11 @@ To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. To use a
 verified tarball instead, such as the one on the GitHub pre-release, pass its
 path or URL to `npm install`.
 
+The kit in the repository's `main` branch is the next candidate's
+development version, `0.1.0-rc.4`, which is **not released**: it is on
+neither npm nor GitHub. A tarball built from `main` carries that version.
+Until rc.4 is released, install rc.3 as shown above.
+
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
 page](docs/REFERENCE.md) gives the language in brief, and the [worked
