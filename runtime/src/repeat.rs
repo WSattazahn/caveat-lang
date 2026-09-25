@@ -33,6 +33,25 @@ pub fn expand(source: &str) -> Result<String, String> {
     Ok(out)
 }
 
+/// Members of each entity kind in one source, in declaration order.
+pub(crate) fn declared_kinds(source: &str) -> Vec<(String, Vec<String>)> {
+    entity_kinds(source, &statement_spans(source))
+}
+
+/// A block statement as the `index`th member (from 1) would expand it: the
+/// same substitution `expand` applies to the whole body.
+pub(crate) fn instantiate(
+    template: &str,
+    binding: &str,
+    member: &str,
+    index: usize,
+) -> Result<String, String> {
+    substitute(
+        template,
+        &[(binding, member), ("index", &index.to_string())],
+    )
+}
+
 /// Members of each entity kind, in declaration order.
 fn entity_kinds(source: &str, spans: &[(usize, usize)]) -> Vec<(String, Vec<String>)> {
     let mut kinds: Vec<(String, Vec<String>)> = Vec::new();

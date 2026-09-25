@@ -1,8 +1,9 @@
 // Packs the developer kit with the reactive runtime inside it, installs the
 // tarball into a fresh consumer directory, and uses it only through the
 // installed package: the caveat command, the library by package name, the
-// session library in a browser, and the packaged getting-started guide followed
-// step by step from an empty directory. Run after `npm run build`.
+// session library in a browser, and the packaged getting-started guide and
+// worked example followed step by step from an empty directory. Run after
+// `npm run build`.
 //
 //   node scripts/test-kit-package.mjs            PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //   node scripts/test-kit-package.mjs --no-browser
@@ -36,7 +37,7 @@ const packDocs = JSON.parse(await readFile(path.join(kit, 'pack-docs.json'), 'ut
 const STAGED_DOCS = packDocs.reference.map(file => [file, `docs/reference/${file}`]);
 const STAGED_ROOTS = ['docs/reference'];
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md'];
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -101,7 +102,7 @@ try {
   const dry = JSON.parse(npm(['pack', '--dry-run', '--json'], kit))[0];
   const files = dry.files.map(file => file.path).sort();
   assert.deepEqual(files, [
-    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/explain.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/serve.mjs', 'lib/session.mjs', 'package.json',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/check.mjs', 'lib/explain.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/serve.mjs', 'lib/session.mjs', 'package.json',
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', 'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm',
     ...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target),
@@ -265,6 +266,19 @@ for (const result of followed) {
   assert.equal(result.actual, result.expected, `the guide's output for ${result.command}`);
 }
 report.checks.guide = followed.map(result => result.command);
+
+// The packaged worked example, followed the same way in a directory of its own
+// below the one the package is installed in.
+const exampleReader = path.join(reader, 'worked-example');
+await mkdir(exampleReader);
+const example = await readFile(path.join(reader, 'node_modules', manifest.name, 'docs', 'WORKED_EXAMPLE.md'), 'utf8');
+const worked = await followGuide(example, { directory: exampleReader, run: shell });
+assert.equal(worked.length, 4);
+for (const result of worked) {
+  assert.equal(result.status, 0, `${result.command}\n${result.stdout}${result.stderr}`);
+  assert.equal(result.actual, result.expected, `the worked example's output for ${result.command}`);
+}
+report.checks.workedExample = worked.map(result => result.command);
 
 // The session library and runner in a browser, loaded from the installed package.
 if (!process.argv.includes('--no-browser')) {

@@ -28,6 +28,13 @@ impl WebReactiveSession {
         to_json_pretty(&self.inner.snapshot()).expect("finite reactive snapshot")
     }
 
+    /// Advisory warnings for a program that loads, as JSON
+    /// (spec/caveat-check-0.1.md). Errors as `new` does when it does not.
+    pub fn check(source: &str) -> Result<String, String> {
+        let report = crate::reactive::check_source(source)?;
+        to_json_pretty(&report).map_err(|error| error.to_string())
+    }
+
     pub fn dispatch(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
         self.inner
             .dispatch_json(event, payload_json)

@@ -3,6 +3,7 @@
 // caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat validate [--runtime <dir>] [--json] <program.cav>
+// caveat check [--runtime <dir>] [--json] [--strict] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
 // caveat init [<directory>]
@@ -16,12 +17,14 @@ import { defaultRuntimeDirectory, loadRuntimeFromDirectory } from '../lib/node.m
 import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
 import { dependents, explain, formatDependents, formatExplanation, parseEvents } from '../lib/explain.mjs';
 import { createServer } from '../lib/serve.mjs';
+import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 
 const USAGE = `Usage:
   caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
   caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
   caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat validate [--runtime <dir>] [--json] <program.cav>
+  caveat check [--runtime <dir>] [--json] [--strict] <program.cav>
   caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat serve [--runtime <dir>] <program.cav>
   caveat init [<directory>]
@@ -46,6 +49,12 @@ program declares no such name.
 validate loads a program and lists its events, histories and displayed values.
   Exit status: 0 it loads, 2 it does not.
 
+check loads a program and reports patterns worth a second look, each with a
+code, a line and a suggestion (spec/caveat-check-0.1.md). Warnings are advice,
+not errors. A comment "# caveat check: allow CODE" on the line above silences
+one where the pattern is intended. Exit status: 0 it loads, whatever it found;
+1 with --strict when there is a warning; 2 it does not load.
+
 replay sends the events and prints one JSON record per line: the initial
 snapshot, then each event's outcome, with the snapshot after each accepted
 event. Exit status: 0 replayed, 1 an event failed fatally (its record is last),
@@ -60,7 +69,8 @@ init writes the getting-started program, its scenarios and an events file
 into a directory (default: the current one). It refuses to overwrite a file.
 
   --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
-  --json           print the machine report instead of text`;
+  --json           print the machine report instead of text
+  --strict         (check) exit 1 when there is a warning`;
 
 // The positional arguments each command takes, as [fewest, most].
 const COMMANDS = {
@@ -68,6 +78,7 @@ const COMMANDS = {
   explain: [1, 2, 'name a program and, optionally, an events file'],
   dependents: [2, 3, 'name a program, the evidence, stream or caveat to ask about and, optionally, an events file'],
   validate: [1, 1, 'name one program'],
+  check: [1, 1, 'name one program'],
   replay: [2, 2, 'name a program and an events file'],
   serve: [1, 1, 'name one program'],
   init: [0, 1, 'name at most one directory'],
@@ -77,10 +88,11 @@ function parseArguments(argv) {
   const [command, ...rest] = argv;
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
-  const options = { command, files: [], json: false, runtime: null };
+  const options = { command, files: [], json: false, strict: false, runtime: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init'].includes(command)) options.json = true;
+    else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
       if (!options.runtime) return { error: '--runtime needs a directory' };
@@ -227,6 +239,27 @@ async function validateProgram(options) {
   return 0;
 }
 
+async function checkProgram(options) {
+  const [program] = options.files;
+  const inputs = await readInputs(program);
+  if (!inputs) return 2;
+  const refuse = message => {
+    if (options.json) console.log(JSON.stringify({ schema: CHECK_SCHEMA, program, loads: false, error: message }, null, 2));
+    else console.error(`${program} ${message}`);
+    return 2;
+  };
+  if (inputs.source.startsWith('#caveat-bundle')) return refuse('is a bundle; check reads a single-file program');
+  const runtime = await loadRuntime(options);
+  if (!runtime) return 2;
+  let report;
+  try { report = runtime.check(inputs.source); } catch (error) { return refuse(`does not load: ${error.message}`); }
+  if (options.json) {
+    const { schema, diagnostics, suppressed } = report;
+    console.log(JSON.stringify({ schema, program, loads: true, strict: options.strict, diagnostics, suppressed }, null, 2));
+  } else console.log(formatCheck(report, path.basename(program)));
+  return options.strict && report.diagnostics.length ? 1 : 0;
+}
+
 async function replayProgram(options) {
   const [program, eventsFile] = options.files;
   const opened = await openProgram(options, program, eventsFile);
@@ -339,7 +372,7 @@ async function main() {
   if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
   const run = {
     test: testScenarios, explain: explainProgram, dependents: dependentsOf,
-    validate: validateProgram, replay: replayProgram, serve: serveProgram, init,
+    validate: validateProgram, check: checkProgram, replay: replayProgram, serve: serveProgram, init,
   }[options.command];
   return run(options);
 }

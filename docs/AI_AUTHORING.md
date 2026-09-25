@@ -11,7 +11,9 @@ reasoning, or authorize external actions.
 Install the package into a project directory: run `npm init -y`, then
 `npm install` the tarball or the published package. The getting-started guide
 that ships with the package (`docs/GETTING_STARTED.md`) walks through a first
-program.
+program. The one-page reference (`docs/REFERENCE.md`) gives the syntax,
+outcomes and common mistakes in brief, and the worked example
+(`docs/WORKED_EXAMPLE.md`) takes one program through every command.
 
 State what a program should do in a scenario file
 ([Scenarios 0.1](../spec/caveat-scenarios-0.1.md)) and run it:
@@ -30,10 +32,11 @@ lineage. It exits 0 when every scenario passes, 1 when one fails and 2 when a
 file is invalid; a failure names the step, the path, and the expected and
 actual values.
 
-A bare `"rejected": true` expects the program's own `reject`. A refusal the
-runtime makes before any rule runs, such as a payload outside its declared
-range, has origin `input` and must be named:
-`{"origin": "input", "code": "bound_exceeded"}`. Origins and codes are listed
+A bare `"rejected": true` expects any `policy` refusal: the program's own
+`reject`, or a commit refused as `not_permitted`. Name the code to tell them
+apart: `{"origin": "policy", "code": "reject"}`. A refusal the runtime makes
+before any rule runs, such as a payload outside its declared range, has origin
+`input` and must be named: `{"origin": "input", "code": "bound_exceeded"}`. Origins and codes are listed
 in [Dispatch outcomes 0.1](../spec/caveat-dispatch-0.1.md). A `sample` or
 `commit` on a history that already holds its declared limit is refused as
 `{"origin": "limit", "code": "history_limit"}`, and the session continues, so a
@@ -122,7 +125,9 @@ The [source-text profile](../spec/caveat-text-0.1.md) specifies comments and quo
    as a procedure ([below](#share-rules-with-a-procedure)).
 3. Run the scenarios, and inspect `qualified_values`, `reading_streams`,
    `commitment_bases`, `decision_series`, and `relations` in the snapshots,
-   from a script or with the native replay.
+   from a script or with the native replay. Run `caveat check` on the source
+   for patterns worth a second look ([check](../spec/caveat-check-0.1.md)); a
+   warning is advice, not a failure.
 4. Exercise missing observations, contradictory readings, repeated equal
    readings, reopened decisions, and failures late in an event.
 5. Change one policy and run the same scenarios. Check both the changed
