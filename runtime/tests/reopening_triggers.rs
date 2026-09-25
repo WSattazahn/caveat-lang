@@ -10,6 +10,7 @@ readings checks from ci limit 32;
 readings pushes from push limit 32;
 event pushed; event check ok min 0 max 1; event decide; event push_twice;
 event push_decide_push; event proc_push; event push_then_refuse;
+event check_other;
 on decide commit merge because enough;
 "#;
 
@@ -20,6 +21,7 @@ proc record() { sample pushes = 3 supports changed; };
 on pushed sample pushes = 1 supports changed;
 on check when ok == 1 sample checks = 1 supports ready;
 on check when ok == 0 sample checks = 0 opposes ready;
+on check_other sample checks = 0 opposes changed;
 on push_twice sample pushes = 1 supports changed;
 on push_twice sample pushes = 2 supports changed;
 on push_decide_push sample pushes = 1 supports changed;
@@ -43,6 +45,7 @@ on pushed when committed(merge) and not reopened(merge) reopen merge because lat
 on check when ok == 1 sample checks = 1 supports ready;
 on check when ok == 0 sample checks = 0 opposes ready;
 on check when ok == 0 and committed(merge) and not reopened(merge) reopen merge because latest(checks);
+on check_other sample checks = 0 opposes changed;
 on push_twice sample pushes = 1 supports changed;
 on push_twice when committed(merge) and not reopened(merge) reopen merge because latest(pushes);
 on push_twice sample pushes = 2 supports changed;
@@ -162,14 +165,25 @@ fn each_reading_reopens_the_revision_in_force_when_it_was_taken() {
 
 #[test]
 fn a_filter_matches_only_its_relation_and_claim() {
-    let shot = same(&[e("decide"), ("check", json!({ "ok": 1 }))]);
-    assert_eq!(changes(&shot).len(), 1, "a supporting check reopened it");
+    // `checks opposing ready`, three readings on the one watched stream.
+    let decide = e("decide");
+    let supports_ready = ("check", json!({ "ok": 1 }));
+    let opposes_changed = e("check_other");
+    let opposes_ready = ("check", json!({ "ok": 0 }));
+
+    let shot = same(&[decide.clone(), supports_ready.clone()]);
+    assert_eq!(changes(&shot).len(), 1, "the wrong relation reopened it");
     let shot = same(&[
-        e("decide"),
-        ("check", json!({ "ok": 1 })),
-        ("check", json!({ "ok": 0 })),
+        decide.clone(),
+        supports_ready.clone(),
+        opposes_changed.clone(),
     ]);
-    assert_eq!(changes(&shot)[1].2, json!(["checks@2"]));
+    assert_eq!(changes(&shot).len(), 1, "the wrong claim reopened it");
+    let shot = same(&[decide, supports_ready, opposes_changed, opposes_ready]);
+    assert_eq!(
+        changes(&shot)[1],
+        ("merge@1".into(), "reopened".into(), json!(["checks@3"]))
+    );
 }
 
 #[test]
@@ -186,6 +200,86 @@ fn a_refused_event_rolls_back_the_reading_and_the_reopening_it_triggered() {
     let outcome = send(&mut declared, "push_then_refuse", json!({}));
     assert_eq!(outcome["outcome"], "rejected");
     assert_eq!((snapshot(&declared), declared.save_json().unwrap()), before);
+}
+
+/// An event that spends one step calling a procedure of `fill` steps and one
+/// sampling a watched stream; the triggered step comes next. The work limit
+/// is 4096 steps.
+fn heavy(fill: usize) -> String {
+    format!(
+        "state n = 0; event heavy; proc fill() {{ {} }};\n\
+         on heavy call fill();\n\
+         on heavy sample pushes = 1 supports changed;\n",
+        "set n = 1;".repeat(fill)
+    )
+}
+
+const HEAVY_WRITTEN: &str =
+    "on heavy when committed(merge) and not reopened(merge) reopen merge because latest(pushes);\n";
+
+/// Sends `before`, then `heavy`, to the declared and hand-written programs.
+/// Both must give the same outcome and snapshot, and a refused `heavy` must
+/// leave each exactly as it was. Returns the outcome and the snapshot.
+fn at_the_boundary(fill: usize, before: &[&str]) -> (Value, Value) {
+    let mut declared = session(&format!("{COMMON}{DECLARED}{}", heavy(fill)));
+    let mut written = session(&format!("{COMMON}{WRITTEN}{}{HEAVY_WRITTEN}", heavy(fill)));
+    for event in before {
+        send(&mut declared, event, json!({}));
+        send(&mut written, event, json!({}));
+    }
+    let prior = [&declared, &written].map(|game| (snapshot(game), game.save_json().unwrap()));
+    let one = send(&mut declared, "heavy", json!({}));
+    let two = send(&mut written, "heavy", json!({}));
+    for field in ["outcome", "origin", "code"] {
+        assert_eq!(one[field], two[field], "{field} after {before:?}");
+    }
+    assert_eq!(snapshot(&declared), snapshot(&written), "after {before:?}");
+    if one["outcome"] == "rejected" {
+        let after = [&declared, &written].map(|game| (snapshot(game), game.save_json().unwrap()));
+        assert_eq!(
+            after, prior,
+            "a refused event left changes after {before:?}"
+        );
+    }
+    (one, snapshot(&declared))
+}
+
+#[test]
+fn a_triggered_step_costs_the_event_budget_what_the_written_step_does() {
+    // Not yet committed, committed, and already reopened: the guarded step
+    // costs one step whether or not it reopens anything.
+    for (before, journal) in [
+        (&[][..], 0),
+        (&["decide"][..], 2),
+        (&["decide", "pushed"][..], 2),
+    ] {
+        let (outcome, _) = at_the_boundary(4094, before);
+        assert_eq!(
+            [&outcome["outcome"], &outcome["origin"], &outcome["code"]],
+            [&json!("rejected"), &json!("limit"), &json!("work_limit")],
+            "after {before:?}"
+        );
+        let (outcome, shot) = at_the_boundary(4093, before);
+        assert_eq!(outcome["outcome"], "accepted", "after {before:?}");
+        assert_eq!(changes(&shot).len(), journal, "after {before:?}");
+    }
+    let (_, shot) = at_the_boundary(4093, &["decide"]);
+    assert_eq!(
+        changes(&shot)[1],
+        ("merge@1".into(), "reopened".into(), json!(["pushes@1"]))
+    );
+
+    // Control: without the trigger the same event fits, so the refusal above
+    // is the triggered step's charge.
+    let mut control = session(&format!(
+        "{COMMON}decisions merge limit 8;\n{}",
+        heavy(4094)
+    ));
+    send(&mut control, "decide", json!({}));
+    assert_eq!(
+        send(&mut control, "heavy", json!({}))["outcome"],
+        "accepted"
+    );
 }
 
 #[test]
