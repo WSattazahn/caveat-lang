@@ -91,6 +91,7 @@ declares no such name. From code, `dependents(snapshot, name)` in
 
 ```sh
 npx --no-install caveat validate program.cav
+npx --no-install caveat check program.cav
 npx --no-install caveat replay program.cav events.jsonl
 npx --no-install caveat init my-project
 ```
@@ -98,6 +99,15 @@ npx --no-install caveat init my-project
 - `validate` loads a program and lists its events, reading streams, decision
   series and displayed values. `--json` prints them as data. It exits with 0
   if the program loads and 2 if it does not.
+- `check` loads a program and reports patterns worth a second look. Each
+  warning has a stable code, a line and a suggestion; for example, rules
+  repeated across events that a procedure could share. Warnings are advice: it
+  exits with 0 whatever it finds, 1 with `--strict` when there is a warning,
+  and 2 if the program does not load. A comment
+  `# caveat check: allow CODE` on the line above silences a pattern that is
+  intended. `--json` prints the report.
+  [Check 0.1](docs/reference/spec/caveat-check-0.1.md) lists the checks and
+  their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
   Then each event gets a record with its line in the file and its outcome,
   plus the snapshot after it if it was accepted. A fatal event's record is

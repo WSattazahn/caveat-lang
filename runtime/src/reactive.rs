@@ -47,6 +47,10 @@ mod outcome;
 
 #[path = "reactive_identifiers.rs"]
 mod identifiers;
+
+#[path = "reactive_check.rs"]
+mod check;
+pub use check::{check_source, CheckReport, Diagnostic, Related, CHECK_SCHEMA};
 use identifiers::{Identifiers, MAX_IDENTIFIER_LIMIT};
 use outcome::DispatchFailure;
 pub use outcome::{

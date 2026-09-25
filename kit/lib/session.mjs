@@ -168,7 +168,8 @@ function lifecycleOf(SessionClass) {
 
 // SessionClass is the runtime's WebReactiveSession, or a stand-in with the same
 // methods: new SessionClass(source), SessionClass.restore(source, saved),
-// dispatch_outcome, snapshot, view, save and free.
+// dispatch_outcome, snapshot, view, save and free, and optionally
+// SessionClass.check(source).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);
   const refuse = () => new CaveatError('fatal', 'this runtime instance trapped; load a fresh one');
@@ -180,6 +181,19 @@ export function createRuntime(SessionClass, identity = {}) {
       if (lifecycle.trapped) throw refuse();
       if (typeof source !== 'string') throw new TypeError('source must be text');
       try { return new CaveatSession(new SessionClass(source), runtime); } catch (error) {
+        if (isTrap(error)) lifecycle.trapped = true;
+        throw new CaveatError(isTrap(error) ? 'fatal' : 'load', messageOf(error));
+      }
+    },
+    // Advisory warnings for a program that loads (spec/caveat-check-0.1.md).
+    // A program that does not load throws as open does.
+    check(source) {
+      if (lifecycle.trapped) throw refuse();
+      if (typeof source !== 'string') throw new TypeError('source must be text');
+      if (typeof SessionClass.check !== 'function') {
+        throw new CaveatError('load', 'this runtime build has no check; it predates caveat check');
+      }
+      try { return JSON.parse(SessionClass.check(source)); } catch (error) {
         if (isTrap(error)) lifecycle.trapped = true;
         throw new CaveatError(isTrap(error) ? 'fatal' : 'load', messageOf(error));
       }

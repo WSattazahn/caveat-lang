@@ -290,9 +290,11 @@ about a caveat such as `forecast_is_old` and you get everything based on
 evidence it qualifies. Ask this before acting on something when a piece of
 evidence turns out to be wrong.
 
-Three more commands:
+Four more commands:
 
 - `caveat validate umbrella.cav` lists what a program declares.
+- `caveat check umbrella.cav` points out patterns worth a second look, such as
+  rules repeated across events (see [Check 0.1](reference/spec/caveat-check-0.1.md)).
 - `caveat replay umbrella.cav events.jsonl` prints each event's outcome and
   snapshot as JSON lines.
 - `caveat serve umbrella.cav` keeps a session open for another program to
@@ -300,6 +302,8 @@ Three more commands:
 
 ## 6. Keep going
 
+- [Caveat on one page](REFERENCE.md) is the working reference: a complete,
+  tested program, the syntax, outcomes and common mistakes.
 - [The documentation index](README.md) lists everything in this package.
 - The [authoring guide](reference/docs/AI_AUTHORING.md) covers time, evidence
   that ages, reconsidering decisions, and a checklist for testing policies.

@@ -41,7 +41,7 @@ test('every packaged documentation source exists', () => {
 
 test('links in the kit documentation resolve inside the package', async () => {
   const files = await packageFiles();
-  for (const document of ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md']) {
+  for (const document of ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md']) {
     const markdown = await readFile(path.join(kit, document), 'utf8');
     for (const target of relativeLinks(markdown)) {
       const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(document), target));
@@ -70,14 +70,15 @@ test('the authoring guide\'s script runs against its example', async () => {
   assert.match(result.stdout, /commitment: 'heating@1'/);
 });
 
-test('following the getting-started guide prints what it shows', async () => {
-  const directory = path.join(repo, 'test-results', 'kit-docs', new Date().toISOString().replace(/[:.]/g, '-'));
+// Follows a kit document in a fresh directory. The repository has no installed
+// package: run the command and import the library from this checkout instead.
+async function followInCheckout(document) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const directory = path.join(repo, 'test-results', 'kit-docs', `${path.basename(document, '.md')}-${stamp}`);
   await mkdir(directory, { recursive: true });
   const cli = path.join(kit, 'bin', 'caveat.mjs');
-  const results = await followGuide(await readFile(path.join(kit, 'docs/GETTING_STARTED.md'), 'utf8'), {
+  return followGuide(await readFile(path.join(kit, document), 'utf8'), {
     directory,
-    // The repository has no installed package: run the command and import the
-    // library from this checkout instead.
     prepare: (name, content) => content.replace("'caveat-lang/node'", `'${pathToFileURL(path.join(kit, 'lib', 'node.mjs')).href}'`),
     run: (command, cwd) => {
       const args = command.startsWith('npx --no-install caveat ')
@@ -86,9 +87,36 @@ test('following the getting-started guide prints what it shows', async () => {
       return spawnSync(process.execPath, args, { cwd, encoding: 'utf8' });
     },
   });
-  assert.equal(results.length, 5);
+}
+
+function assertPrintsWhatItShows(results) {
   for (const result of results) {
     assert.equal(result.status, result.expected.includes('FAIL') ? 1 : 0, `${result.command}\n${result.stdout}${result.stderr}`);
     assert.equal(result.actual, result.expected, result.command);
   }
+}
+
+test('following the getting-started guide prints what it shows', async () => {
+  const results = await followInCheckout('docs/GETTING_STARTED.md');
+  assert.equal(results.length, 5);
+  assertPrintsWhatItShows(results);
+});
+
+// A program on the reference page that no step saves and runs could say
+// anything; the page has none.
+test('every program on the reference page is a file it runs', async () => {
+  const markdown = await readFile(path.join(kit, 'docs/REFERENCE.md'), 'utf8');
+  const lines = markdown.split(/\r?\n/);
+  const programs = lines.flatMap((line, index) => (line.startsWith('```caveat') ? [index] : []));
+  assert.ok(programs.length > 0);
+  for (const index of programs) {
+    assert.match(lines[index - 1] ?? '', /^<!-- file: \S+\.cav -->$/, `the caveat block at line ${index + 1} is not a file the page runs`);
+  }
+  assert.deepEqual(guideSteps(markdown).map(step => step.kind), ['file', 'run', 'run', 'file', 'run', 'file', 'run']);
+});
+
+test('following the reference page prints what it shows', async () => {
+  const results = await followInCheckout('docs/REFERENCE.md');
+  assert.deepEqual(results.map(result => result.command.split(' ')[3]), ['validate', 'check', 'test', 'explain']);
+  assertPrintsWhatItShows(results);
 });

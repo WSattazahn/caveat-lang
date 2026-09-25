@@ -192,6 +192,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Reopening Triggers 0.1](spec/caveat-reopening-triggers-0.1.md) lets a decision series declare which readings reopen it (`decisions merge limit 8 reopened by pushes, checks opposing ready;`), instead of a hand-written reopening rule after every such reading. The reopening is exactly the authored one, run at the moment the reading is taken.
 
+[Check 0.1](spec/caveat-check-0.1.md) is `caveat check`: advisory warnings about patterns worth a second look, such as rules repeated across events that one procedure could share, or a decision made on readings that nothing reopens. A warning is not a proven fault; `# caveat check: allow CODE` records a pattern that is intended. The kit's [one-page reference](kit/docs/REFERENCE.md) walks through a complete, tested program with the commands and syntax.
+
 [Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
 
 [Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: `WebReactiveSession.save()` and `WebReactiveSession.restore(source, saved)`. Restoring costs what loading costs plus the size of the save. Restore validates the saved names, values and histories; mutation tests check that an altered save is either refused or remains playable without a crash.

@@ -502,6 +502,62 @@ impl Expr {
         }
     }
 
+    /// Every history this expression names: reading streams and decision
+    /// series read by `latest`, `history_count`, `history_at`, a fold,
+    /// `has_sample` or `withdrawn(latest(...))`, taken or not. Used by
+    /// `caveat check` (spec/caveat-check-0.1.md). Exhaustive for the same
+    /// reason as `collect_reads`.
+    pub fn collect_histories(&self, histories: &mut BTreeSet<String>) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) | Node::Elapsed | Node::Variable(_) => {
+            }
+            Node::Predicate(kind, name) => {
+                if kind == "has_sample" || kind == "withdrawn_latest" {
+                    histories.insert(name.clone());
+                }
+            }
+            Node::Latest(name) | Node::HistoryCount(name) => {
+                histories.insert(name.clone());
+            }
+            Node::HistoryAt(name, index) => {
+                histories.insert(name.clone());
+                index.collect_histories(histories);
+            }
+            Node::Fold(_, initial, name) => {
+                histories.insert(name.clone());
+                initial.collect_histories(histories);
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                histories.insert(name.clone());
+                initial.collect_histories(histories);
+                body.collect_histories(histories);
+            }
+            Node::Qualified(value, _, _) | Node::Unary(_, value) => {
+                value.collect_histories(histories)
+            }
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_histories(histories);
+                right.collect_histories(histories);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_histories(histories);
+                yes.collect_histories(histories);
+                no.collect_histories(histories);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_histories(histories);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_histories(histories);
+                }
+                body.collect_histories(histories);
+            }
+        }
+    }
+
     /// The name, if this expression is a bare name.
     pub fn as_name(&self) -> Option<&str> {
         match &self.node {
