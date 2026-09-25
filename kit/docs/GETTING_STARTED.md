@@ -8,16 +8,15 @@ need Rust or a browser.
 ## 1. Install
 
 Make an empty directory, give it a `package.json`, and install the release
-candidate. Once it is published on npm, with the tag `next`:
+candidate, published on npm with the tag `next`:
 
 ```sh
 npm init -y
 npm install caveat-lang@next
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. Before
-publication, or to use a verified tarball you were given, pass the tarball's
-path or URL to `npm install` instead.
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. To use a
+verified tarball instead, pass its path or URL to `npm install`.
 
 Run `npm init -y` first: in a directory without its own `package.json`, npm
 installs into the nearest parent project instead.
