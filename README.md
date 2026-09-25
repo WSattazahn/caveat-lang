@@ -20,6 +20,8 @@ Caveat is a programming language for programs that act on what they know and kee
 - **Decisions remember.** A decision records what it was made on, reopens when the world disagrees, and keeps a journal.
 - **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
 
+**Try it** with Node 20 or later: `npm install caveat-lang@next` installs the release candidate, and `npx --no-install caveat init` writes a first program to test. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
+
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
 Start with **Change what you know** at the top of that page. Make a decision in one click, learn something new in a second, and see what changed, why the decision reopened, and the original reasons it kept.

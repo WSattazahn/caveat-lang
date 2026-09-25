@@ -1,8 +1,27 @@
 {
   "name": "caveat-lang",
-  "version": "0.1.0-rc.2",
-  "private": true,
-  "description": "The Caveat reactive runtime with a session library and scenario runner for Node and browsers.",
+  "version": "0.1.0-rc.3",
+  "description": "A small reactive language whose programs record what each decision rests on: evidence, caveats, permission and reopening. WebAssembly runtime, command-line tools, session library and scenario runner for Node and browsers.",
+  "keywords": [
+    "caveat",
+    "programming-language",
+    "reactive",
+    "provenance",
+    "evidence",
+    "decisions",
+    "explainability",
+    "webassembly",
+    "dsl"
+  ],
+  "homepage": "https://github.com/WSattazahn/caveat-lang/tree/main/kit#readme",
+  "bugs": {
+    "url": "https://github.com/WSattazahn/caveat-lang/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WSattazahn/caveat-lang.git",
+    "directory": "kit"
+  },
   "license": "MIT",
   "type": "module",
   "engines": {
