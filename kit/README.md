@@ -4,9 +4,9 @@ A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
 The release candidate is **`caveat-lang@0.1.0-rc.3`**, with the command
-`caveat`. It is a preview, published to npm under the tag `next` rather than
-`latest`. The same tested tarball is attached to its GitHub pre-release. It
-needs no Rust:
+`caveat`. It is meant as a preview: published to npm with the tag `next`
+rather than `latest`, with the same tested tarball attached to its GitHub
+pre-release. It needs no Rust. Once it is published, install it from npm:
 
 ```sh
 npm init -y
@@ -15,8 +15,9 @@ npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. To install the
-tarball instead, pass its path or URL to `npm install`.
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. Before
+publication, or to use a verified tarball you were given, pass the tarball's
+path or URL to `npm install` instead.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
@@ -270,6 +271,7 @@ for the release gates.
 
 ## Not yet
 
-- A stable release under npm's `latest` tag. Release candidates go to `next`.
+- A stable release under npm's `latest` tag. Release candidates are published
+  with the tag `next`.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.
