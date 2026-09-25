@@ -203,6 +203,18 @@ on merge when target == $index and $p_revisions == 0
   go-ahead for later revisions is still a separate grant that a separate rule
   names.
 
+## Follow-up: reopening triggers
+
+[Reopening Triggers 0.1](../../spec/caveat-reopening-triggers-0.1.md) answers
+the part of item 2 that is a language problem. A decision series can declare
+which readings reopen it, instead of a hand-written rule after each one.
+
+The ledger keeps its two reopening rules anyway. Both also require that the
+pull request was not merged elsewhere (`$p_merged == 0`), and a declaration
+cannot say that. Replacing them would change the ledger's policy, not shorten
+it. Scenario I04 records the behavior that has to be kept: after someone else
+merged the pull request, a failed check does not reopen the merge decision.
+
 ## Suggested order for the language work
 
 1. Identifiers known only at run time. Without them the ledger cannot be used

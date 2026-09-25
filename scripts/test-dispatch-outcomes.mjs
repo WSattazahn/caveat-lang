@@ -356,6 +356,27 @@ try {
       });
     });
 
+    check('a declared reopening trigger reopens as the authored rule would, and restores', () => {
+      const common = `claim changed; evidence push from "a new commit";
+        readings pushes from push limit 8; event decide; event pushed;
+        on decide commit merge because enough;
+        on pushed sample pushes = 1 supports changed;`;
+      const declared = fixture('trigger-declared', `decisions merge limit 4 reopened by pushes; ${common}`);
+      const written = fixture('trigger-written', `decisions merge limit 4; ${common}
+        on pushed when committed(merge) and not reopened(merge) reopen merge because latest(pushes);`);
+      withSessions(declared, 1, one => withSessions(written, 1, two => {
+        for (const event of ['decide', 'pushed', 'pushed', 'decide', 'pushed']) {
+          const [a, b] = [dispatch(one, event).snapshot, dispatch(two, event).snapshot];
+          delete a.source_id; delete b.source_id;
+          assert.deepEqual(a, b, `after ${event}`);
+        }
+        assert.deepEqual(parse(one.snapshot()).decision_journal.map(entry => entry.change),
+          ['committed', 'reopened', 'committed', 'reopened']);
+        const restored = WebReactiveSession.restore(declared, one.save());
+        try { assert.deepEqual(checkpoint(restored), checkpoint(one)); } finally { restored.free(); }
+      }));
+    });
+
     for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;

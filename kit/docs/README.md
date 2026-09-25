@@ -62,6 +62,9 @@ Features added alongside the profiles:
 - [Permission](reference/spec/caveat-permission-0.1.md): what permitted a
   decision, recorded apart from what it rests on,
   `commit D … permitted by latest(approvals) for head;`.
+- [Reopening triggers](reference/spec/caveat-reopening-triggers-0.1.md): a
+  decision series declares which readings reopen it,
+  `decisions merge limit 8 reopened by pushes;`.
 - [State caveats](reference/spec/caveat-state-caveats-0.1.md): asking which
   caveats a retained value carries, and reopening because of them.
 - [Observation order](reference/spec/caveat-observation-order-0.1.md): uses of

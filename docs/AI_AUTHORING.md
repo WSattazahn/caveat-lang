@@ -271,6 +271,16 @@ Without a go-ahead for this head, the merge is refused as
 apart from its grounds. The check is made when the decision is made. See
 [permission](../spec/caveat-permission-0.1.md).
 
+When every new reading of some kind must reopen a decision, declare it on the
+series instead of writing a reopening rule after each such reading:
+
+```caveat
+decisions merge limit 8 reopened by pushes, checks opposing ready;
+```
+
+Any further condition, such as "unless it was merged elsewhere", still needs its
+own rule. See [reopening triggers](../spec/caveat-reopening-triggers-0.1.md).
+
 The complete [Trail Rescue source](../game/trail_rescue.cav) demonstrates this
 with limited scouting, conflicting reports, timed evidence, frozen decisions
 and direct save/resume. Its host only translates envelopes and projects source
