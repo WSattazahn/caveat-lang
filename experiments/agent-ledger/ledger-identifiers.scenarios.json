@@ -258,6 +258,63 @@
           "rejected": "No passing checks on the current head."
         }
       ]
+    },
+    {
+      "id": "I04",
+      "title": "After someone else merged it, a failed check does not reopen the merge decision",
+      "note": "Why the ledger keeps its own reopening rules: both require $p_merged == 0, which a declared reopening trigger cannot express (spec/caveat-reopening-triggers-0.1.md).",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "602bdbec0a047a5319f53e83f336b9f7aec0e5ed",
+            "result": "failed"
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal/1": {
+              "$absent": true
+            },
+            "/bindings/pr29/status": "merged by someone else"
+          }
+        }
+      ]
     }
   ]
 }

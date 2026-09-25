@@ -1102,6 +1102,23 @@ impl ReactiveSession {
                 Effect::Reopen { action, .. } if change == "reopened" && action == decision => {
                     return true
                 }
+                // A declared trigger reopens it when this sample's stream,
+                // relation and claim match (spec/caveat-reopening-triggers-0.1.md).
+                Effect::Sample {
+                    stream,
+                    relation,
+                    claim,
+                    ..
+                } if change == "reopened"
+                    && self.reopening_triggers.iter().any(|(series, triggers, _)| {
+                        series == decision
+                            && triggers
+                                .iter()
+                                .any(|trigger| trigger.matches(stream, *relation, claim))
+                    }) =>
+                {
+                    return true
+                }
                 Effect::Call { name, .. } if visited.insert(name) => {
                     if let Some(procedure) = self.procedures.get(name) {
                         pending.extend(procedure.body.iter().map(|step| &step.effect));

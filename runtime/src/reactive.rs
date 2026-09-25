@@ -379,6 +379,8 @@ pub enum Directive {
     Decisions {
         name: String,
         limit: usize,
+        /// `reopened by …`. See spec/caveat-reopening-triggers-0.1.md.
+        triggers: Vec<ReopeningTrigger>,
     },
     /// `renewable EVIDENCE limit N;`
     Renewable {
@@ -918,6 +920,24 @@ pub enum EffectReport {
     },
 }
 
+/// One `reopened by` trigger: a reading stream, optionally only its readings
+/// that bear on a claim in one relation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReopeningTrigger {
+    pub stream: String,
+    pub filter: Option<(Relation, String)>,
+}
+
+impl ReopeningTrigger {
+    fn matches(&self, stream: &str, relation: Relation, claim: &str) -> bool {
+        self.stream == stream
+            && self
+                .filter
+                .as_ref()
+                .is_none_or(|(want, about)| *want == relation && about == claim)
+    }
+}
+
 /// `permitted by GRANT [for X]` on a commit: the grant is named evidence or
 /// `latest(STREAM)`, and `for X` only takes a stream's reading.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1087,6 +1107,9 @@ pub struct ReactiveSession {
     withdrawals: Arc<Vec<Withdrawal>>,
     /// Each permitted commitment's frozen permission record.
     commitment_permissions: Arc<BTreeMap<String, PermissionRecord>>,
+    /// Declared reopening triggers, by series in name order, each with the
+    /// condition its reopening step runs under. Fixed at load.
+    reopening_triggers: Arc<Vec<(String, Vec<ReopeningTrigger>, Expr)>>,
     /// Qualifications waiting for time to pass, in the order scheduled.
     scheduled: Arc<Vec<ScheduledQualification>>,
     /// Seconds counted from the time event's `dt`.
@@ -1251,6 +1274,7 @@ impl ReactiveSession {
             identifiers: Arc::default(),
             withdrawals: Arc::default(),
             commitment_permissions: Arc::default(),
+            reopening_triggers: Arc::default(),
             scheduled: Arc::default(),
             elapsed: 0.0,
             time_event: None,
@@ -1287,6 +1311,25 @@ impl ReactiveSession {
             scenes: Arc::new(map.scenes),
             effects: Vec::new(),
         };
+        // Reopening triggers: declared streams and claims, by series in name
+        // order, each with its reopening condition.
+        let mut reopening_triggers = directives
+            .iter()
+            .filter_map(|directive| match directive {
+                Directive::Decisions { name, triggers, .. } if !triggers.is_empty() => {
+                    Some((name.clone(), triggers.clone()))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        reopening_triggers.sort_by(|left, right| left.0.cmp(&right.0));
+        let mut declared_triggers = Vec::new();
+        for (series, triggers) in reopening_triggers {
+            let condition = reactive_expr::parse_unresolved(&format!(
+                "committed({series}) and not reopened({series})"
+            ))?;
+            declared_triggers.push((series, triggers, condition));
+        }
         let mut declared_identifiers = false;
         for directive in &directives {
             if let Directive::Identifiers { limit } = directive {
@@ -1305,9 +1348,8 @@ impl ReactiveSession {
         let mut history_capacity = 0_usize;
         for directive in &directives {
             let (name, limit) = match directive {
-                Directive::Readings { name, limit, .. } | Directive::Decisions { name, limit } => {
-                    (name, *limit)
-                }
+                Directive::Readings { name, limit, .. }
+                | Directive::Decisions { name, limit, .. } => (name, *limit),
                 _ => continue,
             };
             if limit == 0 || limit > MAX_HISTORY_LIMIT {
@@ -1639,6 +1681,19 @@ impl ReactiveSession {
         session.validate_procedures()?;
         session.specialize_procedures()?;
         session.declare_withdrawal_caveat()?;
+        for (series, triggers, _) in &declared_triggers {
+            for trigger in triggers {
+                session
+                    .require_readings(&trigger.stream)
+                    .map_err(|error| format!("decisions {series} reopened by: {error}"))?;
+                if let Some((_, claim)) = &trigger.filter {
+                    session
+                        .require_kind(claim, "claim")
+                        .map_err(|error| format!("decisions {series} reopened by: {error}"))?;
+                }
+            }
+        }
+        session.reopening_triggers = Arc::new(declared_triggers);
         session.validate_rules()?;
         session.check_observation_order()?;
         session.group_bindings();
@@ -3700,6 +3755,7 @@ impl ReactiveSession {
                     relation: relation_name(*relation).into(),
                     target: claim.clone(),
                 });
+                self.run_reopening_triggers(stream, *relation, claim, parameters, guard, budget)?;
             }
             Effect::Reject { message } => return Err(DispatchFailure::policy(message)),
             Effect::Qualify {
@@ -4309,6 +4365,36 @@ impl ReactiveSession {
         }
     }
 
+    /// Declared reopening triggers for a reading just recorded: each watching
+    /// series, in name order, runs `when committed(D) and not reopened(D)
+    /// reopen D because latest(STREAM)` with the sample's guard, as that
+    /// authored step would. See spec/caveat-reopening-triggers-0.1.md.
+    fn run_reopening_triggers(
+        &mut self,
+        stream: &str,
+        relation: Relation,
+        claim: &str,
+        parameters: &BTreeMap<String, Tracked<f64>>,
+        guard: &Provenance,
+        budget: &mut ExecutionBudget,
+    ) -> Result<(), DispatchFailure> {
+        let triggers = Arc::clone(&self.reopening_triggers);
+        for (series, watching, condition) in triggers.iter() {
+            if !watching
+                .iter()
+                .any(|trigger| trigger.matches(stream, relation, claim))
+            {
+                continue;
+            }
+            let reopen = Effect::Reopen {
+                action: series.clone(),
+                because: EvidenceSelector::Latest(stream.to_string()),
+            };
+            self.execute_guarded_effect(condition, &reopen, parameters, guard, budget)?;
+        }
+        Ok(())
+    }
+
     /// A `permitted by` clause, when its commit runs. A missing, withdrawn or
     /// mismatched grant is a refusal; any other failure keeps its own
     /// classification. Returns the frozen record and the lineage the check
@@ -4885,13 +4971,49 @@ pub(crate) fn parse_directive_at(
             _ => Err("identifiers expects limit CAPACITY".into()),
         },
         "decisions" => match words.as_slice() {
-            ["decisions", name, "limit", limit] => Ok(Directive::Decisions {
-                name: identifier(name)?,
-                limit: limit
-                    .parse()
-                    .map_err(|_| "decision limit must be an unsigned integer")?,
-            }),
-            _ => Err("decisions expects NAME limit CAPACITY".into()),
+            ["decisions", name, "limit", limit, rest @ ..] => {
+                let triggers = match rest {
+                    [] => Vec::new(),
+                    ["reopened", "by", triggers @ ..] if !triggers.is_empty() => triggers
+                        .join(" ")
+                        .split(',')
+                        .map(|trigger| {
+                            match trigger.split_whitespace().collect::<Vec<_>>()[..] {
+                                [stream] => Ok(ReopeningTrigger {
+                                    stream: identifier(stream)?,
+                                    filter: None,
+                                }),
+                                [stream, relation @ ("supporting" | "opposing"), claim] => {
+                                    Ok(ReopeningTrigger {
+                                        stream: identifier(stream)?,
+                                        filter: Some((
+                                            if relation == "supporting" {
+                                                Relation::Supports
+                                            } else {
+                                                Relation::Opposes
+                                            },
+                                            identifier(claim)?,
+                                        )),
+                                    })
+                                }
+                                _ => Err(format!(
+                                    "reopened by takes STREAM or STREAM supporting|opposing CLAIM, not {}",
+                                    trigger.trim()
+                                )),
+                            }
+                        })
+                        .collect::<Result<_, String>>()?,
+                    _ => return Err("decisions expects NAME limit CAPACITY [reopened by STREAM, …]".into()),
+                };
+                Ok(Directive::Decisions {
+                    name: identifier(name)?,
+                    limit: limit
+                        .parse()
+                        .map_err(|_| "decision limit must be an unsigned integer")?,
+                    triggers,
+                })
+            }
+            _ => Err("decisions expects NAME limit CAPACITY [reopened by STREAM, …]".into()),
         },
         "bind" => parse_binding(line),
         "cue" => parse_cue(line),

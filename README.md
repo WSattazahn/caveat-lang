@@ -190,6 +190,8 @@ The same capability is exercised by a [thermostat program](examples/thermostat_h
 
 [Permission 0.1](spec/caveat-permission-0.1.md) records what permitted a decision, apart from what it rests on (`commit merge … permitted by latest(approvals) for head;`). A missing, withdrawn or mismatched grant refuses the commit as `policy/not_permitted`, and the frozen record says which grant permitted it, for which value.
 
+[Reopening Triggers 0.1](spec/caveat-reopening-triggers-0.1.md) lets a decision series declare which readings reopen it (`decisions merge limit 8 reopened by pushes, checks opposing ready;`), instead of a hand-written reopening rule after every such reading. The reopening is exactly the authored one, run at the moment the reading is taken.
+
 [Renewal 0.1](spec/caveat-renewal-0.1.md) gives evidence an identity that events create: `renewable taste_cave limit 256;` and `renew taste_cave` make the name mean a new, unobserved occurrence while earlier ones keep what they were about. `qualify taste_cave with taste_faded after 60` fades that occurrence on its own clock, and `carries(taste_cave, taste_faded)` asks whether it has.
 
 [Save 0.1](spec/caveat-save-0.1.md) saves a session and restores it without replaying events: `WebReactiveSession.save()` and `WebReactiveSession.restore(source, saved)`. Restoring costs what loading costs plus the size of the save. Restore validates the saved names, values and histories; mutation tests check that an altered save is either refused or remains playable without a crash.
