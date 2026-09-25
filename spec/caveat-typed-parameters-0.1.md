@@ -47,9 +47,19 @@ name, counted from 1.
 A JSON payload may send the name or the position. The name is resolved
 against the event's signature before dispatch; an unknown name is rejected
 with the accepted names listed, and the event has no effect. A number for a
-typed parameter, or a name for a numeric one, follows the same rule: numbers
-are bounds-checked as before, and a name for a numeric parameter is rejected.
-The native `dispatch` takes positions.
+typed parameter, or a name for a numeric one, follows the same rule, and a
+name for a numeric parameter is rejected. The native `dispatch` takes
+positions.
+
+A number for a typed parameter must be a member's position: a whole number
+from 1 to the number of members. It is checked in two steps, on every path,
+JSON or native. The range comes first: a number outside it is
+`input/bound_exceeded`, as for a numeric parameter. Then a number inside the
+range must be whole: a fraction such as `1.5` names no member and is
+`input/payload_invalid`. Both are refused with no effect on the session. The
+check is exact on the parsed number: `2`, `2.0` and `1e0` are positions, and
+`1.0000001` is not. Nothing is rounded. Numeric parameters may still take
+fractions within their bounds.
 
 ## Snapshot
 
@@ -62,3 +72,15 @@ Each parameter in `events[].parameters` gains a `domain` when it is typed:
 
 Numeric parameters are unchanged, so existing hosts read what they read
 before.
+
+## Changes
+
+- 2026-09-25: a number for a typed parameter must be a whole position. Before
+  this, the runtime checked only the range, so a fraction inside it, such as
+  `1.5` for a two-member parameter, was accepted and reached the program as a
+  value that names no member. Trial 07 found it: the submitted program
+  committed a search decision with the value 1.5 and displayed it as the
+  cellar. Such a fraction is now `input/payload_invalid`. An isolated value
+  outside the range keeps `input/bound_exceeded`. A payload with several
+  faults is refused on the first parameter the runtime checks, so which fault
+  it reports is not part of this contract.

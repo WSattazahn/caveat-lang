@@ -140,3 +140,222 @@ fn the_browser_accepts_names_through_dispatch_view() {
     .unwrap();
     assert_eq!(view["bindings"]["ruin"]["present"], false);
 }
+
+// Positions must be whole numbers (spec/caveat-typed-parameters-0.1.md,
+// "Numbers for typed parameters"). A fraction inside the range names no
+// member: it is refused as input/payload_invalid and the event has no effect.
+// The range check comes first, so an isolated out-of-range value keeps
+// input/bound_exceeded. Plain numeric parameters are unchanged.
+const POSITIONS: &str = r#"
+place hall kind hall;
+entity north kind door at hall;
+entity south kind door at hall;
+state value = 0 min -100 max 100;
+event read room in attic cellar;
+event knock target kind door;
+event measure x min 0 max 10;
+on read set value = room;
+on knock set value = target;
+on measure set value = x;
+"#;
+
+fn outcome(game: &mut ReactiveSession, event: &str, payload: &str) -> serde_json::Value {
+    serde_json::to_value(
+        game.dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event} {payload}: fatal {}", fatal.message)),
+    )
+    .unwrap()
+}
+
+fn value(game: &ReactiveSession) -> serde_json::Value {
+    serde_json::to_value(game.snapshot()).unwrap()["values"]["value"].clone()
+}
+
+fn classified(outcome: &serde_json::Value) -> String {
+    match outcome["outcome"].as_str() {
+        Some("accepted") => "accepted".into(),
+        _ => format!(
+            "{}/{}",
+            outcome["origin"].as_str().unwrap(),
+            outcome["code"].as_str().unwrap()
+        ),
+    }
+}
+
+#[test]
+fn names_and_whole_positions_are_accepted_as_before() {
+    for (event, key, sent, expected) in [
+        ("read", "room", r#""attic""#, 1.0),
+        ("read", "room", r#""cellar""#, 2.0),
+        ("read", "room", "1", 1.0),
+        ("read", "room", "2", 2.0),
+        ("read", "room", "2.0", 2.0),
+        ("read", "room", "1e0", 1.0),
+        ("read", "room", "0.2e1", 2.0),
+        ("knock", "target", r#""south""#, 2.0),
+        ("knock", "target", "1", 1.0),
+        ("knock", "target", "2.0", 2.0),
+    ] {
+        let mut game = ReactiveSession::from_source(POSITIONS).unwrap();
+        let payload = format!(r#"{{"{key}":{sent}}}"#);
+        assert_eq!(
+            classified(&outcome(&mut game, event, &payload)),
+            "accepted",
+            "{event} {payload}"
+        );
+        assert_eq!(value(&game), expected, "{event} {payload}");
+    }
+}
+
+#[test]
+fn a_fraction_inside_the_range_names_no_member_and_changes_nothing() {
+    for (event, key, sent) in [
+        ("read", "room", "1.5"),
+        ("read", "room", "1.0000001"),
+        ("read", "room", "1.999"),
+        ("knock", "target", "1.5"),
+        ("knock", "target", "1.25"),
+    ] {
+        let mut game = ReactiveSession::from_source(POSITIONS).unwrap();
+        outcome(&mut game, "measure", r#"{"x":7}"#);
+        let before = (game.snapshot(), game.save_json().unwrap());
+        let payload = format!(r#"{{"{key}":{sent}}}"#);
+        let refused = outcome(&mut game, event, &payload);
+        assert_eq!(
+            classified(&refused),
+            "input/payload_invalid",
+            "{event} {payload}"
+        );
+        assert!(
+            refused["message"]
+                .as_str()
+                .unwrap()
+                .contains("whole number"),
+            "{refused}"
+        );
+        assert_eq!(
+            (game.snapshot(), game.save_json().unwrap()),
+            before,
+            "{event} {payload}"
+        );
+        // The session goes on.
+        assert_eq!(
+            classified(&outcome(&mut game, event, &format!(r#"{{"{key}":2}}"#))),
+            "accepted"
+        );
+        assert_eq!(value(&game), 2.0);
+    }
+}
+
+#[test]
+fn an_isolated_out_of_range_value_keeps_its_code() {
+    for (event, key, sent) in [
+        ("read", "room", "0"),
+        ("read", "room", "3"),
+        ("read", "room", "-1"),
+        ("read", "room", "0.5"),
+        ("read", "room", "2.5"),
+        ("knock", "target", "0"),
+        ("knock", "target", "3"),
+        ("knock", "target", "2.5"),
+    ] {
+        let mut game = ReactiveSession::from_source(POSITIONS).unwrap();
+        let payload = format!(r#"{{"{key}":{sent}}}"#);
+        assert_eq!(
+            classified(&outcome(&mut game, event, &payload)),
+            "input/bound_exceeded",
+            "{event} {payload}"
+        );
+    }
+}
+
+#[test]
+fn a_plain_number_may_still_be_fractional() {
+    let mut game = ReactiveSession::from_source(POSITIONS).unwrap();
+    assert_eq!(
+        classified(&outcome(&mut game, "measure", r#"{"x":1.5}"#)),
+        "accepted"
+    );
+    assert_eq!(value(&game), 1.5);
+    assert_eq!(
+        classified(&outcome(&mut game, "measure", r#"{"x":10.5}"#)),
+        "input/bound_exceeded"
+    );
+    assert_eq!(value(&game), 1.5);
+}
+
+#[test]
+fn identifier_parameters_are_unchanged() {
+    let source =
+        "identifiers limit 2;\nstate held = 0;\nevent name who id;\non name set held = who;";
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    assert_eq!(
+        classified(&outcome(&mut game, "name", r#"{"who":"sam"}"#)),
+        "accepted"
+    );
+    let refused = outcome(&mut game, "name", r#"{"who":1}"#);
+    assert_eq!(classified(&refused), "input/payload_invalid");
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("send its text"),
+        "{refused}"
+    );
+    let mut handle = std::collections::BTreeMap::new();
+    handle.insert("who".to_string(), 1.5);
+    let error = game.apply("name", &handle).unwrap_err();
+    assert!(error.contains("not the handle of an identifier"), "{error}");
+    handle.insert("who".to_string(), 1.0);
+    game.apply("name", &handle).unwrap();
+}
+
+#[test]
+fn the_native_apply_path_refuses_a_fractional_position_too() {
+    let mut game = ReactiveSession::from_source(POSITIONS).unwrap();
+    let before = game.snapshot();
+    let mut parameters = std::collections::BTreeMap::new();
+    parameters.insert("room".to_string(), 1.5);
+    let error = game.apply("read", &parameters).unwrap_err();
+    assert!(error.contains("whole number"), "{error}");
+    assert_eq!(game.snapshot(), before);
+    parameters.insert("room".to_string(), 2.0);
+    game.apply("read", &parameters).unwrap();
+    assert_eq!(value(&game), 2.0);
+}
+
+#[test]
+fn a_fractional_room_can_no_longer_reach_a_decision() {
+    // The shape found by trial 07: a room reading grounds a decision, and the
+    // displayed room maps every value other than 1 to the cellar.
+    let source = r#"
+claim here;
+evidence porter from "the porter";
+readings reports from porter limit 4;
+decisions search limit 2;
+event report room in attic cellar;
+event choose;
+on report sample reports = room supports here;
+on choose when has_sample(reports) and not committed(search)
+    commit search because enough using latest(reports);
+bind choice.room = "none";
+bind choice.room = if(latest(search) == 1, "attic", "cellar") when committed(search);
+"#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    assert_eq!(
+        classified(&outcome(&mut game, "report", r#"{"room":1.5}"#)),
+        "input/payload_invalid"
+    );
+    assert_eq!(classified(&outcome(&mut game, "choose", "{}")), "accepted");
+    let snapshot = serde_json::to_value(game.snapshot()).unwrap();
+    assert_eq!(
+        snapshot["decision_series"]["search"]["revisions"],
+        serde_json::json!([])
+    );
+    assert_eq!(snapshot["bindings"]["choice"]["room"], "none");
+    outcome(&mut game, "report", r#"{"room":"cellar"}"#);
+    outcome(&mut game, "choose", "{}");
+    let snapshot = serde_json::to_value(game.snapshot()).unwrap();
+    assert_eq!(snapshot["commitment_bases"]["search@1"]["value"], 2.0);
+    assert_eq!(snapshot["bindings"]["choice"]["room"], "cellar");
+}
