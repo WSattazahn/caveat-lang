@@ -3,19 +3,26 @@
 A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
-The selected release candidate is **`caveat-lang@0.1.0-rc.2`**, with the command
-`caveat` and npm publication tag `next`. It is not published: `private: true`
-stays set until publishing is explicitly authorized. The package can be
-installed from a tested tarball without Rust:
+The release candidate is **`caveat-lang@0.1.0-rc.3`**, with the command
+`caveat`. It is meant as a preview: published to npm with the tag `next`
+rather than `latest`, with the same tested tarball attached to its GitHub
+pre-release. It needs no Rust. Once it is published, install it from npm:
 
 ```sh
 npm init -y
-npm install ./caveat-lang-0.1.0-rc.2.tgz
-npx --no-install caveat test my.scenarios.json
+npm install caveat-lang@next
+npx --no-install caveat init
+npx --no-install caveat test umbrella.scenarios.json
 ```
 
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. Before
+publication, or to use a verified tarball you were given, pass the tarball's
+path or URL to `npm install` instead.
+
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
-directory to a tested program in about fifteen minutes. The
+directory to a tested program in about fifteen minutes. [Caveat on one
+page](docs/REFERENCE.md) gives the language in brief, and the [worked
+example](docs/WORKED_EXAMPLE.md) takes one program through every command. The
 [documentation index](docs/README.md) lists the authoring guide, the language
 reference and the thermostat example that ship in the package. The
 repository's test suites are not included.
@@ -255,15 +262,16 @@ CI already runs this packaging test against the runtime built by its Linux
 core job. It retains the exact tested `.tgz`, the test report with its SHA-256,
 `build-info.json` and `SHA256SUMS` together as an artifact. A local Windows run
 checks packaging locally; the release candidate must use the tested Linux
-artifact from the intended release commit. The current private tarball is for
-evaluation. Once publishing is authorized, commit the removal of `private`,
-rebuild and retest the candidate on Linux, then publish that exact tested
-tarball under the `next` tag. See the
+artifact from the intended release commit. A release publishes that one tested
+tarball twice, unchanged: attached to the GitHub pre-release, and to npm under
+the `next` tag (`npm publish <tarball> --tag next`). No second build is made
+for the registry. See the
 [consolidation plan](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/docs/CONSOLIDATION_PLAN.md)
-for the remaining release gates.
+for the release gates.
 
 ## Not yet
 
-- Publication on npm.
+- A stable release under npm's `latest` tag. Release candidates are published
+  with the tag `next`.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.
