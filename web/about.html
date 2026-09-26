@@ -67,18 +67,17 @@ as it runs:</p>
   <li><strong>Grounds.</strong> A decision records the evidence its value was
   computed from, with the caveats attached to that evidence. Its grounds are
   fixed when it is made; a later reading never changes them.</li>
-  <li><strong>Permission.</strong> A <code>permitted by</code> clause names the
-  reading that counts as the go-ahead, and the decision records which one it
-  found, apart from its grounds. If that reading is missing or has been
-  withdrawn, the decision is refused. Caveat checks that the grant exists (and,
-  with <code>for X</code>, that its value is X), not whether it approves or who
-  gave it.</li>
+  <li><strong>Permission.</strong> A <code>permitted by</code> clause
+  designates which evidence counts as the go-ahead. The decision records the
+  grant it found, apart from its grounds, and is refused unless that grant has
+  been observed and not withdrawn and, with <code>for X</code>, has the value
+  X.</li>
   <li><strong>Reopening.</strong> A decision can declare which readings reopen
   it, for example any new reading in a named stream that opposes a named
-  claim. Withdrawing a
-  reading marks it as wrong without erasing what rested on it, and a rule can
-  then reopen the decisions that did. A journal lists every decision and every
-  reopening, with its reasons.</li>
+  claim. Withdrawing a reading records that it is no longer stood behind. That
+  erases nothing and does not establish the opposite claim, and a rule can then
+  reopen the decisions that rested on it. A journal lists every decision and
+  every reopening, with its reasons.</li>
   <li><strong>Explanations.</strong> The command <code>caveat explain</code>
   prints each decision's grounds, permission and history, and
   <code>caveat dependents</code> answers the reverse question: what rests on
@@ -145,9 +144,11 @@ follow the worked example the same way.</p>
   evidence, inspect a model's internal reasoning, or authorize actions outside
   the program. A source label says where evidence came from; it does not prove
   it.</li>
-  <li>Permission is checked by existence. Caveat does not decide who is
-  entitled to grant, does not check whether a grant approves or denies, and
-  does not enforce expiry by itself.</li>
+  <li>The program decides what counts as approval. Caveat requires the
+  designated grant to be observed and not withdrawn, and checks its value
+  against <code>for X</code> when one is given. It does not authenticate the
+  grant's source, infer approval from its wording or from whether it supports
+  or opposes a claim, or enforce expiry by itself.</li>
   <li>An explanation says what a decision read and what could have influenced
   it. It does not show that each item was a cause, that the evidence was
   accurate, or that the rule was sensible.</li>
@@ -166,13 +167,17 @@ follow the worked example the same way.</p>
   changed, went to TypeScript. The rounds in which Caveat did better were
   written knowing the requests. Whether it helps real decision systems is still
   a hypothesis.</li>
-  <li>It costs speed and size. In that benchmark game, measured on a
-  development runtime from before rc.3, the latest Caveat version took about
-  20 times as long per event as TypeScript (51.6&nbsp;µs against 2.5&nbsp;µs
-  median, dispatch plus view); the blind-round version, measured earlier, took
-  1.1&nbsp;ms. The
-  rc.3 runtime alone is about 552&nbsp;KB gzipped; the benchmark's TypeScript
-  version shipped 3.5&nbsp;KB.</li>
+  <li>It costs speed and size. In that one benchmark game, measured on a
+  development runtime from before rc.3, the latest Caveat version of the game
+  took about 20 times as long per event as the project's TypeScript version of
+  it (51.6&nbsp;µs against 2.5&nbsp;µs median, dispatch plus view); the
+  blind-round Caveat version, measured earlier, took 1.1&nbsp;ms. That
+  TypeScript implementation shipped 3.5&nbsp;KB gzipped. The rc.3 runtime alone
+  is about 552&nbsp;KB gzipped, measured on the published package; the
+  benchmark recorded 483&nbsp;KB for its whole Caveat build on the older
+  runtime. The
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.3/experiments/glowcap/RESULTS.md#round-6-replay-the-language-the-work-list-produced">benchmark
+  report</a> gives the workloads, every round and its own limits.</li>
   <li>There are no host conformance tests yet.</li>
 </ul>
 

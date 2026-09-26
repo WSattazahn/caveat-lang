@@ -16,7 +16,7 @@ require adopting them.
 Caveat is a programming language for programs that act on what they know and keep track of how they know it:
 
 - **Values carry their evidence.** Every number computed from an observation carries that evidence and its caveats through every sum, comparison and label.
-- **Explanations can't lie.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something that never counted.
+- **Explanations are checked against recorded dependencies.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something outside the value's recorded dependencies. That does not prove the evidence true or the explanation complete.
 - **Decisions remember.** A decision records what it was made on, reopens when the world disagrees, and keeps a journal.
 - **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
 
