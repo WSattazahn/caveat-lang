@@ -16,11 +16,13 @@ require adopting them.
 Caveat is a programming language for programs that act on what they know and keep track of how they know it:
 
 - **Values carry their evidence.** Every number computed from an observation carries that evidence and its caveats through every sum, comparison and label.
-- **Explanations can't lie.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something that never counted.
+- **Explanations are checked against recorded dependencies.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something outside the value's recorded dependencies. That does not prove the evidence true or the explanation complete.
 - **Decisions remember.** A decision records what it was made on, reopens when the world disagrees, and keeps a journal.
 - **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
 
-**Try it** with Node 20 or later: `npm install caveat-lang@next` installs the release candidate, [0.1.0-rc.3](docs/releases/v0.1.0-rc.3.md), and `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
+**[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)**, on one page: the problem, one example to run, and the limitations.
+
+**Try it** with Node 20 or later: `npm install caveat-lang@next` installs the release candidate, [0.1.0-rc.3](docs/releases/v0.1.0-rc.3.md) ([on npm](https://www.npmjs.com/package/caveat-lang)), and `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
