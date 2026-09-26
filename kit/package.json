@@ -1,6 +1,6 @@
 {
   "name": "caveat-lang",
-  "version": "0.1.0-rc.3",
+  "version": "0.1.0-rc.4",
   "description": "A small reactive language whose programs record what each decision rests on: evidence, caveats, permission and reopening. WebAssembly runtime, command-line tools, session library and scenario runner for Node and browsers.",
   "keywords": [
     "caveat",
