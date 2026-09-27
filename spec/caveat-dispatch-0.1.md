@@ -74,6 +74,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
 | `limit` | `identifier_limit` | The event would add an identifier past the program's `identifiers` limit or 1 MiB of identifier text ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
+| `limit` | `renewal_limit` | A `renew` would give a renewable evidence more occurrences than its declared limit ([Renewal 0.1](caveat-renewal-0.1.md)). |
 
 Payload bounds are `input`; state bounds are `evaluation`. This choice depends
 on where the failure occurs, not on the wording of the shared range diagnostic.
@@ -140,6 +141,15 @@ from an outcome schema match; the save contract governs restoration.
   It arrived with [Identifiers 0.1](caveat-identifiers-0.1.md), so no earlier
   behavior changes. An identifier payload that is not 1 to 1,024 bytes of text
   is `input/payload_invalid`, like any other malformed payload.
+- `limit/renewal_limit` classifies a `renew` of a renewable evidence that
+  already has its declared number of occurrences. Before it, such an event was
+  fatal `unclassified`: a host lost the session, and with it every other
+  subject the program tracked, although the runtime had already rolled the
+  event back. The agent ledger keeps one renewable push per pull request, so
+  one pull request's 65th push ended the session for all of them. The
+  rollback and the diagnostic text are unchanged. It has its own code, not
+  `history_limit`, because the exhausted resource is a renewable evidence's
+  occurrences, not a reading stream or decision series.
 - `policy/not_permitted` classifies a commit whose `permitted by` clause
   finds no usable grant. It arrived with
   [Permission 0.1](caveat-permission-0.1.md), so no earlier behavior changes.
