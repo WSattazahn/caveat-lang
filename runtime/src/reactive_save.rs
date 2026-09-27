@@ -774,6 +774,29 @@ impl ReactiveSession {
                 self.require_kind(occurrence, "evidence")?;
             }
         }
+        // And the other way: every renewal occurrence the graph holds is in
+        // its evidence's renewals at its ordinal, so the limit above bounds it
+        // too. Unlisted, it would leave the program's first occurrence current,
+        // and the next renew would generate a name the graph already holds.
+        for node in &save.graph.nodes {
+            let SavedNode::Occurrence { name } = node else {
+                continue;
+            };
+            let Some((base, ordinal)) = occurrence_parts(name) else {
+                continue;
+            };
+            if self.renewals.contains_key(base)
+                && save
+                    .renewals
+                    .get(base)
+                    .and_then(|occurrences| occurrences.get(ordinal - 1))
+                    != Some(name)
+            {
+                return Err(format!(
+                    "renewable {base} occurrence {name} is not in its renewals"
+                ));
+            }
+        }
         if save.scheduled_qualifications.len() > MAX_SCHEDULED_QUALIFICATIONS {
             return Err("too many scheduled qualifications".into());
         }

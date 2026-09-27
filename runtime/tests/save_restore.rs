@@ -452,3 +452,169 @@ fn a_number_a_host_sends_arrives_exactly() {
     let expected = 0.0013580246789999999_f64 + 0.0018518518349999998_f64;
     assert_eq!(game.snapshot().values["now"].to_bits(), expected.to_bits());
 }
+
+/// The program of issue #43: one renewable evidence, renewed by one event.
+const RENEWING: &str = r#"
+claim safe;
+evidence bite from "a bite";
+renewable bite limit 3;
+event re;
+on re renew bite;
+"#;
+
+/// A save of `RENEWING` after `renewals` renewals.
+fn renewed(renewals: usize) -> serde_json::Value {
+    let mut game = ReactiveSession::from_source(RENEWING).unwrap();
+    for _ in 0..renewals {
+        send(&mut game, "re", &[]);
+    }
+    serde_json::to_value(game.save().unwrap()).unwrap()
+}
+
+/// The edited `save` must be refused with `expected`. An accepted one fails
+/// with what its next renewal does.
+fn refused(save: &serde_json::Value, expected: &str) {
+    match ReactiveSession::restore_json(RENEWING, &save.to_string()) {
+        Err(error) => assert_eq!(error, format!("cannot restore save: {expected}")),
+        Ok(mut game) => panic!(
+            "accepted with renewals {:?}; the next renewal gives {}",
+            game.snapshot().renewals["bite"].occurrences,
+            match game.dispatch_outcome_json("re", "{}") {
+                Ok(outcome) => serde_json::to_value(outcome).unwrap()["outcome"].to_string(),
+                Err(fatal) => serde_json::to_string(&fatal).unwrap(),
+            }
+        ),
+    }
+}
+
+// Issue #43. The graph holds bite@2 but the renewals do not list it, so the
+// program's `[bite]` would stay current and the next renewal would generate
+// bite@2 again: a fatal collision on a later event instead of a refused save.
+#[test]
+fn a_renewal_occurrence_its_renewals_do_not_list_is_refused() {
+    let save = renewed(1);
+    assert_eq!(
+        save["renewals"],
+        serde_json::json!({"bite": ["bite", "bite@2"]})
+    );
+    let mut dropped = save.clone();
+    dropped["renewals"] = serde_json::json!({});
+    // The renewal's effect names bite@2 too; drop it so only the graph does.
+    dropped["effects"] = serde_json::json!([]);
+    refused(
+        &dropped,
+        "renewable bite occurrence bite@2 is not in its renewals",
+    );
+    let mut first = save.clone();
+    first["renewals"]["bite"] = serde_json::json!(["bite"]);
+    refused(
+        &first,
+        "renewable bite occurrence bite@2 is not in its renewals",
+    );
+    let mut shortened = renewed(2);
+    shortened["renewals"]["bite"] = serde_json::json!(["bite", "bite@2"]);
+    refused(
+        &shortened,
+        "renewable bite occurrence bite@3 is not in its renewals",
+    );
+}
+
+// Issue #43, the variant: an occurrence past the declared limit of 3, which
+// no renewal could make. Listed or not, the limit bounds it.
+#[test]
+fn a_renewal_occurrence_past_its_limit_is_refused() {
+    let mut renamed = renewed(1);
+    renamed["graph"]["nodes"][0]["name"] = "bite@9".into();
+    renamed["renewals"] = serde_json::json!({});
+    renamed["effects"] = serde_json::json!([]);
+    refused(
+        &renamed,
+        "renewable bite occurrence bite@9 is not in its renewals",
+    );
+    let mut extra = renewed(1);
+    extra["graph"]["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"kind": "occurrence", "name": "bite@4"}));
+    refused(
+        &extra,
+        "renewable bite occurrence bite@4 is not in its renewals",
+    );
+    let mut listed = renewed(1);
+    listed["graph"]["nodes"][0]["name"] = "bite@4".into();
+    listed["renewals"]["bite"] = serde_json::json!(["bite", "bite@2", "bite@3", "bite@4"]);
+    refused(
+        &listed,
+        "renewable bite occurrences do not match the program",
+    );
+}
+
+// The renewals were already checked against the graph the other way; that
+// stays as it was.
+#[test]
+fn renewals_the_graph_does_not_hold_in_order_are_refused() {
+    let mut missing = renewed(1);
+    missing["renewals"]["bite"] = serde_json::json!(["bite", "bite@2", "bite@3"]);
+    refused(&missing, "bite@3 must name a declared evidence");
+    let mut swapped = renewed(2);
+    swapped["renewals"]["bite"] = serde_json::json!(["bite", "bite@3", "bite@2"]);
+    refused(&swapped, "renewable bite occurrence bite@3 is out of order");
+    let mut repeated = renewed(1);
+    repeated["renewals"]["bite"] = serde_json::json!(["bite", "bite@2", "bite@2"]);
+    refused(
+        &repeated,
+        "renewable bite occurrence bite@2 is out of order",
+    );
+    let mut long = renewed(2);
+    long["renewals"]["bite"] = serde_json::json!(["bite", "bite@2", "bite@3", "bite@4"]);
+    refused(&long, "renewable bite occurrences do not match the program");
+}
+
+/// A session resumed from `game`'s save must be `game`, and stay it through
+/// the next events, a renewal among them.
+fn resumes(game: &ReactiveSession) {
+    let mut original = game.clone();
+    let mut resumed = ReactiveSession::restore_json(PROGRAM, &game.save_json().unwrap())
+        .unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(resumed.snapshot(), original.snapshot());
+    for (event, payload) in [
+        ("regrow", "{}"),
+        ("eat", "{}"),
+        ("read", r#"{"x": -1}"#),
+        ("regrow", "{}"),
+    ] {
+        let expected = serde_json::to_value(original.dispatch_outcome_json(event, payload));
+        let actual = serde_json::to_value(resumed.dispatch_outcome_json(event, payload));
+        assert_eq!(actual.unwrap(), expected.unwrap(), "after {event}");
+    }
+}
+
+// Saves the runtime writes itself still restore: with no renewal, one,
+// several and as many as the limit allows, between readings, revisions,
+// reveals and scheduled caveats, and after the limit refused a renewal.
+#[test]
+fn every_save_of_a_renewing_session_restores() {
+    let mut game = ReactiveSession::from_source(PROGRAM).unwrap();
+    resumes(&game);
+    send(&mut game, "start", &[]);
+    send(&mut game, "eat", &[]);
+    resumes(&game);
+    for renewal in 1..8 {
+        send(&mut game, "regrow", &[]);
+        resumes(&game);
+        send(&mut game, "read", &[("x", renewal as f64)]);
+        send(&mut game, "eat", &[]);
+        wait(&mut game, 5);
+        resumes(&game);
+    }
+    send(&mut game, "check", &[]);
+    let snapshot = game.snapshot();
+    assert_eq!(snapshot.renewals["bite"].occurrences.len(), 8);
+    assert!(
+        snapshot.scheduled_qualifications.len() < 8,
+        "some have fired"
+    );
+    let outcome = serde_json::to_value(game.dispatch_outcome_json("regrow", "{}")).unwrap();
+    assert_eq!(outcome["Ok"]["code"], "renewal_limit", "{outcome}");
+    resumes(&game);
+}
