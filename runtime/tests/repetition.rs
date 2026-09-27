@@ -455,3 +455,43 @@ fn a_commented_entity_gets_its_own_copy_and_index() {
     );
     assert_eq!(members, ["north", "south"]);
 }
+
+#[test]
+fn a_comment_touching_an_entity_name_is_not_part_of_the_name() {
+    // The loader ends a word at a comment, so this plot is `north`, as
+    // `target` names it. Repetition used to read `north#first`: `"$p"`
+    // became `"north#first"`, silently, and a copy that used `$p` outside
+    // quoted text did not load.
+    let entities =
+        "entity north#first\n    kind plot at field;\nentity south kind plot at field;\n";
+    let source = format!(
+        "place field kind field;
+{entities}event read target kind plot;
+for plot as $p {{
+    on read when target == $index reject \"$p is locked.\";
+}};
+"
+    );
+    for (target, rule) in [("north", 1), ("south", 2)] {
+        let error = ReactiveSession::from_source(&source)
+            .expect("loads")
+            .dispatch_json("read", &format!(r#"{{"target":"{target}"}}"#))
+            .expect_err("the member's own copy refuses the read");
+        assert_eq!(
+            error,
+            format!("event read, rule {rule}: rejected: {target} is locked.")
+        );
+    }
+    let source = indexed(entities);
+    let expanded = repeat::expand(&source).expect("expands");
+    assert!(
+        expanded.contains("\n    state north_index = 1;\n"),
+        "{expanded}"
+    );
+    let (indices, members) = counts(&source);
+    assert_eq!(
+        indices,
+        [("north".to_string(), 1.0), ("south".to_string(), 2.0)]
+    );
+    assert_eq!(members, ["north", "south"]);
+}

@@ -101,12 +101,15 @@ what keeps the expansion checkable and the generated program ordinary.
 ## Changes
 
 - 2026-09-27: a kind's members are every top-level `entity` statement of it
-  that the loader declares
+  that the loader declares, by the name it declares
   ([#47](https://github.com/WSattazahn/caveat-lang/issues/47)). Before this,
-  Repetition read a statement with its comments left in, so it skipped one
-  with a comment inside it, and it did not read a last one without its `;`.
-  `$index` then counted fewer members than a `kind` event parameter, and a
-  block that selected its member with `target == $index` updated another
-  member, or none. This deliberately changes the expansion of those programs:
-  the skipped member gets its copy, and the members after it their right
-  `$index`. Every other program expands as before.
+  Repetition read a statement with its comments left in. It skipped one with
+  a comment inside it and did not read a last one without its `;`, so
+  `$index` counted fewer members than a `kind` event parameter, and a block
+  that selected its member with `target == $index` updated another member,
+  or none. It read a comment touching the name as part of the name: with
+  `entity north#first`, a copy that used `$NAME` outside quoted text did not
+  load, and `"$NAME"` became `"north#first"`. This deliberately changes the
+  expansion of those programs: the skipped member gets its copy, the members
+  after it their right `$index`, and every copy its member's name. Every
+  other program expands as before.
