@@ -162,6 +162,11 @@ in section 6, and rewrites every qualified name to a flat identifier. A module
 named in two different import paths is linked **once**, by module name, so a
 diamond import yields one set of graph nodes rather than one per path.
 
+A part is read as a program is ([text 0.1](caveat-text-0.1.md)): comments are
+whitespace, in `use` and `module` statements too, and its last statement may
+leave out its `;`. In the linked text the next part's `origin` statement
+follows a module, so linking ends the module's last statement with `;`.
+
 Flattened names are reserved: source may not declare an identifier containing
 `__`, so a rewritten name can never collide with a hand-written one.
 

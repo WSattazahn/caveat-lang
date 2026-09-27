@@ -1,7 +1,7 @@
 //! Draft 0.5 module linking.
 
 use caveat_runtime::link::{self, BundlePart};
-use caveat_runtime::reactive::BindingValue;
+use caveat_runtime::reactive::{BindingValue, ParameterDomain, ReactiveSession};
 use caveat_runtime::{eval, parser, Attention, Consequence, NodeKind};
 
 fn part(name: &str, source: &str) -> BundlePart {
@@ -636,6 +636,74 @@ fn a_comment_in_a_use_or_module_statement_is_whitespace() {
     );
     let evaluation = evaluate(&link::link(&text).expect("links"));
     assert!(evaluation.symbols.contains_key("annex__wet"));
+}
+
+#[test]
+fn a_part_s_last_statement_without_its_semicolon_ends_before_the_next_part() {
+    // The loader reads a last statement without its `;`
+    // (spec/caveat-text-0.1.md). In a bundle, a module's last statement is
+    // followed by the next part's `origin` line, and ran into it: "cannot
+    // parse statement: entity annex__east kind annex__plot at
+    // annex__shed\norigin main". Its kind, a type tag, was also rewritten as
+    // the module's own `plot`.
+    let annex = "module annex;\nclaim plot;\nplace shed kind shed;\nentity east kind plot at shed";
+    for end in ["", "\n", " # the last; no `;`\n", "\n// the end"] {
+        let module = format!("{annex}{end}");
+        let program = "use annex;\nevent read target kind plot;\n";
+        let source = linked(&[("annex", &module), ("main", program)]);
+        assert!(
+            source.contains("entity annex__east kind plot at annex__shed;"),
+            "{source}"
+        );
+        assert!(source.contains("\norigin main;\n"), "{source}");
+        let snapshot =
+            ReactiveSession::from_source(&bundle(&[("annex", &module), ("main", program)]))
+                .unwrap_or_else(|error| panic!("{error}\n{source}"))
+                .snapshot();
+        let read = snapshot
+            .events
+            .iter()
+            .find(|event| event.name == "read")
+            .expect("read is declared");
+        let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+            panic!("target names a plot");
+        };
+        assert_eq!(members, &["annex__east"]);
+    }
+
+    // Unquoted provenance took the `origin` line into its text, silently:
+    // the source became "field notes origin main", and what the program
+    // declared was recorded as the module's.
+    let source = linked(&[
+        (
+            "annex",
+            "module annex;\nclaim dry;\nevidence log from field notes",
+        ),
+        (
+            "main",
+            "use annex;\nclaim wet;\nevidence gauge from \"rain gauge\";\n",
+        ),
+    ]);
+    let evaluation = evaluate(&source);
+    match &evaluation.graph.nodes[&evaluation.symbols["annex__log"]] {
+        NodeKind::Evidence { source, .. } => assert_eq!(source, "field notes"),
+        other => panic!("expected evidence, got {other:?}"),
+    }
+    for (symbol, part) in [("annex__log", "annex"), ("wet", "main"), ("gauge", "main")] {
+        assert_eq!(
+            evaluation.graph.origin(evaluation.symbols[symbol]),
+            Some(part),
+            "{symbol}"
+        );
+    }
+
+    // `use` and `module` are read there too.
+    let source = linked(&[
+        ("annex", "module annex"),
+        ("main", "claim here;\nuse annex"),
+    ]);
+    assert!(!source.contains("use annex"), "{source}");
+    evaluate(&source);
 }
 
 #[test]

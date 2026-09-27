@@ -329,7 +329,7 @@ pub fn link(bundle: &str) -> Result<String, String> {
         let rewritten = rewrite(part, Some(name), declared, &declarations)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
         writes.push((format!("module {name}"), written));
-        linked.push_str(&rewritten);
+        linked.push_str(&terminated(&rewritten));
         if !linked.ends_with('\n') {
             linked.push('\n');
         }
@@ -348,6 +348,22 @@ pub fn link(bundle: &str) -> Result<String, String> {
     linked.push_str(&rewritten);
     check_single_writer(&writes)?;
     Ok(linked)
+}
+
+/// A module's text with its last statement ended by `;`. The loader reads a
+/// last statement without one only at the end of the program, and in the
+/// linked text a module is followed by the next part's `origin` line. The
+/// `;` goes right after the statement's last word, before any comment, so no
+/// line moves.
+fn terminated(text: &str) -> String {
+    let Some(&(start, end)) = statements_of(text).last() else {
+        return text.to_string();
+    };
+    if text[..end].ends_with(';') {
+        return text.to_string();
+    }
+    let end = start + blank_comments(&text[start..end]).trim_end().len();
+    format!("{};{}", &text[..end], &text[end..])
 }
 
 /// How a part is named in diagnostics. The program carries a name too (its
@@ -754,7 +770,7 @@ pub(crate) fn blank_comments(statement: &str) -> String {
 
 /// The name in a leading `module NAME;` statement, if there is one.
 fn declared_module(source: &str) -> Option<String> {
-    let (start, end) = *statement_spans(source).first()?;
+    let (start, end) = *statements_of(source).first()?;
     match statement_words(&source[start..end]).as_slice() {
         ["module", name] => Some((*name).to_string()),
         _ => None,
@@ -764,7 +780,7 @@ fn declared_module(source: &str) -> Option<String> {
 /// Every module named by a `use NAME;` statement, in source order.
 fn used_modules(source: &str) -> Result<Vec<String>, String> {
     let mut used = Vec::new();
-    for (start, end) in statement_spans(source) {
+    for (start, end) in statements_of(source) {
         if let ["use", name] = statement_words(&source[start..end]).as_slice() {
             check_module_name(name)?;
             if used.iter().any(|existing| existing == name) {
@@ -802,7 +818,7 @@ fn check_module_name(name: &str) -> Result<(), String> {
 fn tag_offsets(source: &str) -> Vec<usize> {
     let code = blank_noncode(source);
     let mut offsets = Vec::new();
-    for (start, end) in statement_spans(&code) {
+    for (start, end) in statements_of(&code) {
         let words: Vec<(usize, &str)> = word_offsets(&code[start..end])
             .map(|(offset, word)| (start + offset, word))
             .collect();
@@ -907,7 +923,7 @@ fn blank_noncode(source: &str) -> String {
 fn strip_headers(source: &str) -> String {
     let mut out: Vec<char> = source.chars().collect();
     let offsets: Vec<usize> = source.char_indices().map(|(index, _)| index).collect();
-    for (start, end) in statement_spans(source) {
+    for (start, end) in statements_of(source) {
         let words = statement_words(&source[start..end]);
         if !matches!(words.as_slice(), ["module", _] | ["use", _]) {
             continue;
