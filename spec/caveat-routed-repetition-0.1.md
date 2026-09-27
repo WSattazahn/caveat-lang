@@ -103,8 +103,9 @@ exception for one rule, and the pass does not read what the rule does:
   something else in a plain block, where `target == target.pr21` lets every
   member's copy run on pr21's events. Converting a block changes it.
 
-A routed rule must mention `$NAME` or `$index`, quoted text included. One that
-mentions neither is an error (section 7). Its copies are all the same rule. In
+A routed rule must mention `$NAME` or `$index`, quoted text included and
+comments not, as C003 reads a rule. One that mentions neither is an error
+(section 7). Its copies are all the same rule. In
 a plain block every copy runs on each event. Routed, only one would. What it
 did would then depend on the header, and C003 does not check such a rule, so
 dropping the clause would multiply it with no report. Written once, outside
@@ -147,7 +148,9 @@ top-level `entity` statements of kind KIND. A `P kind KIND` parameter takes an
 entity's position among every entity of KIND in the loaded program
 ([typed parameters](caveat-typed-parameters-0.1.md)). The two are the same
 count when every entity of KIND is a top-level `entity` statement in the
-block's part. Within the part, anything else is an error (section 7). For the
+block's part that Repetition 0.1 reads. It does not read one with a comment
+inside the statement, or a last one without its `;`, although the loader
+declares both. Within the part, anything else is an error (section 7). For the
 parts of a bundle, see section 9.
 
 The route is placed in each member's copy of the rule, with `$NAME` and
@@ -157,7 +160,8 @@ text the loader reads. The rule as written in the block is not: in it,
 name, and `examine $r_fog cost $index` is not one until `$index` is a number.
 
 A rule has a guard when the word after EVENT is `when`. Then `P == N and ` goes
-directly after `when`, where N is the member's position. Otherwise
+directly before the guard's first word, after `when` and whatever space or
+line break follows it, where N is the member's position. Otherwise
 ` when P == N` goes directly after EVENT. Neither needs the rest of the rule
 to be read, so every routed rule gets its route.
 
@@ -165,8 +169,10 @@ G is the guard as the loader reads it: the words after `when`, up to the word
 where the loader finds the rule's effect. An effect word can also be a name
 inside a guard, so the loader takes the first effect word outside parentheses
 that begins a complete effect, and the pass finds the effect the same way, in
-the copy. When G has an `or` outside parentheses, `(` goes directly before
-G's first word and `)` directly after its last.
+the copy. A qualified name such as `glow::level` is read as the one name
+linking makes of it, so its `::` neither ends the guard nor hides an `or`. When
+G has an `or` outside parentheses, `(` goes directly before G's first word and
+`)` directly after its last.
 
 `or` is the operator as the loader's expression reader reads it: the word
 `or`, whether spaces surround it or a parenthesis touches it. `a or b`,
@@ -318,19 +324,30 @@ another writes, the new order is the author's to check, as for any moved rule.
 
 Routing runs with Repetition 0.1: once per part, before names are rewritten.
 EVENT is looked up among the `event` declarations of the block's own part (a
-single-file program is one part), counting a declaration a `for` block writes
-once it is expanded. A program declares every event it reacts to, `tick`
+single-file program is one part). A declaration a `for` block writes counts
+only when Repetition 0.1 expands that whole block, for every member. A last
+declaration without its `;` counts, as the loader reads it. A program
+declares every event it reacts to, `tick`
 included: `game/glowcap.cav` writes `event tick dt min 0 max 0.1;`. The
 prelude holds functions only. Like Repetition 0.1, which iterates only kinds
 declared in its own part, routing reads nothing else.
 
 An error stops loading at the first one found. Blocks are read in source
-order, and in each block the checks run in this order: the header; an entity
-of KIND in a `for` block; each rule, in the order written; and last, whether
-the block routes any rule. In a bundle an error is prefixed with the part's
-name, as Repetition 0.1's errors are. HEADER below is the block's header, from
-`for` up to but not including `{`, with each run of whitespace written as one
-space and none at either end. Repetition 0.1's own errors still apply.
+order, and in each block the checks run in this order:
+1. the header, and Repetition 0.1's checks of the binding, of nesting and of
+   the kind;
+2. an entity of KIND in a `for` block;
+3. an entity of KIND that Repetition 0.1 does not read;
+4. each rule, in the order written;
+5. whether the block routes any rule;
+6. Repetition 0.1's check that every `$` name is bound, as each member's copy
+   is written.
+
+In a bundle an error is prefixed with the part's name, as Repetition 0.1's
+errors are. HEADER below is the block's header, from `for` up to but not
+including `{`, with each run of whitespace written as one space and none at
+either end. A routed header whose binding is not `$NAME` is a malformed
+header, not Repetition 0.1's binding error.
 
 - **A malformed header.** The header's fifth word is `routed`, but the header
   is not `for KIND as $NAME routed by P` with P a plain name.
@@ -392,6 +409,16 @@ space and none at either end. Repetition 0.1's own errors still apply.
   `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, declared in a for block, but `P` does; declare it at the top level of this part
   ```
 
+- **An entity of KIND that Repetition 0.1 does not read.** A top-level
+  `entity` statement of kind KIND has a comment inside it, or is the part's
+  last statement and has no `;`. The loader declares it, and Repetition 0.1
+  does not count it.
+
+  ```text
+  `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, whose statement has a comment in it, but `P` does; move the comment out of the statement
+  `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, whose statement has no `;`, but `P` does; end the statement with `;`
+  ```
+
 For example, with `event approved target id;`, the ledger's routed block is
 refused with:
 
@@ -414,10 +441,12 @@ Each of these is an error rather than a quiet choice:
 - A rule that mentions no binding runs once per event routed and once per
   member plain, and only the header would show which. Outside the block it
   means the same either way.
-- An entity of KIND written in a `for` block makes a member's `$index` differ
-  from its position in P, so the route would select another member's copy, or
-  none. Correcting either count would change Repetition 0.1 or typed
-  parameters, which this profile does not do.
+- An entity of KIND written in a `for` block, or a top-level one Repetition
+  0.1 does not read, makes a member's `$index` differ from its position in P,
+  so the route would select another member's copy, or none. Correcting either
+  count would change Repetition 0.1 or typed parameters, which this profile
+  does not do. A plain block with a hand-written `target == $index` has the
+  same miscount on such a program today, and nothing reports it.
 
 In the evaluation of a prototype, 20 edits that renamed an event's subject
 parameter or gave it another kind were all refused by the errors for P of
