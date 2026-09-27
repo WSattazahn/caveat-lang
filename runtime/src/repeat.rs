@@ -13,14 +13,16 @@
 //! block expands to, so routing adds no runtime semantics either.
 
 use crate::link::{
-    blank_comments, is_identifier_char, is_identifier_start, statement_spans, statement_words,
+    blank_comments, is_identifier_char, is_identifier_start, statement_words, statements_of,
 };
 
 /// Expand every `for` block in one source. A source with no `for` block is
 /// returned unchanged, so an existing program expands to itself byte for byte.
 pub fn expand(source: &str) -> Result<String, String> {
-    let spans = statement_spans(source);
-    let blocks: Vec<(usize, usize)> = spans
+    // A last block without its `;` is a block too: the loader reads a last
+    // statement without one.
+    let statements = statements_of(source);
+    let blocks: Vec<(usize, usize)> = statements
         .iter()
         .copied()
         .filter(|(start, end)| statement_words(&source[*start..*end]).first() == Some(&"for"))
@@ -28,11 +30,10 @@ pub fn expand(source: &str) -> Result<String, String> {
     if blocks.is_empty() {
         return Ok(source.to_string());
     }
-    let members = entity_kinds(source, &spans);
+    let members = entity_kinds(source, &statements);
     let part = Part {
         source,
-        spans: &spans,
-        tail: tail(source, &spans),
+        statements: &statements,
         kinds: &members,
     };
 
@@ -49,7 +50,7 @@ pub fn expand(source: &str) -> Result<String, String> {
 
 /// Members of each entity kind in one source, in declaration order.
 pub(crate) fn declared_kinds(source: &str) -> Vec<(String, Vec<String>)> {
-    entity_kinds(source, &statement_spans(source))
+    entity_kinds(source, &statements_of(source))
 }
 
 /// A block statement with `$NAME` replaced by `member` and `$index` by
@@ -65,13 +66,13 @@ pub(crate) fn instantiate(
 }
 
 /// Members of each entity kind, in declaration order: every top-level
-/// `entity` statement the loader declares. Each is read as the loader reads
-/// it, comments blanked, whatever its name, as a `kind` parameter counts it,
-/// so `$index` numbers the members the parameter numbers. A last statement
-/// without its `;` is read too.
-fn entity_kinds(source: &str, spans: &[(usize, usize)]) -> Vec<(String, Vec<String>)> {
+/// `entity` statement the loader declares, among `statements`, which hold a
+/// last statement without its `;` too. Each is read as the loader reads it,
+/// comments blanked, whatever its name, as a `kind` parameter counts it, so
+/// `$index` numbers the members the parameter numbers.
+fn entity_kinds(source: &str, statements: &[(usize, usize)]) -> Vec<(String, Vec<String>)> {
     let mut kinds: Vec<(String, Vec<String>)> = Vec::new();
-    for (start, end) in spans.iter().copied().chain(tail(source, spans)) {
+    for (start, end) in statements.iter().copied() {
         let Some((name, kind)) = entity_of(&source[start..end]) else {
             continue;
         };
@@ -141,6 +142,15 @@ fn read_block<'s, 'k>(
     if close < open {
         return Err(format!("for block is not closed: {}", head(statement)));
     }
+    // The body's copies replace the whole statement, so anything but
+    // comments between the body and the block's end would be lost.
+    let after = without_terminator(&statement[close + 1..]);
+    if !blank_comments(after).trim().is_empty() {
+        return Err(format!(
+            "for block has text after its body: {}; end the block with `}};`",
+            head(after)
+        ));
+    }
     let header = statement_words(&statement[..open]);
     let (kind, binding, route) = match header.as_slice() {
         ["for", kind, "as", binding] => (*kind, *binding, None),
@@ -175,9 +185,10 @@ fn read_block<'s, 'k>(
     }
 
     let body = &statement[open + 1..close];
-    // A nested block is a statement that begins with `for`. The word inside a
-    // comment or quoted text is not one.
-    if statement_spans(body)
+    // A nested block is a statement that begins with `for`, the body's last
+    // statement without its `;` too. The word inside a comment or quoted
+    // text is not one.
+    if statements_of(body)
         .into_iter()
         .any(|(start, end)| statement_words(&body[start..end]).first() == Some(&"for"))
     {
@@ -304,10 +315,9 @@ impl Routing<'_> {
 /// and its entities. Nothing from another part.
 struct Part<'a> {
     source: &'a str,
-    /// The part's `;`-terminated statements, as Repetition 0.1 reads them.
-    spans: &'a [(usize, usize)],
-    /// A last statement without its `;`, which the parser also reads.
-    tail: Option<(usize, usize)>,
+    /// The part's statements as the loader reads them: each `;`-terminated
+    /// one, and a last one without its `;`.
+    statements: &'a [(usize, usize)],
     kinds: &'a [(String, Vec<String>)],
 }
 
@@ -319,7 +329,7 @@ impl Part<'_> {
     /// reports its own error when it is expanded.
     fn events(&self) -> Vec<(String, Vec<(String, String)>)> {
         let mut events = Vec::new();
-        for (start, end) in self.spans {
+        for (start, end) in self.statements {
             let text = &self.source[*start..*end];
             if statement_words(text).first() != Some(&"for") {
                 events.extend(event_declaration(text));
@@ -333,9 +343,6 @@ impl Part<'_> {
                     events.extend(event_declaration(&copy[inner..inner_end]));
                 }
             }
-        }
-        if let Some((start, end)) = self.tail {
-            events.extend(event_declaration(&self.source[start..end]));
         }
         events
     }
@@ -363,7 +370,7 @@ impl Part<'_> {
     /// written there. `$index` does not count it, and a `P kind KIND`
     /// parameter does.
     fn entity_in_block(&self, kind: &str) -> Option<String> {
-        self.spans.iter().find_map(|(start, end)| {
+        self.statements.iter().find_map(|(start, end)| {
             let text = &self.source[*start..*end];
             if statement_words(text).first() != Some(&"for") {
                 return None;
@@ -389,22 +396,6 @@ fn entity_of(statement: &str) -> Option<(String, String)> {
         ["entity", name, "kind", kind, "at", _] => Some((name.to_string(), kind.to_string())),
         _ => None,
     }
-}
-
-/// Each statement's range, and a last statement without its `;`, which the
-/// parser reads as well (parser.rs `scan_statements_at`).
-fn statements_of(text: &str) -> Vec<(usize, usize)> {
-    let mut spans = statement_spans(text);
-    spans.extend(tail(text, &spans));
-    spans
-}
-
-/// The range of what follows the last `;`-terminated statement, from its
-/// first word, when anything other than whitespace and comments does.
-fn tail(text: &str, spans: &[(usize, usize)]) -> Option<(usize, usize)> {
-    let after = spans.last().map_or(0, |(_, end)| *end);
-    let first = blank_comments(&text[after..]).find(|ch: char| !ch.is_whitespace())?;
-    Some((after + first, text.len()))
 }
 
 /// A block statement's body, between its first `{` and its last `}`.

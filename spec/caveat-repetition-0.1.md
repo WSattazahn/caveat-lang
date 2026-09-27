@@ -46,8 +46,10 @@ for reef as $r {
 ```
 
 `for KIND as $NAME { ... };` expands its body once per member of `KIND`, in
-declaration order, and replaces itself with the result. Two bindings are
-available inside the body:
+declaration order, and replaces itself with the result. Like any last
+statement, a last block may leave out its `;`. Nothing but comments may come
+between the body's `}` and the block's end. Two bindings are available inside
+the body:
 
 - `$NAME` — the member's name.
 - `$index` — its one-based position in the kind's declaration order.
@@ -139,3 +141,11 @@ what keeps the expansion checkable and the generated program ordinary.
   malformed header, and took a `{` in a comment in the header, or a `}` in
   one after the body, for the block's own. Such blocks now expand, and a
   malformed header is shown without its comments.
+- 2026-09-27: a last block without its `;` is expanded, as the loader reads
+  a last statement without one ([text 0.1](caveat-text-0.1.md)). Repetition
+  did not read it, and the program did not load: "cannot parse statement:
+  for plot as $p {". A block that is the last statement of another block's
+  body is refused as nested, where its `$` names were refused as unbound.
+  Text between a block's body and its end, such as a statement after a
+  block whose `;` was left out, is refused: "for block has text after its
+  body: ...". Repetition dropped it, silently when a `;` followed it.

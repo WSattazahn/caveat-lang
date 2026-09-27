@@ -718,6 +718,22 @@ for plot # each plot
 }
 
 #[test]
+fn a_last_block_without_its_semicolon_is_checked() {
+    let source = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+}
+";
+    let report = check(source);
+    let line = line_of(source, "on read set");
+    assert_eq!(codes(&report), [("C003", line), ("C003", line)]);
+}
+
+#[test]
 fn a_rule_that_reads_only_once_expanded_is_skipped_not_an_error() {
     // Written, `"\$p"` holds an escape the scanner refuses. Expanded, it is
     // `"\north"` and `"\tarn"`, which load.

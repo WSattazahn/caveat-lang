@@ -760,3 +760,59 @@ fn a_comment_in_a_for_header_is_whitespace() {
         "expected `for KIND as $NAME routed by PARAM { ... }`, found: for plot as $p routed"
     );
 }
+
+#[test]
+fn a_last_block_without_its_semicolon_is_expanded() {
+    // The loader reads a last statement without its `;`
+    // (spec/caveat-text-0.1.md). Repetition did not read a block there, so
+    // the program did not load: "cannot parse statement: for plot as $p {".
+    for (header, routed) in [
+        ("for plot as $p {", false),
+        ("for plot as $p routed by target {", true),
+    ] {
+        for end in ["}", "}\n", "} # the last block; no `;`\n", "}\n// the end"] {
+            let source = headed(header, routed).replace("\n};\n", &format!("\n{end}"));
+            let (indices, members) = counts(&source);
+            assert_eq!(
+                indices,
+                [("north".to_string(), 1.0), ("south".to_string(), 2.0)],
+                "{source}"
+            );
+            assert_eq!(members, ["north", "south"]);
+            for (target, expected) in [("north", (1.0, 0.0)), ("south", (0.0, 1.0))] {
+                assert_eq!(
+                    after_read(&source, target),
+                    expected,
+                    "read {target}\n{source}"
+                );
+            }
+        }
+    }
+    // A block that is the last statement of a body is a nested block. It was
+    // not read, and its `$q` was refused as unbound.
+    let nested =
+        format!("{ENTITIES}for reef as $r {{ claim $r_seen; for reef as $q {{ claim $q; }} }};");
+    assert_eq!(
+        repeat::expand(&nested).unwrap_err(),
+        "for blocks do not nest; see spec/caveat-repetition-0.1.md section 4: for reef as $r {"
+    );
+}
+
+#[test]
+fn text_between_a_block_and_its_end_is_refused_not_dropped() {
+    // Repetition replaced a block with its body's copies, and dropped what
+    // followed the body. With a `;` after it, `entity east` was dropped
+    // silently: `target` named north and south only. As the last statement,
+    // which the loader reads, the block was not expanded.
+    for end in [
+        "} entity east kind plot at field;\n",
+        "}\nentity east kind plot at field\n",
+    ] {
+        let source = headed("for plot as $p {", false).replace("\n};\n", &format!("\n{end}"));
+        assert_eq!(
+            repeat::expand(&source).unwrap_err(),
+            "for block has text after its body: entity east kind plot at; end the block with `};`",
+            "{source}"
+        );
+    }
+}

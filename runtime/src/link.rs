@@ -689,6 +689,22 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     spans
 }
 
+/// Each statement's range, and a last statement without its `;`, which the
+/// parser reads as well (parser.rs `scan_statements_at`).
+pub(crate) fn statements_of(text: &str) -> Vec<(usize, usize)> {
+    let mut spans = statement_spans(text);
+    spans.extend(tail(text, &spans));
+    spans
+}
+
+/// The range of what follows the last `;`-terminated statement, from its
+/// first word, when anything other than whitespace and comments does.
+fn tail(text: &str, spans: &[(usize, usize)]) -> Option<(usize, usize)> {
+    let after = spans.last().map_or(0, |(_, end)| *end);
+    let first = blank_comments(&text[after..]).find(|ch: char| !ch.is_whitespace())?;
+    Some((after + first, text.len()))
+}
+
 /// The words of a statement as the parser splits them: at whitespace, with
 /// each comment read as whitespace, so a comment is no word and ends the word
 /// it touches (parser.rs `scan_statements_at`).
