@@ -71,8 +71,8 @@ A rule is *routed* when all of these hold:
 - EVENT is written without `$NAME` or `$index`;
 - EVENT declares a parameter `P kind KIND`.
 
-Every such rule is routed. There is no exception for one rule, and the pass
-does not read what the rule does:
+This is decided from EVENT alone. Every such rule is routed. There is no
+exception for one rule, and the pass does not read what the rule does:
 
 - A `reject` is routed. It then refuses an event only when the member the
   event names meets its guard. Unrouted, any member's copy whose guard held
@@ -81,11 +81,6 @@ does not read what the rule does:
 - A `call` is routed like any other effect. A procedure's steps are not rules
   and are not changed. They run when the routed rule calls them.
 - A rule with no guard gets one.
-- A rule that mentions neither `$NAME` nor `$index` is routed too. In a plain
-  block its copies are the same rule, and all of them run on each event.
-  Routed, it runs once, in the copy of the member the event names:
-  `on observe set observations = observations + 1;` adds one per event, not
-  one per member.
 - A guard that already selects the member keeps its selection, and the rule
   is routed as well. The copy is then selected twice, which changes nothing.
   The pass reads a guard only to find where it ends and whether it has an
@@ -94,7 +89,17 @@ does not read what the rule does:
   When converting a block, delete the hand-written selection.
 - Any other comparison with P stays, and is read together with the route. In
   a routed block, `target == target.pr21` limits a rule to pr21's own copy,
-  and `target != $index` means the rule never runs.
+  and `target != $index` means the rule never runs. Such a rule means
+  something else in a plain block, where `target == target.pr21` lets every
+  member's copy run on pr21's events. Converting a block changes it.
+
+A routed rule must mention `$NAME` or `$index`, quoted text included. One that
+mentions neither is an error (section 7). Its copies are all the same rule. In
+a plain block every copy runs on each event. Routed, only one would. What it
+did would then depend on the header, and C003 does not check such a rule, so
+dropping the clause would multiply it with no report. Written once, outside
+the block, it runs once per event either way:
+`on observe set observations = observations + 1;` belongs there.
 
 Two kinds of rule in the block are not routed. They expand as written, as in a
 plain block:
@@ -112,16 +117,14 @@ Any other rule on an event is an error (section 7).
 A statement that is not an `on` rule expands as written: the declarations of
 claims, evidence, readings, decisions, renewables, states and events,
 `define`, `bind`, `cue`, `proc` and the rest. None of them is on an event, so
-there is no member to select. A define that a routed rule reads is inlined
-into a guard that already has its route. A binding and a procedure step are
-the same in a routed block as in a plain one.
+there is no member to select. A define that a routed rule reads is inlined, as
+one operand, into a guard that already has its route. A binding and a
+procedure step are the same in a routed block as in a plain one.
 
 ## 3. Where the route goes
 
 A routed rule is expanded as if `P == $index` had been written at the front of
-its guard. Repetition 0.1 then turns `$index` into the member's position, the
-same count a `P kind KIND` parameter takes
-([typed parameters](caveat-typed-parameters-0.1.md)).
+its guard.
 
 | Written in the block | Expanded as if written |
 | --- | --- |
@@ -129,17 +132,42 @@ same count a `P kind KIND` parameter takes
 | `on E when G EFFECT` | `on E when P == $index and G EFFECT` |
 | the same, with an `or` in G outside parentheses | `on E when P == $index and (G) EFFECT` |
 
+Repetition 0.1 turns `$index` into the member's position among the part's
+top-level `entity` statements of kind KIND. A `P kind KIND` parameter takes an
+entity's position among every entity of KIND in the loaded program
+([typed parameters](caveat-typed-parameters-0.1.md)). The two are the same
+count when every entity of KIND is a top-level `entity` statement in the
+block's part. Within the part, anything else is an error (section 7). For the
+parts of a bundle, see section 9.
+
+The route is placed in each member's copy of the rule, with `$NAME` and
+`$index` already replaced as Repetition 0.1 replaces them. That copy is the
+text the loader reads. The rule as written in the block is not: in it,
+`sample $p_approvals = …` is not a complete effect until `$p_approvals` is a
+name, and `examine $r_fog cost $index` is not one until `$index` is a number.
+
+A rule has a guard when the word after EVENT is `when`. Then `P == N and ` goes
+directly after `when`, where N is the member's position. Otherwise
+` when P == N` goes directly after EVENT. Neither needs the rest of the rule
+to be read, so every routed rule gets its route.
+
 G is the guard as the loader reads it: the words after `when`, up to the word
 where the loader finds the rule's effect. An effect word can also be a name
 inside a guard, so the loader takes the first effect word outside parentheses
-that begins a complete effect, and the pass finds the effect the same way.
+that begins a complete effect, and the pass finds the effect the same way, in
+the copy. When G has an `or` outside parentheses, `(` goes directly before
+G's first word and `)` directly after its last.
 
-`P == $index and ` goes directly before the first word of G, and `)` directly
-after its last. For a rule with no guard, ` when P == $index` goes directly
-after EVENT. Nothing else changes: spacing, line breaks, comments, quoted text
-and the guard itself are kept. Routing adds no line, so a diagnostic in the
-expanded text has the line it has in the expansion of the same block without
-the clause.
+`or` is the operator as the loader's expression reader reads it: the word
+`or`, whether spaces surround it or a parenthesis touches it. `a or b`,
+`a or(b)`, `(a)or b` and `(a)or(b)` each have one. An `or` does not count
+inside parentheses, quoted text or a comment, inside a longer name such as
+`order`, or inside a define the guard names, which is read as one operand.
+
+Nothing else changes: spacing, line breaks, comments, quoted text and the
+guard itself are kept. Routing adds no line, so a diagnostic in the expanded
+text has the line it has in the expansion of the same block without the
+clause.
 
 The route comes first. `and` reads left to right and stops at its first false
 operand, so in the copy for any other member the rest of the guard is not
@@ -148,14 +176,13 @@ the place and the form the ledger's hand-written selections have, so a
 converted block expands to the same text (section 5).
 
 The parentheses keep the guard one operand. `and` binds tighter than `or`, so
-`P == $index and A or B` would mean `(P == $index and A) or B`, and B alone
-would run the rule for every member. `not`, comparisons and arithmetic bind
-tighter than `and`, and a chain of `and` means the same however it is
-grouped, so no other guard needs them. An `or` inside parentheses, quoted text
-or a comment does not count.
+`P == N and A or B` would mean `(P == N and A) or B`, and B alone would run
+the rule for every member. `not`, comparisons and arithmetic bind tighter than
+`and`, and a chain of `and` means the same however it is grouped, so no other
+guard needs them.
 
-A rule the loader cannot read, such as one with no effect, is left as
-written, and loading reports it as it would anyway.
+A copy in which no word begins a complete effect cannot be loaded, whatever
+the pass does. It still gets its route, at the front, and loading refuses it.
 
 ## 4. Order
 
@@ -215,10 +242,12 @@ Both expand, for `pr26`, the second pull request declared, to:
 The conversion adds `routed by target` to the header, deletes
 `target == $index and ` from 20 rules, and deletes ` when target == $index`
 from the other 11. Every event the block's rules are on declares
-`target kind pr`, so all 31 rules are routed. No guard has an `or`, so none
-gets parentheses. The converted ledger expands to exactly the text today's
-ledger expands to, byte for byte: the same rules, in the same order, with the
-same guards. This was checked with the evaluation's prototype of the pass.
+`target kind pr`, so all 31 rules are routed. Every rule mentions `$p`, and
+the four pull requests are top-level `entity` statements, so no error applies.
+No guard has an `or`, so none gets parentheses. The converted ledger expands
+to exactly the text today's ledger expands to, byte for byte: the same rules,
+in the same order, with the same guards. This was checked with the
+evaluation's prototype of the pass.
 
 ## 6. A rule for every member
 
@@ -257,9 +286,10 @@ another writes, the new order is the author's to check, as for any moved rule.
 Routing runs with Repetition 0.1: once per part, before names are rewritten.
 EVENT is looked up among the `event` declarations of the block's own part (a
 single-file program is one part), counting a declaration a `for` block writes
-once it is expanded, and among the prelude's, such as `tick`. Like
-Repetition 0.1, which iterates only kinds declared in its own part, it reads
-nothing else.
+once it is expanded. A program declares every event it reacts to, `tick`
+included: `game/glowcap.cav` writes `event tick dt min 0 max 0.1;`. The
+prelude holds functions only. Like Repetition 0.1, which iterates only kinds
+declared in its own part, routing reads nothing else.
 
 An error stops loading at the first one found. In a bundle it is prefixed with
 the part's name, as Repetition 0.1's errors are. HEADER below is the block's
@@ -295,11 +325,27 @@ written as one space. Repetition 0.1's own errors still apply.
   `on EVENT` in `HEADER`: `EVENT` names a KIND by `Q`, not by `P`; name that parameter `P`, or route the rule by hand in a plain for block
   ```
 
-- **An event the pass cannot read.** EVENT is not declared in the part or the
-  prelude, such as an event a module declares and this part imports.
+- **An event the pass cannot read.** EVENT is not declared in the part, such
+  as an event a module declares and this part imports.
 
   ```text
-  `on EVENT` in `HEADER`: no event `EVENT` is declared in this part or the prelude, so the block cannot tell whether it names a KIND
+  `on EVENT` in `HEADER`: no event `EVENT` is declared in this part, so the block cannot tell whether it names a KIND
+  ```
+
+- **A routed rule that mentions no binding.** The rule is routed, and mentions
+  neither `$NAME` nor `$index`. `$NAME` below is the block's binding as
+  written, such as `$p`.
+
+  ```text
+  `on EVENT` in `HEADER` mentions neither `$NAME` nor `$index`; its copies are all the same rule, so write it once, outside the block
+  ```
+
+- **An entity of KIND in a `for` block.** A `for` block in the part declares
+  an entity of kind KIND. ENTITY is its name as written there, such as
+  `$a_pr`.
+
+  ```text
+  `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, declared in a for block, but `P` does; declare it at the top level of this part
   ```
 
 For example, with `event approved target id;`, the ledger's routed block is
@@ -321,11 +367,18 @@ Each of these is an error rather than a quiet choice:
   routing them by Q would route by a parameter the header does not name.
 - An event the pass cannot read may or may not name a member. Either guess
   could be wrong, with nothing to show it.
+- A rule that mentions no binding runs once per event routed and once per
+  member plain, and only the header would show which. Outside the block it
+  means the same either way.
+- An entity of KIND written in a `for` block makes a member's `$index` differ
+  from its position in P, so the route would select another member's copy, or
+  none. Correcting either count would change Repetition 0.1 or typed
+  parameters, which this profile does not do.
 
 In the evaluation of a prototype, 20 edits that renamed an event's subject
-parameter or gave it another kind were all refused by the third and fourth
-errors. Without them, 11 of the 20 loaded, and 2 of those passed every
-recorded history.
+parameter or gave it another kind were all refused by the errors for P of
+another form and for a member named by another parameter. Without them, 11 of
+the 20 loaded, and 2 of those passed every recorded history.
 
 ## 8. Check
 
@@ -346,8 +399,15 @@ C003 like a define in any block over the same kind. Two things follow:
 
 - A rule for every member, moved to a plain block (section 6), is reported
   until it carries the allow comment.
-- If `routed by P` is dropped from a header, the block is plain, its rules are
-  unrouted, and C003 reports them as it reports any unrouted member rule.
+- If `routed by P` is dropped from a header, the block is plain, and C003
+  reports each of its rules that has no selection C003 recognizes. Two kinds
+  of rule change meaning with no report. One has a top-level conjunct that
+  C003 counts as a selection but that compares P with something other than
+  `$index`, such as `target == target.pr21` or `target == $p_base`. Plain,
+  every member's copy runs when that comparison holds. The other is a rule
+  C003 cannot read as written, such as one with `examine $r_fog cost $index`.
+  A rule that mentions no binding cannot be in a routed block (section 2), so
+  dropping the clause cannot multiply one.
 
 ## 9. What it does not guarantee
 
@@ -356,14 +416,21 @@ names that member by P. It does not decide what the copy touches. None of the
 following is prevented or reported.
 
 - **Another member, named explicitly.** Another member's names are ordinary
-  names in a routed block. `on merge set pr21_green = 0;` written in the block
-  runs in the copy of whichever pull request is merged, and writes pr21's
-  state. `pr21_checks` can be read in a guard, in `using`, in `because` or in
-  `permitted by`, and `target.pr21` can be compared anywhere.
+  names in a routed block. `on merge when $p_green == 1 set pr21_green = 0;`
+  written in the block runs in the copy of whichever pull request is merged,
+  and writes pr21's state. `pr21_checks` can be read in a guard, in `using`,
+  in `because` or in `permitted by`, and `target.pr21` can be compared
+  anywhere.
 - **A wrong P.** The pass checks that each event the block's rules are on
   either names a KIND by P or names none. It does not check that P names the
   member the rules are about. If every such event also had `base kind pr`,
   `routed by base` would be accepted where `target` was meant.
+- **Entities of KIND in another part.** A kind is not namespaced
+  ([caveat-0.5](caveat-0.5-draft.md)), so a module in a bundle may declare
+  entities of KIND too. P counts them, and `$index` does not. A member's
+  position in P can then differ from its `$index`, and the route selects
+  another member's copy, or none. The pass reads only its own part, so it
+  cannot see them. A hand-written `target == $index` has the same limit.
 - **A selection through state.** After `on read set current = target;`, a
   rule on an event that names no member, guarded by `current == $index`, is
   not routed. Its selection is the author's, as in a plain block. A member's
