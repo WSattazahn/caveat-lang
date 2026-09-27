@@ -52,6 +52,8 @@ identifiers (`$r_reading` becomes `reef_one_reading`), into dotted names
 followed by a name that is not bound is an error rather than a literal, because
 a typo that silently survived would produce a symbol nobody declared.
 
+A [routed](caveat-routed-repetition-0.1.md) block selects the member an event names.
+
 ## 3. Expansion is all it is
 
 Repetition is a source-to-source pre-pass, like linking. It runs per bundle
