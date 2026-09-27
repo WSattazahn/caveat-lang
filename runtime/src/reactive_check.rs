@@ -88,6 +88,8 @@ struct Statement {
 struct Block {
     kind: String,
     binding: String,
+    /// Written `routed by P` (spec/caveat-routed-repetition-0.1.md).
+    routed: bool,
     members: Vec<String>,
     /// Each statement of the body, comments blanked, at its own position.
     body: Vec<(String, Position)>,
@@ -118,8 +120,10 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         let (Some(open), Some(close)) = (text.find('{'), text.rfind('}')) else {
             continue;
         };
-        let ["for", kind, "as", binding] = statement_words(&text[..open])[..] else {
-            continue;
+        let (kind, binding, routed) = match statement_words(&text[..open])[..] {
+            ["for", kind, "as", binding] => (kind, binding, false),
+            ["for", kind, "as", binding, "routed", "by", _] => (kind, binding, true),
+            _ => continue,
         };
         let binding = binding.trim_start_matches('$');
         let members = kinds
@@ -155,6 +159,7 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         blocks.push(Block {
             kind: kind.to_string(),
             binding: binding.to_string(),
+            routed,
             members: members.to_vec(),
             body: templates,
         });
@@ -522,7 +527,10 @@ fn unrouted_member_rules(
     }
 
     let mut found = Vec::new();
-    for block in blocks {
+    // A routed block's rules are routed, name no member, or stop loading.
+    // Their copies are not read instead: there the route compares with a
+    // number, which is not a selection here. Its defines still count above.
+    for block in blocks.iter().filter(|block| !block.routed) {
         let as_written = |text: &str, at: Position| read_as_written(text, &block.binding, at);
         let mut defines = program_defines.clone();
         defines.extend(

@@ -63,8 +63,8 @@ The package lands in `test-results/vscode/`.
 - Declared names, calls to built-in functions, other calls, numbers as the
   expression tokenizer reads them (`2`, `2.`, `.5`, `1e-3`), and names after
   a dot, which are always properties.
-- Repetition: in a `for KIND as $NAME { … }` body, every substituted `$NAME`
-  and `$index`, in code, quoted text and comments alike. A `$` outside a
+- Repetition: in a `for KIND as $NAME { … }` body, routed by P or not, every
+  substituted `$NAME` and `$index`, in code, quoted text and comments alike. A `$` outside a
   `for` body is marked invalid, since the runtime refuses it.
 
 ## How it is tested

@@ -159,6 +159,7 @@ It does not check:
 - a rule that loads only once `$index` is a number, such as
   `examine X cost $index`, because it cannot be read as written;
 - rules outside `for` blocks, procedure steps and bindings;
+- a rule in a [routed](caveat-routed-repetition-0.1.md) block;
 - whether the selection is the right one. `target == target.north` in the
   copy for `south` is routed, and so is one parameter compared where another
   was meant.

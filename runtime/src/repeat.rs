@@ -5,6 +5,12 @@
 //! runtime semantics: the output is ordinary statements the author could have
 //! written by hand, which is what keeps order — the thing that decides which
 //! `on` rule fires first and which `bind` wins — the author's.
+//!
+//! Routed Repetition 0.1 adds `for KIND as $NAME routed by P { ... };`. Each
+//! member's copy of a rule on an event that names a member by P gets the
+//! selection `P == $index` at the front of its guard. See
+//! spec/caveat-routed-repetition-0.1.md. The copy is the text a hand-routed
+//! block expands to, so routing adds no runtime semantics either.
 
 use crate::link::{is_identifier_char, is_identifier_start, statement_spans, statement_words};
 
@@ -21,12 +27,18 @@ pub fn expand(source: &str) -> Result<String, String> {
         return Ok(source.to_string());
     }
     let members = entity_kinds(source, &spans);
+    let part = Part {
+        source,
+        spans: &spans,
+        tail: tail(source, &spans),
+        kinds: &members,
+    };
 
     let mut out = String::with_capacity(source.len());
     let mut cursor = 0;
     for (start, end) in blocks {
         out.push_str(&source[cursor..start]);
-        out.push_str(&expand_block(&source[start..end], &members)?);
+        out.push_str(&expand_block(&source[start..end], &part)?);
         cursor = end;
     }
     out.push_str(&source[cursor..]);
@@ -66,7 +78,58 @@ fn entity_kinds(source: &str, spans: &[(usize, usize)]) -> Vec<(String, Vec<Stri
     kinds
 }
 
-fn expand_block(statement: &str, kinds: &[(String, Vec<String>)]) -> Result<String, String> {
+fn expand_block(statement: &str, part: &Part) -> Result<String, String> {
+    let block = read_block(statement, part.kinds)?;
+    // Which rules are routed is read from the body as written, once.
+    let routed = match block.route {
+        Some(parameter) => Routing {
+            header: block.header.join(" "),
+            kind: block.kind,
+            binding: block.binding,
+            parameter,
+        }
+        .rules(block.body, part)?,
+        None => Vec::new(),
+    };
+
+    let mut out = String::new();
+    for (position, member) in block.members.iter().enumerate() {
+        let index = (position + 1).to_string();
+        let bindings = [(block.name, member.as_str()), ("index", index.as_str())];
+        match block.route {
+            None => out.push_str(&substitute(block.body, &bindings)?),
+            Some(parameter) => out.push_str(&routed_copy(
+                block.body,
+                &routed,
+                &bindings,
+                &format!("{parameter} == {index}"),
+            )?),
+        }
+        if !out.ends_with('\n') {
+            out.push('\n');
+        }
+    }
+    Ok(out)
+}
+
+/// A `for` block whose header, binding, body and kind have passed Repetition
+/// 0.1's checks, and a routed header's.
+struct Block<'s, 'k> {
+    header: Vec<&'s str>,
+    kind: &'s str,
+    /// As written, such as `$p`.
+    binding: &'s str,
+    /// The binding without its `$`.
+    name: &'s str,
+    route: Option<&'s str>,
+    body: &'s str,
+    members: &'k [String],
+}
+
+fn read_block<'s, 'k>(
+    statement: &'s str,
+    kinds: &'k [(String, Vec<String>)],
+) -> Result<Block<'s, 'k>, String> {
     let open = statement
         .find('{')
         .ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
@@ -77,11 +140,29 @@ fn expand_block(statement: &str, kinds: &[(String, Vec<String>)]) -> Result<Stri
         return Err(format!("for block is not closed: {}", head(statement)));
     }
     let header = statement_words(&statement[..open]);
-    let ["for", kind, "as", binding] = header.as_slice() else {
-        return Err(format!(
-            "expected `for KIND as $NAME {{ ... }}`, found: {}",
-            head(statement)
-        ));
+    let (kind, binding, route) = match header.as_slice() {
+        ["for", kind, "as", binding] => (*kind, *binding, None),
+        // The fifth word says a routed block was meant. Its header is
+        // `for KIND as $NAME routed by P`, or error 1 of section 7.
+        [_, _, _, _, "routed", ..] => match header.as_slice() {
+            ["for", kind, "as", binding, "routed", "by", parameter]
+                if binding.strip_prefix('$').is_some_and(plain_name) && plain_name(parameter) =>
+            {
+                (*kind, *binding, Some(*parameter))
+            }
+            _ => {
+                return Err(format!(
+                    "expected `for KIND as $NAME routed by PARAM {{ ... }}`, found: {}",
+                    header.join(" ")
+                ))
+            }
+        },
+        _ => {
+            return Err(format!(
+                "expected `for KIND as $NAME {{ ... }}`, found: {}",
+                head(statement)
+            ))
+        }
     };
     let Some(name) = binding.strip_prefix('$') else {
         return Err(format!("{binding} is not a binding; write $name"));
@@ -108,19 +189,440 @@ fn expand_block(statement: &str, kinds: &[(String, Vec<String>)]) -> Result<Stri
             "no entity is declared `kind {kind}`, so `for {kind}` has nothing to expand"
         ));
     };
+    Ok(Block {
+        header,
+        kind,
+        binding,
+        name,
+        route,
+        body,
+        members,
+    })
+}
 
-    let mut out = String::new();
-    for (position, member) in members.iter().enumerate() {
-        let bindings = [
-            (name, member.as_str()),
-            ("index", &(position + 1).to_string()),
-        ];
-        out.push_str(&substitute(body, &bindings)?);
-        if !out.ends_with('\n') {
-            out.push('\n');
+/// A routed block's header and what it names, for its checks and errors.
+/// `header` is HEADER in spec/caveat-routed-repetition-0.1.md section 7.
+struct Routing<'a> {
+    header: String,
+    kind: &'a str,
+    binding: &'a str,
+    parameter: &'a str,
+}
+
+impl Routing<'_> {
+    /// The routed rules of the body, by span, once every check of section 7
+    /// has passed: an entity of KIND that `$index` does not count, then each
+    /// rule in the order written, then whether any rule is routed. A rule is
+    /// routed from its event alone; what the rule does is not read.
+    fn rules(&self, body: &str, part: &Part) -> Result<Vec<(usize, usize)>, String> {
+        let Routing {
+            header,
+            kind,
+            binding,
+            parameter,
+        } = self;
+        if let Some(entity) = part.entity_in_block(kind) {
+            return Err(format!(
+                "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, declared in a for block, but `{parameter}` does; declare it at the top level of this part"
+            ));
+        }
+        // The parser declares these too, and Repetition 0.1 does not read
+        // them, so the two counts differ within the part.
+        match part.uncounted_entity(kind) {
+            Some(Uncounted::Comment(entity)) => {
+                return Err(format!(
+                    "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, whose statement has a comment in it, but `{parameter}` does; move the comment out of the statement"
+                ))
+            }
+            Some(Uncounted::Unterminated(entity)) => {
+                return Err(format!(
+                    "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, whose statement has no `;`, but `{parameter}` does; end the statement with `;`"
+                ))
+            }
+            None => {}
+        }
+        let events = part.events();
+        let member = format!("kind {kind}");
+        let mut routed = Vec::new();
+        // The parser reads a last statement without its `;`, so it is a rule
+        // written in the body like any other.
+        for (start, end) in statements_of(body) {
+            let code = blank_comments(without_terminator(&body[start..end]));
+            let ["on", event, ..] = words(&code)[..] else {
+                continue;
+            };
+            // An event written with `$NAME` or `$index` is the member's own,
+            // so it already selects the member.
+            if event.contains('$') {
+                continue;
+            }
+            let Some((_, parameters)) = events.iter().find(|(declared, _)| declared == event)
+            else {
+                return Err(format!(
+                    "`on {event}` in `{header}`: no event `{event}` is declared in this part, so the block cannot tell whether it names a {kind}"
+                ));
+            };
+            match parameters.iter().find(|(name, _)| name == parameter) {
+                Some((_, form)) if *form == member => {}
+                Some((_, form)) => {
+                    let declared = format!("{parameter} {form}");
+                    return Err(format!(
+                        "`on {event}` in `{header}`: `{event}` declares `{}`, not `{parameter} {member}`; keep the rules on `{event}` in a plain for block",
+                        declared.trim_end()
+                    ));
+                }
+                None => {
+                    let others = parameters
+                        .iter()
+                        .filter(|(_, form)| *form == member)
+                        .map(|(name, _)| format!("`{name}`"))
+                        .collect::<Vec<_>>();
+                    match others.as_slice() {
+                        // The event names no member of the kind: every
+                        // member's copy runs on it by design.
+                        [] => continue,
+                        [other] => {
+                            return Err(format!(
+                                "`on {event}` in `{header}`: `{event}` names a {kind} by {other}, not by `{parameter}`; route the block by {other}, or keep the rules on `{event}` in a plain for block"
+                            ))
+                        }
+                        _ => {
+                            return Err(format!(
+                                "`on {event}` in `{header}`: `{event}` names a {kind} by {}, not by `{parameter}`; route the block by one of them, or keep the rules on `{event}` in a plain for block",
+                                others.join(", ")
+                            ))
+                        }
+                    }
+                }
+            }
+            // Quoted text counts; a comment does not, as for C003.
+            if !code.contains('$') {
+                return Err(format!(
+                    "`on {event}` in `{header}` mentions neither `{binding}` nor `$index`; its copies are all the same rule, so write it once, outside the block"
+                ));
+            }
+            routed.push((start, end));
+        }
+        if routed.is_empty() {
+            return Err(format!(
+                "`{header}` routes no rule: no rule in it is on an event that declares `{parameter} {member}`"
+            ));
+        }
+        Ok(routed)
+    }
+}
+
+/// What routing reads from the part a block is in: its `event` declarations
+/// and its entities. Nothing from another part.
+struct Part<'a> {
+    source: &'a str,
+    /// The part's `;`-terminated statements, as Repetition 0.1 reads them.
+    spans: &'a [(usize, usize)],
+    /// A last statement without its `;`, which the parser also reads.
+    tail: Option<(usize, usize)>,
+    kinds: &'a [(String, Vec<String>)],
+}
+
+/// A top-level entity the parser declares and `$index` does not count, by
+/// the reason Repetition 0.1 does not read its statement.
+enum Uncounted {
+    Comment(String),
+    Unterminated(String),
+}
+
+impl Part<'_> {
+    /// Every event the part declares, each parameter with the words declared
+    /// after its name. A declaration a `for` block writes counts once
+    /// expanded: only a block whose body Repetition 0.1 expands for every
+    /// member counts. A block that does not expand is left out here and
+    /// reports its own error when it is expanded.
+    fn events(&self) -> Vec<(String, Vec<(String, String)>)> {
+        let mut events = Vec::new();
+        for (start, end) in self.spans {
+            let text = &self.source[*start..*end];
+            if statement_words(text).first() != Some(&"for") {
+                events.extend(event_declaration(text));
+                continue;
+            }
+            let Some(copies) = self.copies(text) else {
+                continue;
+            };
+            for copy in &copies {
+                for (inner, inner_end) in statements_of(copy) {
+                    events.extend(event_declaration(&copy[inner..inner_end]));
+                }
+            }
+        }
+        if let Some((start, end)) = self.tail {
+            events.extend(event_declaration(&self.source[start..end]));
+        }
+        events
+    }
+
+    /// Each member's copy of a `for` block's body, as Repetition 0.1 expands
+    /// it. None when the block does not expand.
+    fn copies(&self, text: &str) -> Option<Vec<String>> {
+        let block = read_block(text, self.kinds).ok()?;
+        block
+            .members
+            .iter()
+            .enumerate()
+            .map(|(position, member)| {
+                let index = (position + 1).to_string();
+                substitute(
+                    block.body,
+                    &[(block.name, member.as_str()), ("index", index.as_str())],
+                )
+                .ok()
+            })
+            .collect()
+    }
+
+    /// The first entity of `kind` that a `for` block declares, by its name as
+    /// written there. `$index` does not count it, and a `P kind KIND`
+    /// parameter does.
+    fn entity_in_block(&self, kind: &str) -> Option<String> {
+        self.spans.iter().find_map(|(start, end)| {
+            let text = &self.source[*start..*end];
+            if statement_words(text).first() != Some(&"for") {
+                return None;
+            }
+            let body = body_of(text)?;
+            statements_of(body)
+                .into_iter()
+                .find_map(|(inner, inner_end)| entity_of(&body[inner..inner_end], kind))
+        })
+    }
+
+    /// The first top-level entity of `kind` that the parser declares and
+    /// `$index` does not count: its statement has a comment inside it, or is
+    /// the last one and has no `;`.
+    fn uncounted_entity(&self, kind: &str) -> Option<Uncounted> {
+        let counted = self
+            .kinds
+            .iter()
+            .find(|(declared, _)| declared == kind)
+            .map(|(_, members)| members.as_slice())
+            .unwrap_or_default();
+        let uncounted = |(start, end): (usize, usize)| {
+            entity_of(&self.source[start..end], kind).filter(|name| !counted.contains(name))
+        };
+        self.spans
+            .iter()
+            .copied()
+            .find_map(uncounted)
+            .map(Uncounted::Comment)
+            .or_else(|| self.tail.and_then(uncounted).map(Uncounted::Unterminated))
+    }
+}
+
+/// The name an `entity` statement of `kind` declares, read as the parser
+/// reads it: comments blanked, then split at whitespace (parser.rs
+/// `parse_statement`).
+fn entity_of(statement: &str, kind: &str) -> Option<String> {
+    let code = blank_comments(without_terminator(statement));
+    match code.split_whitespace().collect::<Vec<_>>()[..] {
+        ["entity", name, "kind", declared, "at", _] if declared == kind => Some(name.to_string()),
+        _ => None,
+    }
+}
+
+/// Each statement's range, and a last statement without its `;`, which the
+/// parser reads as well (parser.rs `scan_statements_at`).
+fn statements_of(text: &str) -> Vec<(usize, usize)> {
+    let mut spans = statement_spans(text);
+    spans.extend(tail(text, &spans));
+    spans
+}
+
+/// The range of what follows the last `;`-terminated statement, from its
+/// first word, when anything other than whitespace and comments does.
+fn tail(text: &str, spans: &[(usize, usize)]) -> Option<(usize, usize)> {
+    let after = spans.last().map_or(0, |(_, end)| *end);
+    let first = blank_comments(&text[after..]).find(|ch: char| !ch.is_whitespace())?;
+    Some((after + first, text.len()))
+}
+
+/// A block statement's body, between its first `{` and its last `}`.
+fn body_of(statement: &str) -> Option<&str> {
+    let open = statement.find('{')?;
+    let close = statement.rfind('}')?;
+    (open < close).then(|| &statement[open + 1..close])
+}
+
+/// An `event` declaration's name and parameters, each parameter as its name
+/// and the words declared after it, such as `kind pr` or `in failed passed`.
+fn event_declaration(statement: &str) -> Option<(String, Vec<(String, String)>)> {
+    let code = blank_comments(without_terminator(statement));
+    let written = words(&code);
+    let ["event", name, rest @ ..] = written.as_slice() else {
+        return None;
+    };
+    let parameters = rest
+        .join(" ")
+        .split(',')
+        .filter_map(|parameter| {
+            let words = parameter.split_whitespace().collect::<Vec<_>>();
+            let (name, form) = words.split_first()?;
+            Some(((*name).to_string(), form.join(" ")))
+        })
+        .collect();
+    Some(((*name).to_string(), parameters))
+}
+
+/// A routed block's body for one member: substituted as any block's body is,
+/// with the route written into each copy of a routed rule.
+fn routed_copy(
+    body: &str,
+    routed: &[(usize, usize)],
+    bindings: &[(&str, &str); 2],
+    route: &str,
+) -> Result<String, String> {
+    let mut out = String::with_capacity(body.len());
+    let mut cursor = 0;
+    for (start, end) in routed {
+        out.push_str(&substitute(&body[cursor..*start], bindings)?);
+        out.push_str(&with_route(
+            &substitute(&body[*start..*end], bindings)?,
+            route,
+        ));
+        cursor = *end;
+    }
+    out.push_str(&substitute(&body[cursor..], bindings)?);
+    Ok(out)
+}
+
+/// One member's copy of a routed rule, with its route `P == N` written in
+/// (spec section 3): `P == N and ` in front of the guard, around which `(`
+/// and `)` go when it has an `or` outside parentheses, or ` when P == N`
+/// after the event when the rule has no guard. Nothing else changes.
+fn with_route(copy: &str, route: &str) -> String {
+    // The loader reads the copy once linked, with `glow::level` written
+    // `glow__level`, so the guard's end and its `or` are found in that text.
+    let code = as_linked(&blank_comments(without_terminator(copy)));
+    let spans = crate::reactive::syntax_word_spans(&code);
+    let word = |index: usize| spans.get(index).map(|(start, end)| &code[*start..*end]);
+    if word(2) != Some("when") {
+        // Only `on EVENT` rules are routed, so the event is the second word.
+        let at = spans[1].1;
+        return format!("{} when {route}{}", &copy[..at], &copy[at..]);
+    }
+    let Some(&(first, _)) = spans.get(3) else {
+        // Nothing follows `when`: the copy cannot load, but gets its route.
+        let at = spans[2].1;
+        return format!("{} {route} and{}", &copy[..at], &copy[at..]);
+    };
+    // The guard ends where the loader finds the effect, found in this copy
+    // the same way. Without a complete effect the copy cannot load, and the
+    // route still goes at the front.
+    let after_when = spans[2..]
+        .iter()
+        .map(|(start, end)| &code[*start..*end])
+        .collect::<Vec<_>>();
+    // G is read as the loader reads it: its words joined by single spaces.
+    let guard = crate::reactive::complete_effect_at(&after_when)
+        .filter(|effect| *effect > 1)
+        .map(|effect| (after_when[1..effect].join(" "), spans[effect + 1].1));
+    match guard {
+        Some((guard, last)) if crate::reactive_expr::has_top_level_or(&guard) => format!(
+            "{}{route} and ({}){}",
+            &copy[..first],
+            &copy[first..last],
+            &copy[last..]
+        ),
+        _ => format!("{}{route} and {}", &copy[..first], &copy[first..]),
+    }
+}
+
+/// A statement without the `;` that ends it.
+fn without_terminator(statement: &str) -> &str {
+    statement.strip_suffix(';').unwrap_or(statement)
+}
+
+/// A statement with each comment replaced by spaces, byte for byte, so a
+/// word's range in it is its range in the statement. The loader reads a
+/// statement with its comments blanked the same way (parser.rs
+/// `scan_statements_at`).
+fn blank_comments(statement: &str) -> String {
+    let mut out = String::with_capacity(statement.len());
+    let (mut quoted, mut escaped, mut comment) = (false, false, false);
+    let mut chars = statement.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if comment {
+            if ch == '\n' {
+                comment = false;
+                out.push('\n');
+            } else {
+                out.push_str(&" ".repeat(ch.len_utf8()));
+            }
+        } else if quoted {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+        } else if ch == '#' || (ch == '/' && chars.peek() == Some(&'/')) {
+            comment = true;
+            out.push(' ');
+        } else {
+            quoted = ch == '"';
+            out.push(ch);
         }
     }
-    Ok(out)
+    out
+}
+
+/// A statement, comments already blanked, with each `WORD::SYMBOL` outside
+/// quoted text written `WORD__SYMBOL`, as linking rewrites it (link.rs
+/// `rewrite`). Both are two bytes, so a word's range in it is its range in
+/// the statement.
+fn as_linked(code: &str) -> String {
+    let mut out = String::with_capacity(code.len());
+    let (mut quoted, mut escaped, mut word) = (false, false, false);
+    let mut rest = code;
+    while let Some(ch) = rest.chars().next() {
+        if !quoted && word && rest.starts_with("::") {
+            // The symbol after `::` is consumed with it, as linking does.
+            let symbol = rest[2..]
+                .find(|next: char| !is_identifier_char(next))
+                .map_or(rest.len(), |end| end + 2);
+            out.push_str("__");
+            out.push_str(&rest[2..symbol]);
+            rest = &rest[symbol..];
+            word = false;
+            continue;
+        }
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+        } else {
+            quoted = ch == '"';
+            word = if word {
+                is_identifier_char(ch)
+            } else {
+                is_identifier_start(ch)
+            };
+        }
+        out.push(ch);
+        rest = &rest[ch.len_utf8()..];
+    }
+    out
+}
+
+/// The words the loader splits a statement into, comments already blanked.
+fn words(code: &str) -> Vec<&str> {
+    crate::reactive::syntax_word_spans(code)
+        .into_iter()
+        .map(|(start, end)| &code[start..end])
+        .collect()
 }
 
 /// Replace every `$binding` in the body. Substitution reaches inside quoted
@@ -168,10 +670,14 @@ fn substitute(body: &str, bindings: &[(&str, &str); 2]) -> Result<String, String
     Ok(out)
 }
 
-fn check_binding(name: &str) -> Result<(), String> {
+/// A name with no `$` and no dots, as a binding's and a route's are.
+fn plain_name(name: &str) -> bool {
     let mut chars = name.chars();
-    let valid = chars.next().is_some_and(is_identifier_start) && chars.all(is_identifier_char);
-    if valid {
+    chars.next().is_some_and(is_identifier_start) && chars.all(is_identifier_char)
+}
+
+fn check_binding(name: &str) -> Result<(), String> {
+    if plain_name(name) {
         Ok(())
     } else {
         Err(format!("${name} is not a usable binding name"))

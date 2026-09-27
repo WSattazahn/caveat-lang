@@ -254,6 +254,19 @@
 #        ^^^ variable.other.template
 #           ^^^^^ !variable.other.template
  };
+ event dive target kind reef;
+ for reef as $r routed by target {
+#^^^ keyword.control.repeat meta.block.repeat
+#            ^^ variable.parameter.template
+#               ^^^^^^ keyword.control meta.block.repeat
+#                      ^^ keyword.other
+#                         ^^^^^^ variable.parameter !keyword
+#                                ^ punctuation.section.block.begin
+   on dive when $r_seen == $index set $r_seen = 2;
+#               ^^ variable.other.template meta.block.repeat
+#                          ^^^^^^ variable.other.template
+ };
+#^ punctuation.section.block.end meta.block.repeat
 
 # Profile statements in a for body
 
