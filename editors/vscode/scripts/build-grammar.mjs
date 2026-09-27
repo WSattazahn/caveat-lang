@@ -328,15 +328,20 @@ export const grammar = {
       name: 'invalid.illegal.template.caveat',
       match: String.raw`\$(?:${name})?`,
     },
+    // `routed by P` is a routed block (spec/caveat-routed-repetition-0.1.md).
+    // `routed` is not reserved, so it is a keyword only here.
     'for-block': {
       name: 'meta.block.repeat.caveat',
-      begin: String.raw`${notProperty}(for)\s+(${name})\s+(as)\s+(\$${name})\s*(\{)`,
+      begin: String.raw`${notProperty}(for)\s+(${name})\s+(as)\s+(\$${name})(?:\s+(routed)\s+(by)\s+(${name}))?\s*(\{)`,
       beginCaptures: {
         1: { name: 'keyword.control.repeat.caveat' },
         2: { name: 'entity.name.type.kind.caveat' },
         3: { name: 'keyword.control.caveat' },
         4: { name: 'variable.parameter.template.caveat' },
-        5: { name: 'punctuation.section.block.begin.caveat' },
+        5: { name: 'keyword.control.caveat' },
+        6: { name: 'keyword.other.caveat' },
+        7: { name: 'variable.parameter.caveat' },
+        8: { name: 'punctuation.section.block.begin.caveat' },
       },
       end: String.raw`\}`,
       endCaptures: { 0: { name: 'punctuation.section.block.end.caveat' } },

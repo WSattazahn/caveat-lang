@@ -26,6 +26,15 @@ export const groups = [
     scope: 'storage.type',
   },
   { name: 'control', words: ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'], probe: 'x @ y;', scope: 'keyword.control' },
+  // Only in a routed `for` header (spec/caveat-routed-repetition-0.1.md). It is
+  // not reserved, so anywhere else it is a name.
+  {
+    name: 'routed blocks',
+    words: ['routed'],
+    probe: ['for k as $r @ by p {\n  x;\n};', 'for k   as $r  @  by  target{ x; };'],
+    scope: 'keyword.control',
+    notKeyword: ['x @ y;', 'state @ = 1;', 'for k as $r {\n  on e when @ set x = 1;\n};'],
+  },
   {
     name: 'effects',
     words: ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'renew', 'withdraw', 'defer'],

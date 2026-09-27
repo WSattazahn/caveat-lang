@@ -1,7 +1,13 @@
 # CAVEAT Routed Repetition 0.1
 
-**Status:** specified, not implemented. A runtime without it refuses a
-`routed by` header as a malformed `for` block.
+**Status:** implemented. The pass is in `runtime/src/repeat.rs`, and C003
+skips routed blocks in `runtime/src/reactive_check.rs`. Sections 1 to 8 are
+tested in `runtime/tests/routed_repetition.rs` and `runtime/tests/check.rs`.
+The converted agent ledger passes the ledger's 11 scenarios
+(`kit/test/commands.test.mjs`). Section 9 lists what routing does not
+prevent. Of those limits, only entities of KIND in another part has a test.
+A runtime older than this profile refuses a `routed by` header as a
+malformed `for` block.
 
 The [agent ledger](../experiments/agent-ledger/ledger-identifiers.cav) writes
 one [repetition](caveat-repetition-0.1.md) block over its pull requests. All

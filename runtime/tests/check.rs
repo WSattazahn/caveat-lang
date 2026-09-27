@@ -663,3 +663,174 @@ for plot as $p {
     let report = check_source(source).expect("a program that loads is checked");
     assert_eq!(codes(&report), []);
 }
+
+// ── Routed blocks (spec/caveat-routed-repetition-0.1.md section 8) ────────
+
+/// The plots with these rules in a block routed by `target`.
+fn routed_plots(rules: &str) -> String {
+    plots(rules).replace("for plot as $p {", "for plot as $p routed by target {")
+}
+
+/// Each line, twice: a C003 warning for each plot.
+fn for_both(lines: &[usize]) -> Vec<(&'static str, usize)> {
+    lines
+        .iter()
+        .flat_map(|line| [("C003", *line), ("C003", *line)])
+        .collect()
+}
+
+#[test]
+fn a_rule_in_a_routed_block_is_not_checked() {
+    // In a plain block, C003 reports each of these.
+    let rules = "    on read set $p_last = celsius;
+    on read when celsius > 2 set $p_last = celsius;
+    on read when target == 1 set $p_last = 0;
+    on read when celsius > 59 reject \"$p is flooded\";
+";
+    let report = check(&routed_plots(rules));
+    assert_eq!(codes(&report), []);
+    assert!(report.suppressed.is_empty());
+
+    // Dropping `routed by target` makes the block plain, and C003 reports
+    // each rule that has no selection it recognizes.
+    let plain = plots(rules);
+    assert_eq!(
+        codes(&check(&plain)),
+        for_both(&[
+            line_of(&plain, "on read set"),
+            line_of(&plain, "on read when celsius > 2"),
+            line_of(&plain, "on read when target == 1"),
+            line_of(&plain, "on read when celsius > 59"),
+        ])
+    );
+}
+
+#[test]
+fn dropping_routed_by_changes_two_kinds_of_rule_with_no_report() {
+    // A comparison of P that C003 counts as a selection, and a rule C003
+    // cannot read as written. Routed, each copy runs only for its own plot.
+    // Plain, neither is reported.
+    let rules = "    caveat $p_fog consequence low;
+    on read when target == target.north set $p_last = celsius;
+    on read when celsius < -30 examine $p_fog cost $index;
+";
+    for source in [routed_plots(rules), plots(rules)] {
+        assert_eq!(codes(&check(&format!("budget 4;\n{source}"))), []);
+    }
+}
+
+#[test]
+fn a_plain_block_beside_a_routed_one_over_the_same_kind_is_still_checked() {
+    let source = format!(
+        "{PLOTS}for plot as $p routed by target {{
+    state $p_last = 0 min -40 max 60;
+    state $p_count = 0;
+    define $p_here = target == $index;
+    on read set $p_last = celsius;
+}};
+for plot as $q {{
+    on read set $q_count = 0;
+    on read when $q_here set $q_count = $q_count + 1;
+    # caveat check: allow unrouted-member-rule
+    on read set $q_last = 0;
+}};
+"
+    );
+    let report = check(&source);
+    // The define written in the routed block routes the plain block's rule.
+    assert_eq!(
+        codes(&report),
+        for_both(&[line_of(&source, "on read set $q_count")])
+    );
+    assert_eq!(
+        report
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        for_both(&[line_of(&source, "on read set $q_last")])
+    );
+}
+
+/// A routed block that commits each plot's cover on its readings.
+fn covers(rules: &str) -> String {
+    format!(
+        "{PLOTS}for plot as $p routed by target {{
+    claim $p_frost;
+    evidence $p_probe from \"a probe in $p\";
+    readings $p_readings from $p_probe limit 4;
+    decisions $p_cover limit 2;
+    on read sample $p_readings = celsius supports $p_frost;
+    on read when celsius < 0 commit $p_cover because enough using latest($p_readings);
+{rules}}};
+"
+    )
+}
+
+#[test]
+fn c002_reads_a_routed_blocks_rules_expanded_and_places_them_as_written() {
+    // The rules are read with their routes, and a route reads no stream.
+    let source = covers("");
+    let line = line_of(&source, "decisions $p_cover");
+    assert_eq!(codes(&check(&source)), [("C002", line), ("C002", line)]);
+    // A reopening rule in the block is a reopening path, routed or not.
+    for rule in [
+        "    on read when celsius > 5 reopen $p_cover because latest($p_readings);\n",
+        "    on swap reopen $p_cover because latest($p_readings);\n",
+    ] {
+        assert_eq!(codes(&check(&covers(rule))), [], "{rule}");
+    }
+}
+
+#[test]
+fn c001_does_not_compare_the_rules_in_a_routed_block() {
+    let source = format!(
+        "{PLOTS}event reread target kind plot, celsius min -40 max 60;
+for plot as $p routed by target {{
+    state $p_last = 0 min -40 max 60;
+    on read when celsius > 2 set $p_last = celsius;
+    on read when celsius <= 2 set $p_last = 0;
+    on reread when celsius > 2 set $p_last = celsius;
+    on reread when celsius <= 2 set $p_last = 0;
+}};
+"
+    );
+    assert_eq!(codes(&check(&source)), []);
+}
+
+#[test]
+fn a_rule_for_every_member_moves_to_a_plain_block_with_its_allow_comment() {
+    // The example in section 6 of the routed repetition spec.
+    let source = r#"place trail kind trail;
+entity north kind tunnel at trail;
+entity south kind tunnel at trail;
+event observe target kind tunnel, method in report scout;
+
+for tunnel as $t routed by target {
+    state $t_reported = 0 min 0 max 1;
+    state $t_support = 0;
+    on observe when method == method.report and $t_reported == 1 reject "That visitor has already reported.";
+    on observe when method == method.report set $t_reported = 1;
+};
+
+for tunnel as $t {
+    # caveat check: allow unrouted-member-rule
+    on observe set $t_support = 0;
+};
+"#;
+    let report = check(source);
+    assert_eq!(codes(&report), []);
+    let line = line_of(source, "on observe set $t_support");
+    assert_eq!(
+        report
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        [("C003", line), ("C003", line)]
+    );
+    // Without the comment, the moved rule is reported.
+    let unallowed = source.replace("    # caveat check: allow unrouted-member-rule\n", "");
+    let line = line_of(&unallowed, "on observe set $t_support");
+    assert_eq!(codes(&check(&unallowed)), [("C003", line), ("C003", line)]);
+}

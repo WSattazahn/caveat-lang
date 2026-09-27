@@ -1752,6 +1752,25 @@ pub fn parse_unresolved(input: &str) -> Result<Expr, String> {
     parse_mode(input, true)
 }
 
+/// Whether the tokenizer reads an `or` outside parentheses in `input`: the
+/// word, whatever touches it, and not inside quoted text or a longer name.
+/// False for text that does not tokenize, which cannot load either way.
+pub(crate) fn has_top_level_or(input: &str) -> bool {
+    let Ok(tokens) = tokenize(input) else {
+        return false;
+    };
+    let mut depth = 0_i64;
+    for token in tokens {
+        match token.kind {
+            TokenKind::LeftParen => depth += 1,
+            TokenKind::RightParen => depth -= 1,
+            TokenKind::Or if depth == 0 => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
 /// Parse a procedure call with the expression tokenizer, keeping nested commas,
 /// quoted text and delimiter errors consistent with ordinary expressions.
 pub(crate) fn parse_procedure_call(input: &str) -> Result<(String, Vec<Expr>), String> {

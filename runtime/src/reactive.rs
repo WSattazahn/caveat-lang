@@ -4881,6 +4881,14 @@ fn bounds(min: &str, max: &str) -> Result<(Number, Number), String> {
 
 /// Split declaration syntax without changing whitespace inside text values.
 fn syntax_words(input: &str) -> Vec<&str> {
+    syntax_word_spans(input)
+        .into_iter()
+        .map(|(start, end)| &input[start..end])
+        .collect()
+}
+
+/// The byte range of each word `syntax_words` splits `input` into.
+pub(crate) fn syntax_word_spans(input: &str) -> Vec<(usize, usize)> {
     let mut words = Vec::new();
     let mut start = None;
     let mut quoted = false;
@@ -4888,7 +4896,7 @@ fn syntax_words(input: &str) -> Vec<&str> {
     for (index, ch) in input.char_indices() {
         if !quoted && ch.is_whitespace() {
             if let Some(start) = start.take() {
-                words.push(&input[start..index]);
+                words.push((start, index));
             }
             continue;
         }
@@ -4902,7 +4910,7 @@ fn syntax_words(input: &str) -> Vec<&str> {
         }
     }
     if let Some(start) = start {
-        words.push(&input[start..]);
+        words.push((start, input.len()));
     }
     words
 }
@@ -5162,6 +5170,39 @@ pub(crate) fn parse_directive_at(
 fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
     // Effect words are legal identifiers inside expressions. Select a complete
     // effect outside parentheses, rather than splitting at the first keyword.
+    let candidates = effect_candidates(words);
+    let effect_index = candidates
+        .iter()
+        .copied()
+        .find(|index| parse_effect(&words[*index..]).is_ok())
+        .or_else(|| candidates.last().copied())
+        .ok_or(
+            "rule requires set, reveal, examine, commit, reopen, emit, sample, call, or reject effect",
+        )?;
+    let condition = if effect_index == 0 {
+        reactive_expr::parse("true")?
+    } else if words.first() == Some(&"when") {
+        reactive_expr::parse_unresolved(&words[1..effect_index].join(" "))?
+    } else {
+        return Err("rule requires when CONDITION before its effect".into());
+    };
+    Ok(GuardedEffect {
+        condition,
+        effect: parse_effect(&words[effect_index..])?,
+    })
+}
+
+/// Where the loader finds the effect in a rule's words after `on EVENT`: the
+/// first effect word outside parentheses that begins a complete effect. None
+/// when no word does, and the rule cannot load.
+pub(crate) fn complete_effect_at(words: &[&str]) -> Option<usize> {
+    effect_candidates(words)
+        .into_iter()
+        .find(|index| parse_effect(&words[*index..]).is_ok())
+}
+
+/// The effect words outside parentheses, each where an effect may begin.
+fn effect_candidates(words: &[&str]) -> Vec<usize> {
     let mut depth = 0_i64;
     let mut candidates = Vec::new();
     for (index, token) in words.iter().enumerate() {
@@ -5186,25 +5227,7 @@ fn parse_guarded_effect(words: &[&str]) -> Result<GuardedEffect, String> {
         }
         depth += expression_depth_delta(token);
     }
-    let effect_index = candidates
-        .iter()
-        .copied()
-        .find(|index| parse_effect(&words[*index..]).is_ok())
-        .or_else(|| candidates.last().copied())
-        .ok_or(
-            "rule requires set, reveal, examine, commit, reopen, emit, sample, call, or reject effect",
-        )?;
-    let condition = if effect_index == 0 {
-        reactive_expr::parse("true")?
-    } else if words.first() == Some(&"when") {
-        reactive_expr::parse_unresolved(&words[1..effect_index].join(" "))?
-    } else {
-        return Err("rule requires when CONDITION before its effect".into());
-    };
-    Ok(GuardedEffect {
-        condition,
-        effect: parse_effect(&words[effect_index..])?,
-    })
+    candidates
 }
 
 fn parse_procedure(line: &str, mut position: crate::parser::Position) -> Result<Directive, String> {

@@ -60,14 +60,14 @@ export function codeOf(text, classes, [start, end]) {
   return out;
 }
 
-// Every `for KIND as $NAME { ... }` statement: its range up to the closing
-// brace, where the binding is, and the body between the braces. Like
-// repeat.rs, the body ends at the last `}` of the statement.
+// Every `for KIND as $NAME { ... }` statement, routed by P or not: its range
+// up to the closing brace, where the binding is, and the body between the
+// braces. Like repeat.rs, the body ends at the last `}` of the statement.
 export function forBlocks(text, classes = classify(text)) {
   const blocks = [];
   for (const span of statementSpans(text, classes)) {
     const code = codeOf(text, classes, span);
-    const header = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))\s*\{/.exec(code);
+    const header = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))(?:\s+routed\s+by\s+[A-Za-z_]\w*)?\s*\{/.exec(code);
     if (!header) continue;
     const open = span[0] + code.indexOf('{');
     const close = span[0] + code.lastIndexOf('}');

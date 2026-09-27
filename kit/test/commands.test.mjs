@@ -86,6 +86,30 @@ test('the agent ledger scenarios pass', () => {
   }
 });
 
+// Routed repetition (spec/caveat-routed-repetition-0.1.md section 5): the
+// ledger converted to `routed by target`, run against the same scenarios.
+test('the agent ledger converted to a routed block passes the same scenarios', async () => {
+  const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
+  const today = await readFile(path.join(ledger, 'ledger-identifiers.cav'), 'utf8');
+  const occurrences = (text, part) => text.split(part).length - 1;
+  assert.equal(occurrences(today, 'target == $index and '), 20);
+  const unguarded = today.replaceAll('target == $index and ', '');
+  assert.equal(occurrences(unguarded, ' when target == $index'), 11);
+  const routed = unguarded.replaceAll(' when target == $index', '')
+    .replace('for pr as $p {', 'for pr as $p routed by target {');
+  assert.equal(occurrences(routed, 'routed by target'), 1);
+  assert.equal(occurrences(routed, 'target == $index'), 0);
+  await inDirectory(async directory => {
+    // The scenario file names its program, so the converted one keeps the name.
+    await writeFile(path.join(directory, 'ledger-identifiers.cav'), routed);
+    await writeFile(path.join(directory, 'ledger-identifiers.scenarios.json'),
+      await readFile(path.join(ledger, 'ledger-identifiers.scenarios.json'), 'utf8'));
+    const result = caveat(['test', path.join(directory, 'ledger-identifiers.scenarios.json')]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /^11 passed, 0 failed /m);
+  });
+});
+
 test('replay prints one record per event, keeps file line numbers and stops at a fatal event', async () => {
   await inDirectory(async directory => {
     const events = path.join(directory, 'events.jsonl');
