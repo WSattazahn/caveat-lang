@@ -55,7 +55,9 @@ A block routes by one parameter. A rule is about one member, and the events a
 block reacts to name it the same way. Two parameters would need a rule for an
 event that has both, and whichever it chose would not show in the text. An
 event that names a member of the kind only by another parameter is an error:
-the author renames the parameter, or keeps the rules on it in a plain block.
+the author routes the block by that parameter, or keeps the rules on it in a
+plain block. Renaming the event's parameter instead would change what every
+host sends and every recorded history holds.
 
 A plain block is unchanged. Its header is still exactly `for KIND as $NAME`,
 so every existing program expands byte for byte as before. Routing is a
@@ -291,10 +293,13 @@ included: `game/glowcap.cav` writes `event tick dt min 0 max 0.1;`. The
 prelude holds functions only. Like Repetition 0.1, which iterates only kinds
 declared in its own part, routing reads nothing else.
 
-An error stops loading at the first one found. In a bundle it is prefixed with
-the part's name, as Repetition 0.1's errors are. HEADER below is the block's
-header, from `for` up to but not including `{`, with each run of whitespace
-written as one space. Repetition 0.1's own errors still apply.
+An error stops loading at the first one found. Blocks are read in source
+order, and in each block the checks run in this order: the header; an entity
+of KIND in a `for` block; each rule, in the order written; and last, whether
+the block routes any rule. In a bundle an error is prefixed with the part's
+name, as Repetition 0.1's errors are. HEADER below is the block's header, from
+`for` up to but not including `{`, with each run of whitespace written as one
+space and none at either end. Repetition 0.1's own errors still apply.
 
 - **A malformed header.** The header's fifth word is `routed`, but the header
   is not `for KIND as $NAME routed by P` with P a plain name.
@@ -314,16 +319,24 @@ written as one space. Repetition 0.1's own errors still apply.
   `min 0 max 3` or `kind repo`.
 
   ```text
-  `on EVENT` in `HEADER`: `EVENT` declares `P FORM`, not `P kind KIND`
+  `on EVENT` in `HEADER`: `EVENT` declares `P FORM`, not `P kind KIND`; keep the rules on `EVENT` in a plain for block
   ```
 
 - **The member named by another parameter.** EVENT has no parameter P, but
-  has a parameter Q of kind KIND. Where it has several, Q names each, joined
-  with `or`.
+  has one parameter Q of kind KIND:
 
   ```text
-  `on EVENT` in `HEADER`: `EVENT` names a KIND by `Q`, not by `P`; name that parameter `P`, or route the rule by hand in a plain for block
+  `on EVENT` in `HEADER`: `EVENT` names a KIND by `Q`, not by `P`; route the block by `Q`, or keep the rules on `EVENT` in a plain for block
   ```
+
+  or several, Q1 to Qn in the order EVENT declares them:
+
+  ```text
+  `on EVENT` in `HEADER`: `EVENT` names a KIND by `Q1`, …, `Qn`, not by `P`; route the block by one of them, or keep the rules on `EVENT` in a plain for block
+  ```
+
+  A header with a mistyped P, such as `routed by targt` on the ledger, reaches
+  this error at its first rule, and the message names the parameter it meant.
 
 - **An event the pass cannot read.** EVENT is not declared in the part, such
   as an event a module declares and this part imports.
@@ -352,7 +365,7 @@ For example, with `event approved target id;`, the ledger's routed block is
 refused with:
 
 ```text
-`on approved` in `for pr as $p routed by target`: `approved` declares `target id`, not `target kind pr`
+`on approved` in `for pr as $p routed by target`: `approved` declares `target id`, not `target kind pr`; keep the rules on `approved` in a plain for block
 ```
 
 Each of these is an error rather than a quiet choice:
