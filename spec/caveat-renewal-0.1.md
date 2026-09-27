@@ -49,8 +49,10 @@ means that one: `reveal`, `qualified(…, EVIDENCE)`, `observed(EVIDENCE)`,
   sample's does.
 - `renew` past the declared limit refuses the event as `limit/renewal_limit`
   ([dispatch outcomes](caveat-dispatch-0.1.md)). Nothing the event did is
-  kept, and the session continues. The limit bounds how much graph a program
-  can grow, like a reading stream's.
+  kept, and the session continues. A refused clock event advances no time,
+  as with any refusal, so a rule that renews on every clock event stops time
+  once the limit is reached. The limit bounds how much graph a program can
+  grow, like a reading stream's.
 - `effects` reports `{"kind": "renew", "evidence": "taste_cave",
   "occurrence": "taste_cave@2"}`, and `renewals` in the snapshot lists every
   occurrence of each renewable evidence, first to current.

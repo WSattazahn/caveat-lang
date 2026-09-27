@@ -141,15 +141,6 @@ from an outcome schema match; the save contract governs restoration.
   It arrived with [Identifiers 0.1](caveat-identifiers-0.1.md), so no earlier
   behavior changes. An identifier payload that is not 1 to 1,024 bytes of text
   is `input/payload_invalid`, like any other malformed payload.
-- `limit/renewal_limit` classifies a `renew` of a renewable evidence that
-  already has its declared number of occurrences. Before it, such an event was
-  fatal `unclassified`: a host lost the session, and with it every other
-  subject the program tracked, although the runtime had already rolled the
-  event back. The agent ledger keeps one renewable push per pull request, so
-  one pull request's 65th push ended the session for all of them. The
-  rollback and the diagnostic text are unchanged. It has its own code, not
-  `history_limit`, because the exhausted resource is a renewable evidence's
-  occurrences, not a reading stream or decision series.
 - `policy/not_permitted` classifies a commit whose `permitted by` clause
   finds no usable grant. It arrived with
   [Permission 0.1](caveat-permission-0.1.md), so no earlier behavior changes.
@@ -161,3 +152,12 @@ from an outcome schema match; the save contract governs restoration.
   payload used to be accepted. An isolated value outside the range is still
   `input/bound_exceeded`. See
   [Typed parameters 0.1](caveat-typed-parameters-0.1.md#changes).
+- `limit/renewal_limit` classifies a `renew` of a renewable evidence that
+  already has its declared number of occurrences. Before it, such an event was
+  fatal `unclassified`: a host lost the session, and with it every other
+  subject the program tracked, although the runtime had already rolled the
+  event back. The agent ledger keeps one renewable push per pull request, so
+  one pull request's 65th push ended the session for all of them. The
+  rollback and the diagnostic text are unchanged. It has its own code, not
+  `history_limit`, because the exhausted resource is a renewable evidence's
+  occurrences, not a reading stream or decision series.
