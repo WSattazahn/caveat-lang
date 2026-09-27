@@ -67,6 +67,10 @@ save is refused with an error, and never crashes the runtime, when:
   evidence, caveat, claim or commitment of the kind its place needs;
 - a created node's name is not an occurrence of a declared reading stream or
   renewable evidence, or a commitment this program's rules make;
+- the graph and the renewals disagree: the graph holds an occurrence
+  `EVIDENCE@N` that is not entry N of that evidence's renewals, or the
+  renewals list an occurrence the graph does not hold, out of order, or more
+  occurrences than the declared limit;
 - a history's template or limit differs from the program's, holds more than its
   limit, has a revision without a basis, or a current entry that is not its
   latest;
@@ -92,3 +96,16 @@ that historical inputs or guards really occurred. Coordinated edits to mutually
 consistent records can still be accepted; authentication would require a
 different trust mechanism. Mutation tests exercise the requirement that an
 edited save is refused or remains playable without crashing.
+
+## Changes
+
+- 2026-09-27: restore refuses a save whose graph holds an occurrence of
+  renewable evidence that its renewals do not list at its position
+  ([#43](https://github.com/WSattazahn/caveat-lang/issues/43)). Such a save
+  used to be accepted. Without the entry, the evidence's first occurrence
+  stayed current, so its next `renew` generated a name the graph already
+  held, and that event was fatal `unclassified`. A renamed occurrence could
+  also sit past the declared limit. `save()` lists every occurrence, so only
+  an edited save holds one, and saves the runtime writes restore as before.
+  Renewals that name an occurrence the graph does not hold were already
+  refused.

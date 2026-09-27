@@ -34,6 +34,20 @@ test('load and restore failures are typed', () => {
   assert.throws(() => real.restore(thermostat, {}), TypeError);
 });
 
+test('a save whose graph holds a renewal its renewals do not list fails to restore', () => {
+  // Issue #43: accepted, it made the next renewal a fatal outcome instead.
+  const source = 'claim safe; evidence bite from "a bite"; renewable bite limit 3; event re; on re renew bite;';
+  const session = real.open(source);
+  try {
+    assert.equal(session.dispatch('re').outcome, 'accepted');
+    const saved = JSON.parse(session.save());
+    assert.deepEqual(saved.renewals, { bite: ['bite', 'bite@2'] });
+    const edited = JSON.stringify({ ...saved, renewals: {}, effects: [] });
+    assert.throws(() => real.restore(source, edited), error => error instanceof CaveatError && error.kind === 'restore'
+      && error.message === 'cannot restore save: renewable bite occurrence bite@2 is not in its renewals');
+  } finally { session.close(); }
+});
+
 test('payloads that JSON would change are refused before the session is touched', () => {
   for (const bad of [NaN, Infinity, -Infinity, undefined, () => 1, new Date(0), new Map(), { a: [1, NaN] }, { a: undefined }, 10n]) {
     assert.throws(() => payloadText(bad), error => error instanceof CaveatError && error.kind === 'payload', String(bad));
