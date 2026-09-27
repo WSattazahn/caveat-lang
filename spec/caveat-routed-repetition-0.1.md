@@ -84,7 +84,9 @@ exception for one rule, and the pass does not read what the rule does:
   and are not changed. They run when the routed rule calls them.
 - A rule with no guard gets one.
 - A guard that already selects the member keeps its selection, and the rule
-  is routed as well. The copy is then selected twice, which changes nothing.
+  is routed as well, with no attempt to remove the repeat. Selecting the same
+  member twice does not change the condition, but the extra comparison still
+  counts toward the loader's expression limits (section 3).
   The pass reads a guard only to find where it ends and whether it has an
   `or` (section 3). It does not look for a selection, because a selection has
   many forms, and one it missed would expand differently from one it found.
@@ -183,6 +185,20 @@ the rule for every member. `not`, comparisons and arithmetic bind tighter than
 `and`, and a chain of `and` means the same however it is grouped, so no other
 guard needs them.
 
+"Means the same" is about the condition only. The route is one more
+comparison and one more `and`, and the parentheses one more level, and all of
+it counts toward the loader's limits on expression size and nesting like any
+text the author wrote. A chain of `and` nests one level per operand, so a
+guard that is at the nesting limit as written fails to load once routed, and a
+hand-written selection left in place adds a level more:
+
+```text
+expression exceeds nesting limit 64
+```
+
+The pass does not remove repeats or regroup a guard to stay under a limit. It
+adds exactly the text in the table above.
+
 A copy in which no word begins a complete effect cannot be loaded, whatever
 the pass does. It still gets its route, at the front, and loading refuses it.
 
@@ -250,6 +266,15 @@ No guard has an `or`, so none gets parentheses. The converted ledger expands
 to exactly the text today's ledger expands to, byte for byte: the same rules,
 in the same order, with the same guards. This was checked with the
 evaluation's prototype of the pass.
+
+The same expansion is not the same source. A save records its program's
+`source_id`, and a restore refuses a save made by a different program
+([save](caveat-save-0.1.md)). The converted ledger is a different text from
+today's, so a save made by today's ledger does not restore into it, even
+though every rule is the same once expanded. The same is already true of a
+plain block and its expansion written out by hand. Routing does not change how
+a program's source is identified or what restore accepts. This profile adds
+no canonical source identity and no migration of saves.
 
 ## 6. A rule for every member
 
