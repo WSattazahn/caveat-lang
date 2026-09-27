@@ -75,6 +75,17 @@ test('validate lists what a program declares, and fails on one that does not loa
   });
 });
 
+// The ledger's scenarios are its regression tests, including the ones that put
+// several pull requests in one scenario.
+test('the agent ledger scenarios pass', () => {
+  const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
+  for (const [name, count] of [['ledger.scenarios.json', 5], ['ledger-identifiers.scenarios.json', 11]]) {
+    const result = caveat(['test', path.join(ledger, name)]);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, new RegExp(`^${count} passed, 0 failed `, 'm'), name);
+  }
+});
+
 test('replay prints one record per event, keeps file line numbers and stops at a fatal event', async () => {
   await inDirectory(async directory => {
     const events = path.join(directory, 'events.jsonl');

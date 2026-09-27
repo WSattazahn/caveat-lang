@@ -315,6 +315,1953 @@
           }
         }
       ]
+    },
+    {
+      "id": "I05",
+      "title": "Two pull requests at the same SHA: a go-ahead for one neither permits nor reaches the other, before and after a resume",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          },
+          "note": "Both heads are the same SHA, so both hold the same identifier handle. Only the streams keep them apart."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          }
+        },
+        {
+          "expect": {
+            "/identifiers": [
+              "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+            ],
+            "/reading_streams/pr28_approvals/occurrences": [
+              {
+                "id": "pr28_approvals@1",
+                "value": 1
+              }
+            ],
+            "/reading_streams/pr29_approvals/occurrences": []
+          }
+        },
+        {
+          "checkpoint": "pr28_approved"
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "expect": {
+            "/decision_series/pr29_merge/revisions": [],
+            "/bindings/pr29/approved_for": ""
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_permissions/pr28_merge@1/grant": "pr28_approvals@1",
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@1"
+            ]
+          }
+        },
+        {
+          "same_as": "pr28_approved",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29"
+          ],
+          "note": "pr28's merge decision left every pr29 record as it was."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "expect": {
+            "/commitment_permissions/pr28_merge@1/grant": "pr28_approvals@1",
+            "/commitment_permissions/pr29_merge@1/grant": "pr29_approvals@1",
+            "/commitment_grounds/pr29_merge@1/evidence": [
+              "pr29_checks@1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "I06",
+      "title": "Interleaved events on two pull requests change only their own records",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "a28a010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "b29b010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "b29b010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "a28a010000000000000000000000000000000000",
+            "result": "failed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": "a28a010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "b29b010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": "a28a010000000000000000000000000000000000"
+          }
+        },
+        {
+          "expect": {
+            "/reading_streams/pr28_checks/occurrences": [
+              {
+                "id": "pr28_checks@1",
+                "relation": "opposes"
+              }
+            ],
+            "/reading_streams/pr29_checks/occurrences": [
+              {
+                "id": "pr29_checks@1",
+                "relation": "supports"
+              }
+            ],
+            "/reading_streams/pr28_gates/occurrences": [
+              {
+                "id": "pr28_gates@1"
+              }
+            ],
+            "/reading_streams/pr29_gates/occurrences": [],
+            "/reading_streams/pr28_approvals/occurrences": [
+              {
+                "id": "pr28_approvals@1"
+              }
+            ],
+            "/reading_streams/pr29_approvals/occurrences": [
+              {
+                "id": "pr29_approvals@1"
+              }
+            ],
+            "/values/pr28_green": 0,
+            "/values/pr29_green": 1,
+            "/bindings/pr28/head": "a28a010000000000000000000000000000000000",
+            "/bindings/pr29/head": "b29b010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "checkpoint": "pr29_decided"
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "a28a020000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "a28a020000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr28/status": "checks pass on the head",
+            "/bindings/pr29/status": "decided to merge"
+          }
+        },
+        {
+          "same_as": "pr29_decided",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "misread",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/withdrawals": [
+              {
+                "evidence": "pr29_checks@1"
+              }
+            ],
+            "/bindings/pr29/status": "reconsider: a result it rests on was withdrawn",
+            "/bindings/pr28/status": "checks pass on the head",
+            "/observation_qualifications/pr28_recheck": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_merged": 1,
+            "/values/pr29_merged": 0,
+            "/bindings/pr29/status": "reconsider: a result it rests on was withdrawn",
+            "/observation_qualifications/pr29_elsewhere": {
+              "$absent": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "I07",
+      "title": "Every kind of event about pr28 leaves pr29, pr21 and pr26 as they were",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "ob29010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "ob29010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr29",
+            "commit": "ob29010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "ob29010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr28_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/reading_streams/pr28_checks/occurrences": []
+          },
+          "note": "Nothing about pr29 observed anything of pr28 or of the bystanders."
+        },
+        {
+          "checkpoint": "observer_set",
+          "note": "pr29 is decided under its go-ahead for later revisions. From here on only pr28 receives events."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28010000000000000000000000000000000000"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28020000000000000000000000000000000000"
+          },
+          "note": "A second push renews pr28's push evidence."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28020000000000000000000000000000000000",
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28020000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28020000000000000000000000000000000000",
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28020000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": "ac28020000000000000000000000000000000000"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "note": "pr29 is already decided; that must neither refuse nor decide anything for pr28."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/commitment_permissions/pr28_merge@1/grant": "pr28_scope",
+            "/commitment_permissions/pr29_merge@1/grant": "pr29_scope"
+          }
+        },
+        {
+          "send": "misread",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/withdrawals": [
+              {
+                "evidence": "pr28_checks@2"
+              }
+            ],
+            "/bindings/pr28/status": "reconsider: a result it rests on was withdrawn"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/reading_streams/pr29_approvals",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr29_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/predicate_qualifications/reopened/pr29_merge@1": {
+              "$absent": true
+            }
+          },
+          "note": "Evidence cannot be un-observed, so one check at the end covers every event: nothing about pr28 observed any evidence of the others, or asked whether pr29's decision was reopened."
+        }
+      ]
+    },
+    {
+      "id": "I08",
+      "title": "Every kind of event about pr29 leaves pr28, pr21 and pr26 as they were",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "ob28010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "ob28010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": "ob28010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": "ob28010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr29_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/reading_streams/pr29_checks/occurrences": []
+          },
+          "note": "Nothing about pr28 observed anything of pr29 or of the bystanders."
+        },
+        {
+          "checkpoint": "observer_set",
+          "note": "pr28 is decided under its go-ahead for later revisions. From here on only pr29 receives events."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29010000000000000000000000000000000000"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29020000000000000000000000000000000000"
+          },
+          "note": "A second push renews pr29's push evidence."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29020000000000000000000000000000000000",
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29020000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29020000000000000000000000000000000000",
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29020000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "ac29020000000000000000000000000000000000"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "note": "pr28 is already decided; that must neither refuse nor decide anything for pr29."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/commitment_permissions/pr29_merge@1/grant": "pr29_scope",
+            "/commitment_permissions/pr28_merge@1/grant": "pr28_scope"
+          }
+        },
+        {
+          "send": "misread",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/withdrawals": [
+              {
+                "evidence": "pr29_checks@2"
+              }
+            ],
+            "/bindings/pr29/status": "reconsider: a result it rests on was withdrawn"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/reading_streams/pr21_approvals",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/reading_streams/pr26_approvals",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr28_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_recheck": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/predicate_qualifications/reopened/pr28_merge@1": {
+              "$absent": true
+            }
+          },
+          "note": "Evidence cannot be un-observed, so one check at the end covers every event: nothing about pr29 observed any evidence of the others, or asked whether pr28's decision was reopened."
+        }
+      ]
+    },
+    {
+      "id": "I09",
+      "title": "A pull request merged elsewhere blocks only its own merge",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "d29d010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr29"
+          },
+          "note": "pr29 is merged by someone else before pr28 is decided."
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr29_elsewhere": {},
+            "/observation_qualifications/pr28_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "c28c010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "c28c010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": "c28c010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_merged": 1,
+            "/values/pr29_merged": 1,
+            "/commitment_permissions/pr28_merge@1/grant": "pr28_approvals@1",
+            "/observation_qualifications/pr28_elsewhere": {},
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "Someone else has already merged it."
+        }
+      ]
+    },
+    {
+      "id": "I10",
+      "title": "Two pull requests at the same SHA with different results: each result stays with its own pull request",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          },
+          "note": "A push of pr28 onto pr29's head leaves pr29 green."
+        },
+        {
+          "expect": {
+            "/values/pr29_green": 1,
+            "/values/pr28_green": 0
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f",
+            "result": "failed"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_green": 0,
+            "/values/pr29_green": 1
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f",
+            "result": "failed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f",
+            "result": "passed"
+          },
+          "note": "pr28's pass at the shared SHA does not make pr29 green."
+        },
+        {
+          "expect": {
+            "/values/pr28_green": 1,
+            "/values/pr29_green": 0,
+            "/reading_streams/pr28_checks/occurrences": [
+              {
+                "id": "pr28_checks@1",
+                "relation": "opposes"
+              },
+              {
+                "id": "pr28_checks@2",
+                "relation": "supports"
+              }
+            ],
+            "/reading_streams/pr29_checks/occurrences": [
+              {
+                "id": "pr29_checks@1",
+                "relation": "supports"
+              },
+              {
+                "id": "pr29_checks@2",
+                "relation": "opposes"
+              }
+            ]
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": "5a17e0c3d9b24f6e8a1b7c2d3e4f5a6b7c8d9e0f"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@2"
+            ],
+            "/commitment_permissions/pr28_merge@1/grant": "pr28_approvals@1",
+            "/decision_series/pr29_merge/revisions": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "I11",
+      "title": "One pull request's 65th push is refused, and the others carry on",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "e28e010000000000000000000000000000000000"
+          },
+          "repeat": 64,
+          "note": "renewable $p_push limit 64: the first push observes pr28_push, the next 63 renew it."
+        },
+        {
+          "expect": {
+            "/renewals/pr28_push/occurrences/63": "pr28_push@64"
+          }
+        },
+        {
+          "checkpoint": "pr28_full"
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "e28e010000000000000000000000000000000000"
+          },
+          "rejected": {
+            "origin": "limit",
+            "code": "renewal_limit"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": "f29f010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": "f29f010000000000000000000000000000000000",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": "f29f010000000000000000000000000000000000"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "pr28_full",
+          "paths": [
+            "/renewals/pr28_push",
+            "/reading_streams/pr28_approvals",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/bindings/pr28"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": "e28e010000000000000000000000000000000000"
+          },
+          "rejected": {
+            "origin": "limit",
+            "code": "renewal_limit"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": "e28e010000000000000000000000000000000000",
+            "result": "passed"
+          },
+          "note": "pr28 itself still takes other events."
+        }
+      ]
     }
   ]
 }
