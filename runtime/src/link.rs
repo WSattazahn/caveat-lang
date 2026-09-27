@@ -595,15 +595,30 @@ fn statement_kind(statement: &Statement) -> &'static str {
 /// procedure braces follow the same rules as the parser's own scanner, so a
 /// semicolon inside quoted text or inside an effect body does not end a
 /// statement here either.
+///
+/// Like the parser, this counts `{` and `}` only in a statement whose first
+/// word is `proc`, where every brace counts (parser.rs `scan_statements_at`).
+/// A `for` block's braces count too, since Repetition 0.1 expands the block
+/// before the parser reads it, and the statements in its body are read as the
+/// parser reads them once expanded. A brace in any other statement is not
+/// syntax, so it does not keep the `;` from ending the statement.
 pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
     let mut start = None;
-    let mut braces = 0usize;
+    // The bodies open around the current character, innermost last: None for
+    // a procedure's, in which every brace counts, and for a `for` block's
+    // the statement its body interrupted, which resumes when it closes.
+    let mut bodies: Vec<Option<(Option<usize>, Option<usize>)>> = Vec::new();
+    // Outside a procedure's body, the statement being read, at the top level
+    // or in a block's body: where it starts, and where its first word ends.
+    let (mut statement, mut first_end) = (None, None);
     let mut chars = source.char_indices().peekable();
     while let Some((index, ch)) = chars.next() {
+        let in_procedure = bodies.last() == Some(&None);
         if ch == '"' {
-            if start.is_none() {
-                start = Some(index);
+            start.get_or_insert(index);
+            if !in_procedure {
+                statement.get_or_insert(index);
             }
             let mut escaped = false;
             for (_, ch) in chars.by_ref() {
@@ -618,6 +633,9 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
             continue;
         }
         if ch == '#' || (ch == '/' && chars.peek().map(|(_, next)| *next) == Some('/')) {
+            if statement.is_some() && first_end.is_none() {
+                first_end = Some(index);
+            }
             for (_, ch) in chars.by_ref() {
                 if ch == '\n' {
                     break;
@@ -625,20 +643,48 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
             }
             continue;
         }
-        if ch == '{' {
-            braces += 1;
-        } else if ch == '}' {
-            braces = braces.saturating_sub(1);
-        }
-        if ch == ';' && braces == 0 {
-            if let Some(begin) = start.take() {
-                spans.push((begin, index + 1));
+        if in_procedure {
+            match ch {
+                '{' => bodies.push(None),
+                '}' => {
+                    bodies.pop();
+                }
+                _ => {}
             }
             continue;
         }
-        if start.is_none() && !ch.is_whitespace() {
-            start = Some(index);
+        if ch.is_whitespace() {
+            if statement.is_some() && first_end.is_none() {
+                first_end = Some(index);
+            }
+            continue;
         }
+        let first = statement.map(|begin| &source[begin..first_end.unwrap_or(index)]);
+        match (ch, first) {
+            ('{', Some("proc")) => bodies.push(None),
+            ('{', Some("for")) => {
+                bodies.push(Some((statement.take(), first_end.take())));
+                continue;
+            }
+            ('}', _) if !bodies.is_empty() => {
+                if let Some(Some(interrupted)) = bodies.pop() {
+                    (statement, first_end) = interrupted;
+                }
+                continue;
+            }
+            (';', _) => {
+                if bodies.is_empty() {
+                    if let Some(begin) = start.take() {
+                        spans.push((begin, index + 1));
+                    }
+                }
+                (statement, first_end) = (None, None);
+                continue;
+            }
+            _ => {}
+        }
+        start.get_or_insert(index);
+        statement.get_or_insert(index);
     }
     spans
 }

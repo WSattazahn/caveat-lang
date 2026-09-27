@@ -670,6 +670,36 @@ entity south kind plot at field
 }
 
 #[test]
+fn a_brace_outside_a_procedure_or_block_does_not_hide_a_member_from_the_check() {
+    // The loader ends this evidence, with unquoted provenance, at its `;`,
+    // so it declares all three plots.
+    let source = "place field kind field;
+entity east kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+};
+evidence manual from see{appendix;
+entity north kind plot at field;
+entity south kind plot at field;
+";
+    let report = check(source);
+    let line = line_of(source, "on read set");
+    assert_eq!(
+        codes(&report),
+        [("C003", line), ("C003", line), ("C003", line)]
+    );
+    for (diagnostic, member) in report.diagnostics.iter().zip(["east", "north", "south"]) {
+        assert!(
+            diagnostic.message.contains(&format!("for `{member}`")),
+            "{}",
+            diagnostic.message
+        );
+    }
+}
+
+#[test]
 fn a_rule_that_reads_only_once_expanded_is_skipped_not_an_error() {
     // Written, `"\$p"` holds an escape the scanner refuses. Expanded, it is
     // `"\north"` and `"\tarn"`, which load.

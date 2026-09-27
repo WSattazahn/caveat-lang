@@ -64,7 +64,9 @@ pub(crate) fn instantiate(
 
 /// Members of each entity kind, in declaration order: every top-level
 /// `entity` statement the loader declares. Each is read as the loader reads
-/// it, comments blanked, and a last statement without its `;` is read too.
+/// it, comments blanked, whatever its name, as a `kind` parameter counts it,
+/// so `$index` numbers the members the parameter numbers. A last statement
+/// without its `;` is read too.
 fn entity_kinds(source: &str, spans: &[(usize, usize)]) -> Vec<(String, Vec<String>)> {
     let mut kinds: Vec<(String, Vec<String>)> = Vec::new();
     for (start, end) in spans.iter().copied().chain(tail(source, spans)) {

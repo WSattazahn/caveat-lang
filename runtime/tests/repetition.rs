@@ -495,3 +495,201 @@ for plot as $p {{
     );
     assert_eq!(members, ["north", "south"]);
 }
+
+/// Plots and statements written around a block: `before` above it, `after`
+/// below. Each member keeps its `$index` and counts the reads that select it,
+/// by hand in a plain block and by the route in a routed one.
+fn around(before: &str, after: &str, routed: bool) -> String {
+    let (header, guard) = match routed {
+        false => ("for plot as $p {", " when target == $index"),
+        true => ("for plot as $p routed by target {", ""),
+    };
+    format!(
+        "place field kind field;
+{before}event read target kind plot;
+{header}
+    state $p_index = $index;
+    state $p_n = 0;
+    on read{guard} set $p_n = $p_n + 1;
+}};
+{after}"
+    )
+}
+
+/// Each member's count after `read` names `target` on a fresh session, in
+/// the order `target` numbers them.
+fn after_read_by_member(source: &str, members: &[String], target: &str) -> Vec<f64> {
+    let mut session = ReactiveSession::from_source(source).expect("loads");
+    let values = session
+        .dispatch_json("read", &format!(r#"{{"target":"{target}"}}"#))
+        .expect("read is accepted")
+        .values;
+    members
+        .iter()
+        .map(|member| values[&format!("{member}_n")])
+        .collect()
+}
+
+#[test]
+fn a_brace_outside_a_procedure_or_block_does_not_hide_the_members_after_it() {
+    // The loader counts `{` and `}` only in a `proc` statement, so this
+    // evidence, with unquoted provenance the loader accepts, ends at its
+    // `;`. Repetition counted its brace and read everything after it as one
+    // unterminated statement: below the block, north and south got no copy
+    // and `read south` changed nothing; above it, or in its body, the block
+    // was not expanded and the program did not load.
+    let evidence = "evidence manual from see{appendix;\n";
+    let east = "entity east kind plot at field;\n";
+    let rest = "entity north kind plot at field;\nentity south kind plot at field;\n";
+    let east_first = [("east", 1.0), ("north", 2.0), ("south", 3.0)]
+        .map(|(member, index)| (member.to_string(), index))
+        .to_vec();
+    for routed in [false, true] {
+        let in_body = around(east, rest, routed).replace(
+            "    state $p_index",
+            "    evidence $p_manual from see{appendix;\n    state $p_index",
+        );
+        for source in [
+            around(east, &format!("{evidence}{rest}"), routed),
+            around(&format!("{evidence}{east}"), rest, routed),
+            in_body,
+        ] {
+            let (indices, members) = counts(&source);
+            assert_eq!(indices, east_first, "{source}");
+            // Both directions: a read selects its own plot's copy and no other.
+            for (position, target) in members.iter().enumerate() {
+                let expected = (0..members.len())
+                    .map(|member| f64::from(u8::from(member == position)))
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    after_read_by_member(&source, &members, target),
+                    expected,
+                    "read {target}\n{source}"
+                );
+            }
+        }
+    }
+}
+
+/// Plots and statements around a block whose body names its states by
+/// `$index`, and writes its member's name only where the loader reads any
+/// word: in unquoted provenance and in quoted text. Each copy counts the
+/// reads that select it, by hand in a plain block and by the route in a
+/// routed one, and refuses a `name` that selects it with its member's name
+/// and `$index`.
+fn by_index(before: &str, after: &str, routed: bool) -> String {
+    let (header, guard) = match routed {
+        false => ("for plot as $p {", " when target == $index"),
+        true => ("for plot as $p routed by target {", ""),
+    };
+    format!(
+        "place field kind field;
+{before}event read target kind plot;
+event name target kind plot;
+{header}
+    state n_$index = 0;
+    evidence e_$index from $p;
+    on read{guard} set n_$index = n_$index + 1;
+    on name{guard} reject \"$p is $index.\";
+}};
+{after}"
+    )
+}
+
+/// `north{` above a block and below it, among plots east and south.
+fn around_north_brace() -> [(String, String); 2] {
+    let east = "entity east kind plot at field;\n";
+    let north = "entity north{ kind plot at field;\n";
+    let south = "entity south kind plot at field;\n";
+    [
+        (east.to_string(), format!("{north}{south}")),
+        (format!("{east}{north}"), south.to_string()),
+    ]
+}
+
+#[test]
+fn a_member_whose_name_is_not_an_identifier_gets_its_copy_and_index() {
+    // The loader declares an entity by the word after `entity`, so `north{`
+    // is a plot and a member of `target`, and Repetition counts it as well.
+    // Before a statement ended at its `;` where the loader ends it, its
+    // brace hid it: below the block, north{ and south got no copy and
+    // `read south` changed nothing; above it, the block was not expanded and
+    // the program did not load.
+    let plots = ["east", "north{", "south"];
+    for routed in [false, true] {
+        for (before, after) in around_north_brace() {
+            let source = by_index(&before, &after, routed);
+            let snapshot = ReactiveSession::from_source(&source)
+                .unwrap_or_else(|error| panic!("{error}\n{source}"))
+                .snapshot();
+            let read = snapshot
+                .events
+                .iter()
+                .find(|event| event.name == "read")
+                .expect("read is declared");
+            let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+                panic!("target names a plot");
+            };
+            assert_eq!(members, &plots, "{source}");
+            // Repetition's members: a copy for each, in the same order, with
+            // the name as the loader declares it.
+            let expanded = repeat::expand(&source).expect("expands");
+            assert_eq!(expanded.matches("evidence e_").count(), plots.len());
+            for (position, member) in plots.iter().enumerate() {
+                let index = position + 1;
+                assert!(
+                    expanded.contains(&format!("evidence e_{index} from {member};\n")),
+                    "{expanded}"
+                );
+                // Both directions: a read selects its own plot's copy and no
+                // other, and a `name` reaches that copy's text.
+                let mut session = ReactiveSession::from_source(&source).expect("loads");
+                let payload = serde_json::json!({ "target": member }).to_string();
+                let values = session
+                    .dispatch_json("read", &payload)
+                    .expect("read is accepted")
+                    .values;
+                let counts = (1..=plots.len())
+                    .map(|copy| values[&format!("n_{copy}")])
+                    .collect::<Vec<_>>();
+                let expected = (1..=plots.len())
+                    .map(|copy| f64::from(u8::from(copy == index)))
+                    .collect::<Vec<_>>();
+                assert_eq!(counts, expected, "read {member}\n{source}");
+                assert_eq!(
+                    session
+                        .dispatch_json("name", &payload)
+                        .expect_err("the member's own copy refuses"),
+                    format!(
+                        "event name, rule {}: rejected: {member} is {index}.",
+                        2 * index
+                    ),
+                    "{source}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_member_name_that_is_not_an_identifier_does_not_load_where_the_body_needs_one() {
+    // `state $p_index` is `state north{_index` in north{'s copy, which no
+    // reactive identifier is, so the program does not load, and the error
+    // gives the copy's line in the expanded text. Before, below the block,
+    // the program loaded without copies for north{ and south, and `read
+    // south` changed nothing.
+    for routed in [false, true] {
+        for ((before, after), line) in around_north_brace().into_iter().zip([9, 10]) {
+            let source = around(&before, &after, routed);
+            let error = match ReactiveSession::from_source(&source) {
+                Ok(_) => panic!("loaded:\n{source}"),
+                Err(error) => error,
+            };
+            assert_eq!(
+                error,
+                format!("line {line}, column 5: invalid reactive identifier north{{_index"),
+                "{source}"
+            );
+        }
+    }
+}

@@ -29,7 +29,8 @@ iterates that set; it introduces no new way to group things.
 Its members are the part's top-level `entity` statements of the kind. Each
 statement is read as the loader reads it: a comment inside it is ignored, and
 a last statement without its `;` is read. A `#` or `//` inside quoted text is
-not a comment.
+not a comment. A `{` or `}` groups only a procedure's body or a `for` block's,
+so in any other statement it does not keep the `;` from ending it.
 
 ## 2. The block
 
@@ -113,3 +114,21 @@ what keeps the expansion checkable and the generated program ordinary.
   expansion of those programs: the skipped member gets its copy, the members
   after it their right `$index`, and every copy its member's name. Every
   other program expands as before.
+- 2026-09-27: a statement ends at its `;` where the loader ends it.
+  Repetition counted `{` and `}` in every statement, and the loader counts
+  them only in a `proc` statement, so a brace elsewhere, such as in unquoted
+  evidence provenance, made Repetition read the rest of the part as one
+  unterminated statement. Below a block, the entities after the brace got no
+  copy while a `kind` parameter counted them, so an event that named one
+  changed nothing, silently. Above a block, or in its body, the block was
+  not expanded and the program did not load. Such programs now expand with a
+  copy for every member. The brace in a name such as `entity north{` hid
+  that entity too: the loader declared it, and a `kind` parameter counted
+  it. It is now a member, with its copy and its `$index`, as is every name
+  the loader declares, such as `no-rth` or `1north`: the loader does not
+  check a name against the identifier syntax. The name reaches its copy as
+  written. Where the copy needs a reactive identifier, as in `state $p_n`,
+  the program does not load, and the error gives the copy's line in the
+  expanded text: "invalid reactive identifier north{_n". In quoted text, in
+  provenance, or in a claim's or evidence's name, the copy loads as the same
+  text written by hand does.
