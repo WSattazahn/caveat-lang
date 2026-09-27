@@ -613,14 +613,17 @@ fn statement_kind(statement: &Statement) -> &'static str {
 /// statement here either.
 ///
 /// Like the parser, this counts `{` and `}` only in a statement whose first
-/// word is `proc`, where every brace counts (parser.rs `scan_statements_at`).
-/// A `for` block's braces count too, since Repetition 0.1 expands the block
-/// before the parser reads it, and the statements in its body are read as the
-/// parser reads them once expanded. A brace in any other statement is not
-/// syntax, so it does not keep the `;` from ending the statement. In a block's
-/// body, a `}` in such a statement closes the body unless it closes a `{`
-/// earlier in the same statement, so a pair such as `see{appendix}b` in
-/// unquoted provenance stays text.
+/// word is `proc`, where every brace counts (parser.rs `scan_statements_at`),
+/// even a `{` right after `proc`. A `for` block's braces count too, since
+/// Repetition 0.1 expands the block before the parser reads it, and the
+/// statements in its body are read as the parser reads them once expanded.
+/// A block is a statement whose first word is `for`, ended by whitespace or a
+/// comment, as Repetition reads its words (`statement_words`), so the `{` in
+/// `for{ supports c;`, about an evidence named `for{`, is text. A brace in
+/// any other statement is not syntax, so it does not keep the `;` from ending
+/// the statement. In a block's body, a `}` in such a statement closes the
+/// body unless it closes a `{` earlier in the same statement, so a pair such
+/// as `see{appendix}b` in unquoted provenance stays text.
 pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
     let mut start = None;
@@ -685,7 +688,8 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
         let first = statement.map(|begin| &source[begin..first_end.unwrap_or(index)]);
         match (ch, first) {
             ('{', Some("proc")) => bodies.push(None),
-            ('{', Some("for")) => {
+            // `for{` is a word, and `for {` a block.
+            ('{', Some("for")) if first_end.is_some() => {
                 bodies.push(Some((statement.take(), first_end.take())));
                 continue;
             }

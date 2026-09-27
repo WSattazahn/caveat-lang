@@ -31,7 +31,9 @@ statement is read as the loader reads it: a comment inside it is ignored, and
 a last statement without its `;` is read, after empty statements too. A `#`
 or `//` inside quoted text is not a comment. A `{` or `}` groups only a
 procedure's body or a `for` block's, so in any other statement it does not
-keep the `;` from ending it.
+keep the `;` from ending it. A block is a statement whose first word is
+`for`, so the `{` in `for{ supports c;`, about an evidence named `for{`, is
+text.
 
 ## 2. The block
 
@@ -128,7 +130,9 @@ what keeps the expansion checkable and the generated program ordinary.
   copy while a `kind` parameter counted them, so an event that named one
   changed nothing, silently. Above a block, or in its body, the block was
   not expanded and the program did not load. Such programs now expand with a
-  copy for every member. In a body, a `}` that closes a `{` earlier in its
+  copy for every member. That includes a brace right after a first word
+  `for`, as in `for{ supports c;` about an evidence named `for{`: that
+  statement is no block. In a body, a `}` that closes a `{` earlier in its
   statement stays in it, as before, and any other `}` ends the body. A body
   that paired a `{` in one statement with a `}` in a later one, such as
   `evidence $p_a from x{; evidence $p_b from y};`, loaded before, and is now
@@ -140,8 +144,19 @@ what keeps the expansion checkable and the generated program ordinary.
   reaches its copy as written. Where the copy needs a reactive identifier,
   as in `state $p_n`, the program does not load, and the error gives the
   copy's line in the expanded text: "invalid reactive identifier north{_n".
-  In quoted text, in provenance, or in a claim's or evidence's name, the
-  copy loads as the same text written by hand does.
+  Below a block, such a program loaded before, without copies for north{
+  and the members after it; it now does not load, and its saves cannot be
+  restored. In quoted text, in provenance, or in a claim's or evidence's
+  name, the copy loads as the same text written by hand does. An entity
+  declared in a block's body is no member, whatever its name: there,
+  `entity north{` now reads as `entity north` does. A routed block refuses
+  it, and a plain block has the miscount that section 7 of
+  [routed Repetition 0.1](caveat-routed-repetition-0.1.md) describes: it
+  gives the entity no copy while a `kind` parameter counts it, so where the
+  body selects its member with `target == $index`, an event that names the
+  entity, or a member after it, updates another member's copy, or none, and
+  nothing reports it. With `entity north{` there, the program did not load
+  before.
 - 2026-09-27: a comment in a block's header is whitespace, as it is
   everywhere outside quoted text ([text 0.1](caveat-text-0.1.md)).
   Repetition read a header's words and braces with its comments left in. It

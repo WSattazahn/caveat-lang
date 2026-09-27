@@ -571,6 +571,57 @@ fn a_brace_outside_a_procedure_or_block_does_not_hide_the_members_after_it() {
     }
 }
 
+#[test]
+fn a_first_word_that_only_begins_with_for_is_no_block() {
+    // A block is a statement whose first word is `for`, and the loader
+    // accepts an evidence named `for{`, so `for{ supports c;` is a relation,
+    // as Repetition's own block test read it. Its statement reader took that
+    // `{` for a block's body and read everything after it as the body: below
+    // the block, south got no copy while `target` counted it, and `read
+    // south` changed nothing, silently. Above the block, the block was not
+    // expanded and the program did not load, and in its body, the block was
+    // refused as having text after its body.
+    let evidence = "claim c;\nevidence for{ from log;\n";
+    let relation = "for{ supports c;\n";
+    let east = "entity east kind plot at field;\n";
+    let south = "entity south kind plot at field;\n";
+    let east_first = [("east", 1.0), ("south", 2.0)]
+        .map(|(member, index)| (member.to_string(), index))
+        .to_vec();
+    for routed in [false, true] {
+        let in_body = around(&format!("{evidence}{east}"), south, routed).replace(
+            "    state $p_index",
+            "    claim $p_claim;\n    for{ supports $p_claim;\n    state $p_index",
+        );
+        for source in [
+            around(east, &format!("{evidence}{relation}{south}"), routed),
+            around(&format!("{evidence}{relation}{east}"), south, routed),
+            in_body,
+        ] {
+            let expanded =
+                repeat::expand(&source).unwrap_or_else(|error| panic!("{error}\n{source}"));
+            assert_eq!(
+                expanded.matches("_index = ").count(),
+                2,
+                "a copy for east and one for south:\n{expanded}"
+            );
+            let (indices, members) = counts(&source);
+            assert_eq!(indices, east_first, "{source}");
+            // Both directions: a read selects its own plot's copy and no other.
+            for (position, target) in members.iter().enumerate() {
+                let expected = (0..members.len())
+                    .map(|member| f64::from(u8::from(member == position)))
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    after_read_by_member(&source, &members, target),
+                    expected,
+                    "read {target}\n{source}"
+                );
+            }
+        }
+    }
+}
+
 /// Plots and statements around a block whose body names its states by
 /// `$index`, and writes its member's name only where the loader reads any
 /// word: in unquoted provenance and in quoted text. Each copy counts the

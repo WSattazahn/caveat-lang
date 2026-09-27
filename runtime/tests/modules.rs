@@ -756,6 +756,46 @@ fn a_part_s_last_statement_after_an_empty_statement_is_read() {
 }
 
 #[test]
+fn a_first_word_that_only_begins_with_for_hides_no_statement_from_the_linker() {
+    // `for{ supports plot;` is a relation about an evidence named `for{`, not
+    // a block. The linker read everything after its `{` as a block's body, so
+    // it did not read the statements there: the module's kinds, type tags,
+    // were rewritten as its own names, `kind annex__shed` and `kind
+    // annex__plot` ("parameter target of event read: no entity is declared
+    // kind plot"), and a `use` there was not an import.
+    let module = "module annex;\nclaim plot;\nevidence for{ from log;\nfor{ supports plot;\n\
+                  place shed kind shed;\nentity east kind plot at shed;\n";
+    let program = "use annex;\nevent read target kind plot;\n";
+    let source = linked(&[("annex", module), ("main", program)]);
+    assert!(
+        source.contains(
+            "place annex__shed kind shed;\nentity annex__east kind plot at annex__shed;\n"
+        ),
+        "{source}"
+    );
+    let snapshot = ReactiveSession::from_source(&bundle(&[("annex", module), ("main", program)]))
+        .unwrap_or_else(|error| panic!("{error}\n{source}"))
+        .snapshot();
+    let read = snapshot
+        .events
+        .iter()
+        .find(|event| event.name == "read")
+        .expect("read is declared");
+    let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+        panic!("target names a plot");
+    };
+    assert_eq!(members, &["annex__east"]);
+
+    // The `use` was not read: "the program main names annex::wet without
+    // `use annex;`".
+    let program = "claim c;\nevidence for{ from log;\nfor{ supports c;\nuse annex;\n\
+                   evidence gauge from \"rain gauge\";\ngauge supports annex::wet;\n";
+    let source = linked(&[("annex", "module annex;\nclaim wet;\n"), ("main", program)]);
+    assert!(!source.contains("use annex"), "{source}");
+    assert!(evaluate(&source).symbols.contains_key("annex__wet"));
+}
+
+#[test]
 fn a_module_may_not_shadow_a_parameter_with_a_declaration() {
     // The rewriter is lexical, so a declared name that is also a parameter
     // would be rewritten inside the body and break the parameter reference.

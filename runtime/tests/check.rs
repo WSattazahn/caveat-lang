@@ -700,6 +700,38 @@ entity south kind plot at field;
 }
 
 #[test]
+fn a_first_word_that_only_begins_with_for_does_not_hide_a_member_from_the_check() {
+    // `for{ supports c;` is a relation about an evidence named `for{`, not
+    // a block, so the loader declares all three plots.
+    let source = "place field kind field;
+entity east kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+};
+claim c;
+evidence for{ from log;
+for{ supports c;
+entity north kind plot at field;
+entity south kind plot at field;
+";
+    let report = check(source);
+    let line = line_of(source, "on read set");
+    assert_eq!(
+        codes(&report),
+        [("C003", line), ("C003", line), ("C003", line)]
+    );
+    for (diagnostic, member) in report.diagnostics.iter().zip(["east", "north", "south"]) {
+        assert!(
+            diagnostic.message.contains(&format!("for `{member}`")),
+            "{}",
+            diagnostic.message
+        );
+    }
+}
+
+#[test]
 fn a_block_with_a_comment_in_its_header_is_checked() {
     // Comments count as whitespace, in a header too.
     let source = "place field kind field;
