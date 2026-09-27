@@ -12,7 +12,9 @@
 //! spec/caveat-routed-repetition-0.1.md. The copy is the text a hand-routed
 //! block expands to, so routing adds no runtime semantics either.
 
-use crate::link::{is_identifier_char, is_identifier_start, statement_spans, statement_words};
+use crate::link::{
+    blank_comments, is_identifier_char, is_identifier_start, statement_spans, statement_words,
+};
 
 /// Expand every `for` block in one source. A source with no `for` block is
 /// returned unchanged, so an existing program expands to itself byte for byte.
@@ -133,12 +135,9 @@ fn read_block<'s, 'k>(
     statement: &'s str,
     kinds: &'k [(String, Vec<String>)],
 ) -> Result<Block<'s, 'k>, String> {
-    let open = statement
-        .find('{')
-        .ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
-    let close = statement
-        .rfind('}')
-        .ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
+    let (open, close) = body_braces(statement);
+    let open = open.ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
+    let close = close.ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
     if close < open {
         return Err(format!("for block is not closed: {}", head(statement)));
     }
@@ -410,9 +409,16 @@ fn tail(text: &str, spans: &[(usize, usize)]) -> Option<(usize, usize)> {
 
 /// A block statement's body, between its first `{` and its last `}`.
 fn body_of(statement: &str) -> Option<&str> {
-    let open = statement.find('{')?;
-    let close = statement.rfind('}')?;
+    let (open, close) = body_braces(statement);
+    let (open, close) = (open?, close?);
     (open < close).then(|| &statement[open + 1..close])
+}
+
+/// Where a block statement's body opens and closes: its first `{` and its
+/// last `}` outside comments, which are whitespace.
+pub(crate) fn body_braces(statement: &str) -> (Option<usize>, Option<usize>) {
+    let code = blank_comments(statement);
+    (code.find('{'), code.rfind('}'))
 }
 
 /// An `event` declaration's name and parameters, each parameter as its name
@@ -502,42 +508,6 @@ fn with_route(copy: &str, route: &str) -> String {
 /// A statement without the `;` that ends it.
 fn without_terminator(statement: &str) -> &str {
     statement.strip_suffix(';').unwrap_or(statement)
-}
-
-/// A statement with each comment replaced by spaces, byte for byte, so a
-/// word's range in it is its range in the statement. The loader reads a
-/// statement with its comments blanked the same way (parser.rs
-/// `scan_statements_at`).
-fn blank_comments(statement: &str) -> String {
-    let mut out = String::with_capacity(statement.len());
-    let (mut quoted, mut escaped, mut comment) = (false, false, false);
-    let mut chars = statement.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if comment {
-            if ch == '\n' {
-                comment = false;
-                out.push('\n');
-            } else {
-                out.push_str(&" ".repeat(ch.len_utf8()));
-            }
-        } else if quoted {
-            out.push(ch);
-            if escaped {
-                escaped = false;
-            } else if ch == '\\' {
-                escaped = true;
-            } else if ch == '"' {
-                quoted = false;
-            }
-        } else if ch == '#' || (ch == '/' && chars.peek() == Some(&'/')) {
-            comment = true;
-            out.push(' ');
-        } else {
-            quoted = ch == '"';
-            out.push(ch);
-        }
-    }
-    out
 }
 
 /// A statement, comments already blanked, with each `WORD::SYMBOL` outside
@@ -649,8 +619,9 @@ fn check_binding(name: &str) -> Result<(), String> {
     }
 }
 
+/// The first words of a statement, its comments read as whitespace.
 fn head(statement: &str) -> String {
-    statement
+    blank_comments(statement)
         .split_whitespace()
         .take(5)
         .collect::<Vec<_>>()

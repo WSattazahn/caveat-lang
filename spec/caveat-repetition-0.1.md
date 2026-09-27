@@ -132,3 +132,10 @@ what keeps the expansion checkable and the generated program ordinary.
   expanded text: "invalid reactive identifier north{_n". In quoted text, in
   provenance, or in a claim's or evidence's name, the copy loads as the same
   text written by hand does.
+- 2026-09-27: a comment in a block's header is whitespace, as it is
+  everywhere outside quoted text ([text 0.1](caveat-text-0.1.md)).
+  Repetition read a header's words and braces with its comments left in. It
+  refused `for plot # each plot` with `as $p {` on the next line as a
+  malformed header, and took a `{` in a comment in the header, or a `}` in
+  one after the body, for the block's own. Such blocks now expand, and a
+  malformed header is shown without its comments.

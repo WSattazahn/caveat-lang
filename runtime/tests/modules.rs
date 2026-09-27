@@ -597,6 +597,48 @@ fn imports_are_followed_through_modules() {
 }
 
 #[test]
+fn a_comment_in_a_use_or_module_statement_is_whitespace() {
+    // Comments count as whitespace (spec/caveat-text-0.1.md). The linker read
+    // `use` and `module` with their comments left in, so it did not see the
+    // first import: "the program main names annex::wet without `use annex;`".
+    let annex = "module annex;\nclaim wet;\n";
+    let program = "evidence gauge from \"rain gauge\";\ngauge supports annex::wet;\n";
+    for (module, header) in [
+        (annex, "use # the annex module\n    annex;\n"),
+        (annex, "use annex // for wet\n;\n"),
+        (annex, "use#annex\n    annex;\n"),
+        (
+            "module # the annex\n    annex;\nclaim wet;\n",
+            "use annex;\n",
+        ),
+    ] {
+        let program = format!("{header}{program}");
+        let source = linked(&[("annex", module), ("main", &program)]);
+        let evaluation = evaluate(&source);
+        assert!(evaluation.symbols.contains_key("annex__wet"), "{source}");
+    }
+    // Loaded from disk, the commented `use` reaches annex.cav.
+    let root = fixture_root("commented-use");
+    write(&root, "annex.cav", annex);
+    let entry = write(
+        &root,
+        "main.cav",
+        &format!("use # the annex module\n    annex;\n{program}"),
+    );
+    let text = disk::load(&entry).expect("the program loads");
+    let parts = link::split_bundle(&text).expect("bundle splits");
+    assert_eq!(
+        parts
+            .iter()
+            .map(|part| part.name.as_str())
+            .collect::<Vec<_>>(),
+        ["annex", "main"]
+    );
+    let evaluation = evaluate(&link::link(&text).expect("links"));
+    assert!(evaluation.symbols.contains_key("annex__wet"));
+}
+
+#[test]
 fn a_module_may_not_shadow_a_parameter_with_a_declaration() {
     // The rewriter is lexical, so a declared name that is also a parameter
     // would be rewritten inside the body and break the parameter reference.

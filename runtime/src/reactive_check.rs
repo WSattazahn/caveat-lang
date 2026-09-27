@@ -117,7 +117,7 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
             }
             continue;
         }
-        let (Some(open), Some(close)) = (text.find('{'), text.rfind('}')) else {
+        let (Some(open), Some(close)) = crate::repeat::body_braces(text) else {
             continue;
         };
         let (kind, binding, routed) = match statement_words(&text[..open])[..] {

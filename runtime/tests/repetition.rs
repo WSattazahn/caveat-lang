@@ -693,3 +693,70 @@ fn a_member_name_that_is_not_an_identifier_does_not_load_where_the_body_needs_on
         }
     }
 }
+
+/// Plots north and south, then a block with `header` over them. Each copy
+/// keeps its `$index` and counts the reads that select it, by hand unless
+/// the block is routed.
+fn headed(header: &str, routed: bool) -> String {
+    let guard = if routed { "" } else { " when target == $index" };
+    format!(
+        "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot;
+{header}
+    state $p_index = $index;
+    state $p_n = 0;
+    on read{guard} set $p_n = $p_n + 1;
+}};
+"
+    )
+}
+
+#[test]
+fn a_comment_in_a_for_header_is_whitespace() {
+    // Comments count as whitespace (spec/caveat-text-0.1.md). Repetition read
+    // a header's words, and its braces, with its comments left in, and
+    // refused the first block: "expected `for KIND as $NAME { ... }`, found:
+    // for plot # each plot".
+    let mut sources = [
+        ("for plot # each plot\n    as $p {", false),
+        ("for plot // each plot\n    as $p {", false),
+        ("for# each plot\n    plot as $p {", false),
+        ("for plot as $p # a { in a comment\n{", false),
+        ("for plot # each plot\n    as $p routed by target {", true),
+        (
+            "for plot as $p routed # by nothing yet\n    by target {",
+            true,
+        ),
+    ]
+    .map(|(header, routed)| headed(header, routed))
+    .to_vec();
+    // A `}` in a comment after the body does not close it.
+    sources.push(headed("for plot as $p {", false).replace("\n};\n", "\n} # }\n;\n"));
+    for source in sources {
+        let (indices, members) = counts(&source);
+        assert_eq!(
+            indices,
+            [("north".to_string(), 1.0), ("south".to_string(), 2.0)],
+            "{source}"
+        );
+        assert_eq!(members, ["north", "south"]);
+        for (target, expected) in [("north", (1.0, 0.0)), ("south", (0.0, 1.0))] {
+            assert_eq!(
+                after_read(&source, target),
+                expected,
+                "read {target}\n{source}"
+            );
+        }
+    }
+    // A malformed header is shown as the loader reads it, without comments.
+    assert_eq!(
+        repeat::expand(&headed("for plot # as $p\n{", false)).unwrap_err(),
+        "expected `for KIND as $NAME { ... }`, found: for plot { state $p_index"
+    );
+    assert_eq!(
+        repeat::expand(&headed("for plot as $p routed # by target\n{", true)).unwrap_err(),
+        "expected `for KIND as $NAME routed by PARAM { ... }`, found: for plot as $p routed"
+    );
+}

@@ -689,9 +689,51 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     spans
 }
 
-/// The words of a statement, ignoring quoted text and comments.
+/// The words of a statement as the parser splits them: at whitespace, with
+/// each comment read as whitespace, so a comment is no word and ends the word
+/// it touches (parser.rs `scan_statements_at`).
 pub(crate) fn statement_words(text: &str) -> Vec<&str> {
-    text.trim_end_matches(';').split_whitespace().collect()
+    let text = text.trim_end_matches(';');
+    let code = blank_comments(text);
+    word_offsets(&code)
+        .map(|(offset, word)| &text[offset..offset + word.len()])
+        .collect()
+}
+
+/// A statement with each comment replaced by spaces, byte for byte, so a
+/// word's range in it is its range in the statement. The loader reads a
+/// statement with its comments blanked the same way (parser.rs
+/// `scan_statements_at`).
+pub(crate) fn blank_comments(statement: &str) -> String {
+    let mut out = String::with_capacity(statement.len());
+    let (mut quoted, mut escaped, mut comment) = (false, false, false);
+    let mut chars = statement.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if comment {
+            if ch == '\n' {
+                comment = false;
+                out.push('\n');
+            } else {
+                out.push_str(&" ".repeat(ch.len_utf8()));
+            }
+        } else if quoted {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+        } else if ch == '#' || (ch == '/' && chars.peek() == Some(&'/')) {
+            comment = true;
+            out.push(' ');
+        } else {
+            quoted = ch == '"';
+            out.push(ch);
+        }
+    }
+    out
 }
 
 /// The name in a leading `module NAME;` statement, if there is one.
