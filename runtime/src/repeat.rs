@@ -38,18 +38,16 @@ pub(crate) fn declared_kinds(source: &str) -> Vec<(String, Vec<String>)> {
     entity_kinds(source, &statement_spans(source))
 }
 
-/// A block statement as the `index`th member (from 1) would expand it: the
-/// same substitution `expand` applies to the whole body.
+/// A block statement with `$NAME` replaced by `member` and `$index` by
+/// `index`: the same substitution `expand` applies to the whole body, where
+/// `index` is the member's position from 1.
 pub(crate) fn instantiate(
     template: &str,
     binding: &str,
     member: &str,
-    index: usize,
+    index: &str,
 ) -> Result<String, String> {
-    substitute(
-        template,
-        &[(binding, member), ("index", &index.to_string())],
-    )
+    substitute(template, &[(binding, member), ("index", index)])
 }
 
 /// Members of each entity kind, in declaration order.

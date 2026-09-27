@@ -649,6 +649,47 @@ impl Expr {
         }
     }
 
+    /// The two sides of `A == B`, if this expression is one.
+    pub fn equality(&self) -> Option<(&Expr, &Expr)> {
+        match &self.node {
+            Node::Binary(Binary::Equal, left, right) => Some((left, right)),
+            _ => None,
+        }
+    }
+
+    /// Whether any name or text in this expression contains `word`.
+    pub fn mentions(&self, word: &str) -> bool {
+        let child = |expression: &Expr| expression.mentions(word);
+        match &self.node {
+            Node::Number(_) | Node::Elapsed | Node::Bool(_) => false,
+            Node::Text(name)
+            | Node::Variable(name)
+            | Node::Latest(name)
+            | Node::HistoryCount(name) => name.contains(word),
+            Node::Predicate(kind, target) => kind.contains(word) || target.contains(word),
+            Node::Qualified(value, evidence, caveats) => {
+                child(value)
+                    || evidence.contains(word)
+                    || caveats.iter().any(|caveat| caveat.contains(word))
+            }
+            Node::Unary(_, operand) => child(operand),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                child(left) || child(right)
+            }
+            Node::If(condition, yes, no) => child(condition) || child(yes) || child(no),
+            Node::HistoryAt(history, index) => history.contains(word) || child(index),
+            Node::Fold(history, initial, reducer) => {
+                history.contains(word) || child(initial) || reducer.contains(word)
+            }
+            Node::ExpandedFold(history, initial, body) => {
+                history.contains(word) || child(initial) || child(body)
+            }
+            Node::Function(_, arguments) => arguments.iter().any(child),
+            Node::UserCall(name, arguments) => name.contains(word) || arguments.iter().any(child),
+            Node::ExpandedCall(arguments, body) => arguments.iter().any(child) || child(body),
+        }
+    }
+
     /// Evidence that `qualified(...)` names wherever evaluating this
     /// expression is certain to reach it: not inside an `if` branch, the right
     /// side of `and` or `or`, a `require` value or a fold body.

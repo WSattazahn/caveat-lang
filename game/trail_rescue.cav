@@ -72,7 +72,11 @@ for tunnel as $t {
     on observe when target == $index and method == method.scout set $t_scanned = $t_scanned + 1;
     on observe when target == $index and method == method.scout set selected_slot = 1 + 4 * ($index - 1) + $t_scanned;
     on observe when target == $index and method == method.scout set observed_condition = $t_physical;
+    // An observation recounts every tunnel's support, not only the observed one.
+    // caveat check: allow unrouted-member-rule
     on observe set $t_support = 0;
+    // And its opposition. The observation block below adds fresh evidence back.
+    // caveat check: allow unrouted-member-rule
     on observe set $t_opposition = 0;
     on advance set $t_support = 0;
     on advance set $t_opposition = 0;

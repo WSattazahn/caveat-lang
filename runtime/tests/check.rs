@@ -351,6 +351,11 @@ fn a_program_that_does_not_load_is_an_error_not_a_report() {
     .contains("not a bundle"));
 }
 
+fn read(file: &str) -> String {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(file);
+    std::fs::read_to_string(&path).unwrap()
+}
+
 #[test]
 fn the_shipped_examples_check_clean() {
     for file in [
@@ -358,10 +363,205 @@ fn the_shipped_examples_check_clean() {
         "../kit/templates/umbrella.cav",
         "../experiments/agent-ledger/ledger.cav",
         "../experiments/agent-ledger/ledger-identifiers.cav",
+        // The other programs with `for` blocks.
+        "../game/glowcap.cav",
+        "../game/trail_rescue.cav",
+        "../experiments/glowcap/caveat/glowcap.cav",
+        "../experiments/glowcap/caveat2/glowcap.cav",
+        "../experiments/glowcap/caveat3/glowcap.cav",
+        "../experiments/glowcap/caveat4/glowcap.cav",
+        "../experiments/glowcap/caveat5/glowcap.cav",
     ] {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(file);
-        let source = std::fs::read_to_string(&path).unwrap();
-        let report = check(&source);
+        let report = check(&read(file));
         assert_eq!(codes(&report), [], "{file}: {:#?}", report.diagnostics);
     }
+}
+
+#[test]
+fn trail_rescue_recounts_every_tunnel_on_purpose() {
+    let source = read("../game/trail_rescue.cav");
+    let support = line_of(&source, "on observe set $t_support");
+    let opposition = line_of(&source, "on observe set $t_opposition");
+    assert_eq!(
+        check(&source)
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        [
+            ("C003", support),
+            ("C003", support),
+            ("C003", opposition),
+            ("C003", opposition)
+        ]
+    );
+}
+
+/// Two plots; `read` names one, `swap` names a probe and `tick` names none.
+const PLOTS: &str = r#"place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+entity handheld kind probe at field;
+state seen = 0;
+fn same(a, b) = a == b;
+event read target kind plot, celsius min -40 max 60;
+event swap device kind probe;
+event tick dt min 0 max 0.1;
+"#;
+
+/// The plots with these rules in a `for` block.
+fn plots(rules: &str) -> String {
+    format!(
+        "{PLOTS}for plot as $p {{
+    state $p_last = 0 min -40 max 60;
+    state $p_slot = $index;
+    define $p_here = target == $index;
+{rules}}};
+"
+    )
+}
+
+/// The C003 warnings for the first rule on `read`, one per plot.
+fn both_plots(source: &str) -> [(&'static str, usize); 2] {
+    let line = line_of(source, "on read");
+    [("C003", line), ("C003", line)]
+}
+
+#[test]
+fn a_member_rule_its_guard_does_not_route_is_reported_for_each_member() {
+    let source = plots("    on read when celsius > 2 set $p_last = celsius;\n");
+    let report = check(&source);
+    assert_eq!(codes(&report), both_plots(&source));
+    let (north, south) = (&report.diagnostics[0], &report.diagnostics[1]);
+    assert_eq!(
+        (north.name, north.severity, north.column),
+        ("unrouted-member-rule", "warning", 5)
+    );
+    assert_eq!(
+        north.message,
+        "the rule on `read` for `north` runs whichever plot `target` names: its guard does not select one"
+    );
+    assert_eq!(
+        south.message,
+        "the rule on `read` for `south` runs whichever plot `target` names: its guard does not select one"
+    );
+    assert_eq!(
+        north.suggestion,
+        "If the rule is about the plot the event names, add the selection to its guard, such as `target == $index`. If it should run for every plot on each `read`, put `# caveat check: allow unrouted-member-rule` on the line above it."
+    );
+    assert!(north.related.is_empty());
+}
+
+#[test]
+fn every_way_of_selecting_the_member_routes_the_rule() {
+    for rules in [
+        "on read when target == $index set $p_last = celsius;",
+        "on read when $index == target set $p_last = celsius;",
+        // A member constant, even another member's.
+        "on read when target == target.north set $p_last = celsius;",
+        // Expressions that mention the binding or its index.
+        "on read when target == target.$p set $p_last = celsius;",
+        "on read when target == $p_slot set $p_last = celsius;",
+        "on read when $index + 0 == target set $p_last = celsius;",
+        // Through a define, and a define that uses another.
+        "on read when $p_here set $p_last = celsius;",
+        "define $p_warm = $p_here and celsius > 2;\n    on read when $p_warm set $p_last = celsius;",
+        // Among other conjuncts, and inside parentheses.
+        "on read when celsius > 2 and target == $index and $p_last < 60 set $p_last = celsius;",
+        "on read when (celsius > 2 and target == $index) and $p_last < 60 set $p_last = celsius;",
+        "on read when ((target == $index)) set $p_last = celsius;",
+        // The member only in quoted text is still a rule about it.
+        "on read when target == $index and celsius > 59 reject \"$p is flooded\";",
+    ] {
+        let source = plots(&format!("    {rules}\n"));
+        assert_eq!(codes(&check(&source)), [], "{rules}");
+    }
+}
+
+#[test]
+fn a_selection_that_is_not_a_top_level_conjunct_does_not_count() {
+    for rules in [
+        "on read when target == $index or celsius > 50 set $p_last = celsius;",
+        "on read when not (target != $index) set $p_last = celsius;",
+        "on read when target != $index set $p_last = 0;",
+        "on read when same(target, $index) set $p_last = celsius;",
+        "on read when if(celsius > 0, target == $index, false) set $p_last = celsius;",
+        // A number, a state, a probe or another parameter is not a selection.
+        "on read when target == 1 set $p_last = celsius;",
+        "on read when target == device.handheld set $p_last = celsius;",
+        "on read when target == seen set $p_last = celsius;",
+        "on read when celsius == $index set $p_last = celsius;",
+        // A define counts only as a whole conjunct.
+        "define $p_either = $p_here or celsius > 50;\n    on read when $p_either set $p_last = celsius;",
+        // `$p` only in quoted text.
+        "on read when celsius > 59 reject \"$p is flooded\";",
+    ] {
+        let source = plots(&format!("    {rules}\n"));
+        assert_eq!(codes(&check(&source)), both_plots(&source), "{rules}");
+    }
+}
+
+#[test]
+fn rules_that_reach_every_member_by_design_are_not_checked() {
+    for rules in [
+        // No parameter names a member, or none names a plot.
+        "on tick set $p_last = 0;",
+        "on swap set $p_last = 0;",
+        // The rule does not mention the member, so every copy is the same.
+        "on read set seen = seen + 1;",
+    ] {
+        let source = plots(&format!("    {rules}\n"));
+        assert_eq!(codes(&check(&source)), [], "{rules}");
+    }
+    // Outside a block, `target` may name any plot.
+    let source = format!("{PLOTS}on read set seen = target;\n");
+    assert_eq!(codes(&check(&source)), []);
+}
+
+#[test]
+fn each_copy_is_checked_against_its_own_event() {
+    let source = format!(
+        "{PLOTS}event north_read target kind plot, celsius min -40 max 60;
+event south_read celsius min -40 max 60;
+for plot as $p {{
+    state $p_last = 0 min -40 max 60;
+    on $p_read set $p_last = celsius;
+}};
+"
+    );
+    let report = check(&source);
+    assert_eq!(codes(&report), [("C003", line_of(&source, "on $p_read"))]);
+    assert!(report.diagnostics[0]
+        .message
+        .starts_with("the rule on `north_read` for `north` runs"));
+}
+
+#[test]
+fn a_member_rule_is_allowed_by_code_or_by_name() {
+    let source = plots(
+        "    # caveat check: allow C003
+    on read set $p_last = celsius;
+    // caveat check: allow unrouted-member-rule
+    on read when celsius < -30 set $p_last = -30;
+",
+    );
+    let report = check(&source);
+    assert_eq!(codes(&report), []);
+    let (first, second) = (
+        line_of(&source, "on read set"),
+        line_of(&source, "on read when celsius < -30"),
+    );
+    assert_eq!(
+        report
+            .suppressed
+            .iter()
+            .map(|diagnostic| (diagnostic.code, diagnostic.line))
+            .collect::<Vec<_>>(),
+        [
+            ("C003", first),
+            ("C003", first),
+            ("C003", second),
+            ("C003", second)
+        ]
+    );
 }

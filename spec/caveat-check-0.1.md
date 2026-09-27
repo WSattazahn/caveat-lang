@@ -102,6 +102,64 @@ followed:
 
 Every `reopen` counts, whether or not its guard can ever be true.
 
+### C003 `unrouted-member-rule`
+
+It reports a rule written for each member of a `for` block, on an event that
+names a member, when its guard does not select which member that is.
+
+A `for` block is a text expansion ([repetition](caveat-repetition-0.1.md)).
+Each member gets its own copy of every rule in the block, and every copy runs
+on every event its guard allows. A copy stays with its own member only if its
+guard selects the member the event names, conventionally with
+`target == $index`. Without it, an event about one member acts for all of
+them, for example recording one pull request's go-ahead in every pull
+request's stream.
+
+A rule is checked when all of these hold:
+
+- it is an `on EVENT` rule written in a block `for KIND as $NAME { ... }`;
+- EVENT declares at least one parameter `P kind KIND`;
+- the rule mentions `$NAME` or `$index` anywhere, quoted text included.
+
+A checked rule is *routed* when a top-level conjunct of its `when` guard is
+`P == E` or `E == P`, where P is such a parameter and E is one of these:
+
+- `$index`;
+- a member constant `Q.MEMBER`, where `Q` is a parameter declared
+  `kind KIND` and `MEMBER` is a member of KIND;
+- any expression that mentions `$NAME` or `$index`, such as `$p_base`.
+
+The top-level conjuncts are the operands of the guard's chain of `and`.
+Parentheses do not change them: `(A and B) and C` has three. A conjunct that
+is the name of a [define](caveat-define-0.1.md) is replaced by the conjuncts of
+its expression as written, so `define $m_here = target == $index;` followed by
+`on absorb when $m_here and ...` is routed. A comparison under `or` or `not`,
+or inside a function call or an `if`, is not a top-level conjunct and does not
+count. Neither does a comparison with `!=`, or with a number such as
+`target == 1`.
+
+The warning is at the rule where it is written in the block, once for each
+member whose copy is not routed. When EVENT is itself written with `$NAME`,
+each member's copy is checked against its own event. The suggestion is to add
+the selection if the rule is about the member the event names, or to allow
+the rule on purpose if it should run for every member.
+
+It does not check:
+
+- a rule on an event with no parameter of the block's kind, such as `tick`,
+  which reaches every member by design;
+- a rule that mentions neither `$NAME` nor `$index`, whose copies are all the
+  same;
+- rules outside `for` blocks, procedure steps and bindings;
+- whether the selection is the right one. `target == target.north` in the
+  copy for `south` is routed, and so is one parameter compared where another
+  was meant.
+
+A rule that should run for every member, such as one that resets every
+member's count on each event, is allowed on purpose with
+`# caveat check: allow unrouted-member-rule` on the line above it in the
+block.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -153,3 +211,12 @@ codes, names, locations and the fields above are stable. From a script,
 `runtime.check(source)` in `caveat-lang/session` returns the same report
 without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
 `load` for a program that does not load.
+
+## Changes
+
+- C003 `unrouted-member-rule`. In a study of the agent ledger, each of its 31
+  member rules was written again without its selection, one at a time. Every
+  such program loaded and checked clean. C003 reports all 31. In the
+  repository's unchanged programs it reports only two rules in Trail Rescue
+  that reset every tunnel on purpose; they are now allowed. A program that
+  checked clean before may now warn, and fail with `--strict`.
