@@ -83,6 +83,50 @@ test('an allow comment silences a warning, which is still listed', async () => {
   });
 });
 
+// Line 8 is written once and copied for both plots; its guard selects neither.
+const PLOTS = `place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read when target == $index and celsius > 60 reject "$p is flooded";
+    on read set $p_last = celsius;
+};
+`;
+
+test('check reports a member rule its guard does not route, once per member', async () => {
+  await withProgram(PLOTS, async program => {
+    const result = caveat(['check', program]);
+    assert.equal(result.status, 0, result.stderr);
+    const suggestion = '  If the rule is about the plot the event names, add the selection to its guard, such as `target == $index`. If it should run for every plot on each `read`, put `# caveat check: allow unrouted-member-rule` on the line above it.';
+    assert.deepEqual(result.stdout.trim().split('\n'), [
+      'frost.cav:8:5: warning C003 unrouted-member-rule: the rule on `read` for `north` runs whichever plot `target` names: its guard does not select one',
+      suggestion,
+      'frost.cav:8:5: warning C003 unrouted-member-rule: the rule on `read` for `south` runs whichever plot `target` names: its guard does not select one',
+      suggestion,
+      '2 warnings. A warning points at a pattern worth a second look; it is not an error.',
+    ]);
+    const json = caveat(['check', '--json', '--strict', program]);
+    assert.equal(json.status, 1);
+    const report = JSON.parse(json.stdout);
+    assert.deepEqual(report.diagnostics.map(warning => [warning.code, warning.name, warning.severity, warning.line, warning.column, warning.related]),
+      [['C003', 'unrouted-member-rule', 'warning', 8, 5, []], ['C003', 'unrouted-member-rule', 'warning', 8, 5, []]]);
+    assert.match(report.diagnostics[1].message, /^the rule on `read` for `south` runs/);
+    assert.equal(report.diagnostics[0].suggestion, suggestion.trim());
+  });
+  const allowed = PLOTS.replace('    on read set', '    # caveat check: allow unrouted-member-rule\n    on read set');
+  await withProgram(allowed, async program => {
+    const result = caveat(['check', '--strict', program]);
+    assert.equal(result.status, 0, result.stdout);
+    assert.deepEqual(result.stdout.trim().split('\n'), [
+      'frost.cav:9:5: allowed C003 unrouted-member-rule (an allow comment silences it)',
+      'frost.cav:9:5: allowed C003 unrouted-member-rule (an allow comment silences it)',
+      'frost.cav: no warnings.',
+    ]);
+  });
+});
+
 test('a program that does not load, or a bundle, is exit 2', async () => {
   await withProgram(`${FROST}on decide sample nowhere = 1 supports frost_risk;\n`, async program => {
     const text = caveat(['check', program]);

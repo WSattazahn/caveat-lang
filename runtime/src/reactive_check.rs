@@ -2,7 +2,9 @@
 //! See spec/caveat-check-0.1.md. Nothing here changes what a program means or
 //! does, and a warning describes a pattern, not a proven fault.
 
-use super::{parse_directive_at, Directive, Effect, Expr, ReactiveSession};
+use super::{
+    parse_directive_at, Directive, Effect, Expr, Parameter, ParameterDomain, ReactiveSession,
+};
 use crate::link::{is_identifier_char, is_identifier_start, statement_spans, statement_words};
 use crate::parser::{scan_statements_at, Position};
 use serde::Serialize;
@@ -41,6 +43,7 @@ pub struct Related {
 
 const REPEATED_RULES: (&str, &str) = ("C001", "repeated-rules");
 const NO_REOPENING_PATH: (&str, &str) = ("C002", "no-reopening-path");
+const UNROUTED_MEMBER_RULE: (&str, &str) = ("C003", "unrouted-member-rule");
 const ALLOW: &str = "caveat check: allow";
 
 /// Loads the program, then looks for the patterns in
@@ -51,9 +54,15 @@ pub fn check_source(source: &str) -> Result<CheckReport, String> {
         return Err("caveat check reads a single-file program, not a bundle".into());
     }
     let session = ReactiveSession::from_source(source)?;
-    let statements = statements(source)?;
+    let (statements, blocks) = statements(source)?;
     let mut found = repeated_rules(&session, &statements);
     found.extend(unreopened_decisions(&session, &statements));
+    found.extend(unrouted_member_rules(
+        &session,
+        &statements,
+        &blocks,
+        source,
+    ));
     found.sort_by_key(|diagnostic| (diagnostic.line, diagnostic.column, diagnostic.code));
 
     let lines = source.lines().collect::<Vec<_>>();
@@ -75,7 +84,16 @@ struct Statement {
     repeated: bool,
 }
 
-fn statements(source: &str) -> Result<Vec<Statement>, String> {
+/// A `for` block as written, before expansion.
+struct Block {
+    kind: String,
+    binding: String,
+    members: Vec<String>,
+    /// Each statement of the body, comments blanked, at its own position.
+    body: Vec<(String, Position)>,
+}
+
+fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
     let kinds = crate::repeat::declared_kinds(source);
     let mut spans = statement_spans(source);
     // The parser accepts a last statement without its semicolon.
@@ -83,7 +101,7 @@ fn statements(source: &str) -> Result<Vec<Statement>, String> {
     if !scan_statements_at(&source[tail..], position_of(source, tail))?.is_empty() {
         spans.push((tail, source.len()));
     }
-    let mut out = Vec::new();
+    let (mut out, mut blocks) = (Vec::new(), Vec::new());
     for (start, end) in spans {
         let text = &source[start..end];
         let at = position_of(source, start);
@@ -111,14 +129,19 @@ fn statements(source: &str) -> Result<Vec<Statement>, String> {
             .unwrap_or_default();
         let body_start = start + open + 1;
         let body = &source[body_start..start + close];
+        let mut templates = Vec::new();
         for (inner, inner_end) in statement_spans(body) {
+            let template = &body[inner..inner_end];
             let at = position_of(source, body_start + inner);
+            // A template can scan only once expanded, as `"\$p"` does; C003
+            // then skips it.
+            templates.extend(scan_statements_at(template, at).unwrap_or_default());
             for (index, member) in members.iter().enumerate() {
                 let expanded = crate::repeat::instantiate(
-                    &body[inner..inner_end],
+                    template,
                     binding,
                     member,
-                    index + 1,
+                    &(index + 1).to_string(),
                 )?;
                 for (text, _) in scan_statements_at(&expanded, at)? {
                     out.push(Statement {
@@ -129,8 +152,14 @@ fn statements(source: &str) -> Result<Vec<Statement>, String> {
                 }
             }
         }
+        blocks.push(Block {
+            kind: kind.to_string(),
+            binding: binding.to_string(),
+            members: members.to_vec(),
+            body: templates,
+        });
     }
-    Ok(out)
+    Ok((out, blocks))
 }
 
 fn position_of(source: &str, offset: usize) -> Position {
@@ -445,4 +474,189 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
             }
         })
         .collect()
+}
+
+/// C003. A rule written in a `for` block about its member, on an event that
+/// names a member of the block's kind, whose guard does not select which.
+fn unrouted_member_rules(
+    session: &ReactiveSession,
+    statements: &[Statement],
+    blocks: &[Block],
+    source: &str,
+) -> Vec<Diagnostic> {
+    // A name the source never uses, put for `$NAME` and `$index` to read a
+    // rule as written: whatever contains it came from one of them.
+    let mut marker = String::from("caveat_check_member");
+    while source.contains(&marker) {
+        marker.push('_');
+    }
+    let program_defines = statements
+        .iter()
+        .filter_map(
+            |statement| match parse_directive_at(statement.text.trim(), statement.at) {
+                Some(Ok(Directive::Define { name, expression })) => Some((name, expression)),
+                _ => None,
+            },
+        )
+        .collect::<HashMap<_, _>>();
+
+    let read_as_written = |text: &str, binding: &str, at: Position| {
+        let text = crate::repeat::instantiate(text, binding, &marker, &marker).ok()?;
+        parse_directive_at(text.trim(), at)?.ok()
+    };
+    // The defines written in blocks, as written, by the kind the block ranges
+    // over. The marker stands for any binding, so a rule can use a define that
+    // another block over the same kind wrote.
+    let mut kind_defines: HashMap<&str, Vec<(String, Expr)>> = HashMap::new();
+    for block in blocks {
+        for (text, at) in &block.body {
+            if let Some(Directive::Define { name, expression }) =
+                read_as_written(text, &block.binding, *at)
+            {
+                kind_defines
+                    .entry(block.kind.as_str())
+                    .or_default()
+                    .push((name, expression));
+            }
+        }
+    }
+
+    let mut found = Vec::new();
+    for block in blocks {
+        let as_written = |text: &str, at: Position| read_as_written(text, &block.binding, at);
+        let mut defines = program_defines.clone();
+        defines.extend(
+            kind_defines
+                .get(block.kind.as_str())
+                .into_iter()
+                .flatten()
+                .cloned(),
+        );
+        // `Q.MEMBER` for a parameter `Q` of the block's kind.
+        let member_constant = |name: &str| {
+            name.split_once('.').is_some_and(|(parameter, member)| {
+                block.members.iter().any(|declared| declared == member)
+                    && session.events.values().flatten().any(|declared| {
+                        declared.name == parameter && of_kind(declared, &block.kind)
+                    })
+            })
+        };
+        let routes =
+            |value: &Expr| value.mentions(&marker) || value.as_name().is_some_and(member_constant);
+
+        for (template, at) in &block.body {
+            // A rule that mentions neither binding is not about one member.
+            if !template.contains('$') {
+                continue;
+            }
+            let Some(Directive::Rule(written)) = as_written(template, *at) else {
+                continue;
+            };
+            // An event named after the member is that member's own, so the
+            // event already selects it.
+            if written.event.contains(&marker) {
+                continue;
+            }
+            let mut conjuncts = Vec::new();
+            guard_conjuncts(
+                &written.condition,
+                &defines,
+                &mut Vec::new(),
+                &mut conjuncts,
+            );
+            for (index, member) in block.members.iter().enumerate() {
+                let copy = crate::repeat::instantiate(
+                    template,
+                    &block.binding,
+                    member,
+                    &(index + 1).to_string(),
+                );
+                let Some(Ok(Directive::Rule(rule))) = copy
+                    .ok()
+                    .and_then(|copy| parse_directive_at(copy.trim(), *at))
+                else {
+                    continue;
+                };
+                // An event that names no member of the kind reaches them all.
+                let parameters = session
+                    .events
+                    .get(&rule.event)
+                    .into_iter()
+                    .flatten()
+                    .filter(|parameter| of_kind(parameter, &block.kind))
+                    .map(|parameter| parameter.name.as_str())
+                    .collect::<Vec<_>>();
+                let Some(first) = parameters.first() else {
+                    continue;
+                };
+                let selects = |conjunct: &&Expr| {
+                    conjunct.equality().is_some_and(|(left, right)| {
+                        [(left, right), (right, left)]
+                            .into_iter()
+                            .any(|(parameter, value)| {
+                                parameter
+                                    .as_name()
+                                    .is_some_and(|name| parameters.contains(&name))
+                                    && routes(value)
+                            })
+                    })
+                };
+                if conjuncts.iter().any(selects) {
+                    continue;
+                }
+                let named = parameters
+                    .iter()
+                    .map(|parameter| format!("`{parameter}`"))
+                    .collect::<Vec<_>>()
+                    .join(" or ");
+                found.push(Diagnostic {
+                    code: UNROUTED_MEMBER_RULE.0,
+                    name: UNROUTED_MEMBER_RULE.1,
+                    severity: "warning",
+                    line: at.line,
+                    column: at.column,
+                    message: format!(
+                        "the rule on `{}` for `{member}` runs whichever {} {named} names: its guard does not select one",
+                        rule.event, block.kind
+                    ),
+                    suggestion: format!(
+                        "If the rule is about the {kind} the event names, add the selection to its guard, such as `{first} == $index`. If it should run for every {kind} on each `{}`, put `# {ALLOW} {}` on the line above it.",
+                        rule.event,
+                        UNROUTED_MEMBER_RULE.1,
+                        kind = block.kind
+                    ),
+                    related: Vec::new(),
+                });
+            }
+        }
+    }
+    found
+}
+
+/// Whether an event parameter is declared `NAME kind KIND`.
+fn of_kind(parameter: &Parameter, kind: &str) -> bool {
+    matches!(&parameter.domain, ParameterDomain::Entity { kind: declared, .. } if declared == kind)
+}
+
+/// The operands of a guard's chain of `and`, each one that names a define
+/// replaced by the operands of its expression.
+fn guard_conjuncts<'a>(
+    condition: &'a Expr,
+    defines: &'a HashMap<String, Expr>,
+    inlining: &mut Vec<&'a str>,
+    out: &mut Vec<&'a Expr>,
+) {
+    for conjunct in condition.conjuncts() {
+        match conjunct
+            .as_name()
+            .and_then(|name| defines.get_key_value(name))
+        {
+            Some((name, expression)) if !inlining.contains(&name.as_str()) => {
+                inlining.push(name);
+                guard_conjuncts(expression, defines, inlining, out);
+                inlining.pop();
+            }
+            _ => out.push(conjunct),
+        }
+    }
 }
