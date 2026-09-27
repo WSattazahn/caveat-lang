@@ -28,9 +28,10 @@ iterates that set; it introduces no new way to group things.
 
 Its members are the part's top-level `entity` statements of the kind. Each
 statement is read as the loader reads it: a comment inside it is ignored, and
-a last statement without its `;` is read. A `#` or `//` inside quoted text is
-not a comment. A `{` or `}` groups only a procedure's body or a `for` block's,
-so in any other statement it does not keep the `;` from ending it.
+a last statement without its `;` is read, after empty statements too. A `#`
+or `//` inside quoted text is not a comment. A `{` or `}` groups only a
+procedure's body or a `for` block's, so in any other statement it does not
+keep the `;` from ending it.
 
 ## 2. The block
 
@@ -48,8 +49,11 @@ for reef as $r {
 `for KIND as $NAME { ... };` expands its body once per member of `KIND`, in
 declaration order, and replaces itself with the result. Like any last
 statement, a last block may leave out its `;`. Nothing but comments may come
-between the body's `}` and the block's end. Two bindings are available inside
-the body:
+between the body's `}` and the block's end. The body ends at its first `}`
+outside quoted text, comments and procedure bodies that does not close a `{`
+earlier in its own statement, so a pair in unquoted provenance, such as
+`from see{appendix}b;`, stays in its statement. Two bindings are available
+inside the body:
 
 - `$NAME` — the member's name.
 - `$index` — its one-based position in the kind's declaration order.
@@ -124,16 +128,20 @@ what keeps the expansion checkable and the generated program ordinary.
   copy while a `kind` parameter counted them, so an event that named one
   changed nothing, silently. Above a block, or in its body, the block was
   not expanded and the program did not load. Such programs now expand with a
-  copy for every member. The brace in a name such as `entity north{` hid
-  that entity too: the loader declared it, and a `kind` parameter counted
-  it. It is now a member, with its copy and its `$index`, as is every name
-  the loader declares, such as `no-rth` or `1north`: the loader does not
-  check a name against the identifier syntax. The name reaches its copy as
-  written. Where the copy needs a reactive identifier, as in `state $p_n`,
-  the program does not load, and the error gives the copy's line in the
-  expanded text: "invalid reactive identifier north{_n". In quoted text, in
-  provenance, or in a claim's or evidence's name, the copy loads as the same
-  text written by hand does.
+  copy for every member. In a body, a `}` that closes a `{` earlier in its
+  statement stays in it, as before, and any other `}` ends the body. A body
+  that paired a `{` in one statement with a `}` in a later one, such as
+  `evidence $p_a from x{; evidence $p_b from y};`, loaded before, and is now
+  refused, because that `}` ends the body. The brace in a name such as
+  `entity north{` hid that entity too: the loader declared it, and a `kind`
+  parameter counted it. It is now a member, with its copy and its `$index`,
+  as is every name the loader declares, such as `no-rth` or `1north`: the
+  loader does not check a name against the identifier syntax. The name
+  reaches its copy as written. Where the copy needs a reactive identifier,
+  as in `state $p_n`, the program does not load, and the error gives the
+  copy's line in the expanded text: "invalid reactive identifier north{_n".
+  In quoted text, in provenance, or in a claim's or evidence's name, the
+  copy loads as the same text written by hand does.
 - 2026-09-27: a comment in a block's header is whitespace, as it is
   everywhere outside quoted text ([text 0.1](caveat-text-0.1.md)).
   Repetition read a header's words and braces with its comments left in. It
@@ -148,4 +156,8 @@ what keeps the expansion checkable and the generated program ordinary.
   body is refused as nested, where its `$` names were refused as unbound.
   Text between a block's body and its end, such as a statement after a
   block whose `;` was left out, is refused: "for block has text after its
-  body: ...". Repetition dropped it, silently when a `;` followed it.
+  body: ...". Repetition dropped it, silently when a `;` followed it. A last
+  statement after an empty statement, as in `};;` followed by `entity south
+  kind plot at field`, was not read either: its entity got no copy while a
+  `kind` parameter counted it, so an event that named it changed nothing,
+  silently, and a last block there was not expanded. Both are now read.

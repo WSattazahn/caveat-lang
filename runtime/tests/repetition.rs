@@ -816,3 +816,102 @@ fn text_between_a_block_and_its_end_is_refused_not_dropped() {
         );
     }
 }
+
+#[test]
+fn a_brace_pair_in_a_body_statement_stays_in_the_statement() {
+    // The loader reads a brace outside a `proc` statement as text, so this
+    // provenance is the statement's own. A `}` in a body statement that
+    // closes a `{` earlier in it is text here too. Once a brace outside a
+    // procedure stopped hiding the members after it, every such `}` closed
+    // the body, and a block that loaded before was refused: "for block has
+    // text after its body: b; end the block with `};`".
+    let plots = "entity north kind plot at field;\nentity south kind plot at field;\n";
+    for routed in [false, true] {
+        for provenance in ["see{appendix}b", "{a}{b}", "x{{y}}z", "see{appendix"] {
+            let source = around(plots, "", routed).replace(
+                "    state $p_index",
+                &format!("    evidence $p_manual from {provenance};\n    state $p_index"),
+            );
+            let expanded = repeat::expand(&source).expect("expands");
+            for member in ["north", "south"] {
+                assert!(
+                    expanded.contains(&format!("evidence {member}_manual from {provenance};\n")),
+                    "{expanded}"
+                );
+            }
+            let (indices, members) = counts(&source);
+            assert_eq!(
+                indices,
+                [("north".to_string(), 1.0), ("south".to_string(), 2.0)],
+                "{source}"
+            );
+            assert_eq!(members, ["north", "south"]);
+            for (target, expected) in [("north", (1.0, 0.0)), ("south", (0.0, 1.0))] {
+                assert_eq!(
+                    after_read(&source, target),
+                    expected,
+                    "read {target}\n{source}"
+                );
+            }
+        }
+    }
+    // A `}` that closes no `{` of its statement closes the body, so what
+    // follows it is refused, not read as the statement's text.
+    let source = around(plots, "", false).replace(
+        "    state $p_index",
+        "    evidence $p_manual from a}b;\n    state $p_index",
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        "for block has text after its body: b; end the block with `};`"
+    );
+}
+
+#[test]
+fn a_last_statement_after_an_empty_statement_is_read() {
+    // The loader accepts empty statements (spec/caveat-text-0.1.md), and a
+    // last statement without its `;` begins at its first word. Repetition
+    // began it at the empty statement's `;`, so it read no entity or block
+    // there. Below a block, south got no copy while `target` named it, and
+    // `read south` changed nothing, silently. A last block was not
+    // expanded: "cannot parse statement: for plot as $p {".
+    let north = "entity north kind plot at field;\n";
+    let south = "entity south kind plot at field";
+    let mut sources = Vec::new();
+    for routed in [false, true] {
+        for empty in [";", " ;\n", "\n# nothing\n;\n", ";;\n"] {
+            sources.push(around(north, &format!("{empty}{south}"), routed));
+        }
+        let header = if routed {
+            "for plot as $p routed by target {"
+        } else {
+            "for plot as $p {"
+        };
+        for empty in [";", "; # nothing\n;"] {
+            sources.push(
+                headed(header, routed)
+                    .replace(
+                        "event read target kind plot;",
+                        &format!("event read target kind plot;{empty}"),
+                    )
+                    .replace("\n};\n", "\n}\n"),
+            );
+        }
+    }
+    for source in sources {
+        let (indices, members) = counts(&source);
+        assert_eq!(
+            indices,
+            [("north".to_string(), 1.0), ("south".to_string(), 2.0)],
+            "{source}"
+        );
+        assert_eq!(members, ["north", "south"]);
+        for (target, expected) in [("north", (1.0, 0.0)), ("south", (0.0, 1.0))] {
+            assert_eq!(
+                after_read(&source, target),
+                expected,
+                "read {target}\n{source}"
+            );
+        }
+    }
+}

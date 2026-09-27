@@ -734,6 +734,43 @@ for plot as $p {
 }
 
 #[test]
+fn a_brace_pair_in_a_body_statement_is_checked() {
+    // A `}` that closes a `{` earlier in its statement does not close the
+    // body; the loader reads both as the provenance's text.
+    let source = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    evidence $p_manual from see{appendix}b;
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+};
+";
+    let report = check(source);
+    let line = line_of(source, "on read set");
+    assert_eq!(codes(&report), [("C003", line), ("C003", line)]);
+}
+
+#[test]
+fn a_last_block_after_an_empty_statement_is_checked() {
+    // The loader accepts empty statements, and begins a last statement
+    // without its `;` at its first word.
+    let source = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot, celsius min -40 max 60;;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+}
+";
+    let report = check(source);
+    let line = line_of(source, "on read set");
+    assert_eq!(codes(&report), [("C003", line), ("C003", line)]);
+}
+
+#[test]
 fn a_rule_that_reads_only_once_expanded_is_skipped_not_an_error() {
     // Written, `"\$p"` holds an escape the scanner refuses. Expanded, it is
     // `"\north"` and `"\tarn"`, which load.

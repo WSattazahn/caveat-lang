@@ -707,6 +707,55 @@ fn a_part_s_last_statement_without_its_semicolon_ends_before_the_next_part() {
 }
 
 #[test]
+fn a_part_s_last_statement_after_an_empty_statement_is_read() {
+    // The loader accepts empty statements (spec/caveat-text-0.1.md), and a
+    // last statement without its `;` begins at its first word. The linker
+    // began it at the empty statement's `;`, so it did not read the
+    // statement: the module's `entity` kept no tag, and linked as `entity
+    // annex__east kind annex__plot at annex__shed;`, which declares no plot
+    // ("parameter target of event read: no entity is declared kind plot").
+    let program = "use annex;\nevent read target kind plot;\n";
+    for empty in [";", " ;\n", "\n# nothing\n;\n"] {
+        let module = format!(
+            "module annex;\nclaim plot;\nplace shed kind shed;{empty}entity east kind plot at shed"
+        );
+        let source = linked(&[("annex", &module), ("main", program)]);
+        assert!(
+            source.contains("entity annex__east kind plot at annex__shed;"),
+            "{source}"
+        );
+        let snapshot =
+            ReactiveSession::from_source(&bundle(&[("annex", &module), ("main", program)]))
+                .unwrap_or_else(|error| panic!("{error}\n{source}"))
+                .snapshot();
+        let read = snapshot
+            .events
+            .iter()
+            .find(|event| event.name == "read")
+            .expect("read is declared");
+        let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+            panic!("target names a plot");
+        };
+        assert_eq!(members, &["annex__east"]);
+    }
+
+    // A last `use` or `module` there is read too. The `use` was not: "the
+    // program main names annex::wet without `use annex;`".
+    for (module, program) in [
+        (
+            "module annex;\nclaim wet;\n",
+            "evidence gauge from \"rain gauge\";\ngauge supports annex::wet;;\nuse annex",
+        ),
+        (";\nmodule annex", "claim here;;\nuse annex"),
+    ] {
+        let source = linked(&[("annex", module), ("main", program)]);
+        assert!(!source.contains("use annex"), "{source}");
+        assert!(!source.contains("module annex"), "{source}");
+        evaluate(&source);
+    }
+}
+
+#[test]
 fn a_module_may_not_shadow_a_parameter_with_a_declaration() {
     // The rewriter is lexical, so a declared name that is also a parameter
     // would be rewritten inside the body and break the parameter reference.

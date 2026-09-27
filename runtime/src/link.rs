@@ -617,7 +617,10 @@ fn statement_kind(statement: &Statement) -> &'static str {
 /// A `for` block's braces count too, since Repetition 0.1 expands the block
 /// before the parser reads it, and the statements in its body are read as the
 /// parser reads them once expanded. A brace in any other statement is not
-/// syntax, so it does not keep the `;` from ending the statement.
+/// syntax, so it does not keep the `;` from ending the statement. In a block's
+/// body, a `}` in such a statement closes the body unless it closes a `{`
+/// earlier in the same statement, so a pair such as `see{appendix}b` in
+/// unquoted provenance stays text.
 pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
     let mut start = None;
@@ -628,6 +631,10 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     // Outside a procedure's body, the statement being read, at the top level
     // or in a block's body: where it starts, and where its first word ends.
     let (mut statement, mut first_end) = (None, None);
+    // The `{`s in that statement that are text and not yet closed by a `}`.
+    // Only a statement that is neither a `proc` nor a `for` has any, so the
+    // block statement a closed body resumes has none.
+    let mut text_braces = 0usize;
     let mut chars = source.char_indices().peekable();
     while let Some((index, ch)) = chars.next() {
         let in_procedure = bodies.last() == Some(&None);
@@ -682,6 +689,8 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
                 bodies.push(Some((statement.take(), first_end.take())));
                 continue;
             }
+            ('{', _) => text_braces += 1,
+            ('}', _) if text_braces > 0 => text_braces -= 1,
             ('}', _) if !bodies.is_empty() => {
                 if let Some(Some(interrupted)) = bodies.pop() {
                     (statement, first_end) = interrupted;
@@ -694,7 +703,7 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
                         spans.push((begin, index + 1));
                     }
                 }
-                (statement, first_end) = (None, None);
+                (statement, first_end, text_braces) = (None, None, 0);
                 continue;
             }
             _ => {}
@@ -714,10 +723,12 @@ pub(crate) fn statements_of(text: &str) -> Vec<(usize, usize)> {
 }
 
 /// The range of what follows the last `;`-terminated statement, from its
-/// first word, when anything other than whitespace and comments does.
+/// first word, when anything other than whitespace, comments and empty
+/// statements does. The parser reads each `;` with nothing before it as an
+/// empty statement, and begins the last statement at its first word.
 fn tail(text: &str, spans: &[(usize, usize)]) -> Option<(usize, usize)> {
     let after = spans.last().map_or(0, |(_, end)| *end);
-    let first = blank_comments(&text[after..]).find(|ch: char| !ch.is_whitespace())?;
+    let first = blank_comments(&text[after..]).find(|ch: char| !ch.is_whitespace() && ch != ';')?;
     Some((after + first, text.len()))
 }
 
