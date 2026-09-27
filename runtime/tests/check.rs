@@ -649,6 +649,27 @@ for plot as $p {
 }
 
 #[test]
+fn every_member_the_loader_declares_is_checked() {
+    // A comment in an entity statement, and a last one without its `;`, do
+    // not hide a member from the block (#47).
+    let source = "place field kind field;
+entity north # the first plot
+    kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+};
+entity south kind plot at field
+";
+    let report = check(source);
+    let line = line_of(source, "on read set");
+    assert_eq!(codes(&report), [("C003", line), ("C003", line)]);
+    assert!(report.diagnostics[0].message.contains("for `north`"));
+    assert!(report.diagnostics[1].message.contains("for `south`"));
+}
+
+#[test]
 fn a_rule_that_reads_only_once_expanded_is_skipped_not_an_error() {
     // Written, `"\$p"` holds an escape the scanner refuses. Expanded, it is
     // `"\north"` and `"\tarn"`, which load.

@@ -26,6 +26,11 @@ entity reef_two kind reef at harbor;
 `kind reef` is already a declared set with a declaration order. Repetition
 iterates that set; it introduces no new way to group things.
 
+Its members are the part's top-level `entity` statements of the kind. Each
+statement is read as the loader reads it: a comment inside it is ignored, and
+a last statement without its `;` is read. A `#` or `//` inside quoted text is
+not a comment.
+
 ## 2. The block
 
 ```caveat
@@ -92,3 +97,19 @@ Repetition adds no runtime semantics and is not a loop. There is no iteration
 over values, no accumulator, and no way to write a block whose member count
 depends on execution. The set is fixed when the source is written, which is
 what keeps the expansion checkable and the generated program ordinary.
+
+## Changes
+
+- 2026-09-27: a kind's members are every top-level `entity` statement of it
+  that the loader declares, by the name it declares
+  ([#47](https://github.com/WSattazahn/caveat-lang/issues/47)). Before this,
+  Repetition read a statement with its comments left in. It skipped one with
+  a comment inside it and did not read a last one without its `;`, so
+  `$index` counted fewer members than a `kind` event parameter, and a block
+  that selected its member with `target == $index` updated another member,
+  or none. It read a comment touching the name as part of the name: with
+  `entity north#first`, a copy that used `$NAME` outside quoted text did not
+  load, and `"$NAME"` became `"north#first"`. This deliberately changes the
+  expansion of those programs: the skipped member gets its copy, the members
+  after it their right `$index`, and every copy its member's name. Every
+  other program expands as before.

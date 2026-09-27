@@ -139,6 +139,43 @@ test('replay prints one record per event, keeps file line numbers and stops at a
   });
 });
 
+// Repetition counts every entity the loader declares (#47), so a comment in an
+// entity statement does not move an event to another member's copy.
+test('a comment in an entity statement does not move a replayed read to another plot', async () => {
+  const plain = [
+    'place field kind field;',
+    'entity north # the first plot',
+    '    kind plot at field;',
+    'entity south kind plot at field;',
+    'state north_n = 0;',
+    'state south_n = 0;',
+    'event read target kind plot;',
+    'for plot as $p {',
+    '    on read when target == $index set $p_n = $p_n + 1;',
+    '};',
+    '',
+  ].join('\n');
+  const routed = plain.replace('for plot as $p {', 'for plot as $p routed by target {')
+    .replace(' when target == $index', '');
+  await inDirectory(async directory => {
+    for (const [name, text] of [['plain.cav', plain], ['routed.cav', routed]]) {
+      const program = path.join(directory, name);
+      await writeFile(program, text);
+      for (const [target, counts] of [['north', [1, 0]], ['south', [0, 1]]]) {
+        const events = path.join(directory, 'events.jsonl');
+        await writeFile(events, JSON.stringify({ event: 'read', payload: { target } }) + '\n');
+        const result = caveat(['replay', program, events]);
+        assert.equal(result.status, 0, result.stderr);
+        const [initial, read] = result.stdout.trim().split('\n').map(line => JSON.parse(line));
+        const signature = initial.snapshot.events.find(event => event.name === 'read');
+        assert.deepEqual(signature.parameters[0].domain.entity.members, ['north', 'south']);
+        assert.equal(read.outcome, 'accepted');
+        assert.deepEqual([read.snapshot.values.north_n, read.snapshot.values.south_n], counts, `${name}: read ${target}`);
+      }
+    }
+  });
+});
+
 test('dependents answers for the guide program, as text and as JSON', () => {
   const program = path.join(kit, 'templates', 'umbrella.cav');
   const events = path.join(kit, 'templates', 'events.jsonl');

@@ -1,7 +1,7 @@
 //! Routed Repetition 0.1: `for KIND as $NAME routed by P { ... };`. See
 //! spec/caveat-routed-repetition-0.1.md.
 
-use caveat_runtime::reactive::{BindingValue, ReactiveSession};
+use caveat_runtime::reactive::{BindingValue, ParameterDomain, ReactiveSession};
 use caveat_runtime::{link, repeat};
 use serde_json::Value;
 
@@ -838,30 +838,64 @@ event read target kind plot, value min 0 max 9;
     )
 }
 
+/// Each plot's hits after one `read` of `target` on a fresh session, in the
+/// order `target` numbers the plots.
+fn hits_after_read(source: &str, target: &str) -> Vec<(String, f64)> {
+    let mut session =
+        ReactiveSession::from_source(source).unwrap_or_else(|error| panic!("{error}\n{source}"));
+    let snapshot = session
+        .dispatch_json("read", &format!(r#"{{"target":"{target}","value":1}}"#))
+        .expect("read is accepted");
+    let read = snapshot
+        .events
+        .iter()
+        .find(|event| event.name == "read")
+        .expect("read is declared");
+    let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+        panic!("target names a plot");
+    };
+    members
+        .iter()
+        .map(|plot| (plot.clone(), snapshot.values[&format!("{plot}_hits")]))
+        .collect()
+}
+
 #[test]
-fn a_top_level_entity_that_index_does_not_count_is_refused() {
-    // The parser declares north, so `target` counts it as 1. Repetition 0.1
-    // does not read a statement with a comment inside it, so `$index` would
-    // give south 1: an event about north would run south's copy.
-    for north in [
-        "entity north kind plot # the first plot\n    at field;",
-        "entity north kind plot // the first plot\n    at field;",
-    ] {
-        assert_eq!(
-            repeat::expand(&with_north(north, "")).unwrap_err(),
-            "`for plot as $p routed by target`: `$index` does not count entity `north` of kind plot, whose statement has a comment in it, but `target` does; move the comment out of the statement",
-            "{north}"
-        );
-    }
-    // Nor a last statement without its `;`.
-    assert_eq!(
-        repeat::expand(&with_north(
+fn a_top_level_entity_with_a_comment_in_it_or_without_its_semicolon_is_routed_to() {
+    // Repetition 0.1 reads an entity statement as the loader does (#47), so
+    // `$index` counts the plots `target` counts, and a read runs only the
+    // copy of the plot it names.
+    for (north, after, plots) in [
+        (
+            "entity north kind plot # the first plot\n    at field;",
+            "",
+            &["north", "south"][..],
+        ),
+        (
+            "entity north kind plot // the first plot\n    at field;",
+            "",
+            &["north", "south"],
+        ),
+        (
             "entity north kind plot at field;",
-            "entity east kind plot at field"
-        ))
-        .unwrap_err(),
-        "`for plot as $p routed by target`: `$index` does not count entity `east` of kind plot, whose statement has no `;`, but `target` does; end the statement with `;`"
-    );
+            "entity east kind plot at field",
+            &["north", "south", "east"],
+        ),
+    ] {
+        let source = with_north(north, after);
+        for (position, target) in plots.iter().enumerate() {
+            let expected = plots
+                .iter()
+                .map(|plot| (plot.to_string(), f64::from(u8::from(plot == target))))
+                .collect::<Vec<_>>();
+            assert_eq!(hits_after_read(&source, target), expected, "{source}");
+            let copy = format!(
+                "on read when target == {} set {target}_hits = {target}_hits + 1;",
+                position + 1
+            );
+            assert!(repeat::expand(&source).unwrap().contains(&copy), "{copy}");
+        }
+    }
     // A comment elsewhere, a statement over several lines and an entity of
     // another kind are read as before.
     let source = with_north(
@@ -871,12 +905,21 @@ fn a_top_level_entity_that_index_does_not_count_is_refused() {
     assert!(repeat::expand(&source)
         .unwrap()
         .contains("on read when target == 2 set south_hits = south_hits + 1;"));
-    ReactiveSession::from_source(&source).expect("loads");
-    // A plain block is unchanged: Repetition 0.1 still expands it.
-    let plain = with_north("entity north kind plot # the first plot\n    at field;", "")
-        .replace(ROUTED, PLAIN);
-    assert_eq!(repeat::expand(&plain), repetition_0_1::expand(&plain));
-    assert!(repeat::expand(&plain).is_ok());
+    assert_eq!(
+        hits_after_read(&source, "south"),
+        [("north".to_string(), 0.0), ("south".to_string(), 1.0)]
+    );
+    // The routed block expands as the plain block with the route written by
+    // hand. Before #47, Repetition 0.1 gave that plain block one copy, south's,
+    // selected by north's position.
+    let commented = with_north("entity north kind plot # the first plot\n    at field;", "");
+    let by_hand = commented
+        .replace(ROUTED, PLAIN)
+        .replace("on read set", "on read when target == $index set");
+    assert_eq!(repeat::expand(&commented), repeat::expand(&by_hand));
+    let before = repetition_0_1::expand(&by_hand).unwrap();
+    assert!(before.contains("on read when target == 1 set south_hits = south_hits + 1;"));
+    assert!(!before.contains("north_hits"), "{before}");
 }
 
 #[test]
@@ -893,13 +936,13 @@ fn errors_come_in_the_order_section_7_gives() {
         "{PLOTS}{entity}{ROUTED} {{ on landed set total = 1; }};"
     ))
     .contains("does not count entity `$d_plot`"));
-    // An entity in a for block, then a top-level one `$index` does not
-    // count, then the rules.
+    // An entity in a for block, then the rules. A top-level entity with a
+    // comment in its statement is counted, so it is no error.
     let commented = "entity north kind plot # the first plot\n    at field;";
     assert!(first(with_north(commented, entity)).contains("declared in a for block"));
     assert!(
         first(with_north(commented, "").replace("on read", "on landed"))
-            .contains("whose statement has a comment in it")
+            .contains("no event `landed` is declared")
     );
     // The rules in the order written, then whether any rule is routed.
     let rules = |body: &str| first(format!("{PLOTS}{ROUTED} {{ {body} }};"));
@@ -989,7 +1032,10 @@ fn entities_of_the_kind_in_another_part_meet_the_same_limit_as_a_hand_written_ro
 // ── Section 1: a plain block is unchanged ──────────────────────────────────
 
 /// Repetition 0.1's expansion as it was at 386c5cf, before routing, copied
-/// from runtime/src/repeat.rs and the two helpers it used from link.rs.
+/// from runtime/src/repeat.rs and the two helpers it used from link.rs. It
+/// reads entity statements as Repetition 0.1 did before #47, with their
+/// comments left in, and does not read a last one without its `;`. No
+/// program it is compared with below has either.
 mod repetition_0_1 {
     fn is_identifier_start(ch: char) -> bool {
         ch.is_ascii_alphabetic() || ch == '_'
