@@ -1,6 +1,6 @@
 //! Repetition 0.1: `for KIND as $NAME { ... };`
 
-use caveat_runtime::reactive::{BindingValue, ReactiveSession};
+use caveat_runtime::reactive::{BindingValue, ParameterDomain, ReactiveSession};
 use caveat_runtime::{link, repeat};
 
 fn statements(source: &str) -> Vec<String> {
@@ -327,4 +327,131 @@ fn the_word_for_in_a_comment_or_text_is_not_a_nested_block() {
     assert!(repeat::expand(&nested)
         .unwrap_err()
         .contains("for blocks do not nest"));
+}
+
+/// Issue #47's program. The loader declares both plots, and north's
+/// statement has a comment inside it.
+const COMMENTED_NORTH: &str = "place field kind field;
+entity north # the first plot
+    kind plot at field;
+entity south kind plot at field;
+state north_n = 0;
+state south_n = 0;
+event read target kind plot;
+for plot as $p {
+    on read when target == $index set $p_n = $p_n + 1;
+};
+";
+
+/// `read` sent for `target` on a fresh session: north's count, then south's.
+fn after_read(source: &str, target: &str) -> (f64, f64) {
+    let mut session = ReactiveSession::from_source(source).expect("loads");
+    let values = session
+        .dispatch_json("read", &format!(r#"{{"target":"{target}"}}"#))
+        .expect("read is accepted")
+        .values;
+    (values["north_n"], values["south_n"])
+}
+
+#[test]
+fn a_comment_in_an_entity_statement_does_not_change_which_member_an_event_affects() {
+    // Issue #47. `target` counts north as 1 and south as 2. Repetition used
+    // to skip north's statement and give south `$index` 1, so `read north`
+    // counted for south and `read south` for nobody.
+    assert_eq!(after_read(COMMENTED_NORTH, "north"), (1.0, 0.0));
+    assert_eq!(after_read(COMMENTED_NORTH, "south"), (0.0, 1.0));
+}
+
+/// Plots declared by `entities`, then a plain block that keeps each member's
+/// `$index` and counts the reads that select it by hand.
+fn indexed(entities: &str) -> String {
+    format!(
+        "place field kind field;
+event read target kind plot;
+for plot as $p {{
+    state $p_index = $index;
+    state $p_n = 0;
+    on read when target == $index set $p_n = $p_n + 1;
+}};
+{entities}"
+    )
+}
+
+/// Each member's `$index` as its state holds it, by member, and the members
+/// of `read`'s `target`, in the order that numbers them.
+fn counts(source: &str) -> (Vec<(String, f64)>, Vec<String>) {
+    let snapshot = ReactiveSession::from_source(source)
+        .unwrap_or_else(|error| panic!("{error}\n{source}"))
+        .snapshot();
+    let read = snapshot
+        .events
+        .iter()
+        .find(|event| event.name == "read")
+        .expect("read is declared");
+    let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+        panic!("target names a plot");
+    };
+    let indices = members
+        .iter()
+        .map(|member| (member.clone(), snapshot.values[&format!("{member}_index")]))
+        .collect();
+    let states = snapshot
+        .values
+        .keys()
+        .filter(|name| name.ends_with("_index"))
+        .count();
+    assert_eq!(states, members.len(), "one copy per member:\n{source}");
+    (indices, members.clone())
+}
+
+#[test]
+fn index_counts_every_entity_the_loader_declares_as_its_typed_parameter_does() {
+    let north_first = vec![("north".to_string(), 1.0), ("south".to_string(), 2.0)];
+    for entities in [
+        // Issue #47's statement, and the same with the other comment form.
+        "entity north # the first plot\n    kind plot at field;\nentity south kind plot at field;\n",
+        "entity north // the first plot\n    kind plot at field;\nentity south kind plot at field;\n",
+        // A comment ends the word it touches.
+        "entity north#first\n    kind plot at field;\nentity south kind plot at field;\n",
+        // A `;` or a quote in a comment is part of the comment.
+        "entity north # the first; plot\n    kind plot at field;\nentity south kind plot at field;\n",
+        "entity north // the \"first plot\n    kind plot at field;\nentity south kind plot at field;\n",
+        // `#`, `//` and `;` in quoted text are text, not a comment and not
+        // the end of a statement.
+        "evidence note from \"plot #1; // north\"; entity north kind plot at field;\nentity south kind plot at field;\n",
+        "entity north kind plot at field; evidence note from \"# south //\";\nentity south kind plot at field;\n",
+        // A last statement without its `;`, which the loader reads.
+        "entity north kind plot at field;\nentity south kind plot at field\n",
+        "entity north kind plot at field;\nentity south # the last; no `;` ends it\n    kind plot at field\n",
+    ] {
+        let source = indexed(entities);
+        let (indices, members) = counts(&source);
+        assert_eq!(indices, north_first, "{source}");
+        assert_eq!(members, ["north", "south"], "{source}");
+        // Both directions: a read selects its own plot's copy and no other.
+        for (target, expected) in [("north", (1.0, 0.0)), ("south", (0.0, 1.0))] {
+            assert_eq!(after_read(&source, target), expected, "read {target}\n{source}");
+        }
+    }
+}
+
+#[test]
+fn a_commented_entity_gets_its_own_copy_and_index() {
+    // The issue's second observation: the block expanded to one state,
+    // `south_index = 1`, and none for north.
+    let source = COMMENTED_NORTH.replace(
+        "    on read when target == $index set $p_n = $p_n + 1;\n",
+        "    state $p_index = $index;\n",
+    );
+    let expanded = repeat::expand(&source).expect("expands");
+    assert!(
+        expanded.ends_with("\n    state north_index = 1;\n\n    state south_index = 2;\n\n"),
+        "{expanded}"
+    );
+    let (indices, members) = counts(&source);
+    assert_eq!(
+        indices,
+        [("north".to_string(), 1.0), ("south".to_string(), 2.0)]
+    );
+    assert_eq!(members, ["north", "south"]);
 }

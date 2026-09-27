@@ -148,10 +148,10 @@ top-level `entity` statements of kind KIND. A `P kind KIND` parameter takes an
 entity's position among every entity of KIND in the loaded program
 ([typed parameters](caveat-typed-parameters-0.1.md)). The two are the same
 count when every entity of KIND is a top-level `entity` statement in the
-block's part that Repetition 0.1 reads. It does not read one with a comment
-inside the statement, or a last one without its `;`, although the loader
-declares both. Within the part, anything else is an error (section 7). For the
-parts of a bundle, see section 9.
+block's part. Repetition 0.1 reads each of those as the loader does, one with
+a comment inside it or a last one without its `;` included. Within the part,
+an entity of KIND in a `for` block is an error (section 7). For the parts of a
+bundle, see section 9.
 
 The route is placed in each member's copy of the rule, with `$NAME` and
 `$index` already replaced as Repetition 0.1 replaces them. That copy is the
@@ -337,10 +337,9 @@ order, and in each block the checks run in this order:
 1. the header, and Repetition 0.1's checks of the binding, of nesting and of
    the kind;
 2. an entity of KIND in a `for` block;
-3. an entity of KIND that Repetition 0.1 does not read;
-4. each rule, in the order written;
-5. whether the block routes any rule;
-6. Repetition 0.1's check that every `$` name is bound, as each member's copy
+3. each rule, in the order written;
+4. whether the block routes any rule;
+5. Repetition 0.1's check that every `$` name is bound, as each member's copy
    is written.
 
 In a bundle an error is prefixed with the part's name, as Repetition 0.1's
@@ -409,16 +408,6 @@ header, not Repetition 0.1's binding error.
   `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, declared in a for block, but `P` does; declare it at the top level of this part
   ```
 
-- **An entity of KIND that Repetition 0.1 does not read.** A top-level
-  `entity` statement of kind KIND has a comment inside it, or is the part's
-  last statement and has no `;`. The loader declares it, and Repetition 0.1
-  does not count it.
-
-  ```text
-  `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, whose statement has a comment in it, but `P` does; move the comment out of the statement
-  `HEADER`: `$index` does not count entity `ENTITY` of kind KIND, whose statement has no `;`, but `P` does; end the statement with `;`
-  ```
-
 For example, with `event approved target id;`, the ledger's routed block is
 refused with:
 
@@ -441,12 +430,12 @@ Each of these is an error rather than a quiet choice:
 - A rule that mentions no binding runs once per event routed and once per
   member plain, and only the header would show which. Outside the block it
   means the same either way.
-- An entity of KIND written in a `for` block, or a top-level one Repetition
-  0.1 does not read, makes a member's `$index` differ from its position in P,
-  so the route would select another member's copy, or none. Correcting either
-  count would change Repetition 0.1 or typed parameters, which this profile
-  does not do. A plain block with a hand-written `target == $index` has the
-  same miscount on such a program today, and nothing reports it.
+- An entity of KIND written in a `for` block makes a member's `$index`
+  differ from its position in P, so the route would select another member's
+  copy, or none. Correcting either count would change Repetition 0.1 or typed
+  parameters, which this profile does not do. A plain block with a
+  hand-written `target == $index` has the same miscount on such a program
+  today, and nothing reports it.
 
 In the evaluation of a prototype, 20 edits that renamed an event's subject
 parameter or gave it another kind were all refused by the errors for P of

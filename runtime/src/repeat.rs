@@ -62,17 +62,18 @@ pub(crate) fn instantiate(
     substitute(template, &[(binding, member), ("index", index)])
 }
 
-/// Members of each entity kind, in declaration order.
+/// Members of each entity kind, in declaration order: every top-level
+/// `entity` statement the loader declares. Each is read as the loader reads
+/// it, comments blanked, and a last statement without its `;` is read too.
 fn entity_kinds(source: &str, spans: &[(usize, usize)]) -> Vec<(String, Vec<String>)> {
     let mut kinds: Vec<(String, Vec<String>)> = Vec::new();
-    for (start, end) in spans {
-        if let ["entity", name, "kind", kind, "at", _] =
-            statement_words(&source[*start..*end]).as_slice()
-        {
-            match kinds.iter_mut().find(|(declared, _)| declared == kind) {
-                Some((_, members)) => members.push((*name).to_string()),
-                None => kinds.push(((*kind).to_string(), vec![(*name).to_string()])),
-            }
+    for (start, end) in spans.iter().copied().chain(tail(source, spans)) {
+        let Some((name, kind)) = entity_of(&source[start..end]) else {
+            continue;
+        };
+        match kinds.iter_mut().find(|(declared, _)| *declared == kind) {
+            Some((_, members)) => members.push(name),
+            None => kinds.push((kind, vec![name])),
         }
     }
     kinds
@@ -211,9 +212,10 @@ struct Routing<'a> {
 
 impl Routing<'_> {
     /// The routed rules of the body, by span, once every check of section 7
-    /// has passed: an entity of KIND that `$index` does not count, then each
-    /// rule in the order written, then whether any rule is routed. A rule is
-    /// routed from its event alone; what the rule does is not read.
+    /// has passed: an entity of KIND in a `for` block, which `$index` does
+    /// not count, then each rule in the order written, then whether any rule
+    /// is routed. A rule is routed from its event alone; what the rule does
+    /// is not read.
     fn rules(&self, body: &str, part: &Part) -> Result<Vec<(usize, usize)>, String> {
         let Routing {
             header,
@@ -225,21 +227,6 @@ impl Routing<'_> {
             return Err(format!(
                 "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, declared in a for block, but `{parameter}` does; declare it at the top level of this part"
             ));
-        }
-        // The parser declares these too, and Repetition 0.1 does not read
-        // them, so the two counts differ within the part.
-        match part.uncounted_entity(kind) {
-            Some(Uncounted::Comment(entity)) => {
-                return Err(format!(
-                    "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, whose statement has a comment in it, but `{parameter}` does; move the comment out of the statement"
-                ))
-            }
-            Some(Uncounted::Unterminated(entity)) => {
-                return Err(format!(
-                    "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, whose statement has no `;`, but `{parameter}` does; end the statement with `;`"
-                ))
-            }
-            None => {}
         }
         let events = part.events();
         let member = format!("kind {kind}");
@@ -323,13 +310,6 @@ struct Part<'a> {
     kinds: &'a [(String, Vec<String>)],
 }
 
-/// A top-level entity the parser declares and `$index` does not count, by
-/// the reason Repetition 0.1 does not read its statement.
-enum Uncounted {
-    Comment(String),
-    Unterminated(String),
-}
-
 impl Part<'_> {
     /// Every event the part declares, each parameter with the words declared
     /// after its name. A declaration a `for` block writes counts once
@@ -390,39 +370,22 @@ impl Part<'_> {
             let body = body_of(text)?;
             statements_of(body)
                 .into_iter()
-                .find_map(|(inner, inner_end)| entity_of(&body[inner..inner_end], kind))
+                .find_map(|(inner, inner_end)| {
+                    entity_of(&body[inner..inner_end])
+                        .filter(|(_, declared)| declared == kind)
+                        .map(|(name, _)| name)
+                })
         })
-    }
-
-    /// The first top-level entity of `kind` that the parser declares and
-    /// `$index` does not count: its statement has a comment inside it, or is
-    /// the last one and has no `;`.
-    fn uncounted_entity(&self, kind: &str) -> Option<Uncounted> {
-        let counted = self
-            .kinds
-            .iter()
-            .find(|(declared, _)| declared == kind)
-            .map(|(_, members)| members.as_slice())
-            .unwrap_or_default();
-        let uncounted = |(start, end): (usize, usize)| {
-            entity_of(&self.source[start..end], kind).filter(|name| !counted.contains(name))
-        };
-        self.spans
-            .iter()
-            .copied()
-            .find_map(uncounted)
-            .map(Uncounted::Comment)
-            .or_else(|| self.tail.and_then(uncounted).map(Uncounted::Unterminated))
     }
 }
 
-/// The name an `entity` statement of `kind` declares, read as the parser
+/// The name and kind an `entity` statement declares, read as the parser
 /// reads it: comments blanked, then split at whitespace (parser.rs
 /// `parse_statement`).
-fn entity_of(statement: &str, kind: &str) -> Option<String> {
+fn entity_of(statement: &str) -> Option<(String, String)> {
     let code = blank_comments(without_terminator(statement));
     match code.split_whitespace().collect::<Vec<_>>()[..] {
-        ["entity", name, "kind", declared, "at", _] if declared == kind => Some(name.to_string()),
+        ["entity", name, "kind", kind, "at", _] => Some((name.to_string(), kind.to_string())),
         _ => None,
     }
 }
