@@ -143,7 +143,7 @@ nothing it did is kept:
 | `policy` | `reject` (the program's own), `not_permitted` |
 | `input` | `unknown_event`, `payload_invalid`, `bound_exceeded` |
 | `evaluation` | `bound_exceeded` (a state outside its range) |
-| `limit` | `history_limit`, `identifier_limit`, `work_limit`, `depth_limit` |
+| `limit` | `history_limit`, `identifier_limit`, `renewal_limit`, `work_limit`, `depth_limit` |
 
 Anything else is **fatal**, for example `require(false, …)`, arithmetic that
 fails, or `latest` of an empty history. A fatal outcome never counts as a

@@ -328,6 +328,91 @@ fn full_histories_refuse_the_event_and_the_session_continues() {
     );
 }
 
+const PULL_REQUESTS: &str = r#"
+place repo kind repo;
+entity pr_a kind pr at repo;
+entity pr_b kind pr at repo;
+claim changed;
+event pushed target kind pr;
+for pr as $p {
+    evidence $p_push from "a new commit on $p";
+    renewable $p_push limit 2;
+    state $p_pushes = 0 min 0 max 9;
+    on pushed when target == $index set $p_pushes = $p_pushes + 1;
+    on pushed when target == $index and observed($p_push) renew $p_push;
+    on pushed when target == $index reveal $p_push supports changed;
+};
+"#;
+
+// A renewable evidence at its limit refuses the event that would renew it,
+// classified, and the session goes on. The program has the agent ledger's
+// shape: one renewable push per pull request, so one pull request running out
+// of renewals must not end the session for the others.
+#[test]
+fn a_full_renewal_refuses_the_event_and_other_subjects_continue() {
+    let mut game = session(PULL_REQUESTS);
+    let a = r#"{"target":"pr_a"}"#;
+    let b = r#"{"target":"pr_b"}"#;
+    game.dispatch("pushed", a).unwrap();
+    game.dispatch("pushed", a).unwrap();
+    // The third push would need pr_a_push@3. The count set by the rule before
+    // the renew is rolled back with the rest of the event.
+    let refused = rejected(&mut game, "pushed", a, "limit", "renewal_limit");
+    assert_eq!(
+        refused["message"],
+        "event pushed, rule 2: renewable pr_a_push reached its limit 2"
+    );
+    // Refused again, still classified: the limit is a state, not a one-off.
+    rejected(&mut game, "pushed", a, "limit", "renewal_limit");
+
+    // The other pull request is unaffected.
+    let accepted = json(&game.dispatch_outcome("pushed", b).unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    let snapshot = &accepted["snapshot"];
+    assert_eq!(snapshot["values"]["pr_a_pushes"], 2.0);
+    assert_eq!(snapshot["values"]["pr_b_pushes"], 1.0);
+    assert_eq!(
+        snapshot["renewals"]["pr_a_push"]["occurrences"],
+        json!(["pr_a_push", "pr_a_push@2"])
+    );
+    assert_eq!(
+        snapshot["renewals"]["pr_b_push"]["occurrences"],
+        json!(["pr_b_push"])
+    );
+
+    // The same holds after a save and restore.
+    let restored = WebReactiveSession::restore(PULL_REQUESTS, &game.save().unwrap());
+    let mut restored = restored.unwrap_or_else(|error| panic!("restore failed: {error}"));
+    rejected(&mut restored, "pushed", a, "limit", "renewal_limit");
+    let accepted = json(&restored.dispatch_outcome("pushed", b).unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    assert_eq!(accepted["snapshot"]["values"]["pr_b_pushes"], 2.0);
+}
+
+// Inside a procedure the refusal keeps its classification and gains the
+// procedure's context, like every other diagnostic.
+#[test]
+fn a_full_renewal_inside_a_procedure_is_still_classified() {
+    let mut game = session(
+        r#"
+        claim safe;
+        evidence bite from "a bite";
+        renewable bite limit 1;
+        event regrow;
+        proc again() { renew bite; };
+        on regrow call again();
+    "#,
+    );
+    let refused = rejected(&mut game, "regrow", "{}", "limit", "renewal_limit");
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .ends_with("renewable bite reached its limit 1"),
+        "{refused}"
+    );
+}
+
 #[test]
 fn the_maximum_valid_procedure_depth_still_dispatches() {
     let mut source = String::from("state output = 0; event run; proc p0() { set output = 1; };");

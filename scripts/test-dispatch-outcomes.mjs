@@ -293,6 +293,28 @@ try {
       });
     });
 
+    check('a renewal past its limit is an atomic limit rejection and other members continue', () => {
+      const source = fixture('renewal-limit', `place repo kind repo;
+        entity pr_a kind pr at repo; entity pr_b kind pr at repo;
+        claim changed; event pushed target kind pr;
+        for pr as $p {
+          evidence $p_push from "a new commit"; renewable $p_push limit 2;
+          state $p_pushes = 0 min 0 max 9;
+          on pushed when target == $index set $p_pushes = $p_pushes + 1;
+          on pushed when target == $index and observed($p_push) renew $p_push;
+          on pushed when target == $index reveal $p_push supports changed;
+        };`);
+      withSessions(source, 1, session => {
+        dispatch(session, 'pushed', '{"target":"pr_a"}');
+        dispatch(session, 'pushed', '{"target":"pr_a"}');
+        rejected(session, 'pushed', '{"target":"pr_a"}', 'limit', 'renewal_limit');
+        const accepted = dispatch(session, 'pushed', '{"target":"pr_b"}');
+        assert.equal(accepted.outcome, 'accepted');
+        assert.equal(accepted.snapshot.values.pr_a_pushes, 2);
+        assert.equal(accepted.snapshot.values.pr_b_pushes, 1);
+      });
+    });
+
     check('identifiers go in as text, are handles inside, and a refused event adds none', () => {
       const sha = '602bdbec0a047a5319f53e83f336b9f7aec0e5ed';
       const source = fixture('identifiers', `identifiers limit 2; state head = 0;

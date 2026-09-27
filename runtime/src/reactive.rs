@@ -3845,11 +3845,11 @@ impl ReactiveSession {
             Effect::Renew { evidence } => {
                 let renewal = &self.renewals[evidence];
                 if renewal.occurrences.len() >= renewal.limit {
-                    return Err(format!(
-                        "renewable {evidence} reached its limit {}",
-                        renewal.limit
-                    )
-                    .into());
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Limit,
+                        RejectionCode::RenewalLimit,
+                        format!("renewable {evidence} reached its limit {}", renewal.limit),
+                    ));
                 }
                 let ordinal = renewal.occurrences.len() + 1;
                 let name = format!("{evidence}@{ordinal}");

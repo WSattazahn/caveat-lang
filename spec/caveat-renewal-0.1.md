@@ -47,8 +47,12 @@ means that one: `reveal`, `qualified(…, EVIDENCE)`, `observed(EVIDENCE)`,
   `taste_cave@2`. Nothing merges them, so provenance stays true.
 - The rule's guard joins the new occurrence's observation lineage, as a
   sample's does.
-- `renew` past the declared limit fails the event. The limit bounds how much
-  graph a program can grow, like a reading stream's.
+- `renew` past the declared limit refuses the event as `limit/renewal_limit`
+  ([dispatch outcomes](caveat-dispatch-0.1.md)). Nothing the event did is
+  kept, and the session continues. A refused clock event advances no time,
+  as with any refusal, so a rule that renews on every clock event stops time
+  once the limit is reached. The limit bounds how much graph a program can
+  grow, like a reading stream's.
 - `effects` reports `{"kind": "renew", "evidence": "taste_cave",
   "occurrence": "taste_cave@2"}`, and `renewals` in the snapshot lists every
   occurrence of each renewable evidence, first to current.
@@ -94,3 +98,13 @@ the evidence's qualification, whether the answer is true or false. Its grounds
 are the evidence and its caveats when it is observed. A label can therefore say
 "taste has faded" because the taste carries the caveat, with no second timer in
 state that could disagree with the evidence.
+
+## Changes
+
+- 2026-09-26: `renew` past the declared limit is refused as
+  `limit/renewal_limit`, and the session continues. Before this it was a fatal
+  `unclassified` error, so the host had to discard the session although the
+  runtime had already rolled the event back. In a program that keeps one
+  renewable evidence per subject, such as the agent ledger's push per pull
+  request, one subject's exhausted renewals ended the session for every
+  subject. The rollback and the diagnostic text are unchanged.
