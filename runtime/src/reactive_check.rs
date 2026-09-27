@@ -500,18 +500,38 @@ fn unrouted_member_rules(
         )
         .collect::<HashMap<_, _>>();
 
-    let mut found = Vec::new();
+    let read_as_written = |text: &str, binding: &str, at: Position| {
+        let text = crate::repeat::instantiate(text, binding, &marker, &marker).ok()?;
+        parse_directive_at(text.trim(), at)?.ok()
+    };
+    // The defines written in blocks, as written, by the kind the block ranges
+    // over. The marker stands for any binding, so a rule can use a define that
+    // another block over the same kind wrote.
+    let mut kind_defines: HashMap<&str, Vec<(String, Expr)>> = HashMap::new();
     for block in blocks {
-        let as_written = |text: &str, at: Position| {
-            let text = crate::repeat::instantiate(text, &block.binding, &marker, &marker).ok()?;
-            parse_directive_at(text.trim(), at)?.ok()
-        };
-        let mut defines = program_defines.clone();
         for (text, at) in &block.body {
-            if let Some(Directive::Define { name, expression }) = as_written(text, *at) {
-                defines.insert(name, expression);
+            if let Some(Directive::Define { name, expression }) =
+                read_as_written(text, &block.binding, *at)
+            {
+                kind_defines
+                    .entry(block.kind.as_str())
+                    .or_default()
+                    .push((name, expression));
             }
         }
+    }
+
+    let mut found = Vec::new();
+    for block in blocks {
+        let as_written = |text: &str, at: Position| read_as_written(text, &block.binding, at);
+        let mut defines = program_defines.clone();
+        defines.extend(
+            kind_defines
+                .get(block.kind.as_str())
+                .into_iter()
+                .flatten()
+                .cloned(),
+        );
         // `Q.MEMBER` for a parameter `Q` of the block's kind.
         let member_constant = |name: &str| {
             name.split_once('.').is_some_and(|(parameter, member)| {
@@ -532,6 +552,11 @@ fn unrouted_member_rules(
             let Some(Directive::Rule(written)) = as_written(template, *at) else {
                 continue;
             };
+            // An event named after the member is that member's own, so the
+            // event already selects it.
+            if written.event.contains(&marker) {
+                continue;
+            }
             let mut conjuncts = Vec::new();
             guard_conjuncts(
                 &written.condition,

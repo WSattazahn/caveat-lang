@@ -133,14 +133,17 @@ The top-level conjuncts are the operands of the guard's chain of `and`.
 Parentheses do not change them: `(A and B) and C` has three. A conjunct that
 is the name of a [define](caveat-define-0.1.md) is replaced by the conjuncts of
 its expression as written, so `define $m_here = target == $index;` followed by
-`on absorb when $m_here and ...` is routed. A comparison under `or` or `not`,
+`on absorb when $m_here and ...` is routed. The defines read this way are every
+define outside a block, and every define written in a block over the same
+KIND, whatever its binding. A define written out by hand for one member, such
+as `define north_here = target == 1;`, is read as written, with its number, and
+so does not count. A comparison under `or` or `not`,
 or inside a function call or an `if`, is not a top-level conjunct and does not
 count. Neither does a comparison with `!=`, or with a number such as
 `target == 1`.
 
 The warning is at the rule where it is written in the block, once for each
-member whose copy is not routed. When EVENT is itself written with `$NAME`,
-each member's copy is checked against its own event. The suggestion is to add
+member whose copy is not routed. The suggestion is to add
 the selection if the rule is about the member the event names, or to allow
 the rule on purpose if it should run for every member.
 
@@ -148,12 +151,22 @@ It does not check:
 
 - a rule on an event with no parameter of the block's kind, such as `tick`,
   which reaches every member by design;
+- a rule on an event written with `$NAME` or `$index`, such as
+  `on absorb_$m`. Each member's copy runs on that member's own event, so the
+  event already selects the member;
 - a rule that mentions neither `$NAME` nor `$index`, whose copies are all the
   same;
+- a rule that loads only once `$index` is a number, such as
+  `examine X cost $index`, because it cannot be read as written;
 - rules outside `for` blocks, procedure steps and bindings;
 - whether the selection is the right one. `target == target.north` in the
   copy for `south` is routed, and so is one parameter compared where another
   was meant.
+
+A selection made another way is not recognized, and the rule is reported. For
+example, after `on read set current = target;`, the guard
+`current == $index` does select the member, but not in a form above. Allow
+such a rule on purpose.
 
 A rule that should run for every member, such as one that resets every
 member's count on each event, is allowed on purpose with
@@ -217,6 +230,8 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
 - C003 `unrouted-member-rule`. In a study of the agent ledger, each of its 31
   member rules was written again without its selection, one at a time. Every
   such program loaded and checked clean. C003 reports all 31. In the
-  repository's unchanged programs it reports only two rules in Trail Rescue
-  that reset every tunnel on purpose; they are now allowed. A program that
-  checked clean before may now warn, and fail with `--strict`.
+  repository's programs it reports only two rules in Trail Rescue, which reset
+  every tunnel's tallies on each observation on purpose. They carry no allow
+  comment, because the Trail Rescue dispatch audit pins that file byte for
+  byte. A program that checked clean before may now warn, and fail with
+  `--strict`.

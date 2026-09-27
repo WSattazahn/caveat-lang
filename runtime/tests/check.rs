@@ -365,7 +365,6 @@ fn the_shipped_examples_check_clean() {
         "../experiments/agent-ledger/ledger-identifiers.cav",
         // The other programs with `for` blocks.
         "../game/glowcap.cav",
-        "../game/trail_rescue.cav",
         "../experiments/glowcap/caveat/glowcap.cav",
         "../experiments/glowcap/caveat2/glowcap.cav",
         "../experiments/glowcap/caveat3/glowcap.cav",
@@ -377,17 +376,16 @@ fn the_shipped_examples_check_clean() {
     }
 }
 
+// Trail Rescue resets every tunnel's tallies on each observation, on purpose.
+// C003 reports both rules. They carry no allow comment because the Trail
+// Rescue dispatch audit pins the file byte for byte.
 #[test]
 fn trail_rescue_recounts_every_tunnel_on_purpose() {
     let source = read("../game/trail_rescue.cav");
     let support = line_of(&source, "on observe set $t_support");
     let opposition = line_of(&source, "on observe set $t_opposition");
     assert_eq!(
-        check(&source)
-            .suppressed
-            .iter()
-            .map(|diagnostic| (diagnostic.code, diagnostic.line))
-            .collect::<Vec<_>>(),
+        codes(&check(&source)),
         [
             ("C003", support),
             ("C003", support),
@@ -404,6 +402,7 @@ entity south kind plot at field;
 entity handheld kind probe at field;
 state seen = 0;
 fn same(a, b) = a == b;
+fn slot(i) = i;
 event read target kind plot, celsius min -40 max 60;
 event swap device kind probe;
 event tick dt min 0 max 0.1;
@@ -463,6 +462,10 @@ fn every_way_of_selecting_the_member_routes_the_rule() {
         "on read when target == target.$p set $p_last = celsius;",
         "on read when target == $p_slot set $p_last = celsius;",
         "on read when $index + 0 == target set $p_last = celsius;",
+        "on read when target == -(-$index) set $p_last = celsius;",
+        "on read when target == if(celsius > 0, $index, $index) set $p_last = celsius;",
+        "on read when target == round($index) set $p_last = celsius;",
+        "on read when target == slot($index) set $p_last = celsius;",
         // Through a define, and a define that uses another.
         "on read when $p_here set $p_last = celsius;",
         "define $p_warm = $p_here and celsius > 2;\n    on read when $p_warm set $p_last = celsius;",
@@ -483,6 +486,7 @@ fn a_selection_that_is_not_a_top_level_conjunct_does_not_count() {
     for rules in [
         "on read when target == $index or celsius > 50 set $p_last = celsius;",
         "on read when not (target != $index) set $p_last = celsius;",
+        "on read when not (target == $index) set $p_last = 0;",
         "on read when target != $index set $p_last = 0;",
         "on read when same(target, $index) set $p_last = celsius;",
         "on read when if(celsius > 0, target == $index, false) set $p_last = celsius;",
@@ -519,21 +523,20 @@ fn rules_that_reach_every_member_by_design_are_not_checked() {
 }
 
 #[test]
-fn each_copy_is_checked_against_its_own_event() {
+fn a_rule_on_the_members_own_event_is_not_checked() {
     let source = format!(
         "{PLOTS}event north_read target kind plot, celsius min -40 max 60;
-event south_read celsius min -40 max 60;
+event south_read target kind plot, celsius min -40 max 60;
 for plot as $p {{
     state $p_last = 0 min -40 max 60;
+    state $p_spread_to = 0;
+    event absorb_$p spread kind plot;
     on $p_read set $p_last = celsius;
+    on absorb_$p set $p_spread_to = spread;
 }};
 "
     );
-    let report = check(&source);
-    assert_eq!(codes(&report), [("C003", line_of(&source, "on $p_read"))]);
-    assert!(report.diagnostics[0]
-        .message
-        .starts_with("the rule on `north_read` for `north` runs"));
+    assert_eq!(codes(&check(&source)), []);
 }
 
 #[test]
@@ -564,4 +567,99 @@ fn a_member_rule_is_allowed_by_code_or_by_name() {
             ("C003", second)
         ]
     );
+}
+
+#[test]
+fn a_define_from_another_block_over_the_same_kind_routes_the_rule() {
+    // The define is written in one block and used in another, with another
+    // binding. A block over another kind writes a define of the same shape.
+    let source = format!(
+        "{PLOTS}for plot as $p {{
+    state $p_last = 0 min -40 max 60;
+    define $p_here = target == $index;
+}};
+for probe as $d {{
+    define $d_here = device == $index;
+}};
+for plot as $q {{
+    on read when $q_here set $q_last = celsius;
+    define $q_warm = $q_here and celsius > 2;
+    on read when $q_warm set $q_last = 2;
+}};
+"
+    );
+    assert_eq!(codes(&check(&source)), []);
+}
+
+#[test]
+fn a_define_outside_the_blocks_counts_when_it_names_a_member() {
+    let source = format!(
+        "{PLOTS}define north_watched = target == target.north;
+define south_here = target == 2;
+for plot as $p {{
+    state $p_last = 0 min -40 max 60;
+    on read when north_watched set $p_last = celsius;
+    on read when south_here set $p_last = 0;
+}};
+"
+    );
+    // A member constant is a selection. A hand-written number is not.
+    let line = line_of(&source, "on read when south_here");
+    assert_eq!(codes(&check(&source)), [("C003", line), ("C003", line)]);
+}
+
+#[test]
+fn a_rule_is_routed_by_any_parameter_of_the_kind() {
+    let source = format!(
+        "{PLOTS}event move from kind plot, to kind plot;
+for plot as $p {{
+    state $p_moves = 0;
+    on move when to == $index set $p_moves = $p_moves + 1;
+    on move when $index == from set $p_moves = $p_moves - 1;
+    on move set $p_moves = 0;
+}};
+"
+    );
+    let report = check(&source);
+    let line = line_of(&source, "on move set");
+    assert_eq!(codes(&report), [("C003", line), ("C003", line)]);
+    assert!(
+        report.diagnostics[0]
+            .message
+            .ends_with("runs whichever plot `from` or `to` names: its guard does not select one"),
+        "{}",
+        report.diagnostics[0].message
+    );
+}
+
+#[test]
+fn a_kind_with_one_member_warns_once() {
+    let source = "place field kind field;
+entity north kind plot at field;
+event read target kind plot, celsius min -40 max 60;
+for plot as $p {
+    state $p_last = 0 min -40 max 60;
+    on read set $p_last = celsius;
+};
+";
+    assert_eq!(
+        codes(&check(source)),
+        [("C003", line_of(source, "on read set"))]
+    );
+}
+
+#[test]
+fn a_rule_that_reads_only_once_expanded_is_skipped_not_an_error() {
+    // Written, `"\$p"` holds an escape the scanner refuses. Expanded, it is
+    // `"\north"` and `"\tarn"`, which load.
+    let source = "place field kind field;
+entity north kind plot at field;
+entity tarn kind plot at field;
+event read target kind plot;
+for plot as $p {
+    on read reject \"\\$p\";
+};
+";
+    let report = check_source(source).expect("a program that loads is checked");
+    assert_eq!(codes(&report), []);
 }
