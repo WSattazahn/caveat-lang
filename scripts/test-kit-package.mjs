@@ -168,6 +168,14 @@ for (const file of [...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target)].fil
     }
   }
 }
+// Routed blocks ship with their profile, and the references that link to it
+// reach it inside the package.
+const routedSpec = 'docs/reference/spec/caveat-routed-repetition-0.1.md';
+assert.ok(existsSync(path.join(installed, routedSpec)), `${routedSpec} is in the package`);
+for (const from of ['caveat-repetition-0.1.md', 'caveat-check-0.1.md']) {
+  const link = `docs/reference/spec/${from} -> caveat-routed-repetition-0.1.md`;
+  assert.ok(!outside.includes(link), `${link} resolves inside the package`);
+}
 report.docs = { copied: STAGED_DOCS.length, linksOutsidePackage: outside };
 report.checks.docs = true;
 

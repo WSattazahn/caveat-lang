@@ -1,5 +1,5 @@
 {
-  "note": "Repository files copied into the package when it is packed, each at docs/reference/ plus its repository path, so links between them keep working. The first 27 are the reference set the v2 authoring study used; the kit adds its four specs, identifiers, withdrawal, permission, reopening triggers and the thermostat example.",
+  "note": "Repository files copied into the package when it is packed, each at docs/reference/ plus its repository path, so links between them keep working. The first 27 are the reference set the v2 authoring study used; the kit adds its four specs, identifiers, withdrawal, permission, reopening triggers, routed repetition and the thermostat example.",
   "reference": [
     "docs/AI_AUTHORING.md",
     "docs/CAVEAT_ESSENCE.md",
@@ -14,6 +14,7 @@
     "spec/caveat-0.1.md",
     "spec/caveat-define-0.1.md",
     "spec/caveat-repetition-0.1.md",
+    "spec/caveat-routed-repetition-0.1.md",
     "spec/caveat-procedure-symbols-0.1.md",
     "spec/caveat-typed-parameters-0.1.md",
     "spec/caveat-identifiers-0.1.md",
