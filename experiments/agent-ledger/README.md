@@ -136,6 +136,17 @@ lineage. It is permission, and Caveat has no word for it, or for its scope.
   whether an input is true. That includes whether a message was a go-ahead
   for this pull request at this head, as the correction above shows.
 - One day, one repository, and one kind of decision.
+- **Capacity.** A program's reading and decision capacities may total at most
+  1,024 ([reactive 0.5](../../spec/caveat-reactive-0.5.md), "Bounds and
+  failure"). At `ledger-identifiers.cav`'s configured capacities, each pull
+  request takes 88 of them: 32 check readings, 32 gate readings, 16 go-aheads
+  and 8 merge decisions. So one session holds at most 11 pull requests
+  (968). With a twelfth declared, the program does not load: "declared history
+  capacity exceeds 1024". This is this ledger's limit, not the language's:
+  smaller per-PR capacities hold more pull requests, and any history shared
+  by all of them leaves room for fewer. `renewable $p_push limit 64` also
+  allows 64 pushes per pull request. A 65th push is refused as
+  `limit/renewal_limit`, and the other pull requests carry on (scenario I11).
 
 ## Follow-up: identifiers
 
@@ -154,9 +165,11 @@ and shows the commits as themselves:
 ```
 
 [`ledger-identifiers.scenarios.json`](ledger-identifiers.scenarios.json)
-tests two things:
+tests two things here:
 - two SHAs that share their first eight hex digits stay two commits;
 - a refused event keeps no identifier.
+
+Its later scenarios are described below.
 
 Pull requests are still declared in the source: declarations made per
 identifier are not part of that profile.
@@ -214,6 +227,57 @@ pull request was not merged elsewhere (`$p_merged == 0`), and a declaration
 cannot say that. Replacing them would change the ledger's policy, not shorten
 it. Scenario I04 records the behavior that has to be kept: after someone else
 merged the pull request, a failed check does not reopen the merge decision.
+
+## Follow-up: keeping pull requests apart
+
+Each pull request's rules stay with it only because every rule in the `for`
+block starts with `target == $index`. A `for` block is a text expansion
+([Repetition 0.1](../../spec/caveat-repetition-0.1.md)), so nothing else
+keeps a rule to its own member, and `caveat check` does not look for a
+missing selection. Two pull requests at the same SHA hold the same identifier
+handle, so only their separate streams keep one's go-ahead from permitting the
+other.
+
+The first four scenarios each use one pull request. To measure what they
+miss, one selection at a time was removed from each of the 31 rules that carry
+one:
+- every such program still loads and checks clean;
+- I01-I04 caught 6 of the 31.
+
+The sharpest one they missed drops the selection from `on approved`. pr28's
+go-ahead is then recorded in pr29's stream, and at the same SHA it permits
+pr29's merge.
+
+I05-I11 put two or more pull requests in one scenario:
+- **I05:** the same SHA, a go-ahead for only one of them, across two resumes.
+- **I06:** interleaved events.
+- **I07 and I08:** every kind of event on one pull request, pr28 in I07 and
+  pr29 in I08.
+  - After each event, the other one and the two untouched pull requests, pr21
+    and pr26, must still have the same streams, decisions, values and
+    bindings.
+  - At the end, none of their evidence may be observed. Evidence cannot be
+    un-observed, so one check at the end covers every event.
+- **I09:** a pull request merged elsewhere blocks only its own merge, and
+  observes its own evidence.
+- **I10:** the same SHA with different results. Each result stays with its
+  own pull request.
+- **I11:** one pull request's 65th push is refused, and the others carry on.
+
+**What they catch.** These are regression tests written with known slips in
+view, not a proof that no slip can leak.
+- **The 31 selection removals:** the scenarios catch all 31.
+- **11 more slips from review.** A later review found slips of other kinds
+  that passed the first version of these scenarios:
+  - selecting by the shared commit instead of the pull request
+    (`commit == $p_head`), which let pr28's pass at the same SHA make pr29
+    green;
+  - selections written as `target >= $index`, which leak only to
+    lower-numbered pull requests;
+  - a reveal hard-coded to one member.
+
+  I07-I10 were extended for them, and each of the 11 now fails at least one
+  scenario.
 
 ## Suggested order for the language work
 
