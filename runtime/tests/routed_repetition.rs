@@ -191,6 +191,105 @@ fn an_or_is_the_operator_as_the_expression_reader_reads_it() {
     }
 }
 
+#[test]
+fn a_guard_that_names_a_parameter_like_an_effect_word_ends_at_the_complete_effect() {
+    // `commit` is an effect word and here a parameter too. The guard ends at
+    // `set`, the first effect word that begins a complete effect, so the
+    // whole guard, `or` and all, goes in the parentheses.
+    let source = |guard: &str| {
+        format!(
+            "{PLOTS}event mark target kind plot, commit min 0 max 9, value min 0 max 9;
+{ROUTED} {{
+    state $p_hits = 0;
+    bind $p.hits = $p_hits;
+    on mark when {guard} set $p_hits = $p_hits + 1;
+}};
+"
+        )
+    };
+    for guard in ["commit == 1 or value == 0", "value == 0 or commit == 1"] {
+        let expanded = repeat::expand(&source(guard)).unwrap();
+        for (index, plot) in [(1, "north"), (2, "south")] {
+            let rule = format!(
+                "on mark when target == {index} and ({guard}) set {plot}_hits = {plot}_hits + 1;"
+            );
+            assert!(expanded.contains(&rule), "{rule}\n{expanded}");
+        }
+        let mut session = ReactiveSession::from_source(&source(guard)).unwrap();
+        session
+            .dispatch_json("mark", r#"{"target":"north","commit":0,"value":0}"#)
+            .unwrap();
+        assert_eq!(
+            hits(&session, "north"),
+            BindingValue::Number(1.0),
+            "{guard}"
+        );
+        assert_eq!(
+            hits(&session, "south"),
+            BindingValue::Number(0.0),
+            "{guard}"
+        );
+    }
+}
+
+/// A bundle of the module `glow` and the plots with one block, `header {
+/// body };`, as its program.
+fn glow_bundle(header: &str, body: &str) -> String {
+    link::bundle(&[
+        link::BundlePart {
+            name: "glow".into(),
+            source: "module glow;\nstate level = 0;\nevent charge v min 0 max 9;\non charge set level = v;\n"
+                .into(),
+        },
+        link::BundlePart {
+            name: "main".into(),
+            source: format!("use glow;\n{}", program(header, body)),
+        },
+    ])
+}
+
+#[test]
+fn a_qualified_name_is_read_as_linking_writes_it() {
+    // The pass runs before `glow::level` is written `glow__level`, and reads
+    // the copy as the loader will: the `or` is found in the guard, and the
+    // effect is complete.
+    for (guard, effect, north, south) in [
+        ("value > 5 or glow::level > 5", "$p_hits + 1", 1.0, 0.0),
+        ("value > 5 or value == 0", "glow::level", 9.0, 0.0),
+    ] {
+        let body = |guard: &str| {
+            format!(
+                "\n    state $p_hits = 0;\n    bind $p.hits = $p_hits;\n    on read when {guard} set $p_hits = {effect};\n"
+            )
+        };
+        let routed = link::link(&glow_bundle(ROUTED, &body(guard))).expect("links");
+        let hand = glow_bundle(PLAIN, &body(&format!("target == $index and ({guard})")));
+        assert_eq!(routed, link::link(&hand).unwrap(), "{guard}");
+        let routed_rule = format!(
+            "on read when target == 2 and ({}) set south_hits = {};",
+            guard.replace("::", "__"),
+            effect.replace("$p", "south").replace("::", "__")
+        );
+        assert!(routed.contains(&routed_rule), "{routed_rule}\n{routed}");
+
+        let mut session = ReactiveSession::from_source(&glow_bundle(ROUTED, &body(guard))).unwrap();
+        session.dispatch_json("glow__charge", r#"{"v":9}"#).unwrap();
+        session
+            .dispatch_json("read", r#"{"target":"north","value":0}"#)
+            .unwrap();
+        assert_eq!(
+            hits(&session, "north"),
+            BindingValue::Number(north),
+            "{guard}"
+        );
+        assert_eq!(
+            hits(&session, "south"),
+            BindingValue::Number(south),
+            "{guard}"
+        );
+    }
+}
+
 /// A block that counts each plot's pings, with `guard` on the count.
 fn pings(header: &str, guard: &str) -> ReactiveSession {
     let source = program(
@@ -368,23 +467,154 @@ fn rules_on_events_that_name_no_member_by_p_expand_as_written() {
 }
 
 #[test]
-fn an_event_a_for_block_declares_is_read_once_expanded() {
+fn a_rule_that_mentions_no_binding_on_an_event_that_names_no_member_expands_as_written() {
+    let body = "\n    state $p_n = 0;\n    on tick set total = total + 1;\n    on read set $p_n = value;\n";
+    assert_eq!(
+        routed(body),
+        plain(&body.replace("on read set", "on read when target == $index set"))
+    );
+    ReactiveSession::from_source(&program(ROUTED, body)).expect("loads");
+    // Such a rule on an event the pass cannot read, or on one whose P has
+    // another form, is not routed, so its own error comes first.
+    assert_eq!(
+        refused(
+            ROUTED,
+            "\n    state $p_n = 0;\n    on landed set total = 1;\n    on read set $p_n = value;\n"
+        ),
+        "`on landed` in `for plot as $p routed by target`: no event `landed` is declared in this part, so the block cannot tell whether it names a plot"
+    );
     let source = format!(
-        "{PLOTS}for probe as $d {{
-    event poke_$d target kind plot;
+        "{PLOTS}event tally target id;\n{ROUTED} {{ on tally set total = 1; on read set $p_n = value; }};"
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        "`on tally` in `for plot as $p routed by target`: `tally` declares `target id`, not `target kind plot`; keep the rules on `tally` in a plain for block"
+    );
+}
+
+#[test]
+fn a_last_rule_without_its_semicolon_is_routed_like_any_other() {
+    // The parser reads a last statement without its `;`.
+    let body = "\n    state $p_n = 0;\n    on ping set $p_n = 1;\n    on read set $p_m = value\n";
+    assert_eq!(
+        routed(body),
+        plain(&body.replace(" set $p_", " when target == $index set $p_"))
+    );
+    assert_eq!(
+        routed(" state $p_n = 0; on read set $p_n = value\n"),
+        plain(" state $p_n = 0; on read when target == $index set $p_n = value\n")
+    );
+    assert_eq!(
+        refused(
+            ROUTED,
+            "\n    state $p_n = 0;\n    on ping set $p_n = 1;\n    on read set total = value\n"
+        ),
+        "`on read` in `for plot as $p routed by target` mentions neither `$p` nor `$index`; its copies are all the same rule, so write it once, outside the block"
+    );
+    // With one member, the copy is a last statement that loads, as the
+    // hand-routed one does.
+    let source = |header: &str, rule: &str| {
+        format!("{PLOTS}{header} {{ state $d_n = 0; bind $d.n = $d_n; {rule} }};\n")
+    };
+    let routed = source("for probe as $d routed by device", "on swap set $d_n = 1");
+    assert_eq!(
+        repeat::expand(&routed).unwrap(),
+        repeat::expand(&source(
+            "for probe as $d",
+            "on swap when device == $index set $d_n = 1"
+        ))
+        .unwrap()
+    );
+    let mut session = ReactiveSession::from_source(&routed).expect("loads");
+    session
+        .dispatch_json("swap", r#"{"device":"handheld"}"#)
+        .unwrap();
+    assert_eq!(
+        session.snapshot().bindings["handheld"]["n"],
+        BindingValue::Number(1.0)
+    );
+}
+
+#[test]
+fn an_event_a_for_block_declares_is_read_once_expanded() {
+    // In a plain block, and in a routed one.
+    for (header, rules) in [
+        ("for probe as $d", ""),
+        ("for probe as $d routed by device", " on swap set $d_x = 1;"),
+    ] {
+        let source = format!(
+            "{PLOTS}{header} {{
+    state $d_x = 0;
+    event poke_$d target kind plot;{rules}
 }};
 {ROUTED} {{
     state $p_n = 0;
     on poke_handheld set $p_n = 1;
 }};
 "
+        );
+        let expanded = repeat::expand(&source).unwrap();
+        assert!(
+            expanded.contains("on poke_handheld when target == 1 set north_n = 1;")
+                && expanded.contains("on poke_handheld when target == 2 set south_n = 1;"),
+            "{expanded}"
+        );
+        ReactiveSession::from_source(&source).expect("loads");
+    }
+}
+
+#[test]
+fn an_event_declared_in_a_block_that_does_not_expand_is_not_read() {
+    // The block's `event` statement expands, and another statement does not,
+    // so the block does not: the routed block before it cannot read the
+    // event, and loading stops there.
+    let unread = "`on poke_handheld` in `for plot as $p routed by target`: no event `poke_handheld` is declared in this part, so the block cannot tell whether it names a plot";
+    for block in [
+        "for probe as $d { event poke_$d target kind plot; claim $typo; };",
+        "for probe as $d { event poke_$d target kind plot; for plot as $q { claim $q; }; };",
+        "for probe is $d { event poke_$d target kind plot; };",
+    ] {
+        let source = format!(
+            "{PLOTS}{ROUTED} {{ state $p_n = 0; on poke_handheld set $p_n = 1; }};\n{block}\n"
+        );
+        assert_eq!(repeat::expand(&source).unwrap_err(), unread, "{block}");
+    }
+}
+
+#[test]
+fn a_last_event_declaration_without_its_semicolon_is_read() {
+    // The parser reads it, so the part declares the event.
+    let source = |header: &str, rule: &str| {
+        format!(
+            "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+{header} {{
+    state $p_hits = 0;
+    {rule}
+}};
+event read target kind plot"
+        )
+    };
+    let routed = source(ROUTED, "on read set $p_hits = 1;");
+    assert_eq!(
+        repeat::expand(&routed).unwrap(),
+        repeat::expand(&source(
+            PLAIN,
+            "on read when target == $index set $p_hits = 1;"
+        ))
+        .unwrap()
     );
-    let expanded = repeat::expand(&source).unwrap();
-    assert!(
-        expanded.contains("on poke_handheld when target == 1 set north_n = 1;")
-            && expanded.contains("on poke_handheld when target == 2 set south_n = 1;"),
-        "{expanded}"
+    ReactiveSession::from_source(&routed).expect("loads");
+    // So is a `for` block's last `event` statement, once expanded.
+    let source = format!(
+        "{PLOTS}{ROUTED} {{ state $p_n = 0; on poke_handheld set $p_n = 1; }};
+for probe as $d {{ event poke_$d target kind plot }};
+"
     );
+    assert!(repeat::expand(&source)
+        .unwrap()
+        .contains("on poke_handheld when target == 2 set south_n = 1;"));
     ReactiveSession::from_source(&source).expect("loads");
 }
 
@@ -400,6 +630,10 @@ fn a_malformed_routed_header_is_refused() {
         "for plot as $p routed by target extra",
         "for plot   as $p routed\n    by 1st",
         "for plot is $p routed by target",
+        // A binding that is not `$NAME` is not the routed header either.
+        "for plot as p routed by target",
+        "for plot as $1p routed by target",
+        "for plot as $p.x routed by target",
     ] {
         let normalized = header.split_whitespace().collect::<Vec<_>>().join(" ");
         assert_eq!(
@@ -408,13 +642,13 @@ fn a_malformed_routed_header_is_refused() {
             "{header}"
         );
     }
-    // The binding is Repetition 0.1's to refuse, as in a plain block.
+    // `$index` is a `$NAME`, which Repetition 0.1 refuses to rebind.
     assert_eq!(
         refused(
-            "for plot as p routed by target",
-            "\n    on read set p_n = value;\n"
+            "for plot as $index routed by target",
+            "\n    on read set total = $index;\n"
         ),
-        "p is not a binding; write $name"
+        "$index is provided by the block and cannot be rebound"
     );
     // A fifth word other than `routed` is Repetition 0.1's malformed header.
     assert!(
@@ -425,12 +659,29 @@ fn a_malformed_routed_header_is_refused() {
 
 #[test]
 fn a_block_that_routes_no_rule_is_refused() {
+    let expected = "`for plot as $p routed by target` routes no rule: no rule in it is on an event that declares `target kind plot`";
     assert_eq!(
         refused(
             ROUTED,
             "\n    state $p_n = 0;\n    on tick set $p_n = 0;\n    on swap set $p_n = 1;\n"
         ),
-        "`for plot as $p routed by target` routes no rule: no rule in it is on an event that declares `target kind plot`"
+        expected
+    );
+    // A rule on the member's own event is not routed.
+    assert_eq!(
+        refused(
+            ROUTED,
+            "\n    state $p_n = 0;\n    event nudge_$p;\n    on nudge_$p set $p_n = 1;\n"
+        ),
+        expected
+    );
+    // HEADER is written with each run of whitespace as one space.
+    assert_eq!(
+        refused(
+            "for  plot\n    as $p   routed by\ttarget",
+            "\n    on tick set $p_n = 0;\n"
+        ),
+        expected
     );
 }
 
@@ -451,6 +702,14 @@ fn p_declared_in_another_form_is_refused() {
             format!("`on tally` in `for plot as $p routed by target`: `tally` declares `{declared}`, not `target kind plot`; keep the rules on `tally` in a plain for block")
         );
     }
+    // A parameter of the kind besides P does not make it error 4.
+    let source = format!(
+        "{PLOTS}event tally target id, base kind plot;\n{ROUTED} {{ on tally set $p_n = 1; }};"
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        "`on tally` in `for plot as $p routed by target`: `tally` declares `target id`, not `target kind plot`; keep the rules on `tally` in a plain for block"
+    );
     // The example in section 7.
     let (_, converted) = ledger();
     let broken = converted.replace(
@@ -478,6 +737,14 @@ fn a_member_named_by_another_parameter_is_refused() {
     assert_eq!(
         repeat::expand(&source).unwrap_err(),
         "`on stacked` in `for plot as $p routed by target`: `stacked` names a plot by `base`, `head`, not by `target`; route the block by one of them, or keep the rules on `stacked` in a plain for block"
+    );
+    // In the order the event declares them.
+    let source = format!(
+        "{PLOTS}event stacked head kind plot, base kind plot;\n{ROUTED} {{ on stacked set $p_n = 1; }};"
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        "`on stacked` in `for plot as $p routed by target`: `stacked` names a plot by `head`, `base`, not by `target`; route the block by one of them, or keep the rules on `stacked` in a plain for block"
     );
 }
 
@@ -546,6 +813,70 @@ fn an_entity_of_the_kind_in_a_for_block_is_refused() {
         repeat::expand(&source).unwrap_err(),
         "`for plot as $p routed by target`: `$index` does not count entity `$d_plot` of kind plot, declared in a for block, but `target` does; declare it at the top level of this part"
     );
+    // An entity of another kind in a for block is not counted by `target`.
+    let source = format!(
+        "{PLOTS}for probe as $d {{ entity $d_tag kind tag at field; }};\n{ROUTED} {{ state $p_n = 0; on read set $p_n = value; }};\n"
+    );
+    assert!(repeat::expand(&source)
+        .unwrap()
+        .contains("on read when target == 2 set south_n = value;"));
+    ReactiveSession::from_source(&source).expect("loads");
+}
+
+/// Plots north and south, with `north` written as given, and a routed block.
+fn with_north(north: &str, after: &str) -> String {
+    format!(
+        "place field kind field;
+{north}
+entity south kind plot at field;
+event read target kind plot, value min 0 max 9;
+{ROUTED} {{
+    state $p_hits = 0;
+    on read set $p_hits = $p_hits + 1;
+}};
+{after}"
+    )
+}
+
+#[test]
+fn a_top_level_entity_that_index_does_not_count_is_refused() {
+    // The parser declares north, so `target` counts it as 1. Repetition 0.1
+    // does not read a statement with a comment inside it, so `$index` would
+    // give south 1: an event about north would run south's copy.
+    for north in [
+        "entity north kind plot # the first plot\n    at field;",
+        "entity north kind plot // the first plot\n    at field;",
+    ] {
+        assert_eq!(
+            repeat::expand(&with_north(north, "")).unwrap_err(),
+            "`for plot as $p routed by target`: `$index` does not count entity `north` of kind plot, whose statement has a comment in it, but `target` does; move the comment out of the statement",
+            "{north}"
+        );
+    }
+    // Nor a last statement without its `;`.
+    assert_eq!(
+        repeat::expand(&with_north(
+            "entity north kind plot at field;",
+            "entity east kind plot at field"
+        ))
+        .unwrap_err(),
+        "`for plot as $p routed by target`: `$index` does not count entity `east` of kind plot, whose statement has no `;`, but `target` does; end the statement with `;`"
+    );
+    // A comment elsewhere, a statement over several lines and an entity of
+    // another kind are read as before.
+    let source = with_north(
+        "# the first plot\nentity north\n    kind plot at field; # north\nentity tag kind tag # a tag\n    at field;",
+        "",
+    );
+    assert!(repeat::expand(&source)
+        .unwrap()
+        .contains("on read when target == 2 set south_hits = south_hits + 1;"));
+    ReactiveSession::from_source(&source).expect("loads");
+    // A plain block is unchanged: Repetition 0.1 still expands it.
+    let plain = with_north("entity north kind plot # the first plot\n    at field;", "")
+        .replace(ROUTED, PLAIN);
+    assert_eq!(repeat::expand(&plain), repetition_0_1::expand(&plain));
+    assert!(repeat::expand(&plain).is_ok());
 }
 
 #[test]
@@ -562,6 +893,14 @@ fn errors_come_in_the_order_section_7_gives() {
         "{PLOTS}{entity}{ROUTED} {{ on landed set total = 1; }};"
     ))
     .contains("does not count entity `$d_plot`"));
+    // An entity in a for block, then a top-level one `$index` does not
+    // count, then the rules.
+    let commented = "entity north kind plot # the first plot\n    at field;";
+    assert!(first(with_north(commented, entity)).contains("declared in a for block"));
+    assert!(
+        first(with_north(commented, "").replace("on read", "on landed"))
+            .contains("whose statement has a comment in it")
+    );
     // The rules in the order written, then whether any rule is routed.
     let rules = |body: &str| first(format!("{PLOTS}{ROUTED} {{ {body} }};"));
     assert!(rules("on read set total = 1; on landed set $p_n = 1;")
