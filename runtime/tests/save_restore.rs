@@ -364,79 +364,127 @@ const RELATION_KINDS: &str = "waits for fix/restore-relation-kinds; remove it wh
     with route@3 relies_on safe, or on evidence nothing observes, the next revision of route \
     is fatal";
 
-/// Fatal outcomes an accepted save still leads to, each a confirmed runtime
-/// bug with its own fix under way: the event, the exact full message, and the
-/// fix it waits for. A fatal outcome is skipped only when an entry names its
-/// event and its whole message, so an entry cannot hide any other fatal
-/// outcome; any other fails the test, like a crash. These are every message
-/// the default seed and seeds 1 to 6 produce in 30,000 rounds. Remove an
-/// entry when its fix is in the tested combination.
-const KNOWN_FATAL: [(&str, &str, &str); 12] = [
-    (
-        "start",
-        "event start, rule 2: current decision in route must be explicitly reopened before \
-         revision",
-        COMMIT_IN_FORCE,
-    ),
-    (
-        "tick",
-        "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured that its \
-         value and conditions never read",
-        LATE_CAVEAT_EXPLANATION,
-    ),
-    ("tick", "reactive event sequence exhausted", SEQUENCE_BOUND),
-    (
-        "read",
-        "event read, rule 5: route@1 must name a declared evidence",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: safe must name a declared evidence",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: stale must name a declared evidence",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: bite must name a declared caveat",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: bite@2 must name a declared caveat",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: flow@1 must name a declared caveat",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: route@1 must name a declared caveat",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: safe must name a declared caveat",
-        RELATION_KINDS,
-    ),
-    (
-        "read",
-        "event read, rule 5: commitment basis includes unobserved evidence bite",
-        RELATION_KINDS,
-    ),
+/// The seed the save fuzz runs with unless SAVE_FUZZ_SEED names another.
+const DEFAULT_SEED: u32 = 20_260_922;
+
+/// A fatal outcome an accepted save still leads to: a confirmed runtime bug
+/// with its own fix under way.
+struct KnownFatal {
+    /// The event that is fatal.
+    event: &'static str,
+    /// Its exact, full message.
+    message: &'static str,
+    /// The fix it waits for, and the bug.
+    waits: &'static str,
+    /// Its witness, the altered save that reproduces it: round `round`
+    /// (counted from 0) of the save fuzz run with seed `seed`.
+    seed: u32,
+    round: usize,
+}
+
+/// Fatal outcomes an accepted save still leads to. A fatal outcome is skipped
+/// only when an entry names its event and its whole message, so an entry
+/// cannot hide any other fatal outcome; any other fails the test, like a
+/// crash. These are every message the default seed and seeds 1 to 6 produce
+/// in 30,000 rounds. Each witness is an earliest round found for its entry
+/// running seeds 1 to 4,000 for 1,000 rounds each (seeds to 16,000 for the
+/// last). Remove an entry when its fix is in the tested combination:
+/// every_known_fatal_outcome_still_happens fails once its witness no longer
+/// reproduces it.
+const KNOWN_FATAL: [KnownFatal; 12] = [
+    KnownFatal {
+        event: "start",
+        message: "event start, rule 2: current decision in route must be explicitly reopened \
+                  before revision",
+        waits: COMMIT_IN_FORCE,
+        seed: 1032,
+        round: 0,
+    },
+    KnownFatal {
+        event: "tick",
+        message: "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured \
+                  that its value and conditions never read",
+        waits: LATE_CAVEAT_EXPLANATION,
+        seed: 1047,
+        round: 0,
+    },
+    KnownFatal {
+        event: "tick",
+        message: "reactive event sequence exhausted",
+        waits: SEQUENCE_BOUND,
+        seed: 2464,
+        round: 1,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: route@1 must name a declared evidence",
+        waits: RELATION_KINDS,
+        seed: 3199,
+        round: 19,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: safe must name a declared evidence",
+        waits: RELATION_KINDS,
+        seed: 3491,
+        round: 11,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: stale must name a declared evidence",
+        waits: RELATION_KINDS,
+        seed: 336,
+        round: 0,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: bite must name a declared caveat",
+        waits: RELATION_KINDS,
+        seed: 148,
+        round: 9,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: bite@2 must name a declared caveat",
+        waits: RELATION_KINDS,
+        seed: 2948,
+        round: 4,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: flow@1 must name a declared caveat",
+        waits: RELATION_KINDS,
+        seed: 59,
+        round: 17,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: route@1 must name a declared caveat",
+        waits: RELATION_KINDS,
+        seed: 1247,
+        round: 7,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: safe must name a declared caveat",
+        waits: RELATION_KINDS,
+        seed: 1520,
+        round: 3,
+    },
+    KnownFatal {
+        event: "read",
+        message: "event read, rule 5: commitment basis includes unobserved evidence bite",
+        waits: RELATION_KINDS,
+        seed: 15_978,
+        round: 216,
+    },
 ];
 
 /// The `KNOWN_FATAL` entry for a fatal `message` on `event`, if one names both.
 fn known_fatal(event: &str, message: &str) -> Option<usize> {
     KNOWN_FATAL
         .iter()
-        .position(|(on, known, _)| *on == event && *known == message)
+        .position(|known| known.event == event && known.message == message)
 }
 
 // An entry is one whole fatal outcome, so it can never hide another: the same
@@ -444,7 +492,13 @@ fn known_fatal(event: &str, message: &str) -> Option<usize> {
 // contains, is not skipped.
 #[test]
 fn a_known_fatal_outcome_is_its_event_and_whole_message() {
-    for (index, (event, message, waits)) in KNOWN_FATAL.iter().enumerate() {
+    for (index, known) in KNOWN_FATAL.iter().enumerate() {
+        let KnownFatal {
+            event,
+            message,
+            waits,
+            ..
+        } = known;
         assert!(waits.starts_with("waits for "), "{message}: {waits}");
         assert_eq!(known_fatal(event, message), Some(index), "{message}");
         assert_eq!(known_fatal("eat", message), None, "{message}");
@@ -474,66 +528,105 @@ fn a_known_fatal_outcome_is_its_event_and_whole_message() {
     }
 }
 
-/// Restore `text` and play `NEXT_EVENTS` on it: `Ok(false)` if it is refused,
-/// `Ok(true)` if it is accepted and plays on. A known fatal outcome ends the
-/// play, since a host discards a session after one, and counts in `skipped`.
-fn restore_and_play(text: &str, skipped: &mut [usize]) -> Result<bool, String> {
+/// What a save came to when restored and played on.
+#[derive(Debug, PartialEq)]
+enum Resumed {
+    /// Restore refused it, with this error.
+    Refused(String),
+    /// Restore accepted it, and each next event was accepted or rejected as a
+    /// value.
+    PlaysOn,
+    /// Restore accepted it, and this event was fatal with this message.
+    Fatal(&'static str, String),
+}
+
+/// Restore `text` and play `NEXT_EVENTS` on it, taking a snapshot, a view and
+/// a save after each, up to the first fatal outcome, since a host discards a
+/// session after one. `Err` if any of that panicked.
+fn resume(text: &str) -> Result<Resumed, String> {
     let restored = std::panic::catch_unwind(|| ReactiveSession::restore_json(PROGRAM, text))
         .map_err(|_| "restoring it panicked".to_string())?;
-    let Ok(mut game) = restored else {
-        return Ok(false);
+    let mut game = match restored {
+        Ok(game) => game,
+        Err(error) => return Ok(Resumed::Refused(error)),
     };
     let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (event, payload) in NEXT_EVENTS {
             if let Err(fatal) = game.dispatch_outcome_json(event, payload) {
-                let known = known_fatal(event, &fatal.message)
-                    .ok_or_else(|| format!("{event} was fatal: {}", fatal.message))?;
-                skipped[known] += 1;
-                break;
+                return Resumed::Fatal(event, fatal.message);
             }
             let _ = game.snapshot();
             let _ = serde_json::to_string(&game.view());
             let _ = game.save();
         }
-        Ok(true)
+        Resumed::PlaysOn
     }));
-    run.unwrap_or_else(|_| Err("a later event panicked".into()))
+    run.map_err(|_| "a later event panicked".into())
 }
 
-#[test]
-fn no_altered_save_can_crash_the_runtime() {
-    let save = serde_json::to_value(played().save().unwrap()).unwrap();
-    let mut places = Vec::new();
-    paths(&save, Vec::new(), &mut places);
-    let names = [
-        "bite",
-        "bite@2",
-        "bite@9",
-        "route@1",
-        "route@7",
-        "flow@1",
-        "stale",
-        "safe",
-        "",
-        "@",
-        "x@0",
-        "unexamined",
-    ];
-    // SAVE_FUZZ_ROUNDS and SAVE_FUZZ_SEED run it longer or differently.
-    let setting = |name: &str, default: u32| {
-        std::env::var(name)
-            .ok()
-            .and_then(|value| value.parse().ok())
-            .unwrap_or(default)
-    };
-    let rounds = setting("SAVE_FUZZ_ROUNDS", 3000);
-    let mut random = Mulberry(setting("SAVE_FUZZ_SEED", 20_260_922));
-    let mut accepted = 0;
-    let mut skipped = [0; KNOWN_FATAL.len()];
-    for round in 0..rounds {
-        let mut altered = save.clone();
+/// Restore `text` and play `NEXT_EVENTS` on it: `Ok(false)` if it is refused,
+/// `Ok(true)` if it is accepted and plays on. A known fatal outcome ends the
+/// play and counts in `skipped`; any other fails, like a panic.
+fn restore_and_play(text: &str, skipped: &mut [usize]) -> Result<bool, String> {
+    match resume(text)? {
+        Resumed::Refused(_) => Ok(false),
+        Resumed::PlaysOn => Ok(true),
+        Resumed::Fatal(event, message) => {
+            let known = known_fatal(event, &message)
+                .ok_or_else(|| format!("{event} was fatal: {message}"))?;
+            skipped[known] += 1;
+            Ok(true)
+        }
+    }
+}
+
+/// What the save fuzz writes in place of a value: names the save holds, names
+/// past a limit, and names nothing declares.
+const NAMES: [&str; 12] = [
+    "bite",
+    "bite@2",
+    "bite@9",
+    "route@1",
+    "route@7",
+    "flow@1",
+    "stale",
+    "safe",
+    "",
+    "@",
+    "x@0",
+    "unexamined",
+];
+
+/// The save fuzz's altered saves, one a round: one to three alterations of a
+/// fresh copy of `save`, each a place replaced or removed. The generator runs
+/// on from round to round, so a seed and a round name one altered save, the
+/// same on every run, which `.nth(round)` rebuilds.
+struct Alterations {
+    save: serde_json::Value,
+    places: Vec<Vec<serde_json::Value>>,
+    random: Mulberry,
+}
+
+impl Alterations {
+    fn new(save: &serde_json::Value, seed: u32) -> Self {
+        let mut places = Vec::new();
+        paths(save, Vec::new(), &mut places);
+        Alterations {
+            save: save.clone(),
+            places,
+            random: Mulberry(seed),
+        }
+    }
+}
+
+impl Iterator for Alterations {
+    type Item = serde_json::Value;
+
+    fn next(&mut self) -> Option<serde_json::Value> {
+        let random = &mut self.random;
+        let mut altered = self.save.clone();
         for _ in 0..1 + random.below(3) {
-            let path = &places[random.below(places.len())];
+            let path = &self.places[random.below(self.places.len())];
             let alteration = random.below(8);
             if alteration == 7 {
                 remove(&mut altered, path);
@@ -544,26 +637,88 @@ fn no_altered_save_can_crash_the_runtime() {
             };
             *target = match alteration {
                 0 => serde_json::Value::Null,
-                1 => names[random.below(names.len())].into(),
+                1 => NAMES[random.below(NAMES.len())].into(),
                 2 => (random.below(2000) as f64 - 1000.0).into(),
                 3 => serde_json::json!([]),
                 4 => serde_json::json!({}),
-                5 => serde_json::json!([names[random.below(names.len())]]),
+                5 => serde_json::json!([NAMES[random.below(NAMES.len())]]),
                 _ => u64::MAX.into(),
             };
         }
+        Some(altered)
+    }
+}
+
+#[test]
+fn no_altered_save_can_crash_the_runtime() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    // SAVE_FUZZ_ROUNDS and SAVE_FUZZ_SEED run it longer or differently.
+    let setting = |name: &str, default: u32| {
+        std::env::var(name)
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(default)
+    };
+    let rounds = setting("SAVE_FUZZ_ROUNDS", 3000);
+    let seed = setting("SAVE_FUZZ_SEED", DEFAULT_SEED);
+    let mut accepted = 0;
+    let mut skipped = [0; KNOWN_FATAL.len()];
+    let alterations = Alterations::new(&save, seed).take(rounds as usize);
+    for (round, altered) in alterations.enumerate() {
         let text = altered.to_string();
         // Whatever was accepted must also keep running: no panic, and no
         // fatal outcome on the next events.
         match restore_and_play(&text, &mut skipped) {
             Ok(played) => accepted += u32::from(played),
-            Err(failure) => panic!("round {round}: {failure}: {text}"),
+            Err(failure) => panic!("seed {seed}, round {round}: {failure}: {text}"),
         }
     }
-    eprintln!("known fatal outcomes skipped: {skipped:?}");
+    eprintln!(
+        "seed {seed}, {rounds} rounds: accepted {accepted}, refused {}; known fatal outcomes \
+         skipped: {skipped:?}",
+        rounds - accepted
+    );
     // Some alterations are harmless (a changed number within range): make
     // sure the generator exercised both outcomes.
     assert!(accepted > 0 && accepted < rounds, "accepted {accepted}");
+}
+
+// An entry of KNOWN_FATAL waits for a fix and goes once that fix is in the
+// tested combination. That is this test's to require, not anyone's memory:
+// each entry's witness, rebuilt from its seed and round, must still be
+// accepted and then fatal on exactly its event with exactly its message. A
+// fix makes it no longer fatal, and this fails naming the entry to remove.
+#[test]
+fn every_known_fatal_outcome_still_happens() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let mut fixed = Vec::new();
+    for KnownFatal {
+        event,
+        message,
+        waits,
+        seed,
+        round,
+    } in &KNOWN_FATAL
+    {
+        let altered = Alterations::new(&save, *seed).nth(*round).unwrap();
+        let now = match resume(&altered.to_string()) {
+            Ok(Resumed::Fatal(on, fatal)) if on == *event && fatal == *message => continue,
+            Ok(Resumed::Fatal(on, fatal)) => format!("is fatal on {on} instead: {fatal}"),
+            Ok(Resumed::PlaysOn) => "plays on through every next event".to_string(),
+            Ok(Resumed::Refused(error)) => format!("is refused: {error}"),
+            Err(failure) => format!("panics: {failure}"),
+        };
+        fixed.push(format!(
+            "- {event}: \"{message}\". Its witness, round {round} of seed {seed}, now {now}. \
+             It {waits}"
+        ));
+    }
+    assert!(
+        fixed.is_empty(),
+        "these known fatal outcomes no longer happen. Remove each from KNOWN_FATAL now that \
+         the fix it waits for is in (if that fix is not in, find the entry a new witness):\n{}",
+        fixed.join("\n")
+    );
 }
 
 // Every save missing one record, a list entry or a field, must be refused or

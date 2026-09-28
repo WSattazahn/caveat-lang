@@ -95,7 +95,9 @@ must be refused or accepted, and an accepted one must then run events,
 snapshots, views and saves again without a crash or a fatal outcome. The tests
 list the fatal outcomes that are known runtime bugs with their own fixes under
 way, each by its event and exact message with the fix it waits for, and skip
-only those. An entry is removed once its fix is in.
+only those. Each entry also names its witness, the altered save that
+reproduces it, and a test fails when a listed fatal outcome no longer happens
+on its witness, so an entry is removed once its fix is in.
 
 A save is not signed. These checks establish internal consistency, not proof
 that historical inputs or guards really occurred. Coordinated edits to mutually
@@ -130,8 +132,9 @@ edited save is refused or remains playable without crashing.
   one, so only an edited save is refused, and saves the runtime writes
   restore as before. Occurrences that name evidence the graph does not hold
   were already refused. Decision series had no such gap: every commitment the
-  graph holds needs a journal entry, and that entry the revision at its
-  position. The save fuzz now also removes records, and an accepted save fails
-  it when a later event is fatal, as it does when one crashes, unless the
-  tests list that event and exact message as a known bug with its own fix
-  under way.
+  graph holds needs a journal entry, and each entry must find the revision at
+  its position. The save fuzz now also removes records, and an accepted save
+  fails it when a later event is fatal, as it does when one crashes, unless
+  the tests list that event and exact message as a known bug with its own fix
+  under way. Each listed outcome names a save that reproduces it, and a test
+  fails when it no longer happens.
