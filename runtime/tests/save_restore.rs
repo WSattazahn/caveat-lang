@@ -378,30 +378,40 @@ struct KnownFatal {
 /// reproduces it.
 const KNOWN_FATAL: [KnownFatal; 0] = [];
 
-/// The `KNOWN_FATAL` entry for a fatal `message` on `event`, if one names both.
-fn known_fatal(event: &str, message: &str) -> Option<usize> {
-    KNOWN_FATAL
+/// The entry of `known` for a fatal `message` on `event`, if one names both.
+fn known_fatal(known: &[KnownFatal], event: &str, message: &str) -> Option<usize> {
+    known
         .iter()
-        .position(|known| known.event == event && known.message == message)
+        .position(|entry| entry.event == event && entry.message == message)
 }
 
 // An entry is one whole fatal outcome, so it can never hide another: the same
 // message on another event, or a message that contains it or that it
-// contains, is not skipped.
+// contains, is not skipped. KNOWN_FATAL holds no entry now, so an example,
+// the entry fix/restore-sequence-bound ended, keeps that checked for the next.
 #[test]
 fn a_known_fatal_outcome_is_its_event_and_whole_message() {
-    for (index, known) in KNOWN_FATAL.iter().enumerate() {
-        let KnownFatal {
-            event,
-            message,
-            waits,
-            ..
-        } = known;
-        assert!(waits.starts_with("waits for "), "{message}: {waits}");
-        assert_eq!(known_fatal(event, message), Some(index), "{message}");
-        assert_eq!(known_fatal("eat", message), None, "{message}");
-        assert_eq!(known_fatal(event, &format!("{message}.")), None);
-        assert_eq!(known_fatal(event, &message[1..]), None);
+    let example = [KnownFatal {
+        event: "tick",
+        message: "reactive event sequence exhausted",
+        waits: "waits for fix/restore-sequence-bound",
+        seed: 2464,
+        round: 1,
+    }];
+    for list in [&KNOWN_FATAL[..], &example[..]] {
+        for (index, known) in list.iter().enumerate() {
+            let KnownFatal {
+                event,
+                message,
+                waits,
+                ..
+            } = known;
+            assert!(waits.starts_with("waits for "), "{message}: {waits}");
+            assert_eq!(known_fatal(list, event, message), Some(index), "{message}");
+            assert_eq!(known_fatal(list, "eat", message), None, "{message}");
+            assert_eq!(known_fatal(list, event, &format!("{message}.")), None);
+            assert_eq!(known_fatal(list, event, &message[1..]), None);
+        }
     }
     for (event, message) in [
         (
@@ -422,7 +432,8 @@ fn a_known_fatal_outcome_is_its_event_and_whole_message() {
             "binding hud.level cites evidence bite that its value and conditions never read",
         ),
     ] {
-        assert_eq!(known_fatal(event, message), None, "{message}");
+        assert_eq!(known_fatal(&KNOWN_FATAL, event, message), None, "{message}");
+        assert_eq!(known_fatal(&example, event, message), None, "{message}");
     }
 }
 
@@ -470,7 +481,7 @@ fn restore_and_play(text: &str, skipped: &mut [usize]) -> Result<bool, String> {
         Resumed::Refused(_) => Ok(false),
         Resumed::PlaysOn => Ok(true),
         Resumed::Fatal(event, message) => {
-            let known = known_fatal(event, &message)
+            let known = known_fatal(&KNOWN_FATAL, event, &message)
                 .ok_or_else(|| format!("{event} was fatal: {message}"))?;
             skipped[known] += 1;
             Ok(true)
