@@ -95,6 +95,25 @@ test('a save whose stream lists other than its readings in order fails to restor
   } finally { session.close(); }
 });
 
+test('a save whose sequence no session reaches fails to restore', () => {
+  // Accepted at u64::MAX, it made the next event fatal: "reactive event sequence exhausted".
+  const session = real.open(thermostat);
+  try {
+    assert.equal(session.dispatch('read', { value: 17 }).outcome, 'accepted');
+    const saved = JSON.parse(session.save());
+    const at = sequence => JSON.stringify({ ...saved, sequence: 'here' }).replace('"sequence":"here"', `"sequence":${sequence}`);
+    for (const sequence of ['18446744073709551615', String(2 ** 53)]) {
+      assert.throws(() => real.restore(thermostat, at(sequence)), error => error instanceof CaveatError && error.kind === 'restore'
+        && error.message === 'cannot restore save: sequence must be at most 9007199254740991', sequence);
+    }
+    // The largest integer a JSON host reads exactly still restores, and plays on.
+    const resumed = real.restore(thermostat, at(Number.MAX_SAFE_INTEGER));
+    try {
+      assert.equal(resumed.dispatch('read', { value: 25 }).snapshot.sequence, 2 ** 53);
+    } finally { resumed.close(); }
+  } finally { session.close(); }
+});
+
 test('a save relating kinds of node no event relates fails to restore', () => {
   // Accepted, go@1 relying on a claim made the next revision of go a fatal outcome instead.
   const source = 'claim safe; evidence seen from "seen"; decisions go limit 3; event see; event redo; on see reveal seen supports safe; on see commit go because enough using qualified(1, seen); on redo reopen go because seen; on redo commit go because enough using qualified(2, seen);';

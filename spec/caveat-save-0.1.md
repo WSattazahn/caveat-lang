@@ -105,7 +105,15 @@ save is refused with an error, and never crashes the runtime, when:
   evidence and declared caveats it cites;
 - a journal entry has an impossible event/sequence relationship, unreachable
   decision effect, or inconsistent optional elapsed time. Clocks whose source
-  admits negative `dt` are not incorrectly treated as monotonic.
+  admits negative `dt` are not incorrectly treated as monotonic;
+- its `sequence` is past 2^53 - 1 (9007199254740991), or a reading, journal
+  entry or withdrawal is dated 0 or past the `sequence`. The sequence counts
+  accepted events, and at ten million a second 2^53 of them take over 28
+  years. Records bound the sequence only from below, since an event can leave
+  none (a `tick`), so the bound above is this constant, the largest integer a
+  JSON host reads exactly. A restored session numbers its next events like
+  any other, past the bound too: a session resumed from an edited save at or
+  near the bound plays on, but its saves past the bound are refused.
 
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
@@ -115,11 +123,11 @@ The runtime tests alter a saved game at random, 3,000 times on every run and
 30,000 when asked, and remove each of its records in turn. Each altered save
 must be refused or accepted, and an accepted one must then run events,
 snapshots, views and saves again without a crash or a fatal outcome. The tests
-list the fatal outcomes that are known runtime bugs with their own fixes under
-way, each by its event and exact message with the fix it waits for, and skip
-only those. Each entry also names its witness, the altered save that
-reproduces it, and a test fails when a listed fatal outcome no longer happens
-on its witness, so an entry is removed once its fix is in.
+can list a fatal outcome that is a known runtime bug with its own fix under
+way, by its event and exact message with the fix it waits for, and skip only
+what they list; they list none now. Each entry also names its witness, the
+altered save that reproduces it, and a test fails when a listed fatal outcome
+no longer happens on its witness, so an entry is removed once its fix is in.
 
 A save is not signed. These checks establish internal consistency, not proof
 that historical inputs or guards really occurred. Coordinated edits to mutually
@@ -174,6 +182,17 @@ edited save is refused or remains playable without crashing.
   Both compare the bits now. A save written before this leaves such a state
   out and restores as it did, to the loaded zero. Every other number a save
   holds, from readings to elapsed time, was already written exactly.
+- 2026-09-27: restore refuses a save whose `sequence` is past 2^53 - 1, or
+  that holds a reading dated 0 or past its `sequence`. A save at 2^64 - 1 used
+  to be accepted, and its next event was fatal `unclassified` ("reactive event
+  sequence exhausted"); one a few below it was fatal a few events later. A
+  session resumed at 2^53 - 1 still has 2^64 - 2^53 events to number, so
+  exhaustion stays unreachable and dispatch is unchanged. A reading's
+  sequence was not checked, unlike a journal entry's or a withdrawal's, and
+  now bounds the save's from below as theirs do. Saves the runtime writes
+  restore as before, except from a session resumed from an edited save at or
+  near the bound: it numbers its events past 2^53 - 1, and its saves from
+  then on are refused.
 - 2026-09-27: restore refuses a save with a relation between kinds of node no
   event relates, a commitment retaining or relying on more than its basis,
   or evidence nothing observes where the runtime relies on it being

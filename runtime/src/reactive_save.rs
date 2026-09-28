@@ -11,6 +11,14 @@ use serde::Deserialize;
 
 pub const REACTIVE_SAVE_SCHEMA: &str = "caveat-reactive-save/0.1";
 const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
+/// The largest sequence restore accepts: 2^53 - 1, the largest integer a JSON
+/// host reads exactly. The sequence counts accepted events, and at ten
+/// million a second 2^53 of them take over 28 years, so a save past it was
+/// edited. Nothing else in a save bounds the sequence from above, since an
+/// event can leave no record. A session restored at or near the bound numbers
+/// its events past it like any others, up to u64::MAX, and its saves from
+/// then on are refused.
+const MAX_SAVED_SEQUENCE: u64 = (1 << 53) - 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -447,6 +455,9 @@ impl ReactiveSession {
         if self.source_clock_is_monotonic() && save.elapsed < 0.0 {
             return Err("elapsed time must be a nonnegative number".into());
         }
+        if save.sequence > MAX_SAVED_SEQUENCE {
+            return Err(format!("sequence must be at most {MAX_SAVED_SEQUENCE}"));
+        }
         self.sequence = save.sequence;
         self.last_event = save.last_event.clone();
         self.elapsed = save.elapsed;
@@ -865,6 +876,10 @@ impl ReactiveSession {
                 self.require_kind(&occurrence.id, "evidence")?;
                 if !occurrence.value.is_finite() {
                     return Err(format!("reading {} is not a finite number", occurrence.id));
+                }
+                // Taken by an accepted event, so within the save's sequence.
+                if occurrence.sequence == 0 || occurrence.sequence > save.sequence {
+                    return Err(format!("reading {} is out of sequence", occurrence.id));
                 }
                 self.check_provenance(
                     &format!("reading {}", occurrence.id),
