@@ -405,6 +405,7 @@ impl ReactiveSession {
         self.restore_records(save)?;
         self.restore_permissions(save)?;
         self.evaluate_bindings(None)
+            .map_err(|error| error.to_string())
     }
 
     /// Withdrawals must agree with the program and with the restored graph:
