@@ -95,6 +95,25 @@ test('a save whose stream lists other than its readings in order fails to restor
   } finally { session.close(); }
 });
 
+test('a save whose sequence no session reaches fails to restore', () => {
+  // Accepted at u64::MAX, it made the next event fatal: "reactive event sequence exhausted".
+  const session = real.open(thermostat);
+  try {
+    assert.equal(session.dispatch('read', { value: 17 }).outcome, 'accepted');
+    const saved = JSON.parse(session.save());
+    const at = sequence => JSON.stringify({ ...saved, sequence: 'here' }).replace('"sequence":"here"', `"sequence":${sequence}`);
+    for (const sequence of ['18446744073709551615', String(2 ** 53)]) {
+      assert.throws(() => real.restore(thermostat, at(sequence)), error => error instanceof CaveatError && error.kind === 'restore'
+        && error.message === 'cannot restore save: sequence must be at most 9007199254740991', sequence);
+    }
+    // The largest integer a JSON host reads exactly still restores, and plays on.
+    const resumed = real.restore(thermostat, at(Number.MAX_SAFE_INTEGER));
+    try {
+      assert.equal(resumed.dispatch('read', { value: 25 }).snapshot.sequence, 2 ** 53);
+    } finally { resumed.close(); }
+  } finally { session.close(); }
+});
+
 test('payloads that JSON would change are refused before the session is touched', () => {
   for (const bad of [NaN, Infinity, -Infinity, undefined, () => 1, new Date(0), new Map(), { a: [1, NaN] }, { a: undefined }, 10n]) {
     assert.throws(() => payloadText(bad), error => error instanceof CaveatError && error.kind === 'payload', String(bad));
