@@ -315,6 +315,43 @@ try {
       });
     });
 
+    check('a citation its value never read is an atomic evaluation rejection and the session continues', () => {
+      const source = fixture('ungrounded-citation', `claim safe;
+        evidence bite from "a bite"; evidence chart from "tidal archive";
+        caveat faded consequence low; renewable bite limit 4;
+        state from_chart = 0; state eaten = 0 min 0 max 9;
+        event tick dt min 0 max 0.1; event eat; event regrow; event chart;
+        on chart reveal chart supports safe;
+        on chart set from_chart = qualified(1, chart);
+        on eat reveal bite supports safe;
+        on eat set eaten = eaten + 1;
+        on eat qualify bite with faded after 0.15;
+        on regrow renew bite;
+        bind hud.text = "ok" because nothing;
+        bind hud.text = "faded" when carries(bite, faded) because from_chart;`);
+      const tick = '{"dt":0.1}';
+      withSessions(source, 2, (session, legacy) => {
+        for (const run of [session, legacy]) {
+          for (const [event, payload] of [['chart'], ['eat'], ['tick', tick], ['regrow'], ['eat'], ['tick', tick]]) {
+            assert.equal(dispatch(run, event, payload).outcome, 'accepted');
+          }
+        }
+        const refused = rejected(session, 'tick', tick, 'evaluation', 'ungrounded_citation');
+        const error = 'binding hud.text cites evidence chart that its value and conditions never read';
+        assert.equal(refused.message, error);
+        assert.throws(() => legacy.dispatch('tick', tick), thrown => thrown === error);
+        rejected(session, 'tick', tick, 'evaluation', 'ungrounded_citation');
+        const accepted = dispatch(session, 'eat');
+        assert.equal(accepted.outcome, 'accepted');
+        assert.equal(accepted.snapshot.values.eaten, 3);
+        const restored = WebReactiveSession.restore(source, session.save());
+        try {
+          rejected(restored, 'tick', tick, 'evaluation', 'ungrounded_citation');
+          assert.equal(dispatch(restored, 'chart').outcome, 'accepted');
+        } finally { restored.free(); }
+      });
+    });
+
     check('identifiers go in as text, are handles inside, and a refused event adds none', () => {
       const sha = '602bdbec0a047a5319f53e83f336b9f7aec0e5ed';
       const source = fixture('identifiers', `identifiers limit 2; state head = 0;

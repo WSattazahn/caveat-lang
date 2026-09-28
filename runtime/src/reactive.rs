@@ -1714,7 +1714,9 @@ impl ReactiveSession {
             edges: session.graph.edges.len(),
             states: Arc::clone(&session.states.cells),
         };
-        session.evaluate_bindings(None)?;
+        session
+            .evaluate_bindings(None)
+            .map_err(|error| error.to_string())?;
         Ok(session)
     }
 
@@ -2454,7 +2456,7 @@ impl ReactiveSession {
     /// Everything is computed before anything is written, and properties are
     /// evaluated in declaration order and explained in name order, so an error
     /// is the same one a full evaluation reports.
-    fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), String> {
+    fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), DispatchFailure> {
         let groups = Arc::clone(&self.binding_groups);
         let rules = Arc::clone(&self.binding_rules);
         let stale = groups
@@ -2553,7 +2555,7 @@ impl ReactiveSession {
     /// Debug builds: an incremental evaluation must show exactly what a full
     /// one shows, or fail with the same error.
     #[cfg(debug_assertions)]
-    fn check_incremental_bindings(&self, incremental: &Result<(), String>) {
+    fn check_incremental_bindings(&self, incremental: &Result<(), DispatchFailure>) {
         let mut full = self.clone();
         let result = full.evaluate_bindings(None);
         assert_eq!(
@@ -2578,13 +2580,20 @@ impl ReactiveSession {
     /// dependencies out; it may never introduce one. Citations are read for
     /// their grounds, so citing a state cites what it is grounded on rather
     /// than every guard that ever touched it.
+    ///
+    /// Whether a citation holds depends on the session, not only on the text:
+    /// a late caveat can make a declaration win for the first time on a clock
+    /// tick, a renewal moves what an evidence name means, and a cited state
+    /// can change apart from the value. So a citation that does not hold
+    /// refuses the event it is reached on, classified, and the session goes
+    /// on; the event is rolled back as for any failure.
     fn grounded_citation(
         &self,
         subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
         parameters: &BTreeMap<String, Tracked<f64>>,
-    ) -> Result<Provenance, String> {
+    ) -> Result<Provenance, DispatchFailure> {
         let mut cited = Provenance::default();
         for citation in citations {
             let value = self
@@ -2604,9 +2613,13 @@ impl ReactiveSession {
             )
             .collect::<Vec<_>>();
         if !ungrounded.is_empty() {
-            return Err(format!(
-                "{subject} cites {} that its value and conditions never read",
-                ungrounded.join(", ")
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Evaluation,
+                RejectionCode::UngroundedCitation,
+                format!(
+                    "{subject} cites {} that its value and conditions never read",
+                    ungrounded.join(", ")
+                ),
             ));
         }
         Ok(cited)
@@ -3117,7 +3130,7 @@ impl ReactiveSession {
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
-        result.map_err(Into::into)
+        result
     }
 
     fn take_shown(&mut self) -> Shown {

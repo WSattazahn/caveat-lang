@@ -70,6 +70,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range. |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range. |
+| `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
@@ -161,3 +162,19 @@ from an outcome schema match; the save contract governs restoration.
   rollback and the diagnostic text are unchanged. It has its own code, not
   `history_limit`, because the exhausted resource is a renewable evidence's
   occurrences, not a reading stream or decision series.
+- `evaluation/ungrounded_citation` classifies an event on which a `because`
+  citation, on a binding or on a `set`, cites evidence or a caveat that what
+  it explains never read. Explanations 0.1 already rejected such an event
+  atomically, but as fatal `unclassified`: a host lost the session, although
+  the runtime had already rolled the event back. Whether a citation holds
+  depends on the session, not only on the program's text, so a program cannot
+  be refused for it when it loads without refusing programs whose citations
+  hold on every path they take. A late caveat can make a declaration win for
+  the first time on a clock tick: the program the save tests play lost its
+  session that way 40 seconds in, with no save involved. A renewal changes
+  which occurrence `qualified(1, bite)` names, a cited state can change apart
+  from the value derived from it, and `or` does not read its second operand
+  when the first is true. The rollback and the diagnostic text are unchanged.
+  Its origin is `evaluation`, as for a state's range: the explanation was
+  evaluated and did not hold. It is not `policy`, because no clause of the
+  program refuses the event, so a bare expected rejection does not match it.

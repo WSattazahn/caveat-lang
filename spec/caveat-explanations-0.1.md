@@ -47,9 +47,17 @@ binding's **explanation**, published per target and property in
   programs cite exactly what they did before.
 - **`because nothing`:** the explanation is empty.
 - **Grounding:** every evidence and caveat in the explanation must also appear
-  in the binding's lineage. Otherwise the event is rejected atomically, like
-  any other runtime error:
+  in the binding's lineage. Otherwise the event is rejected atomically:
   `binding pool.label cites evidence taste_cave that its value and conditions never read`.
+  The [dispatch outcomes](caveat-dispatch-0.1.md) classify it as
+  `evaluation/ungrounded_citation`, and the session continues. The check is
+  made whenever a declaration supplies the shown value, so it can refuse an
+  event long after the program loaded: a late caveat can make a declaration
+  win for the first time on a clock tick, a renewal changes which occurrence
+  an evidence name means, and a cited value can change apart from the shown
+  one. As with any refusal, a refused clock event advances no time. A
+  declaration that already wins when the program loads is checked then, and
+  the program does not load.
 - **Cited values carry their caveats:** citing a value brings the caveats it
   carries. An explanation cannot cite evidence and drop the qualifications that
   travel with it. It also cannot add a qualification the binding never carried.

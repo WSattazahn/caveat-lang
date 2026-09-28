@@ -413,6 +413,77 @@ fn a_full_renewal_inside_a_procedure_is_still_classified() {
     );
 }
 
+const LATE_FADE: &str = r#"
+claim safe;
+evidence bite from "a bite";
+evidence chart from "tidal archive";
+caveat faded consequence low;
+renewable bite limit 4;
+state from_chart = 0;
+state eaten = 0 min 0 max 9;
+event tick dt min 0 max 0.1;
+event eat;
+event regrow;
+event chart;
+on chart reveal chart supports safe;
+on chart set from_chart = qualified(1, chart);
+on eat reveal bite supports safe;
+on eat set eaten = eaten + 1;
+on eat qualify bite with faded after 0.15;
+on regrow renew bite;
+bind hud.text = "ok" because nothing;
+bind hud.text = "faded" when carries(bite, faded) because from_chart;
+"#;
+
+// A citation that its value and conditions never read refuses the event,
+// classified, and the session goes on. The save fuzz found it without any
+// save: a caveat scheduled on eating fires on a tick, the declaration that
+// cites what it never read wins for the first time, and the host lost the
+// session to a clock tick.
+#[test]
+fn an_ungrounded_citation_refuses_the_event_and_the_session_continues() {
+    let mut game = session(LATE_FADE);
+    let mut legacy = session(LATE_FADE);
+    for (event, payload) in [
+        ("chart", "{}"),
+        ("eat", "{}"),
+        ("tick", r#"{"dt":0.1}"#),
+        ("regrow", "{}"),
+        ("eat", "{}"),
+        // The caveat for the first bite, which bite@2 has replaced.
+        ("tick", r#"{"dt":0.1}"#),
+    ] {
+        game.dispatch(event, payload).unwrap();
+        legacy.dispatch(event, payload).unwrap();
+    }
+    // The caveat for bite@2 makes "faded" win, citing the chart.
+    let tick = r#"{"dt":0.1}"#;
+    let error = "binding hud.text cites evidence chart that its value and conditions never read";
+    let refused = rejected(&mut game, "tick", tick, "evaluation", "ungrounded_citation");
+    assert_eq!(refused["message"], error);
+    assert_eq!(legacy.dispatch("tick", tick).unwrap_err(), error);
+    assert_eq!(checkpoint(&legacy), checkpoint(&game));
+    // Refused again: the caveat is still due, and the citation still ungrounded.
+    rejected(&mut game, "tick", tick, "evaluation", "ungrounded_citation");
+
+    let accepted = json(&game.dispatch_outcome("eat", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    assert_eq!(accepted["snapshot"]["values"]["eaten"], 3.0);
+    assert_eq!(accepted["snapshot"]["bindings"]["hud"]["text"], "ok");
+
+    let restored = WebReactiveSession::restore(LATE_FADE, &game.save().unwrap());
+    let mut restored = restored.unwrap_or_else(|error| panic!("restore failed: {error}"));
+    rejected(
+        &mut restored,
+        "tick",
+        tick,
+        "evaluation",
+        "ungrounded_citation",
+    );
+    let accepted = json(&restored.dispatch_outcome("chart", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+}
+
 #[test]
 fn the_maximum_valid_procedure_depth_still_dispatches() {
     let mut source = String::from("state output = 0; event run; proc p0() { set output = 1; };");

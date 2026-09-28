@@ -51,6 +51,8 @@ set note = based_on(count) because nothing;
 citations. As on a binding, every cited evidence and caveat must be in the
 **new lineage** of the state. Otherwise the event is rejected atomically:
 `state trust_basis cites evidence absorb_cave that its value and conditions never read`.
+The [dispatch outcomes](caveat-dispatch-0.1.md) classify this refusal as
+`evaluation/ungrounded_citation` too.
 
 ## Grounds of a commitment
 

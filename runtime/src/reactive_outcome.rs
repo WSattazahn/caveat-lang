@@ -29,6 +29,7 @@ pub enum RejectionCode {
     IdentifierLimit,
     RenewalLimit,
     NotPermitted,
+    UngroundedCitation,
 }
 
 #[derive(Debug, Serialize)]
@@ -80,7 +81,7 @@ impl DispatchOutcome {
 
 /// Not serialized. The diagnostic retains the exact legacy error, including
 /// nested procedure/rule contexts; a policy's assertable literal is separate.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(super) struct DispatchFailure {
     diagnostic: String,
     rejection: Option<(RejectionOrigin, RejectionCode)>,
