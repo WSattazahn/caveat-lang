@@ -348,13 +348,6 @@ const NEXT_EVENTS: [(&str, &str); 6] = [
     ("start", "{}"),
 ];
 
-// The fix each known fatal outcome waits for, and the confirmed runtime bug
-// behind it.
-const RELATION_KINDS: &str = "waits for fix/restore-relation-kinds; remove it when that fix is \
-    in the tested combination. Restore does not check the kinds a created relation connects: \
-    with route@3 relies_on safe, or on evidence nothing observes, the next revision of route \
-    is fatal";
-
 /// The seed the save fuzz runs with unless SAVE_FUZZ_SEED names another.
 const DEFAULT_SEED: u32 = 20_260_922;
 
@@ -373,105 +366,52 @@ struct KnownFatal {
     round: usize,
 }
 
-/// Fatal outcomes an accepted save still leads to. A fatal outcome is skipped
-/// only when an entry names its event and its whole message, so an entry
-/// cannot hide any other fatal outcome; any other fails the test, like a
-/// crash. These are every message the default seed and seeds 1 to 6 produce
-/// in 30,000 rounds. Each witness is an earliest round found for its entry
-/// running seeds 1 to 4,000 for 1,000 rounds each (seeds to 16,000 for the
-/// last). Remove an entry when its fix is in the tested combination:
+/// Fatal outcomes an accepted save still leads to: none now. The last ones
+/// ended with fix/restore-sequence-bound and fix/restore-relation-kinds, and
+/// the default seed and seeds 1 to 7 produce none in 30,000 rounds. A fatal
+/// outcome is skipped only when an entry names its event and its whole
+/// message, so an entry cannot hide any other fatal outcome; any other fails
+/// the test, like a crash. An entry is a confirmed runtime bug with its own
+/// fix under way, and its witness an earliest round found for it. Remove an
+/// entry when its fix is in the tested combination:
 /// every_known_fatal_outcome_still_happens fails once its witness no longer
 /// reproduces it.
-const KNOWN_FATAL: [KnownFatal; 9] = [
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: route@1 must name a declared evidence",
-        waits: RELATION_KINDS,
-        seed: 3199,
-        round: 19,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: safe must name a declared evidence",
-        waits: RELATION_KINDS,
-        seed: 3491,
-        round: 11,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: stale must name a declared evidence",
-        waits: RELATION_KINDS,
-        seed: 336,
-        round: 0,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: bite must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 148,
-        round: 9,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: bite@2 must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 2948,
-        round: 4,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: flow@1 must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 59,
-        round: 17,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: route@1 must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 1247,
-        round: 7,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: safe must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 1520,
-        round: 3,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: commitment basis includes unobserved evidence bite",
-        waits: RELATION_KINDS,
-        seed: 15_978,
-        round: 216,
-    },
-];
+const KNOWN_FATAL: [KnownFatal; 0] = [];
 
-/// The `KNOWN_FATAL` entry for a fatal `message` on `event`, if one names both.
-fn known_fatal(event: &str, message: &str) -> Option<usize> {
-    KNOWN_FATAL
+/// The entry of `known` for a fatal `message` on `event`, if one names both.
+fn known_fatal(known: &[KnownFatal], event: &str, message: &str) -> Option<usize> {
+    known
         .iter()
-        .position(|known| known.event == event && known.message == message)
+        .position(|entry| entry.event == event && entry.message == message)
 }
 
 // An entry is one whole fatal outcome, so it can never hide another: the same
 // message on another event, or a message that contains it or that it
-// contains, is not skipped.
+// contains, is not skipped. KNOWN_FATAL holds no entry now, so an example,
+// the entry fix/restore-sequence-bound ended, keeps that checked for the next.
 #[test]
 fn a_known_fatal_outcome_is_its_event_and_whole_message() {
-    for (index, known) in KNOWN_FATAL.iter().enumerate() {
-        let KnownFatal {
-            event,
-            message,
-            waits,
-            ..
-        } = known;
-        assert!(waits.starts_with("waits for "), "{message}: {waits}");
-        assert_eq!(known_fatal(event, message), Some(index), "{message}");
-        assert_eq!(known_fatal("eat", message), None, "{message}");
-        assert_eq!(known_fatal(event, &format!("{message}.")), None);
-        assert_eq!(known_fatal(event, &message[1..]), None);
+    let example = [KnownFatal {
+        event: "tick",
+        message: "reactive event sequence exhausted",
+        waits: "waits for fix/restore-sequence-bound",
+        seed: 2464,
+        round: 1,
+    }];
+    for list in [&KNOWN_FATAL[..], &example[..]] {
+        for (index, known) in list.iter().enumerate() {
+            let KnownFatal {
+                event,
+                message,
+                waits,
+                ..
+            } = known;
+            assert!(waits.starts_with("waits for "), "{message}: {waits}");
+            assert_eq!(known_fatal(list, event, message), Some(index), "{message}");
+            assert_eq!(known_fatal(list, "eat", message), None, "{message}");
+            assert_eq!(known_fatal(list, event, &format!("{message}.")), None);
+            assert_eq!(known_fatal(list, event, &message[1..]), None);
+        }
     }
     for (event, message) in [
         (
@@ -492,7 +432,8 @@ fn a_known_fatal_outcome_is_its_event_and_whole_message() {
             "binding hud.level cites evidence bite that its value and conditions never read",
         ),
     ] {
-        assert_eq!(known_fatal(event, message), None, "{message}");
+        assert_eq!(known_fatal(&KNOWN_FATAL, event, message), None, "{message}");
+        assert_eq!(known_fatal(&example, event, message), None, "{message}");
     }
 }
 
@@ -540,7 +481,7 @@ fn restore_and_play(text: &str, skipped: &mut [usize]) -> Result<bool, String> {
         Resumed::Refused(_) => Ok(false),
         Resumed::PlaysOn => Ok(true),
         Resumed::Fatal(event, message) => {
-            let known = known_fatal(event, &message)
+            let known = known_fatal(&KNOWN_FATAL, event, &message)
                 .ok_or_else(|| format!("{event} was fatal: {message}"))?;
             skipped[known] += 1;
             Ok(true)
@@ -690,37 +631,123 @@ fn every_known_fatal_outcome_still_happens() {
 }
 
 // Committing a decision already in force was a known fatal outcome until #53
-// made it a rejection, and its entry left KNOWN_FATAL. Its witness, round 0
-// of seed 1032, and the save it was altered from must now be refused as that
-// rejection, with nothing kept, not merely play on.
+// made it a rejection, and its entry left KNOWN_FATAL. The save its witness,
+// round 0 of seed 1032, was altered from must now be refused as that
+// rejection, with nothing kept, not merely play on. The witness itself drops
+// forecast from route@1's basis while route@1 still relies on it, and since
+// fix/restore-relation-kinds restore refuses it for that.
 #[test]
 fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
     let save = serde_json::to_value(played().save().unwrap()).unwrap();
     let witness = Alterations::new(&save, 1032).next().unwrap();
-    for text in [save.to_string(), witness.to_string()] {
-        let mut game = ReactiveSession::restore_json(PROGRAM, &text).expect("the save restores");
-        for (event, payload) in NEXT_EVENTS {
-            let before = serde_json::to_string(&game.save().unwrap()).unwrap();
-            let outcome = game
-                .dispatch_outcome_json(event, payload)
-                .unwrap_or_else(|fatal| panic!("{event} was fatal: {}", fatal.message));
-            if event != "start" {
-                continue;
-            }
-            let outcome = serde_json::to_value(&outcome).unwrap();
-            assert_eq!(outcome["outcome"], "rejected");
-            assert_eq!(outcome["origin"], "evaluation");
-            assert_eq!(outcome["code"], "decision_in_force");
-            assert_eq!(
-                outcome["message"],
-                "event start, rule 2: current decision in route must be explicitly reopened \
-                 before revision"
-            );
-            assert_eq!(
-                serde_json::to_string(&game.save().unwrap()).unwrap(),
-                before
-            );
+    assert_eq!(
+        resume(&witness.to_string()),
+        Ok(Resumed::Refused(
+            "cannot restore save: relation route@1 relies_on forecast: forecast is not in \
+             route@1's basis"
+                .into()
+        ))
+    );
+    let mut game =
+        ReactiveSession::restore_json(PROGRAM, &save.to_string()).expect("the save restores");
+    for (event, payload) in NEXT_EVENTS {
+        let before = serde_json::to_string(&game.save().unwrap()).unwrap();
+        let outcome = game
+            .dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event} was fatal: {}", fatal.message));
+        if event != "start" {
+            continue;
         }
+        let outcome = serde_json::to_value(&outcome).unwrap();
+        assert_eq!(outcome["outcome"], "rejected");
+        assert_eq!(outcome["origin"], "evaluation");
+        assert_eq!(outcome["code"], "decision_in_force");
+        assert_eq!(
+            outcome["message"],
+            "event start, rule 2: current decision in route must be explicitly reopened \
+             before revision"
+        );
+        assert_eq!(
+            serde_json::to_string(&game.save().unwrap()).unwrap(),
+            before
+        );
+    }
+}
+
+// A relation between kinds of node no event relates, and a relation to
+// evidence nothing observes, were known fatal outcomes on the next revision
+// of route until fix/restore-relation-kinds made restore refuse such a save,
+// and their entries left KNOWN_FATAL. Each witness, by its seed and round,
+// must now be refused at restore with the relation and why, not merely play
+// on.
+#[test]
+fn a_relation_fatal_after_a_restore_is_refused_at_restore() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    // Each witness, the fatal outcome it led to, and the refusal it now meets.
+    for (seed, round, fatal, refusal) in [
+        (
+            3199,
+            19,
+            "route@1 must name a declared evidence",
+            "route@3 relies_on route@1: route@1 is a commitment, not evidence",
+        ),
+        (
+            3491,
+            11,
+            "safe must name a declared evidence",
+            "route@3 relies_on safe: safe is a claim, not evidence",
+        ),
+        (
+            336,
+            0,
+            "stale must name a declared evidence",
+            "route@3 relies_on stale: stale is a caveat, not evidence",
+        ),
+        (
+            148,
+            9,
+            "bite must name a declared caveat",
+            "route@3 retains bite: bite is evidence, not a caveat",
+        ),
+        (
+            2948,
+            4,
+            "bite@2 must name a declared caveat",
+            "route@3 retains bite@2: bite@2 is evidence, not a caveat",
+        ),
+        (
+            59,
+            17,
+            "flow@1 must name a declared caveat",
+            "route@3 retains flow@1: flow@1 is evidence, not a caveat",
+        ),
+        (
+            1247,
+            7,
+            "route@1 must name a declared caveat",
+            "route@3 retains route@1: route@1 is a commitment, not a caveat",
+        ),
+        (
+            1520,
+            3,
+            "safe must name a declared caveat",
+            "route@3 retains safe: safe is a claim, not a caveat",
+        ),
+        (
+            15_978,
+            216,
+            "commitment basis includes unobserved evidence bite",
+            "route@3 relies_on bite: bite is not observed",
+        ),
+    ] {
+        let witness = Alterations::new(&save, seed).nth(round).unwrap();
+        assert_eq!(
+            resume(&witness.to_string()),
+            Ok(Resumed::Refused(format!(
+                "cannot restore save: relation {refusal}"
+            ))),
+            "round {round} of seed {seed}, once fatal on read: \"event read, rule 5: {fatal}\""
+        );
     }
 }
 
@@ -1701,4 +1728,481 @@ fn a_reading_dated_outside_the_session_is_refused() {
         ReactiveSession::restore_json(PROGRAM, &edited.to_string())
             .unwrap_or_else(|error| panic!("a reading dated {dated}: {error}"));
     }
+}
+
+/// What `next` does to a restored session, event by event, up to the first
+/// fatal outcome.
+fn outcomes(game: &mut ReactiveSession, next: &[(&str, &str)]) -> String {
+    let mut outcomes = Vec::new();
+    for (event, payload) in next {
+        match game.dispatch_outcome_json(event, payload) {
+            Ok(outcome) => {
+                let outcome = serde_json::to_value(outcome).unwrap();
+                outcomes.push(format!("{event} {}", outcome["outcome"]));
+            }
+            Err(fatal) => {
+                outcomes.push(format!("{event} fatal: {}", fatal.message));
+                break;
+            }
+        }
+    }
+    outcomes.join("; ")
+}
+
+/// `save` of `source` must be refused with `expected`. An accepted one fails
+/// with what `next` then does.
+fn not_restored(source: &str, save: &serde_json::Value, expected: &str, next: &[(&str, &str)]) {
+    match ReactiveSession::restore_json(source, &save.to_string()) {
+        Err(error) => assert_eq!(error, format!("cannot restore save: {expected}")),
+        Ok(mut game) => panic!("{expected}: accepted; {}", outcomes(&mut game, next)),
+    }
+}
+
+/// The events after a `PROGRAM` save: a read reopens and revises route,
+/// which reads what route@3 retains and relies on.
+const PLAY_ON: [(&str, &str); 5] = [
+    ("tick", r#"{"dt": 0.1}"#),
+    ("read", r#"{"x": 1}"#),
+    ("eat", "{}"),
+    ("regrow", "{}"),
+    ("check", "{}"),
+];
+
+/// `played()`'s save with relation `index` replaced by `relation`, written
+/// `FROM RELATION TO`.
+fn related(index: usize, relation: &str) -> serde_json::Value {
+    let mut save = serde_json::to_value(played().save().unwrap()).unwrap();
+    save["graph"]["relations"][index] = relation.split(' ').collect();
+    save
+}
+
+// An event adds a relation only between the kinds of node its effect names:
+// a reading or revealed evidence supports or opposes a claim; a caveat
+// qualifies evidence; a commitment retains caveats and relies on evidence;
+// evidence reopens a commitment; nothing adds `in_context`. Restore used to
+// relate any two nodes the save named. Read back as what they were written
+// as, a retained evidence or a relied-on claim then made route's next
+// revision fatal ("safe must name a declared evidence").
+#[test]
+fn a_relation_between_kinds_no_event_relates_is_refused() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    for (index, relation) in [
+        (3, "flow@1 reopens route@1"),
+        (9, "route@3 retains unmeasured"),
+        (12, "route@3 relies_on forecast"),
+        (13, "bite supports safe"),
+        (15, "faded qualifies bite"),
+    ] {
+        let written: serde_json::Value = relation.split(' ').collect();
+        assert_eq!(save["graph"]["relations"][index], written);
+    }
+    // Which relation is replaced, by what, and why that is refused.
+    for case in [
+        "12 route@3 relies_on safe: safe is a claim, not evidence",
+        "12 route@3 relies_on route@1: route@1 is a commitment, not evidence",
+        "12 route@3 relies_on stale: stale is a caveat, not evidence",
+        "12 flow@1 relies_on forecast: flow@1 is evidence, not a commitment",
+        "9 route@3 retains bite: bite is evidence, not a caveat",
+        "9 route@3 retains route@1: route@1 is a commitment, not a caveat",
+        "9 safe retains unmeasured: safe is a claim, not a commitment",
+        "3 route@2 reopens route@1: route@2 is a commitment, not evidence",
+        "3 flow@1 reopens safe: safe is a claim, not a commitment",
+        "13 safe supports safe: safe is a claim, not evidence",
+        "13 route@1 supports safe: route@1 is a commitment, not evidence",
+        "13 bite supports route@1: route@1 is a commitment, not a claim",
+        "13 bite opposes stale: stale is a caveat, not a claim",
+        "15 bite qualifies bite@2: bite is evidence, not a caveat",
+        "15 faded qualifies safe: safe is a claim, not evidence",
+        "15 faded qualifies stale: stale is a caveat, not evidence",
+        "15 faded qualifies route@1: route@1 is a commitment, not evidence",
+    ] {
+        let (index, refusal) = case.split_once(' ').unwrap();
+        let (relation, _) = refusal.split_once(':').unwrap();
+        not_restored(
+            PROGRAM,
+            &related(index.parse().unwrap(), relation),
+            &format!("relation {refusal}"),
+            &PLAY_ON,
+        );
+    }
+    not_restored(
+        PROGRAM,
+        &related(13, "bite in_context safe"),
+        "relation bite in_context safe is not one an event adds",
+        &PLAY_ON,
+    );
+}
+
+// A commitment relies on evidence, and evidence reopens one, only once it is
+// observed: something it supports or opposes. The next revision relies on
+// route@3's evidence again and requires that, so evidence nothing observes
+// made it fatal ("commitment basis includes unobserved evidence sensor").
+#[test]
+fn a_relation_to_evidence_nothing_observes_is_refused() {
+    not_restored(
+        PROGRAM,
+        &related(12, "route@3 relies_on sensor"),
+        "relation route@3 relies_on sensor: sensor is not observed",
+        &PLAY_ON,
+    );
+    // bite is observed only by the relation that reveals it.
+    let mut unrevealed = related(12, "route@3 relies_on bite");
+    unrevealed["graph"]["relations"]
+        .as_array_mut()
+        .unwrap()
+        .remove(13);
+    not_restored(
+        PROGRAM,
+        &unrevealed,
+        "relation route@3 relies_on bite: bite is not observed",
+        &PLAY_ON,
+    );
+    // The fuzz's form of it: the reveal made to start at a claim.
+    let mut reversed = related(10, "route@3 relies_on bite");
+    reversed["graph"]["relations"][13][0] = "safe".into();
+    not_restored(
+        PROGRAM,
+        &reversed,
+        "relation safe supports safe: safe is a claim, not evidence",
+        &PLAY_ON,
+    );
+    // The journal already required a reopening's cause to be observed; the
+    // relation is now refused before it is compared with the journal.
+    not_restored(
+        PROGRAM,
+        &related(3, "sensor reopens route@1"),
+        "relation sensor reopens route@1: sensor is not observed",
+        &PLAY_ON,
+    );
+}
+
+// The same fact for the records a commitment reads again: any lineage, basis
+// or guard that cites evidence nothing observes. route@3's basis and route's
+// selection guards enter its next revision.
+#[test]
+fn a_record_citing_evidence_nothing_observes_is_refused() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let mut basis = save.clone();
+    basis["commitment_bases"]["route@3"]["provenance"]["evidence"] =
+        serde_json::json!(["flow@1", "flow@2", "forecast", "sensor"]);
+    not_restored(
+        PROGRAM,
+        &basis,
+        "commitment route@3: sensor is not observed",
+        &PLAY_ON,
+    );
+    let mut selection = save.clone();
+    selection["decision_series"]["route"]["selection_qualifications"]["evidence"] =
+        serde_json::json!(["sensor"]);
+    not_restored(
+        PROGRAM,
+        &selection,
+        "decision series route: sensor is not observed",
+        &PLAY_ON,
+    );
+    let mut lineage = save.clone();
+    lineage["states"]["support"]["lineage"]["evidence"] = serde_json::json!(["forecast", "sensor"]);
+    not_restored(
+        PROGRAM,
+        &lineage,
+        "state support: sensor is not observed",
+        &PLAY_ON,
+    );
+}
+
+/// A decision made on a state, and a withdrawal a rule reads.
+const CITING: &str = r#"
+claim safe;
+claim misreading;
+evidence seen from "seen";
+evidence unseen from "never seen";
+evidence plain from "a plain reading";
+evidence recheck from "a second look";
+readings flow from plain limit 4;
+state level = 0;
+state flagged = 0;
+event see;
+event rd x min -10 max 10;
+event misread;
+event decide;
+event ask;
+on see reveal seen supports safe;
+on see set level = qualified(1, seen);
+on rd sample flow = x supports safe;
+on misread reveal recheck supports misreading;
+on misread withdraw latest(flow) because recheck;
+on decide commit go because enough using level;
+on ask when withdrawn(latest(flow)) set flagged = 1;
+"#;
+
+// A state's lineage and a withdrawal's reason, citing evidence nothing
+// observes: the commitment made on the state, and the rule that reads the
+// withdrawal, were fatal.
+#[test]
+fn a_lineage_or_withdrawal_citing_evidence_nothing_observes_is_refused() {
+    let mut game = ReactiveSession::from_source(CITING).unwrap();
+    for (event, payload) in [("see", "{}"), ("rd", r#"{"x": 1}"#), ("misread", "{}")] {
+        game.dispatch_json(event, payload).unwrap();
+    }
+    let save = serde_json::to_value(game.save().unwrap()).unwrap();
+    assert_eq!(
+        save["graph"]["relations"][0],
+        serde_json::json!(["seen", "supports", "safe"])
+    );
+    assert_eq!(save["withdrawals"][0]["because"], "recheck");
+    let next = [("decide", "{}"), ("ask", "{}")];
+    let mut unseen = save.clone();
+    unseen["states"]["level"]["lineage"]["evidence"] = serde_json::json!(["seen", "unseen"]);
+    not_restored(
+        CITING,
+        &unseen,
+        "state level: unseen is not observed",
+        &next,
+    );
+    let mut unrevealed = save.clone();
+    unrevealed["graph"]["relations"]
+        .as_array_mut()
+        .unwrap()
+        .remove(0);
+    not_restored(
+        CITING,
+        &unrevealed,
+        "state level: seen is not observed",
+        &next,
+    );
+    let mut reason = save.clone();
+    reason["withdrawals"][0]["because"] = "unseen".into();
+    not_restored(
+        CITING,
+        &reason,
+        "the withdrawal of flow@1: unseen is not observed",
+        &[("ask", "{}")],
+    );
+}
+
+/// A withdrawal a later event makes again.
+const REWITHDRAWING: &str = r#"
+claim safe;
+evidence seen from "seen";
+evidence reason from "reason";
+event see;
+event wd;
+event again;
+on see reveal seen supports safe;
+on see reveal reason supports safe;
+on wd withdraw seen because reason;
+on again when withdrawn(seen) withdraw seen because reason;
+"#;
+
+// Withdrawn evidence was observed when it was withdrawn, and withdrawing it
+// again requires that: with nothing observing it, the next withdrawal of it
+// was fatal ("cannot withdraw unobserved evidence seen").
+#[test]
+fn a_withdrawal_of_evidence_nothing_observes_is_refused() {
+    let mut game = ReactiveSession::from_source(REWITHDRAWING).unwrap();
+    for event in ["see", "wd", "again"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    let save = serde_json::to_value(game.save().unwrap()).unwrap();
+    assert_eq!(
+        save["graph"]["relations"][0],
+        serde_json::json!(["seen", "supports", "safe"])
+    );
+    let mut resumed = ReactiveSession::restore_json(REWITHDRAWING, &save.to_string()).unwrap();
+    assert_eq!(
+        outcomes(&mut resumed, &[("again", "{}")]),
+        r#"again "accepted""#
+    );
+    let mut unseen = save.clone();
+    unseen["graph"]["relations"]
+        .as_array_mut()
+        .unwrap()
+        .remove(0);
+    not_restored(
+        REWITHDRAWING,
+        &unseen,
+        "the withdrawal of seen: seen is not observed",
+        &[("again", "{}")],
+    );
+}
+
+// A commitment retains exactly its basis's caveats and relies on exactly its
+// evidence. Reading `committed(...)` or `reopened(...)` adds what it retains
+// and relies on to that basis: anything more changed what the next revision
+// was made on.
+#[test]
+fn a_relation_beyond_a_commitments_basis_is_refused() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let basis = &save["commitment_bases"]["route@3"]["provenance"];
+    assert_eq!(basis["caveats"], serde_json::json!(["unmeasured"]));
+    assert_eq!(
+        basis["evidence"],
+        serde_json::json!(["flow@1", "flow@2", "forecast"])
+    );
+    for case in [
+        "9 route@3 retains faded: faded is not in route@3's basis",
+        "12 route@3 relies_on bite: bite is not in route@3's basis",
+        "9 route@1 retains stale: stale is not in route@1's basis",
+        "12 route@1 relies_on flow@2: flow@2 is not in route@1's basis",
+    ] {
+        let (index, refusal) = case.split_once(' ').unwrap();
+        let (relation, _) = refusal.split_once(':').unwrap();
+        not_restored(
+            PROGRAM,
+            &related(index.parse().unwrap(), relation),
+            &format!("relation {refusal}"),
+            &PLAY_ON,
+        );
+    }
+}
+
+// The same with long names: relying on more than its basis took the read of
+// `committed(go)` past the provenance limit of 65536 name bytes, which was
+// fatal.
+#[test]
+fn a_commitment_relying_on_more_than_its_basis_is_refused() {
+    let names = (0..4)
+        .map(|index| format!("e{index}{}", "x".repeat(20_000)))
+        .collect::<Vec<_>>();
+    let mut source =
+        String::from("claim safe;\nstate s = 0;\nevent see;\nevent decide;\nevent poke;\n");
+    for name in &names {
+        source.push_str(&format!(
+            "evidence {name} from \"long\";\non see reveal {name} supports safe;\n"
+        ));
+    }
+    source.push_str("on decide commit go because enough;\n");
+    source.push_str("on poke when committed(go) set s = s + 1;\n");
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["see", "decide", "poke"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    let mut save = serde_json::to_value(game.save().unwrap()).unwrap();
+    let relations = save["graph"]["relations"].as_array_mut().unwrap();
+    for name in &names {
+        relations.push(serde_json::json!(["go", "relies_on", name]));
+    }
+    let first = &names[0];
+    not_restored(
+        &source,
+        &save,
+        &format!("relation go relies_on {first}: {first} is not in go's basis"),
+        &[("poke", "{}")],
+    );
+}
+
+/// Every relation an event adds: readings that support and oppose, a reveal,
+/// caveats a reading inherits, a renewal carries, a late qualification adds
+/// and a withdrawal adds, retained caveats, evidence relied on, and
+/// reopenings by name and by reading.
+const RELATING: &str = r#"
+claim safe;
+claim misreading;
+evidence plain from "a plain reading";
+evidence bite from "a bite";
+evidence recheck from "a second look";
+caveat noisy consequence low;
+caveat faded consequence low;
+caveat stale consequence material;
+noisy qualifies plain;
+faded qualifies bite;
+readings flow from plain limit 8;
+renewable bite limit 4;
+decisions go limit 6;
+state level = 0;
+event rd x min -10 max 10;
+event low x min -10 max 10;
+event eat;
+event regrow;
+event decide;
+event doubt;
+event recall;
+event revise;
+event age;
+event misread;
+on rd sample flow = x supports safe;
+on low sample flow = x opposes safe;
+on eat reveal bite supports safe;
+on eat set level = level + qualified(1, bite);
+on regrow renew bite;
+on decide when not committed(go) commit go because enough using latest(flow) retaining stale;
+on doubt when committed(go) and not reopened(go) reopen go because latest(flow);
+on recall when committed(go) and observed(bite) reopen go because bite;
+on revise when reopened(go) commit go because enough using latest(flow) + level;
+on age qualify bite with stale;
+on misread when not observed(recheck) reveal recheck supports misreading;
+on misread withdraw latest(flow) because recheck;
+"#;
+
+// Saves the runtime writes restore, whatever relations their events added,
+// and the restored session plays on identically.
+#[test]
+fn every_relation_an_event_adds_restores() {
+    let mut game = ReactiveSession::from_source(RELATING).unwrap();
+    let steps = [
+        ("rd", r#"{"x": 1}"#),
+        ("decide", "{}"),
+        ("eat", "{}"),
+        ("doubt", "{}"),
+        ("revise", "{}"),
+        ("recall", "{}"),
+        ("regrow", "{}"),
+        ("low", r#"{"x": -2}"#),
+        ("eat", "{}"),
+        ("revise", "{}"),
+        ("age", "{}"),
+        ("misread", "{}"),
+        ("doubt", "{}"),
+        ("revise", "{}"),
+    ];
+    for (step, (event, payload)) in steps.iter().enumerate() {
+        let outcome = game
+            .dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event}: fatal {}", fatal.message));
+        let outcome = serde_json::to_value(outcome).unwrap();
+        assert_eq!(outcome["outcome"], "accepted", "{event}: {outcome}");
+        let mut original = game.clone();
+        let mut resumed = ReactiveSession::restore_json(RELATING, &game.save_json().unwrap())
+            .unwrap_or_else(|error| panic!("after {event}: {error}"));
+        assert_eq!(resumed.snapshot(), original.snapshot(), "after {event}");
+        for (event, payload) in &steps[step + 1..] {
+            let expected = serde_json::to_value(original.dispatch_outcome_json(event, payload));
+            let actual = serde_json::to_value(resumed.dispatch_outcome_json(event, payload));
+            assert_eq!(actual.unwrap(), expected.unwrap(), "after {event}");
+        }
+        assert_eq!(resumed.snapshot(), original.snapshot());
+    }
+    let save = game.save().unwrap();
+    let mut added = save
+        .graph
+        .relations
+        .iter()
+        .map(|[from, relation, to]| {
+            let base = |name: &str| name.split('@').next().unwrap().to_string();
+            format!("{} {relation} {}", base(from), base(to))
+        })
+        .collect::<Vec<_>>();
+    added.sort();
+    added.dedup();
+    assert_eq!(
+        added,
+        [
+            "bite reopens go",
+            "bite supports safe",
+            "faded qualifies bite",
+            "flow opposes safe",
+            "flow reopens go",
+            "flow supports safe",
+            "go relies_on bite",
+            "go relies_on flow",
+            "go retains faded",
+            "go retains noisy",
+            "go retains stale",
+            "go retains withdrawn",
+            "noisy qualifies flow",
+            "recheck supports misreading",
+            "stale qualifies bite",
+            "withdrawn qualifies flow",
+        ]
+    );
 }
