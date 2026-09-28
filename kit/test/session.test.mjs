@@ -48,18 +48,32 @@ test('a save whose graph holds a renewal its renewals do not list fails to resto
   } finally { session.close(); }
 });
 
+const sampling = 'claim safe; evidence plain from "a plain reading"; readings flow from plain limit 4; event rd x min -10 max 10; on rd sample flow = x supports safe;';
+
 test('a save whose graph holds a reading its stream does not list fails to restore', () => {
   // Accepted, it made the next sample a fatal outcome instead.
-  const source = 'claim safe; evidence plain from "a plain reading"; readings flow from plain limit 4; event rd x min -10 max 10; on rd sample flow = x supports safe;';
-  const session = real.open(source);
+  const session = real.open(sampling);
   try {
     for (const x of [1, 2]) assert.equal(session.dispatch('rd', { x }).outcome, 'accepted');
     const saved = JSON.parse(session.save());
     const { flow } = saved.reading_streams;
     assert.deepEqual(flow.occurrences.map(reading => reading.id), ['flow@1', 'flow@2']);
     const edited = JSON.stringify({ ...saved, reading_streams: { flow: { ...flow, current: 'flow@1', occurrences: flow.occurrences.slice(0, 1) } } });
-    assert.throws(() => real.restore(source, edited), error => error instanceof CaveatError && error.kind === 'restore'
+    assert.throws(() => real.restore(sampling, edited), error => error instanceof CaveatError && error.kind === 'restore'
       && error.message === 'cannot restore save: reading stream flow occurrence flow@2 is not in its occurrences');
+  } finally { session.close(); }
+});
+
+test('a save whose stream lists other than its readings in order fails to restore', () => {
+  // Accepted, a stream listing its template could make the next event on its latest reading fatal.
+  const session = real.open(sampling);
+  try {
+    assert.equal(session.dispatch('rd', { x: 1 }).outcome, 'accepted');
+    const saved = JSON.parse(session.save());
+    const { flow } = saved.reading_streams;
+    const edited = JSON.stringify({ ...saved, reading_streams: { flow: { ...flow, current: 'plain', occurrences: [...flow.occurrences, { ...flow.occurrences[0], id: 'plain' }] } } });
+    assert.throws(() => real.restore(sampling, edited), error => error instanceof CaveatError && error.kind === 'restore'
+      && error.message === 'cannot restore save: reading stream flow occurrence plain is out of order');
   } finally { session.close(); }
 });
 

@@ -709,7 +709,13 @@ impl ReactiveSession {
             {
                 return Err(format!("reading stream {name} does not match the program"));
             }
-            for occurrence in &stream.occurrences {
+            for (index, occurrence) in stream.occurrences.iter().enumerate() {
+                if occurrence.id != format!("{name}@{}", index + 1) {
+                    return Err(format!(
+                        "reading stream {name} occurrence {} is out of order",
+                        occurrence.id
+                    ));
+                }
                 self.require_kind(&occurrence.id, "evidence")?;
                 if !occurrence.value.is_finite() {
                     return Err(format!("reading {} is not a finite number", occurrence.id));

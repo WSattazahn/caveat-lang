@@ -348,40 +348,131 @@ const NEXT_EVENTS: [(&str, &str); 6] = [
     ("start", "{}"),
 ];
 
-/// Fatal outcomes an accepted save still leads to, each a separate known
-/// issue: the event, part of the message, and why. A fatal outcome is skipped
-/// only when an entry names its event and message; any other fails the test,
-/// like a crash. Remove an entry when its issue is fixed.
-const KNOWN_FATAL: [(&str, &str, &str); 5] = [
+// The fix each known fatal outcome waits for, and the confirmed runtime bug
+// behind it.
+const COMMIT_IN_FORCE: &str = "waits for PR #53 (fix/classify-commit-in-force); remove it when \
+    that fix is in the tested combination. Committing a decision already in force is fatal \
+    instead of a rejection, save or no save: start played() again";
+const LATE_CAVEAT_EXPLANATION: &str = "waits for fix/binding-explanation-late-caveat; remove it \
+    when that fix is in the tested combination. When the late `faded` reaches bite@2, \
+    hud.text's explanation is fatal, save or no save: tick played() by 0.1 to 40 seconds";
+const SEQUENCE_BOUND: &str = "waits for fix/restore-sequence-bound; remove it when that fix is \
+    in the tested combination. Restore accepts a sequence of u64::MAX, and the next event \
+    cannot be numbered";
+const RELATION_KINDS: &str = "waits for fix/restore-relation-kinds; remove it when that fix is \
+    in the tested combination. Restore does not check the kinds a created relation connects: \
+    with route@3 relies_on safe, or on evidence nothing observes, the next revision of route \
+    is fatal";
+
+/// Fatal outcomes an accepted save still leads to, each a confirmed runtime
+/// bug with its own fix under way: the event, the exact full message, and the
+/// fix it waits for. A fatal outcome is skipped only when an entry names its
+/// event and its whole message, so an entry cannot hide any other fatal
+/// outcome; any other fails the test, like a crash. These are every message
+/// the default seed and seeds 1 to 6 produce in 30,000 rounds. Remove an
+/// entry when its fix is in the tested combination.
+const KNOWN_FATAL: [(&str, &str, &str); 12] = [
     (
         "start",
-        "must be explicitly reopened before revision",
-        "committing a decision already in force is fatal instead of a rejection, \
-         save or no save; another change fixes it",
+        "event start, rule 2: current decision in route must be explicitly reopened before \
+         revision",
+        COMMIT_IN_FORCE,
     ),
     (
         "tick",
-        "that its value and conditions never read",
-        "when the late `faded` reaches bite@2, hud.text's explanation is fatal, \
-         save or no save: tick played() to 40 seconds",
+        "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured that its \
+         value and conditions never read",
+        LATE_CAVEAT_EXPLANATION,
     ),
+    ("tick", "reactive event sequence exhausted", SEQUENCE_BOUND),
     (
-        "tick",
-        "reactive event sequence exhausted",
-        "restore accepts a sequence of u64::MAX, and the next event cannot be numbered",
+        "read",
+        "event read, rule 5: route@1 must name a declared evidence",
+        RELATION_KINDS,
     ),
     (
         "read",
-        "must name a declared",
-        "restore does not check the kinds a created relation connects: with \
-         route@3 relies_on safe, the next revision of route is fatal",
+        "event read, rule 5: safe must name a declared evidence",
+        RELATION_KINDS,
     ),
     (
         "read",
-        "commitment basis includes unobserved evidence",
-        "the same: route@3 relies_on evidence nothing observes",
+        "event read, rule 5: stale must name a declared evidence",
+        RELATION_KINDS,
+    ),
+    (
+        "read",
+        "event read, rule 5: bite must name a declared caveat",
+        RELATION_KINDS,
+    ),
+    (
+        "read",
+        "event read, rule 5: bite@2 must name a declared caveat",
+        RELATION_KINDS,
+    ),
+    (
+        "read",
+        "event read, rule 5: flow@1 must name a declared caveat",
+        RELATION_KINDS,
+    ),
+    (
+        "read",
+        "event read, rule 5: route@1 must name a declared caveat",
+        RELATION_KINDS,
+    ),
+    (
+        "read",
+        "event read, rule 5: safe must name a declared caveat",
+        RELATION_KINDS,
+    ),
+    (
+        "read",
+        "event read, rule 5: commitment basis includes unobserved evidence bite",
+        RELATION_KINDS,
     ),
 ];
+
+/// The `KNOWN_FATAL` entry for a fatal `message` on `event`, if one names both.
+fn known_fatal(event: &str, message: &str) -> Option<usize> {
+    KNOWN_FATAL
+        .iter()
+        .position(|(on, known, _)| *on == event && *known == message)
+}
+
+// An entry is one whole fatal outcome, so it can never hide another: the same
+// message on another event, or a message that contains it or that it
+// contains, is not skipped.
+#[test]
+fn a_known_fatal_outcome_is_its_event_and_whole_message() {
+    for (index, (event, message, waits)) in KNOWN_FATAL.iter().enumerate() {
+        assert!(waits.starts_with("waits for "), "{message}: {waits}");
+        assert_eq!(known_fatal(event, message), Some(index), "{message}");
+        assert_eq!(known_fatal("eat", message), None, "{message}");
+        assert_eq!(known_fatal(event, &format!("{message}.")), None);
+        assert_eq!(known_fatal(event, &message[1..]), None);
+    }
+    for (event, message) in [
+        (
+            "read",
+            "event read, rule 5: route@2 must name a declared evidence",
+        ),
+        (
+            "read",
+            "event read, rule 5: commitment basis includes unobserved evidence forecast",
+        ),
+        (
+            "start",
+            "event start, rule 2: current decision in go must be explicitly reopened before \
+             revision",
+        ),
+        (
+            "tick",
+            "binding hud.level cites evidence bite that its value and conditions never read",
+        ),
+    ] {
+        assert_eq!(known_fatal(event, message), None, "{message}");
+    }
+}
 
 /// Restore `text` and play `NEXT_EVENTS` on it: `Ok(false)` if it is refused,
 /// `Ok(true)` if it is accepted and plays on. A known fatal outcome ends the
@@ -395,9 +486,7 @@ fn restore_and_play(text: &str, skipped: &mut [usize]) -> Result<bool, String> {
     let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         for (event, payload) in NEXT_EVENTS {
             if let Err(fatal) = game.dispatch_outcome_json(event, payload) {
-                let known = KNOWN_FATAL
-                    .iter()
-                    .position(|(on, part, _)| *on == event && fatal.message.contains(part))
+                let known = known_fatal(event, &fatal.message)
                     .ok_or_else(|| format!("{event} was fatal: {}", fatal.message))?;
                 skipped[known] += 1;
                 break;
@@ -810,7 +899,7 @@ fn a_reading_its_stream_does_not_list_is_refused() {
     assert_eq!(listed(&second), ["flow@2"]);
     unsampled(
         &second,
-        "reading stream flow occurrence flow@1 is not in its occurrences",
+        "reading stream flow occurrence flow@2 is out of order",
     );
     let mut swapped = save.clone();
     swapped["reading_streams"]["flow"]["occurrences"]
@@ -820,13 +909,13 @@ fn a_reading_its_stream_does_not_list_is_refused() {
     swapped["reading_streams"]["flow"]["current"] = "flow@1".into();
     unsampled(
         &swapped,
-        "reading stream flow occurrence flow@1 is not in its occurrences",
+        "reading stream flow occurrence flow@2 is out of order",
     );
 }
 
-// A reading past the declared limit of 4, which no sample could make: renamed
-// everywhere the save names it, or added to the graph alone. Listed or not,
-// the limit bounds it.
+// A reading past the declared limit of 4, which no sample could make. Renamed
+// everywhere the save names it, it is out of order; added to the graph alone,
+// it is not listed; listed in order, the stream holds more than its limit.
 #[test]
 fn a_reading_past_its_limit_is_refused() {
     let renamed: serde_json::Value =
@@ -834,7 +923,7 @@ fn a_reading_past_its_limit_is_refused() {
     assert_eq!(renamed["reading_streams"]["flow"]["current"], "flow@9");
     unsampled(
         &renamed,
-        "reading stream flow occurrence flow@9 is not in its occurrences",
+        "reading stream flow occurrence flow@9 is out of order",
     );
     let mut extra = sampled(2);
     extra["graph"]["nodes"]
@@ -1034,4 +1123,93 @@ fn every_save_of_a_sampling_session_restores() {
     assert_eq!(save.identifiers, ["a"]);
     assert_eq!(save.withdrawals.len(), 1);
     assert!(save.scheduled_qualifications.is_empty(), "the caveat fired");
+}
+
+/// The edited `save` of `source` must be refused with `expected`. An accepted
+/// one fails with what each of the `next` events does to it.
+fn misordered(source: &str, save: &serde_json::Value, expected: &str, next: &[(&str, &str)]) {
+    match ReactiveSession::restore_json(source, &save.to_string()) {
+        Err(error) => assert_eq!(error, format!("cannot restore save: {expected}")),
+        Ok(game) => panic!(
+            "accepted with readings {:?}; then {:?}",
+            game.snapshot().reading_streams["flow"]
+                .occurrences
+                .iter()
+                .map(|occurrence| occurrence.id.clone())
+                .collect::<Vec<_>>(),
+            next.iter()
+                .map(|(event, payload)| {
+                    let mut game = game.clone();
+                    match game.dispatch_outcome_json(event, payload) {
+                        Ok(outcome) => {
+                            let outcome = serde_json::to_value(outcome).unwrap();
+                            format!(
+                                "{event}: {}",
+                                outcome.get("code").unwrap_or(&outcome["outcome"])
+                            )
+                        }
+                        Err(fatal) => format!("{event}: fatal {}", fatal.message),
+                    }
+                })
+                .collect::<Vec<_>>()
+        ),
+    }
+}
+
+// Each entry of a stream's occurrences had only to name evidence, not to be
+// STREAM@N at its position N. A stream that listed its template, other
+// evidence, a reading twice or another stream's reading was accepted, and the
+// next event on latest(flow) acted on that entry: qualifying or withdrawing
+// evidence nothing had observed was fatal, and a reading listed twice counted
+// twice toward the limit.
+#[test]
+fn a_stream_listing_other_than_its_readings_in_order_is_refused() {
+    let mut game = ReactiveSession::from_source(SAMPLING).unwrap();
+    send(&mut game, "rd", &[("x", 1.0)]);
+    send(&mut game, "decide", &[]);
+    let save = serde_json::to_value(game.save().unwrap()).unwrap();
+    let next = [("doubt", "{}"), ("misread", "{}"), ("rd", r#"{"x": 2}"#)];
+    for listed in ["plain", "recheck", "flow@1"] {
+        let mut edited = save.clone();
+        let flow = &mut edited["reading_streams"]["flow"];
+        let mut entry = flow["occurrences"][0].clone();
+        entry["id"] = listed.into();
+        flow["occurrences"].as_array_mut().unwrap().push(entry);
+        flow["current"] = listed.into();
+        misordered(
+            SAMPLING,
+            &edited,
+            &format!("reading stream flow occurrence {listed} is out of order"),
+            &next,
+        );
+    }
+    let mut game = ReactiveSession::from_source(SAMPLING).unwrap();
+    send(&mut game, "rd", &[("x", 1.0)]);
+    let mut repeated = serde_json::to_value(game.save().unwrap()).unwrap();
+    let flow = &mut repeated["reading_streams"]["flow"];
+    let first = flow["occurrences"][0].clone();
+    flow["occurrences"] = serde_json::json!([first.clone(), first.clone(), first.clone(), first]);
+    misordered(
+        SAMPLING,
+        &repeated,
+        "reading stream flow occurrence flow@1 is out of order",
+        &next,
+    );
+    let streams = format!(
+        "{READING}readings other from plain limit 4;\non rd sample other = x supports safe;\n"
+    );
+    let mut game = ReactiveSession::from_source(&streams).unwrap();
+    send(&mut game, "rd", &[("x", 1.0)]);
+    let mut other = serde_json::to_value(game.save().unwrap()).unwrap();
+    let entry = other["reading_streams"]["other"]["occurrences"][0].clone();
+    assert_eq!(entry["id"], "other@1");
+    let flow = &mut other["reading_streams"]["flow"];
+    flow["occurrences"].as_array_mut().unwrap().push(entry);
+    flow["current"] = "other@1".into();
+    misordered(
+        &streams,
+        &other,
+        "reading stream flow occurrence other@1 is out of order",
+        &[("rd", r#"{"x": 2}"#)],
+    );
 }
