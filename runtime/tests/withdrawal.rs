@@ -470,3 +470,187 @@ fn a_skipped_withdrawal_can_be_saved_and_restored() {
         .unwrap();
     assert!(error.contains("unknown predicate withdrawn"), "{error}");
 }
+
+/// A stream whose template is withdrawn: a sensor found miscalibrated goes on
+/// being read.
+const RECALIBRATED: &str = r#"
+claim safe;
+claim misreading;
+evidence sensor from "the flow sensor";
+evidence recheck from "the sensor was found miscalibrated";
+caveat aged consequence low;
+caveat drift consequence material;
+aged qualifies sensor;
+readings flow from sensor limit 4;
+decisions route limit 4;
+state estimate = 0;
+event see;
+event misread;
+event drifted;
+event read value min 0 max 4;
+event read_through;
+event decide;
+event misread_reading;
+on see reveal sensor supports safe;
+on see reveal recheck supports misreading;
+on misread withdraw sensor because recheck;
+on drifted qualify sensor with drift;
+on read sample flow = value supports safe;
+on read_through sample flow = qualified(3, sensor) supports safe;
+on read set estimate = latest(flow);
+on read_through set estimate = latest(flow);
+on decide commit route because enough using latest(flow);
+on misread_reading withdraw latest(flow) because recheck;
+bind status.sensor = 0;
+bind status.sensor = 1 when withdrawn(sensor);
+bind status.latest = 0;
+bind status.latest = 1 when withdrawn(latest(flow));
+bind status.rests = 0;
+bind status.rests = 1 when rests_on_withdrawn(route);
+"#;
+
+fn relates(shot: &Value, from: &str, relation: &str, to: &str) -> bool {
+    shot["relations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|r| r["from"] == from && r["relation"] == relation && r["to"] == to)
+}
+
+// Found restoring a real session: a reading inherited `withdrawn` from its
+// withdrawn template with no withdrawal of its own, so the session's own save
+// was refused. A reading is a new observation, as a renewal's occurrence is.
+#[test]
+fn a_new_reading_of_withdrawn_evidence_is_not_withdrawn() {
+    let mut game = session(RECALIBRATED);
+    for event in ["see", "misread", "drifted"] {
+        assert_eq!(go(&mut game, event)["outcome"], "accepted", "{event}");
+    }
+    send(&mut game, "read", json!({ "value": 2 }));
+    let shot = snapshot(&game);
+    assert_eq!(
+        shot["withdrawals"],
+        json!([{ "evidence": "sensor", "because": "recheck", "sequence": 2, "event": "misread" }])
+    );
+    assert!(relates(&shot, "withdrawn", "qualifies", "sensor"));
+    assert!(
+        !relates(&shot, "withdrawn", "qualifies", "flow@1"),
+        "the reading inherited its template's withdrawal"
+    );
+    // Its template's other caveats, declared and late, it still inherits.
+    for caveat in ["aged", "drift"] {
+        assert!(relates(&shot, caveat, "qualifies", "flow@1"), "{caveat}");
+    }
+    let reading = &shot["reading_streams"]["flow"]["occurrences"][0];
+    assert_eq!(caveats(&reading["provenance"]), ["aged", "drift"]);
+    assert_eq!(
+        caveats(&shot["qualified_values"]["estimate"]["provenance"]),
+        ["aged", "drift"]
+    );
+    assert_eq!(shot["bindings"]["status"]["sensor"], 1.0);
+    assert_eq!(shot["bindings"]["status"]["latest"], 0.0);
+
+    // A decision made on it does not rest on a withdrawal.
+    go(&mut game, "decide");
+    let shot = snapshot(&game);
+    assert!(!caveats(&shot["commitment_bases"]["route@1"]["provenance"])
+        .contains(&"withdrawn".to_string()));
+    assert!(!relates(&shot, "route@1", "retains", "withdrawn"));
+    assert_eq!(shot["bindings"]["status"]["rests"], 0.0);
+
+    // Withdrawing the reading itself withdraws it, with its own record.
+    go(&mut game, "misread_reading");
+    let shot = snapshot(&game);
+    assert_eq!(shot["withdrawals"][1]["evidence"], "flow@1");
+    assert!(relates(&shot, "withdrawn", "qualifies", "flow@1"));
+    assert_eq!(shot["bindings"]["status"]["latest"], 1.0);
+    assert_eq!(shot["bindings"]["status"]["rests"], 1.0);
+
+    // A reading computed from the withdrawn template carries `withdrawn` in
+    // its value, as every value read from it does, but is not withdrawn.
+    go(&mut game, "read_through");
+    let shot = snapshot(&game);
+    assert!(!relates(&shot, "withdrawn", "qualifies", "flow@2"));
+    assert!(
+        caveats(&shot["reading_streams"]["flow"]["occurrences"][1]["provenance"])
+            .contains(&"withdrawn".to_string())
+    );
+    assert!(caveats(&shot["qualified_values"]["estimate"]["provenance"])
+        .contains(&"withdrawn".to_string()));
+    assert_eq!(shot["bindings"]["status"]["latest"], 0.0);
+}
+
+/// Every save `game` writes restores to `game`, which then plays `next` the
+/// same way.
+fn restores_as_itself(source: &str, game: &ReactiveSession, next: &[(&str, Value)]) {
+    let mut original = game.clone();
+    let mut resumed = ReactiveSession::restore_json(source, &original.save_json().unwrap())
+        .unwrap_or_else(|error| panic!("its own save was refused: {error}"));
+    assert_eq!(snapshot(&resumed), snapshot(&original));
+    for (event, payload) in next {
+        assert_eq!(
+            send(&mut resumed, event, payload.clone()),
+            send(&mut original, event, payload.clone()),
+            "{event}"
+        );
+    }
+}
+
+#[test]
+fn a_session_that_reads_withdrawn_evidence_restores_from_its_own_save() {
+    let reported = r#"
+        claim safe;
+        evidence sensor from "a sensor";
+        evidence reason from "a reason";
+        readings flow from sensor limit 4;
+        state x = 0;
+        event see; event wd; event rd;
+        on see reveal sensor supports safe;
+        on see reveal reason supports safe;
+        on wd withdraw sensor because reason;
+        on rd sample flow = 1 supports safe;
+    "#;
+    let mut game = session(reported);
+    for event in ["see", "wd", "rd"] {
+        assert_eq!(go(&mut game, event)["outcome"], "accepted", "{event}");
+        restores_as_itself(reported, &game, &[("rd", json!({}))]);
+    }
+
+    // Renewable evidence: its first occurrence is the stream's template.
+    let renewing =
+        format!("{reported}\nrenewable sensor limit 3;\nevent regrow;\non regrow renew sensor;");
+    let mut game = session(&renewing);
+    let next = [
+        ("rd", json!({})),
+        ("regrow", json!({})),
+        ("see", json!({})),
+        ("rd", json!({})),
+    ];
+    for event in ["see", "wd", "rd", "regrow", "see", "rd"] {
+        assert_eq!(go(&mut game, event)["outcome"], "accepted", "{event}");
+        restores_as_itself(&renewing, &game, &next);
+    }
+
+    let mut game = session(RECALIBRATED);
+    let next = [
+        ("read", json!({ "value": 1 })),
+        ("read_through", json!({})),
+        ("misread_reading", json!({})),
+    ];
+    for (event, payload) in [
+        ("see", json!({})),
+        ("misread", json!({})),
+        ("drifted", json!({})),
+        ("read", json!({ "value": 2 })),
+        ("decide", json!({})),
+        ("read_through", json!({})),
+        ("misread_reading", json!({})),
+    ] {
+        assert_eq!(
+            send(&mut game, event, payload)["outcome"],
+            "accepted",
+            "{event}"
+        );
+        restores_as_itself(RECALIBRATED, &game, &next);
+    }
+}
