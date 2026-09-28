@@ -353,9 +353,6 @@ const NEXT_EVENTS: [(&str, &str); 6] = [
 const LATE_CAVEAT_EXPLANATION: &str = "waits for fix/binding-explanation-late-caveat; remove it \
     when that fix is in the tested combination. When the late `faded` reaches bite@2, \
     hud.text's explanation is fatal, save or no save: tick played() by 0.1 to 40 seconds";
-const SEQUENCE_BOUND: &str = "waits for fix/restore-sequence-bound; remove it when that fix is \
-    in the tested combination. Restore accepts a sequence of u64::MAX, and the next event \
-    cannot be numbered";
 const RELATION_KINDS: &str = "waits for fix/restore-relation-kinds; remove it when that fix is \
     in the tested combination. Restore does not check the kinds a created relation connects: \
     with route@3 relies_on safe, or on evidence nothing observes, the next revision of route \
@@ -388,7 +385,7 @@ struct KnownFatal {
 /// last). Remove an entry when its fix is in the tested combination:
 /// every_known_fatal_outcome_still_happens fails once its witness no longer
 /// reproduces it.
-const KNOWN_FATAL: [KnownFatal; 11] = [
+const KNOWN_FATAL: [KnownFatal; 10] = [
     KnownFatal {
         event: "tick",
         message: "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured \
@@ -396,13 +393,6 @@ const KNOWN_FATAL: [KnownFatal; 11] = [
         waits: LATE_CAVEAT_EXPLANATION,
         seed: 1047,
         round: 0,
-    },
-    KnownFatal {
-        event: "tick",
-        message: "reactive event sequence exhausted",
-        waits: SEQUENCE_BOUND,
-        seed: 2464,
-        round: 1,
     },
     KnownFatal {
         event: "read",
@@ -743,6 +733,30 @@ fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
             );
         }
     }
+}
+
+// A save whose sequence no session reaches was a known fatal outcome until
+// fix/restore-sequence-bound bounded the sequence restore accepts, and its
+// entry left KNOWN_FATAL. Its witness, round 1 of seed 2464, sets the sequence
+// to u64::MAX, and its next tick could not be numbered. It must now be refused
+// at restore with that bound, before any event, and for its sequence alone.
+#[test]
+fn a_save_past_the_sequence_bound_is_refused_before_any_event() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let mut witness = Alterations::new(&save, 2464).nth(1).unwrap();
+    assert_eq!(
+        witness["sequence"],
+        u64::MAX,
+        "the witness must hold the sequence"
+    );
+    assert_eq!(
+        resume(&witness.to_string()),
+        Ok(Resumed::Refused(
+            "cannot restore save: sequence must be at most 9007199254740991".to_string()
+        ))
+    );
+    witness["sequence"] = save["sequence"].clone();
+    assert_eq!(resume(&witness.to_string()), Ok(Resumed::PlaysOn));
 }
 
 // Every save missing one record, a list entry or a field, must be refused or
