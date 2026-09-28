@@ -11,12 +11,13 @@ use serde::Deserialize;
 
 pub const REACTIVE_SAVE_SCHEMA: &str = "caveat-reactive-save/0.1";
 const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
-/// The most events a saved session can have accepted: 2^53 - 1, the largest
-/// integer a JSON host reads exactly. At two million events a second, faster
-/// than the runtime dispatches even an empty event, a session would take over
-/// 140 years to get there, so a save past it was edited. Nothing else in a
-/// save bounds the sequence from above, since an event can leave no record.
-/// The events after it are numbered like any others, up to u64::MAX.
+/// The largest sequence restore accepts: 2^53 - 1, the largest integer a JSON
+/// host reads exactly. The sequence counts accepted events, and at ten
+/// million a second 2^53 of them take over 28 years, so a save past it was
+/// edited. Nothing else in a save bounds the sequence from above, since an
+/// event can leave no record. A session restored at or near the bound numbers
+/// its events past it like any others, up to u64::MAX, and its saves from
+/// then on are refused.
 const MAX_SAVED_SEQUENCE: u64 = (1 << 53) - 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -679,6 +679,29 @@ fn a_save_at_the_largest_sequence_numbers_its_next_events() {
     assert!(sequence > MOST_EVENTS + 1, "the events must be accepted");
 }
 
+// Only an edited save resumes a session at the bound. Its save there
+// restores; once its events pass the bound, its saves are refused like any
+// other past it, and it plays on.
+#[test]
+fn a_session_resumed_at_the_bound_saves_past_it_only_to_be_refused() {
+    let mut game = ReactiveSession::restore_json(PROGRAM, &at_sequence(MOST_EVENTS))
+        .unwrap_or_else(|error| panic!("{error}"));
+    ReactiveSession::restore_json(PROGRAM, &game.save_json().unwrap())
+        .unwrap_or_else(|error| panic!("its save at the bound: {error}"));
+    for past in 1..=2 {
+        game.dispatch_outcome_json("tick", r#"{"dt": 0.1}"#)
+            .unwrap_or_else(|fatal| panic!("tick: {}", fatal.message));
+        assert_eq!(game.snapshot().sequence, MOST_EVENTS + past);
+        assert_eq!(
+            ReactiveSession::restore_json(PROGRAM, &game.save_json().unwrap()).map(|_| ()),
+            Err(format!(
+                "cannot restore save: sequence must be at most {MOST_EVENTS}"
+            )),
+            "its save {past} past the bound"
+        );
+    }
+}
+
 // A reading records the sequence of the event that took it, from 1 to the
 // save's own; the journal's entries and withdrawals were already held to that.
 #[test]

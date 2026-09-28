@@ -83,11 +83,12 @@ save is refused with an error, and never crashes the runtime, when:
   admits negative `dt` are not incorrectly treated as monotonic;
 - its `sequence` is past 2^53 - 1 (9007199254740991), or a reading, journal
   entry or withdrawal is dated 0 or past the `sequence`. The sequence counts
-  accepted events: at two million a second, faster than the runtime dispatches
-  even an empty event, 2^53 of them take over 140 years. Records bound the
-  sequence only from below, since an event can leave none (a `tick`), so the
-  bound above is this constant, the largest integer a JSON host reads exactly.
-  A restored session numbers its next events like any other.
+  accepted events, and at ten million a second 2^53 of them take over 28
+  years. Records bound the sequence only from below, since an event can leave
+  none (a `tick`), so the bound above is this constant, the largest integer a
+  JSON host reads exactly. A restored session numbers its next events like
+  any other, past the bound too: a session resumed from an edited save at or
+  near the bound plays on, but its saves past the bound are refused.
 
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
@@ -119,9 +120,11 @@ edited save is refused or remains playable without crashing.
 - 2026-09-27: restore refuses a save whose `sequence` is past 2^53 - 1, or
   that holds a reading dated 0 or past its `sequence`. A save at 2^64 - 1 used
   to be accepted, and its next event was fatal `unclassified` ("reactive event
-  sequence exhausted"); one a few below it was fatal a few events later. No
-  session writes such a save, and one at 2^53 - 1 still has 2^64 - 2^53
-  events to number, so exhaustion stays unreachable and dispatch is unchanged.
-  A reading's sequence was not checked, unlike a journal entry's or a
-  withdrawal's, and now bounds the save's from below as theirs do. Saves the
-  runtime writes restore as before.
+  sequence exhausted"); one a few below it was fatal a few events later. A
+  session resumed at 2^53 - 1 still has 2^64 - 2^53 events to number, so
+  exhaustion stays unreachable and dispatch is unchanged. A reading's
+  sequence was not checked, unlike a journal entry's or a withdrawal's, and
+  now bounds the save's from below as theirs do. Saves the runtime writes
+  restore as before, except from a session resumed from an edited save at or
+  near the bound: it numbers its events past 2^53 - 1, and its saves from
+  then on are refused.
