@@ -618,3 +618,92 @@ fn every_save_of_a_renewing_session_restores() {
     assert_eq!(outcome["Ok"]["code"], "renewal_limit", "{outcome}");
     resumes(&game);
 }
+
+/// The largest sequence a save can hold: 2^53 - 1.
+const MOST_EVENTS: u64 = (1 << 53) - 1;
+
+/// `played()`'s save with its sequence set to `sequence`, as JSON text.
+fn at_sequence(sequence: u64) -> String {
+    let mut save = serde_json::to_value(played().save().unwrap()).unwrap();
+    save["sequence"] = sequence.into();
+    save.to_string()
+}
+
+// A save at u64::MAX was accepted, and its next event was fatal: "reactive
+// event sequence exhausted". No session accepts 2^53 events, let alone 2^64,
+// so restore refuses a sequence past 2^53 - 1, and an accepted save numbers
+// its next events.
+#[test]
+fn a_sequence_no_session_reaches_is_refused() {
+    for sequence in [u64::MAX, u64::MAX - 1, 1 << 63, MOST_EVENTS + 1] {
+        match ReactiveSession::restore_json(PROGRAM, &at_sequence(sequence)) {
+            Err(error) => assert_eq!(
+                error,
+                format!("cannot restore save: sequence must be at most {MOST_EVENTS}")
+            ),
+            Ok(mut game) => panic!(
+                "accepted a sequence of {sequence}; its next tick gives {}",
+                match game.dispatch_outcome_json("tick", r#"{"dt": 0.1}"#) {
+                    Ok(outcome) => serde_json::to_value(outcome).unwrap()["outcome"].to_string(),
+                    Err(fatal) => serde_json::to_string(&fatal).unwrap(),
+                }
+            ),
+        }
+    }
+}
+
+// The largest sequence restores, and its next events are numbered past it
+// like any others.
+#[test]
+fn a_save_at_the_largest_sequence_numbers_its_next_events() {
+    let mut game = ReactiveSession::restore_json(PROGRAM, &at_sequence(MOST_EVENTS))
+        .unwrap_or_else(|error| panic!("{error}"));
+    let mut sequence = MOST_EVENTS;
+    for (event, payload) in [
+        ("tick", r#"{"dt": 0.1}"#),
+        ("read", r#"{"x": 1}"#),
+        ("eat", "{}"),
+        ("regrow", "{}"),
+        ("check", "{}"),
+        ("tick", r#"{"dt": 0.1}"#),
+    ] {
+        let outcome = game
+            .dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event}: {}", fatal.message));
+        let outcome = serde_json::to_value(outcome).unwrap();
+        if outcome["outcome"] == "accepted" {
+            sequence += 1;
+        }
+        assert_eq!(game.snapshot().sequence, sequence, "after {event}");
+    }
+    assert!(sequence > MOST_EVENTS + 1, "the events must be accepted");
+}
+
+// A reading records the sequence of the event that took it, from 1 to the
+// save's own; the journal's entries and withdrawals were already held to that.
+#[test]
+fn a_reading_dated_outside_the_session_is_refused() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let sequence = save["sequence"].as_u64().unwrap();
+    let readings = save["reading_streams"]["flow"]["occurrences"]
+        .as_array()
+        .unwrap();
+    assert_eq!(readings.len(), 2, "the fixture must hold readings");
+    for dated in [0, sequence + 1, MOST_EVENTS, u64::MAX] {
+        let mut edited = save.clone();
+        edited["reading_streams"]["flow"]["occurrences"][1]["sequence"] = dated.into();
+        assert_eq!(
+            ReactiveSession::restore_json(PROGRAM, &edited.to_string()).map(|_| ()),
+            Err("cannot restore save: reading flow@2 is out of sequence".to_string()),
+            "a reading dated {dated} in a save of {sequence}"
+        );
+    }
+    // The bound is all this checks: a reading dated by any event in the
+    // session is accepted, as a reading of the last event is.
+    for dated in [1, sequence] {
+        let mut edited = save.clone();
+        edited["reading_streams"]["flow"]["occurrences"][1]["sequence"] = dated.into();
+        ReactiveSession::restore_json(PROGRAM, &edited.to_string())
+            .unwrap_or_else(|error| panic!("a reading dated {dated}: {error}"));
+    }
+}
