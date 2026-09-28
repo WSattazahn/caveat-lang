@@ -88,6 +88,16 @@ fn entity_kinds(source: &str, statements: &[(usize, usize)]) -> Vec<(String, Vec
 
 fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
     let block = read_block(part.source, span, part.kinds)?;
+    // The body is copied as written and no `;` is added, so its last
+    // statement must end with its own `;`, whatever the number of members:
+    // without one, each copy's last statement would run into what follows
+    // the copy. A body with no statement, empty or of comments and empty
+    // statements, needs none. It is refused here, before any copy, and not
+    // in `read_block`, so a routed block elsewhere in the part still reads
+    // the events this body declares, and the error is this one.
+    if let Some(error) = block.unended {
+        return Err(error);
+    }
     // Which rules are routed is read from the body as written, once.
     let routed = match block.route {
         Some(parameter) => Routing {
@@ -132,6 +142,8 @@ struct Block<'s, 'k> {
     route: Option<&'s str>,
     body: &'s str,
     members: &'k [String],
+    /// The refusal of the body's last statement when it has no `;`.
+    unended: Option<String>,
 }
 
 /// The block statement at `start..end` of a part's `source`.
@@ -219,6 +231,11 @@ fn read_block<'s, 'k>(
             "no entity is declared `kind {kind}`, so `for {kind}` has nothing to expand"
         ));
     };
+    // Past `text_after_body`, the `}` that ends the body ends a statement
+    // only when that statement has no `;`: the body's last one.
+    let unended = braces
+        .ends_statement
+        .map(|from| unended_statement(source, start, statement, &header, (from, close)));
     Ok(Block {
         header,
         kind,
@@ -227,6 +244,7 @@ fn read_block<'s, 'k>(
         route,
         body,
         members,
+        unended,
     })
 }
 
@@ -260,8 +278,8 @@ impl Routing<'_> {
         let events = part.events();
         let member = format!("kind {kind}");
         let mut routed = Vec::new();
-        // The parser reads a last statement without its `;`, so it is a rule
-        // written in the body like any other.
+        // Every statement in the body ends with its `;`, the last one too
+        // (`expand_block`).
         for (start, end) in statements_of(body) {
             let code = blank_comments(without_terminator(&body[start..end]));
             let ["on", event, ..] = words(&code)[..] else {
@@ -343,7 +361,9 @@ impl Part<'_> {
     /// after its name. A declaration a `for` block writes counts once
     /// expanded: only a block whose body Repetition 0.1 expands for every
     /// member counts. A block that does not expand is left out here and
-    /// reports its own error when it is expanded.
+    /// reports its own error when it is expanded. A body whose last statement
+    /// has no `;` is read as its copies read, and its block is refused for
+    /// that when it is expanded.
     fn events(&self) -> Vec<(String, Vec<(String, String)>)> {
         let mut events = Vec::new();
         for (start, end) in self.statements {
@@ -482,6 +502,24 @@ fn text_after_body(
     at.error(format!(
         "for block has text after its body: {}; the `}}` in `{written}` closes no `{{` of its statement, so it ends the body: quote a brace that is text, take it out of a name, or end the block with `}};`",
         head(after)
+    ))
+}
+
+/// The refusal of a body's last statement without its `;`: the statement at
+/// `from` of `statement`, a block statement at `start` of `source` whose
+/// body the `}` at `close` ends. The error gives the line and column where
+/// that statement is written.
+fn unended_statement(
+    source: &str,
+    start: usize,
+    statement: &str,
+    header: &[&str],
+    (from, close): (usize, usize),
+) -> String {
+    position_of(source, start + from).error(format!(
+        "the last statement in the body of `{}`, `{}`, has no `;` before the `}}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`",
+        header.join(" "),
+        statement_words(&statement[from..close]).join(" ")
     ))
 }
 
