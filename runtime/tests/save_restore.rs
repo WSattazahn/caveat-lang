@@ -356,10 +356,6 @@ const LATE_CAVEAT_EXPLANATION: &str = "waits for fix/binding-explanation-late-ca
 const SEQUENCE_BOUND: &str = "waits for fix/restore-sequence-bound; remove it when that fix is \
     in the tested combination. Restore accepts a sequence of u64::MAX, and the next event \
     cannot be numbered";
-const RELATION_KINDS: &str = "waits for fix/restore-relation-kinds; remove it when that fix is \
-    in the tested combination. Restore does not check the kinds a created relation connects: \
-    with route@3 relies_on safe, or on evidence nothing observes, the next revision of route \
-    is fatal";
 
 /// The seed the save fuzz runs with unless SAVE_FUZZ_SEED names another.
 const DEFAULT_SEED: u32 = 20_260_922;
@@ -384,11 +380,10 @@ struct KnownFatal {
 /// cannot hide any other fatal outcome; any other fails the test, like a
 /// crash. These are every message the default seed and seeds 1 to 6 produce
 /// in 30,000 rounds. Each witness is an earliest round found for its entry
-/// running seeds 1 to 4,000 for 1,000 rounds each (seeds to 16,000 for the
-/// last). Remove an entry when its fix is in the tested combination:
-/// every_known_fatal_outcome_still_happens fails once its witness no longer
-/// reproduces it.
-const KNOWN_FATAL: [KnownFatal; 11] = [
+/// running seeds 1 to 4,000 for 1,000 rounds each. Remove an entry when its
+/// fix is in the tested combination: every_known_fatal_outcome_still_happens
+/// fails once its witness no longer reproduces it.
+const KNOWN_FATAL: [KnownFatal; 2] = [
     KnownFatal {
         event: "tick",
         message: "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured \
@@ -403,69 +398,6 @@ const KNOWN_FATAL: [KnownFatal; 11] = [
         waits: SEQUENCE_BOUND,
         seed: 2464,
         round: 1,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: route@1 must name a declared evidence",
-        waits: RELATION_KINDS,
-        seed: 3199,
-        round: 19,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: safe must name a declared evidence",
-        waits: RELATION_KINDS,
-        seed: 3491,
-        round: 11,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: stale must name a declared evidence",
-        waits: RELATION_KINDS,
-        seed: 336,
-        round: 0,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: bite must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 148,
-        round: 9,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: bite@2 must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 2948,
-        round: 4,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: flow@1 must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 59,
-        round: 17,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: route@1 must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 1247,
-        round: 7,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: safe must name a declared caveat",
-        waits: RELATION_KINDS,
-        seed: 1520,
-        round: 3,
-    },
-    KnownFatal {
-        event: "read",
-        message: "event read, rule 5: commitment basis includes unobserved evidence bite",
-        waits: RELATION_KINDS,
-        seed: 15_978,
-        round: 216,
     },
 ];
 
@@ -711,37 +643,123 @@ fn every_known_fatal_outcome_still_happens() {
 }
 
 // Committing a decision already in force was a known fatal outcome until #53
-// made it a rejection, and its entry left KNOWN_FATAL. Its witness, round 0
-// of seed 1032, and the save it was altered from must now be refused as that
-// rejection, with nothing kept, not merely play on.
+// made it a rejection, and its entry left KNOWN_FATAL. The save its witness,
+// round 0 of seed 1032, was altered from must now be refused as that
+// rejection, with nothing kept, not merely play on. The witness itself drops
+// forecast from route@1's basis while route@1 still relies on it, and since
+// fix/restore-relation-kinds restore refuses it for that.
 #[test]
 fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
     let save = serde_json::to_value(played().save().unwrap()).unwrap();
     let witness = Alterations::new(&save, 1032).next().unwrap();
-    for text in [save.to_string(), witness.to_string()] {
-        let mut game = ReactiveSession::restore_json(PROGRAM, &text).expect("the save restores");
-        for (event, payload) in NEXT_EVENTS {
-            let before = serde_json::to_string(&game.save().unwrap()).unwrap();
-            let outcome = game
-                .dispatch_outcome_json(event, payload)
-                .unwrap_or_else(|fatal| panic!("{event} was fatal: {}", fatal.message));
-            if event != "start" {
-                continue;
-            }
-            let outcome = serde_json::to_value(&outcome).unwrap();
-            assert_eq!(outcome["outcome"], "rejected");
-            assert_eq!(outcome["origin"], "evaluation");
-            assert_eq!(outcome["code"], "decision_in_force");
-            assert_eq!(
-                outcome["message"],
-                "event start, rule 2: current decision in route must be explicitly reopened \
-                 before revision"
-            );
-            assert_eq!(
-                serde_json::to_string(&game.save().unwrap()).unwrap(),
-                before
-            );
+    assert_eq!(
+        resume(&witness.to_string()),
+        Ok(Resumed::Refused(
+            "cannot restore save: relation route@1 relies_on forecast: forecast is not in \
+             route@1's basis"
+                .into()
+        ))
+    );
+    let mut game =
+        ReactiveSession::restore_json(PROGRAM, &save.to_string()).expect("the save restores");
+    for (event, payload) in NEXT_EVENTS {
+        let before = serde_json::to_string(&game.save().unwrap()).unwrap();
+        let outcome = game
+            .dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event} was fatal: {}", fatal.message));
+        if event != "start" {
+            continue;
         }
+        let outcome = serde_json::to_value(&outcome).unwrap();
+        assert_eq!(outcome["outcome"], "rejected");
+        assert_eq!(outcome["origin"], "evaluation");
+        assert_eq!(outcome["code"], "decision_in_force");
+        assert_eq!(
+            outcome["message"],
+            "event start, rule 2: current decision in route must be explicitly reopened \
+             before revision"
+        );
+        assert_eq!(
+            serde_json::to_string(&game.save().unwrap()).unwrap(),
+            before
+        );
+    }
+}
+
+// A relation between kinds of node no event relates, and a relation to
+// evidence nothing observes, were known fatal outcomes on the next revision
+// of route until fix/restore-relation-kinds made restore refuse such a save,
+// and their entries left KNOWN_FATAL. Each witness, by its seed and round,
+// must now be refused at restore with the relation and why, not merely play
+// on.
+#[test]
+fn a_relation_fatal_after_a_restore_is_refused_at_restore() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    // Each witness, the fatal outcome it led to, and the refusal it now meets.
+    for (seed, round, fatal, refusal) in [
+        (
+            3199,
+            19,
+            "route@1 must name a declared evidence",
+            "route@3 relies_on route@1: route@1 is a commitment, not evidence",
+        ),
+        (
+            3491,
+            11,
+            "safe must name a declared evidence",
+            "route@3 relies_on safe: safe is a claim, not evidence",
+        ),
+        (
+            336,
+            0,
+            "stale must name a declared evidence",
+            "route@3 relies_on stale: stale is a caveat, not evidence",
+        ),
+        (
+            148,
+            9,
+            "bite must name a declared caveat",
+            "route@3 retains bite: bite is evidence, not a caveat",
+        ),
+        (
+            2948,
+            4,
+            "bite@2 must name a declared caveat",
+            "route@3 retains bite@2: bite@2 is evidence, not a caveat",
+        ),
+        (
+            59,
+            17,
+            "flow@1 must name a declared caveat",
+            "route@3 retains flow@1: flow@1 is evidence, not a caveat",
+        ),
+        (
+            1247,
+            7,
+            "route@1 must name a declared caveat",
+            "route@3 retains route@1: route@1 is a commitment, not a caveat",
+        ),
+        (
+            1520,
+            3,
+            "safe must name a declared caveat",
+            "route@3 retains safe: safe is a claim, not a caveat",
+        ),
+        (
+            15_978,
+            216,
+            "commitment basis includes unobserved evidence bite",
+            "route@3 relies_on bite: bite is not observed",
+        ),
+    ] {
+        let witness = Alterations::new(&save, seed).nth(round).unwrap();
+        assert_eq!(
+            resume(&witness.to_string()),
+            Ok(Resumed::Refused(format!(
+                "cannot restore save: relation {refusal}"
+            ))),
+            "round {round} of seed {seed}, once fatal on read: \"event read, rule 5: {fatal}\""
+        );
     }
 }
 
