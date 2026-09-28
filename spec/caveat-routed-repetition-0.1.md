@@ -325,17 +325,19 @@ another writes, the new order is the author's to check, as for any moved rule.
 Routing runs with Repetition 0.1: once per part, before names are rewritten.
 EVENT is looked up among the `event` declarations of the block's own part (a
 single-file program is one part). A declaration a `for` block writes counts
-only when Repetition 0.1 expands that whole block, for every member. A last
-declaration without its `;` counts, as the loader reads it. A program
-declares every event it reacts to, `tick`
-included: `game/glowcap.cav` writes `event tick dt min 0 max 0.1;`. The
+only when Repetition 0.1 expands that whole block, for every member, or would
+but for its body's last statement without its `;`: that block's declarations
+count as its copies read, and loading then stops at the block, with Repetition
+0.1's error. A declaration that is the part's last statement counts without
+its `;`, as the loader reads it. A program declares every event it reacts to,
+`tick` included: `game/glowcap.cav` writes `event tick dt min 0 max 0.1;`. The
 prelude holds functions only. Like Repetition 0.1, which iterates only kinds
 declared in its own part, routing reads nothing else.
 
 An error stops loading at the first one found. Blocks are read in source
 order, and in each block the checks run in this order:
-1. the header, and Repetition 0.1's checks of the binding, of nesting and of
-   the kind;
+1. the header, and Repetition 0.1's checks of the binding, of nesting, of
+   the kind and of the body's last `;`;
 2. an entity of KIND in a `for` block;
 3. each rule, in the order written;
 4. whether the block routes any rule;

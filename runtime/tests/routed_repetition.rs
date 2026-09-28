@@ -492,36 +492,71 @@ fn a_rule_that_mentions_no_binding_on_an_event_that_names_no_member_expands_as_w
     );
 }
 
+/// The refusal of `written`, the last statement of a body with `header`,
+/// which has no `;`, at the `line` and `column` where it is written
+/// (spec/caveat-repetition-0.1.md section 2).
+fn unended(header: &str, (line, column): (usize, usize), written: &str) -> String {
+    format!(
+        "line {line}, column {column}: the last statement in the body of `{header}`, `{written}`, has no `;` before the `}}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`"
+    )
+}
+
 #[test]
-fn a_last_rule_without_its_semicolon_is_routed_like_any_other() {
-    // The parser reads a last statement without its `;`.
+fn a_last_rule_without_its_semicolon_is_refused_before_it_is_routed() {
+    // A body's last statement must end with `;`, a routed rule too
+    // (spec/caveat-repetition-0.1.md section 2). The block is refused before
+    // any rule is routed, plain or routed alike. With two plots, each copy's
+    // last rule ran into the next copy, and neither program loaded: "expected
+    // '=' at byte 21".
     let body = "\n    state $p_n = 0;\n    on ping set $p_n = 1;\n    on read set $p_m = value\n";
     assert_eq!(
-        routed(body),
-        plain(&body.replace(" set $p_", " when target == $index set $p_"))
+        refused(ROUTED, body),
+        unended(ROUTED, (13, 5), "on read set $p_m = value")
+    );
+    let by_hand = body.replace(" set $p_", " when target == $index set $p_");
+    assert_eq!(
+        refused(PLAIN, &by_hand),
+        unended(
+            PLAIN,
+            (13, 5),
+            "on read when target == $index set $p_m = value"
+        )
     );
     assert_eq!(
-        routed(" state $p_n = 0; on read set $p_n = value\n"),
-        plain(" state $p_n = 0; on read when target == $index set $p_n = value\n")
+        refused(ROUTED, " state $p_n = 0; on read set $p_n = value\n"),
+        unended(ROUTED, (10, 51), "on read set $p_n = value")
     );
+    // Before routing's own checks too: this rule mentions neither `$p` nor
+    // `$index`.
     assert_eq!(
         refused(
             ROUTED,
             "\n    state $p_n = 0;\n    on ping set $p_n = 1;\n    on read set total = value\n"
         ),
-        "`on read` in `for plot as $p routed by target` mentions neither `$p` nor `$index`; its copies are all the same rule, so write it once, outside the block"
+        unended(ROUTED, (13, 5), "on read set total = value")
     );
-    // With one member, the copy is a last statement that loads, as the
-    // hand-routed one does.
+    // With `;`, each is routed like any other rule.
+    let ended = body.replace("value\n", "value;\n");
+    assert_eq!(
+        routed(&ended),
+        plain(&by_hand.replace("value\n", "value;\n"))
+    );
+    // With one member, the copy was a last statement that loaded, as the
+    // hand-routed one does. It is refused too, and loads with its `;`.
     let source = |header: &str, rule: &str| {
         format!("{PLOTS}{header} {{ state $d_n = 0; bind $d.n = $d_n; {rule} }};\n")
     };
-    let routed = source("for probe as $d routed by device", "on swap set $d_n = 1");
+    let header = "for probe as $d routed by device";
+    assert_eq!(
+        repeat::expand(&source(header, "on swap set $d_n = 1")).unwrap_err(),
+        unended(header, (10, 70), "on swap set $d_n = 1")
+    );
+    let routed = source(header, "on swap set $d_n = 1;");
     assert_eq!(
         repeat::expand(&routed).unwrap(),
         repeat::expand(&source(
             "for probe as $d",
-            "on swap when device == $index set $d_n = 1"
+            "on swap when device == $index set $d_n = 1;"
         ))
         .unwrap()
     );
@@ -606,16 +641,30 @@ event read target kind plot"
         .unwrap()
     );
     ReactiveSession::from_source(&routed).expect("loads");
-    // So is a `for` block's last `event` statement, once expanded.
-    let source = format!(
-        "{PLOTS}{ROUTED} {{ state $p_n = 0; on poke_handheld set $p_n = 1; }};
-for probe as $d {{ event poke_$d target kind plot }};
+    // So is a `for` block's last `event` statement, once expanded, ended
+    // with its `;`.
+    let source = |end: &str| {
+        format!(
+            "{PLOTS}{ROUTED} {{ state $p_n = 0; on poke_handheld set $p_n = 1; }};
+for probe as $d {{ event poke_$d target kind plot{end} }};
 "
-    );
-    assert!(repeat::expand(&source)
+        )
+    };
+    assert!(repeat::expand(&source(";"))
         .unwrap()
         .contains("on poke_handheld when target == 2 set south_n = 1;"));
-    ReactiveSession::from_source(&source).expect("loads");
+    ReactiveSession::from_source(&source(";")).expect("loads");
+    // Without its `;`, that block is refused. The routed block before it
+    // still reads the event its copy declares, so the refusal is the one that
+    // says what is wrong, not that no `poke_handheld` is declared.
+    assert_eq!(
+        repeat::expand(&source("")).unwrap_err(),
+        unended(
+            "for probe as $d",
+            (11, 19),
+            "event poke_$d target kind plot"
+        )
+    );
 }
 
 // ── Section 7: errors, and their order ─────────────────────────────────────

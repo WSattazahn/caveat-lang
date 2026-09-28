@@ -50,19 +50,42 @@ for reef as $r {
 
 `for KIND as $NAME { ... };` expands its body once per member of `KIND`, in
 declaration order, and replaces itself with the result. Like any last
-statement, a last block may leave out its `;`. Nothing but comments may come
-between the body's `}` and the block's end. A brace in the body's unquoted
-text pairs only within its statement. The body ends at its first `}` outside
-quoted text, comments and procedure bodies that does not close a `{` earlier
-in its own statement. So a pair in unquoted provenance, such as
-`from see{appendix}b;`, stays in its statement, while in `from a}b;` and in
-`from }{;` the `}` ends the body, and what follows it is text after the
-body. A body statement that leaves a `{` open, as `from x{;` does, is
-refused: a `}` in a later statement does not close it. Either error gives
-the line and column of the brace. Quoted, as in `from "x{";` or
-`from "}{";`, the text is the statement's own. A quoted name keeps its
-quotes, so a name in a body, as in `claim $p_c}{;`, cannot hold such a
-brace. Two bindings are available inside the body:
+statement, a last block may leave out its `;`, though its body's last
+statement may not (below). Nothing but comments may come between the body's
+`}` and the block's end. A brace in the body's unquoted text pairs only
+within its statement. The body ends at its first `}` outside quoted text,
+comments and procedure bodies that does not close a `{` earlier in its own
+statement. So a pair in unquoted provenance, such as `from see{appendix}b;`,
+stays in its statement, while in `from a}b;` and in `from }{;` the `}` ends
+the body, and what follows it is text after the body. A body statement that
+leaves a `{` open, as `from x{;` does, is refused: a `}` in a later statement
+does not close it. Either error gives the line and column of the brace.
+Quoted, as in `from "x{";` or `from "}{";`, the text is the statement's own.
+A quoted name keeps its quotes, so a name in a body, as in `claim $p_c}{;`,
+cannot hold such a brace.
+
+Every statement in a body ends with `;`, the last one too, whatever the
+number of members. The body is copied as written and no `;` is added, so a
+last statement without one would run into what follows each copy: the next
+member's copy, or, after the last member's, the text after the block. A body
+with no statement, one that is empty or holds only comments and empty
+statements, needs none. A `}` right before a statement's `;`, as in
+`from y};`, ends the body there, so that statement is the body's last and
+has no `;`. Such a body is refused before any copy is made, in a routed block
+too:
+
+```text
+line L, column C: the last statement in the body of `HEADER`, `STATEMENT`, has no `;` before the `}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`
+```
+
+L and C are where the statement is written, HEADER is the block's header as
+in [routed Repetition 0.1](caveat-routed-repetition-0.1.md) section 7, and
+STATEMENT is the statement's words, its comments read as whitespace and each
+run of whitespace written as one space. The rule is the block's own: it holds
+with one member, and at the end of the program, where the loader would read a
+last statement without its `;`.
+
+Two bindings are available inside the body:
 
 - `$NAME` — the member's name.
 - `$index` — its one-based position in the kind's declaration order.
@@ -221,3 +244,43 @@ what keeps the expansion checkable and the generated program ordinary.
   copy while a `kind` parameter counted it, so an event that named it
   changed nothing, silently, and a last block there was not expanded. Both
   are now read.
+- 2026-09-28: a body's last statement must end with `;` (section 2), for any
+  number of members, in a routed block and in a module too. No `;` is added,
+  and a body with no statement needs none. The body was copied as written,
+  so such a statement ran into what followed each copy. These programs are
+  now refused, and their saves cannot be restored. Below, "before" is
+  Repetition as it was before the 2026-09-27 entries, "then" is with them,
+  and the members are entities north and south of kind plot unless one is
+  named:
+  - Two or more members. `for plot as $p { evidence $p_a from notes };`
+    declared north_a with provenance `notes evidence south_a from notes`,
+    and no south_a, before and then, silently. Where the copies did not read
+    together as a statement, the program did not load, with the loader's
+    error about the expanded text, such as "expected '=' at byte 17" for
+    `{ state $p_n = 0; on read when target == $index set $p_n = 1 }`. A body
+    whose first statement is empty ended every copy's last statement but the
+    last one's, so at the end of the program, `{ ; evidence $p_a from notes }`
+    loaded as written, before and then.
+  - One member, north. The copy's last statement ran into the statement
+    after the block: with `evidence tail from after;` there, north_a's
+    provenance was `notes evidence tail from after`, and no tail was
+    declared, before and then. At the end of the program, or with a `;`
+    right after the block's, the copy loaded as written, before and then.
+    It is refused all the same: the rule does not depend on what follows
+    the block.
+  - A `}` right before a body statement's `;`, as in
+    `for plot as $p { evidence $p_a from y}; };`. That `}` ended the body,
+    and ` };` was read after the block: only north_a was declared, with
+    provenance `y evidence south_a from y }`, before and then.
+  - A block that loaded only with the 2026-09-27 entries: one with a comment
+    or a `{` in its header, a last block without its `;`, or one below a
+    brace in a statement outside a block, among the shapes those entries
+    list. Before, each was refused for that shape; then, each loaded as the
+    examples above do. A `}` in a comment after the body, as in `} # }` and
+    a `;` on the next line, loaded wrongly before as well: north_a's
+    provenance was `notes } evidence south_a from notes }` before, and
+    `notes evidence south_a from notes` then.
+
+  A last block may still leave out its own `;` once its body's last
+  statement has one, and a `}` in a comment, a quoted brace and a brace pair
+  within a statement load as before.
