@@ -854,7 +854,13 @@ impl ReactiveSession {
             {
                 return Err(format!("reading stream {name} does not match the program"));
             }
-            for occurrence in &stream.occurrences {
+            for (index, occurrence) in stream.occurrences.iter().enumerate() {
+                if occurrence.id != format!("{name}@{}", index + 1) {
+                    return Err(format!(
+                        "reading stream {name} occurrence {} is out of order",
+                        occurrence.id
+                    ));
+                }
                 self.require_kind(&occurrence.id, "evidence")?;
                 if !occurrence.value.is_finite() {
                     return Err(format!("reading {} is not a finite number", occurrence.id));
@@ -922,10 +928,11 @@ impl ReactiveSession {
                 self.require_kind(occurrence, "evidence")?;
             }
         }
-        // And the other way: every renewal occurrence the graph holds is in
-        // its evidence's renewals at its ordinal, so the limit above bounds it
-        // too. Unlisted, it would leave the program's first occurrence current,
-        // and the next renew would generate a name the graph already holds.
+        // And the other way: every reading and renewal occurrence the graph
+        // holds is in its stream's occurrences or its evidence's renewals at
+        // its ordinal, so the limits above bound it too. Unlisted, the list
+        // would stop short of it, and the next sample or renew would generate
+        // a name the graph already holds.
         for node in &save.graph.nodes {
             let SavedNode::Occurrence { name } = node else {
                 continue;
@@ -933,7 +940,18 @@ impl ReactiveSession {
             let Some((base, ordinal)) = occurrence_parts(name) else {
                 continue;
             };
-            if self.renewals.contains_key(base)
+            if let Some(stream) = save.reading_streams.get(base) {
+                if stream
+                    .occurrences
+                    .get(ordinal - 1)
+                    .map(|occurrence| &occurrence.id)
+                    != Some(name)
+                {
+                    return Err(format!(
+                        "reading stream {base} occurrence {name} is not in its occurrences"
+                    ));
+                }
+            } else if self.renewals.contains_key(base)
                 && save
                     .renewals
                     .get(base)
