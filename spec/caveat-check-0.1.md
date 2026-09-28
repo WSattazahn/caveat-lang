@@ -210,24 +210,43 @@ A rule is checked when all of these hold:
   that is not [routed](caveat-routed-repetition-0.1.md);
 - EVENT declares at least one parameter `P kind KIND`;
 - a top-level conjunct of its `when` guard is `P == E` or `E == P`, where P
-  is such a parameter and E mentions `$index`, such as `$index`,
-  `$index + 0` or `slot($index)`.
+  is such a parameter and E reads `$index`, itself or through a define, such
+  as `$index`, `$index + 1`, `round($index)`, or `$p_slot` after
+  `define $p_slot = $index;`.
 
 The conjuncts are read as C003 reads them, defines included, so
 `define $p_here = target == $index;` followed by `on read when $p_here` is
-checked. A rule on an event written with `$NAME` or `$index`, such as
-`on $p_read`, is checked too: its copy still compares P with `$index`. The
-check reads E as the member's `$index`, as C003 does, so an E that adjusts it
-on purpose, such as `$index + 1` written to skip an entity a block declares,
-is reported where the two numberings differ. Allow such a rule on purpose.
+checked. A define E reads through is one outside a block, or one written in
+a block over the same KIND, whatever its binding, as for C003. A rule on an
+event written with `$NAME` or `$index`, such as `on $p_read`, is checked too:
+its copy still compares P with `$index`.
+
+In each member's copy, E comes to a number: the check works it out from the
+member's `$index`, numbers, defines, and calls to functions, the prelude's
+and the program's. The copy runs when P names the entity that P gives that
+number. It is reported when all of these hold:
+
+- P numbers some top-level member of KIND otherwise than its `$index`;
+- the entity the copy runs for is not the member itself;
+- it is not the member whose `$index` that number is.
+
+So the copy for `south`, with `$index` 2, of `target == $index` above is
+reported: it runs for north, which P numbers 2. So is the copy for `east` of
+`target == $index + 1` there: it compares `target` with 2, the `$index` of
+south, and runs for north. A copy that the numbering does not change is not
+reported, such as one that compares with the number of a member before every
+entity a block declares. Neither is one whose E comes to the member's own
+number in P, as `$index + 1` does for each member when one entity that a
+block declares comes before them all.
 
 The warning is at the rule where it is written in the block, once for each
-member whose number in P is not its `$index`. The message names the entity
-the member's copy acts for, and the entities of KIND that P counts before the
-member and `$index` does not. Each of these is listed, as related, where its
-block declares it. When every entity of KIND that a `for` block declares
-comes after every top-level member, the two numberings agree, and nothing is
-reported.
+member whose copy is reported. The message names the entity the copy runs
+for, and the member whose `$index` the number is: the member itself, where E
+comes to the member's `$index`, and otherwise another member, with the
+number. It names the entities of KIND that P counts before that member and
+`$index` does not, and lists each, as related, where its block declares it.
+When every entity of KIND that a `for` block declares comes after every
+top-level member, the two numberings agree, and nothing is reported.
 
 The suggestion is to select the member by name, as in
 `target == target.$p`, if the rule is about the member the event names: a
@@ -246,12 +265,20 @@ It does not check:
 - `$index` reached some other way: through a state, as in
   `target == $p_slot` after `state $p_slot = $index;`, or in a comparison
   that is not a top-level conjunct, which C003 reports instead;
+- an E that reads a state, another parameter or the graph, such as
+  `$index + $p_offset` after `state $p_offset = 0;`. Which entity its copy
+  runs for can change as the program runs, so the check works out no number
+  for it;
+- a number that is no member's `$index`, or that P gives no entity;
 - a rule that loads only once `$index` is a number, as for C003.
 
 An entity of KIND that a `for` block declares gets no copy of a block over
-KIND, so an event that names it reaches none of that block's copies. That is
-not reported. A block that declares an entity usually handles it there, by
-name, as in
+KIND, so no copy selects it by name: a copy that selects its member by name,
+as with `target == target.$p`, does not run on an event that names it. A
+copy that selects its member by `$index`, or selects none, can still run on
+such an event: in the example above, `read north` runs south's copy. That
+the entity gets no copy is not reported. A block that declares an entity
+usually handles it there, by name, as in
 `for zone as $z { entity north kind plot at field; on read when target == target.north set north_n = north_n + 1; };`,
 and a warning would fall on those programs too.
 
@@ -324,6 +351,10 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
   reports each of the 6 in which a member's copy acts for another member,
   and none of the 17 others: those in which every such entity comes after the
   top-level members, those that select by name, and those in which the
-  declared entity only gets no copy. No program in the repository declares an
-  entity in a `for` block, so none of them warns. A program that checked
-  clean before may now warn, and fail with `--strict`.
+  declared entity only gets no copy. Of 14 more, from its review, it reports
+  each of the 11 in which a copy that selects by `$index` acts for another
+  member, one through `define $p_slot = $index;` and one allowed by its
+  comment, and none of the 3 in which every copy acts for its own member, one
+  through `$index + 1`. No program in the repository declares an entity in a
+  `for` block, so none of them warns. A program that checked clean before may
+  now warn, and fail with `--strict`.

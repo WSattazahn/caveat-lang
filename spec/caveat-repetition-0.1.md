@@ -43,10 +43,11 @@ member after it, higher than its `$index`, so a copy that selects its member
 with `target == $index` acts for another member, and
 [`caveat check`](caveat-check-0.1.md) reports it (C004). A copy that selects
 its member by name, with `target == target.$p`, acts for its own member
-however the entities are counted. An event that names the entity itself
-reaches no copy of a block over its kind. Rules about it are written where it
-is declared, such as `on read when target == target.north` in the block that
-declares `north`. A [routed](caveat-routed-repetition-0.1.md) block refuses an
+however the entities are counted, so it does not run on an event that names
+the entity, which has no copy of its own. A copy that selects its member by
+`$index`, or selects none, can run on such an event. Rules about the entity
+are written where it is declared, such as
+`on read when target == target.north` in the block that declares `north`. A [routed](caveat-routed-repetition-0.1.md) block refuses an
 entity of its kind in a `for` block.
 
 ## 2. The block
@@ -83,8 +84,11 @@ them in, load as other statements than those written.
 The body is copied as written, `;`s included, and no `;` is added. So a
 body's last statement without its `;` has none in any copy either, and runs
 into what follows its copy: the next member's copy, or, for the last member,
-the text after the block. The loader reads a statement without its `;` only
-at the end of a program. With one member and nothing but whitespace and
+the text after the block. Where that begins with a `;`, after nothing but
+whitespace and comments, as after `};;` or before a copy whose first
+statement is empty, the `;` ends the statement, which runs into nothing, and
+where it does not read, the error is the loader's, about it. The loader
+reads a statement without its `;` only at the end of a program. With one member and nothing but whitespace and
 comments after the block, the copy's last statement is that, and the program
 loads. Where the statement and what it runs into read together as one
 statement, such as evidence whose unquoted provenance takes in the next copy,
@@ -228,7 +232,9 @@ what keeps the expansion checkable and the generated program ordinary.
   expected '=' at byte 31" for the copy for one member run into the next.
   No `;` is added, and every program that loaded before loads as before,
   including one whose block has one member and nothing after it, and one
-  whose copies read together as one statement.
+  whose copies read together as one statement. Where a `;` ends the copy's
+  last statement, as after `};;`, the error is still the loader's, about
+  that statement.
 - 2026-09-27: section 1 says what an entity declared in a block's body is:
   no member, and counted by a `kind` parameter. `caveat check` reports a
   plain block whose `target == $index` acts for another member because of it

@@ -1376,3 +1376,184 @@ fn a_routed_block_still_refuses_an_entity_of_its_kind_in_a_for_block() {
         );
     }
 }
+
+/// Which of `plots` count `read target`, sent once to a fresh session.
+fn counted_on_read(source: &str, target: &str, plots: &[&str]) -> Vec<String> {
+    let mut session = ReactiveSession::from_source(source).expect("loads");
+    let values = session
+        .dispatch_json("read", &format!(r#"{{"target":"{target}"}}"#))
+        .expect("read is accepted")
+        .values;
+    plots
+        .iter()
+        .filter(|plot| values[format!("{plot}_n").as_str()] != 0.0)
+        .map(|plot| plot.to_string())
+        .collect()
+}
+
+#[test]
+fn an_index_adjusted_on_purpose_is_read_as_the_number_it_comes_to() {
+    let plus_one = "for plot as $p {
+    state $p_n = 0;
+    on read when target == $index + 1 set $p_n = $p_n + 1;
+};
+";
+    let plots = ["east", "south"];
+    // North comes first, so `$index + 1` is each plot's own number in
+    // `read`: every copy acts for its own plot, and nothing is reported.
+    let compensated = program(&[ZONE, ZONE_BARE, EAST, SOUTH, READ, plus_one]);
+    assert_eq!(codes(&check(&compensated)), []);
+    for (target, counted) in [
+        ("north", &[][..]),
+        ("east", &["east"][..]),
+        ("south", &["south"][..]),
+    ] {
+        assert_eq!(
+            counted_on_read(&compensated, target, &plots),
+            counted,
+            "read {target}"
+        );
+    }
+
+    // North between them: east's copy compares `target` with 2, south's
+    // `$index`, and `read` numbers north 2. South's copy compares it with
+    // 3, south's own number there, so only east's is reported.
+    let between = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, plus_one]);
+    let report = check(&between);
+    assert_eq!(codes(&report), [("C004", line_of(&between, "on read"))]);
+    assert_eq!(
+        report.diagnostics[0].message,
+        "the rule on `read` for `east` runs when `target` names `north`, not `south`: its copy compares `target` with 2, the `$index` of `south`, and `target` numbers `south` 3, because it also counts `north`, declared in a for block"
+    );
+    assert_eq!(counted_on_read(&between, "north", &plots), ["east"]);
+    assert_eq!(counted_on_read(&between, "south", &plots), ["south"]);
+
+    // Where the two numberings agree at the number compared, the copy acts
+    // for the plot `$index` gives it, and is not reported: east's copy acts
+    // for south. South's compares with 3, west's `$index`, which `read`
+    // gives north.
+    let west = "entity west kind plot at field;\n";
+    let after_south = program(&[EAST, SOUTH, ZONE, ZONE_BARE, west, READ, plus_one]);
+    let report = check(&after_south);
+    assert_eq!(codes(&report), [("C004", line_of(&after_south, "on read"))]);
+    assert_eq!(
+        report.diagnostics[0].message,
+        "the rule on `read` for `south` runs when `target` names `north`, not `west`: its copy compares `target` with 3, the `$index` of `west`, and `target` numbers `west` 4, because it also counts `north`, declared in a for block"
+    );
+    let plots = ["east", "south", "west"];
+    assert_eq!(counted_on_read(&after_south, "south", &plots), ["east"]);
+    assert_eq!(counted_on_read(&after_south, "north", &plots), ["south"]);
+
+    // E comes to its number through a function, the prelude's or the
+    // program's, too. An E that reads a state has no number the check can
+    // work out, and is not checked.
+    for (rule, reported) in [
+        ("target == round($index)", true),
+        ("target == min($index, 9)", true),
+        ("target == slot($index)", true),
+        ("target == $index + $p_offset", false),
+    ] {
+        let block = format!(
+            "for plot as $p {{
+    state $p_n = 0;
+    state $p_offset = 0;
+    on read when {rule} set $p_n = $p_n + 1;
+}};
+"
+        );
+        let source = program(&[
+            "fn slot(at) = at;\n",
+            EAST,
+            ZONE,
+            ZONE_BARE,
+            SOUTH,
+            READ,
+            &block,
+        ]);
+        let expected = if reported {
+            vec![("C004", line_of(&source, "on read"))]
+        } else {
+            Vec::new()
+        };
+        assert_eq!(codes(&check(&source)), expected, "{rule}");
+        // Each of them acts as `target == $index` does: `read north` counts
+        // for south.
+        assert_eq!(
+            counted_on_read(&source, "north", &["east", "south"]),
+            ["south"],
+            "{rule}"
+        );
+    }
+}
+
+#[test]
+fn a_selection_by_index_through_a_value_define_is_checked() {
+    let reported = "the rule on `read` for `south` runs when `target` names `north`, not `south`: `$index` is 2 in its copy, and `target` numbers `south` 3, because it also counts `north`, declared in a for block";
+    for (defines, rule) in [
+        (
+            "",
+            "    define $p_slot = $index;\n    on read when target == $p_slot set $p_n = $p_n + 1;\n",
+        ),
+        (
+            "",
+            "    define $p_base = $index;\n    define $p_slot = $p_base + 0;\n    on read when $p_slot == target set $p_n = $p_n + 1;\n",
+        ),
+        // Written in another block over the same kind.
+        (
+            "for plot as $q {\n    define $q_slot = $index;\n};\n",
+            "    on read when target == $p_slot set $p_n = $p_n + 1;\n",
+        ),
+    ] {
+        let block = format!("for plot as $p {{\n    state $p_n = 0;\n{rule}}};\n");
+        let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, defines, &block]);
+        let report = check(&source);
+        assert_eq!(
+            codes(&report),
+            [("C004", line_of(&source, "on read"))],
+            "{source}"
+        );
+        assert_eq!(report.diagnostics[0].message, reported);
+        // As for `target == $index`: `read north` counts for south, and
+        // `read south` for no plot.
+        let plots = ["east", "south"];
+        assert_eq!(counted_on_read(&source, "north", &plots), ["south"]);
+        assert_eq!(counted_on_read(&source, "south", &plots), [] as [&str; 0]);
+    }
+    // A state holding `$index` is not checked, as the spec says: a state can
+    // change.
+    let state = "for plot as $p {
+    state $p_n = 0;
+    state $p_slot = $index;
+    on read when target == $p_slot set $p_n = $p_n + 1;
+};
+";
+    let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, state]);
+    assert_eq!(codes(&check(&source)), []);
+}
+
+#[test]
+fn an_event_that_names_an_entity_a_block_declares_runs_every_copy_that_does_not_select_it_by_name()
+{
+    // North gets no copy of the plot block (spec/caveat-repetition-0.1.md
+    // section 1), so a copy that selects its plot by name does not run on
+    // `read north`. One that selects by `$index`, or selects none, can.
+    let unselected = "for plot as $p {
+    state $p_n = 0;
+    # caveat check: allow unrouted-member-rule
+    on read set $p_n = $p_n + 1;
+};
+";
+    let plots = ["east", "south"];
+    for (block, counted) in [
+        (BY_NAME, &[][..]),
+        (BY_INDEX, &["south"][..]),
+        (unselected, &["east", "south"][..]),
+    ] {
+        let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, block]);
+        assert_eq!(
+            counted_on_read(&source, "north", &plots),
+            counted,
+            "{block}"
+        );
+    }
+}

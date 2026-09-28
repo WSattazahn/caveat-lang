@@ -3,14 +3,16 @@
 //! does, and a warning describes a pattern, not a proven fault.
 
 use super::{
-    parse_directive_at, Directive, Effect, Expr, Parameter, ParameterDomain, ReactiveSession,
+    parse_directive_at, Directive, Effect, Expr, FunctionDef, Parameter, ParameterDomain,
+    ReactiveSession, Reads, Value,
 };
 use crate::link::{
     is_identifier_char, is_identifier_start, statement_spans, statement_words, statements_of,
 };
 use crate::parser::{scan_statements_at, Position};
 use serde::Serialize;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 pub const CHECK_SCHEMA: &str = "caveat-check/0.1";
 
@@ -478,8 +480,8 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
 /// C003 and C004. Each rule written in a plain `for` block about its member,
 /// on an event that names a member of the block's kind, read as written and
 /// in each member's copy. C003: its guard does not select which member the
-/// event names. C004: it selects it by `$index`, and the event numbers that
-/// member otherwise.
+/// event names. C004: it selects it by a number made from `$index`, which the
+/// event gives another entity than `$index` does.
 fn member_rules(
     session: &ReactiveSession,
     statements: &[Statement],
@@ -497,15 +499,21 @@ fn member_rules(
     };
     let (member_marker, index_marker) =
         (unused("caveat_check_member"), unused("caveat_check_index"));
-    let program_defines = statements
-        .iter()
-        .filter_map(
-            |statement| match parse_directive_at(statement.text.trim(), statement.at) {
-                Some(Ok(Directive::Define { name, expression })) => Some((name, expression)),
-                _ => None,
-            },
-        )
-        .collect::<HashMap<_, _>>();
+    // The program's defines, and the functions an expression can call: the
+    // prelude's and the program's.
+    let mut program_defines = HashMap::new();
+    let mut functions = super::prelude_functions().unwrap_or_default();
+    for statement in statements {
+        match parse_directive_at(statement.text.trim(), statement.at) {
+            Some(Ok(Directive::Define { name, expression })) => {
+                program_defines.insert(name, expression);
+            }
+            Some(Ok(Directive::Function(function))) => {
+                functions.insert(function.name.clone(), function);
+            }
+            _ => {}
+        }
+    }
 
     let read_as_written = |text: &str, binding: &str, at: Position| {
         let text = crate::repeat::instantiate(text, binding, &member_marker, &index_marker).ok()?;
@@ -527,6 +535,18 @@ fn member_rules(
             }
         }
     }
+    // Where a `for` block declares each entity: at its statement in the
+    // block, where each of the block's copies is placed.
+    let mut declared_at = HashMap::new();
+    for statement in statements.iter().filter(|statement| statement.repeated) {
+        if let ["entity", name, "kind", _, "at", _] =
+            statement.text.split_whitespace().collect::<Vec<_>>()[..]
+        {
+            declared_at.entry(name).or_insert(statement.at);
+        }
+    }
+    // The number each define of the program comes to, once read.
+    let known = RefCell::new(HashMap::new());
 
     let mut found = Vec::new();
     // A routed block's rules are routed, name no member, or stop loading.
@@ -558,7 +578,9 @@ fn member_rules(
                 || value.mentions(&index_marker)
                 || value.as_name().is_some_and(member_constant)
         };
-        let by_index = |value: &Expr| value.mentions(&index_marker);
+        // How each `kind` parameter numbers the block's members, by event
+        // and parameter: None where it numbers each as `$index` does.
+        let mut numberings = HashMap::new();
 
         for (template, at) in &block.body {
             // A rule that mentions neither binding is not about one member.
@@ -579,6 +601,17 @@ fn member_rules(
                 &mut Vec::new(),
                 &mut conjuncts,
             );
+            // Each conjunct `P == E` or `E == P` whose E reads `$index`,
+            // itself or through a define, as (P, E), in the guard's order.
+            let by_index = conjuncts
+                .iter()
+                .filter_map(|conjunct| conjunct.equality())
+                .flat_map(|(left, right)| [(left, right), (right, left)])
+                .filter_map(|(parameter, value)| Some((parameter.as_name()?, value)))
+                .filter(|(_, value)| {
+                    reads_through(value, &index_marker, &defines, &mut HashSet::new())
+                })
+                .collect::<Vec<_>>();
             for (index, member) in block.members.iter().enumerate() {
                 let copy = crate::repeat::instantiate(
                     template,
@@ -593,11 +626,11 @@ fn member_rules(
                     continue;
                 };
                 // An event that names no member of the kind reaches them all.
-                let parameters = session
-                    .events
-                    .get(&rule.event)
-                    .into_iter()
-                    .flatten()
+                let Some((event, declared)) = session.events.get_key_value(&rule.event) else {
+                    continue;
+                };
+                let parameters = declared
+                    .iter()
                     .filter(|parameter| of_kind(parameter, &block.kind))
                     .collect::<Vec<_>>();
                 let Some(first) = parameters.first() else {
@@ -616,17 +649,39 @@ fn member_rules(
                             accepts(value).then_some(*declared)
                         })
                 };
-                if let Some(parameter) = conjuncts
-                    .iter()
-                    .find_map(|conjunct| compared(conjunct, &by_index))
-                {
-                    found.extend(shifted_member_index(
-                        block,
-                        (index + 1, member),
-                        (&rule.event, parameter),
-                        *at,
-                        statements,
-                    ));
+                let selection = by_index.iter().find_map(|(name, value)| {
+                    let parameter = parameters.iter().find(|declared| declared.name == *name)?;
+                    Some((*parameter, *value))
+                });
+                if let Some((parameter, value)) = selection {
+                    let numbering = numberings
+                        .entry((event.as_str(), parameter.name.as_str()))
+                        .or_insert_with(|| numbering(parameter, block));
+                    // The number E comes to in the member's copy: `$index` is
+                    // the member's, and a name written with a binding is the
+                    // copy's.
+                    let position = index + 1;
+                    let in_copy = |name: &str| {
+                        if name == index_marker {
+                            return Some(position as f64);
+                        }
+                        let name = name
+                            .replace(&member_marker, member)
+                            .replace(&index_marker, &position.to_string());
+                        defined(&name, (&program_defines, &functions), &known)
+                    };
+                    if let Some((numbering, number)) = numbering.as_ref().and_then(|numbering| {
+                        Some((numbering, constant(value, &functions, &in_copy)?))
+                    }) {
+                        found.extend(shifted_member_index(
+                            block,
+                            (position, member),
+                            (event, parameter),
+                            (number, numbering),
+                            *at,
+                            &declared_at,
+                        ));
+                    }
                 }
                 if own_event
                     || conjuncts
@@ -665,37 +720,86 @@ fn member_rules(
     found
 }
 
+/// How a `kind` parameter numbers the entities of a block's kind, where it
+/// numbers a top-level member otherwise than `$index` does.
+struct Numbering<'s> {
+    /// Each entity's number in the parameter, from 1.
+    numbers: HashMap<&'s str, usize>,
+    /// The entities it counts and `$index` does not, those a `for` block
+    /// declares, each with its number, in order.
+    declared: Vec<(usize, &'s str)>,
+}
+
+/// None when `parameter` numbers each of the block's members as its `$index`
+/// does: every entity of the kind that a `for` block declares comes after
+/// them, or there is none.
+fn numbering<'s>(parameter: &'s Parameter, block: &Block) -> Option<Numbering<'s>> {
+    let ParameterDomain::Entity { members, .. } = &parameter.domain else {
+        return None;
+    };
+    let numbers = members
+        .iter()
+        .enumerate()
+        .map(|(at, name)| (name.as_str(), at + 1))
+        .collect::<HashMap<_, _>>();
+    let agree = block.members.iter().enumerate().all(|(at, member)| {
+        numbers
+            .get(member.as_str())
+            .is_none_or(|number| *number == at + 1)
+    });
+    if agree {
+        return None;
+    }
+    let top_level = block
+        .members
+        .iter()
+        .map(String::as_str)
+        .collect::<HashSet<_>>();
+    let declared = members
+        .iter()
+        .enumerate()
+        .filter(|(_, name)| !top_level.contains(name.as_str()))
+        .map(|(at, name)| (at + 1, name.as_str()))
+        .collect();
+    Some(Numbering { numbers, declared })
+}
+
 /// C004 for one member's copy of a rule that selects its member by comparing
-/// `parameter` with `$index`. `$index` is the member's position among the
-/// part's top-level entities of the kind; the parameter numbers every entity
-/// of the kind in the loaded program, those a `for` block declares included.
-/// None when the two agree for this member.
+/// `parameter` with `number`, what E comes to in the copy. `$index` numbers
+/// the part's top-level entities of the kind; the parameter numbers every
+/// entity of the kind in the loaded program, those a `for` block declares
+/// included. None when the copy acts for its own member, or for the member
+/// whose `$index` is `number`.
 fn shifted_member_index(
     block: &Block,
     (index, member): (usize, &str),
     (event, parameter): (&str, &Parameter),
+    (number, numbering): (f64, &Numbering),
     at: Position,
-    statements: &[Statement],
+    declared_at: &HashMap<&str, Position>,
 ) -> Option<Diagnostic> {
     let ParameterDomain::Entity { members, .. } = &parameter.domain else {
         return None;
     };
-    let position = members.iter().position(|counted| counted == member)? + 1;
-    // The entities the parameter counts before the member and `$index` does
-    // not: the ones a `for` block declares.
-    let counted = members[..position - 1]
-        .iter()
-        .filter(|counted| !block.members.contains(counted))
-        .collect::<Vec<_>>();
-    if counted.is_empty() {
+    if number < 1.0 || number.fract() != 0.0 {
         return None;
     }
-    // The copy runs when the parameter names the entity it numbers `$index`.
-    let other = members.get(index - 1)?;
+    let number = number as usize;
+    // The copy runs when the parameter names the entity it numbers so, and
+    // `$index` gives that number to `meant`.
+    let (acts_for, meant) = (members.get(number - 1)?, block.members.get(number - 1)?);
+    if acts_for == member || acts_for == meant {
+        return None;
+    }
+    let meant_number = *numbering.numbers.get(meant.as_str())?;
+    // The entities the parameter counts before `meant` and `$index` does not.
+    let counted = &numbering.declared[..numbering
+        .declared
+        .partition_point(|(counted, _)| *counted < meant_number)];
     let names = counted
         .iter()
         .take(3)
-        .map(|name| format!("`{name}`"))
+        .map(|(_, name)| format!("`{name}`"))
         .collect::<Vec<_>>();
     let also = match (names.as_slice(), counted.len()) {
         ([one], 1) => format!("{one}, declared in a for block"),
@@ -711,29 +815,23 @@ fn shifted_member_index(
             count - names.len()
         ),
     };
-    // Where each is declared: at its statement in the block, where each of
-    // the block's copies is placed.
     let related = counted
         .iter()
         .take(3)
-        .filter_map(|name| {
-            statements
-                .iter()
-                .filter(|statement| statement.repeated)
-                .find(|statement| {
-                    matches!(
-                        statement.text.split_whitespace().collect::<Vec<_>>()[..],
-                        ["entity", declared, "kind", _, "at", _] if declared == name.as_str()
-                    )
-                })
-                .map(|statement| Related {
-                    line: statement.at.line,
-                    column: statement.at.column,
-                    note: format!("where a for block declares `{name}`"),
-                })
+        .filter_map(|(_, name)| {
+            declared_at.get(name).map(|declared| Related {
+                line: declared.line,
+                column: declared.column,
+                note: format!("where a for block declares `{name}`"),
+            })
         })
         .collect();
     let parameter = &parameter.name;
+    let compared = if meant == member {
+        format!("`$index` is {index} in its copy")
+    } else {
+        format!("its copy compares `{parameter}` with {number}, the `$index` of `{meant}`")
+    };
     Some(Diagnostic {
         code: SHIFTED_MEMBER_INDEX.0,
         name: SHIFTED_MEMBER_INDEX.1,
@@ -741,7 +839,7 @@ fn shifted_member_index(
         line: at.line,
         column: at.column,
         message: format!(
-            "the rule on `{event}` for `{member}` runs when `{parameter}` names `{other}`, not `{member}`: `$index` is {index} in its copy, and `{parameter}` numbers `{member}` {position}, because it also counts {also}"
+            "the rule on `{event}` for `{member}` runs when `{parameter}` names `{acts_for}`, not `{meant}`: {compared}, and `{parameter}` numbers `{meant}` {meant_number}, because it also counts {also}"
         ),
         suggestion: format!(
             "If the rule is about the {kind} the event names, select it by name, such as `{parameter} == {parameter}.${}`, which names its own {kind} however the entities are counted. If comparing with `$index` is intended, put `# {ALLOW} {}` on the line above it.",
@@ -751,6 +849,66 @@ fn shifted_member_index(
         ),
         related,
     })
+}
+
+/// Whether `value` reads `name`, itself or through the defines it reads.
+fn reads_through<'d>(
+    value: &Expr,
+    name: &str,
+    defines: &'d HashMap<String, Expr>,
+    seen: &mut HashSet<&'d str>,
+) -> bool {
+    if value.mentions(name) {
+        return true;
+    }
+    let mut reads = Reads::default();
+    value.collect_reads(&mut reads);
+    reads
+        .names
+        .iter()
+        .any(|read| match defines.get_key_value(read.as_str()) {
+            Some((define, expression)) if seen.insert(define.as_str()) => {
+                reads_through(expression, name, defines, seen)
+            }
+            _ => false,
+        })
+}
+
+/// The number `value` comes to, with its calls to `functions` expanded,
+/// when each name it reads is what `number` gives; None where it reads
+/// anything else, such as a state or the graph.
+fn constant(
+    value: &Expr,
+    functions: &BTreeMap<String, FunctionDef>,
+    number: &dyn Fn(&str) -> Option<f64>,
+) -> Option<f64> {
+    let value = super::reactive_expr::expand(value, functions).ok()?;
+    match value.evaluate(&|name: &str| number(name), &|_: &str, _: &str| {
+        Err(String::new())
+    }) {
+        Ok(Value::Number(number)) => Some(number),
+        _ => None,
+    }
+}
+
+/// The number the program's define `name` comes to, as `constant` reads it,
+/// through the other defines it reads. Each is read once, into `known`.
+fn defined(
+    name: &str,
+    (defines, functions): (&HashMap<String, Expr>, &BTreeMap<String, FunctionDef>),
+    known: &RefCell<HashMap<String, Option<f64>>>,
+) -> Option<f64> {
+    if let Some(number) = known.borrow().get(name) {
+        return *number;
+    }
+    let expression = defines.get(name)?;
+    // None while it is read, so a define that reads itself comes to none.
+    known.borrow_mut().insert(name.to_string(), None);
+    let number = constant(expression, functions, &|name| {
+        defined(name, (defines, functions), known)
+    });
+    known.borrow_mut().insert(name.to_string(), number);
+    number
 }
 
 /// Whether an event parameter is declared `NAME kind KIND`.

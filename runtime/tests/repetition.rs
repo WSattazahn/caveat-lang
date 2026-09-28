@@ -1102,3 +1102,79 @@ state total = 0;
     );
     ReactiveSession::from_source(source).expect("loads");
 }
+
+#[test]
+fn a_semicolon_after_a_copy_ends_its_last_statement_and_the_loader_says_what_is_wrong() {
+    // A `;` right after the copy, with nothing but whitespace and comments
+    // before it, ends the copy's last statement, so it runs into nothing.
+    // Where that statement does not read, the error is the loader's, about
+    // the statement itself, as it was before the error above existed.
+    let one = "place field kind field;\nentity north kind plot at field;\nevent read target kind plot;\nfor plot as $p {\n    define $p_twice = $index +\n";
+    for after in [
+        "};;\nclaim after;\n",
+        "}\n;;\n",
+        "}; // the end\n;\nclaim after;\n",
+    ] {
+        let source = format!("{one}{after}");
+        assert_eq!(
+            ReactiveSession::from_source(&source).err(),
+            Some("line 5, column 5: expected expression at byte 3".into()),
+            "{source}"
+        );
+    }
+    // So does a `;` that begins the next copy.
+    let two = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot;
+for plot as $p {
+    ;
+    define $p_twice = $index +
+};
+";
+    assert_eq!(
+        ReactiveSession::from_source(two).err(),
+        Some("line 7, column 5: expected expression at byte 3".into())
+    );
+    // In a bundle, in a module and in the program.
+    let go = "state x = 0;\nevent go;\non go set x = 1;\n";
+    let module = link::bundle(&[
+        link::BundlePart {
+            name: "plots".into(),
+            source: "module plots;\nplace field kind field;\nentity north kind plot at field;\nfor plot as $p {\n    state $p_m = $index +\n};;\n".into(),
+        },
+        link::BundlePart {
+            name: "main".into(),
+            source: format!("use plots;\n{go}"),
+        },
+    ]);
+    assert_eq!(
+        ReactiveSession::from_source(&module).err(),
+        Some("module plots: line 5, column 5: expected expression at byte 3".into())
+    );
+    let program = link::bundle(&[
+        link::BundlePart {
+            name: "glow".into(),
+            source: "module glow;\nstate level = 0;\n".into(),
+        },
+        link::BundlePart {
+            name: "main".into(),
+            source: "use glow;\nplace field kind field;\nentity north kind plot at field;\nevent go;\non go set glow::level = 1;\nfor plot as $p {\n    state $p_m = $index +\n}\n;;\n".into(),
+        },
+    ]);
+    assert_eq!(
+        ReactiveSession::from_source(&program).err(),
+        Some("the program main: line 7, column 5: expected expression at byte 3".into())
+    );
+    // Text after the block with no `;` before it is still run into.
+    let source = format!("{}\n}};\nclaim after;\n", one.replace(" +\n", " + 1"));
+    assert_eq!(
+        ReactiveSession::from_source(&source).err(),
+        Some(runs_into(
+            5,
+            "for plot as $p",
+            "north",
+            "the text after the block"
+        ))
+    );
+}

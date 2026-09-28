@@ -85,7 +85,8 @@ struct Unended {
 
 /// A body's last statement without its `;` has none in any copy, so it runs
 /// into what follows its copy (spec/caveat-repetition-0.1.md section 2): the
-/// next member's copy, or the text after the block. No `;` is added. Where
+/// next member's copy, or the text after the block, unless a `;` there, after
+/// nothing but whitespace and comments, ends it. No `;` is added. Where
 /// the two together are a statement the loader reads, such as evidence whose
 /// unquoted provenance takes in what follows, the program loads as the same
 /// text written by hand does, and nothing is said. Where they are not, the
@@ -111,8 +112,14 @@ fn runs_into(expanded: &str, unended: &[Unended]) -> Result<(), String> {
             continue;
         };
         // Nothing but whitespace and comments after the copy: its last
-        // statement is the program's last, which the loader reads.
-        if end <= copy.end || blank_comments(&expanded[copy.end..end]).trim().is_empty() {
+        // statement is the program's last, which the loader reads. The same
+        // and a `;`: that `;` ends it, so it runs into nothing, and whether
+        // it reads is the loader's to say.
+        if end <= copy.end
+            || blank_comments(&expanded[copy.end..end])
+                .trim_matches(|at: char| at.is_whitespace() || at == ';')
+                .is_empty()
+        {
             continue;
         }
         if !reads(&expanded[start..end]) {
