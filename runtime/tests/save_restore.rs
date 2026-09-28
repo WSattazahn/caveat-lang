@@ -350,9 +350,6 @@ const NEXT_EVENTS: [(&str, &str); 6] = [
 
 // The fix each known fatal outcome waits for, and the confirmed runtime bug
 // behind it.
-const LATE_CAVEAT_EXPLANATION: &str = "waits for fix/binding-explanation-late-caveat; remove it \
-    when that fix is in the tested combination. When the late `faded` reaches bite@2, \
-    hud.text's explanation is fatal, save or no save: tick played() by 0.1 to 40 seconds";
 const SEQUENCE_BOUND: &str = "waits for fix/restore-sequence-bound; remove it when that fix is \
     in the tested combination. Restore accepts a sequence of u64::MAX, and the next event \
     cannot be numbered";
@@ -388,15 +385,7 @@ struct KnownFatal {
 /// last). Remove an entry when its fix is in the tested combination:
 /// every_known_fatal_outcome_still_happens fails once its witness no longer
 /// reproduces it.
-const KNOWN_FATAL: [KnownFatal; 11] = [
-    KnownFatal {
-        event: "tick",
-        message: "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured \
-                  that its value and conditions never read",
-        waits: LATE_CAVEAT_EXPLANATION,
-        seed: 1047,
-        round: 0,
-    },
+const KNOWN_FATAL: [KnownFatal; 10] = [
     KnownFatal {
         event: "tick",
         message: "reactive event sequence exhausted",
@@ -742,6 +731,41 @@ fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
                 before
             );
         }
+    }
+}
+
+// A late caveat that made hud.text cite what its value and conditions never
+// read was a known fatal outcome until fix/binding-explanation-late-caveat
+// made it a rejection, and its entry left KNOWN_FATAL. Its witness, round 0
+// of seed 1047, must now be refused on the tick as that rejection, with
+// nothing kept, not merely play on.
+#[test]
+fn a_late_caveat_after_a_restore_is_refused_as_an_ungrounded_citation() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let witness = Alterations::new(&save, 1047).next().unwrap();
+    let mut game =
+        ReactiveSession::restore_json(PROGRAM, &witness.to_string()).expect("the save restores");
+    for (event, payload) in NEXT_EVENTS {
+        let before = serde_json::to_string(&game.save().unwrap()).unwrap();
+        let outcome = game
+            .dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event} was fatal: {}", fatal.message));
+        if event != "tick" {
+            continue;
+        }
+        let outcome = serde_json::to_value(&outcome).unwrap();
+        assert_eq!(outcome["outcome"], "rejected");
+        assert_eq!(outcome["origin"], "evaluation");
+        assert_eq!(outcome["code"], "ungrounded_citation");
+        assert_eq!(
+            outcome["message"],
+            "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured that its \
+             value and conditions never read"
+        );
+        assert_eq!(
+            serde_json::to_string(&game.save().unwrap()).unwrap(),
+            before
+        );
     }
 }
 
