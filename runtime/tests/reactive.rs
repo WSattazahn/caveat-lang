@@ -532,3 +532,20 @@ fn examination_does_not_discharge_uncertainty_or_make_objections_automatic_vetoe
         1.0
     );
 }
+
+// A name may begin with `_`, as grammar/caveat-0.1.ebnf now says: the runtime
+// has always read one as an identifier.
+#[test]
+fn a_name_may_begin_with_an_underscore() {
+    let mut game = ReactiveSession::from_source(
+        "claim _safe;\nevidence _chart from \"chart\";\nstate _count = 0;\nevent _go;\non _go reveal _chart supports _safe;\non _go set _count = _count + 1;\n",
+    )
+    .unwrap();
+    game.apply("_go", &BTreeMap::new()).unwrap();
+    let snapshot = game.snapshot();
+    assert_eq!(snapshot.values["_count"], 1.0);
+    assert!(snapshot
+        .relations
+        .iter()
+        .any(|edge| edge.from == "_chart" && edge.to == "_safe" && edge.relation == "supports"));
+}

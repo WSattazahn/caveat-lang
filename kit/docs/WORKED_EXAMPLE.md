@@ -90,8 +90,10 @@ What each part does:
   `sample` beyond the limit refuses its event as `limit/history_limit`.
 - **Decisions.** `decisions cover limit 4` holds up to four revisions,
   `cover@1` onward. A new revision can be made only after the current one is
-  reopened. `reopened by soil opposing frost_risk` reopens the revision in
-  force whenever a probe reading that opposes frost risk is taken.
+  reopened; a `commit` before that refuses its event as
+  `evaluation/decision_in_force`. `reopened by soil opposing frost_risk`
+  reopens the revision in force whenever a probe reading that opposes frost
+  risk is taken.
 - **Identifiers.** `event approve by id` receives text such as `"sam"` and
   holds it as a number, so a stream can record it. `id_text` gives the text
   back. `identifiers limit 64` is required before any `id` parameter.
