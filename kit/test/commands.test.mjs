@@ -91,9 +91,10 @@ test('the agent ledger scenarios pass', () => {
 });
 
 // ledger-approved-head.cav is ledger.cav corrected so that no pull request
-// starts with a go-ahead; ledger.cav stays as recorded. The two differ in that
-// one line, the corrected scenarios include the recorded ones unchanged, and
-// the merge that is fatal in ledger.cav is refused by the corrected copy.
+// starts with a go-ahead; ledger.cav stays as recorded. Apart from comments,
+// the two differ in that one line, the corrected scenarios include the
+// recorded ones unchanged, and the merge that is fatal in ledger.cav is
+// refused by the corrected copy.
 test('the corrected agent ledger differs from the recorded one only where a go-ahead starts', async () => {
   const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
   const code = text => text.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));

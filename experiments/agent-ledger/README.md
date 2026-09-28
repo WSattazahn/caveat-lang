@@ -298,7 +298,7 @@ commit in it is 0.
 `ledger.cav`, its scenarios and the recorded session stay as they were, so
 the results above are what was recorded.
 [`ledger-approved-head.cav`](ledger-approved-head.cav) is the corrected copy.
-One line differs:
+Apart from comments saying why, one line differs:
 
 ```caveat
 state $p_approved_head = -1 min -1 max 4294967295;
