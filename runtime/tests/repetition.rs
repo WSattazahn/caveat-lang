@@ -1048,6 +1048,26 @@ for plot as $p routed by target {
         repeat::expand(source).unwrap_err(),
         unclosed(6, 25, true, "evidence $p_a from x{")
     );
+    // In a plain block, a statement after the pair was read below the body,
+    // and the program did not load: "unexpected character '$'".
+    let plain = source
+        .replace(" routed by target", "")
+        .replace("on read set", "on read when target == $index set");
+    assert_eq!(
+        repeat::expand(&plain).unwrap_err(),
+        unclosed(6, 25, false, "evidence $p_a from x{")
+    );
+    // A `{` in an entity's name in a body is left open too. Repetition read
+    // `entity $p_hut{` as `entity $p_hut`, and the copies loaded.
+    let hut = split_pair(2, false, "").replace(
+        "    evidence $p_a from x{;\n    evidence $p_b from y};\n",
+        "    entity $p_hut{ kind hut at field;\n",
+    );
+    assert_eq!(
+        repeat::expand(&hut).unwrap_err(),
+        unclosed(6, 18, false, "entity $p_hut{ kind hut at field"),
+        "{hut}"
+    );
 }
 
 #[test]
