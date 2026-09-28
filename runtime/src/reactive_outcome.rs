@@ -23,6 +23,7 @@ pub enum RejectionCode {
     UnknownEvent,
     PayloadInvalid,
     BoundExceeded,
+    DecisionInForce,
     WorkLimit,
     DepthLimit,
     HistoryLimit,

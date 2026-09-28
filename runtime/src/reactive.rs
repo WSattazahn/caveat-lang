@@ -4031,7 +4031,11 @@ impl ReactiveSession {
                     if previous.is_some() {
                         let reopened = self.predicate_tracked("reopened", action)?;
                         if !reopened.value {
-                            return Err(format!("current decision in {action} must be explicitly reopened before revision").into());
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::DecisionInForce,
+                                format!("current decision in {action} must be explicitly reopened before revision"),
+                            ));
                         }
                         provenance.merge(&reopened.provenance)?;
                     }
