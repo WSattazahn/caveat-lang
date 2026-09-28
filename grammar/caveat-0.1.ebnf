@@ -15,6 +15,10 @@ stop_reason   = "enough" | "budget" | "deadline" ;
 id_list       = identifier { "," identifier } ;
 number        = digit { digit } ;
 identifier    = letter { letter | digit | "_" } ;
+(* The recommended form of a declared name. The loader takes the name in a claim,
+   evidence, caveat, place or entity statement as a whitespace-free word, and does
+   not check it against this rule; the reactive layer requires an identifier where
+   it reads a name. See spec/caveat-text-0.1.md, "Declared names". *)
 string        = '"' { string_character | escape } '"' ;
 string_character = ? any Unicode character except double quote and backslash ? ;
 escape        = "\" ( '"' | "\" | "n" | "r" | "t" ) ;

@@ -70,6 +70,16 @@ outside quoted text, comments and procedure bodies that does not close a `{`
 earlier in its own statement, so a pair in unquoted provenance, such as
 `from see{appendix}b;`, stays in its statement.
 
+A `}` that is text in a body must therefore be in quoted text, as in
+`from "see appendix}";`, unless it closes a `{` earlier in its own
+statement. Unquoted, any other `}` ends the body where it is. That includes
+the `}` of a pair split across two statements, as in
+`evidence $p_a from x{; evidence $p_b from y};`, where the body ends at the
+`}` after `y`. What was meant as the rest of the body is then read after the
+block: as text after its body, which is refused, or as statements of the
+part, which usually do not load, and which, where unquoted provenance takes
+them in, load as other statements than those written.
+
 The body is copied as written, `;`s included, and no `;` is added. So a
 body's last statement without its `;` has none in any copy either, and runs
 into what follows its copy: the next member's copy, or, for the last member,

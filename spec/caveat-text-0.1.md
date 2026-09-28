@@ -32,3 +32,32 @@ semicolon on the final statement, and unquoted evidence provenance. Semicolons
 between statements are still required. Use quoted provenance when it contains
 comment markers or when exact whitespace matters. These are lexical improvements;
 the language's evidence, caveat, commitment, and reopening semantics are unchanged.
+
+## Declared names
+
+The statements of drafts 0.1 to 0.3 that declare a name take it as a word:
+the name in `claim`, `evidence` and `caveat`, and the name and kind in
+`place` and `entity`, with the place an `entity` is `at`. The loader splits
+the statement at whitespace, with each comment read as whitespace, and takes
+the word in that position whatever characters it holds: a whitespace-free
+word, outside quoted text and comments, where a `;` ends the statement and
+`#` or `//` begins a comment. `claim 1a;`, `evidence log{ from notes;`,
+`place fi-eld kind fi.eld;` and `entity no-rth kind plot at fi-eld;` all
+load. A relation, or an entity's `at`, names a declared name by the same
+word.
+
+The reactive layer requires an identifier wherever it reads a name: an ASCII
+letter or `_`, then ASCII letters, digits and `_`, and not `true`, `false`,
+`and`, `or` or `not`. That covers the names it declares, such as a state's
+or an event's, the kind in an event parameter `P kind KIND`, and the names an
+expression reads, such as `target.north`. A declared name that is not an
+identifier loads where only the statements above use it, and not where the
+reactive layer needs it. When a `for` block writes `$NAME` into a state name,
+with `entity north{ kind plot at field;` as its member, `state $p_n` becomes
+`state north{_n`, and the program does not load: "invalid reactive identifier
+north{_n" ([repetition](caveat-repetition-0.1.md)).
+
+`grammar/caveat-0.1.ebnf` gives the recommended form, `identifier`: a letter,
+then letters, digits and `_`. Apart from the five words above, a name of that
+form is also a reactive identifier. The loader does not check a declared name
+against it.
