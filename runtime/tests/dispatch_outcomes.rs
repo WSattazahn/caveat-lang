@@ -413,6 +413,219 @@ fn a_full_renewal_inside_a_procedure_is_still_classified() {
     );
 }
 
+const DECISIONS: &str = r#"
+claim safe;
+evidence gauge from "a gauge";
+readings depth from gauge limit 4;
+decisions route limit 4;
+state decides = 0 min 0 max 9;
+event read value min 0 max 9;
+event decide;
+event doubt;
+on read sample depth = value supports safe;
+on decide set decides = decides + 1;
+on decide commit route because enough using latest(depth);
+on doubt when committed(route) and not reopened(route) reopen route because latest(depth);
+"#;
+
+// A commit to a decision series whose current revision is still in force,
+// committed and not reopened, refuses the event, classified, and the session
+// goes on. Reactive 0.5 requires the explicit reopening; the event is rolled
+// back, so it is a refusal, not a fault.
+#[test]
+fn a_commit_while_the_decision_is_in_force_refuses_the_event_and_the_session_continues() {
+    let mut game = session(DECISIONS);
+    let mut legacy = session(DECISIONS);
+    let mut core = ReactiveSession::from_source(DECISIONS).unwrap();
+    for (event, payload) in [("read", r#"{"value":1}"#), ("decide", "{}")] {
+        game.dispatch(event, payload).unwrap();
+        legacy.dispatch(event, payload).unwrap();
+        core.dispatch_json(event, payload).unwrap();
+    }
+    // The count set by the rule before the commit is rolled back with the rest
+    // of the event.
+    let refused = rejected(&mut game, "decide", "{}", "evaluation", "decision_in_force");
+    let error = "event decide, rule 3: current decision in route must be explicitly reopened before revision";
+    assert_eq!(refused["message"], error);
+    // The legacy APIs keep their error text.
+    assert_eq!(legacy.dispatch("decide", "{}").unwrap_err(), error);
+    assert_eq!(core.dispatch_json("decide", "{}").unwrap_err(), error);
+    // Refused again, still classified: a decision in force is a state, not a
+    // one-off.
+    rejected(&mut game, "decide", "{}", "evaluation", "decision_in_force");
+
+    // Another event is accepted, and after the reopening the commit makes the
+    // next revision.
+    let accepted = json(&game.dispatch_outcome("read", r#"{"value":2}"#).unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    game.dispatch("doubt", "{}").unwrap();
+    let accepted = json(&game.dispatch_outcome("decide", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    let snapshot = &accepted["snapshot"];
+    assert_eq!(snapshot["values"]["decides"], 2.0);
+    assert_eq!(snapshot["decision_series"]["route"]["current"], "route@2");
+    assert_eq!(snapshot["commitment_bases"]["route@2"]["value"], 2.0);
+
+    // The same holds after a save and restore, with route@2 in force.
+    let restored = WebReactiveSession::restore(DECISIONS, &game.save().unwrap());
+    let mut restored = restored.unwrap_or_else(|error| panic!("restore failed: {error}"));
+    rejected(
+        &mut restored,
+        "decide",
+        "{}",
+        "evaluation",
+        "decision_in_force",
+    );
+    restored.dispatch("doubt", "{}").unwrap();
+    let accepted = json(&restored.dispatch_outcome("decide", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    assert_eq!(
+        accepted["snapshot"]["decision_series"]["route"]["current"],
+        "route@3"
+    );
+}
+
+// The authoring-trial program that found it (v1, run A2, final.cav), as it
+// was frozen. Its `decide` rules set a number before the commit.
+const COLD_STORAGE: &str = r#"
+claim dispatch_safe;
+evidence sensor_reading from "cold-storage temperature sensor";
+renewable sensor_reading limit 4;
+caveat calibration_uncertain consequence material;
+caveat stale consequence material;
+calibration_uncertain qualifies sensor_reading;
+decisions dispatch limit 3;
+
+state reading_count = 0 min 0 max 4;
+state current_temperature = 0 min -10 max 20;
+state plan_basis = 0;
+state revision_count = 0 min 0 max 3;
+state elapsed_time = 0 min 0 max 1000000000000;
+
+event read temperature min -10 max 20;
+event decide;
+event advance dt min 0 max 2;
+clock advance every 1;
+
+on read when reading_count >= 4 reject "reading capacity exhausted";
+on read when reading_count > 0 renew sensor_reading;
+on read when temperature <= 4 reveal sensor_reading supports dispatch_safe;
+on read when temperature > 4 reveal sensor_reading opposes dispatch_safe;
+on read set current_temperature = temperature;
+on read set reading_count = reading_count + 1;
+on read qualify sensor_reading with stale after 2;
+
+on decide when not observed(sensor_reading) reject "a reading is required";
+on decide when carries(sensor_reading, stale) reject "the latest reading is stale";
+on decide set plan_basis = qualified(if(current_temperature <= 4, 1, 0), sensor_reading);
+on decide commit dispatch because enough using plan_basis;
+on decide set revision_count = revision_count + 1;
+
+on advance set elapsed_time = elapsed_time + dt;
+on advance when committed(dispatch) and not reopened(dispatch) and has_caveat(plan_basis, stale)
+    reopen dispatch because caveated(plan_basis, stale);
+
+bind hud.readings = reading_count;
+bind hud.temperature = current_temperature;
+bind hud.recommendation = if(reading_count == 0, "waiting", if(carries(sensor_reading, stale), "stale", if(current_temperature <= 4, "release", "block")));
+bind hud.decision = if(not committed(dispatch), "none", if(reopened(dispatch), "review", if(latest(dispatch) == 1, "release", "block")));
+bind hud.frozen = if(committed(dispatch), latest(dispatch), -1);
+bind hud.revision = revision_count;
+bind hud.elapsed = elapsed_time;
+"#;
+
+// The trial's sequence: read, decide, decide. The second decide ended the
+// session; now it is refused and the trial goes on to its next revision.
+#[test]
+fn a_second_decide_in_the_trial_program_is_refused_and_the_trial_goes_on() {
+    let mut game = session(COLD_STORAGE);
+    game.dispatch("read", r#"{"temperature":1}"#).unwrap();
+    game.dispatch("decide", "{}").unwrap();
+    let refused = rejected(&mut game, "decide", "{}", "evaluation", "decision_in_force");
+    assert_eq!(
+        refused["message"],
+        "event decide, rule 11: current decision in dispatch must be explicitly reopened before revision"
+    );
+    let shot = json(&game.snapshot());
+    assert_eq!(shot["values"]["revision_count"], 1.0);
+    assert_eq!(shot["bindings"]["hud"]["decision"], "release");
+
+    // The program's own way on: the reading goes stale, which reopens the
+    // decision, and a fresh reading decides again.
+    for (event, payload) in [("advance", r#"{"dt":2}"#), ("read", r#"{"temperature":5}"#)] {
+        let accepted = json(&game.dispatch_outcome(event, payload).unwrap());
+        assert_eq!(accepted["outcome"], "accepted", "{event}");
+    }
+    let restored = WebReactiveSession::restore(COLD_STORAGE, &game.save().unwrap());
+    let mut restored = restored.unwrap_or_else(|error| panic!("restore failed: {error}"));
+    for program in [&mut game, &mut restored] {
+        let accepted = json(&program.dispatch_outcome("decide", "{}").unwrap());
+        assert_eq!(accepted["outcome"], "accepted");
+        let snapshot = &accepted["snapshot"];
+        assert_eq!(
+            snapshot["decision_series"]["dispatch"]["current"],
+            "dispatch@2"
+        );
+        assert_eq!(snapshot["bindings"]["hud"]["decision"], "block");
+        rejected(program, "decide", "{}", "evaluation", "decision_in_force");
+    }
+}
+
+// Inside a procedure, with the series passed as a parameter, the refusal keeps
+// its classification and gains the procedure's context.
+#[test]
+fn a_commit_in_force_inside_a_procedure_is_still_classified() {
+    let mut game = session(
+        r#"
+        claim safe;
+        evidence gauge from "a gauge";
+        readings depth from gauge limit 4;
+        decisions route limit 4;
+        event read value min 0 max 9;
+        event decide;
+        proc settle(d decisions, s readings) { commit d because enough using latest(s); };
+        on read sample depth = value supports safe;
+        on decide call settle(route, depth);
+    "#,
+    );
+    game.dispatch("read", r#"{"value":1}"#).unwrap();
+    game.dispatch("decide", "{}").unwrap();
+    let refused = rejected(&mut game, "decide", "{}", "evaluation", "decision_in_force");
+    assert_eq!(
+        refused["message"],
+        "event decide, rule 2: procedure settle[route, depth], step 1: current decision in route must be explicitly reopened before revision"
+    );
+    let accepted = json(&game.dispatch_outcome("read", r#"{"value":2}"#).unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+}
+
+// A permitted commit on a decision in force is refused for that, not as a
+// denial: its grant is present and matches.
+#[test]
+fn a_permitted_commit_while_the_decision_is_in_force_is_not_a_denial() {
+    let mut game = session(
+        r#"
+        claim ready;
+        claim may_merge;
+        evidence ci from "the checks";
+        evidence go from "a go-ahead";
+        readings checks from ci limit 4;
+        readings approvals from go limit 4;
+        decisions merge limit 4;
+        event check;
+        event approved;
+        event merge;
+        on check sample checks = 1 supports ready;
+        on approved sample approvals = 1 supports may_merge;
+        on merge commit merge because enough using latest(checks) permitted by latest(approvals);
+    "#,
+    );
+    for event in ["check", "approved", "merge"] {
+        game.dispatch(event, "{}").unwrap();
+    }
+    rejected(&mut game, "merge", "{}", "evaluation", "decision_in_force");
+}
+
 #[test]
 fn the_maximum_valid_procedure_depth_still_dispatches() {
     let mut source = String::from("state output = 0; event run; proc p0() { set output = 1; };");

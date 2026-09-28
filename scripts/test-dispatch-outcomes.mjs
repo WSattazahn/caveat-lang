@@ -315,6 +315,37 @@ try {
       });
     });
 
+    check('a commit while the decision is in force is an atomic evaluation rejection and the session continues', () => {
+      const source = fixture('decision-in-force', `claim safe; evidence gauge from "a gauge";
+        readings depth from gauge limit 4; decisions route limit 4;
+        state decides = 0 min 0 max 9;
+        event read value min 0 max 9; event decide; event doubt;
+        on read sample depth = value supports safe;
+        on decide set decides = decides + 1;
+        on decide commit route because enough using latest(depth);
+        on doubt when committed(route) and not reopened(route) reopen route because latest(depth);`);
+      withSessions(source, 2, (session, legacy) => {
+        for (const run of [session, legacy]) {
+          dispatch(run, 'read', '{"value":1}');
+          dispatch(run, 'decide');
+        }
+        const refused = rejected(session, 'decide', '{}', 'evaluation', 'decision_in_force');
+        const error = 'event decide, rule 3: current decision in route must be explicitly reopened before revision';
+        assert.equal(refused.message, error);
+        assert.throws(() => legacy.dispatch('decide', '{}'), thrown => thrown === error);
+        dispatch(session, 'doubt');
+        const accepted = dispatch(session, 'decide');
+        assert.equal(accepted.outcome, 'accepted');
+        assert.equal(accepted.snapshot.values.decides, 2);
+        assert.equal(accepted.snapshot.decision_series.route.current, 'route@2');
+        const restored = WebReactiveSession.restore(source, session.save());
+        try {
+          rejected(restored, 'decide', '{}', 'evaluation', 'decision_in_force');
+          assert.equal(dispatch(restored, 'read', '{"value":2}').outcome, 'accepted');
+        } finally { restored.free(); }
+      });
+    });
+
     check('identifiers go in as text, are handles inside, and a refused event adds none', () => {
       const sha = '602bdbec0a047a5319f53e83f336b9f7aec0e5ed';
       const source = fixture('identifiers', `identifiers limit 2; state head = 0;
