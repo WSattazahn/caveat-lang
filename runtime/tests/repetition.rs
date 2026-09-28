@@ -1,6 +1,6 @@
 //! Repetition 0.1: `for KIND as $NAME { ... };`
 
-use caveat_runtime::reactive::{BindingValue, ParameterDomain, ReactiveSession};
+use caveat_runtime::reactive::{check_source, BindingValue, ParameterDomain, ReactiveSession};
 use caveat_runtime::{link, repeat};
 
 fn statements(source: &str) -> Vec<String> {
@@ -537,7 +537,8 @@ fn a_brace_outside_a_procedure_or_block_does_not_hide_the_members_after_it() {
     // `;`. Repetition counted its brace and read everything after it as one
     // unterminated statement: below the block, north and south got no copy
     // and `read south` changed nothing; above it, or in its body, the block
-    // was not expanded and the program did not load.
+    // was not expanded and the program did not load. In a body it is still
+    // refused, now as a `{` its statement does not close.
     let evidence = "evidence manual from see{appendix;\n";
     let east = "entity east kind plot at field;\n";
     let rest = "entity north kind plot at field;\nentity south kind plot at field;\n";
@@ -549,10 +550,14 @@ fn a_brace_outside_a_procedure_or_block_does_not_hide_the_members_after_it() {
             "    state $p_index",
             "    evidence $p_manual from see{appendix;\n    state $p_index",
         );
+        assert_eq!(
+            repeat::expand(&in_body).unwrap_err(),
+            unclosed(5, 32, routed, "evidence $p_manual from see{appendix"),
+            "{in_body}"
+        );
         for source in [
             around(east, &format!("{evidence}{rest}"), routed),
             around(&format!("{evidence}{east}"), rest, routed),
-            in_body,
         ] {
             let (indices, members) = counts(&source);
             assert_eq!(indices, east_first, "{source}");
@@ -579,8 +584,9 @@ fn a_first_word_that_only_begins_with_for_is_no_block() {
     // `{` for a block's body and read everything after it as the body: below
     // the block, south got no copy while `target` counted it, and `read
     // south` changed nothing, silently. Above the block, the block was not
-    // expanded and the program did not load, and in its body, the block was
-    // refused as having text after its body.
+    // expanded and the program did not load. In its body, the block was
+    // refused as having text after its body; it is refused now as a `{` its
+    // statement does not close, as `for{ supports $p_claim;` leaves it.
     let evidence = "claim c;\nevidence for{ from log;\n";
     let relation = "for{ supports c;\n";
     let east = "entity east kind plot at field;\n";
@@ -593,10 +599,14 @@ fn a_first_word_that_only_begins_with_for_is_no_block() {
             "    state $p_index",
             "    claim $p_claim;\n    for{ supports $p_claim;\n    state $p_index",
         );
+        assert_eq!(
+            repeat::expand(&in_body).unwrap_err(),
+            unclosed(8, 8, routed, "for{ supports $p_claim"),
+            "{in_body}"
+        );
         for source in [
             around(east, &format!("{evidence}{relation}{south}"), routed),
             around(&format!("{evidence}{relation}{east}"), south, routed),
-            in_body,
         ] {
             let expanded =
                 repeat::expand(&source).unwrap_or_else(|error| panic!("{error}\n{source}"));
@@ -854,7 +864,8 @@ fn text_between_a_block_and_its_end_is_refused_not_dropped() {
     // Repetition replaced a block with its body's copies, and dropped what
     // followed the body. With a `;` after it, `entity east` was dropped
     // silently: `target` named north and south only. As the last statement,
-    // which the loader reads, the block was not expanded.
+    // which the loader reads, the block was not expanded. The refusal gives
+    // the line and column of the `}` that ends the body.
     for end in [
         "} entity east kind plot at field;\n",
         "}\nentity east kind plot at field\n",
@@ -862,10 +873,26 @@ fn text_between_a_block_and_its_end_is_refused_not_dropped() {
         let source = headed("for plot as $p {", false).replace("\n};\n", &format!("\n{end}"));
         assert_eq!(
             repeat::expand(&source).unwrap_err(),
-            "for block has text after its body: entity east kind plot at; end the block with `};`",
+            "line 9, column 1: for block has text after its body: entity east kind plot at; end the block with `};`",
             "{source}"
         );
     }
+    // After a last statement without its `;`, that `}` closes no `{` of the
+    // statement it ends, so the refusal names the statement too, and gives
+    // the remedy for a `}` that is text.
+    let source = headed("for plot as $p {", false).replace(
+        "$p_n + 1;\n};\n",
+        "$p_n + 1\n} entity east kind plot at field;\n",
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        closes_nothing(
+            (9, 1),
+            "entity east kind plot at",
+            "on read when target == $index set $p_n = $p_n + 1 }"
+        ),
+        "{source}"
+    );
 }
 
 #[test]
@@ -878,7 +905,7 @@ fn a_brace_pair_in_a_body_statement_stays_in_the_statement() {
     // text after its body: b; end the block with `};`".
     let plots = "entity north kind plot at field;\nentity south kind plot at field;\n";
     for routed in [false, true] {
-        for provenance in ["see{appendix}b", "{a}{b}", "x{{y}}z", "see{appendix"] {
+        for provenance in ["see{appendix}b", "{a}{b}", "x{{y}}z"] {
             let source = around(plots, "", routed).replace(
                 "    state $p_index",
                 &format!("    evidence $p_manual from {provenance};\n    state $p_index"),
@@ -914,7 +941,303 @@ fn a_brace_pair_in_a_body_statement_stays_in_the_statement() {
     );
     assert_eq!(
         repeat::expand(&source).unwrap_err(),
-        "for block has text after its body: b; end the block with `};`"
+        closes_nothing((6, 30), "b", "evidence $p_manual from a}b")
+    );
+    // So is such a `}` in the body's last statement without its `;`.
+    // Repetition took the block statement's last `}` for the body's end, so
+    // this body read on past the `}` that ended it, and the block expanded.
+    let source = around(plots, "", false).replace(
+        "$p_n + 1;\n};\n",
+        "$p_n + 1;\n    evidence $p_manual from a}b\n};\n",
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        closes_nothing((9, 30), "b }", "evidence $p_manual from a}b")
+    );
+    // A `{` there is closed by the `}` after it, so the body is not closed.
+    // Repetition took that `}` for the body's end too, and the block
+    // expanded.
+    let source = around(plots, "", false).replace(
+        "$p_n + 1;\n};\n",
+        "$p_n + 1;\n    evidence $p_manual from see{appendix\n};\n",
+    );
+    assert_eq!(
+        repeat::expand(&source).unwrap_err(),
+        "for block is not closed: for plot as $p {"
+    );
+}
+
+/// The refusal of a `{` at `line` and `column` that the body statement
+/// `written` of a block over plots, plain or routed by `target`, leaves open.
+fn unclosed(line: usize, column: usize, routed: bool, written: &str) -> String {
+    let header = if routed {
+        "for plot as $p routed by target"
+    } else {
+        "for plot as $p"
+    };
+    format!(
+        "line {line}, column {column}: for block `{header}`: `{written}` has a `{{` that its statement does not close; a brace in unquoted text pairs only within its statement, so quote the text, or take the brace out of a name"
+    )
+}
+
+/// The refusal of `after`, the text after a body whose `}` at `line` and
+/// `column` comes after the text of the body statement `written`, shown to
+/// the end of the word that holds the `}`: that `}` closes no `{` of its
+/// statement, so it ends the body.
+fn closes_nothing((line, column): (usize, usize), after: &str, written: &str) -> String {
+    format!(
+        "line {line}, column {column}: for block has text after its body: {after}; the `}}` in `{written}` closes no `{{` of its statement, so it ends the body: quote a brace that is text, take it out of a name, or end the block with `}};`"
+    )
+}
+
+/// Repetition 0.1's example of a split pair: `x{` in one body statement and
+/// `y}` in the next, over the first `members` of north, south and east, on
+/// one line or a statement to a line, with `after` below the block.
+fn split_pair(members: usize, one_line: bool, after: &str) -> String {
+    let plots = ["north", "south", "east"][..members]
+        .iter()
+        .map(|plot| format!("entity {plot} kind plot at field;\n"))
+        .collect::<String>();
+    let block = if one_line {
+        "for plot as $p { evidence $p_a from x{; evidence $p_b from y}; };\n"
+    } else {
+        "for plot as $p {\n    evidence $p_a from x{;\n    evidence $p_b from y};\n};\n"
+    };
+    format!("place field kind field;\n{plots}event go;\n{block}{after}")
+}
+
+#[test]
+fn a_brace_in_unquoted_body_text_pairs_only_within_its_statement() {
+    // A `}` in a body that closes no `{` of its statement ends the body, so
+    // `x{` and `y}` in two statements are no pair. The body ended at `y}`,
+    // its last statement had no `;`, and each copy but the last read on into
+    // the next: with north and south, the program loaded without a word and
+    // declared north_a, north_b and south_b, where main paired the braces and
+    // declared all four. A `{` that its statement leaves open is refused, for
+    // any number of members.
+    let after = "claim done;\nstate n = 0;\non go set n = n + 1;\n";
+    for members in 1..=3 {
+        for one_line in [true, false] {
+            for after in ["", after] {
+                let source = split_pair(members, one_line, after);
+                let expected = if one_line {
+                    unclosed(members + 3, 38, false, "evidence $p_a from x{")
+                } else {
+                    unclosed(members + 4, 25, false, "evidence $p_a from x{")
+                };
+                assert_eq!(repeat::expand(&source).unwrap_err(), expected, "{source}");
+                match ReactiveSession::from_source(&source) {
+                    Ok(_) => panic!("loaded:\n{source}"),
+                    Err(error) => assert_eq!(error, expected, "{source}"),
+                }
+                // Quoted, each brace is its statement's text, and every copy
+                // is declared with it.
+                let quoted = source
+                    .replace("from x{", "from \"x{\"")
+                    .replace("from y}", "from \"y}\"");
+                let symbols = ReactiveSession::from_source(&quoted)
+                    .unwrap_or_else(|error| panic!("{error}\n{quoted}"))
+                    .snapshot()
+                    .symbols
+                    .into_iter()
+                    .filter(|symbol| symbol.kind == "evidence")
+                    .map(|symbol| (symbol.name, symbol.source.unwrap_or_default()))
+                    .collect::<Vec<_>>();
+                // The snapshot lists symbols by name.
+                let mut expected = ["north", "south", "east"][..members]
+                    .iter()
+                    .flat_map(|plot| {
+                        [
+                            (format!("{plot}_a"), "x{".to_string()),
+                            (format!("{plot}_b"), "y}".to_string()),
+                        ]
+                    })
+                    .collect::<Vec<_>>();
+                expected.sort();
+                assert_eq!(symbols, expected, "{quoted}");
+            }
+        }
+    }
+    // The same in a routed block. Its routed rule, after the pair, was read
+    // below the body, and the block was refused as routing no rule.
+    let source = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot;
+for plot as $p routed by target {
+    evidence $p_a from x{;
+    evidence $p_b from y};
+    state $p_n = 0;
+    on read set $p_n = $p_n + 1;
+};
+";
+    assert_eq!(
+        repeat::expand(source).unwrap_err(),
+        unclosed(6, 25, true, "evidence $p_a from x{")
+    );
+    // In a plain block, a statement after the pair was read below the body,
+    // and the program did not load: "unexpected character '$'".
+    let plain = source
+        .replace(" routed by target", "")
+        .replace("on read set", "on read when target == $index set");
+    assert_eq!(
+        repeat::expand(&plain).unwrap_err(),
+        unclosed(6, 25, false, "evidence $p_a from x{")
+    );
+    // A `{` in an entity's name in a body is left open too. Repetition read
+    // `entity $p_hut{` as `entity $p_hut`, and the copies loaded.
+    let hut = split_pair(2, false, "").replace(
+        "    evidence $p_a from x{;\n    evidence $p_b from y};\n",
+        "    entity $p_hut{ kind hut at field;\n",
+    );
+    assert_eq!(
+        repeat::expand(&hut).unwrap_err(),
+        unclosed(6, 18, false, "entity $p_hut{ kind hut at field"),
+        "{hut}"
+    );
+}
+
+/// The first `members` of plots north, south and east.
+fn plots(members: usize) -> String {
+    ["north", "south", "east"][..members]
+        .iter()
+        .map(|plot| format!("entity {plot} kind plot at field;\n"))
+        .collect()
+}
+
+/// Plots, then a block over the first `members` of north, south and east
+/// whose body is `statement` and `evidence $p_b from z`, on one line or a
+/// statement to a line, with `after` below the block.
+fn stray_close(statement: &str, members: usize, one_line: bool, after: &str) -> String {
+    let plots = plots(members);
+    let block = if one_line {
+        format!("for plot as $p {{ {statement}; evidence $p_b from z; }};\n")
+    } else {
+        format!("for plot as $p {{\n    {statement};\n    evidence $p_b from z;\n}};\n")
+    };
+    format!("place field kind field;\n{plots}event go;\n{block}{after}")
+}
+
+/// Each evidence a program declares, by name, with its provenance.
+fn evidence(source: &str) -> Vec<(String, String)> {
+    ReactiveSession::from_source(source)
+        .unwrap_or_else(|error| panic!("{error}\n{source}"))
+        .snapshot()
+        .symbols
+        .into_iter()
+        .filter(|symbol| symbol.kind == "evidence")
+        .map(|symbol| (symbol.name, symbol.source.unwrap_or_default()))
+        .collect()
+}
+
+#[test]
+fn a_close_brace_that_its_statement_does_not_open_ends_the_body() {
+    // A `}` in a body that closes no `{` of its statement ends the body
+    // (section 2), so after `from }{`, `{; ...` is text after the body, and
+    // the block is refused, for any number of members, with the line and
+    // column of that `}` and the statement it is in. Main paired the `}`
+    // with the body's `{`, and the `{` after it with the body's `}`, and
+    // loaded every copy as written. The refusal first gave neither: "for
+    // block has text after its body: {; }; end the block with `};`".
+    let after = "claim done;\nstate n = 0;\non go set n = n + 1;\n";
+    for (statement, rest) in [
+        ("evidence $p_a from }{", "{; evidence $p_b from z;"),
+        ("evidence $p_a from m}n{o", "n{o; evidence $p_b from z;"),
+        ("claim $p_c}{", "{; evidence $p_b from z;"),
+    ] {
+        let brace = statement.find('}').expect("a `}`");
+        for members in 1..=3 {
+            for one_line in [true, false] {
+                for after in ["", after] {
+                    let source = stray_close(statement, members, one_line, after);
+                    let at = if one_line {
+                        (members + 3, brace + 18)
+                    } else {
+                        (members + 4, brace + 5)
+                    };
+                    let expected = closes_nothing(at, rest, statement);
+                    assert_eq!(repeat::expand(&source).unwrap_err(), expected, "{source}");
+                    match ReactiveSession::from_source(&source) {
+                        Ok(_) => panic!("loaded:\n{source}"),
+                        Err(error) => assert_eq!(error, expected, "{source}"),
+                    }
+                }
+            }
+        }
+    }
+    // Quoted, the braces are the statement's own text, and every copy is
+    // declared with it.
+    for members in 1..=3 {
+        let quoted = stray_close("evidence $p_a from \"}{\"", members, false, after);
+        let mut expected = ["north", "south", "east"][..members]
+            .iter()
+            .flat_map(|plot| {
+                [
+                    (format!("{plot}_a"), "}{".to_string()),
+                    (format!("{plot}_b"), "z".to_string()),
+                ]
+            })
+            .collect::<Vec<_>>();
+        expected.sort();
+        assert_eq!(evidence(&quoted), expected, "{quoted}");
+    }
+    // The same in a routed block over three members.
+    let routed = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+entity east kind plot at field;
+event read target kind plot;
+for plot as $p routed by target {
+    state $p_n = 0;
+    on read set $p_n = $p_n + 1;
+    evidence $p_a from }{;
+};
+claim done;
+";
+    assert_eq!(
+        repeat::expand(routed).unwrap_err(),
+        closes_nothing((9, 24), "{; }", "evidence $p_a from }{")
+    );
+    // In the body's last statement without its `;`, such a `}` ends the body
+    // before the body's own `}`. Main took the block's last `}` for the body's
+    // end: with one member, or after a leading empty statement, which ends
+    // each copy's last statement, it loaded these as written.
+    for members in 1..=3 {
+        let plots = plots(members);
+        for (body, at, rest, written) in [
+            (
+                "{ evidence $p_a from a}b };",
+                38,
+                "b }",
+                "evidence $p_a from a}b",
+            ),
+            ("{ ; claim $p_c} };", 30, "}", "claim $p_c}"),
+        ] {
+            let source =
+                format!("place field kind field;\n{plots}event go;\nfor plot as $p {body}\n");
+            assert_eq!(
+                repeat::expand(&source).unwrap_err(),
+                closes_nothing((members + 3, at), rest, written),
+                "{source}"
+            );
+        }
+    }
+    // A body that nothing closes is refused as not closed. Here the `}` meant
+    // to close it closes the `{` of `from {`, and the reader then finds
+    // `w{`, below the block as written, in the body. The refusal named that
+    // `{`, at line 8, as left open by a body statement.
+    let unclosed_body = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event go;
+for plot as $p {
+    evidence $p_a from {
+};
+evidence tail from w{;
+";
+    assert_eq!(
+        repeat::expand(unclosed_body).unwrap_err(),
+        "for block is not closed: for plot as $p {"
     );
 }
 
@@ -967,214 +1290,292 @@ fn a_last_statement_after_an_empty_statement_is_read() {
     }
 }
 
-/// `headed(header, routed)` with the body's last statement, at line 8,
-/// column 5, written without its `;`, and `after` below the block.
-fn unended(header: &str, routed: bool, after: &str) -> String {
-    headed(header, routed).replace("$p_n + 1;\n};\n", &format!("$p_n + 1\n}};\n{after}"))
+/// The refusal of `written`, the last statement of a body with `header`,
+/// which has no `;`, at the `line` and `column` where it is written.
+fn unended((line, column): (usize, usize), header: &str, written: &str) -> String {
+    format!(
+        "line {line}, column {column}: the last statement in the body of `{header}`, `{written}`, has no `;` before the `}}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`"
+    )
 }
 
-/// The error for a body whose last statement, written at `line`, column 5,
-/// has no `;`, when the copy for `member` runs into `into` and together they
-/// are not a statement.
-fn runs_into(line: usize, header: &str, member: &str, into: &str) -> String {
-    format!("line {line}, column 5: the last statement in the body of `{header}` has no `;`, so the copy for `{member}` runs into {into}, and together they are not a statement; end it with `;`")
+/// The first `members` of plots north, south and east, then `event go;`,
+/// `block` and `after`.
+fn plots_then(members: usize, block: &str, after: &str) -> String {
+    format!(
+        "place field kind field;\n{}event go;\n{block}{after}",
+        plots(members)
+    )
+}
+
+/// Refused by expansion and by the loader, with `expected`.
+fn refused_with(source: &str, expected: &str) {
+    assert_eq!(repeat::expand(source).unwrap_err(), expected, "{source}");
+    match ReactiveSession::from_source(source) {
+        Ok(_) => panic!("loaded:\n{source}"),
+        Err(error) => assert_eq!(error, expected, "{source}"),
+    }
+}
+
+/// `$p_a` with `provenance`, for each of the first `members` of north, south
+/// and east, as `evidence` lists them: by name.
+fn each_a(members: usize, provenance: &str) -> Vec<(String, String)> {
+    let mut each = ["north", "south", "east"][..members]
+        .iter()
+        .map(|plot| (format!("{plot}_a"), provenance.to_string()))
+        .collect::<Vec<_>>();
+    each.sort();
+    each
 }
 
 #[test]
-fn a_last_body_statement_without_its_semicolon_that_runs_into_what_follows_is_refused() {
-    // A body's statements are copied as written, so a last one without its
-    // `;` has none in any copy either, and nothing adds one. With two or
-    // more members, the first copy runs into the next one, and the program
-    // did not load: "line 8, column 5: expected '=' at byte 31", about the
-    // expanded text.
-    for (header, routed) in [
-        ("for plot as $p", false),
-        ("for plot as $p routed by target", true),
-    ] {
-        let into_south = runs_into(8, header, "north", "the copy for `south`");
-        for after in ["", "state total = 0;\n", "// the end\n"] {
-            let source = unended(&format!("{header} {{"), routed, after);
-            assert_eq!(repeat::expand(&source).unwrap_err(), into_south, "{source}");
-            assert_eq!(
-                ReactiveSession::from_source(&source).err(),
-                Some(into_south.clone())
-            );
+fn a_body_whose_last_statement_has_no_semicolon_is_refused_over_several_members() {
+    // A body is copied as written and no `;` is added, so its last statement
+    // must end with `;`, for any number of members (section 2). Without one,
+    // each copy's last statement read on into the next copy: over north and
+    // south, this block declared north_a with provenance `notes evidence
+    // south_a from notes`, and no south_a, silently. The refusal gives the
+    // line and column where the statement is written.
+    for members in 2..=3 {
+        for (block, at) in [
+            (
+                "for plot as $p { evidence $p_a from notes };\n",
+                (members + 3, 18),
+            ),
+            (
+                "for plot as $p {\n    evidence $p_a from notes\n};\n",
+                (members + 4, 5),
+            ),
+        ] {
+            for after in ["", "claim done;\n"] {
+                let source = plots_then(members, block, after);
+                refused_with(
+                    &source,
+                    &unended(at, "for plot as $p", "evidence $p_a from notes"),
+                );
+                // With its `;`, every copy is declared.
+                let ended = source.replace("from notes", "from notes;");
+                assert_eq!(evidence(&ended), each_a(members, "notes"), "{ended}");
+            }
         }
-        // The first copy that does not read is the one reported.
-        let three = unended(&format!("{header} {{"), routed, "").replace(
-            "entity south kind plot at field;\n",
-            "entity south kind plot at field;\nentity east kind plot at field;\n",
+    }
+    // `caveat check` loads the program first, so it gives the same refusal.
+    let source = plots_then(2, "for plot as $p { evidence $p_a from notes };\n", "");
+    assert_eq!(
+        check_source(&source).unwrap_err(),
+        unended((5, 18), "for plot as $p", "evidence $p_a from notes")
+    );
+    // A body whose first statement is empty ended each copy's last statement
+    // but the last copy's: over north and south, at the end of the program,
+    // this loaded as written. It is refused like any other.
+    refused_with(
+        &plots_then(2, "for plot as $p { ; evidence $p_a from notes };\n", ""),
+        &unended((5, 20), "for plot as $p", "evidence $p_a from notes"),
+    );
+}
+
+#[test]
+fn a_body_whose_last_statement_has_no_semicolon_is_refused_over_one_member() {
+    // With one member, the copy's last statement ran into the statement after
+    // the block: this program declared north_a with provenance `notes
+    // evidence tail from after`, and no tail. Where nothing but comments
+    // followed the block, or a `;` did, the copy loaded as written. It is
+    // refused now too: the rule does not depend on what follows the block.
+    let one = "event go;
+place field kind field;
+entity north kind plot at field;
+for plot as $p { evidence $p_a from notes }";
+    for end in [
+        ";\nevidence tail from after;\n",
+        ";\n",
+        ";\n# the end\n",
+        ";;\nevidence tail from after;\n",
+        "",
+        "\n",
+    ] {
+        let source = format!("{one}{end}");
+        refused_with(
+            &source,
+            &unended((4, 18), "for plot as $p", "evidence $p_a from notes"),
         );
-        assert_eq!(
-            repeat::expand(&three).unwrap_err(),
-            runs_into(9, header, "north", "the copy for `south`")
+        let ended = source.replace("from notes", "from notes;");
+        assert_eq!(evidence(&ended)[..1], each_a(1, "notes")[..], "{ended}");
+    }
+}
+
+#[test]
+fn a_close_brace_right_before_a_body_statements_semicolon_leaves_it_unended() {
+    // A `}` right before a body statement's `;` ends the body there, so that
+    // statement is the body's last, and has no `;`. The block ended at that
+    // `;`, and ` };` after it was read as the next statement: over north and
+    // south, every build declared only north_a, with provenance `y evidence
+    // south_a from y }`.
+    for members in 1..=3 {
+        refused_with(
+            &plots_then(members, "for plot as $p { evidence $p_a from y}; };\n", ""),
+            &unended((members + 3, 18), "for plot as $p", "evidence $p_a from y"),
         );
     }
-    // With one member, the copy runs into the text after the block. That
-    // did not load either: "line 7, column 5: expected '=' at byte 25".
-    let one = unended("for plot as $p {", false, "state total = 0;\n")
-        .replace("entity south kind plot at field;\n", "");
-    assert_eq!(
-        ReactiveSession::from_source(&one).err(),
-        Some(runs_into(
-            7,
-            "for plot as $p",
-            "north",
-            "the text after the block"
-        ))
+}
+
+#[test]
+fn a_fixed_misreading_does_not_let_an_unended_last_statement_load() {
+    // Programs that a fix in this profile's Changes lets load, and whose body
+    // then ran into the next copy. Main refused them for the trigger: a
+    // comment in the header, a `{` in one, a last block without its `;`, or
+    // a brace in a statement above the block. Over north and south, each
+    // loaded with north_a's provenance `notes evidence south_a from notes`,
+    // and no south_a.
+    let plain = "for plot as $p { evidence $p_a from notes }";
+    for (source, at) in [
+        (
+            plots_then(
+                2,
+                "for plot # each\nas $p { evidence $p_a from notes };\n",
+                "",
+            ),
+            (6, 9),
+        ),
+        (
+            plots_then(
+                2,
+                "for plot as $p # a { in a comment\n{ evidence $p_a from notes };\n",
+                "",
+            ),
+            (6, 3),
+        ),
+        (plots_then(2, plain, ""), (5, 18)),
+        (plots_then(2, plain, "\n"), (5, 18)),
+        (
+            plots_then(
+                2,
+                &format!("evidence manual from see{{appendix;\n{plain};\n"),
+                "",
+            ),
+            (6, 18),
+        ),
+    ] {
+        refused_with(
+            &source,
+            &unended(at, "for plot as $p", "evidence $p_a from notes"),
+        );
+    }
+    // A `}` in a comment after the body: main read it as the body's end, and
+    // north_a's provenance was `notes } evidence south_a from notes }`.
+    // Fixed, it was `notes evidence south_a from notes`.
+    refused_with(
+        &plots_then(2, &format!("{plain} # }}\n;\n"), ""),
+        &unended((5, 18), "for plot as $p", "evidence $p_a from notes"),
     );
-    // In a bundle, the error names the part, as any Repetition error does.
+}
+
+#[test]
+fn a_routed_or_module_body_whose_last_statement_has_no_semicolon_is_refused() {
+    // In a routed block it is refused before any rule is routed. Over north
+    // and south, the copy's rule ran into the next copy, and the program did
+    // not load: "expected '=' at byte 27".
+    let routed = plots_then(
+        2,
+        "event read target kind plot;
+for plot as $p routed by target {
+    state $p_n = 0;
+    on read set $p_n = $p_n + 1
+};
+",
+        "",
+    );
+    refused_with(
+        &routed,
+        &unended(
+            (8, 5),
+            "for plot as $p routed by target",
+            "on read set $p_n = $p_n + 1",
+        ),
+    );
+    // In a module, the error names the part. Linked, the module declared
+    // reef_one_reading with provenance `log evidence reef_two_reading from
+    // log evidence reef_three_reading from log`, and neither other reading.
     let text = link::bundle(&[
         link::BundlePart {
-            name: "plots".into(),
-            source: "module plots;\nplace field kind field;\nentity north kind plot at field;\nentity south kind plot at field;\nfor plot as $p {\n    claim $p_seen;\n    claim $p_mapped\n};\n".into(),
+            name: "harbour".into(),
+            source: format!(
+                "module harbour;\n{ENTITIES}for reef as $r {{ evidence $r_reading from log }};\n"
+            ),
         },
         link::BundlePart {
             name: "main".into(),
-            source: "use plots;\nbudget 1;\n".into(),
+            source: "use harbour;\nbudget 1;\n".into(),
         },
     ]);
     assert_eq!(
         link::link(&text).unwrap_err(),
         format!(
-            "plots: {}",
-            runs_into(7, "for plot as $p", "north", "the copy for `south`")
+            "harbour: {}",
+            unended((5, 18), "for reef as $r", "evidence $r_reading from log")
         )
     );
 }
 
 #[test]
-fn a_last_body_statement_without_its_semicolon_loads_where_it_did() {
-    // With one member and nothing but comments after the block, the copy's
-    // last statement is the program's last, which the loader reads without
-    // its `;`. It expands and behaves as before.
-    for after in ["", "// the end\n", "\n\n"] {
-        let source = unended("for plot as $p {", false, after)
-            .replace("entity south kind plot at field;\n", "");
-        assert_eq!(
-            repeat::expand(&source).expect("expands"),
-            format!(
-                "place field kind field;
-entity north kind plot at field;
-event read target kind plot;
-
-    state north_index = 1;
-    state north_n = 0;
-    on read when target == 1 set north_n = north_n + 1
-\n{after}"
-            )
-        );
-        let (indices, members) = counts(&source);
-        assert_eq!(indices, [("north".to_string(), 1.0)]);
-        assert_eq!(members, ["north"]);
-        let mut session = ReactiveSession::from_source(&source).expect("loads");
-        let values = session
-            .dispatch_json("read", r#"{"target":"north"}"#)
-            .expect("read is accepted")
-            .values;
-        assert_eq!(values["north_n"], 1.0);
-    }
-    // Where the copies read together as one statement, as evidence with
-    // unquoted provenance does, the program loads as the same text written
-    // by hand does, and expands as before.
-    let source = "place field kind field;
-entity north kind plot at field;
-entity south kind plot at field;
-event read target kind plot;
-for plot as $p {
-    evidence $p_log from a field log
-};
-state total = 0;
-";
-    assert_eq!(
-        repeat::expand(source).expect("expands"),
-        "place field kind field;
-entity north kind plot at field;
-entity south kind plot at field;
-event read target kind plot;
-
-    evidence north_log from a field log
-
-    evidence south_log from a field log
-
-state total = 0;
-"
-    );
-    ReactiveSession::from_source(source).expect("loads");
-}
-
-#[test]
-fn a_semicolon_after_a_copy_ends_its_last_statement_and_the_loader_says_what_is_wrong() {
-    // A `;` right after the copy, with nothing but whitespace and comments
-    // before it, ends the copy's last statement, so it runs into nothing.
-    // Where that statement does not read, the error is the loader's, about
-    // the statement itself, as it was before the error above existed.
-    let one = "place field kind field;\nentity north kind plot at field;\nevent read target kind plot;\nfor plot as $p {\n    define $p_twice = $index +\n";
-    for after in [
-        "};;\nclaim after;\n",
-        "}\n;;\n",
-        "}; // the end\n;\nclaim after;\n",
+fn a_body_with_no_statement_or_its_last_one_ended_loads_as_written() {
+    // A body with no statement needs no `;`: an empty one, one of comments,
+    // or one of empty statements. Its block declares nothing.
+    let symbols = |source: &str| {
+        ReactiveSession::from_source(source)
+            .unwrap_or_else(|error| panic!("{error}\n{source}"))
+            .snapshot()
+            .symbols
+            .into_iter()
+            .map(|symbol| symbol.name)
+            .collect::<Vec<_>>()
+    };
+    let without = symbols(&plots_then(2, "", "claim done;\n"));
+    for body in [
+        "{}",
+        "{ }",
+        "{ # nothing yet\n}",
+        "{ // a } and a {\n}",
+        "{ ; ; }",
     ] {
-        let source = format!("{one}{after}");
+        let source = plots_then(2, &format!("for plot as $p {body};\n"), "claim done;\n");
+        assert_eq!(symbols(&source), without, "{source}");
+    }
+    // A last block may still leave out its own `;`, once its body's last
+    // statement has one.
+    for end in ["}", "}\n", "} # the end\n"] {
+        let source = plots_then(
+            2,
+            &format!("for plot as $p {{ evidence $p_a from notes; {end}"),
+            "",
+        );
+        assert_eq!(evidence(&source), each_a(2, "notes"), "{source}");
+    }
+    // A brace that is the statement's own text: quoted, or a pair within the
+    // statement. As the body's last statement, ended with `;`, each copy is
+    // declared as written.
+    for provenance in [
+        "\"y}\"",
+        "\"}{\"",
+        "\"a}b\"",
+        "\"x{\"",
+        "see{appendix}b",
+        "{a}{b}",
+    ] {
+        let source = plots_then(
+            2,
+            &format!("for plot as $p {{ evidence $p_a from {provenance}; }};\n"),
+            "claim done;\n",
+        );
         assert_eq!(
-            ReactiveSession::from_source(&source).err(),
-            Some("line 5, column 5: expected expression at byte 3".into()),
+            evidence(&source),
+            each_a(2, provenance.trim_matches('"')),
             "{source}"
         );
     }
-    // So does a `;` that begins the next copy.
-    let two = "place field kind field;
-entity north kind plot at field;
-entity south kind plot at field;
-event read target kind plot;
-for plot as $p {
-    ;
-    define $p_twice = $index +
-};
-";
-    assert_eq!(
-        ReactiveSession::from_source(two).err(),
-        Some("line 7, column 5: expected expression at byte 3".into())
+    // A comment after the last `;` is no statement, whatever it holds.
+    let source = plots_then(
+        2,
+        "for plot as $p {\n    evidence $p_a from notes; # a } here\n};\n",
+        "",
     );
-    // In a bundle, in a module and in the program.
-    let go = "state x = 0;\nevent go;\non go set x = 1;\n";
-    let module = link::bundle(&[
-        link::BundlePart {
-            name: "plots".into(),
-            source: "module plots;\nplace field kind field;\nentity north kind plot at field;\nfor plot as $p {\n    state $p_m = $index +\n};;\n".into(),
-        },
-        link::BundlePart {
-            name: "main".into(),
-            source: format!("use plots;\n{go}"),
-        },
-    ]);
-    assert_eq!(
-        ReactiveSession::from_source(&module).err(),
-        Some("module plots: line 5, column 5: expected expression at byte 3".into())
-    );
-    let program = link::bundle(&[
-        link::BundlePart {
-            name: "glow".into(),
-            source: "module glow;\nstate level = 0;\n".into(),
-        },
-        link::BundlePart {
-            name: "main".into(),
-            source: "use glow;\nplace field kind field;\nentity north kind plot at field;\nevent go;\non go set glow::level = 1;\nfor plot as $p {\n    state $p_m = $index +\n}\n;;\n".into(),
-        },
-    ]);
-    assert_eq!(
-        ReactiveSession::from_source(&program).err(),
-        Some("the program main: line 7, column 5: expected expression at byte 3".into())
-    );
-    // Text after the block with no `;` before it is still run into.
-    let source = format!("{}\n}};\nclaim after;\n", one.replace(" +\n", " + 1"));
-    assert_eq!(
-        ReactiveSession::from_source(&source).err(),
-        Some(runs_into(
-            5,
-            "for plot as $p",
-            "north",
-            "the text after the block"
-        ))
-    );
+    assert_eq!(evidence(&source), each_a(2, "notes"), "{source}");
 }

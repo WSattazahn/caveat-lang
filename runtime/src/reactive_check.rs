@@ -9,7 +9,7 @@ use super::{
 use crate::link::{
     is_identifier_char, is_identifier_start, statement_spans, statement_words, statements_of,
 };
-use crate::parser::{scan_statements_at, Position};
+use crate::parser::{position_of, scan_statements_at, Position};
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -161,15 +161,6 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         });
     }
     Ok((out, blocks))
-}
-
-fn position_of(source: &str, offset: usize) -> Position {
-    let before = &source[..offset];
-    let line_start = before.rfind('\n').map_or(0, |at| at + 1);
-    Position {
-        line: before.matches('\n').count() + 1,
-        column: before[line_start..].chars().count() + 1,
-    }
 }
 
 /// A comment line directly above the statement: `# caveat check: allow

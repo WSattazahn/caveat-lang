@@ -13,9 +13,10 @@
 //! block expands to, so routing adds no runtime semantics either.
 
 use crate::link::{
-    blank_comments, is_identifier_char, is_identifier_start, statement_spans, statement_words,
+    blank_comments, block_braces, is_identifier_char, is_identifier_start, statement_words,
     statements_of,
 };
+use crate::parser::position_of;
 
 /// Expand every `for` block in one source. A source with no `for` block is
 /// returned unchanged, so an existing program expands to itself byte for byte.
@@ -40,110 +41,13 @@ pub fn expand(source: &str) -> Result<String, String> {
 
     let mut out = String::with_capacity(source.len());
     let mut cursor = 0;
-    // The copies whose last statement has no `;`.
-    let mut unended = Vec::new();
     for (start, end) in blocks {
         out.push_str(&source[cursor..start]);
-        let expansion = expand_block(&source[start..end], &part)?;
-        if let Some(written) = expansion.unended {
-            let (line, column) = line_and_column(source, start + written);
-            for (position, &(member, from, to)) in expansion.copies.iter().enumerate() {
-                let Some(last) = unended_at(&expansion.text[from..to]) else {
-                    continue;
-                };
-                let into = match expansion.copies.get(position + 1) {
-                    Some((next, _, _)) => format!("the copy for `{next}`"),
-                    None => "the text after the block".into(),
-                };
-                unended.push(Unended {
-                    last: out.len() + from + last,
-                    end: out.len() + to,
-                    error: format!(
-                        "line {line}, column {column}: the last statement in the body of `{}` has no `;`, so the copy for `{member}` runs into {into}, and together they are not a statement; end it with `;`",
-                        expansion.header
-                    ),
-                });
-            }
-        }
-        out.push_str(&expansion.text);
+        out.push_str(&expand_block((start, end), &part)?);
         cursor = end;
     }
     out.push_str(&source[cursor..]);
-    runs_into(&out, &unended)?;
     Ok(out)
-}
-
-/// A copy of a body whose last statement has no `;`.
-struct Unended {
-    /// In the expanded text: where the copy's last statement begins, and
-    /// where the copy ends.
-    last: usize,
-    end: usize,
-    /// What to say when the text the copy runs into is not a statement.
-    error: String,
-}
-
-/// A body's last statement without its `;` has none in any copy, so it runs
-/// into what follows its copy (spec/caveat-repetition-0.1.md section 2): the
-/// next member's copy, or the text after the block, unless a `;` there, after
-/// nothing but whitespace and comments, ends it. No `;` is added. Where
-/// the two together are a statement the loader reads, such as evidence whose
-/// unquoted provenance takes in what follows, the program loads as the same
-/// text written by hand does, and nothing is said. Where they are not, the
-/// program does not load whatever this pass does, and this error says why in
-/// place of the loader's. The loader reads the statement as written in a
-/// program on its own, and linked into a bundle, where `glow::level` is
-/// written `glow__level`; only a statement it reads in neither is one it
-/// cannot read.
-fn runs_into(expanded: &str, unended: &[Unended]) -> Result<(), String> {
-    if unended.is_empty() {
-        return Ok(());
-    }
-    let reads = |statement: &str| {
-        crate::parser::parse(statement).is_ok()
-            || crate::parser::parse(&as_linked(&blank_comments(statement))).is_ok()
-    };
-    let statements = statements_of(expanded);
-    for copy in unended {
-        let Some(&(start, end)) = statements
-            .iter()
-            .find(|(start, end)| *start <= copy.last && copy.last < *end)
-        else {
-            continue;
-        };
-        // Nothing but whitespace and comments after the copy: its last
-        // statement is the program's last, which the loader reads. The same
-        // and a `;`: that `;` ends it, so it runs into nothing, and whether
-        // it reads is the loader's to say.
-        if end <= copy.end
-            || blank_comments(&expanded[copy.end..end])
-                .trim_matches(|at: char| at.is_whitespace() || at == ';')
-                .is_empty()
-        {
-            continue;
-        }
-        if !reads(&expanded[start..end]) {
-            return Err(copy.error.clone());
-        }
-    }
-    Ok(())
-}
-
-/// Where the last statement of a body or copy begins, when it has no `;`.
-fn unended_at(text: &str) -> Option<usize> {
-    let ended = statement_spans(text).len();
-    statements_of(text).get(ended).map(|(start, _)| *start)
-}
-
-/// The one-based line and Unicode column of a byte offset, as the loader
-/// counts them.
-fn line_and_column(source: &str, offset: usize) -> (usize, usize) {
-    let before = &source[..offset];
-    let line_start = before.rfind('\n').map_or(0, |at| at + 1);
-    (
-        before.matches('\n').count() + 1,
-        before[line_start..].chars().count() + 1,
-    )
 }
 
 /// Members of each entity kind in one source, in declaration order.
@@ -182,27 +86,22 @@ fn entity_kinds(source: &str, statements: &[(usize, usize)]) -> Vec<(String, Vec
     kinds
 }
 
-/// A block's body copied for each member, in declaration order.
-struct Expansion<'k> {
-    /// HEADER: from `for` up to `{`, its words joined by single spaces.
-    header: String,
-    /// What replaces the block: each copy, then a line break unless it ends
-    /// with one.
-    text: String,
-    /// Each copy's member, and where the copy begins and ends in `text`.
-    copies: Vec<(&'k str, usize, usize)>,
-    /// Where the body's last statement begins in the block statement, when
-    /// it has no `;`.
-    unended: Option<usize>,
-}
-
-fn expand_block<'k>(statement: &str, part: &Part<'k>) -> Result<Expansion<'k>, String> {
-    let block = read_block(statement, part.kinds)?;
-    let header = block.header.join(" ");
+fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
+    let block = read_block(part.source, span, part.kinds)?;
+    // The body is copied as written and no `;` is added, so its last
+    // statement must end with its own `;`, whatever the number of members:
+    // without one, each copy's last statement would run into what follows
+    // the copy. A body with no statement, empty or of comments and empty
+    // statements, needs none. It is refused here, before any copy, and not
+    // in `read_block`, so a routed block elsewhere in the part still reads
+    // the events this body declares, and the error is this one.
+    if let Some(error) = block.unended {
+        return Err(error);
+    }
     // Which rules are routed is read from the body as written, once.
     let routed = match block.route {
         Some(parameter) => Routing {
-            header: header.clone(),
+            header: block.header.join(" "),
             kind: block.kind,
             binding: block.binding,
             parameter,
@@ -211,31 +110,24 @@ fn expand_block<'k>(statement: &str, part: &Part<'k>) -> Result<Expansion<'k>, S
         None => Vec::new(),
     };
 
-    let (mut text, mut copies) = (String::new(), Vec::new());
+    let mut out = String::new();
     for (position, member) in block.members.iter().enumerate() {
         let index = (position + 1).to_string();
         let bindings = [(block.name, member.as_str()), ("index", index.as_str())];
-        let start = text.len();
         match block.route {
-            None => text.push_str(&substitute(block.body, &bindings)?),
-            Some(parameter) => text.push_str(&routed_copy(
+            None => out.push_str(&substitute(block.body, &bindings)?),
+            Some(parameter) => out.push_str(&routed_copy(
                 block.body,
                 &routed,
                 &bindings,
                 &format!("{parameter} == {index}"),
             )?),
         }
-        copies.push((member.as_str(), start, text.len()));
-        if !text.ends_with('\n') {
-            text.push('\n');
+        if !out.ends_with('\n') {
+            out.push('\n');
         }
     }
-    Ok(Expansion {
-        header,
-        text,
-        copies,
-        unended: unended_at(block.body).map(|last| block.body_at + last),
-    })
+    Ok(out)
 }
 
 /// A `for` block whose header, binding, body and kind have passed Repetition
@@ -249,28 +141,43 @@ struct Block<'s, 'k> {
     name: &'s str,
     route: Option<&'s str>,
     body: &'s str,
-    /// Where the body begins in the block statement.
-    body_at: usize,
     members: &'k [String],
+    /// The refusal of the body's last statement when it has no `;`.
+    unended: Option<String>,
 }
 
+/// The block statement at `start..end` of a part's `source`.
 fn read_block<'s, 'k>(
-    statement: &'s str,
+    source: &'s str,
+    (start, end): (usize, usize),
     kinds: &'k [(String, Vec<String>)],
 ) -> Result<Block<'s, 'k>, String> {
-    let (open, close) = body_braces(statement);
-    let open = open.ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
-    let close = close.ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
-    if close < open {
-        return Err(format!("for block is not closed: {}", head(statement)));
+    let statement = &source[start..end];
+    let braces = block_braces(statement);
+    let open = braces
+        .open
+        .ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
+    // A body that nothing closes is refused as such, not for a `{` that the
+    // reader then finds in it below the `}` that was meant to close it.
+    let close = braces
+        .close
+        .ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
+    // A brace in unquoted text pairs only within its statement, so a `{` a
+    // body statement leaves open is refused, not paired with a `}` in a later
+    // statement, which would end the body there instead.
+    if let Some(brace) = braces.unclosed {
+        return Err(unclosed_brace(source, start, statement, open, brace));
     }
     // The body's copies replace the whole statement, so anything but
     // comments between the body and the block's end would be lost.
     let after = without_terminator(&statement[close + 1..]);
     if !blank_comments(after).trim().is_empty() {
-        return Err(format!(
-            "for block has text after its body: {}; end the block with `}};`",
-            head(after)
+        return Err(text_after_body(
+            source,
+            start,
+            statement,
+            (close, braces.ends_statement),
+            after,
         ));
     }
     let header = statement_words(&statement[..open]);
@@ -324,6 +231,11 @@ fn read_block<'s, 'k>(
             "no entity is declared `kind {kind}`, so `for {kind}` has nothing to expand"
         ));
     };
+    // Past `text_after_body`, the `}` that ends the body ends a statement
+    // only when that statement has no `;`: the body's last one.
+    let unended = braces
+        .ends_statement
+        .map(|from| unended_statement(source, start, statement, &header, (from, close)));
     Ok(Block {
         header,
         kind,
@@ -331,8 +243,8 @@ fn read_block<'s, 'k>(
         name,
         route,
         body,
-        body_at: open + 1,
         members,
+        unended,
     })
 }
 
@@ -366,8 +278,8 @@ impl Routing<'_> {
         let events = part.events();
         let member = format!("kind {kind}");
         let mut routed = Vec::new();
-        // The parser reads a last statement without its `;`, so it is a rule
-        // written in the body like any other.
+        // Every statement in the body ends with its `;`, the last one too
+        // (`expand_block`).
         for (start, end) in statements_of(body) {
             let code = blank_comments(without_terminator(&body[start..end]));
             let ["on", event, ..] = words(&code)[..] else {
@@ -449,7 +361,9 @@ impl Part<'_> {
     /// after its name. A declaration a `for` block writes counts once
     /// expanded: only a block whose body Repetition 0.1 expands for every
     /// member counts. A block that does not expand is left out here and
-    /// reports its own error when it is expanded.
+    /// reports its own error when it is expanded. A body whose last statement
+    /// has no `;` is read as its copies read, and its block is refused for
+    /// that when it is expanded.
     fn events(&self) -> Vec<(String, Vec<(String, String)>)> {
         let mut events = Vec::new();
         for (start, end) in self.statements {
@@ -458,7 +372,7 @@ impl Part<'_> {
                 events.extend(event_declaration(text));
                 continue;
             }
-            let Some(copies) = self.copies(text) else {
+            let Some(copies) = self.copies((*start, *end)) else {
                 continue;
             };
             for copy in &copies {
@@ -472,8 +386,8 @@ impl Part<'_> {
 
     /// Each member's copy of a `for` block's body, as Repetition 0.1 expands
     /// it. None when the block does not expand.
-    fn copies(&self, text: &str) -> Option<Vec<String>> {
-        let block = read_block(text, self.kinds).ok()?;
+    fn copies(&self, span: (usize, usize)) -> Option<Vec<String>> {
+        let block = read_block(self.source, span, self.kinds).ok()?;
         block
             .members
             .iter()
@@ -521,18 +435,92 @@ fn entity_of(statement: &str) -> Option<(String, String)> {
     }
 }
 
-/// A block statement's body, between its first `{` and its last `}`.
+/// A block statement's body, between the braces that `body_braces` reads.
 fn body_of(statement: &str) -> Option<&str> {
     let (open, close) = body_braces(statement);
     let (open, close) = (open?, close?);
     (open < close).then(|| &statement[open + 1..close])
 }
 
-/// Where a block statement's body opens and closes: its first `{` and its
-/// last `}` outside comments, which are whitespace.
+/// Where a block statement's body opens and closes, as the statement reader
+/// reads them (`link::block_braces`): its first `{`, and the first `}` after
+/// it outside quoted text and comments that closes no `{` earlier in its own
+/// statement.
 pub(crate) fn body_braces(statement: &str) -> (Option<usize>, Option<usize>) {
-    let code = blank_comments(statement);
-    (code.find('{'), code.rfind('}'))
+    let braces = block_braces(statement);
+    (braces.open, braces.close)
+}
+
+/// The refusal of the `{` at `brace` in the body of `statement`, a block
+/// statement at `start` of `source`, which the body statement holding it
+/// does not close. `open` is where the body opens.
+fn unclosed_brace(
+    source: &str,
+    start: usize,
+    statement: &str,
+    open: usize,
+    brace: usize,
+) -> String {
+    let body = &statement[open + 1..];
+    let inner = brace - open - 1;
+    let written = statements_of(body)
+        .into_iter()
+        .find(|(from, to)| (*from..*to).contains(&inner))
+        .map_or_else(String::new, |(from, to)| {
+            statement_words(&body[from..to]).join(" ")
+        });
+    position_of(source, start + brace).error(format!(
+        "for block `{}`: `{written}` has a `{{` that its statement does not close; a brace in unquoted text pairs only within its statement, so quote the text, or take the brace out of a name",
+        statement_words(&statement[..open]).join(" ")
+    ))
+}
+
+/// The refusal of `after`, the text between the `}` at `close` that ends the
+/// body of `statement`, a block statement at `start` of `source`, and the
+/// block's end. `ended` is where the body statement that `}` ends begins,
+/// if the `}` comes after its text, as in `from a}b;` or `from }{;`: that
+/// `}` closes no `{` of its statement, so it ends the body.
+fn text_after_body(
+    source: &str,
+    start: usize,
+    statement: &str,
+    (close, ended): (usize, Option<usize>),
+    after: &str,
+) -> String {
+    let at = position_of(source, start + close);
+    let Some(from) = ended else {
+        return at.error(format!(
+            "for block has text after its body: {}; end the block with `}};`",
+            head(after)
+        ));
+    };
+    // The statement as written, to the end of the word that holds the `}`.
+    let word_end = statement[close..]
+        .find(|ch: char| ch.is_whitespace() || ch == ';')
+        .map_or(statement.len(), |length| close + length);
+    let written = statement_words(&statement[from..word_end]).join(" ");
+    at.error(format!(
+        "for block has text after its body: {}; the `}}` in `{written}` closes no `{{` of its statement, so it ends the body: quote a brace that is text, take it out of a name, or end the block with `}};`",
+        head(after)
+    ))
+}
+
+/// The refusal of a body's last statement without its `;`: the statement at
+/// `from` of `statement`, a block statement at `start` of `source` whose
+/// body the `}` at `close` ends. The error gives the line and column where
+/// that statement is written.
+fn unended_statement(
+    source: &str,
+    start: usize,
+    statement: &str,
+    header: &[&str],
+    (from, close): (usize, usize),
+) -> String {
+    position_of(source, start + from).error(format!(
+        "the last statement in the body of `{}`, `{}`, has no `;` before the `}}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`",
+        header.join(" "),
+        statement_words(&statement[from..close]).join(" ")
+    ))
 }
 
 /// An `event` declaration's name and parameters, each parameter as its name

@@ -65,11 +65,19 @@ for reef as $r {
 
 `for KIND as $NAME { ... };` expands its body once per member of `KIND`, in
 declaration order, and replaces itself with the result. Like any last
-statement, a last block may leave out its `;`. Nothing but comments may come
-between the body's `}` and the block's end. The body ends at its first `}`
-outside quoted text, comments and procedure bodies that does not close a `{`
-earlier in its own statement, so a pair in unquoted provenance, such as
-`from see{appendix}b;`, stays in its statement.
+statement, a last block may leave out its `;`, though its body's last
+statement may not (below). Nothing but comments may come between the body's
+`}` and the block's end. A brace in the body's unquoted text pairs only
+within its statement. The body ends at its first `}` outside quoted text,
+comments and procedure bodies that does not close a `{` earlier in its own
+statement. So a pair in unquoted provenance, such as `from see{appendix}b;`,
+stays in its statement, while in `from a}b;` and in `from }{;` the `}` ends
+the body, and what follows it is text after the body. A body statement that
+leaves a `{` open, as `from x{;` does, is refused: a `}` in a later statement
+does not close it. Either error gives the line and column of the brace.
+Quoted, as in `from "x{";` or `from "}{";`, the text is the statement's own.
+A quoted name keeps its quotes, so a name in a body, as in `claim $p_c}{;`,
+cannot hold such a brace.
 
 A `}` that is text in a body must therefore be in quoted text, as in
 `from "see appendix}";`, unless it closes a `{` earlier in its own
@@ -103,6 +111,27 @@ or `runs into the text after the block` for the last member. L and C are
 where the body's last statement is written, HEADER is the block's header as
 in [routed Repetition 0.1](caveat-routed-repetition-0.1.md) section 7, MEMBER
 is the first member whose copy does not read, and NEXT the member after it.
+
+Every statement in a body ends with `;`, the last one too, whatever the
+number of members. The body is copied as written and no `;` is added, so a
+last statement without one would run into what follows each copy: the next
+member's copy, or, after the last member's, the text after the block. A body
+with no statement, one that is empty or holds only comments and empty
+statements, needs none. A `}` right before a statement's `;`, as in
+`from y};`, ends the body there, so that statement is the body's last and
+has no `;`. Such a body is refused before any copy is made, in a routed block
+too:
+
+```text
+line L, column C: the last statement in the body of `HEADER`, `STATEMENT`, has no `;` before the `}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`
+```
+
+L and C are where the statement is written, HEADER is the block's header as
+in [routed Repetition 0.1](caveat-routed-repetition-0.1.md) section 7, and
+STATEMENT is the statement's words, its comments read as whitespace and each
+run of whitespace written as one space. The rule is the block's own: it holds
+with one member, and at the end of the program, where the loader would read a
+last statement without its `;`.
 
 Two bindings are available inside the body:
 
@@ -178,14 +207,51 @@ what keeps the expansion checkable and the generated program ordinary.
   unterminated statement. Below a block, the entities after the brace got no
   copy while a `kind` parameter counted them, so an event that named one
   changed nothing, silently. Above a block, or in its body, the block was
-  not expanded and the program did not load. Such programs now expand with a
-  copy for every member. That includes a brace right after a first word
-  `for`, as in `for{ supports c;` about an evidence named `for{`: that
-  statement is no block. In a body, a `}` that closes a `{` earlier in its
-  statement stays in it, as before, and any other `}` ends the body. A body
-  that paired a `{` in one statement with a `}` in a later one, such as
-  `evidence $p_a from x{; evidence $p_b from y};`, loaded before, and is now
-  refused, because that `}` ends the body. The brace in a name such as
+  not expanded and the program did not load. Above and below a block, such
+  programs now expand with a copy for every member. That includes a brace
+  right after a first word `for`, as in `for{ supports c;` about an
+  evidence named `for{`: that statement is no block. In a body, a brace in
+  unquoted text pairs only within its statement (section 2): a `}` that
+  closes a `{` earlier in its statement stays in it, as before, and any
+  other `}` ends the body. Repetition counted a body's braces across its
+  statements instead, and took the block statement's last `}` for the
+  body's end. So these bodies are now refused, for any number of members,
+  in a routed block too, and the saves of such programs cannot be restored:
+  - A `{` that its statement leaves open, which a `}` in a later statement
+    closed, as in `evidence $p_a from x{; evidence $p_b from y};`.
+    Repetition paired the two, and over north and south the program
+    declared north_a, north_b, south_a and south_b, with provenance `x{`
+    and `y}`, as written. The error names the `{`: "line L, column C: for
+    block `for plot as $p`: `evidence $p_a from x{` has a `{` that its
+    statement does not close; a brace in unquoted text pairs only within
+    its statement, so quote the text, or take the brace out of a name".
+  - A `}` that closes no `{` of its statement, followed by a `{` in the
+    same statement, as in `from }{;`, `from m}n{o;` or `claim $p_c}{;`.
+    Repetition paired that `}` with the body's `{`, and that `{` with the
+    body's `}`: over north and south, `evidence $p_a from }{;` declared
+    north_a and south_a with provenance `}{`, as written. The `}` now ends
+    the body, and the rest of the block is text after it: "line L, column
+    C: for block has text after its body: {; }; the `}` in
+    `evidence $p_a from }{` closes no `{` of its statement, so it ends the
+    body: quote a brace that is text, take it out of a name, or end the
+    block with `};`", with the line and column of that `}`.
+  - Such a `}` in the body's last statement without its `;`, before the
+    body's own `}`, as in `from a}b }`, refused the same way. With one
+    member, or with a body that begins with an empty statement, which ends
+    each copy's last statement, the program loaded as written. With two or
+    more members otherwise, each copy's last statement read on into the
+    next copy, and the program declared fewer names than written, or did
+    not load.
+
+  Quoted, as `from "x{"`, `from "}{"` or `from "a}b"`, each of these loads
+  as written. Such a `}` followed by more of its statement and a `;`, as in
+  `from a}b;`, is refused the same way; such a program did not load, or
+  loaded other than as written. A `{` that nothing closes, as with
+  `see{appendix;`, `for{ supports $p_c;`, `claim $p_c{;` or `entity $p_hut{`
+  in a body, is refused with the first error, and a body whose last
+  statement, without its `;`, has a `{` that the body's `}` closes, as in
+  `from see{appendix }`, is refused as a block that is not closed. Such
+  programs did not load before either. The brace in a name such as
   `entity north{` hid that entity too: the loader declared it, and a `kind`
   parameter counted it. It is now a member, with its copy and its `$index`,
   as is every name the loader declares, such as `no-rth` or `1north`: the
@@ -193,19 +259,18 @@ what keeps the expansion checkable and the generated program ordinary.
   reaches its copy as written. Where the copy needs a reactive identifier,
   as in `state $p_n`, the program does not load, and the error gives the
   copy's line in the expanded text: "invalid reactive identifier north{_n".
-  Below a block, such a program loaded before, without copies for north{
-  and the members after it; it now does not load, and its saves cannot be
+  Below a block, such a program loaded before, without copies for north{ and
+  the members after it; it now does not load, and its saves cannot be
   restored. In quoted text, in provenance, or in a claim's or evidence's
   name, the copy loads as the same text written by hand does. An entity
-  declared in a block's body is no member, whatever its name: there,
-  `entity north{` now reads as `entity north` does. A routed block refuses
-  it, and a plain block has the miscount that section 7 of
-  [routed Repetition 0.1](caveat-routed-repetition-0.1.md) describes: it
+  declared in a block's body is no member, whatever its name. A routed block
+  refuses one of its kind, and a plain block has the miscount that section 7
+  of [routed Repetition 0.1](caveat-routed-repetition-0.1.md) describes: it
   gives the entity no copy while a `kind` parameter counts it, so where the
   body selects its member with `target == $index`, an event that names the
   entity, or a member after it, updates another member's copy, or none, and
-  nothing reports it. With `entity north{` there, the program did not load
-  before.
+  nothing reports it. `entity north{` there leaves its `{` open and is
+  refused; the program did not load before.
 - 2026-09-27: a comment in a block's header is whitespace, as it is
   everywhere outside quoted text ([text 0.1](caveat-text-0.1.md)).
   Repetition read a header's words and braces with its comments left in. It
@@ -218,13 +283,15 @@ what keeps the expansion checkable and the generated program ordinary.
   did not read it, and the program did not load: "cannot parse statement:
   for plot as $p {". A block that is the last statement of another block's
   body is refused as nested, where its `$` names were refused as unbound.
-  Text between a block's body and its end, such as a statement after a
-  block whose `;` was left out, is refused: "for block has text after its
-  body: ...". Repetition dropped it, silently when a `;` followed it. A last
-  statement after an empty statement, as in `};;` followed by `entity south
-  kind plot at field`, was not read either: its entity got no copy while a
-  `kind` parameter counted it, so an event that named it changed nothing,
-  silently, and a last block there was not expanded. Both are now read.
+  Text between a block's body and its end, such as a statement after a block
+  whose `;` was left out, is refused, with the line and column of the body's
+  `}`: "line L, column C: for block has text after its body: ...; end the
+  block with `};`". Repetition dropped it, silently when a `;` followed it.
+  A last statement after an empty statement, as in `};;` followed by
+  `entity south kind plot at field`, was not read either: its entity got no
+  copy while a `kind` parameter counted it, so an event that named it
+  changed nothing, silently, and a last block there was not expanded. Both
+  are now read.
 - 2026-09-27: a body's last statement without its `;`, whose copy runs into
   what follows it where the two are not a statement, gets an error that says
   so (section 2). Such a program did not load before either, and the error
@@ -240,3 +307,43 @@ what keeps the expansion checkable and the generated program ordinary.
   plain block whose `target == $index` acts for another member because of it
   (C004 in [Check 0.1](caveat-check-0.1.md)). Nothing about expansion or
   loading changes.
+- 2026-09-28: a body's last statement must end with `;` (section 2), for any
+  number of members, in a routed block and in a module too. No `;` is added,
+  and a body with no statement needs none. The body was copied as written,
+  so such a statement ran into what followed each copy. These programs are
+  now refused, and their saves cannot be restored. Below, "before" is
+  Repetition as it was before the 2026-09-27 entries, "then" is with them,
+  and the members are entities north and south of kind plot unless one is
+  named:
+  - Two or more members. `for plot as $p { evidence $p_a from notes };`
+    declared north_a with provenance `notes evidence south_a from notes`,
+    and no south_a, before and then, silently. Where the copies did not read
+    together as a statement, the program did not load, with the loader's
+    error about the expanded text, such as "expected '=' at byte 17" for
+    `{ state $p_n = 0; on read when target == $index set $p_n = 1 }`. A body
+    whose first statement is empty ended every copy's last statement but the
+    last one's, so at the end of the program, `{ ; evidence $p_a from notes }`
+    loaded as written, before and then.
+  - One member, north. The copy's last statement ran into the statement
+    after the block: with `evidence tail from after;` there, north_a's
+    provenance was `notes evidence tail from after`, and no tail was
+    declared, before and then. At the end of the program, or with a `;`
+    right after the block's, the copy loaded as written, before and then.
+    It is refused all the same: the rule does not depend on what follows
+    the block.
+  - A `}` right before a body statement's `;`, as in
+    `for plot as $p { evidence $p_a from y}; };`. That `}` ended the body,
+    and ` };` was read after the block: only north_a was declared, with
+    provenance `y evidence south_a from y }`, before and then.
+  - A block that loaded only with the 2026-09-27 entries: one with a comment
+    or a `{` in its header, a last block without its `;`, or one below a
+    brace in a statement outside a block, among the shapes those entries
+    list. Before, each was refused for that shape; then, each loaded as the
+    examples above do. A `}` in a comment after the body, as in `} # }` and
+    a `;` on the next line, loaded wrongly before as well: north_a's
+    provenance was `notes } evidence south_a from notes }` before, and
+    `notes evidence south_a from notes` then.
+
+  A last block may still leave out its own `;` once its body's last
+  statement has one, and a `}` in a comment, a quoted brace and a brace pair
+  within a statement load as before.
