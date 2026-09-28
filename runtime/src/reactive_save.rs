@@ -295,7 +295,7 @@ impl ReactiveSession {
                 .states
                 .names()
                 .zip(self.states.cells.iter().zip(self.loaded.states.iter()))
-                .filter(|(_, (cell, loaded))| !Arc::ptr_eq(cell, loaded) && cell != loaded)
+                .filter(|(_, (cell, loaded))| !Arc::ptr_eq(cell, loaded) && !cell.same(loaded))
                 .map(|(name, (cell, _))| {
                     let state = SavedState {
                         value: cell.value.value,

@@ -604,7 +604,7 @@ struct LoadedGraph {
     last_node: NodeId,
     edges: usize,
     /// Every state as the program set it when it loaded; a save leaves out
-    /// the states still equal to these.
+    /// the states still the same as these, to the bit.
     states: Arc<Vec<Arc<StateCell>>>,
 }
 
@@ -615,10 +615,21 @@ struct StateRange {
 }
 
 /// A state's current value, with its lineage, and what it is grounded on.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 struct StateCell {
     value: QualifiedValue,
     grounds: Provenance,
+}
+
+impl StateCell {
+    /// The same value to the bit, lineage and grounds. Not `==` on the
+    /// number: `-0.0 == 0.0`, but the sign is observable, for example through
+    /// atan2, so a state that only changed its zero's sign has changed.
+    fn same(&self, other: &Self) -> bool {
+        self.value.value.to_bits() == other.value.value.to_bits()
+            && self.value.provenance == other.value.provenance
+            && self.grounds == other.grounds
+    }
 }
 
 /// Every declared state, in a slot fixed at load. A transaction's copy shares
@@ -681,7 +692,7 @@ impl States {
             .iter()
             .zip(old.cells.iter())
             .enumerate()
-            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && new != old)
+            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && !new.same(old))
             .map(|(slot, _)| self.names[slot].clone())
             .collect()
     }
@@ -2561,7 +2572,13 @@ impl ReactiveSession {
             "incremental and full binding evaluation disagree on the outcome"
         );
         if result.is_ok() {
-            assert_eq!(self.bindings, full.bindings, "incremental bindings differ");
+            // As JSON text: `==` would take -0.0 and 0.0 for the same value.
+            let text = |bindings| serde_json::to_string(bindings).expect("finite bindings");
+            assert_eq!(
+                text(&self.bindings),
+                text(&full.bindings),
+                "incremental bindings differ"
+            );
             assert_eq!(
                 self.binding_qualifications, full.binding_qualifications,
                 "incremental binding lineage differs"

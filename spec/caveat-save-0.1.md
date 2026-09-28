@@ -31,8 +31,10 @@ everything an event can change, named as the program names it:
   `elapsed` time;
 - every state whose value, lineage or grounds differ from what the program gave
   it when it loaded, with its grounds written only when they differ from its
-  lineage. A state the save leaves out is recomputed from the source. Lineage
-  leaves out an empty list, so `{"value": 3}` is a state with no evidence;
+  lineage. A value differs when its bits do, so `-0` and `0` differ: the sign
+  of a zero is observable, for example through `atan2`. A state the save
+  leaves out is recomputed from the source. Lineage leaves out an empty list,
+  so `{"value": 3}` is a state with no evidence;
 - what events did to the graph since the program loaded: the nodes they
   created (reading and renewal occurrences, rebuilt from their names, and
   commitments with their reason), the relations they added in order (their
@@ -54,6 +56,10 @@ everything an event can change, named as the program names it:
 Bindings are not saved. They are computed from the state when a session is
 restored, like after any event, so a save cannot make a program show something
 its rules do not.
+
+Every number is written exactly, `-0.0` included. Store the text `save()`
+returns: JavaScript's `JSON.stringify` writes `-0` as `0`, so a save parsed and
+encoded again can lose a zero's sign.
 
 ## Restore validation
 
@@ -138,3 +144,17 @@ edited save is refused or remains playable without crashing.
   the tests list that event and exact message as a known bug with its own fix
   under way. Each listed outcome names a save that reproduces it, and a test
   fails when it no longer happens.
+- 2026-09-28: a save keeps a state that holds `-0` where the program loads
+  `0`, or `0` where it loads `-0`. It compared the two with `==`, which takes
+  them for the same number, so it left the state out, and the restored
+  session held the loaded zero: its snapshot, and a binding that shows the
+  sign, such as `atan2(x, -1)`, differed from the session that was saved. A
+  program makes `-0` itself, from `-v`, `w * 0` with `w` negative, `v / -2` or
+  `round(-0.4)`, and a host can send it as `-0`, `-0.0` or a negative number
+  too small for a double, such as `-1e-400`. The live session had the same
+  blind spot, described in
+  [Incremental Evaluation 0.1](caveat-incremental-evaluation-0.1.md#changes):
+  a binding kept showing the old sign until a restore evaluated it in full.
+  Both compare the bits now. A save written before this leaves such a state
+  out and restores as it did, to the loaded zero. Every other number a save
+  holds, from readings to elapsed time, was already written exactly.
