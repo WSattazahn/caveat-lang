@@ -3724,6 +3724,12 @@ impl ReactiveSession {
                 else {
                     unreachable!("validated evidence template")
                 };
+                // A withdrawn template's `withdrawn` is about its own
+                // observation. A reading is a new one, which only a withdrawal
+                // of it can withdraw: see spec/caveat-withdrawal-0.1.md.
+                let withdrawn = self
+                    .withdrawal_of(&readings.template)
+                    .map(|_| self.symbols[WITHDRAWN]);
                 let inherited = self
                     .graph
                     .edges
@@ -3736,6 +3742,7 @@ impl ReactiveSession {
                         )
                     })
                     .map(|edge| edge.from)
+                    .filter(|caveat| Some(*caveat) != withdrawn)
                     .collect::<Vec<_>>();
                 let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
