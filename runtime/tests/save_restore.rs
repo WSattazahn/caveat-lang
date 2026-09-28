@@ -453,6 +453,166 @@ fn a_number_a_host_sends_arrives_exactly() {
     assert_eq!(game.snapshot().values["now"].to_bits(), expected.to_bits());
 }
 
+/// A state set by an event, and two bindings that show it: atan2 shows the
+/// sign of a zero, -pi for -0.0 and pi for 0.0, though `-0.0 == 0.0`.
+const SIGNED: &str = "state x = 0 min -1 max 1; event e v min -1 max 1; on e set x = v; \
+                      bind hud.x = x; bind hud.angle = atan2(x, -1);";
+
+fn is_negative_zero(value: f64) -> bool {
+    value.to_bits() == (-0.0_f64).to_bits()
+}
+
+fn angle(game: &ReactiveSession) -> Option<f64> {
+    game.snapshot().bindings["hud"]["angle"].as_number()
+}
+
+/// What a session shows, as JSON text, which keeps a zero's sign.
+fn shown(game: &ReactiveSession) -> (String, String) {
+    (
+        serde_json::to_string(&game.snapshot()).unwrap(),
+        serde_json::to_string(&game.view()).unwrap(),
+    )
+}
+
+/// `game` resumed from its own save must show what it shows to the bit, and
+/// save the same text again.
+fn resumes_exactly(source: &str, game: &ReactiveSession) {
+    let save = game.save_json().unwrap();
+    let resumed = ReactiveSession::restore_json(source, &save).unwrap();
+    assert_eq!(shown(&resumed), shown(game), "{save}");
+    assert_eq!(resumed.save_json().unwrap(), save);
+}
+
+// A save leaves out a state still equal to what the program loaded, and it
+// compared with `==`: a state holding -0.0 where the program loads 0 was left
+// out, and came back as 0.0. So did a -0.0 the host never sent as "-0.0".
+#[test]
+fn a_negative_zero_survives_a_save() {
+    for payload in [r#"{"v": -0.0}"#, r#"{"v": -0}"#, r#"{"v": -1e-400}"#] {
+        let mut game = ReactiveSession::from_source(SIGNED).unwrap();
+        game.dispatch_json("e", payload).unwrap();
+        assert!(is_negative_zero(game.snapshot().values["x"]), "{payload}");
+        assert!(is_negative_zero(game.save().unwrap().states["x"].value));
+        resumes_exactly(SIGNED, &game);
+        // 0.0 is the loaded value again, and left out again.
+        game.dispatch_json("e", r#"{"v": 0}"#).unwrap();
+        assert!(game.save().unwrap().states.is_empty());
+        resumes_exactly(SIGNED, &game);
+    }
+}
+
+// A program makes -0.0 itself from payloads without one: negation, a product
+// with zero, a quotient and rounding.
+#[test]
+fn a_negative_zero_the_program_computes_survives_a_save() {
+    let source = "state negated = 0 min -1 max 1; state product = 0 min -9 max 9; \
+                  state quotient = 0 min -1 max 1; state rounded = 0 min -1 max 1; \
+                  event e v min -1 max 1, w min -9 max 9; \
+                  on e set negated = -v; on e set product = w * 0; \
+                  on e set quotient = v / -2; on e set rounded = round(v - 0.4);";
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    game.dispatch_json("e", r#"{"v": 0, "w": -2}"#).unwrap();
+    let values = game.snapshot().values;
+    assert!(
+        values.values().all(|value| is_negative_zero(*value)),
+        "{values:?}"
+    );
+    assert_eq!(game.save().unwrap().states.len(), 4);
+    resumes_exactly(source, &game);
+}
+
+// The other way: a state the program loads as -0.0 and an event sets to 0.0
+// was left out too, and came back as -0.0.
+#[test]
+fn a_zero_over_a_loaded_negative_zero_survives_a_save() {
+    let source = "state x = -0 min -1 max 1; event e v min -1 max 1; on e set x = v; \
+                  bind hud.angle = atan2(x, -1);";
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    assert!(is_negative_zero(game.snapshot().values["x"]));
+    resumes_exactly(source, &game);
+    game.dispatch_json("e", r#"{"v": 0}"#).unwrap();
+    assert_eq!(angle(&game), Some(std::f64::consts::PI));
+    assert_eq!(game.save().unwrap().states["x"].value.to_bits(), 0);
+    resumes_exactly(source, &game);
+}
+
+// A binding is evaluated again only when something it reads changed, and a
+// state that changed only its zero's sign compared unchanged: hud.angle went on
+// showing pi for -0.0, which only a full evaluation, as a restore makes,
+// corrected. Debug builds check every event against a full evaluation, and
+// panicked here; they compare text now, so hud.x's sign counts as well.
+#[test]
+fn a_state_that_changes_only_its_zeros_sign_is_shown_again() {
+    use std::f64::consts::PI;
+    let mut game = ReactiveSession::from_source(SIGNED).unwrap();
+    assert_eq!(angle(&game), Some(PI));
+    game.dispatch_json("e", r#"{"v": -0.0}"#).unwrap();
+    assert_eq!(angle(&game), Some(-PI));
+    let x = game.snapshot().bindings["hud"]["x"].as_number().unwrap();
+    assert!(is_negative_zero(x));
+    game.dispatch_json("e", r#"{"v": 0}"#).unwrap();
+    assert_eq!(angle(&game), Some(PI));
+}
+
+// Every other number a save holds was already written whole, sign and all: a
+// reading, a commitment's frozen `using` value and its journal entry, a
+// scheduled qualification's delay and the last event's effects. (Elapsed time
+// is elapsed_clock.rs's.) This keeps them so.
+#[test]
+fn every_other_saved_number_keeps_its_zeros_sign() {
+    let source = r#"
+        claim safe;
+        evidence sensor from "sensor";
+        evidence sight from "sight";
+        caveat stale consequence material;
+        readings flow from sensor limit 4;
+        event read v min -1 max 1;
+        event see d min 0 max 5;
+        event decide;
+        event tick dt min 0 max 0.1;
+        on read sample flow = v supports safe;
+        on see reveal sight supports safe;
+        on see qualify sight with stale after -d;
+        on decide commit hold because enough using latest(flow);
+        bind hud.latest = if(has_sample(flow), atan2(latest(flow), -1), 0);
+    "#;
+    let mut game = ReactiveSession::from_source(source).unwrap();
+    for (event, payload) in [
+        ("read", r#"{"v": -0.0}"#),
+        ("decide", "{}"),
+        ("see", r#"{"d": 0}"#),
+    ] {
+        game.dispatch_json(event, payload).unwrap();
+        resumes_exactly(source, &game);
+    }
+    let save = game.save().unwrap();
+    assert!(is_negative_zero(
+        save.reading_streams["flow"].occurrences[0].value
+    ));
+    assert!(is_negative_zero(
+        save.commitment_bases["hold"].value.unwrap()
+    ));
+    assert!(is_negative_zero(save.decision_journal[0].value.unwrap()));
+    assert!(is_negative_zero(save.scheduled_qualifications[0].after));
+}
+
+// A save written before -0.0 was kept left such a state out. It restores as it
+// did then, to the 0.0 the program loads, and saves the same text again.
+#[test]
+fn a_save_that_left_a_negative_zero_out_restores_as_before() {
+    let source_id = ReactiveSession::from_source(SIGNED)
+        .unwrap()
+        .snapshot()
+        .source_id;
+    let old = format!(
+        r#"{{"schema":"caveat-reactive-save/0.1","source_id":"{source_id}","sequence":1,"last_event":"e","elapsed":0.0,"states":{{}},"graph":{{}}}}"#
+    );
+    let restored = ReactiveSession::restore_json(SIGNED, &old).unwrap();
+    assert_eq!(restored.snapshot().values["x"].to_bits(), 0);
+    assert_eq!(angle(&restored), Some(std::f64::consts::PI));
+    assert_eq!(restored.save_json().unwrap(), old);
+}
+
 /// The program of issue #43: one renewable evidence, renewed by one event.
 const RENEWING: &str = r#"
 claim safe;
