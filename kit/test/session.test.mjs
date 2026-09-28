@@ -48,6 +48,20 @@ test('a save whose graph holds a renewal its renewals do not list fails to resto
   } finally { session.close(); }
 });
 
+test('a save relating kinds of node no event relates fails to restore', () => {
+  // Accepted, go@1 relying on a claim made the next revision of go a fatal outcome instead.
+  const source = 'claim safe; evidence seen from "seen"; decisions go limit 3; event see; event redo; on see reveal seen supports safe; on see commit go because enough using qualified(1, seen); on redo reopen go because seen; on redo commit go because enough using qualified(2, seen);';
+  const session = real.open(source);
+  try {
+    assert.equal(session.dispatch('see').outcome, 'accepted');
+    const saved = JSON.parse(session.save());
+    assert.deepEqual(saved.graph.relations, [['seen', 'supports', 'safe'], ['go@1', 'relies_on', 'seen']]);
+    const edited = JSON.stringify({ ...saved, graph: { ...saved.graph, relations: [['seen', 'supports', 'safe'], ['go@1', 'relies_on', 'safe']] } });
+    assert.throws(() => real.restore(source, edited), error => error instanceof CaveatError && error.kind === 'restore'
+      && error.message === 'cannot restore save: relation go@1 relies_on safe: safe is a claim, not evidence');
+  } finally { session.close(); }
+});
+
 test('payloads that JSON would change are refused before the session is touched', () => {
   for (const bad of [NaN, Infinity, -Infinity, undefined, () => 1, new Date(0), new Map(), { a: [1, NaN] }, { a: undefined }, 10n]) {
     assert.throws(() => payloadText(bad), error => error instanceof CaveatError && error.kind === 'payload', String(bad));

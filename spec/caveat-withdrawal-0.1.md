@@ -105,6 +105,8 @@ The snapshot lists `withdrawals`, in the order they happened. A save holds the
 same list, and leaves it out when it is empty, so a save made before this
 profile restores with none. Restoring refuses a list that:
 - names unknown evidence;
+- gives a reason nothing observes, which `withdrawn(...)` would qualify
+  again ([Save 0.1](caveat-save-0.1.md));
 - withdraws the same evidence twice;
 - is dated after the save's own sequence, or to an undeclared event;
 - disagrees with the graph: every record needs its `withdrawn qualifies E`
