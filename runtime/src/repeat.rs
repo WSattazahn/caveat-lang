@@ -13,8 +13,10 @@
 //! block expands to, so routing adds no runtime semantics either.
 
 use crate::link::{
-    blank_comments, is_identifier_char, is_identifier_start, statement_words, statements_of,
+    blank_comments, block_braces, is_identifier_char, is_identifier_start, statement_words,
+    statements_of,
 };
+use crate::parser::position_of;
 
 /// Expand every `for` block in one source. A source with no `for` block is
 /// returned unchanged, so an existing program expands to itself byte for byte.
@@ -41,7 +43,7 @@ pub fn expand(source: &str) -> Result<String, String> {
     let mut cursor = 0;
     for (start, end) in blocks {
         out.push_str(&source[cursor..start]);
-        out.push_str(&expand_block(&source[start..end], &part)?);
+        out.push_str(&expand_block((start, end), &part)?);
         cursor = end;
     }
     out.push_str(&source[cursor..]);
@@ -84,8 +86,8 @@ fn entity_kinds(source: &str, statements: &[(usize, usize)]) -> Vec<(String, Vec
     kinds
 }
 
-fn expand_block(statement: &str, part: &Part) -> Result<String, String> {
-    let block = read_block(statement, part.kinds)?;
+fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
+    let block = read_block(part.source, span, part.kinds)?;
     // Which rules are routed is read from the body as written, once.
     let routed = match block.route {
         Some(parameter) => Routing {
@@ -132,16 +134,26 @@ struct Block<'s, 'k> {
     members: &'k [String],
 }
 
+/// The block statement at `start..end` of a part's `source`.
 fn read_block<'s, 'k>(
-    statement: &'s str,
+    source: &'s str,
+    (start, end): (usize, usize),
     kinds: &'k [(String, Vec<String>)],
 ) -> Result<Block<'s, 'k>, String> {
-    let (open, close) = body_braces(statement);
-    let open = open.ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
-    let close = close.ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
-    if close < open {
-        return Err(format!("for block is not closed: {}", head(statement)));
+    let statement = &source[start..end];
+    let braces = block_braces(statement);
+    let open = braces
+        .open
+        .ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
+    // A brace in unquoted text pairs only within its statement, so a `{` a
+    // body statement leaves open is refused, not paired with a `}` in a later
+    // statement, which would end the body there instead.
+    if let Some(brace) = braces.unclosed {
+        return Err(unclosed_brace(source, start, statement, open, brace));
     }
+    let close = braces
+        .close
+        .ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
     // The body's copies replace the whole statement, so anything but
     // comments between the body and the block's end would be lost.
     let after = without_terminator(&statement[close + 1..]);
@@ -335,7 +347,7 @@ impl Part<'_> {
                 events.extend(event_declaration(text));
                 continue;
             }
-            let Some(copies) = self.copies(text) else {
+            let Some(copies) = self.copies((*start, *end)) else {
                 continue;
             };
             for copy in &copies {
@@ -349,8 +361,8 @@ impl Part<'_> {
 
     /// Each member's copy of a `for` block's body, as Repetition 0.1 expands
     /// it. None when the block does not expand.
-    fn copies(&self, text: &str) -> Option<Vec<String>> {
-        let block = read_block(text, self.kinds).ok()?;
+    fn copies(&self, span: (usize, usize)) -> Option<Vec<String>> {
+        let block = read_block(self.source, span, self.kinds).ok()?;
         block
             .members
             .iter()
@@ -405,11 +417,37 @@ fn body_of(statement: &str) -> Option<&str> {
     (open < close).then(|| &statement[open + 1..close])
 }
 
-/// Where a block statement's body opens and closes: its first `{` and its
-/// last `}` outside comments, which are whitespace.
+/// Where a block statement's body opens and closes, as the statement reader
+/// reads them (`link::block_braces`): its first `{`, and the first `}` after
+/// it outside quoted text and comments that closes no `{` earlier in its own
+/// statement.
 pub(crate) fn body_braces(statement: &str) -> (Option<usize>, Option<usize>) {
-    let code = blank_comments(statement);
-    (code.find('{'), code.rfind('}'))
+    let braces = block_braces(statement);
+    (braces.open, braces.close)
+}
+
+/// The refusal of the `{` at `brace` in the body of `statement`, a block
+/// statement at `start` of `source`, which the body statement holding it
+/// does not close. `open` is where the body opens.
+fn unclosed_brace(
+    source: &str,
+    start: usize,
+    statement: &str,
+    open: usize,
+    brace: usize,
+) -> String {
+    let body = &statement[open + 1..];
+    let inner = brace - open - 1;
+    let written = statements_of(body)
+        .into_iter()
+        .find(|(from, to)| (*from..*to).contains(&inner))
+        .map_or_else(String::new, |(from, to)| {
+            statement_words(&body[from..to]).join(" ")
+        });
+    position_of(source, start + brace).error(format!(
+        "for block `{}`: `{written}` has a `{{` that its statement does not close; a brace in unquoted text pairs only within its statement, so quote the text",
+        statement_words(&statement[..open]).join(" ")
+    ))
 }
 
 /// An `event` declaration's name and parameters, each parameter as its name

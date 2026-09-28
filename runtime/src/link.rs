@@ -623,9 +623,72 @@ fn statement_kind(statement: &Statement) -> &'static str {
 /// any other statement is not syntax, so it does not keep the `;` from ending
 /// the statement. In a block's body, a `}` in such a statement closes the
 /// body unless it closes a `{` earlier in the same statement, so a pair such
-/// as `see{appendix}b` in unquoted provenance stays text.
+/// as `see{appendix}b` in unquoted provenance stays text. A `{` the statement
+/// leaves open pairs with no `}` in a later one, and Repetition refuses it
+/// (`block_braces`).
 pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
+    read_statements(source, |read| {
+        if let Read::Statement(start, end) = read {
+            spans.push((start, end));
+        }
+    });
+    spans
+}
+
+/// Where a `for` block statement's body opens and closes, as
+/// `statement_spans` reads the statement, and the first `{` in the body that
+/// its own statement does not close. A brace in unquoted text pairs only
+/// within its statement, so such a `{` is refused (Repetition 0.1 section 2).
+#[derive(Default)]
+pub(crate) struct BlockBraces {
+    /// The `{` that opens the body.
+    pub(crate) open: Option<usize>,
+    /// The first `}` after it that closes no `{` earlier in its statement.
+    pub(crate) close: Option<usize>,
+    /// The first `{` of a body statement that is text and still open at the
+    /// `;` that ends the statement, before the body closes.
+    pub(crate) unclosed: Option<usize>,
+}
+
+/// Read a `for` block statement's braces, as `statement_spans` reads them.
+pub(crate) fn block_braces(statement: &str) -> BlockBraces {
+    let mut braces = BlockBraces::default();
+    let mut depth = 0usize;
+    read_statements(statement, |read| match read {
+        Read::BodyOpens(at) => {
+            depth += 1;
+            braces.open.get_or_insert(at);
+        }
+        Read::BodyCloses(at) => {
+            if depth == 1 && braces.close.is_none() {
+                braces.close = Some(at);
+            }
+            depth = depth.saturating_sub(1);
+        }
+        Read::Unclosed(at) if braces.close.is_none() => {
+            braces.unclosed.get_or_insert(at);
+        }
+        Read::Unclosed(_) | Read::Statement(..) => {}
+    });
+    braces
+}
+
+/// What the statement reader finds, in source order.
+enum Read {
+    /// A top-level statement's range, its `;` included.
+    Statement(usize, usize),
+    /// The `{` that opens a `for` block's body.
+    BodyOpens(usize),
+    /// The `}` that closes a `for` block's body.
+    BodyCloses(usize),
+    /// At the `;` that ends a statement in a `for` block's body, the first
+    /// `{` of its unquoted text that the statement did not close.
+    Unclosed(usize),
+}
+
+/// The reader behind `statement_spans` and `block_braces`.
+fn read_statements(source: &str, mut found: impl FnMut(Read)) {
     let mut start = None;
     // The bodies open around the current character, innermost last: None for
     // a procedure's, in which every brace counts, and for a `for` block's
@@ -634,10 +697,10 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     // Outside a procedure's body, the statement being read, at the top level
     // or in a block's body: where it starts, and where its first word ends.
     let (mut statement, mut first_end) = (None, None);
-    // The `{`s in that statement that are text and not yet closed by a `}`.
-    // Only a statement that is neither a `proc` nor a `for` has any, so the
-    // block statement a closed body resumes has none.
-    let mut text_braces = 0usize;
+    // Where the `{`s in that statement that are text and not yet closed by a
+    // `}` are. Only a statement that is neither a `proc` nor a `for` has any,
+    // so the block statement a closed body resumes has none.
+    let mut text_braces: Vec<usize> = Vec::new();
     let mut chars = source.char_indices().peekable();
     while let Some((index, ch)) = chars.next() {
         let in_procedure = bodies.last() == Some(&None);
@@ -691,23 +754,30 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
             // `for{` is a word, and `for {` a block.
             ('{', Some("for")) if first_end.is_some() => {
                 bodies.push(Some((statement.take(), first_end.take())));
+                found(Read::BodyOpens(index));
                 continue;
             }
-            ('{', _) => text_braces += 1,
-            ('}', _) if text_braces > 0 => text_braces -= 1,
+            ('{', _) => text_braces.push(index),
+            ('}', _) if !text_braces.is_empty() => {
+                text_braces.pop();
+            }
             ('}', _) if !bodies.is_empty() => {
                 if let Some(Some(interrupted)) = bodies.pop() {
                     (statement, first_end) = interrupted;
                 }
+                found(Read::BodyCloses(index));
                 continue;
             }
             (';', _) => {
                 if bodies.is_empty() {
                     if let Some(begin) = start.take() {
-                        spans.push((begin, index + 1));
+                        found(Read::Statement(begin, index + 1));
                     }
+                } else if let Some(open) = text_braces.first() {
+                    found(Read::Unclosed(*open));
                 }
-                (statement, first_end, text_braces) = (None, None, 0);
+                (statement, first_end) = (None, None);
+                text_braces.clear();
                 continue;
             }
             _ => {}
@@ -715,7 +785,6 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
         start.get_or_insert(index);
         statement.get_or_insert(index);
     }
-    spans
 }
 
 /// Each statement's range, and a last statement without its `;`, which the
