@@ -35,6 +35,22 @@ keep the `;` from ending it. A block is a statement whose first word is
 `for`, so the `{` in `for{ supports c;`, about an evidence named `for{`, is
 text.
 
+An entity declared in a block's body is no member of its kind, for any
+block: it gets no copy, and `$index` does not count it. A `kind` event
+parameter counts it, where its block is expanded. When it comes before a
+top-level member of its kind, the parameter numbers that member, and each
+member after it, higher than its `$index`, so a copy that selects its member
+with `target == $index` acts for another member, and
+[`caveat check`](caveat-check-0.1.md) reports it (C004). A copy that selects
+its member by name, with `target == target.$p`, acts for its own member
+however the entities are counted, so it does not run on an event that names
+the entity, which has no copy of its own. A copy that selects its member by
+`$index`, or selects none, can run on such an event. Rules about the entity
+are written where it is declared, such as
+`on read when target == target.north` in the block that declares `north`. A
+[routed](caveat-routed-repetition-0.1.md) block refuses an entity of its kind
+in a `for` block.
+
 ## 2. The block
 
 ```caveat
@@ -63,6 +79,16 @@ does not close it. Either error gives the line and column of the brace.
 Quoted, as in `from "x{";` or `from "}{";`, the text is the statement's own.
 A quoted name keeps its quotes, so a name in a body, as in `claim $p_c}{;`,
 cannot hold such a brace.
+
+So a brace that is text in a body must be in quoted text, as in
+`from "see appendix}";`, unless it pairs with a brace in its own statement.
+Unquoted, any other brace in a body refuses the block. A pair split across
+two statements, as in `evidence $p_a from x{; evidence $p_b from y};`, is
+refused at the `{` after `x`, which its statement leaves open. A `}` that
+closes no `{` of its statement ends the body where it is: what follows it up
+to the block's end, other than comments, is text after the body, as `b` is in
+`from a}b;`, and where nothing does, as in `from y};`, its statement is the
+body's last and has no `;` (below).
 
 Every statement in a body ends with `;`, the last one too, whatever the
 number of members. The body is copied as written and no `;` is added, so a
@@ -244,6 +270,11 @@ what keeps the expansion checkable and the generated program ordinary.
   copy while a `kind` parameter counted it, so an event that named it
   changed nothing, silently, and a last block there was not expanded. Both
   are now read.
+- 2026-09-27: section 1 says what an entity declared in a block's body is:
+  no member, and counted by a `kind` parameter. `caveat check` reports a
+  plain block whose `target == $index` acts for another member because of it
+  (C004 in [Check 0.1](caveat-check-0.1.md)). Nothing about expansion or
+  loading changes.
 - 2026-09-28: a body's last statement must end with `;` (section 2), for any
   number of members, in a routed block and in a module too. No `;` is added,
   and a body with no statement needs none. The body was copied as written,

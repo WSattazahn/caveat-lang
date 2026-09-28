@@ -988,3 +988,572 @@ for tunnel as $t {
     let line = line_of(&unallowed, "on observe set $t_support");
     assert_eq!(codes(&check(&unallowed)), [("C003", line), ("C003", line)]);
 }
+
+// ── C004: a member's `$index` and its number in a `kind` parameter ────────
+
+// The pieces of the programs from the evaluation behind C004. `read` numbers
+// every plot the loaded program declares, north too when a zone block
+// declares it; `$index` numbers the top-level plots only.
+const FIELD: &str = "place field kind field;\n";
+const EAST: &str = "entity east kind plot at field;\n";
+const SOUTH: &str = "entity south kind plot at field;\n";
+const ZONE: &str = "entity z kind zone at field;\n";
+const READ: &str = "event read target kind plot;\n";
+/// A zone block that declares north, and one that also counts north's reads
+/// by name.
+const ZONE_BARE: &str = "for zone as $z {\n    entity north kind plot at field;\n};\n";
+const ZONE_OWN: &str = "for zone as $z {
+    entity north kind plot at field;
+    state north_n = 0;
+    on read when target == target.north set north_n = north_n + 1;
+};
+";
+/// A plot block that selects its member by `$index`, and one by name.
+const BY_INDEX: &str = "for plot as $p {
+    state $p_n = 0;
+    on read when target == $index set $p_n = $p_n + 1;
+};
+";
+const BY_NAME: &str = "for plot as $p {
+    state $p_n = 0;
+    on read when target == target.$p set $p_n = $p_n + 1;
+};
+";
+
+/// A plot block that declares a twin plot for each member, and counts the
+/// reads of both, its member's selected by `selection`.
+fn twins(selection: &str) -> String {
+    format!(
+        "for plot as $p {{
+    entity $p_twin kind plot at field;
+    state $p_n = 0;
+    state $p_twin_n = 0;
+    on read when {selection} set $p_n = $p_n + 1;
+    on read when target == target.$p_twin set $p_twin_n = $p_twin_n + 1;
+}};
+"
+    )
+}
+
+fn program(parts: &[&str]) -> String {
+    format!("{FIELD}{}", parts.concat())
+}
+
+/// The programs in which a plot block selects its member by `$index` and
+/// `read` counts a plot that a for block declares before a top-level plot,
+/// each with the members whose copy acts for another plot.
+fn shifted() -> Vec<(&'static str, String, Vec<&'static str>)> {
+    vec![
+        (
+            "i1",
+            program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, BY_INDEX]),
+            vec!["south"],
+        ),
+        (
+            "i2",
+            program(&[ZONE, ZONE_BARE, EAST, SOUTH, READ, BY_INDEX]),
+            vec!["east", "south"],
+        ),
+        (
+            "i5",
+            program(&[EAST, READ, BY_INDEX, ZONE, ZONE_BARE, SOUTH]),
+            vec!["south"],
+        ),
+        (
+            "c2",
+            program(&[EAST, ZONE, READ, ZONE_OWN, SOUTH, BY_INDEX]),
+            vec!["south"],
+        ),
+        (
+            "a5c",
+            program(&[READ, &twins("target == $index"), EAST, SOUTH]),
+            vec!["east", "south"],
+        ),
+        (
+            "a6b",
+            program(&[ZONE, READ, ZONE_OWN, EAST, BY_INDEX]),
+            vec!["east"],
+        ),
+    ]
+}
+
+#[test]
+fn a_member_index_the_event_numbers_otherwise_is_reported_for_each_member() {
+    for (name, source, members) in shifted() {
+        let report = check(&source);
+        let line = line_of(&source, "on read when target == $index");
+        assert_eq!(
+            codes(&report),
+            vec![("C004", line); members.len()],
+            "{name}\n{source}"
+        );
+        for (diagnostic, member) in report.diagnostics.iter().zip(&members) {
+            assert_eq!(
+                (diagnostic.name, diagnostic.severity, diagnostic.column),
+                ("shifted-member-index", "warning", 5)
+            );
+            assert!(
+                diagnostic.message.starts_with(&format!(
+                    "the rule on `read` for `{member}` runs when `target` names `"
+                )),
+                "{name}: {}",
+                diagnostic.message
+            );
+        }
+    }
+}
+
+#[test]
+fn the_warning_says_which_member_the_copy_acts_for_and_why() {
+    let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, BY_INDEX]);
+    let report = check(&source);
+    let [south] = report.diagnostics.as_slice() else {
+        panic!("{:?}", codes(&report));
+    };
+    assert_eq!(
+        south.message,
+        "the rule on `read` for `south` runs when `target` names `north`, not `south`: `$index` is 2 in its copy, and `target` numbers `south` 3, because it also counts `north`, declared in a for block"
+    );
+    assert_eq!(
+        south.suggestion,
+        "If the rule is about the plot the event names, select it by name, such as `target == target.$p`, which names its own plot however the entities are counted. If comparing with `$index` is intended, put `# caveat check: allow shifted-member-index` on the line above it."
+    );
+    let north = line_of(&source, "entity north");
+    assert_eq!(
+        south
+            .related
+            .iter()
+            .map(|related| (related.line, related.column, related.note.as_str()))
+            .collect::<Vec<_>>(),
+        [(north, 5, "where a for block declares `north`")]
+    );
+    // What it describes: `read north` counts for south, and `read south`
+    // for no plot.
+    let mut session = ReactiveSession::from_source(&source).expect("loads");
+    let mut read = |target: &str| {
+        let values = session
+            .dispatch_json("read", &format!(r#"{{"target":"{target}"}}"#))
+            .expect("read is accepted")
+            .values;
+        (values["east_n"], values["south_n"])
+    };
+    assert_eq!(read("north"), (0.0, 1.0));
+    assert_eq!(read("south"), (0.0, 1.0));
+    assert_eq!(read("east"), (1.0, 1.0));
+
+    // Several plots that a block declares, each counted.
+    let source = program(&[READ, &twins("target == $index"), EAST, SOUTH]);
+    let report = check(&source);
+    assert_eq!(
+        report.diagnostics[1].message,
+        "the rule on `read` for `south` runs when `target` names `south_twin`, not `south`: `$index` is 2 in its copy, and `target` numbers `south` 4, because it also counts `east_twin` and `south_twin`, each declared in a for block"
+    );
+    let twin = line_of(&source, "entity $p_twin");
+    assert_eq!(
+        report.diagnostics[1]
+            .related
+            .iter()
+            .map(|related| (related.line, related.note.as_str()))
+            .collect::<Vec<_>>(),
+        [
+            (twin, "where a for block declares `east_twin`"),
+            (twin, "where a for block declares `south_twin`")
+        ]
+    );
+}
+
+#[test]
+fn nothing_is_reported_where_every_member_is_numbered_alike_or_selected_by_name() {
+    let value_index = "for plot as $p {
+    state $p_n = 0;
+    on read when target == target.$p set $p_n = $p_n + $index;
+};
+";
+    let ping = "for plot as $p {
+    state $p_ticks = 0;
+    on ping set $p_ticks = $p_ticks + 1;
+};
+";
+    let zones_by_name = "for zone as $z {
+    entity $z_plot kind plot at field;
+    state $z_plot_n = 0;
+    on read when target == target.$z_plot set $z_plot_n = $z_plot_n + 1;
+};
+";
+    let marker = "for zone as $z {\n    entity $z_marker kind marker at field;\n};\n";
+    let labelled = "for plot as $p {
+    state $p_n = 0;
+    on read when target == target.$p set $p_n = $p_n + 1;
+    bind $p.label.text = \"plot $index\";
+};
+";
+    let routed_zone = "for zone as $z routed by target {
+    entity $z_plot kind plot at field;
+    state $z_visits = 0;
+    on visit set $z_visits = $z_visits + 1;
+};
+";
+    let no_event = "for plot as $p {\n    state $p_seen = 0;\n};\n";
+    let two_zones = "entity zone_a kind zone at field;\nentity zone_b kind zone at field;\n";
+    let zone_a = "entity zone_a kind zone at field;\nevent visit target kind zone;\n";
+    for (name, source) in [
+        // Every plot that a block declares comes after the top-level plots.
+        (
+            "c1",
+            program(&[EAST, SOUTH, ZONE, READ, ZONE_OWN, BY_INDEX]),
+        ),
+        ("a6", program(&[EAST, ZONE, READ, ZONE_OWN, BY_INDEX])),
+        (
+            "a5b",
+            program(&[EAST, SOUTH, READ, &twins("target == $index")]),
+        ),
+        // The block declares an entity of another kind.
+        ("a4", program(&[EAST, ZONE, READ, marker, SOUTH, BY_INDEX])),
+        // Selected by name, wherever north is declared.
+        ("c3", program(&[EAST, ZONE, READ, ZONE_OWN, SOUTH, BY_NAME])),
+        (
+            "c3a",
+            program(&[ZONE, READ, ZONE_OWN, EAST, SOUTH, BY_NAME]),
+        ),
+        (
+            "c3b",
+            program(&[ZONE, READ, EAST, SOUTH, BY_NAME, ZONE_OWN]),
+        ),
+        (
+            "a1",
+            program(&[EAST, ZONE, READ, ZONE_OWN, SOUTH, value_index]),
+        ),
+        (
+            "a3",
+            program(&[EAST, two_zones, READ, zones_by_name, SOUTH, BY_NAME]),
+        ),
+        (
+            "a5",
+            program(&[EAST, SOUTH, READ, &twins("target == target.$p")]),
+        ),
+        // No rule on an event that names a plot.
+        (
+            "c5",
+            program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, no_event]),
+        ),
+        (
+            "a2",
+            program(&[EAST, ZONE, READ, "event ping;\n", ZONE_BARE, SOUTH, ping]),
+        ),
+        // North gets no copy of the plot block, so `read north` changes
+        // nothing there, and nothing reports it (spec/caveat-check-0.1.md,
+        // C004).
+        (
+            "i3",
+            program(&[EAST, SOUTH, ZONE, ZONE_BARE, READ, BY_INDEX]),
+        ),
+        (
+            "i4",
+            program(&[EAST, SOUTH, ZONE, READ, BY_INDEX, ZONE_BARE]),
+        ),
+        (
+            "c4",
+            program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, BY_NAME]),
+        ),
+        (
+            "a7",
+            program(&[EAST, ZONE, READ, ZONE_BARE, SOUTH, labelled]),
+        ),
+        (
+            "a8",
+            program(&[EAST, zone_a, READ, routed_zone, SOUTH, BY_NAME]),
+        ),
+    ] {
+        let report = check(&source);
+        assert_eq!(codes(&report), [], "{name}\n{source}");
+        assert!(report.suppressed.is_empty(), "{name}");
+    }
+}
+
+#[test]
+fn every_selection_by_index_that_c003_reads_is_checked() {
+    // North, which a zone block declares, comes before both top-level
+    // plots, so each plot's copy acts for another plot.
+    let north_first = |rules: &str| {
+        program(&[
+            ZONE,
+            ZONE_BARE,
+            EAST,
+            SOUTH,
+            "event move from kind plot, to kind plot;\n",
+            READ,
+            &format!("for plot as $p {{\n    state $p_n = 0;\n{rules}}};\n"),
+        ])
+    };
+    let rule_line = |source: &str| line_of(source, "on ");
+    for rule in [
+        "on read when $index == target set $p_n = 1;",
+        "on read when target == $index + 0 set $p_n = 1;",
+        "on read when $p_n < 9 and (target == $index and $p_n >= 0) set $p_n = 1;",
+        "define $p_here = target == $index;\n    on read when $p_here set $p_n = 1;",
+        "on move when to == $index set $p_n = 1;",
+        // On the member's own event, which C003 does not check.
+        "event $p_read target kind plot;\n    on $p_read when target == $index set $p_n = 1;",
+    ] {
+        let source = north_first(&format!("    {rule}\n"));
+        let line = rule_line(&source);
+        assert_eq!(
+            codes(&check(&source)),
+            [("C004", line), ("C004", line)],
+            "{rule}"
+        );
+    }
+    let report = check(&north_first(
+        "    on move when to == $index set $p_n = 1;\n",
+    ));
+    assert!(
+        report.diagnostics[0]
+            .message
+            .starts_with("the rule on `move` for `east` runs when `to` names `north`, not `east`"),
+        "{}",
+        report.diagnostics[0].message
+    );
+    // A selection that is not a top-level conjunct is C003's to report, and
+    // one by name is not reported.
+    for (rule, code) in [
+        (
+            "on read when target == $index or $p_n > 5 set $p_n = 1;",
+            Some("C003"),
+        ),
+        ("on read when target == target.$p set $p_n = 1;", None),
+        ("on read when target == target.east set $p_n = 1;", None),
+    ] {
+        let source = north_first(&format!("    {rule}\n"));
+        let line = rule_line(&source);
+        let expected = code
+            .map(|code| vec![(code, line), (code, line)])
+            .unwrap_or_default();
+        assert_eq!(codes(&check(&source)), expected, "{rule}");
+    }
+}
+
+#[test]
+fn a_shifted_member_index_is_allowed_by_code_or_by_name() {
+    for comment in [
+        "# caveat check: allow shifted-member-index",
+        "// caveat check: allow C004",
+    ] {
+        let source = program(&[ZONE, ZONE_BARE, EAST, SOUTH, READ, BY_INDEX]).replace(
+            "    on read when target == $index",
+            &format!("    {comment}\n    on read when target == $index"),
+        );
+        let report = check(&source);
+        assert_eq!(codes(&report), []);
+        let line = line_of(&source, "on read when target == $index");
+        assert_eq!(
+            report
+                .suppressed
+                .iter()
+                .map(|diagnostic| (diagnostic.code, diagnostic.line))
+                .collect::<Vec<_>>(),
+            [("C004", line), ("C004", line)]
+        );
+    }
+}
+
+#[test]
+fn a_routed_block_still_refuses_an_entity_of_its_kind_in_a_for_block() {
+    // Routed Repetition 0.1 section 7, unchanged: such a program does not
+    // load, so there is nothing to check.
+    let zones = "entity zone_a kind zone at field;\nentity zone_b kind zone at field;\n";
+    let zone_plots = "for zone as $z {\n    entity $z_plot kind plot at field;\n};\n";
+    for (before, entity) in [
+        (program(&[EAST, SOUTH, ZONE, READ, ZONE_OWN]), "north"),
+        (program(&[EAST, ZONE, READ, ZONE_OWN, SOUTH]), "north"),
+        (program(&[EAST, zones, READ, zone_plots, SOUTH]), "$z_plot"),
+    ] {
+        let source = format!(
+            "{before}for plot as $p routed by target {{\n    state $p_n = 0;\n    on read set $p_n = $p_n + 1;\n}};\n"
+        );
+        assert_eq!(
+            check_source(&source).unwrap_err(),
+            format!("`for plot as $p routed by target`: `$index` does not count entity `{entity}` of kind plot, declared in a for block, but `target` does; declare it at the top level of this part")
+        );
+    }
+}
+
+/// Which of `plots` count `read target`, sent once to a fresh session.
+fn counted_on_read(source: &str, target: &str, plots: &[&str]) -> Vec<String> {
+    let mut session = ReactiveSession::from_source(source).expect("loads");
+    let values = session
+        .dispatch_json("read", &format!(r#"{{"target":"{target}"}}"#))
+        .expect("read is accepted")
+        .values;
+    plots
+        .iter()
+        .filter(|plot| values[format!("{plot}_n").as_str()] != 0.0)
+        .map(|plot| plot.to_string())
+        .collect()
+}
+
+#[test]
+fn an_index_adjusted_on_purpose_is_read_as_the_number_it_comes_to() {
+    let plus_one = "for plot as $p {
+    state $p_n = 0;
+    on read when target == $index + 1 set $p_n = $p_n + 1;
+};
+";
+    let plots = ["east", "south"];
+    // North comes first, so `$index + 1` is each plot's own number in
+    // `read`: every copy acts for its own plot, and nothing is reported.
+    let compensated = program(&[ZONE, ZONE_BARE, EAST, SOUTH, READ, plus_one]);
+    assert_eq!(codes(&check(&compensated)), []);
+    for (target, counted) in [
+        ("north", &[][..]),
+        ("east", &["east"][..]),
+        ("south", &["south"][..]),
+    ] {
+        assert_eq!(
+            counted_on_read(&compensated, target, &plots),
+            counted,
+            "read {target}"
+        );
+    }
+
+    // North between them: east's copy compares `target` with 2, south's
+    // `$index`, and `read` numbers north 2. South's copy compares it with
+    // 3, south's own number there, so only east's is reported.
+    let between = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, plus_one]);
+    let report = check(&between);
+    assert_eq!(codes(&report), [("C004", line_of(&between, "on read"))]);
+    assert_eq!(
+        report.diagnostics[0].message,
+        "the rule on `read` for `east` runs when `target` names `north`, not `south`: its copy compares `target` with 2, the `$index` of `south`, and `target` numbers `south` 3, because it also counts `north`, declared in a for block"
+    );
+    assert_eq!(counted_on_read(&between, "north", &plots), ["east"]);
+    assert_eq!(counted_on_read(&between, "south", &plots), ["south"]);
+
+    // Where the two numberings agree at the number compared, the copy acts
+    // for the plot `$index` gives it, and is not reported: east's copy acts
+    // for south. South's compares with 3, west's `$index`, which `read`
+    // gives north.
+    let west = "entity west kind plot at field;\n";
+    let after_south = program(&[EAST, SOUTH, ZONE, ZONE_BARE, west, READ, plus_one]);
+    let report = check(&after_south);
+    assert_eq!(codes(&report), [("C004", line_of(&after_south, "on read"))]);
+    assert_eq!(
+        report.diagnostics[0].message,
+        "the rule on `read` for `south` runs when `target` names `north`, not `west`: its copy compares `target` with 3, the `$index` of `west`, and `target` numbers `west` 4, because it also counts `north`, declared in a for block"
+    );
+    let plots = ["east", "south", "west"];
+    assert_eq!(counted_on_read(&after_south, "south", &plots), ["east"]);
+    assert_eq!(counted_on_read(&after_south, "north", &plots), ["south"]);
+
+    // E comes to its number through a function, the prelude's or the
+    // program's, too. An E that reads a state has no number the check can
+    // work out, and is not checked.
+    for (rule, reported) in [
+        ("target == round($index)", true),
+        ("target == min($index, 9)", true),
+        ("target == slot($index)", true),
+        ("target == $index + $p_offset", false),
+    ] {
+        let block = format!(
+            "for plot as $p {{
+    state $p_n = 0;
+    state $p_offset = 0;
+    on read when {rule} set $p_n = $p_n + 1;
+}};
+"
+        );
+        let source = program(&[
+            "fn slot(at) = at;\n",
+            EAST,
+            ZONE,
+            ZONE_BARE,
+            SOUTH,
+            READ,
+            &block,
+        ]);
+        let expected = if reported {
+            vec![("C004", line_of(&source, "on read"))]
+        } else {
+            Vec::new()
+        };
+        assert_eq!(codes(&check(&source)), expected, "{rule}");
+        // Each of them acts as `target == $index` does: `read north` counts
+        // for south.
+        assert_eq!(
+            counted_on_read(&source, "north", &["east", "south"]),
+            ["south"],
+            "{rule}"
+        );
+    }
+}
+
+#[test]
+fn a_selection_by_index_through_a_value_define_is_checked() {
+    let reported = "the rule on `read` for `south` runs when `target` names `north`, not `south`: `$index` is 2 in its copy, and `target` numbers `south` 3, because it also counts `north`, declared in a for block";
+    for (defines, rule) in [
+        (
+            "",
+            "    define $p_slot = $index;\n    on read when target == $p_slot set $p_n = $p_n + 1;\n",
+        ),
+        (
+            "",
+            "    define $p_base = $index;\n    define $p_slot = $p_base + 0;\n    on read when $p_slot == target set $p_n = $p_n + 1;\n",
+        ),
+        // Written in another block over the same kind.
+        (
+            "for plot as $q {\n    define $q_slot = $index;\n};\n",
+            "    on read when target == $p_slot set $p_n = $p_n + 1;\n",
+        ),
+    ] {
+        let block = format!("for plot as $p {{\n    state $p_n = 0;\n{rule}}};\n");
+        let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, defines, &block]);
+        let report = check(&source);
+        assert_eq!(
+            codes(&report),
+            [("C004", line_of(&source, "on read"))],
+            "{source}"
+        );
+        assert_eq!(report.diagnostics[0].message, reported);
+        // As for `target == $index`: `read north` counts for south, and
+        // `read south` for no plot.
+        let plots = ["east", "south"];
+        assert_eq!(counted_on_read(&source, "north", &plots), ["south"]);
+        assert_eq!(counted_on_read(&source, "south", &plots), [] as [&str; 0]);
+    }
+    // A state holding `$index` is not checked, as the spec says: a state can
+    // change.
+    let state = "for plot as $p {
+    state $p_n = 0;
+    state $p_slot = $index;
+    on read when target == $p_slot set $p_n = $p_n + 1;
+};
+";
+    let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, state]);
+    assert_eq!(codes(&check(&source)), []);
+}
+
+#[test]
+fn an_event_that_names_an_entity_a_block_declares_runs_every_copy_that_does_not_select_it_by_name()
+{
+    // North gets no copy of the plot block (spec/caveat-repetition-0.1.md
+    // section 1), so a copy that selects its plot by name does not run on
+    // `read north`. One that selects by `$index`, or selects none, can.
+    let unselected = "for plot as $p {
+    state $p_n = 0;
+    # caveat check: allow unrouted-member-rule
+    on read set $p_n = $p_n + 1;
+};
+";
+    let plots = ["east", "south"];
+    for (block, counted) in [
+        (BY_NAME, &[][..]),
+        (BY_INDEX, &["south"][..]),
+        (unselected, &["east", "south"][..]),
+    ] {
+        let source = program(&[EAST, ZONE, ZONE_BARE, SOUTH, READ, block]);
+        assert_eq!(
+            counted_on_read(&source, "north", &plots),
+            counted,
+            "{block}"
+        );
+    }
+}

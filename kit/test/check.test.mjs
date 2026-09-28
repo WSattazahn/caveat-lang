@@ -127,6 +127,62 @@ test('check reports a member rule its guard does not route, once per member', as
   });
 });
 
+// North, which the zone block declares on line 5, comes before south, so
+// `target` numbers south 3, and south's copy of line 11 compares it with
+// `$index` 2.
+const SHIFTED = `place field kind field;
+entity east kind plot at field;
+entity z kind zone at field;
+for zone as $z {
+    entity north kind plot at field;
+};
+entity south kind plot at field;
+event read target kind plot;
+for plot as $p {
+    state $p_n = 0;
+    on read when target == $index set $p_n = $p_n + 1;
+};
+`;
+
+test('check reports a member rule whose $index the event numbers otherwise', async () => {
+  const message = 'the rule on `read` for `south` runs when `target` names `north`, not `south`: `$index` is 2 in its copy, and `target` numbers `south` 3, because it also counts `north`, declared in a for block';
+  const suggestion = 'If the rule is about the plot the event names, select it by name, such as `target == target.$p`, which names its own plot however the entities are counted. If comparing with `$index` is intended, put `# caveat check: allow shifted-member-index` on the line above it.';
+  await withProgram(SHIFTED, async program => {
+    const result = caveat(['check', program]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.stdout.trim().split('\n'), [
+      `frost.cav:11:5: warning C004 shifted-member-index: ${message}`,
+      `  ${suggestion}`,
+      '  see line 5: where a for block declares `north`',
+      '1 warning. A warning points at a pattern worth a second look; it is not an error.',
+    ]);
+    const json = caveat(['check', '--json', '--strict', program]);
+    assert.equal(json.status, 1);
+    const report = JSON.parse(json.stdout);
+    assert.deepEqual(report.diagnostics, [{
+      code: 'C004', name: 'shifted-member-index', severity: 'warning', line: 11, column: 5, message, suggestion,
+      related: [{ line: 5, column: 5, note: 'where a for block declares `north`' }],
+    }]);
+    assert.deepEqual(report.suppressed, []);
+  });
+  const allowed = SHIFTED.replace('    on read', '    # caveat check: allow shifted-member-index\n    on read');
+  await withProgram(allowed, async program => {
+    const result = caveat(['check', '--strict', program]);
+    assert.equal(result.status, 0, result.stdout);
+    assert.deepEqual(result.stdout.trim().split('\n'), [
+      'frost.cav:12:5: allowed C004 shifted-member-index (an allow comment silences it)',
+      'frost.cav: no warnings.',
+    ]);
+  });
+  // Selected by name, the rule counts for south whatever number `target` gives it.
+  await withProgram(SHIFTED.replace('target == $index', 'target == target.$p'), async program => {
+    const result = caveat(['check', '--strict', program]);
+    assert.equal(result.status, 0, result.stdout);
+    assert.equal(result.stdout.trim(), 'frost.cav: no warnings.');
+  });
+  assert.deepEqual(real.check(SHIFTED).diagnostics.map(warning => [warning.code, warning.line]), [['C004', 11]]);
+});
+
 test('a program that does not load, or a bundle, is exit 2', async () => {
   await withProgram(`${FROST}on decide sample nowhere = 1 supports frost_risk;\n`, async program => {
     const text = caveat(['check', program]);

@@ -437,7 +437,9 @@ Each of these is an error rather than a quiet choice:
   copy, or none. Correcting either count would change Repetition 0.1 or typed
   parameters, which this profile does not do. A plain block with a
   hand-written `target == $index` has the same miscount on such a program
-  today, and nothing reports it.
+  today. `caveat check` reports it where the entity comes before a
+  top-level member, so that a member's copy acts for another member (C004
+  in [Check 0.1](caveat-check-0.1.md)).
 
 In the evaluation of a prototype, 20 edits that renamed an event's subject
 parameter or gave it another kind were all refused by the errors for P of
@@ -456,6 +458,11 @@ on an event C003 does not check (one that names no member of the kind, or one
 written with `$NAME` or `$index`), or stops loading. C003 must not read the
 expanded copies instead: there the route is `P == 2`, a comparison with a
 number, which C003 does not count as a selection.
+
+C004 does not check a rule in a routed block either. A block routed over KIND
+loads only when no `for` block declares an entity of KIND (section 7), so in a
+single-file program, the only kind check reads, each member's `$index` is its
+number in P.
 
 Plain blocks are checked exactly as before, including a plain block over the
 same kind beside a routed one. A define written in a routed block counts for

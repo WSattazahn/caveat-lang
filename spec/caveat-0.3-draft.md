@@ -27,6 +27,13 @@ An entity has an identifier, a semantic kind, and a declared location.
 
 The map rejects an entity whose location does not name a declared place.
 
+The loader reads a place's or an entity's name, its kind, and an entity's
+place as words: whatever whitespace-free word is in that position, outside
+quoted text and comments. It does not check them against the identifier form
+of `grammar/caveat-0.1.ebnf`, which is the recommended one; the reactive layer
+requires an identifier where it reads a name, such as the kind in an event
+parameter. See [source text 0.1](caveat-text-0.1.md), "Declared names".
+
 ## 4. Connections
 
 ```
