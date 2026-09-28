@@ -1,5 +1,6 @@
 use caveat_runtime::ast::{ActionStep, Statement};
 use caveat_runtime::parser;
+use caveat_runtime::reactive::{ParameterDomain, ReactiveSession};
 
 #[test]
 fn quoted_prose_preserves_delimiters_comments_unicode_and_whitespace() {
@@ -201,5 +202,44 @@ fn every_existing_example_and_game_still_parses() {
                     .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
             }
         }
+    }
+}
+
+#[test]
+fn an_entity_is_declared_by_the_word_after_entity() {
+    // The loader does not check an entity's name against the identifier
+    // syntax, so each of these programs, with no `for` block, loads, and the
+    // name is the member of `target`. Refusing them would be a grammar
+    // change of its own.
+    for name in ["north{", "north}", "1north", "no-rth", "nörth", "\"north\""] {
+        let program = parser::parse(&format!(
+            "place field kind field;\nentity {name} kind plot at field;\n"
+        ))
+        .unwrap_or_else(|error| panic!("{name}: {error}"));
+        assert_eq!(
+            program.statements[1],
+            Statement::Entity {
+                name: name.into(),
+                kind: "plot".into(),
+                at: "field".into(),
+            }
+        );
+        let source = format!(
+            "place field kind field;\nentity {name} kind plot at field;\nevent read target kind plot;\nstate n = 0;\non read set n = n + 1;\n"
+        );
+        let mut session = ReactiveSession::from_source(&source)
+            .unwrap_or_else(|error| panic!("{error}\n{source}"));
+        let snapshot = session.snapshot();
+        let ParameterDomain::Entity { members, .. } = &snapshot.events[0].parameters[0].domain
+        else {
+            panic!("target names a plot");
+        };
+        assert_eq!(members, &[name]);
+        let payload = serde_json::json!({ "target": name }).to_string();
+        let values = session
+            .dispatch_json("read", &payload)
+            .expect("read is accepted")
+            .values;
+        assert_eq!(values["n"], 1.0, "{source}");
     }
 }

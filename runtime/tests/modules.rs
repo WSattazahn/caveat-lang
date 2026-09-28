@@ -1,7 +1,7 @@
 //! Draft 0.5 module linking.
 
 use caveat_runtime::link::{self, BundlePart};
-use caveat_runtime::reactive::BindingValue;
+use caveat_runtime::reactive::{BindingValue, ParameterDomain, ReactiveSession};
 use caveat_runtime::{eval, parser, Attention, Consequence, NodeKind};
 
 fn part(name: &str, source: &str) -> BundlePart {
@@ -594,6 +594,205 @@ fn imports_are_followed_through_modules() {
 
     let evaluation = evaluate(&link::link(&text).expect("links"));
     assert!(evaluation.symbols.contains_key("base__shared"));
+}
+
+#[test]
+fn a_comment_in_a_use_or_module_statement_is_whitespace() {
+    // Comments count as whitespace (spec/caveat-text-0.1.md). The linker read
+    // `use` and `module` with their comments left in, so it did not see the
+    // first import: "the program main names annex::wet without `use annex;`".
+    let annex = "module annex;\nclaim wet;\n";
+    let program = "evidence gauge from \"rain gauge\";\ngauge supports annex::wet;\n";
+    for (module, header) in [
+        (annex, "use # the annex module\n    annex;\n"),
+        (annex, "use annex // for wet\n;\n"),
+        (annex, "use#annex\n    annex;\n"),
+        (
+            "module # the annex\n    annex;\nclaim wet;\n",
+            "use annex;\n",
+        ),
+    ] {
+        let program = format!("{header}{program}");
+        let source = linked(&[("annex", module), ("main", &program)]);
+        let evaluation = evaluate(&source);
+        assert!(evaluation.symbols.contains_key("annex__wet"), "{source}");
+    }
+    // Loaded from disk, the commented `use` reaches annex.cav.
+    let root = fixture_root("commented-use");
+    write(&root, "annex.cav", annex);
+    let entry = write(
+        &root,
+        "main.cav",
+        &format!("use # the annex module\n    annex;\n{program}"),
+    );
+    let text = disk::load(&entry).expect("the program loads");
+    let parts = link::split_bundle(&text).expect("bundle splits");
+    assert_eq!(
+        parts
+            .iter()
+            .map(|part| part.name.as_str())
+            .collect::<Vec<_>>(),
+        ["annex", "main"]
+    );
+    let evaluation = evaluate(&link::link(&text).expect("links"));
+    assert!(evaluation.symbols.contains_key("annex__wet"));
+}
+
+#[test]
+fn a_part_s_last_statement_without_its_semicolon_ends_before_the_next_part() {
+    // The loader reads a last statement without its `;`
+    // (spec/caveat-text-0.1.md). In a bundle, a module's last statement is
+    // followed by the next part's `origin` line, and ran into it: "cannot
+    // parse statement: entity annex__east kind annex__plot at
+    // annex__shed\norigin main". Its kind, a type tag, was also rewritten as
+    // the module's own `plot`.
+    let annex = "module annex;\nclaim plot;\nplace shed kind shed;\nentity east kind plot at shed";
+    for end in ["", "\n", " # the last; no `;`\n", "\n// the end"] {
+        let module = format!("{annex}{end}");
+        let program = "use annex;\nevent read target kind plot;\n";
+        let source = linked(&[("annex", &module), ("main", program)]);
+        assert!(
+            source.contains("entity annex__east kind plot at annex__shed;"),
+            "{source}"
+        );
+        assert!(source.contains("\norigin main;\n"), "{source}");
+        let snapshot =
+            ReactiveSession::from_source(&bundle(&[("annex", &module), ("main", program)]))
+                .unwrap_or_else(|error| panic!("{error}\n{source}"))
+                .snapshot();
+        let read = snapshot
+            .events
+            .iter()
+            .find(|event| event.name == "read")
+            .expect("read is declared");
+        let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+            panic!("target names a plot");
+        };
+        assert_eq!(members, &["annex__east"]);
+    }
+
+    // Unquoted provenance took the `origin` line into its text, silently:
+    // the source became "field notes origin main", and what the program
+    // declared was recorded as the module's.
+    let source = linked(&[
+        (
+            "annex",
+            "module annex;\nclaim dry;\nevidence log from field notes",
+        ),
+        (
+            "main",
+            "use annex;\nclaim wet;\nevidence gauge from \"rain gauge\";\n",
+        ),
+    ]);
+    let evaluation = evaluate(&source);
+    match &evaluation.graph.nodes[&evaluation.symbols["annex__log"]] {
+        NodeKind::Evidence { source, .. } => assert_eq!(source, "field notes"),
+        other => panic!("expected evidence, got {other:?}"),
+    }
+    for (symbol, part) in [("annex__log", "annex"), ("wet", "main"), ("gauge", "main")] {
+        assert_eq!(
+            evaluation.graph.origin(evaluation.symbols[symbol]),
+            Some(part),
+            "{symbol}"
+        );
+    }
+
+    // `use` and `module` are read there too.
+    let source = linked(&[
+        ("annex", "module annex"),
+        ("main", "claim here;\nuse annex"),
+    ]);
+    assert!(!source.contains("use annex"), "{source}");
+    evaluate(&source);
+}
+
+#[test]
+fn a_part_s_last_statement_after_an_empty_statement_is_read() {
+    // The loader accepts empty statements (spec/caveat-text-0.1.md), and a
+    // last statement without its `;` begins at its first word. The linker
+    // began it at the empty statement's `;`, so it did not read the
+    // statement: the module's `entity` kept no tag, and linked as `entity
+    // annex__east kind annex__plot at annex__shed;`, which declares no plot
+    // ("parameter target of event read: no entity is declared kind plot").
+    let program = "use annex;\nevent read target kind plot;\n";
+    for empty in [";", " ;\n", "\n# nothing\n;\n"] {
+        let module = format!(
+            "module annex;\nclaim plot;\nplace shed kind shed;{empty}entity east kind plot at shed"
+        );
+        let source = linked(&[("annex", &module), ("main", program)]);
+        assert!(
+            source.contains("entity annex__east kind plot at annex__shed;"),
+            "{source}"
+        );
+        let snapshot =
+            ReactiveSession::from_source(&bundle(&[("annex", &module), ("main", program)]))
+                .unwrap_or_else(|error| panic!("{error}\n{source}"))
+                .snapshot();
+        let read = snapshot
+            .events
+            .iter()
+            .find(|event| event.name == "read")
+            .expect("read is declared");
+        let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+            panic!("target names a plot");
+        };
+        assert_eq!(members, &["annex__east"]);
+    }
+
+    // A last `use` or `module` there is read too. The `use` was not: "the
+    // program main names annex::wet without `use annex;`".
+    for (module, program) in [
+        (
+            "module annex;\nclaim wet;\n",
+            "evidence gauge from \"rain gauge\";\ngauge supports annex::wet;;\nuse annex",
+        ),
+        (";\nmodule annex", "claim here;;\nuse annex"),
+    ] {
+        let source = linked(&[("annex", module), ("main", program)]);
+        assert!(!source.contains("use annex"), "{source}");
+        assert!(!source.contains("module annex"), "{source}");
+        evaluate(&source);
+    }
+}
+
+#[test]
+fn a_first_word_that_only_begins_with_for_hides_no_statement_from_the_linker() {
+    // `for{ supports plot;` is a relation about an evidence named `for{`, not
+    // a block. The linker read everything after its `{` as a block's body, so
+    // it did not read the statements there: the module's kinds, type tags,
+    // were rewritten as its own names, `kind annex__shed` and `kind
+    // annex__plot` ("parameter target of event read: no entity is declared
+    // kind plot"), and a `use` there was not an import.
+    let module = "module annex;\nclaim plot;\nevidence for{ from log;\nfor{ supports plot;\n\
+                  place shed kind shed;\nentity east kind plot at shed;\n";
+    let program = "use annex;\nevent read target kind plot;\n";
+    let source = linked(&[("annex", module), ("main", program)]);
+    assert!(
+        source.contains(
+            "place annex__shed kind shed;\nentity annex__east kind plot at annex__shed;\n"
+        ),
+        "{source}"
+    );
+    let snapshot = ReactiveSession::from_source(&bundle(&[("annex", module), ("main", program)]))
+        .unwrap_or_else(|error| panic!("{error}\n{source}"))
+        .snapshot();
+    let read = snapshot
+        .events
+        .iter()
+        .find(|event| event.name == "read")
+        .expect("read is declared");
+    let ParameterDomain::Entity { members, .. } = &read.parameters[0].domain else {
+        panic!("target names a plot");
+    };
+    assert_eq!(members, &["annex__east"]);
+
+    // The `use` was not read: "the program main names annex::wet without
+    // `use annex;`".
+    let program = "claim c;\nevidence for{ from log;\nfor{ supports c;\nuse annex;\n\
+                   evidence gauge from \"rain gauge\";\ngauge supports annex::wet;\n";
+    let source = linked(&[("annex", "module annex;\nclaim wet;\n"), ("main", program)]);
+    assert!(!source.contains("use annex"), "{source}");
+    assert!(evaluate(&source).symbols.contains_key("annex__wet"));
 }
 
 #[test]

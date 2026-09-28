@@ -345,8 +345,8 @@ order, and in each block the checks run in this order:
 In a bundle an error is prefixed with the part's name, as Repetition 0.1's
 errors are. HEADER below is the block's header, from `for` up to but not
 including `{`, with each run of whitespace written as one space and none at
-either end. A routed header whose binding is not `$NAME` is a malformed
-header, not Repetition 0.1's binding error.
+either end; a comment in it is whitespace. A routed header whose binding is
+not `$NAME` is a malformed header, not Repetition 0.1's binding error.
 
 - **A malformed header.** The header's fifth word is `routed`, but the header
   is not `for KIND as $NAME routed by P` with P a plain name.

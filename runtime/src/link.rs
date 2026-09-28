@@ -329,7 +329,7 @@ pub fn link(bundle: &str) -> Result<String, String> {
         let rewritten = rewrite(part, Some(name), declared, &declarations)?;
         let written = part_writes(&rewritten).map_err(|error| format!("module {name}: {error}"))?;
         writes.push((format!("module {name}"), written));
-        linked.push_str(&rewritten);
+        linked.push_str(&terminated(&rewritten));
         if !linked.ends_with('\n') {
             linked.push('\n');
         }
@@ -348,6 +348,22 @@ pub fn link(bundle: &str) -> Result<String, String> {
     linked.push_str(&rewritten);
     check_single_writer(&writes)?;
     Ok(linked)
+}
+
+/// A module's text with its last statement ended by `;`. The loader reads a
+/// last statement without one only at the end of the program, and in the
+/// linked text a module is followed by the next part's `origin` line. The
+/// `;` goes right after the statement's last word, before any comment, so no
+/// line moves.
+fn terminated(text: &str) -> String {
+    let Some(&(start, end)) = statements_of(text).last() else {
+        return text.to_string();
+    };
+    if text[..end].ends_with(';') {
+        return text.to_string();
+    }
+    let end = start + blank_comments(&text[start..end]).trim_end().len();
+    format!("{};{}", &text[..end], &text[end..])
 }
 
 /// How a part is named in diagnostics. The program carries a name too (its
@@ -595,15 +611,109 @@ fn statement_kind(statement: &Statement) -> &'static str {
 /// procedure braces follow the same rules as the parser's own scanner, so a
 /// semicolon inside quoted text or inside an effect body does not end a
 /// statement here either.
+///
+/// Like the parser, this counts `{` and `}` only in a statement whose first
+/// word is `proc`, where every brace counts (parser.rs `scan_statements_at`),
+/// even a `{` right after `proc`. A `for` block's braces count too, since
+/// Repetition 0.1 expands the block before the parser reads it, and the
+/// statements in its body are read as the parser reads them once expanded.
+/// A block is a statement whose first word is `for`, ended by whitespace or a
+/// comment, as Repetition reads its words (`statement_words`), so the `{` in
+/// `for{ supports c;`, about an evidence named `for{`, is text. A brace in
+/// any other statement is not syntax, so it does not keep the `;` from ending
+/// the statement. In a block's body, a `}` in such a statement closes the
+/// body unless it closes a `{` earlier in the same statement, so a pair such
+/// as `see{appendix}b` in unquoted provenance stays text. A `{` the statement
+/// leaves open pairs with no `}` in a later one, and Repetition refuses it
+/// (`block_braces`).
 pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
     let mut spans = Vec::new();
+    read_statements(source, |read| {
+        if let Read::Statement(start, end) = read {
+            spans.push((start, end));
+        }
+    });
+    spans
+}
+
+/// Where a `for` block statement's body opens and closes, as
+/// `statement_spans` reads the statement, and the first `{` in the body that
+/// its own statement does not close. A brace in unquoted text pairs only
+/// within its statement, so such a `{` is refused (Repetition 0.1 section 2).
+#[derive(Default)]
+pub(crate) struct BlockBraces {
+    /// The `{` that opens the body.
+    pub(crate) open: Option<usize>,
+    /// The first `}` after it that closes no `{` earlier in its statement.
+    pub(crate) close: Option<usize>,
+    /// Where the body statement that `close` ends begins, when that `}`
+    /// comes after a statement's text and before its `;`, as in `from a}b;`
+    /// or the body's last statement without its `;`.
+    pub(crate) ends_statement: Option<usize>,
+    /// The first `{` of a body statement that is text and still open at the
+    /// `;` that ends the statement, before the body closes.
+    pub(crate) unclosed: Option<usize>,
+}
+
+/// Read a `for` block statement's braces, as `statement_spans` reads them.
+pub(crate) fn block_braces(statement: &str) -> BlockBraces {
+    let mut braces = BlockBraces::default();
+    let mut depth = 0usize;
+    read_statements(statement, |read| match read {
+        Read::BodyOpens(at) => {
+            depth += 1;
+            braces.open.get_or_insert(at);
+        }
+        Read::BodyCloses(at, ended) => {
+            if depth == 1 && braces.close.is_none() {
+                braces.close = Some(at);
+                braces.ends_statement = ended;
+            }
+            depth = depth.saturating_sub(1);
+        }
+        Read::Unclosed(at) if braces.close.is_none() => {
+            braces.unclosed.get_or_insert(at);
+        }
+        Read::Unclosed(_) | Read::Statement(..) => {}
+    });
+    braces
+}
+
+/// What the statement reader finds, in source order.
+enum Read {
+    /// A top-level statement's range, its `;` included.
+    Statement(usize, usize),
+    /// The `{` that opens a `for` block's body.
+    BodyOpens(usize),
+    /// The `}` that closes a `for` block's body, and where the body
+    /// statement it ends begins, if its text comes before that `}`.
+    BodyCloses(usize, Option<usize>),
+    /// At the `;` that ends a statement in a `for` block's body, the first
+    /// `{` of its unquoted text that the statement did not close.
+    Unclosed(usize),
+}
+
+/// The reader behind `statement_spans` and `block_braces`.
+fn read_statements(source: &str, mut found: impl FnMut(Read)) {
     let mut start = None;
-    let mut braces = 0usize;
+    // The bodies open around the current character, innermost last: None for
+    // a procedure's, in which every brace counts, and for a `for` block's
+    // the statement its body interrupted, which resumes when it closes.
+    let mut bodies: Vec<Option<(Option<usize>, Option<usize>)>> = Vec::new();
+    // Outside a procedure's body, the statement being read, at the top level
+    // or in a block's body: where it starts, and where its first word ends.
+    let (mut statement, mut first_end) = (None, None);
+    // Where the `{`s in that statement that are text and not yet closed by a
+    // `}` are. Only a statement that is neither a `proc` nor a `for` has any,
+    // so the block statement a closed body resumes has none.
+    let mut text_braces: Vec<usize> = Vec::new();
     let mut chars = source.char_indices().peekable();
     while let Some((index, ch)) = chars.next() {
+        let in_procedure = bodies.last() == Some(&None);
         if ch == '"' {
-            if start.is_none() {
-                start = Some(index);
+            start.get_or_insert(index);
+            if !in_procedure {
+                statement.get_or_insert(index);
             }
             let mut escaped = false;
             for (_, ch) in chars.by_ref() {
@@ -618,6 +728,9 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
             continue;
         }
         if ch == '#' || (ch == '/' && chars.peek().map(|(_, next)| *next) == Some('/')) {
+            if statement.is_some() && first_end.is_none() {
+                first_end = Some(index);
+            }
             for (_, ch) in chars.by_ref() {
                 if ch == '\n' {
                     break;
@@ -625,32 +738,130 @@ pub(crate) fn statement_spans(source: &str) -> Vec<(usize, usize)> {
             }
             continue;
         }
-        if ch == '{' {
-            braces += 1;
-        } else if ch == '}' {
-            braces = braces.saturating_sub(1);
-        }
-        if ch == ';' && braces == 0 {
-            if let Some(begin) = start.take() {
-                spans.push((begin, index + 1));
+        if in_procedure {
+            match ch {
+                '{' => bodies.push(None),
+                '}' => {
+                    bodies.pop();
+                }
+                _ => {}
             }
             continue;
         }
-        if start.is_none() && !ch.is_whitespace() {
-            start = Some(index);
+        if ch.is_whitespace() {
+            if statement.is_some() && first_end.is_none() {
+                first_end = Some(index);
+            }
+            continue;
         }
+        let first = statement.map(|begin| &source[begin..first_end.unwrap_or(index)]);
+        match (ch, first) {
+            ('{', Some("proc")) => bodies.push(None),
+            // `for{` is a word, and `for {` a block.
+            ('{', Some("for")) if first_end.is_some() => {
+                bodies.push(Some((statement.take(), first_end.take())));
+                found(Read::BodyOpens(index));
+                continue;
+            }
+            ('{', _) => text_braces.push(index),
+            ('}', _) if !text_braces.is_empty() => {
+                text_braces.pop();
+            }
+            ('}', _) if !bodies.is_empty() => {
+                let ended = statement;
+                if let Some(Some(interrupted)) = bodies.pop() {
+                    (statement, first_end) = interrupted;
+                }
+                found(Read::BodyCloses(index, ended));
+                continue;
+            }
+            (';', _) => {
+                if bodies.is_empty() {
+                    if let Some(begin) = start.take() {
+                        found(Read::Statement(begin, index + 1));
+                    }
+                } else if let Some(open) = text_braces.first() {
+                    found(Read::Unclosed(*open));
+                }
+                (statement, first_end) = (None, None);
+                text_braces.clear();
+                continue;
+            }
+            _ => {}
+        }
+        start.get_or_insert(index);
+        statement.get_or_insert(index);
     }
+}
+
+/// Each statement's range, and a last statement without its `;`, which the
+/// parser reads as well (parser.rs `scan_statements_at`).
+pub(crate) fn statements_of(text: &str) -> Vec<(usize, usize)> {
+    let mut spans = statement_spans(text);
+    spans.extend(tail(text, &spans));
     spans
 }
 
-/// The words of a statement, ignoring quoted text and comments.
+/// The range of what follows the last `;`-terminated statement, from its
+/// first word, when anything other than whitespace, comments and empty
+/// statements does. The parser reads each `;` with nothing before it as an
+/// empty statement, and begins the last statement at its first word.
+fn tail(text: &str, spans: &[(usize, usize)]) -> Option<(usize, usize)> {
+    let after = spans.last().map_or(0, |(_, end)| *end);
+    let first = blank_comments(&text[after..]).find(|ch: char| !ch.is_whitespace() && ch != ';')?;
+    Some((after + first, text.len()))
+}
+
+/// The words of a statement as the parser splits them: at whitespace, with
+/// each comment read as whitespace, so a comment is no word and ends the word
+/// it touches (parser.rs `scan_statements_at`).
 pub(crate) fn statement_words(text: &str) -> Vec<&str> {
-    text.trim_end_matches(';').split_whitespace().collect()
+    let text = text.trim_end_matches(';');
+    let code = blank_comments(text);
+    word_offsets(&code)
+        .map(|(offset, word)| &text[offset..offset + word.len()])
+        .collect()
+}
+
+/// A statement with each comment replaced by spaces, byte for byte, so a
+/// word's range in it is its range in the statement. The loader reads a
+/// statement with its comments blanked the same way (parser.rs
+/// `scan_statements_at`).
+pub(crate) fn blank_comments(statement: &str) -> String {
+    let mut out = String::with_capacity(statement.len());
+    let (mut quoted, mut escaped, mut comment) = (false, false, false);
+    let mut chars = statement.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if comment {
+            if ch == '\n' {
+                comment = false;
+                out.push('\n');
+            } else {
+                out.push_str(&" ".repeat(ch.len_utf8()));
+            }
+        } else if quoted {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                quoted = false;
+            }
+        } else if ch == '#' || (ch == '/' && chars.peek() == Some(&'/')) {
+            comment = true;
+            out.push(' ');
+        } else {
+            quoted = ch == '"';
+            out.push(ch);
+        }
+    }
+    out
 }
 
 /// The name in a leading `module NAME;` statement, if there is one.
 fn declared_module(source: &str) -> Option<String> {
-    let (start, end) = *statement_spans(source).first()?;
+    let (start, end) = *statements_of(source).first()?;
     match statement_words(&source[start..end]).as_slice() {
         ["module", name] => Some((*name).to_string()),
         _ => None,
@@ -660,7 +871,7 @@ fn declared_module(source: &str) -> Option<String> {
 /// Every module named by a `use NAME;` statement, in source order.
 fn used_modules(source: &str) -> Result<Vec<String>, String> {
     let mut used = Vec::new();
-    for (start, end) in statement_spans(source) {
+    for (start, end) in statements_of(source) {
         if let ["use", name] = statement_words(&source[start..end]).as_slice() {
             check_module_name(name)?;
             if used.iter().any(|existing| existing == name) {
@@ -698,7 +909,7 @@ fn check_module_name(name: &str) -> Result<(), String> {
 fn tag_offsets(source: &str) -> Vec<usize> {
     let code = blank_noncode(source);
     let mut offsets = Vec::new();
-    for (start, end) in statement_spans(&code) {
+    for (start, end) in statements_of(&code) {
         let words: Vec<(usize, &str)> = word_offsets(&code[start..end])
             .map(|(offset, word)| (start + offset, word))
             .collect();
@@ -803,7 +1014,7 @@ fn blank_noncode(source: &str) -> String {
 fn strip_headers(source: &str) -> String {
     let mut out: Vec<char> = source.chars().collect();
     let offsets: Vec<usize> = source.char_indices().map(|(index, _)| index).collect();
-    for (start, end) in statement_spans(source) {
+    for (start, end) in statements_of(source) {
         let words = statement_words(&source[start..end]);
         if !matches!(words.as_slice(), ["module", _] | ["use", _]) {
             continue;

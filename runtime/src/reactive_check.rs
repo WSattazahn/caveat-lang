@@ -5,8 +5,10 @@
 use super::{
     parse_directive_at, Directive, Effect, Expr, Parameter, ParameterDomain, ReactiveSession,
 };
-use crate::link::{is_identifier_char, is_identifier_start, statement_spans, statement_words};
-use crate::parser::{scan_statements_at, Position};
+use crate::link::{
+    is_identifier_char, is_identifier_start, statement_spans, statement_words, statements_of,
+};
+use crate::parser::{position_of, scan_statements_at, Position};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -97,14 +99,10 @@ struct Block {
 
 fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
     let kinds = crate::repeat::declared_kinds(source);
-    let mut spans = statement_spans(source);
-    // The parser accepts a last statement without its semicolon.
-    let tail = spans.last().map_or(0, |(_, end)| *end);
-    if !scan_statements_at(&source[tail..], position_of(source, tail))?.is_empty() {
-        spans.push((tail, source.len()));
-    }
     let (mut out, mut blocks) = (Vec::new(), Vec::new());
-    for (start, end) in spans {
+    // The parser accepts a last statement without its semicolon, after any
+    // empty statements, and Repetition expands a block there.
+    for (start, end) in statements_of(source) {
         let text = &source[start..end];
         let at = position_of(source, start);
         if statement_words(text).first() != Some(&"for") {
@@ -117,7 +115,7 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
             }
             continue;
         }
-        let (Some(open), Some(close)) = (text.find('{'), text.rfind('}')) else {
+        let (Some(open), Some(close)) = crate::repeat::body_braces(text) else {
             continue;
         };
         let (kind, binding, routed) = match statement_words(&text[..open])[..] {
@@ -165,15 +163,6 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         });
     }
     Ok((out, blocks))
-}
-
-fn position_of(source: &str, offset: usize) -> Position {
-    let before = &source[..offset];
-    let line_start = before.rfind('\n').map_or(0, |at| at + 1);
-    Position {
-        line: before.matches('\n').count() + 1,
-        column: before[line_start..].chars().count() + 1,
-    }
 }
 
 /// A comment line directly above the statement: `# caveat check: allow

@@ -33,6 +33,16 @@ impl Position {
     }
 }
 
+/// The one-based line and Unicode column of `offset` in `source`.
+pub(crate) fn position_of(source: &str, offset: usize) -> Position {
+    let before = &source[..offset];
+    let line_start = before.rfind('\n').map_or(0, |at| at + 1);
+    Position {
+        line: before.matches('\n').count() + 1,
+        column: before[line_start..].chars().count() + 1,
+    }
+}
+
 /// Semicolons and comment markers are syntax only outside quoted text.
 /// Keeping comment boundaries as whitespace also prevents adjacent tokens merging.
 fn scan_statements(source: &str) -> Result<Vec<(String, Position)>, String> {
