@@ -28,6 +28,11 @@ with `--tag next`, which does not set `latest`, and `latest` was then moved
 to it. So install a candidate by the tag `next` or by its exact version;
 `npm dist-tag ls caveat-lang` shows which version each tag names.
 
+The kit in the repository's `main` branch is the next candidate's
+development version, `0.1.0-rc.5`, which is **not released**: it is on
+neither npm nor GitHub. A tarball built from `main` carries that version.
+Until rc.5 is released, install rc.4 as shown above.
+
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
 page](docs/REFERENCE.md) gives the language in brief, and the [worked
