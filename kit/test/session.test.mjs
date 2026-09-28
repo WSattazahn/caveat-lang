@@ -48,6 +48,21 @@ test('a save whose graph holds a renewal its renewals do not list fails to resto
   } finally { session.close(); }
 });
 
+test('a save whose graph holds a reading its stream does not list fails to restore', () => {
+  // Accepted, it made the next sample a fatal outcome instead.
+  const source = 'claim safe; evidence plain from "a plain reading"; readings flow from plain limit 4; event rd x min -10 max 10; on rd sample flow = x supports safe;';
+  const session = real.open(source);
+  try {
+    for (const x of [1, 2]) assert.equal(session.dispatch('rd', { x }).outcome, 'accepted');
+    const saved = JSON.parse(session.save());
+    const { flow } = saved.reading_streams;
+    assert.deepEqual(flow.occurrences.map(reading => reading.id), ['flow@1', 'flow@2']);
+    const edited = JSON.stringify({ ...saved, reading_streams: { flow: { ...flow, current: 'flow@1', occurrences: flow.occurrences.slice(0, 1) } } });
+    assert.throws(() => real.restore(source, edited), error => error instanceof CaveatError && error.kind === 'restore'
+      && error.message === 'cannot restore save: reading stream flow occurrence flow@2 is not in its occurrences');
+  } finally { session.close(); }
+});
+
 test('payloads that JSON would change are refused before the session is touched', () => {
   for (const bad of [NaN, Infinity, -Infinity, undefined, () => 1, new Date(0), new Map(), { a: [1, NaN] }, { a: undefined }, 10n]) {
     assert.throws(() => payloadText(bad), error => error instanceof CaveatError && error.kind === 'payload', String(bad));

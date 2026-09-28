@@ -1,7 +1,6 @@
 //! Saving a reactive session and resuming it without replaying events. See
 //! spec/caveat-save-0.1.md.
 use caveat_runtime::reactive::{ReactiveSave, ReactiveSession};
-use std::collections::BTreeMap;
 
 const PROGRAM: &str = r#"
 budget 9;
@@ -300,21 +299,116 @@ fn paths(
     }
 }
 
-/// The place at `path`, if an earlier alteration has not removed it.
-fn at<'a>(
-    value: &'a mut serde_json::Value,
-    path: &[serde_json::Value],
-) -> Option<&'a mut serde_json::Value> {
-    let pointer: String = path
-        .iter()
+/// `path` as a JSON pointer.
+fn pointer(path: &[serde_json::Value]) -> String {
+    path.iter()
         .map(|step| match step {
             serde_json::Value::String(key) => {
                 format!("/{}", key.replace('~', "~0").replace('/', "~1"))
             }
             other => format!("/{other}"),
         })
-        .collect();
-    value.pointer_mut(&pointer)
+        .collect()
+}
+
+/// The place at `path`, if an earlier alteration has not removed it.
+fn at<'a>(
+    value: &'a mut serde_json::Value,
+    path: &[serde_json::Value],
+) -> Option<&'a mut serde_json::Value> {
+    value.pointer_mut(&pointer(path))
+}
+
+/// Take the place at `path` out of its object or array, if it is still there.
+fn remove(value: &mut serde_json::Value, path: &[serde_json::Value]) {
+    let Some((last, parent)) = path.split_last() else {
+        return;
+    };
+    match (at(value, parent), last) {
+        (Some(serde_json::Value::Object(fields)), serde_json::Value::String(key)) => {
+            fields.remove(key);
+        }
+        (Some(serde_json::Value::Array(items)), serde_json::Value::Number(index)) => {
+            if let Some(index) = index.as_u64().filter(|index| *index < items.len() as u64) {
+                items.remove(index as usize);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// What a restored session must then get through, each event accepted or
+/// rejected as a value.
+const NEXT_EVENTS: [(&str, &str); 6] = [
+    ("tick", r#"{"dt": 0.1}"#),
+    ("read", r#"{"x": 1}"#),
+    ("eat", "{}"),
+    ("regrow", "{}"),
+    ("check", "{}"),
+    ("start", "{}"),
+];
+
+/// Fatal outcomes an accepted save still leads to, each a separate known
+/// issue: the event, part of the message, and why. A fatal outcome is skipped
+/// only when an entry names its event and message; any other fails the test,
+/// like a crash. Remove an entry when its issue is fixed.
+const KNOWN_FATAL: [(&str, &str, &str); 5] = [
+    (
+        "start",
+        "must be explicitly reopened before revision",
+        "committing a decision already in force is fatal instead of a rejection, \
+         save or no save; another change fixes it",
+    ),
+    (
+        "tick",
+        "that its value and conditions never read",
+        "when the late `faded` reaches bite@2, hud.text's explanation is fatal, \
+         save or no save: tick played() to 40 seconds",
+    ),
+    (
+        "tick",
+        "reactive event sequence exhausted",
+        "restore accepts a sequence of u64::MAX, and the next event cannot be numbered",
+    ),
+    (
+        "read",
+        "must name a declared",
+        "restore does not check the kinds a created relation connects: with \
+         route@3 relies_on safe, the next revision of route is fatal",
+    ),
+    (
+        "read",
+        "commitment basis includes unobserved evidence",
+        "the same: route@3 relies_on evidence nothing observes",
+    ),
+];
+
+/// Restore `text` and play `NEXT_EVENTS` on it: `Ok(false)` if it is refused,
+/// `Ok(true)` if it is accepted and plays on. A known fatal outcome ends the
+/// play, since a host discards a session after one, and counts in `skipped`.
+fn restore_and_play(text: &str, skipped: &mut [usize]) -> Result<bool, String> {
+    let restored = std::panic::catch_unwind(|| ReactiveSession::restore_json(PROGRAM, text))
+        .map_err(|_| "restoring it panicked".to_string())?;
+    let Ok(mut game) = restored else {
+        return Ok(false);
+    };
+    let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        for (event, payload) in NEXT_EVENTS {
+            if let Err(fatal) = game.dispatch_outcome_json(event, payload) {
+                let known = KNOWN_FATAL
+                    .iter()
+                    .position(|(on, part, _)| *on == event && fatal.message.contains(part))
+                    .ok_or_else(|| format!("{event} was fatal: {}", fatal.message))?;
+                skipped[known] += 1;
+                break;
+            }
+            let _ = game.snapshot();
+            let _ = serde_json::to_string(&game.view());
+            let _ = game.save();
+        }
+        Ok(true)
+    }));
+    run.unwrap_or_else(|_| Err("a later event panicked".into()))
 }
 
 #[test]
@@ -346,14 +440,20 @@ fn no_altered_save_can_crash_the_runtime() {
     let rounds = setting("SAVE_FUZZ_ROUNDS", 3000);
     let mut random = Mulberry(setting("SAVE_FUZZ_SEED", 20_260_922));
     let mut accepted = 0;
+    let mut skipped = [0; KNOWN_FATAL.len()];
     for round in 0..rounds {
         let mut altered = save.clone();
         for _ in 0..1 + random.below(3) {
             let path = &places[random.below(places.len())];
+            let alteration = random.below(8);
+            if alteration == 7 {
+                remove(&mut altered, path);
+                continue;
+            }
             let Some(target) = at(&mut altered, path) else {
                 continue;
             };
-            *target = match random.below(7) {
+            *target = match alteration {
                 0 => serde_json::Value::Null,
                 1 => names[random.below(names.len())].into(),
                 2 => (random.below(2000) as f64 - 1000.0).into(),
@@ -364,33 +464,45 @@ fn no_altered_save_can_crash_the_runtime() {
             };
         }
         let text = altered.to_string();
-        let outcome = std::panic::catch_unwind(|| ReactiveSession::restore_json(PROGRAM, &text));
-        let restored = outcome.unwrap_or_else(|_| panic!("round {round} panicked on {text}"));
-        if let Ok(mut game) = restored {
-            accepted += 1;
-            // Whatever was accepted must also keep running without panicking.
-            let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                for event in ["tick", "read", "eat", "regrow", "check", "start"] {
-                    let parameters: BTreeMap<String, f64> = match event {
-                        "tick" => [("dt".to_string(), 0.1)].into(),
-                        "read" => [("x".to_string(), 1.0)].into(),
-                        _ => BTreeMap::new(),
-                    };
-                    let _ = game.apply(event, &parameters);
-                    let _ = game.snapshot();
-                    let _ = serde_json::to_string(&game.view());
-                    let _ = game.save();
-                }
-            }));
-            assert!(
-                run.is_ok(),
-                "round {round}: an accepted save crashed a later event: {text}"
-            );
+        // Whatever was accepted must also keep running: no panic, and no
+        // fatal outcome on the next events.
+        match restore_and_play(&text, &mut skipped) {
+            Ok(played) => accepted += u32::from(played),
+            Err(failure) => panic!("round {round}: {failure}: {text}"),
         }
     }
+    eprintln!("known fatal outcomes skipped: {skipped:?}");
     // Some alterations are harmless (a changed number within range): make
     // sure the generator exercised both outcomes.
     assert!(accepted > 0 && accepted < rounds, "accepted {accepted}");
+}
+
+// Every save missing one record, a list entry or a field, must be refused or
+// play on. The fuzz above removes records too, but reaches any given one
+// about once in 2,500 alterations. A stream missing its first reading, which
+// restore used to accept and the next sample then failed on, is one of them.
+#[test]
+fn no_save_missing_a_record_can_crash_the_runtime() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let mut places = Vec::new();
+    paths(&save, Vec::new(), &mut places);
+    let mut accepted = 0;
+    let mut skipped = [0; KNOWN_FATAL.len()];
+    // The first place is the whole save.
+    for path in &places[1..] {
+        let mut altered = save.clone();
+        remove(&mut altered, path);
+        let text = altered.to_string();
+        match restore_and_play(&text, &mut skipped) {
+            Ok(played) => accepted += usize::from(played),
+            Err(failure) => panic!("without {}: {failure}: {text}", pointer(path)),
+        }
+    }
+    eprintln!("known fatal outcomes skipped: {skipped:?}");
+    assert!(
+        accepted > 0 && accepted < places.len() - 1,
+        "accepted {accepted}"
+    );
 }
 
 #[test]
@@ -617,4 +729,309 @@ fn every_save_of_a_renewing_session_restores() {
     let outcome = serde_json::to_value(game.dispatch_outcome_json("regrow", "{}")).unwrap();
     assert_eq!(outcome["Ok"]["code"], "renewal_limit", "{outcome}");
     resumes(&game);
+}
+
+/// One reading stream, sampled by one event.
+const READING: &str = r#"
+claim safe;
+evidence plain from "a plain reading";
+readings flow from plain limit 4;
+event rd x min -10 max 10;
+on rd sample flow = x supports safe;
+"#;
+
+/// A save of `READING` after `samples` samples.
+fn sampled(samples: usize) -> serde_json::Value {
+    let mut game = ReactiveSession::from_source(READING).unwrap();
+    for sample in 1..=samples {
+        send(&mut game, "rd", &[("x", sample as f64)]);
+    }
+    serde_json::to_value(game.save().unwrap()).unwrap()
+}
+
+/// The edited `save` must be refused with `expected`. An accepted one fails
+/// with what its next sample does.
+fn unsampled(save: &serde_json::Value, expected: &str) {
+    match ReactiveSession::restore_json(READING, &save.to_string()) {
+        Err(error) => assert_eq!(error, format!("cannot restore save: {expected}")),
+        Ok(mut game) => panic!(
+            "accepted with readings {:?}; the next sample gives {}",
+            game.snapshot().reading_streams["flow"]
+                .occurrences
+                .iter()
+                .map(|occurrence| occurrence.id.clone())
+                .collect::<Vec<_>>(),
+            match game.dispatch_outcome_json("rd", r#"{"x": 5}"#) {
+                Ok(outcome) => serde_json::to_value(outcome).unwrap()["outcome"].to_string(),
+                Err(fatal) => serde_json::to_string(&fatal).unwrap(),
+            }
+        ),
+    }
+}
+
+// The graph holds flow@2 but the stream lists only flow@1, so the next
+// sample would generate flow@2 again: a fatal collision on a later event
+// instead of a refused save. The same for a stream that lists none of its
+// readings, only its later one, or both in the wrong order.
+#[test]
+fn a_reading_its_stream_does_not_list_is_refused() {
+    let save = sampled(2);
+    let listed = |save: &serde_json::Value| {
+        save["reading_streams"]["flow"]["occurrences"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|occurrence| occurrence["id"].clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(listed(&save), ["flow@1", "flow@2"]);
+    let mut first = save.clone();
+    first["reading_streams"]["flow"]["occurrences"]
+        .as_array_mut()
+        .unwrap()
+        .truncate(1);
+    first["reading_streams"]["flow"]["current"] = "flow@1".into();
+    unsampled(
+        &first,
+        "reading stream flow occurrence flow@2 is not in its occurrences",
+    );
+    let mut none = save.clone();
+    none["reading_streams"]["flow"]["occurrences"] = serde_json::json!([]);
+    none["reading_streams"]["flow"]["current"] = serde_json::Value::Null;
+    unsampled(
+        &none,
+        "reading stream flow occurrence flow@1 is not in its occurrences",
+    );
+    let mut second = save.clone();
+    second["reading_streams"]["flow"]["occurrences"]
+        .as_array_mut()
+        .unwrap()
+        .remove(0);
+    assert_eq!(listed(&second), ["flow@2"]);
+    unsampled(
+        &second,
+        "reading stream flow occurrence flow@1 is not in its occurrences",
+    );
+    let mut swapped = save.clone();
+    swapped["reading_streams"]["flow"]["occurrences"]
+        .as_array_mut()
+        .unwrap()
+        .swap(0, 1);
+    swapped["reading_streams"]["flow"]["current"] = "flow@1".into();
+    unsampled(
+        &swapped,
+        "reading stream flow occurrence flow@1 is not in its occurrences",
+    );
+}
+
+// A reading past the declared limit of 4, which no sample could make: renamed
+// everywhere the save names it, or added to the graph alone. Listed or not,
+// the limit bounds it.
+#[test]
+fn a_reading_past_its_limit_is_refused() {
+    let renamed: serde_json::Value =
+        serde_json::from_str(&sampled(2).to_string().replace("flow@2", "flow@9")).unwrap();
+    assert_eq!(renamed["reading_streams"]["flow"]["current"], "flow@9");
+    unsampled(
+        &renamed,
+        "reading stream flow occurrence flow@9 is not in its occurrences",
+    );
+    let mut extra = sampled(2);
+    extra["graph"]["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"kind": "occurrence", "name": "flow@5"}));
+    unsampled(
+        &extra,
+        "reading stream flow occurrence flow@5 is not in its occurrences",
+    );
+    let mut listed: serde_json::Value =
+        serde_json::from_str(&sampled(4).to_string().replace("flow@4", "flow@5")).unwrap();
+    let mut fourth = listed["reading_streams"]["flow"]["occurrences"][3].clone();
+    fourth["id"] = "flow@4".into();
+    listed["reading_streams"]["flow"]["occurrences"]
+        .as_array_mut()
+        .unwrap()
+        .insert(3, fourth);
+    unsampled(&listed, "reading stream flow does not match the program");
+}
+
+// The stream was already checked against the graph the other way; that stays
+// as it was.
+#[test]
+fn readings_the_graph_does_not_hold_are_refused() {
+    let mut missing = sampled(1);
+    let mut second = missing["reading_streams"]["flow"]["occurrences"][0].clone();
+    second["id"] = "flow@2".into();
+    missing["reading_streams"]["flow"]["occurrences"]
+        .as_array_mut()
+        .unwrap()
+        .push(second);
+    missing["reading_streams"]["flow"]["current"] = "flow@2".into();
+    unsampled(&missing, "flow@2 must name a declared evidence");
+    let mut stale = sampled(2);
+    stale["reading_streams"]["flow"]["current"] = "flow@1".into();
+    unsampled(
+        &stale,
+        "reading stream flow current is not its latest reading",
+    );
+}
+
+// Decision series have no such gap. Every commitment the graph holds needs a
+// journal entry, the entry of a series needs the revision it names, and each
+// revision must be ACTION@N at position N (check_saved_journal). So a series
+// that leaves out a revision the graph holds, one renamed past the limit, or
+// one only the graph holds was already refused, and still is.
+#[test]
+fn a_revision_its_series_does_not_list_is_refused() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    assert_eq!(save["decision_series"]["route"]["current"], "route@3");
+    assert_eq!(save["decision_series"]["route"]["limit"], 16);
+    let refused = |save: &serde_json::Value, expected: &str| {
+        let error = ReactiveSession::restore_json(PROGRAM, &save.to_string())
+            .map(|_| ())
+            .unwrap_err();
+        assert_eq!(error, format!("cannot restore save: {expected}"));
+    };
+    let mut unlisted = save.clone();
+    unlisted["decision_series"]["route"]["revisions"]
+        .as_array_mut()
+        .unwrap()
+        .pop();
+    unlisted["decision_series"]["route"]["current"] = "route@2".into();
+    refused(
+        &unlisted,
+        "decision journal: commitment does not belong to its decision series",
+    );
+    let mut unjournaled = unlisted.clone();
+    let journal = unjournaled["decision_journal"].as_array_mut().unwrap();
+    assert_eq!(journal.pop().unwrap()["commitment"], "route@3");
+    refused(
+        &unjournaled,
+        "decision journal: created commitment has no journal entry",
+    );
+    // An entry whose decision is its own commitment is not looked up in a
+    // series, but then no rule of its event commits it.
+    let mut undecided = unlisted.clone();
+    let journal = undecided["decision_journal"].as_array_mut().unwrap();
+    journal.last_mut().unwrap()["decision"] = "route@3".into();
+    refused(
+        &undecided,
+        "decision journal: event cannot make this decision change",
+    );
+    let renamed: serde_json::Value =
+        serde_json::from_str(&save.to_string().replace("route@3", "route@17")).unwrap();
+    refused(
+        &renamed,
+        "decision journal: revision identity/order has no matching commitment",
+    );
+    let mut extra = save.clone();
+    extra["graph"]["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::json!({"kind": "commitment", "name": "route@9", "reason": "enough"}));
+    refused(
+        &extra,
+        "decision journal: created commitment has no journal entry",
+    );
+}
+
+/// Readings with what else can happen to them: identifiers, a withdrawal, a
+/// decision reopened and revised on them, a late caveat, and their limit.
+const SAMPLING: &str = r#"
+identifiers limit 8;
+claim safe;
+claim misreading;
+evidence plain from "a plain reading";
+evidence recheck from "a second look";
+caveat faded consequence low;
+readings flow from plain limit 4;
+decisions go limit 3;
+event tick dt min 0 max 0.1;
+event rd x min -10 max 10;
+event tagged who id;
+event decide;
+event doubt;
+event revise;
+event misread;
+on rd sample flow = x supports safe;
+on tagged sample flow = who supports safe;
+on decide when not committed(go) commit go because enough using latest(flow);
+on doubt when committed(go) and not reopened(go) reopen go because latest(flow);
+on revise when reopened(go) commit go because enough using latest(flow);
+on misread when not observed(recheck) reveal recheck supports misreading;
+on misread withdraw latest(flow) because recheck;
+on misread qualify recheck with faded after 0.2;
+"#;
+
+/// A session of `SAMPLING` resumed from `game`'s save must be `game`, and
+/// stay it through the next events: samples, a new identifier, a revision, a
+/// withdrawal and the time a late caveat takes.
+fn resumes_sampling(game: &ReactiveSession) {
+    let mut original = game.clone();
+    let mut resumed = ReactiveSession::restore_json(SAMPLING, &game.save_json().unwrap())
+        .unwrap_or_else(|error| panic!("{error}"));
+    assert_eq!(resumed.snapshot(), original.snapshot());
+    for (event, payload) in [
+        ("rd", r#"{"x": -1}"#),
+        ("tagged", r#"{"who": "b"}"#),
+        ("decide", "{}"),
+        ("doubt", "{}"),
+        ("revise", "{}"),
+        ("misread", "{}"),
+        ("tick", r#"{"dt": 0.1}"#),
+        ("tick", r#"{"dt": 0.1}"#),
+        ("tick", r#"{"dt": 0.1}"#),
+        ("rd", r#"{"x": 1}"#),
+    ] {
+        let expected = serde_json::to_value(original.dispatch_outcome_json(event, payload));
+        let actual = serde_json::to_value(resumed.dispatch_outcome_json(event, payload));
+        assert_eq!(actual.unwrap(), expected.unwrap(), "after {event}");
+    }
+    assert_eq!(resumed.snapshot(), original.snapshot());
+}
+
+// Saves the runtime writes itself still restore: with no reading, one,
+// several and as many as the limit allows, a reading of an identifier, a
+// withdrawn reading, a decision reopened and revised on readings, a late
+// caveat pending and fired, and after the limits refused a sample and a
+// revision.
+#[test]
+fn every_save_of_a_sampling_session_restores() {
+    let mut game = ReactiveSession::from_source(SAMPLING).unwrap();
+    resumes_sampling(&game);
+    for (event, payload, expected) in [
+        ("rd", r#"{"x": 1}"#, "accepted"),
+        ("decide", "{}", "accepted"),
+        ("tagged", r#"{"who": "a"}"#, "accepted"),
+        ("doubt", "{}", "accepted"),
+        ("revise", "{}", "accepted"),
+        ("misread", "{}", "accepted"),
+        ("tick", r#"{"dt": 0.1}"#, "accepted"),
+        ("tick", r#"{"dt": 0.1}"#, "accepted"),
+        ("tick", r#"{"dt": 0.1}"#, "accepted"),
+        ("rd", r#"{"x": 2}"#, "accepted"),
+        ("doubt", "{}", "accepted"),
+        ("revise", "{}", "accepted"),
+        ("rd", r#"{"x": 3}"#, "accepted"),
+        ("rd", r#"{"x": 4}"#, "history_limit"),
+        ("doubt", "{}", "accepted"),
+        ("revise", "{}", "history_limit"),
+    ] {
+        let outcome = game
+            .dispatch_outcome_json(event, payload)
+            .unwrap_or_else(|fatal| panic!("{event}: fatal {}", fatal.message));
+        let outcome = serde_json::to_value(outcome).unwrap();
+        let code = outcome.get("code").unwrap_or(&outcome["outcome"]);
+        assert_eq!(code, expected, "{event}: {outcome}");
+        resumes_sampling(&game);
+    }
+    let snapshot = game.snapshot();
+    let readings = &snapshot.reading_streams["flow"];
+    assert_eq!(readings.occurrences.len(), readings.limit);
+    assert_eq!(snapshot.decision_series["go"].revisions.len(), 3);
+    let save = game.save().unwrap();
+    assert_eq!(save.identifiers, ["a"]);
+    assert_eq!(save.withdrawals.len(), 1);
+    assert!(save.scheduled_qualifications.is_empty(), "the caveat fired");
 }
