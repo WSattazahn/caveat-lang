@@ -1314,6 +1314,7 @@ fn every_program_with_a_for_block_expands_as_before() {
     );
     // Every other tracked .cav file with a `for` block, all of them plain.
     for file in [
+        "../experiments/agent-ledger/ledger-approved-head.cav",
         "../experiments/agent-ledger/ledger-identifiers.cav",
         "../experiments/agent-ledger/ledger.cav",
         "../experiments/glowcap/caveat/glowcap.cav",

@@ -79,11 +79,54 @@ test('validate lists what a program declares, and fails on one that does not loa
 // several pull requests in one scenario.
 test('the agent ledger scenarios pass', () => {
   const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
-  for (const [name, count] of [['ledger.scenarios.json', 5], ['ledger-identifiers.scenarios.json', 11]]) {
+  for (const [name, count] of [
+    ['ledger.scenarios.json', 5],
+    ['ledger-identifiers.scenarios.json', 11],
+    ['ledger-approved-head.scenarios.json', 16],
+  ]) {
     const result = caveat(['test', path.join(ledger, name)]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, new RegExp(`^${count} passed, 0 failed `, 'm'), name);
   }
+});
+
+// ledger-approved-head.cav is ledger.cav corrected so that no pull request
+// starts with a go-ahead; ledger.cav stays as recorded. Apart from comments,
+// the two differ in that one line, the corrected scenarios include the
+// recorded ones unchanged, and the merge that is fatal in ledger.cav is
+// refused by the corrected copy.
+test('the corrected agent ledger differs from the recorded one only where a go-ahead starts', async () => {
+  const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
+  const code = text => text.split('\n').filter(line => line.trim() && !line.trim().startsWith('#'));
+  const recorded = code(await readFile(path.join(ledger, 'ledger.cav'), 'utf8'));
+  const corrected = code(await readFile(path.join(ledger, 'ledger-approved-head.cav'), 'utf8'));
+  const before = '    state $p_approved_head = 0 min 0 max 4294967295;';
+  assert.equal(recorded.filter(line => line === before).length, 1);
+  assert.deepEqual(corrected,
+    recorded.map(line => (line === before ? '    state $p_approved_head = -1 min -1 max 4294967295;' : line)));
+
+  const scenarios = async name => JSON.parse(await readFile(path.join(ledger, name), 'utf8')).scenarios;
+  const own = await scenarios('ledger-approved-head.scenarios.json');
+  for (const scenario of await scenarios('ledger.scenarios.json')) {
+    assert.deepEqual(own.find(item => item.id === scenario.id), scenario, scenario.id);
+  }
+
+  await inDirectory(async directory => {
+    const events = path.join(directory, 'events.jsonl');
+    await writeFile(events, [
+      { event: 'checks', payload: { target: 'pr26', commit: 0, result: 'passed' } },
+      { event: 'merge', payload: { target: 'pr26' } },
+    ].map(line => JSON.stringify(line)).join('\n'));
+    const last = result => JSON.parse(result.stdout.trim().split('\n').at(-1));
+    const fatal = caveat(['replay', path.join(ledger, 'ledger.cav'), events]);
+    assert.equal(fatal.status, 1, fatal.stderr);
+    assert.equal(last(fatal).record, 'fatal');
+    assert.match(last(fatal).message, /cannot qualify a value with unobserved evidence pr26_go$/);
+    const refused = caveat(['replay', path.join(ledger, 'ledger-approved-head.cav'), events]);
+    assert.equal(refused.status, 0, refused.stderr);
+    const { outcome, origin, message } = last(refused);
+    assert.deepEqual([outcome, origin, message], ['rejected', 'policy', 'No go-ahead for the current head.']);
+  });
 });
 
 // Routed repetition (spec/caveat-routed-repetition-0.1.md section 5): the
