@@ -73,9 +73,14 @@ save is refused with an error, and never crashes the runtime, when:
 - evidence the save cites is not observed, that is, the restored graph holds
   nothing it supports or opposes: evidence a `relies_on` relation relies on
   or a `reopens` relation names as its cause, evidence in any lineage,
-  grounds, basis, guard or other provenance record, and a withdrawal's
-  reason. Evidence enters these only once observed, and the next commitment
-  or qualification that reads it requires that;
+  grounds, basis, guard or other provenance record, and withdrawn evidence
+  and a withdrawal's reason. Evidence enters these only once observed, and
+  the next commitment, qualification or withdrawal that reads it requires
+  that;
+- a commitment retains a caveat or relies on evidence that is not in its
+  basis. A commitment retains exactly its basis's caveats and relies on
+  exactly its evidence, and reading `committed(...)` or `reopened(...)` adds
+  what it retains and relies on to that basis;
 - a created node's name is not an occurrence of a declared reading stream or
   renewable evidence, or a commitment this program's rules make;
 - the graph and the renewals disagree: the graph holds an occurrence
@@ -121,17 +126,23 @@ edited save is refused or remains playable without crashing.
   Renewals that name an occurrence the graph does not hold were already
   refused.
 - 2026-09-27: restore refuses a save with a relation between kinds of node no
-  event relates, or citing evidence nothing observes where the runtime relies
-  on it being observed, found by the save fuzz. Such a save used to be
-  accepted as long as every name was declared or created. Read back as what
-  events write, a revision relying on a claim made the decision's next
-  revision fatal `unclassified` ("safe must name a declared evidence"), and a
-  retained evidence did the same ("bite must name a declared caveat").
-  Evidence nothing observed, whether relied on, in a commitment's basis, a
-  state's lineage or a selection guard, made the next commitment on it fatal
-  ("commitment basis includes unobserved evidence"), and a withdrawal's
-  unobserved reason the next read of `withdrawn(...)`. Events add only the
-  relations listed above, and evidence enters a relation or a record only
-  once observed, so saves the runtime writes restore as before. A
-  reopening's cause had to be observed already, through the decision journal
-  it must match.
+  event relates, a commitment retaining or relying on more than its basis,
+  or evidence nothing observes where the runtime relies on it being
+  observed, found by the save fuzz. Such a save used to be accepted as long
+  as every name was declared or created. Read back as what events write, a
+  revision relying on a claim made the decision's next revision fatal
+  `unclassified` ("safe must name a declared evidence"), and a retained
+  evidence did the same ("bite must name a declared caveat"). Relations
+  beyond a commitment's basis changed what its next revision was made on,
+  and long enough names took the read of `committed(...)` past the
+  provenance limit, which was fatal. Evidence nothing observed, whether
+  relied on, in a commitment's basis, a state's lineage or a selection
+  guard, made the next commitment on it fatal ("commitment basis includes
+  unobserved evidence"), a withdrawal's unobserved reason the next read of
+  `withdrawn(...)`, and unobserved withdrawn evidence the next `withdraw` of
+  it. Events add only the relations listed above, a commitment's `retains`
+  and `relies_on` relations are its basis, and evidence enters a `relies_on`
+  or `reopens` relation, a withdrawal or a provenance record only once
+  observed, so saves the runtime writes restore as before. A reopening's
+  cause had to be observed already, through the decision journal it must
+  match.

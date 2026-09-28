@@ -869,6 +869,117 @@ fn a_lineage_or_withdrawal_citing_evidence_nothing_observes_is_refused() {
     );
 }
 
+/// A withdrawal a later event makes again.
+const REWITHDRAWING: &str = r#"
+claim safe;
+evidence seen from "seen";
+evidence reason from "reason";
+event see;
+event wd;
+event again;
+on see reveal seen supports safe;
+on see reveal reason supports safe;
+on wd withdraw seen because reason;
+on again when withdrawn(seen) withdraw seen because reason;
+"#;
+
+// Withdrawn evidence was observed when it was withdrawn, and withdrawing it
+// again requires that: with nothing observing it, the next withdrawal of it
+// was fatal ("cannot withdraw unobserved evidence seen").
+#[test]
+fn a_withdrawal_of_evidence_nothing_observes_is_refused() {
+    let mut game = ReactiveSession::from_source(REWITHDRAWING).unwrap();
+    for event in ["see", "wd", "again"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    let save = serde_json::to_value(game.save().unwrap()).unwrap();
+    assert_eq!(
+        save["graph"]["relations"][0],
+        serde_json::json!(["seen", "supports", "safe"])
+    );
+    let mut resumed = ReactiveSession::restore_json(REWITHDRAWING, &save.to_string()).unwrap();
+    assert_eq!(
+        outcomes(&mut resumed, &[("again", "{}")]),
+        r#"again "accepted""#
+    );
+    let mut unseen = save.clone();
+    unseen["graph"]["relations"]
+        .as_array_mut()
+        .unwrap()
+        .remove(0);
+    not_restored(
+        REWITHDRAWING,
+        &unseen,
+        "the withdrawal of seen: seen is not observed",
+        &[("again", "{}")],
+    );
+}
+
+// A commitment retains exactly its basis's caveats and relies on exactly its
+// evidence. Reading `committed(...)` or `reopened(...)` adds what it retains
+// and relies on to that basis: anything more changed what the next revision
+// was made on.
+#[test]
+fn a_relation_beyond_a_commitments_basis_is_refused() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let basis = &save["commitment_bases"]["route@3"]["provenance"];
+    assert_eq!(basis["caveats"], serde_json::json!(["unmeasured"]));
+    assert_eq!(
+        basis["evidence"],
+        serde_json::json!(["flow@1", "flow@2", "forecast"])
+    );
+    for case in [
+        "9 route@3 retains faded: faded is not in route@3's basis",
+        "12 route@3 relies_on bite: bite is not in route@3's basis",
+        "9 route@1 retains stale: stale is not in route@1's basis",
+        "12 route@1 relies_on flow@2: flow@2 is not in route@1's basis",
+    ] {
+        let (index, refusal) = case.split_once(' ').unwrap();
+        let (relation, _) = refusal.split_once(':').unwrap();
+        not_restored(
+            PROGRAM,
+            &related(index.parse().unwrap(), relation),
+            &format!("relation {refusal}"),
+            &PLAY_ON,
+        );
+    }
+}
+
+// The same with long names: relying on more than its basis took the read of
+// `committed(go)` past the provenance limit of 65536 name bytes, which was
+// fatal.
+#[test]
+fn a_commitment_relying_on_more_than_its_basis_is_refused() {
+    let names = (0..4)
+        .map(|index| format!("e{index}{}", "x".repeat(20_000)))
+        .collect::<Vec<_>>();
+    let mut source =
+        String::from("claim safe;\nstate s = 0;\nevent see;\nevent decide;\nevent poke;\n");
+    for name in &names {
+        source.push_str(&format!(
+            "evidence {name} from \"long\";\non see reveal {name} supports safe;\n"
+        ));
+    }
+    source.push_str("on decide commit go because enough;\n");
+    source.push_str("on poke when committed(go) set s = s + 1;\n");
+    let mut game = ReactiveSession::from_source(&source).unwrap();
+    for event in ["see", "decide", "poke"] {
+        game.dispatch_json(event, "{}").unwrap();
+    }
+    let mut save = serde_json::to_value(game.save().unwrap()).unwrap();
+    let relations = save["graph"]["relations"].as_array_mut().unwrap();
+    for name in &names {
+        relations.push(serde_json::json!(["go", "relies_on", name]));
+    }
+    let first = &names[0];
+    not_restored(
+        &source,
+        &save,
+        &format!("relation go relies_on {first}: {first} is not in go's basis"),
+        &[("poke", "{}")],
+    );
+}
+
 /// Every relation an event adds: readings that support and oppose, a reveal,
 /// caveats a reading inherits, a renewal carries, a late qualification adds
 /// and a withdrawal adds, retained caveats, evidence relied on, and

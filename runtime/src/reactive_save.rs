@@ -213,6 +213,31 @@ fn node_kind(node: Option<&NodeKind>) -> &'static str {
     }
 }
 
+/// A commitment retains exactly its basis's caveats and relies on exactly its
+/// evidence. Reading `committed(...)` or `reopened(...)` adds what it retains
+/// and relies on to that basis, so anything more would change what the next
+/// revision is made on, and enough of it would take that past the provenance
+/// limits a basis keeps to.
+fn check_relations_within_bases(save: &ReactiveSave) -> Result<(), String> {
+    for [from, name, to] in &save.graph.relations {
+        let basis = save
+            .commitment_bases
+            .get(from)
+            .map(|basis| &basis.provenance);
+        let within = match name.as_str() {
+            "retains" => basis.is_some_and(|basis| basis.caveats.contains(to)),
+            "relies_on" => basis.is_some_and(|basis| basis.evidence.contains(to)),
+            _ => continue,
+        };
+        if !within {
+            return Err(format!(
+                "relation {from} {name} {to}: {to} is not in {from}'s basis"
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn reason_name(reason: &StopReason) -> Result<&'static str, String> {
     Ok(match reason {
         StopReason::Enough => "enough",
@@ -492,6 +517,12 @@ impl ReactiveSession {
             .collect::<BTreeSet<_>>();
         if qualified != withdrawn {
             return Err("withdrawals disagree with the graph's withdrawn relations".into());
+        }
+        // Withdrawn evidence was observed when it was withdrawn, and a later
+        // `withdraw` of it requires that again.
+        for withdrawal in &save.withdrawals {
+            self.require_observed(&withdrawal.evidence, observed)
+                .map_err(|error| format!("the withdrawal of {}: {error}", withdrawal.evidence))?;
         }
         self.withdrawals = Arc::new(save.withdrawals.clone());
         Ok(())
@@ -1006,6 +1037,7 @@ impl ReactiveSession {
             }
         }
         self.check_saved_journal(save, observed)?;
+        check_relations_within_bases(save)?;
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
         self.reading_streams = Arc::new(save.reading_streams.clone());
