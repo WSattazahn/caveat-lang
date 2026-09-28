@@ -494,15 +494,22 @@ fn a_rule_that_mentions_no_binding_on_an_event_that_names_no_member_expands_as_w
 
 #[test]
 fn a_last_rule_without_its_semicolon_is_routed_like_any_other() {
-    // The parser reads a last statement without its `;`.
+    // The parser reads a last statement without its `;`, only at the end of
+    // the program. With two plots, the copy for north runs into the copy
+    // for south, routed or not, and neither program loads
+    // (spec/caveat-repetition-0.1.md section 2). Before, this was the
+    // loader's "expected '=' at byte 21".
     let body = "\n    state $p_n = 0;\n    on ping set $p_n = 1;\n    on read set $p_m = value\n";
+    let runs_into = |header: &str| {
+        format!("line 13, column 5: the last statement in the body of `{header}` has no `;`, so the copy for `north` runs into the copy for `south`, and together they are not a statement; end it with `;`")
+    };
+    assert_eq!(refused(ROUTED, body), runs_into(ROUTED));
     assert_eq!(
-        routed(body),
-        plain(&body.replace(" set $p_", " when target == $index set $p_"))
-    );
-    assert_eq!(
-        routed(" state $p_n = 0; on read set $p_n = value\n"),
-        plain(" state $p_n = 0; on read when target == $index set $p_n = value\n")
+        refused(
+            PLAIN,
+            &body.replace(" set $p_", " when target == $index set $p_")
+        ),
+        runs_into(PLAIN)
     );
     assert_eq!(
         refused(

@@ -966,3 +966,139 @@ fn a_last_statement_after_an_empty_statement_is_read() {
         }
     }
 }
+
+/// `headed(header, routed)` with the body's last statement, at line 8,
+/// column 5, written without its `;`, and `after` below the block.
+fn unended(header: &str, routed: bool, after: &str) -> String {
+    headed(header, routed).replace("$p_n + 1;\n};\n", &format!("$p_n + 1\n}};\n{after}"))
+}
+
+/// The error for a body whose last statement, written at `line`, column 5,
+/// has no `;`, when the copy for `member` runs into `into` and together they
+/// are not a statement.
+fn runs_into(line: usize, header: &str, member: &str, into: &str) -> String {
+    format!("line {line}, column 5: the last statement in the body of `{header}` has no `;`, so the copy for `{member}` runs into {into}, and together they are not a statement; end it with `;`")
+}
+
+#[test]
+fn a_last_body_statement_without_its_semicolon_that_runs_into_what_follows_is_refused() {
+    // A body's statements are copied as written, so a last one without its
+    // `;` has none in any copy either, and nothing adds one. With two or
+    // more members, the first copy runs into the next one, and the program
+    // did not load: "line 8, column 5: expected '=' at byte 31", about the
+    // expanded text.
+    for (header, routed) in [
+        ("for plot as $p", false),
+        ("for plot as $p routed by target", true),
+    ] {
+        let into_south = runs_into(8, header, "north", "the copy for `south`");
+        for after in ["", "state total = 0;\n", "// the end\n"] {
+            let source = unended(&format!("{header} {{"), routed, after);
+            assert_eq!(repeat::expand(&source).unwrap_err(), into_south, "{source}");
+            assert_eq!(
+                ReactiveSession::from_source(&source).err(),
+                Some(into_south.clone())
+            );
+        }
+        // The first copy that does not read is the one reported.
+        let three = unended(&format!("{header} {{"), routed, "").replace(
+            "entity south kind plot at field;\n",
+            "entity south kind plot at field;\nentity east kind plot at field;\n",
+        );
+        assert_eq!(
+            repeat::expand(&three).unwrap_err(),
+            runs_into(9, header, "north", "the copy for `south`")
+        );
+    }
+    // With one member, the copy runs into the text after the block. That
+    // did not load either: "line 7, column 5: expected '=' at byte 25".
+    let one = unended("for plot as $p {", false, "state total = 0;\n")
+        .replace("entity south kind plot at field;\n", "");
+    assert_eq!(
+        ReactiveSession::from_source(&one).err(),
+        Some(runs_into(
+            7,
+            "for plot as $p",
+            "north",
+            "the text after the block"
+        ))
+    );
+    // In a bundle, the error names the part, as any Repetition error does.
+    let text = link::bundle(&[
+        link::BundlePart {
+            name: "plots".into(),
+            source: "module plots;\nplace field kind field;\nentity north kind plot at field;\nentity south kind plot at field;\nfor plot as $p {\n    claim $p_seen;\n    claim $p_mapped\n};\n".into(),
+        },
+        link::BundlePart {
+            name: "main".into(),
+            source: "use plots;\nbudget 1;\n".into(),
+        },
+    ]);
+    assert_eq!(
+        link::link(&text).unwrap_err(),
+        format!(
+            "plots: {}",
+            runs_into(7, "for plot as $p", "north", "the copy for `south`")
+        )
+    );
+}
+
+#[test]
+fn a_last_body_statement_without_its_semicolon_loads_where_it_did() {
+    // With one member and nothing but comments after the block, the copy's
+    // last statement is the program's last, which the loader reads without
+    // its `;`. It expands and behaves as before.
+    for after in ["", "// the end\n", "\n\n"] {
+        let source = unended("for plot as $p {", false, after)
+            .replace("entity south kind plot at field;\n", "");
+        assert_eq!(
+            repeat::expand(&source).expect("expands"),
+            format!(
+                "place field kind field;
+entity north kind plot at field;
+event read target kind plot;
+
+    state north_index = 1;
+    state north_n = 0;
+    on read when target == 1 set north_n = north_n + 1
+\n{after}"
+            )
+        );
+        let (indices, members) = counts(&source);
+        assert_eq!(indices, [("north".to_string(), 1.0)]);
+        assert_eq!(members, ["north"]);
+        let mut session = ReactiveSession::from_source(&source).expect("loads");
+        let values = session
+            .dispatch_json("read", r#"{"target":"north"}"#)
+            .expect("read is accepted")
+            .values;
+        assert_eq!(values["north_n"], 1.0);
+    }
+    // Where the copies read together as one statement, as evidence with
+    // unquoted provenance does, the program loads as the same text written
+    // by hand does, and expands as before.
+    let source = "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot;
+for plot as $p {
+    evidence $p_log from a field log
+};
+state total = 0;
+";
+    assert_eq!(
+        repeat::expand(source).expect("expands"),
+        "place field kind field;
+entity north kind plot at field;
+entity south kind plot at field;
+event read target kind plot;
+
+    evidence north_log from a field log
+
+    evidence south_log from a field log
+
+state total = 0;
+"
+    );
+    ReactiveSession::from_source(source).expect("loads");
+}
