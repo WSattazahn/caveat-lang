@@ -28,6 +28,24 @@ test('a save restores with the same source', () => {
   } finally { first.close(); second.close(); }
 });
 
+test('a negative zero the program computes survives a save', () => {
+  // The kit sends a payload's -0 as 0, but the program computes -2 * 0 = -0.
+  // The save used to leave x out as equal to the 0 it loads, and hud.angle
+  // kept showing atan2(0, -1).
+  const source = 'state x = 0 min -9 max 9; event e v min -9 max 9; on e set x = v * 0; bind hud.angle = atan2(x, -1);';
+  const first = real.open(source);
+  let second;
+  try {
+    assert.equal(first.dispatch('e', { v: -2 }).outcome, 'accepted');
+    assert.ok(Object.is(first.snapshot().values.x, -0));
+    assert.equal(first.view().bindings.hud.angle, -Math.PI);
+    second = real.restore(source, first.save());
+    // Strict deep equality tells -0 from 0.
+    assert.deepEqual(second.snapshot(), first.snapshot());
+    assert.deepEqual(second.view(), first.view());
+  } finally { first.close(); second?.close(); }
+});
+
 test('load and restore failures are typed', () => {
   assert.throws(() => real.open('this is not caveat'), error => error instanceof CaveatError && error.kind === 'load');
   assert.throws(() => real.restore(thermostat, '{"not":"a save"}'), error => error instanceof CaveatError && error.kind === 'restore');

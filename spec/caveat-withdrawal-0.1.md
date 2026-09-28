@@ -75,6 +75,10 @@ it look clean, and a withdrawn reading is never skipped silently.
 
 - `withdrawn(E)` is true when E's current occurrence is withdrawn. A fresh
   occurrence of renewable evidence is not withdrawn because an earlier one was.
+  Nor is a new reading of a stream whose template is withdrawn: a `sample` is
+  a new observation. It inherits its template's other caveats, but not
+  `withdrawn`. A value it computes from the template, such as
+  `qualified(v, E)`, still carries `withdrawn`, as any value read from E does.
 - `withdrawn(latest(S))` is true when the stream's current reading is
   withdrawn.
 - `rests_on_withdrawn(D)` is true when the decision's current revision was
@@ -119,3 +123,21 @@ This profile does not include:
 - withdrawing a reading by its value, such as "the reading about commit X";
 - permission: see [Permission 0.1](caveat-permission-0.1.md), which uses
   withdrawal to revoke a grant.
+
+## Changes
+
+- 2026-09-27: a new reading of a stream whose template is withdrawn is not
+  withdrawn with it. A `sample` linked every caveat qualifying its template to
+  the new reading, `withdrawn` included, with no withdrawal record for the
+  reading. Restore refuses a `withdrawn` relation without its record, so a
+  session that withdrew a stream's template and then sampled the stream could
+  not restore its own save: "withdrawals disagree with the graph's withdrawn
+  relations". The reading also carried `withdrawn` into its archive, into
+  `latest(S)` and into decisions made on it, while `withdrawn(latest(S))` and
+  `rests_on_withdrawn(D)` stayed false. A reading now inherits its
+  template's other caveats, declared or added later by `qualify`, as before,
+  but not `withdrawn`, as a fresh occurrence of renewable evidence does not.
+  Such sessions now restore; restore itself is unchanged, so a save written
+  before this change that holds such a relation is still refused. Renewal
+  already inherited only declared caveats, and no other effect copies a
+  `withdrawn` relation.
