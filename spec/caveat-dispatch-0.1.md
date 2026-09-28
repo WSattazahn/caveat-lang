@@ -70,6 +70,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range. |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range. |
+| `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
@@ -161,3 +162,16 @@ from an outcome schema match; the save contract governs restoration.
   rollback and the diagnostic text are unchanged. It has its own code, not
   `history_limit`, because the exhausted resource is a renewable evidence's
   occurrences, not a reading stream or decision series.
+- `evaluation/decision_in_force` classifies a `commit` to a decision series
+  whose current revision is still in force, which Reactive 0.5 requires to be
+  explicitly reopened first. Before it, such an event was fatal
+  `unclassified`: a host lost the session, although the runtime had already
+  rolled the event back. Run A2 of authoring trial v1 left this refusal to
+  the runtime, so under this contract its second `decide` ended the session.
+  The rollback and the diagnostic text are unchanged. Its origin is
+  `evaluation`, as for a state's range: the commit ran, and the series' state
+  refused it. It is not `policy`, because the program wrote no clause for it,
+  so a bare expected rejection does not match it. It is not a `limit`,
+  because the series may have room; a full series is still
+  `limit/history_limit`. The check comes before a `permitted by` clause's, so
+  it is never reported as `not_permitted`.

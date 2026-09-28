@@ -91,6 +91,9 @@ a numeric argument.
 
 The first `commit navigation ...` creates `navigation@1`. Further commits to the
 declared series require its current commitment to have been explicitly reopened.
+A commit while it is still in force refuses the event as
+`evaluation/decision_in_force` ([dispatch outcomes](caveat-dispatch-0.1.md));
+nothing the event did is kept, and the session continues.
 A successful revision creates a new commitment node, freezes its numeric
 `using` value and provenance, and records the previous revision's identity.
 Its inherited caveats receive `retains` edges; its evidence dependencies receive

@@ -472,7 +472,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
             }
             if is_callable(&name) && !declares_function {
                 return Err(format!(
-                    "module {} declares {name}, which is already a function;                      a module may shadow it with `fn {name}(...)` but not with another kind of name",
+                    "module {} declares {name}, which is already a function; a module may shadow it with `fn {name}(...)` but not with another kind of name",
                     part.name
                 ));
             }
