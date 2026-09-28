@@ -646,6 +646,10 @@ pub(crate) struct BlockBraces {
     pub(crate) open: Option<usize>,
     /// The first `}` after it that closes no `{` earlier in its statement.
     pub(crate) close: Option<usize>,
+    /// Where the body statement that `close` ends begins, when that `}`
+    /// comes after a statement's text and before its `;`, as in `from a}b;`
+    /// or the body's last statement without its `;`.
+    pub(crate) ends_statement: Option<usize>,
     /// The first `{` of a body statement that is text and still open at the
     /// `;` that ends the statement, before the body closes.
     pub(crate) unclosed: Option<usize>,
@@ -660,9 +664,10 @@ pub(crate) fn block_braces(statement: &str) -> BlockBraces {
             depth += 1;
             braces.open.get_or_insert(at);
         }
-        Read::BodyCloses(at) => {
+        Read::BodyCloses(at, ended) => {
             if depth == 1 && braces.close.is_none() {
                 braces.close = Some(at);
+                braces.ends_statement = ended;
             }
             depth = depth.saturating_sub(1);
         }
@@ -680,8 +685,9 @@ enum Read {
     Statement(usize, usize),
     /// The `{` that opens a `for` block's body.
     BodyOpens(usize),
-    /// The `}` that closes a `for` block's body.
-    BodyCloses(usize),
+    /// The `}` that closes a `for` block's body, and where the body
+    /// statement it ends begins, if its text comes before that `}`.
+    BodyCloses(usize, Option<usize>),
     /// At the `;` that ends a statement in a `for` block's body, the first
     /// `{` of its unquoted text that the statement did not close.
     Unclosed(usize),
@@ -762,10 +768,11 @@ fn read_statements(source: &str, mut found: impl FnMut(Read)) {
                 text_braces.pop();
             }
             ('}', _) if !bodies.is_empty() => {
+                let ended = statement;
                 if let Some(Some(interrupted)) = bodies.pop() {
                     (statement, first_end) = interrupted;
                 }
-                found(Read::BodyCloses(index));
+                found(Read::BodyCloses(index, ended));
                 continue;
             }
             (';', _) => {

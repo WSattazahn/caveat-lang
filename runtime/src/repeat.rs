@@ -145,22 +145,27 @@ fn read_block<'s, 'k>(
     let open = braces
         .open
         .ok_or_else(|| format!("for block has no body: {}", head(statement)))?;
+    // A body that nothing closes is refused as such, not for a `{` that the
+    // reader then finds in it below the `}` that was meant to close it.
+    let close = braces
+        .close
+        .ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
     // A brace in unquoted text pairs only within its statement, so a `{` a
     // body statement leaves open is refused, not paired with a `}` in a later
     // statement, which would end the body there instead.
     if let Some(brace) = braces.unclosed {
         return Err(unclosed_brace(source, start, statement, open, brace));
     }
-    let close = braces
-        .close
-        .ok_or_else(|| format!("for block is not closed: {}", head(statement)))?;
     // The body's copies replace the whole statement, so anything but
     // comments between the body and the block's end would be lost.
     let after = without_terminator(&statement[close + 1..]);
     if !blank_comments(after).trim().is_empty() {
-        return Err(format!(
-            "for block has text after its body: {}; end the block with `}};`",
-            head(after)
+        return Err(text_after_body(
+            source,
+            start,
+            statement,
+            (close, braces.ends_statement),
+            after,
         ));
     }
     let header = statement_words(&statement[..open]);
@@ -410,7 +415,7 @@ fn entity_of(statement: &str) -> Option<(String, String)> {
     }
 }
 
-/// A block statement's body, between its first `{` and its last `}`.
+/// A block statement's body, between the braces that `body_braces` reads.
 fn body_of(statement: &str) -> Option<&str> {
     let (open, close) = body_braces(statement);
     let (open, close) = (open?, close?);
@@ -445,8 +450,38 @@ fn unclosed_brace(
             statement_words(&body[from..to]).join(" ")
         });
     position_of(source, start + brace).error(format!(
-        "for block `{}`: `{written}` has a `{{` that its statement does not close; a brace in unquoted text pairs only within its statement, so quote the text",
+        "for block `{}`: `{written}` has a `{{` that its statement does not close; a brace in unquoted text pairs only within its statement, so quote the text, or take the brace out of a name",
         statement_words(&statement[..open]).join(" ")
+    ))
+}
+
+/// The refusal of `after`, the text between the `}` at `close` that ends the
+/// body of `statement`, a block statement at `start` of `source`, and the
+/// block's end. `ended` is where the body statement that `}` ends begins,
+/// if the `}` comes after its text, as in `from a}b;` or `from }{;`: that
+/// `}` closes no `{` of its statement, so it ends the body.
+fn text_after_body(
+    source: &str,
+    start: usize,
+    statement: &str,
+    (close, ended): (usize, Option<usize>),
+    after: &str,
+) -> String {
+    let at = position_of(source, start + close);
+    let Some(from) = ended else {
+        return at.error(format!(
+            "for block has text after its body: {}; end the block with `}};`",
+            head(after)
+        ));
+    };
+    // The statement as written, to the end of the word that holds the `}`.
+    let word_end = statement[close..]
+        .find(|ch: char| ch.is_whitespace() || ch == ';')
+        .map_or(statement.len(), |length| close + length);
+    let written = statement_words(&statement[from..word_end]).join(" ");
+    at.error(format!(
+        "for block has text after its body: {}; the `}}` in `{written}` closes no `{{` of its statement, so it ends the body: quote a brace that is text, take it out of a name, or end the block with `}};`",
+        head(after)
     ))
 }
 
