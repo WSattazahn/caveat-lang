@@ -142,7 +142,7 @@ nothing it did is kept:
 | --- | --- |
 | `policy` | `reject` (the program's own), `not_permitted` |
 | `input` | `unknown_event`, `payload_invalid`, `bound_exceeded` |
-| `evaluation` | `bound_exceeded` (a state outside its range) |
+| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read) |
 | `limit` | `history_limit`, `identifier_limit`, `renewal_limit`, `work_limit`, `depth_limit` |
 
 Anything else is **fatal**, for example `require(false, …)`, arithmetic that

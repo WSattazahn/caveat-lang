@@ -30,7 +30,8 @@ condition, its value and its `because` citations, over every branch whether it
 is taken or not:
 
 - a **state** it names. It counts as changed when its value, its lineage or its
-  grounds differ after the event;
+  grounds differ after the event. A value differs when its bits do, so a zero
+  that changes its sign has changed, as the clock's does;
 - **the runtime clock**, through [`elapsed()`](caveat-elapsed-0.1.md). It counts
   as changed when the session's elapsed value changes, even if no state or
   graph record changed. Reads through a `define` or a pure function argument
@@ -63,9 +64,11 @@ session until an effect writes to it:
 
 Debug builds, which is what `cargo test` runs, evaluate every binding in full
 after every event as well, and fail if the incremental result differs in any
-value, lineage or explanation, or in whether the event succeeds. The whole test
-suite is therefore also a test of the equivalence. Breaking the change detection
-on purpose makes it fail at once, which is how the check itself was tested.
+value, lineage or explanation, or in whether the event succeeds. Values are
+compared as JSON text, which tells `-0` from `0` where `==` does not. The whole
+test suite is therefore also a test of the equivalence. Breaking the change
+detection on purpose makes it fail at once, which is how the check itself was
+tested.
 
 `runtime/examples/profile_dispatch.rs` reports where an event's time goes for
 any program:
@@ -73,3 +76,13 @@ any program:
 ```sh
 cargo run --release --no-default-features --example profile_dispatch -- PROGRAM.cav
 ```
+
+## Changes
+
+- 2026-09-28: a state that changes only the sign of a zero, from `0` to `-0`
+  or back, counts as changed. It compared unchanged with `==`, so a binding
+  that reads it kept showing the old sign, `atan2(x, -1)` pi where it should
+  now be -pi, until a restore evaluated every binding in full
+  ([Save 0.1](caveat-save-0.1.md#changes)). The debug check failed on that
+  angle, but it compared values with `==` too, so a binding showing the zero
+  itself, `bind hud.x = x`, passed with the wrong sign.

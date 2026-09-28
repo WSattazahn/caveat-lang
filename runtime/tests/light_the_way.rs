@@ -940,3 +940,55 @@ fn a_held_completed_scan_is_one_occurrence_and_releasing_allows_a_new_reading() 
         "already examined caveats must not be charged every time the current is sampled"
     );
 }
+
+fn is_negative_zero(value: f64) -> bool {
+    value.to_bits() == (-0.0_f64).to_bits()
+}
+
+/// The game resumed from its own save shows the same snapshot and view, as
+/// JSON text, which keeps a zero's sign, and saves the same text again.
+fn resumes_exactly(session: &ReactiveSession) {
+    let shown = |game: &ReactiveSession| {
+        (
+            serde_json::to_string(&game.snapshot()).unwrap(),
+            serde_json::to_string(&game.view()).unwrap(),
+        )
+    };
+    let save = session.save_json().unwrap();
+    let resumed = ReactiveSession::restore_json(SOURCE, &save).unwrap();
+    assert_eq!(shown(&resumed), shown(session));
+    assert_eq!(resumed.save_json().unwrap(), save);
+}
+
+// Ordinary play computes -0.0 from input that holds none. Once the flow is
+// read, the plan counter-steers a current running east, and the ferry, outside
+// the current, compensates by that plan times a field of 0: -0.0. After the
+// storm reverses the current, its own force outside it is -1.2 times the pulse
+// times 0: -0.0 again. A save keeps the sign, and the resumed game shows and
+// saves the same text; normalizing -0.0 to 0.0 where values enter would change
+// the snapshot and the save of every such tick instead.
+#[test]
+fn a_save_keeps_the_negative_zeros_that_ordinary_play_computes() {
+    let mut reader = started(SOURCE);
+    let sampled = sample_current(&mut reader);
+    assert!(navigation_basis(&sampled).value.unwrap() < 0.0);
+    assert!(is_negative_zero(value(&sampled, "compensation")));
+    let save = reader.save().unwrap();
+    assert!(is_negative_zero(save.states["compensation"].value));
+    resumes_exactly(&reader);
+
+    let mut drifter = started(SOURCE);
+    let mut state = drifter.snapshot();
+    while !is_negative_zero(value(&state, "current_force")) {
+        assert_eq!(
+            value(&state, "phase"),
+            1.0,
+            "the game ended before the storm reversed the current"
+        );
+        state = tick(&mut drifter);
+    }
+    assert!(value(&state, "current_strength") < 0.0);
+    let save = drifter.save().unwrap();
+    assert!(is_negative_zero(save.states["current_force"].value));
+    resumes_exactly(&drifter);
+}

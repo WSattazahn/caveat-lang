@@ -11,6 +11,14 @@ use serde::Deserialize;
 
 pub const REACTIVE_SAVE_SCHEMA: &str = "caveat-reactive-save/0.1";
 const MAX_SAVE_BYTES: usize = 16 * 1024 * 1024;
+/// The largest sequence restore accepts: 2^53 - 1, the largest integer a JSON
+/// host reads exactly. The sequence counts accepted events, and at ten
+/// million a second 2^53 of them take over 28 years, so a save past it was
+/// edited. Nothing else in a save bounds the sequence from above, since an
+/// event can leave no record. A session restored at or near the bound numbers
+/// its events past it like any others, up to u64::MAX, and its saves from
+/// then on are refused.
+const MAX_SAVED_SEQUENCE: u64 = (1 << 53) - 1;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -183,6 +191,61 @@ fn relation_from_name(name: &str) -> Result<Relation, String> {
     })
 }
 
+/// The kinds of node a relation an event adds connects, from and to, as
+/// `apply_effect` and `apply_qualification` add them: a reading or revealed
+/// evidence supports or opposes a claim; a caveat qualifies evidence, late,
+/// by a withdrawal, inherited by a reading or carried by a renewal; a
+/// commitment retains caveats and relies on evidence; evidence reopens a
+/// commitment. No event adds `in_context`.
+fn created_relation_ends(relation: Relation) -> Option<(&'static str, &'static str)> {
+    match relation {
+        Relation::Supports | Relation::Opposes => Some(("evidence", "a claim")),
+        Relation::Qualifies => Some(("a caveat", "evidence")),
+        Relation::Retains => Some(("a commitment", "a caveat")),
+        Relation::ReliesOn => Some(("a commitment", "evidence")),
+        Relation::Reopens => Some(("evidence", "a commitment")),
+        Relation::InContext => None,
+    }
+}
+
+/// A node's kind, as `created_relation_ends` names it.
+fn node_kind(node: Option<&NodeKind>) -> &'static str {
+    match node {
+        Some(NodeKind::Claim { .. }) => "a claim",
+        Some(NodeKind::Evidence { .. }) => "evidence",
+        Some(NodeKind::Caveat { .. }) => "a caveat",
+        Some(NodeKind::Commitment { .. }) => "a commitment",
+        Some(NodeKind::Context { .. }) => "a context",
+        Some(NodeKind::Observation { .. }) => "an observation",
+        None => "no node",
+    }
+}
+
+/// A commitment retains exactly its basis's caveats and relies on exactly its
+/// evidence. Reading `committed(...)` or `reopened(...)` adds what it retains
+/// and relies on to that basis, so anything more would change what the next
+/// revision is made on, and enough of it would take that past the provenance
+/// limits a basis keeps to.
+fn check_relations_within_bases(save: &ReactiveSave) -> Result<(), String> {
+    for [from, name, to] in &save.graph.relations {
+        let basis = save
+            .commitment_bases
+            .get(from)
+            .map(|basis| &basis.provenance);
+        let within = match name.as_str() {
+            "retains" => basis.is_some_and(|basis| basis.caveats.contains(to)),
+            "relies_on" => basis.is_some_and(|basis| basis.evidence.contains(to)),
+            _ => continue,
+        };
+        if !within {
+            return Err(format!(
+                "relation {from} {name} {to}: {to} is not in {from}'s basis"
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn reason_name(reason: &StopReason) -> Result<&'static str, String> {
     Ok(match reason {
         StopReason::Enough => "enough",
@@ -295,7 +358,7 @@ impl ReactiveSession {
                 .states
                 .names()
                 .zip(self.states.cells.iter().zip(self.loaded.states.iter()))
-                .filter(|(_, (cell, loaded))| !Arc::ptr_eq(cell, loaded) && cell != loaded)
+                .filter(|(_, (cell, loaded))| !Arc::ptr_eq(cell, loaded) && !cell.same(loaded))
                 .map(|(name, (cell, _))| {
                     let state = SavedState {
                         value: cell.value.value,
@@ -392,6 +455,9 @@ impl ReactiveSession {
         if self.source_clock_is_monotonic() && save.elapsed < 0.0 {
             return Err("elapsed time must be a nonnegative number".into());
         }
+        if save.sequence > MAX_SAVED_SEQUENCE {
+            return Err(format!("sequence must be at most {MAX_SAVED_SEQUENCE}"));
+        }
         self.sequence = save.sequence;
         self.last_event = save.last_event.clone();
         self.elapsed = save.elapsed;
@@ -399,18 +465,23 @@ impl ReactiveSession {
             self.identifiers.limit(),
             save.identifiers.clone(),
         )?);
-        self.restore_graph(&save.graph)?;
-        self.restore_withdrawals(save)?;
-        self.restore_states(&save.states)?;
-        self.restore_records(save)?;
+        let observed = self.restore_graph(&save.graph)?;
+        self.restore_withdrawals(save, &observed)?;
+        self.restore_states(&save.states, &observed)?;
+        self.restore_records(save, &observed)?;
         self.restore_permissions(save)?;
         self.evaluate_bindings(None)
+            .map_err(|error| error.to_string())
     }
 
     /// Withdrawals must agree with the program and with the restored graph:
     /// each needs its `withdrawn qualifies E` relation, and each such relation
     /// its withdrawal.
-    fn restore_withdrawals(&mut self, save: &ReactiveSave) -> Result<(), String> {
+    fn restore_withdrawals(
+        &mut self,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         if save.withdrawals.is_empty() && !self.withdraws() {
             return Ok(());
         }
@@ -423,6 +494,10 @@ impl ReactiveSession {
                 self.require_kind(name, "evidence")
                     .map_err(|_| format!("a withdrawal names unknown evidence {name}"))?;
             }
+            // Its reason was observed when it happened, and `withdrawn(...)`
+            // qualifies it again.
+            self.require_observed(&withdrawal.because, observed)
+                .map_err(|error| format!("the withdrawal of {}: {error}", withdrawal.evidence))?;
             if !withdrawn.insert(withdrawal.evidence.as_str()) {
                 return Err(format!("{} is withdrawn twice", withdrawal.evidence));
             }
@@ -454,6 +529,12 @@ impl ReactiveSession {
             .collect::<BTreeSet<_>>();
         if qualified != withdrawn {
             return Err("withdrawals disagree with the graph's withdrawn relations".into());
+        }
+        // Withdrawn evidence was observed when it was withdrawn, and a later
+        // `withdraw` of it requires that again.
+        for withdrawal in &save.withdrawals {
+            self.require_observed(&withdrawal.evidence, observed)
+                .map_err(|error| format!("the withdrawal of {}: {error}", withdrawal.evidence))?;
         }
         self.withdrawals = Arc::new(save.withdrawals.clone());
         Ok(())
@@ -533,7 +614,8 @@ impl ReactiveSession {
         Ok(())
     }
 
-    fn restore_graph(&mut self, saved: &SavedGraph) -> Result<(), String> {
+    /// The graph as the save leaves it, and the evidence it observes.
+    fn restore_graph(&mut self, saved: &SavedGraph) -> Result<HashSet<NodeId>, String> {
         let committable = self.committable_actions();
         for node in &saved.nodes {
             let (name, kind) = match node {
@@ -589,16 +671,43 @@ impl ReactiveSession {
             let id = Arc::make_mut(&mut self.graph).add(kind);
             Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
         }
-        for [from, relation, to] in &saved.relations {
+        for [from, name, to] in &saved.relations {
             let lookup = |name: &str| {
                 self.symbols
                     .get(name)
                     .copied()
                     .ok_or_else(|| format!("relation names unknown {name}"))
             };
-            let (from, to) = (lookup(from)?, lookup(to)?);
-            let relation = relation_from_name(relation)?;
-            Arc::make_mut(&mut self.graph).relate(from, relation, to);
+            let (from_id, to_id) = (lookup(from)?, lookup(to)?);
+            let relation = relation_from_name(name)?;
+            // Later events read each end back as the kind an event wrote: a
+            // retained caveat, evidence relied on, a reopening's cause. An
+            // end of another kind made the next event that read it fatal.
+            let (from_kind, to_kind) = created_relation_ends(relation)
+                .ok_or_else(|| format!("relation {from} {name} {to} is not one an event adds"))?;
+            for (end, id, kind) in [(from, from_id, from_kind), (to, to_id, to_kind)] {
+                let actual = node_kind(self.graph.nodes.get(&id));
+                if actual != kind {
+                    return Err(format!(
+                        "relation {from} {name} {to}: {end} is {actual}, not {kind}"
+                    ));
+                }
+            }
+            Arc::make_mut(&mut self.graph).relate(from_id, relation, to_id);
+        }
+        // Evidence a commitment relies on, or that reopens one, was observed
+        // when the event added the relation, and stays observed: the next
+        // commitment and qualification that read it require it. Checked
+        // against the whole graph, which holds the observation somewhere.
+        let observed = self.observed_evidence();
+        for [from, name, to] in &saved.relations {
+            let evidence = match name.as_str() {
+                "relies_on" => to,
+                "reopens" => from,
+                _ => continue,
+            };
+            self.require_observed(evidence, &observed)
+                .map_err(|error| format!("relation {from} {name} {to}: {error}"))?;
         }
         for (name, attention) in &saved.attention {
             self.require_kind(name, "caveat")?;
@@ -612,7 +721,7 @@ impl ReactiveSession {
                 _ => return Err(format!("{name} is not a commitment")),
             }
         }
-        Ok(())
+        Ok(observed)
     }
 
     /// Every action a rule or procedure can commit.
@@ -632,13 +741,53 @@ impl ReactiveSession {
             .collect()
     }
 
-    /// A provenance whose names are all declared or created evidence and caveats.
-    fn check_provenance(&self, what: &str, provenance: &Provenance) -> Result<(), String> {
+    /// Every evidence node the graph observes: something it supports or
+    /// opposes, as `observed(...)` reads it. Collected once, since a save may
+    /// cite the same evidence in many relations and records.
+    fn observed_evidence(&self) -> HashSet<NodeId> {
+        self.graph
+            .edges
+            .iter()
+            .filter(|edge| {
+                matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                    && matches!(
+                        self.graph.nodes.get(&edge.from),
+                        Some(NodeKind::Evidence { .. })
+                    )
+            })
+            .map(|edge| edge.from)
+            .collect()
+    }
+
+    /// Evidence enters a lineage or a record only once observed, and stays
+    /// observed.
+    fn require_observed(&self, name: &str, observed: &HashSet<NodeId>) -> Result<(), String> {
+        if self
+            .symbols
+            .get(name)
+            .is_some_and(|id| observed.contains(id))
+        {
+            Ok(())
+        } else {
+            Err(format!("{name} is not observed"))
+        }
+    }
+
+    /// A provenance whose names are all declared or created evidence and
+    /// caveats, and whose evidence is observed: a commitment made on it, or a
+    /// qualification of it, requires that.
+    fn check_provenance(
+        &self,
+        what: &str,
+        provenance: &Provenance,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         provenance
             .validate()
             .map_err(|error| format!("{what}: {error}"))?;
         for name in &provenance.evidence {
             self.require_kind(name, "evidence")
+                .and_then(|()| self.require_observed(name, observed))
                 .map_err(|error| format!("{what}: {error}"))?;
         }
         for name in &provenance.caveats {
@@ -659,7 +808,11 @@ impl ReactiveSession {
         }
     }
 
-    fn restore_states(&mut self, saved: &BTreeMap<String, SavedState>) -> Result<(), String> {
+    fn restore_states(
+        &mut self,
+        saved: &BTreeMap<String, SavedState>,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         if let Some(name) = saved.keys().find(|name| !self.states.contains_key(name)) {
             return Err(format!("its states are not this program's: {name}"));
         }
@@ -672,8 +825,8 @@ impl ReactiveSession {
                 return Err(format!("state {name} is not a finite number"));
             }
             check_range(name, state.value, range.min, range.max)?;
-            self.check_provenance(&format!("state {name}"), lineage)?;
-            self.check_provenance(&format!("state {name} grounds"), grounds)?;
+            self.check_provenance(&format!("state {name}"), lineage, observed)?;
+            self.check_provenance(&format!("state {name} grounds"), grounds, observed)?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(
                 slot,
@@ -686,17 +839,21 @@ impl ReactiveSession {
         Ok(())
     }
 
-    fn restore_records(&mut self, save: &ReactiveSave) -> Result<(), String> {
+    fn restore_records(
+        &mut self,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         for (name, basis) in &save.commitment_bases {
             self.require_commitment(name)?;
             if basis.value.is_some_and(|value| !value.is_finite()) {
                 return Err(format!("commitment {name} basis is not a finite number"));
             }
-            self.check_provenance(&format!("commitment {name}"), &basis.provenance)?;
+            self.check_provenance(&format!("commitment {name}"), &basis.provenance, observed)?;
         }
         for (name, grounds) in &save.commitment_grounds {
             self.require_commitment(name)?;
-            self.check_provenance(&format!("commitment {name} grounds"), &grounds.0)?;
+            self.check_provenance(&format!("commitment {name} grounds"), &grounds.0, observed)?;
         }
         if save.reading_streams.keys().ne(self.reading_streams.keys()) {
             return Err("its reading streams are not this program's".into());
@@ -709,14 +866,25 @@ impl ReactiveSession {
             {
                 return Err(format!("reading stream {name} does not match the program"));
             }
-            for occurrence in &stream.occurrences {
+            for (index, occurrence) in stream.occurrences.iter().enumerate() {
+                if occurrence.id != format!("{name}@{}", index + 1) {
+                    return Err(format!(
+                        "reading stream {name} occurrence {} is out of order",
+                        occurrence.id
+                    ));
+                }
                 self.require_kind(&occurrence.id, "evidence")?;
                 if !occurrence.value.is_finite() {
                     return Err(format!("reading {} is not a finite number", occurrence.id));
                 }
+                // Taken by an accepted event, so within the save's sequence.
+                if occurrence.sequence == 0 || occurrence.sequence > save.sequence {
+                    return Err(format!("reading {} is out of sequence", occurrence.id));
+                }
                 self.check_provenance(
                     &format!("reading {}", occurrence.id),
                     &occurrence.provenance,
+                    observed,
                 )?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
@@ -728,6 +896,7 @@ impl ReactiveSession {
             self.check_provenance(
                 &format!("reading stream {name}"),
                 &stream.selection_qualifications,
+                observed,
             )?;
         }
         if save.decision_series.keys().ne(self.decision_series.keys()) {
@@ -753,6 +922,7 @@ impl ReactiveSession {
             self.check_provenance(
                 &format!("decision series {name}"),
                 &series.selection_qualifications,
+                observed,
             )?;
         }
         for (name, occurrences) in &save.renewals {
@@ -774,6 +944,41 @@ impl ReactiveSession {
                 self.require_kind(occurrence, "evidence")?;
             }
         }
+        // And the other way: every reading and renewal occurrence the graph
+        // holds is in its stream's occurrences or its evidence's renewals at
+        // its ordinal, so the limits above bound it too. Unlisted, the list
+        // would stop short of it, and the next sample or renew would generate
+        // a name the graph already holds.
+        for node in &save.graph.nodes {
+            let SavedNode::Occurrence { name } = node else {
+                continue;
+            };
+            let Some((base, ordinal)) = occurrence_parts(name) else {
+                continue;
+            };
+            if let Some(stream) = save.reading_streams.get(base) {
+                if stream
+                    .occurrences
+                    .get(ordinal - 1)
+                    .map(|occurrence| &occurrence.id)
+                    != Some(name)
+                {
+                    return Err(format!(
+                        "reading stream {base} occurrence {name} is not in its occurrences"
+                    ));
+                }
+            } else if self.renewals.contains_key(base)
+                && save
+                    .renewals
+                    .get(base)
+                    .and_then(|occurrences| occurrences.get(ordinal - 1))
+                    != Some(name)
+            {
+                return Err(format!(
+                    "renewable {base} occurrence {name} is not in its renewals"
+                ));
+            }
+        }
         if save.scheduled_qualifications.len() > MAX_SCHEDULED_QUALIFICATIONS {
             return Err("too many scheduled qualifications".into());
         }
@@ -786,7 +991,7 @@ impl ReactiveSession {
             {
                 return Err("a scheduled qualification's times are not valid".into());
             }
-            self.check_provenance("scheduled qualification", &scheduled.guard)?;
+            self.check_provenance("scheduled qualification", &scheduled.guard, observed)?;
         }
         for (what, records) in [
             ("observation", &save.observation_qualifications),
@@ -794,7 +999,7 @@ impl ReactiveSession {
             ("reopening", &save.reopening_qualifications),
         ] {
             for (name, provenance) in records {
-                self.check_provenance(&format!("{what} of {name}"), &provenance.0)?;
+                self.check_provenance(&format!("{what} of {name}"), &provenance.0, observed)?;
             }
         }
         for (kind, targets) in &save.predicate_qualifications {
@@ -814,7 +1019,7 @@ impl ReactiveSession {
                     self.require_kind(name, "evidence")
                         .map_err(|_| format!("withdrawn({name}) names unknown evidence"))?;
                 }
-                self.check_provenance(&format!("{kind}({name})"), &provenance.0)?;
+                self.check_provenance(&format!("{kind}({name})"), &provenance.0, observed)?;
             }
         }
         match (&mut self.resources, &save.resources) {
@@ -840,7 +1045,7 @@ impl ReactiveSession {
                     .cloned()
                     .ok_or_else(|| format!("unknown cue {id}"))?,
             );
-            self.check_provenance(&format!("cue {id}"), &qualification.0)?;
+            self.check_provenance(&format!("cue {id}"), &qualification.0, observed)?;
         }
         for effect in &save.effects {
             let names: Vec<&str> = match effect {
@@ -865,7 +1070,8 @@ impl ReactiveSession {
                 return Err(format!("an effect names unknown {name}"));
             }
         }
-        self.check_saved_journal(save)?;
+        self.check_saved_journal(save, observed)?;
+        check_relations_within_bases(save)?;
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
         self.reading_streams = Arc::new(save.reading_streams.clone());
@@ -908,7 +1114,11 @@ impl ReactiveSession {
     /// Check historical records against the source and the independently saved
     /// graph/bases. This establishes consistency, not authenticity: without an
     /// event log or signature an internally consistent edited save is still data.
-    fn check_saved_journal(&self, save: &ReactiveSave) -> Result<(), String> {
+    fn check_saved_journal(
+        &self,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         let fail = |message: &str| format!("decision journal: {message}");
         if (save.sequence == 0) != save.last_event.is_none() {
             return Err(fail("sequence and last event disagree"));
@@ -967,7 +1177,7 @@ impl ReactiveSession {
                 entry.because.iter().cloned(),
                 entry.caveats.iter().cloned(),
             )?;
-            self.check_provenance("decision journal", &provenance)?;
+            self.check_provenance("decision journal", &provenance, observed)?;
             if provenance.evidence.len() != entry.because.len()
                 || entry.because != self.in_observation_order(provenance.evidence.iter())
                 || entry.caveats != provenance.caveats.iter().cloned().collect::<Vec<_>>()

@@ -288,6 +288,8 @@ try {
         dispatch(session, 'read', '{"value":1}');
         rejected(session, 'read', '{"value":2}', 'limit', 'history_limit');
         dispatch(session, 'decide', '{}');
+        // Full and in force: the history limit is checked first.
+        rejected(session, 'decide', '{}', 'limit', 'history_limit');
         dispatch(session, 'doubt', '{}');
         rejected(session, 'decide', '{}', 'limit', 'history_limit');
       });
@@ -312,6 +314,93 @@ try {
         assert.equal(accepted.outcome, 'accepted');
         assert.equal(accepted.snapshot.values.pr_a_pushes, 2);
         assert.equal(accepted.snapshot.values.pr_b_pushes, 1);
+      });
+    });
+
+    check('a commit while the decision is in force is an atomic evaluation rejection and the session continues', () => {
+      const source = fixture('decision-in-force', `claim safe; evidence gauge from "a gauge";
+        readings depth from gauge limit 4; decisions route limit 4;
+        state decides = 0 min 0 max 9;
+        event read value min 0 max 9; event decide; event doubt;
+        on read sample depth = value supports safe;
+        on decide set decides = decides + 1;
+        on decide commit route because enough using latest(depth);
+        on doubt when committed(route) and not reopened(route) reopen route because latest(depth);`);
+      withSessions(source, 2, (session, legacy) => {
+        for (const run of [session, legacy]) {
+          dispatch(run, 'read', '{"value":1}');
+          dispatch(run, 'decide');
+        }
+        const refused = rejected(session, 'decide', '{}', 'evaluation', 'decision_in_force');
+        const error = 'event decide, rule 3: current decision in route must be explicitly reopened before revision';
+        assert.equal(refused.message, error);
+        assert.throws(() => legacy.dispatch('decide', '{}'), thrown => thrown === error);
+        dispatch(session, 'doubt');
+        const accepted = dispatch(session, 'decide');
+        assert.equal(accepted.outcome, 'accepted');
+        assert.equal(accepted.snapshot.values.decides, 2);
+        assert.equal(accepted.snapshot.decision_series.route.current, 'route@2');
+        const restored = WebReactiveSession.restore(source, session.save());
+        try {
+          rejected(restored, 'decide', '{}', 'evaluation', 'decision_in_force');
+          assert.equal(dispatch(restored, 'read', '{"value":2}').outcome, 'accepted');
+        } finally { restored.free(); }
+      });
+    });
+
+    check('a permitted commit in force is not a denial, even with its grant withdrawn', () => {
+      const source = fixture('decision-in-force-permitted', `claim ready; claim may_merge; claim revoked;
+        evidence ci from "checks"; evidence go from "a go-ahead"; evidence revocation from "taken back";
+        readings checks from ci limit 4; readings approvals from go limit 4; decisions merge limit 4;
+        event check; event approved; event merge; event revoke; event doubt;
+        on check sample checks = 1 supports ready;
+        on approved sample approvals = 1 supports may_merge;
+        on merge commit merge because enough using latest(checks) permitted by latest(approvals);
+        on revoke when not observed(revocation) reveal revocation supports revoked;
+        on revoke withdraw latest(approvals) because revocation;
+        on doubt when committed(merge) and not reopened(merge) reopen merge because latest(checks);`);
+      withSessions(source, 1, session => {
+        for (const event of ['check', 'approved', 'merge', 'revoke']) dispatch(session, event);
+        rejected(session, 'merge', '{}', 'evaluation', 'decision_in_force');
+        dispatch(session, 'doubt');
+        rejected(session, 'merge', '{}', 'policy', 'not_permitted');
+      });
+    });
+
+    check('a citation its value never read is an atomic evaluation rejection and the session continues', () => {
+      const source = fixture('ungrounded-citation', `claim safe;
+        evidence bite from "a bite"; evidence chart from "tidal archive";
+        caveat faded consequence low; renewable bite limit 4;
+        state from_chart = 0; state eaten = 0 min 0 max 9;
+        event tick dt min 0 max 0.1; event eat; event regrow; event chart;
+        on chart reveal chart supports safe;
+        on chart set from_chart = qualified(1, chart);
+        on eat reveal bite supports safe;
+        on eat set eaten = eaten + 1;
+        on eat qualify bite with faded after 0.15;
+        on regrow renew bite;
+        bind hud.text = "ok" because nothing;
+        bind hud.text = "faded" when carries(bite, faded) because from_chart;`);
+      const tick = '{"dt":0.1}';
+      withSessions(source, 2, (session, legacy) => {
+        for (const run of [session, legacy]) {
+          for (const [event, payload] of [['chart'], ['eat'], ['tick', tick], ['regrow'], ['eat'], ['tick', tick]]) {
+            assert.equal(dispatch(run, event, payload).outcome, 'accepted');
+          }
+        }
+        const refused = rejected(session, 'tick', tick, 'evaluation', 'ungrounded_citation');
+        const error = 'binding hud.text cites evidence chart that its value and conditions never read';
+        assert.equal(refused.message, error);
+        assert.throws(() => legacy.dispatch('tick', tick), thrown => thrown === error);
+        rejected(session, 'tick', tick, 'evaluation', 'ungrounded_citation');
+        const accepted = dispatch(session, 'eat');
+        assert.equal(accepted.outcome, 'accepted');
+        assert.equal(accepted.snapshot.values.eaten, 3);
+        const restored = WebReactiveSession.restore(source, session.save());
+        try {
+          rejected(restored, 'tick', tick, 'evaluation', 'ungrounded_citation');
+          assert.equal(dispatch(restored, 'chart').outcome, 'accepted');
+        } finally { restored.free(); }
       });
     });
 

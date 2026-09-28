@@ -14,7 +14,7 @@ consequence   = "negligible" | "low" | "material" | "high" | "catastrophic" ;
 stop_reason   = "enough" | "budget" | "deadline" ;
 id_list       = identifier { "," identifier } ;
 number        = digit { digit } ;
-identifier    = letter { letter | digit | "_" } ;
+identifier    = ( letter | "_" ) { letter | digit | "_" } ;
 (* The recommended form of a declared name. The loader takes the name in a claim,
    evidence, caveat, place or entity statement as a whitespace-free word, and does
    not check it against this rule; the reactive layer requires an identifier where

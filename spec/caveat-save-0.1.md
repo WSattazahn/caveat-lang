@@ -31,8 +31,10 @@ everything an event can change, named as the program names it:
   `elapsed` time;
 - every state whose value, lineage or grounds differ from what the program gave
   it when it loaded, with its grounds written only when they differ from its
-  lineage. A state the save leaves out is recomputed from the source. Lineage
-  leaves out an empty list, so `{"value": 3}` is a state with no evidence;
+  lineage. A value differs when its bits do, so `-0` and `0` differ: the sign
+  of a zero is observable, for example through `atan2`. A state the save
+  leaves out is recomputed from the source. Lineage leaves out an empty list,
+  so `{"value": 3}` is a state with no evidence;
 - what events did to the graph since the program loaded: the nodes they
   created (reading and renewal occurrences, rebuilt from their names, and
   commitments with their reason), the relations they added in order (their
@@ -55,6 +57,10 @@ Bindings are not saved. They are computed from the state when a session is
 restored, like after any event, so a save cannot make a program show something
 its rules do not.
 
+Every number is written exactly, `-0.0` included. Store the text `save()`
+returns: JavaScript's `JSON.stringify` writes `-0` as `0`, so a save parsed and
+encoded again can lose a zero's sign.
+
 ## Restore validation
 
 A save is data a host stored and may hand back changed. Restoring loads the
@@ -65,8 +71,31 @@ save is refused with an error, and never crashes the runtime, when:
 - a state is missing, extra, out of its declared range or not a finite number;
 - a name in any lineage, relation, record or effect is not declared or created
   evidence, caveat, claim or commitment of the kind its place needs;
+- a relation connects kinds of node no event relates. Events add `supports`
+  and `opposes` from evidence to a claim, `qualifies` from a caveat to
+  evidence, `retains` from a commitment to a caveat, `relies_on` from a
+  commitment to evidence and `reopens` from evidence to a commitment, and
+  never add `in_context`;
+- evidence the save cites is not observed, that is, the restored graph holds
+  nothing it supports or opposes: evidence a `relies_on` relation relies on
+  or a `reopens` relation names as its cause, evidence in any lineage,
+  grounds, basis, guard or other provenance record, and withdrawn evidence
+  and a withdrawal's reason. Evidence enters these only once observed, and
+  the next commitment, qualification or withdrawal that reads it requires
+  that;
+- a commitment retains a caveat or relies on evidence that is not in its
+  basis. A commitment retains exactly its basis's caveats and relies on
+  exactly its evidence, and reading `committed(...)` or `reopened(...)` adds
+  what it retains and relies on to that basis;
 - a created node's name is not an occurrence of a declared reading stream or
   renewable evidence, or a commitment this program's rules make;
+- the graph and the renewals disagree: the graph holds an occurrence
+  `EVIDENCE@N` that is not entry N of that evidence's renewals, or the
+  renewals list an occurrence the graph does not hold, out of order, or more
+  occurrences than the declared limit;
+- the graph and a reading stream disagree: the graph holds a reading
+  `STREAM@N` that is not entry N of that stream's occurrences, or the
+  occurrences list a reading the graph does not hold, or out of order;
 - a history's template or limit differs from the program's, holds more than its
   limit, has a revision without a basis, or a current entry that is not its
   latest;
@@ -76,19 +105,112 @@ save is refused with an error, and never crashes the runtime, when:
   evidence and declared caveats it cites;
 - a journal entry has an impossible event/sequence relationship, unreachable
   decision effect, or inconsistent optional elapsed time. Clocks whose source
-  admits negative `dt` are not incorrectly treated as monotonic.
+  admits negative `dt` are not incorrectly treated as monotonic;
+- its `sequence` is past 2^53 - 1 (9007199254740991), or a reading, journal
+  entry or withdrawal is dated 0 or past the `sequence`. The sequence counts
+  accepted events, and at ten million a second 2^53 of them take over 28
+  years. Records bound the sequence only from below, since an event can leave
+  none (a `tick`), so the bound above is this constant, the largest integer a
+  JSON host reads exactly. A restored session numbers its next events like
+  any other, past the bound too: a session resumed from an edited save at or
+  near the bound plays on, but its saves past the bound are refused.
 
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
 current caveats: later qualification does not rewrite history.
 
 The runtime tests alter a saved game at random, 3,000 times on every run and
-30,000 when asked. Each altered save must be refused or accepted, and an
-accepted one must then run events, snapshots, views and saves again without a
-crash.
+30,000 when asked, and remove each of its records in turn. Each altered save
+must be refused or accepted, and an accepted one must then run events,
+snapshots, views and saves again without a crash or a fatal outcome. The tests
+can list a fatal outcome that is a known runtime bug with its own fix under
+way, by its event and exact message with the fix it waits for, and skip only
+what they list; they list none now. Each entry also names its witness, the
+altered save that reproduces it, and a test fails when a listed fatal outcome
+no longer happens on its witness, so an entry is removed once its fix is in.
 
 A save is not signed. These checks establish internal consistency, not proof
 that historical inputs or guards really occurred. Coordinated edits to mutually
 consistent records can still be accepted; authentication would require a
 different trust mechanism. Mutation tests exercise the requirement that an
 edited save is refused or remains playable without crashing.
+
+## Changes
+
+- 2026-09-27: restore refuses a save whose graph holds an occurrence of
+  renewable evidence that its renewals do not list at its position
+  ([#43](https://github.com/WSattazahn/caveat-lang/issues/43)). Such a save
+  used to be accepted. Without the entry, the evidence's first occurrence
+  stayed current, so its next `renew` generated a name the graph already
+  held, and that event was fatal `unclassified`. A renamed occurrence could
+  also sit past the declared limit. `save()` lists every occurrence, so only
+  an edited save holds one, and saves the runtime writes restore as before.
+  Renewals that name an occurrence the graph does not hold were already
+  refused.
+- 2026-09-27: restore refuses a save whose graph holds a reading that its
+  stream does not list at its position, or whose stream lists its readings
+  out of order: the gap above, for reading streams, found in the review of
+  [#50](https://github.com/WSattazahn/caveat-lang/pull/50). Such a save used
+  to be accepted. Without the entry, the stream's next `sample` generated a
+  name the graph already held, and that event was fatal `unclassified`. A
+  renamed reading could also sit past the declared limit. And an entry had
+  only to name evidence, so a stream could list its template, other evidence,
+  a reading twice or another stream's reading; the next event that qualified
+  or withdrew its latest reading could then be fatal. Entry N of a stream's
+  occurrences must now be `STREAM@N`, as entry N of renewals must be
+  `EVIDENCE@N`. `sample` always adds the next reading and `save()` lists every
+  one, so only an edited save is refused, and saves the runtime writes
+  restore as before. Occurrences that name evidence the graph does not hold
+  were already refused. Decision series had no such gap: every commitment the
+  graph holds needs a journal entry, and each entry must find the revision at
+  its position. The save fuzz now also removes records, and an accepted save
+  fails it when a later event is fatal, as it does when one crashes, unless
+  the tests list that event and exact message as a known bug with its own fix
+  under way. Each listed outcome names a save that reproduces it, and a test
+  fails when it no longer happens.
+- 2026-09-28: a save keeps a state that holds `-0` where the program loads
+  `0`, or `0` where it loads `-0`. It compared the two with `==`, which takes
+  them for the same number, so it left the state out, and the restored
+  session held the loaded zero: its snapshot, and a binding that shows the
+  sign, such as `atan2(x, -1)`, differed from the session that was saved. A
+  program makes `-0` itself, from `-v`, `w * 0` with `w` negative, `v / -2` or
+  `round(-0.4)`, and a host can send it as `-0`, `-0.0` or a negative number
+  too small for a double, such as `-1e-400`. The live session had the same
+  blind spot, described in
+  [Incremental Evaluation 0.1](caveat-incremental-evaluation-0.1.md#changes):
+  a binding kept showing the old sign until a restore evaluated it in full.
+  Both compare the bits now. A save written before this leaves such a state
+  out and restores as it did, to the loaded zero. Every other number a save
+  holds, from readings to elapsed time, was already written exactly.
+- 2026-09-27: restore refuses a save whose `sequence` is past 2^53 - 1, or
+  that holds a reading dated 0 or past its `sequence`. A save at 2^64 - 1 used
+  to be accepted, and its next event was fatal `unclassified` ("reactive event
+  sequence exhausted"); one a few below it was fatal a few events later. A
+  session resumed at 2^53 - 1 still has 2^64 - 2^53 events to number, so
+  exhaustion stays unreachable and dispatch is unchanged. A reading's
+  sequence was not checked, unlike a journal entry's or a withdrawal's, and
+  now bounds the save's from below as theirs do. Saves the runtime writes
+  restore as before, except from a session resumed from an edited save at or
+  near the bound: it numbers its events past 2^53 - 1, and its saves from
+  then on are refused.
+- 2026-09-27: restore refuses a save with a relation between kinds of node no
+  event relates, a commitment retaining or relying on more than its basis,
+  or evidence nothing observes where the runtime relies on it being
+  observed, found by the save fuzz. Such a save used to be accepted as long
+  as every name was declared or created. Read back as what events write, a
+  revision relying on a claim made the decision's next revision fatal
+  `unclassified` ("safe must name a declared evidence"), and a retained
+  evidence did the same ("bite must name a declared caveat"). Relations
+  beyond a commitment's basis changed what its next revision was made on,
+  and long enough names took the read of `committed(...)` past the
+  provenance limit, which was fatal. Evidence nothing observed, whether
+  relied on, in a commitment's basis, a state's lineage or a selection
+  guard, made the next commitment on it fatal ("commitment basis includes
+  unobserved evidence"), a withdrawal's unobserved reason the next read of
+  `withdrawn(...)`, and unobserved withdrawn evidence the next `withdraw` of
+  it. Events add only the relations listed above, a commitment's `retains`
+  and `relies_on` relations are its basis, and evidence enters a `relies_on`
+  or `reopens` relation, a withdrawal or a provenance record only once
+  observed, so saves the runtime writes restore as before. A reopening's
+  cause had to be observed already, through the decision journal it must
+  match.

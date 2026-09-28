@@ -604,7 +604,7 @@ struct LoadedGraph {
     last_node: NodeId,
     edges: usize,
     /// Every state as the program set it when it loaded; a save leaves out
-    /// the states still equal to these.
+    /// the states still the same as these, to the bit.
     states: Arc<Vec<Arc<StateCell>>>,
 }
 
@@ -615,10 +615,21 @@ struct StateRange {
 }
 
 /// A state's current value, with its lineage, and what it is grounded on.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 struct StateCell {
     value: QualifiedValue,
     grounds: Provenance,
+}
+
+impl StateCell {
+    /// The same value to the bit, lineage and grounds. Not `==` on the
+    /// number: `-0.0 == 0.0`, but the sign is observable, for example through
+    /// atan2, so a state that only changed its zero's sign has changed.
+    fn same(&self, other: &Self) -> bool {
+        self.value.value.to_bits() == other.value.value.to_bits()
+            && self.value.provenance == other.value.provenance
+            && self.grounds == other.grounds
+    }
 }
 
 /// Every declared state, in a slot fixed at load. A transaction's copy shares
@@ -681,7 +692,7 @@ impl States {
             .iter()
             .zip(old.cells.iter())
             .enumerate()
-            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && new != old)
+            .filter(|(_, (new, old))| !Arc::ptr_eq(new, old) && !new.same(old))
             .map(|(slot, _)| self.names[slot].clone())
             .collect()
     }
@@ -1714,7 +1725,9 @@ impl ReactiveSession {
             edges: session.graph.edges.len(),
             states: Arc::clone(&session.states.cells),
         };
-        session.evaluate_bindings(None)?;
+        session
+            .evaluate_bindings(None)
+            .map_err(|error| error.to_string())?;
         Ok(session)
     }
 
@@ -2454,7 +2467,7 @@ impl ReactiveSession {
     /// Everything is computed before anything is written, and properties are
     /// evaluated in declaration order and explained in name order, so an error
     /// is the same one a full evaluation reports.
-    fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), String> {
+    fn evaluate_bindings(&mut self, changes: Option<&Changes>) -> Result<(), DispatchFailure> {
         let groups = Arc::clone(&self.binding_groups);
         let rules = Arc::clone(&self.binding_rules);
         let stale = groups
@@ -2553,7 +2566,7 @@ impl ReactiveSession {
     /// Debug builds: an incremental evaluation must show exactly what a full
     /// one shows, or fail with the same error.
     #[cfg(debug_assertions)]
-    fn check_incremental_bindings(&self, incremental: &Result<(), String>) {
+    fn check_incremental_bindings(&self, incremental: &Result<(), DispatchFailure>) {
         let mut full = self.clone();
         let result = full.evaluate_bindings(None);
         assert_eq!(
@@ -2561,7 +2574,13 @@ impl ReactiveSession {
             "incremental and full binding evaluation disagree on the outcome"
         );
         if result.is_ok() {
-            assert_eq!(self.bindings, full.bindings, "incremental bindings differ");
+            // As JSON text: `==` would take -0.0 and 0.0 for the same value.
+            let text = |bindings| serde_json::to_string(bindings).expect("finite bindings");
+            assert_eq!(
+                text(&self.bindings),
+                text(&full.bindings),
+                "incremental bindings differ"
+            );
             assert_eq!(
                 self.binding_qualifications, full.binding_qualifications,
                 "incremental binding lineage differs"
@@ -2578,13 +2597,20 @@ impl ReactiveSession {
     /// dependencies out; it may never introduce one. Citations are read for
     /// their grounds, so citing a state cites what it is grounded on rather
     /// than every guard that ever touched it.
+    ///
+    /// Whether a citation holds depends on the session, not only on the text:
+    /// a late caveat can make a declaration win for the first time on a clock
+    /// tick, a renewal moves what an evidence name means, and a cited state
+    /// can change apart from the value. So a citation that does not hold
+    /// refuses the event it is reached on, classified, and the session goes
+    /// on; the event is rolled back as for any failure.
     fn grounded_citation(
         &self,
         subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
         parameters: &BTreeMap<String, Tracked<f64>>,
-    ) -> Result<Provenance, String> {
+    ) -> Result<Provenance, DispatchFailure> {
         let mut cited = Provenance::default();
         for citation in citations {
             let value = self
@@ -2604,9 +2630,13 @@ impl ReactiveSession {
             )
             .collect::<Vec<_>>();
         if !ungrounded.is_empty() {
-            return Err(format!(
-                "{subject} cites {} that its value and conditions never read",
-                ungrounded.join(", ")
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Evaluation,
+                RejectionCode::UngroundedCitation,
+                format!(
+                    "{subject} cites {} that its value and conditions never read",
+                    ungrounded.join(", ")
+                ),
             ));
         }
         Ok(cited)
@@ -3117,7 +3147,7 @@ impl ReactiveSession {
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
-        result.map_err(Into::into)
+        result
     }
 
     fn take_shown(&mut self) -> Shown {
@@ -3724,6 +3754,12 @@ impl ReactiveSession {
                 else {
                     unreachable!("validated evidence template")
                 };
+                // A withdrawn template's `withdrawn` is about its own
+                // observation. A reading is a new one, which only a withdrawal
+                // of it can withdraw: see spec/caveat-withdrawal-0.1.md.
+                let withdrawn = self
+                    .withdrawal_of(&readings.template)
+                    .map(|_| self.symbols[WITHDRAWN]);
                 let inherited = self
                     .graph
                     .edges
@@ -3736,6 +3772,7 @@ impl ReactiveSession {
                         )
                     })
                     .map(|edge| edge.from)
+                    .filter(|caveat| Some(*caveat) != withdrawn)
                     .collect::<Vec<_>>();
                 let id = Arc::make_mut(&mut self.graph).add(NodeKind::Evidence {
                     description: format!("{description} ({stream} reading {ordinal})"),
@@ -4018,7 +4055,11 @@ impl ReactiveSession {
                     if previous.is_some() {
                         let reopened = self.predicate_tracked("reopened", action)?;
                         if !reopened.value {
-                            return Err(format!("current decision in {action} must be explicitly reopened before revision").into());
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::DecisionInForce,
+                                format!("current decision in {action} must be explicitly reopened before revision"),
+                            ));
                         }
                         provenance.merge(&reopened.provenance)?;
                     }
