@@ -1018,7 +1018,10 @@ fn a_module_may_shadow_a_function_only_with_a_function() {
     );
 
     let message = error(&[("m", "module m;\nclaim abs;\n"), ("main", "use m;\n")]);
-    assert!(message.contains("which is already a function"), "{message}");
+    assert!(
+        message.ends_with("module m declares abs, which is already a function; a module may shadow it with `fn abs(...)` but not with another kind of name"),
+        "{message}"
+    );
 }
 
 #[test]
