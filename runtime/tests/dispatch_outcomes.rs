@@ -600,30 +600,86 @@ fn a_commit_in_force_inside_a_procedure_is_still_classified() {
 }
 
 // A permitted commit on a decision in force is refused for that, not as a
-// denial: its grant is present and matches.
+// denial, whether its grant is present or withdrawn: the decision is checked
+// before the grant. Once the decision is reopened, the withdrawn grant is what
+// refuses the commit.
 #[test]
 fn a_permitted_commit_while_the_decision_is_in_force_is_not_a_denial() {
     let mut game = session(
         r#"
         claim ready;
         claim may_merge;
+        claim revoked;
         evidence ci from "the checks";
         evidence go from "a go-ahead";
+        evidence revocation from "the go-ahead was taken back";
         readings checks from ci limit 4;
         readings approvals from go limit 4;
         decisions merge limit 4;
         event check;
         event approved;
         event merge;
+        event revoke;
+        event doubt;
         on check sample checks = 1 supports ready;
         on approved sample approvals = 1 supports may_merge;
         on merge commit merge because enough using latest(checks) permitted by latest(approvals);
+        on revoke when not observed(revocation) reveal revocation supports revoked;
+        on revoke withdraw latest(approvals) because revocation;
+        on doubt when committed(merge) and not reopened(merge) reopen merge because latest(checks);
     "#,
     );
     for event in ["check", "approved", "merge"] {
         game.dispatch(event, "{}").unwrap();
     }
+    // The grant is present and matches.
     rejected(&mut game, "merge", "{}", "evaluation", "decision_in_force");
+    // The grant is withdrawn, and the decision is still in force.
+    game.dispatch("revoke", "{}").unwrap();
+    rejected(&mut game, "merge", "{}", "evaluation", "decision_in_force");
+    // Reopened, the same commit is denied for its withdrawn grant.
+    game.dispatch("doubt", "{}").unwrap();
+    let refused = rejected(&mut game, "merge", "{}", "policy", "not_permitted");
+    assert!(
+        refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("commit merge is not permitted: approvals@1 was withdrawn"),
+        "{refused}"
+    );
+    // A fresh grant permits the next revision.
+    game.dispatch("approved", "{}").unwrap();
+    let accepted = json(&game.dispatch_outcome("merge", "{}").unwrap());
+    assert_eq!(accepted["outcome"], "accepted");
+    assert_eq!(
+        accepted["snapshot"]["decision_series"]["merge"]["current"],
+        "merge@2"
+    );
+}
+
+// A full series whose decision is also in force is refused as full: the
+// history limit is checked first.
+#[test]
+fn a_full_series_in_force_is_a_history_limit() {
+    let mut game = session(
+        r#"
+        claim safe;
+        evidence gauge from "a gauge";
+        readings depth from gauge limit 4;
+        decisions route limit 1;
+        event read value min 0 max 9;
+        event decide;
+        on read sample depth = value supports safe;
+        on decide commit route because enough using latest(depth);
+    "#,
+    );
+    game.dispatch("read", r#"{"value":1}"#).unwrap();
+    game.dispatch("decide", "{}").unwrap();
+    let refused = rejected(&mut game, "decide", "{}", "limit", "history_limit");
+    assert_eq!(
+        refused["message"],
+        "event decide, rule 2: decision series route reached its history limit 1"
+    );
 }
 
 #[test]

@@ -288,6 +288,8 @@ try {
         dispatch(session, 'read', '{"value":1}');
         rejected(session, 'read', '{"value":2}', 'limit', 'history_limit');
         dispatch(session, 'decide', '{}');
+        // Full and in force: the history limit is checked first.
+        rejected(session, 'decide', '{}', 'limit', 'history_limit');
         dispatch(session, 'doubt', '{}');
         rejected(session, 'decide', '{}', 'limit', 'history_limit');
       });
@@ -343,6 +345,25 @@ try {
           rejected(restored, 'decide', '{}', 'evaluation', 'decision_in_force');
           assert.equal(dispatch(restored, 'read', '{"value":2}').outcome, 'accepted');
         } finally { restored.free(); }
+      });
+    });
+
+    check('a permitted commit in force is not a denial, even with its grant withdrawn', () => {
+      const source = fixture('decision-in-force-permitted', `claim ready; claim may_merge; claim revoked;
+        evidence ci from "checks"; evidence go from "a go-ahead"; evidence revocation from "taken back";
+        readings checks from ci limit 4; readings approvals from go limit 4; decisions merge limit 4;
+        event check; event approved; event merge; event revoke; event doubt;
+        on check sample checks = 1 supports ready;
+        on approved sample approvals = 1 supports may_merge;
+        on merge commit merge because enough using latest(checks) permitted by latest(approvals);
+        on revoke when not observed(revocation) reveal revocation supports revoked;
+        on revoke withdraw latest(approvals) because revocation;
+        on doubt when committed(merge) and not reopened(merge) reopen merge because latest(checks);`);
+      withSessions(source, 1, session => {
+        for (const event of ['check', 'approved', 'merge', 'revoke']) dispatch(session, event);
+        rejected(session, 'merge', '{}', 'evaluation', 'decision_in_force');
+        dispatch(session, 'doubt');
+        rejected(session, 'merge', '{}', 'policy', 'not_permitted');
       });
     });
 
