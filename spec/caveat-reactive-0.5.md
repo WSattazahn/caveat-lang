@@ -62,7 +62,9 @@ deterministic within a session: `flow@1`, `flow@2`, and so on. The new node copi
 the template's canonical source string and receives the source-authored
 `supports` or `opposes` relation to the named claim. Template qualifications are
 linked to the new node, and transitive qualification of its template caveats and
-the claim it bears on is retained.
+the claim it bears on is retained. The `withdrawn` caveat of a
+[withdrawal](caveat-withdrawal-0.1.md) is not: it is about the template's own
+observation.
 
 The recorded value combines the expression's provenance, the sampling guard's
 provenance, the new occurrence's evidence identity, and its inherited caveats.
