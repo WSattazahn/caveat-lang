@@ -40,9 +40,11 @@ before any rule runs, such as a payload outside its declared range, has origin
 in [Dispatch outcomes 0.1](../spec/caveat-dispatch-0.1.md). A `sample` or
 `commit` on a history that already holds its declared limit is refused as
 `{"origin": "limit", "code": "history_limit"}`, and the session continues, so a
-program needs its own guard only to give its own message. Some runtime errors
-are deliberately unclassified: they are fatal, and a fatal outcome never
-matches an expected rejection.
+program needs its own guard only to give its own message. The same holds for a
+`commit` to a decision series whose current revision has not been reopened: it
+is refused as `{"origin": "evaluation", "code": "decision_in_force"}`. Some
+runtime errors are deliberately unclassified: they are fatal, and a fatal
+outcome never matches an expected rejection.
 
 To see what a program does after each event, open a session from a script:
 
