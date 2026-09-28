@@ -362,6 +362,7 @@ fn the_shipped_examples_check_clean() {
         "../examples/thermostat_history.cav",
         "../kit/templates/umbrella.cav",
         "../experiments/agent-ledger/ledger.cav",
+        "../experiments/agent-ledger/ledger-approved-head.cav",
         "../experiments/agent-ledger/ledger-identifiers.cav",
         // The other programs with `for` blocks.
         "../game/glowcap.cav",

@@ -279,6 +279,47 @@ view, not a proof that no slip can leak.
   I07-I10 were extended for them, and each of the 11 now fails at least one
   scenario.
 
+## Correction: no pull request starts approved
+
+Random play found a fault in `ledger.cav`. `$p_approved_head` starts at 0,
+the same as `$p_head`, so a pull request at head 0 counts as approved when no
+go-ahead was given. The merge rule then cites `$p_go`, which nothing has
+observed, and the event fails fatally instead of being refused:
+
+```text
+checks {"target":"pr26","commit":0,"result":"passed"}  accepted
+merge  {"target":"pr26"}  fatal: event merge, rule 54: cannot qualify a value with unobserved evidence pr26_go
+```
+
+The runtime is right to refuse to qualify a value with unobserved evidence.
+The fault is the program's. The day's history never reaches it, because no
+commit in it is 0.
+
+`ledger.cav`, its scenarios and the recorded session stay as they were, so
+the results above are what was recorded.
+[`ledger-approved-head.cav`](ledger-approved-head.cav) is the corrected copy.
+One line differs:
+
+```caveat
+state $p_approved_head = -1 min -1 max 4294967295;
+```
+
+No commit is -1, so a head matches the approved head only after a go-ahead
+for it. A go-ahead for commit 0 still counts.
+[`ledger-approved-head.scenarios.json`](ledger-approved-head.scenarios.json)
+tests it:
+- **A01-A04:** without a go-ahead, a merge at head 0 is refused with "No
+  go-ahead for the current head."; a go-ahead for commit 0 permits it; a
+  go-ahead for later revisions permits it for its own pull request only. On
+  `ledger.cav`, the first merge in each of the four is fatal.
+- **L01-L05:** `ledger.scenarios.json`, unchanged.
+- **I05-I11:** the isolation scenarios of `ledger-identifiers.scenarios.json`,
+  with commits as numbers and without the `misread` event.
+
+`ledger-identifiers.cav` does not have this fault. Its merge rule names the
+go-ahead in a `permitted by` clause, which refuses a merge without one as
+`policy/not_permitted`.
+
 ## Suggested order for the language work
 
 1. Identifiers known only at run time. Without them the ledger cannot be used

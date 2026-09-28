@@ -1,0 +1,2664 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "ledger-approved-head.cav",
+  "note": "A01-A04 test the correction. L01-L05 are ledger.scenarios.json unchanged. I05-I11 are ported from ledger-identifiers.scenarios.json: commits as numbers, no misread event, and a go-ahead as evidence and a head number.",
+  "scenarios": [
+    {
+      "id": "A01",
+      "title": "No pull request starts with a go-ahead: passing checks at the initial head 0 do not permit a merge",
+      "steps": [
+        {
+          "expect": {
+            "/values/pr21_head": 0,
+            "/values/pr21_approved_head": -1,
+            "/values/pr26_head": 0,
+            "/values/pr26_approved_head": -1,
+            "/values/pr28_head": 0,
+            "/values/pr28_approved_head": -1,
+            "/values/pr29_head": 0,
+            "/values/pr29_approved_head": -1
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "commit": 0,
+            "result": "passed",
+            "target": 2
+          },
+          "note": "The random-play witness, sent as it was: target 2 is pr26. In ledger.cav the merge after it is fatal: \"cannot qualify a value with unobserved evidence pr26_go\"."
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": 2
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr21",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr21"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "expect": {
+            "/bindings/pr21/status": "checks pass on the head",
+            "/values/pr21_approved_head": -1,
+            "/decision_series/pr21_merge/revisions": [],
+            "/observation_qualifications/pr21_go": {
+              "$absent": true
+            },
+            "/bindings/pr26/status": "checks pass on the head",
+            "/values/pr26_approved_head": -1,
+            "/decision_series/pr26_merge/revisions": [],
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            },
+            "/bindings/pr28/status": "checks pass on the head",
+            "/values/pr28_approved_head": -1,
+            "/decision_series/pr28_merge/revisions": [],
+            "/observation_qualifications/pr28_go": {
+              "$absent": true
+            },
+            "/bindings/pr29/status": "checks pass on the head",
+            "/values/pr29_approved_head": -1,
+            "/decision_series/pr29_merge/revisions": [],
+            "/observation_qualifications/pr29_go": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr26"
+          },
+          "rejected": "No go-ahead for the current head."
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "title": "A push of commit 0 is not a go-ahead either",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 0
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 16
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 0
+          },
+          "note": "Back at 0 after another head: still no go-ahead."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "expect": {
+            "/values/pr28_head": 0,
+            "/values/pr28_approved_head": -1,
+            "/decision_series/pr28_merge/revisions": [],
+            "/observation_qualifications/pr28_push": {},
+            "/observation_qualifications/pr28_go": {
+              "$absent": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "title": "A go-ahead for commit 0 permits the merge at head 0, and the decision rests on it",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 0
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 0
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_approved_head": 0,
+            "/observation_qualifications/pr28_go": {}
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr28/status": "decided to merge",
+            "/commitment_grounds/pr28_merge@1": {
+              "evidence": [
+                "pr28_checks@1",
+                "pr28_go"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "Already decided to merge."
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "title": "A go-ahead for later revisions permits a merge at head 0 and after a push, for its own pull request only",
+      "steps": [
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr26",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 0,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr26"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr26_revisions": 1,
+            "/values/pr26_approved_head": -1,
+            "/values/pr28_revisions": 0
+          },
+          "note": "A go-ahead for later revisions is not a go-ahead for the head."
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr26"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr26_merge@1": {
+              "evidence": [
+                "pr26_checks@1",
+                "pr26_scope"
+              ],
+              "caveats": []
+            },
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            }
+          },
+          "note": "In ledger.cav this merge is fatal: the rule for a go-ahead for the head fires at head 0 and cites pr26_go, which nothing observed."
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head.",
+          "note": "pr26's go-ahead for later revisions does not reach pr28."
+        },
+        {
+          "expect": {
+            "/decision_series/pr28_merge/revisions": [],
+            "/observation_qualifications/pr28_scope": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr26",
+            "commit": 16
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr26"
+          },
+          "rejected": "No passing checks on the current head.",
+          "note": "It carries over the push, but not past the checks."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr26",
+            "commit": 16,
+            "result": "passed"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr26"
+          }
+        },
+        {
+          "expect": {
+            "/decision_series/pr26_merge/current": "pr26_merge@2",
+            "/commitment_grounds/pr26_merge@2": {
+              "evidence": [
+                "pr26_checks@2",
+                "pr26_scope"
+              ],
+              "caveats": []
+            },
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr26"
+          },
+          "rejected": "Later revisions are already approved."
+        }
+      ]
+    },
+    {
+      "id": "L01",
+      "title": "A merge needs passing checks on the head and a go-ahead, and rests on both",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 827595347
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr28/status": "decided to merge",
+            "/commitment_grounds/pr28_merge@1": {
+              "evidence": [
+                "pr28_checks@1",
+                "pr28_go"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "Already decided to merge."
+        }
+      ]
+    },
+    {
+      "id": "L02",
+      "title": "A push after the decision reopens it and needs a fresh go-ahead; the decision keeps what it was made on",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "checkpoint": "decided"
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 16
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr29/status": "reconsider: new commit since the decision",
+            "/decision_journal/1": {
+              "change": "reopened",
+              "because": [
+                "pr29_push@2"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "decided",
+          "paths": [
+            "/commitment_grounds/pr29_merge@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084,
+            "result": "passed"
+          },
+          "rejected": "Checks for a commit that is not the head."
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 16,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          },
+          "rejected": "A go-ahead for a commit that is not the head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 16
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/decision_series/pr29_merge/current": "pr29_merge@2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L03",
+      "title": "Merged by someone else: a later merge is refused",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr26",
+            "commit": 90147877
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr26",
+            "commit": 90147877,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr26"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr26",
+            "commit": 90147877
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr26"
+          },
+          "rejected": "Someone else has already merged it."
+        },
+        {
+          "expect": {
+            "/bindings/pr26/status": "merged by someone else"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L04",
+      "title": "A misread pass can only be followed by a failure; the decision made on it still cites it",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr21"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr21",
+            "commit": 2869574427,
+            "result": "failed"
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal/1": {
+              "change": "reopened",
+              "because": [
+                "pr21_checks@2"
+              ]
+            },
+            "/commitment_grounds/pr21_merge@1": {
+              "evidence": [
+                "pr21_checks@1",
+                "pr21_go"
+              ],
+              "caveats": []
+            },
+            "/reading_streams/pr21_checks/occurrences/0/relation": "supports"
+          }
+        }
+      ]
+    },
+    {
+      "id": "L05",
+      "title": "Only an explicit go-ahead for later revisions carries over a push, and the decision then rests on it",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1613487084
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 16
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 16,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr29_merge@1": {
+              "evidence": [
+                "pr29_checks@1",
+                "pr29_scope"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "Later revisions are already approved."
+        }
+      ]
+    },
+    {
+      "id": "I05",
+      "title": "Two pull requests at the same commit: a go-ahead for one neither permits nor reaches the other, before and after a resume",
+      "note": "Ported from ledger-identifiers.scenarios.json I05. Here a go-ahead is revealed evidence and a head number, not a reading, and the refusal is this ledger's own reject rule.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_approved_head": 1511514307,
+            "/values/pr29_approved_head": -1,
+            "/observation_qualifications/pr28_go": {},
+            "/observation_qualifications/pr29_go": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "checkpoint": "pr28_approved"
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "expect": {
+            "/decision_series/pr29_merge/revisions": []
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No go-ahead for the current head."
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@1",
+              "pr28_go"
+            ]
+          }
+        },
+        {
+          "same_as": "pr28_approved",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29"
+          ],
+          "note": "pr28's merge decision left every pr29 record as it was."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@1",
+              "pr28_go"
+            ],
+            "/commitment_grounds/pr29_merge@1/evidence": [
+              "pr29_checks@1",
+              "pr29_go"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "I06",
+      "title": "Interleaved events on two pull requests change only their own records",
+      "note": "Ported from ledger-identifiers.scenarios.json I06, without its misread step: this ledger has no withdrawal.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 2726953216
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 2996502784
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 2996502784,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 2726953216,
+            "result": "failed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": 2726953216,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 2996502784
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 2726953216
+          }
+        },
+        {
+          "expect": {
+            "/reading_streams/pr28_checks/occurrences": [
+              {
+                "id": "pr28_checks@1",
+                "relation": "opposes"
+              }
+            ],
+            "/reading_streams/pr29_checks/occurrences": [
+              {
+                "id": "pr29_checks@1",
+                "relation": "supports"
+              }
+            ],
+            "/reading_streams/pr28_gates/occurrences": [
+              {
+                "id": "pr28_gates@1"
+              }
+            ],
+            "/reading_streams/pr29_gates/occurrences": [],
+            "/values/pr28_approved_head": 2726953216,
+            "/values/pr29_approved_head": 2996502784,
+            "/values/pr28_green": 0,
+            "/values/pr29_green": 1,
+            "/values/pr28_head": 2726953216,
+            "/values/pr29_head": 2996502784
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "checkpoint": "pr29_decided"
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 2726953472
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 2726953472,
+            "result": "passed"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr28/status": "checks pass on the head",
+            "/bindings/pr29/status": "decided to merge"
+          }
+        },
+        {
+          "same_as": "pr29_decided",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_merged": 1,
+            "/values/pr29_merged": 0,
+            "/bindings/pr28/status": "merged by someone else",
+            "/bindings/pr29/status": "decided to merge",
+            "/observation_qualifications/pr29_elsewhere": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "same_as": "pr29_decided",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "I07",
+      "title": "Every kind of event about pr28 leaves pr29, pr21 and pr26 as they were",
+      "note": "Ported from ledger-identifiers.scenarios.json I07, without its misread step: this ledger has no withdrawal. Here a go-ahead is evidence and a head number, and both are among the records compared. This ledger uses a go-ahead for the head before one for later revisions, so both merge decisions rest on their go-ahead for the head, not on the later-revisions one as in ledger-identifiers.cav.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 187236608
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 187236608,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr29",
+            "commit": 187236608,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 187236608
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr28_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr28_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/reading_streams/pr28_checks/occurrences": []
+          },
+          "note": "Nothing about pr29 observed anything of pr28 or of the bystanders."
+        },
+        {
+          "checkpoint": "observer_set",
+          "note": "pr29 is decided. From here on only pr28 receives events."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888302848
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888303104
+          },
+          "note": "A second push renews pr28's push evidence."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888303104,
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888303104,
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888303104,
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888303104,
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 2888303104
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          },
+          "note": "pr29 is already decided; that must neither refuse nor decide anything for pr28."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@2",
+              "pr28_go"
+            ],
+            "/commitment_grounds/pr29_merge@1/evidence": [
+              "pr29_checks@1",
+              "pr29_go"
+            ]
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr29_push",
+            "/renewals/pr29_go",
+            "/reading_streams/pr29_checks",
+            "/reading_streams/pr29_gates",
+            "/decision_series/pr29_merge",
+            "/values/pr29_head",
+            "/values/pr29_green",
+            "/values/pr29_merged",
+            "/values/pr29_revisions",
+            "/values/pr29_approved_head",
+            "/bindings/pr29",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr29_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/predicate_qualifications/reopened/pr29_merge@1": {
+              "$absent": true
+            }
+          },
+          "note": "Evidence cannot be un-observed, so one check at the end covers every event: nothing about pr28 observed any evidence of the others, or asked whether pr29's decision was reopened."
+        }
+      ]
+    },
+    {
+      "id": "I08",
+      "title": "Every kind of event about pr29 leaves pr28, pr21 and pr26 as they were",
+      "note": "Ported from ledger-identifiers.scenarios.json I08, without its misread step: this ledger has no withdrawal. Here a go-ahead is evidence and a head number, and both are among the records compared. This ledger uses a go-ahead for the head before one for later revisions, so both merge decisions rest on their go-ahead for the head, not on the later-revisions one as in ledger-identifiers.cav.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 187171072
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 187171072,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr28",
+            "commit": 187171072,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 187171072
+          }
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr29_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr29_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/reading_streams/pr29_checks/occurrences": []
+          },
+          "note": "Nothing about pr28 observed anything of pr29 or of the bystanders."
+        },
+        {
+          "checkpoint": "observer_set",
+          "note": "pr28 is decided. From here on only pr29 receives events."
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368384
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368640
+          },
+          "note": "A second push renews pr29's push evidence."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368640,
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368640,
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368640,
+            "result": "failed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "gates",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368640,
+            "result": "passed"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 2888368640
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "approved_revisions",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "note": "pr28 is already decided; that must neither refuse nor decide anything for pr29."
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr29_merge@1/evidence": [
+              "pr29_checks@2",
+              "pr29_go"
+            ],
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@1",
+              "pr28_go"
+            ]
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "same_as": "observer_set",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28",
+            "/renewals/pr21_push",
+            "/renewals/pr21_go",
+            "/reading_streams/pr21_checks",
+            "/reading_streams/pr21_gates",
+            "/decision_series/pr21_merge",
+            "/values/pr21_head",
+            "/values/pr21_green",
+            "/values/pr21_merged",
+            "/values/pr21_revisions",
+            "/values/pr21_approved_head",
+            "/bindings/pr21",
+            "/renewals/pr26_push",
+            "/renewals/pr26_go",
+            "/reading_streams/pr26_checks",
+            "/reading_streams/pr26_gates",
+            "/decision_series/pr26_merge",
+            "/values/pr26_head",
+            "/values/pr26_green",
+            "/values/pr26_merged",
+            "/values/pr26_revisions",
+            "/values/pr26_approved_head",
+            "/bindings/pr26"
+          ]
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr28_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_push": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_go": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_scope": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            },
+            "/predicate_qualifications/reopened/pr28_merge@1": {
+              "$absent": true
+            }
+          },
+          "note": "Evidence cannot be un-observed, so one check at the end covers every event: nothing about pr29 observed any evidence of the others, or asked whether pr28's decision was reopened."
+        }
+      ]
+    },
+    {
+      "id": "I09",
+      "title": "A pull request merged elsewhere blocks only its own merge",
+      "note": "Ported from ledger-identifiers.scenarios.json I09.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 3533504768
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr29"
+          },
+          "note": "pr29 is merged by someone else before pr28 is decided."
+        },
+        {
+          "expect": {
+            "/observation_qualifications/pr29_elsewhere": {},
+            "/observation_qualifications/pr28_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 3263955200
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 3263955200,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 3263955200
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "send": "merged_elsewhere",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_merged": 1,
+            "/values/pr29_merged": 1,
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@1",
+              "pr28_go"
+            ],
+            "/observation_qualifications/pr28_elsewhere": {},
+            "/observation_qualifications/pr21_elsewhere": {
+              "$absent": true
+            },
+            "/observation_qualifications/pr26_elsewhere": {
+              "$absent": true
+            }
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "Someone else has already merged it."
+        }
+      ]
+    },
+    {
+      "id": "I10",
+      "title": "Two pull requests at the same commit with different results: each result stays with its own pull request",
+      "note": "Ported from ledger-identifiers.scenarios.json I10.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307
+          },
+          "note": "A push of pr28 onto pr29's head leaves pr29 green."
+        },
+        {
+          "expect": {
+            "/values/pr29_green": 1,
+            "/values/pr28_green": 0
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307,
+            "result": "failed"
+          }
+        },
+        {
+          "expect": {
+            "/values/pr28_green": 0,
+            "/values/pr29_green": 1
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307,
+            "result": "failed"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307,
+            "result": "passed"
+          },
+          "note": "pr28's pass at the shared commit does not make pr29 green."
+        },
+        {
+          "expect": {
+            "/values/pr28_green": 1,
+            "/values/pr29_green": 0,
+            "/reading_streams/pr28_checks/occurrences": [
+              {
+                "id": "pr28_checks@1",
+                "relation": "opposes"
+              },
+              {
+                "id": "pr28_checks@2",
+                "relation": "supports"
+              }
+            ],
+            "/reading_streams/pr29_checks/occurrences": [
+              {
+                "id": "pr29_checks@1",
+                "relation": "supports"
+              },
+              {
+                "id": "pr29_checks@2",
+                "relation": "opposes"
+              }
+            ]
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 1511514307
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          },
+          "rejected": "No passing checks on the current head."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr28",
+            "commit": 1511514307
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr28"
+          }
+        },
+        {
+          "expect": {
+            "/commitment_grounds/pr28_merge@1/evidence": [
+              "pr28_checks@2",
+              "pr28_go"
+            ],
+            "/decision_series/pr29_merge/revisions": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "I11",
+      "title": "One pull request's 65th push is refused, and the others carry on",
+      "note": "Ported from ledger-identifiers.scenarios.json I11.",
+      "steps": [
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 3800957184
+          },
+          "repeat": 64,
+          "note": "renewable $p_push limit 64: the first push observes pr28_push, the next 63 renew it."
+        },
+        {
+          "expect": {
+            "/renewals/pr28_push/occurrences/63": "pr28_push@64"
+          }
+        },
+        {
+          "checkpoint": "pr28_full"
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 3800957184
+          },
+          "rejected": {
+            "origin": "limit",
+            "code": "renewal_limit"
+          }
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr29",
+            "commit": 4070506752
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr29",
+            "commit": 4070506752,
+            "result": "passed"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "target": "pr29",
+            "commit": 4070506752
+          }
+        },
+        {
+          "send": "merge",
+          "payload": {
+            "target": "pr29"
+          }
+        },
+        {
+          "same_as": "pr28_full",
+          "paths": [
+            "/renewals/pr28_push",
+            "/renewals/pr28_go",
+            "/reading_streams/pr28_checks",
+            "/reading_streams/pr28_gates",
+            "/decision_series/pr28_merge",
+            "/values/pr28_head",
+            "/values/pr28_green",
+            "/values/pr28_merged",
+            "/values/pr28_revisions",
+            "/values/pr28_approved_head",
+            "/bindings/pr28"
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "pushed",
+          "payload": {
+            "target": "pr28",
+            "commit": 3800957184
+          },
+          "rejected": {
+            "origin": "limit",
+            "code": "renewal_limit"
+          }
+        },
+        {
+          "send": "checks",
+          "payload": {
+            "target": "pr28",
+            "commit": 3800957184,
+            "result": "passed"
+          },
+          "note": "pr28 itself still takes other events."
+        }
+      ]
+    }
+  ]
+}
