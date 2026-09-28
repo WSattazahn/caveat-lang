@@ -710,6 +710,41 @@ fn every_known_fatal_outcome_still_happens() {
     );
 }
 
+// Committing a decision already in force was a known fatal outcome until #53
+// made it a rejection, and its entry left KNOWN_FATAL. Its witness, round 0
+// of seed 1032, and the save it was altered from must now be refused as that
+// rejection, with nothing kept, not merely play on.
+#[test]
+fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let witness = Alterations::new(&save, 1032).next().unwrap();
+    for text in [save.to_string(), witness.to_string()] {
+        let mut game = ReactiveSession::restore_json(PROGRAM, &text).expect("the save restores");
+        for (event, payload) in NEXT_EVENTS {
+            let before = serde_json::to_string(&game.save().unwrap()).unwrap();
+            let outcome = game
+                .dispatch_outcome_json(event, payload)
+                .unwrap_or_else(|fatal| panic!("{event} was fatal: {}", fatal.message));
+            if event != "start" {
+                continue;
+            }
+            let outcome = serde_json::to_value(&outcome).unwrap();
+            assert_eq!(outcome["outcome"], "rejected");
+            assert_eq!(outcome["origin"], "evaluation");
+            assert_eq!(outcome["code"], "decision_in_force");
+            assert_eq!(
+                outcome["message"],
+                "event start, rule 2: current decision in route must be explicitly reopened \
+                 before revision"
+            );
+            assert_eq!(
+                serde_json::to_string(&game.save().unwrap()).unwrap(),
+                before
+            );
+        }
+    }
+}
+
 // Every save missing one record, a list entry or a field, must be refused or
 // play on. The fuzz above removes records too, but reaches any given one
 // about once in 2,500 alterations. A stream missing its first reading, which
