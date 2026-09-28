@@ -77,6 +77,9 @@ save is refused with an error, and never crashes the runtime, when:
   `EVIDENCE@N` that is not entry N of that evidence's renewals, or the
   renewals list an occurrence the graph does not hold, out of order, or more
   occurrences than the declared limit;
+- the graph and a reading stream disagree: the graph holds a reading
+  `STREAM@N` that is not entry N of that stream's occurrences, or the
+  occurrences list a reading the graph does not hold, or out of order;
 - a history's template or limit differs from the program's, holds more than its
   limit, has a revision without a basis, or a current entry that is not its
   latest;
@@ -93,9 +96,14 @@ those fields were introduced. Historical caveats may be a strict subset of
 current caveats: later qualification does not rewrite history.
 
 The runtime tests alter a saved game at random, 3,000 times on every run and
-30,000 when asked. Each altered save must be refused or accepted, and an
-accepted one must then run events, snapshots, views and saves again without a
-crash.
+30,000 when asked, and remove each of its records in turn. Each altered save
+must be refused or accepted, and an accepted one must then run events,
+snapshots, views and saves again without a crash or a fatal outcome. The tests
+list the fatal outcomes that are known runtime bugs with their own fixes under
+way, each by its event and exact message with the fix it waits for, and skip
+only those. Each entry also names its witness, the altered save that
+reproduces it, and a test fails when a listed fatal outcome no longer happens
+on its witness, so an entry is removed once its fix is in.
 
 A save is not signed. These checks establish internal consistency, not proof
 that historical inputs or guards really occurred. Coordinated edits to mutually
@@ -115,6 +123,27 @@ edited save is refused or remains playable without crashing.
   an edited save holds one, and saves the runtime writes restore as before.
   Renewals that name an occurrence the graph does not hold were already
   refused.
+- 2026-09-27: restore refuses a save whose graph holds a reading that its
+  stream does not list at its position, or whose stream lists its readings
+  out of order: the gap above, for reading streams, found in the review of
+  [#50](https://github.com/WSattazahn/caveat-lang/pull/50). Such a save used
+  to be accepted. Without the entry, the stream's next `sample` generated a
+  name the graph already held, and that event was fatal `unclassified`. A
+  renamed reading could also sit past the declared limit. And an entry had
+  only to name evidence, so a stream could list its template, other evidence,
+  a reading twice or another stream's reading; the next event that qualified
+  or withdrew its latest reading could then be fatal. Entry N of a stream's
+  occurrences must now be `STREAM@N`, as entry N of renewals must be
+  `EVIDENCE@N`. `sample` always adds the next reading and `save()` lists every
+  one, so only an edited save is refused, and saves the runtime writes
+  restore as before. Occurrences that name evidence the graph does not hold
+  were already refused. Decision series had no such gap: every commitment the
+  graph holds needs a journal entry, and each entry must find the revision at
+  its position. The save fuzz now also removes records, and an accepted save
+  fails it when a later event is fatal, as it does when one crashes, unless
+  the tests list that event and exact message as a known bug with its own fix
+  under way. Each listed outcome names a save that reproduces it, and a test
+  fails when it no longer happens.
 - 2026-09-28: a save keeps a state that holds `-0` where the program loads
   `0`, or `0` where it loads `-0`. It compared the two with `==`, which takes
   them for the same number, so it left the state out, and the restored
