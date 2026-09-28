@@ -44,7 +44,9 @@ word, outside quoted text and comments, where a `;` ends the statement and
 `#` or `//` begins a comment. `claim 1a;`, `evidence log{ from notes;`,
 `place fi-eld kind fi.eld;` and `entity no-rth kind plot at fi-eld;` all
 load. A relation, or an entity's `at`, names a declared name by the same
-word.
+word. In the body of a `for` block, a brace in unquoted text, a name's
+included, pairs only within its statement, so `evidence $p_log{ from notes;`
+there refuses the block ([repetition](caveat-repetition-0.1.md) section 2).
 
 The reactive layer requires an identifier wherever it reads a name: an ASCII
 letter or `_`, then ASCII letters, digits and `_`, and not `true`, `false`,

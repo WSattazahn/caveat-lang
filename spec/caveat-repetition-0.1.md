@@ -47,8 +47,9 @@ however the entities are counted, so it does not run on an event that names
 the entity, which has no copy of its own. A copy that selects its member by
 `$index`, or selects none, can run on such an event. Rules about the entity
 are written where it is declared, such as
-`on read when target == target.north` in the block that declares `north`. A [routed](caveat-routed-repetition-0.1.md) block refuses an
-entity of its kind in a `for` block.
+`on read when target == target.north` in the block that declares `north`. A
+[routed](caveat-routed-repetition-0.1.md) block refuses an entity of its kind
+in a `for` block.
 
 ## 2. The block
 
@@ -79,15 +80,15 @@ Quoted, as in `from "x{";` or `from "}{";`, the text is the statement's own.
 A quoted name keeps its quotes, so a name in a body, as in `claim $p_c}{;`,
 cannot hold such a brace.
 
-A `}` that is text in a body must therefore be in quoted text, as in
-`from "see appendix}";`, unless it closes a `{` earlier in its own
-statement. Unquoted, any other `}` ends the body where it is. That includes
-the `}` of a pair split across two statements, as in
-`evidence $p_a from x{; evidence $p_b from y};`, where the body ends at the
-`}` after `y`. What was meant as the rest of the body is then read after the
-block: as text after its body, which is refused, or as statements of the
-part, which usually do not load, and which, where unquoted provenance takes
-them in, load as other statements than those written.
+So a brace that is text in a body must be in quoted text, as in
+`from "see appendix}";`, unless it pairs with a brace in its own statement.
+Unquoted, any other brace in a body refuses the block. A pair split across
+two statements, as in `evidence $p_a from x{; evidence $p_b from y};`, is
+refused at the `{` after `x`, which its statement leaves open. A `}` that
+closes no `{` of its statement ends the body where it is: what follows it up
+to the block's end, other than comments, is text after the body, as `b` is in
+`from a}b;`, and where nothing does, as in `from y};`, its statement is the
+body's last and has no `;` (below).
 
 Every statement in a body ends with `;`, the last one too, whatever the
 number of members. The body is copied as written and no `;` is added, so a
