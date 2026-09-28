@@ -350,9 +350,6 @@ const NEXT_EVENTS: [(&str, &str); 6] = [
 
 // The fix each known fatal outcome waits for, and the confirmed runtime bug
 // behind it.
-const COMMIT_IN_FORCE: &str = "waits for PR #53 (fix/classify-commit-in-force); remove it when \
-    that fix is in the tested combination. Committing a decision already in force is fatal \
-    instead of a rejection, save or no save: start played() again";
 const LATE_CAVEAT_EXPLANATION: &str = "waits for fix/binding-explanation-late-caveat; remove it \
     when that fix is in the tested combination. When the late `faded` reaches bite@2, \
     hud.text's explanation is fatal, save or no save: tick played() by 0.1 to 40 seconds";
@@ -391,15 +388,7 @@ struct KnownFatal {
 /// last). Remove an entry when its fix is in the tested combination:
 /// every_known_fatal_outcome_still_happens fails once its witness no longer
 /// reproduces it.
-const KNOWN_FATAL: [KnownFatal; 12] = [
-    KnownFatal {
-        event: "start",
-        message: "event start, rule 2: current decision in route must be explicitly reopened \
-                  before revision",
-        waits: COMMIT_IN_FORCE,
-        seed: 1032,
-        round: 0,
-    },
+const KNOWN_FATAL: [KnownFatal; 11] = [
     KnownFatal {
         event: "tick",
         message: "binding hud.text cites evidence bite, evidence forecast, caveat unmeasured \
