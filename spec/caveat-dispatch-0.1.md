@@ -171,10 +171,12 @@ from an outcome schema match; the save contract governs restoration.
   be refused for it when it loads without refusing programs whose citations
   hold on every path they take. A late caveat can make a declaration win for
   the first time on a clock tick: the program the save tests play lost its
-  session that way 40 seconds in, with no save involved. A renewal changes
-  which occurrence `qualified(1, bite)` names, a cited state can change apart
-  from the value derived from it, and `or` does not read its second operand
-  when the first is true. The rollback and the diagnostic text are unchanged.
+  session that way 40 seconds in, with no save involved. It now keeps the
+  session, and each tick is refused and advances no time until a renewal
+  replaces the bite the caveat is due on. A renewal changes which occurrence
+  `qualified(1, bite)` names, a cited state can change apart from the value
+  derived from it, and `or` does not read its second operand when the first
+  is true. The rollback and the diagnostic text are unchanged.
   Its origin is `evaluation`, as for a state's range: the explanation was
   evaluated and did not hold. It is not `policy`, because no clause of the
   program refuses the event, so a bare expected rejection does not match it.

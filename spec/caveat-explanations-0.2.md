@@ -95,3 +95,9 @@ Two additive fields; the schema stays `caveat-reactive/0.1`:
   `fold_history`) supply their lineage.
 - `reopen` has no grounds of its own. Its evidence is already exact:
   `reopened_by` lists it.
+
+## Changes
+
+- 2026-09-27: a `set` whose citation is not grounded is refused as
+  `evaluation/ungrounded_citation`, and the session continues. It was a fatal
+  `unclassified` error. See [Explanations 0.1](caveat-explanations-0.1.md#changes).

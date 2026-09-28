@@ -55,9 +55,10 @@ binding's **explanation**, published per target and property in
   event long after the program loaded: a late caveat can make a declaration
   win for the first time on a clock tick, a renewal changes which occurrence
   an evidence name means, and a cited value can change apart from the shown
-  one. As with any refusal, a refused clock event advances no time. A
-  declaration that already wins when the program loads is checked then, and
-  the program does not load.
+  one. A refused clock event advances no time, as with any refusal. Its due
+  caveats do not land, so each later tick is refused the same way until
+  another event changes what the tick would show. A declaration that already
+  wins when the program loads is checked then, and the program does not load.
 - **Cited values carry their caveats:** citing a value brings the caveats it
   carries. An explanation cannot cite evidence and drop the qualifications that
   travel with it. It also cannot add a qualification the binding never carried.
@@ -78,10 +79,24 @@ It does not check that the citation is *sufficient*, i.e. that it is the
 reason a person would give. The author decides relevance and the runtime
 refuses fabrication. Explanations of commitments already exist:
 `commitment_bases` holds a decision's frozen basis. Cues keep their existing
-`cue_qualifications` in this profile.
+`cue_qualifications` in this profile. `caveat check` does not report a
+citation that can never be grounded. The runtime finds one when its
+declaration first supplies the shown value, at load or long into a session.
 
 ## Snapshot
 
 `binding_explanations` has the same shape as `binding_qualifications`:
 target → property → `{evidence, caveats}`. It appears only for bindings that
 are shown. The schema remains `caveat-reactive/0.1`; this is an additive field.
+
+## Changes
+
+- 2026-09-27: an event on which a citation is not grounded is refused as
+  `evaluation/ungrounded_citation` ([dispatch outcomes](caveat-dispatch-0.1.md)),
+  and the session continues. Before this it was a fatal `unclassified` error,
+  so the host had to discard the session although the runtime had already
+  rolled the event back. The check, the rollback and the diagnostic text are
+  unchanged. The program the save tests play cites a state its label never
+  reads, and lost its session on the tick that made that label win, 40 seconds
+  in. It now keeps the session at 39.9 seconds and refuses every tick until a
+  renewal replaces the bite the caveat is due on.

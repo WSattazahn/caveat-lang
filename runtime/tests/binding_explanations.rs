@@ -560,6 +560,60 @@ fn a_state_citation_is_refused_the_same_way() {
     );
 }
 
+// A refused tick advances no time, so its due caveat does not land and every
+// later tick is refused the same way, as the save tests' program is from 39.9
+// seconds. Events that leave the tick's outcome as it was are accepted without
+// moving the clock. A renewal replaces the bite the caveat was scheduled on,
+// the caveat lands on the old occurrence, and the clock runs again.
+#[test]
+fn a_refused_tick_holds_the_clock_until_another_event_changes_what_it_shows() {
+    let body = r#"
+        on eat qualify bite with faded after 0.15;
+        on regrow renew bite;
+        bind hud.text = "fresh" because nothing;
+        bind hud.text = "faded" when carries(bite, faded) because from_chart;
+        "#;
+    let tick = r#"{"dt": 0.1}"#;
+    let mut game = play(body);
+    for (event, payload) in [("chart", "{}"), ("eat", "{}"), ("tick", tick)] {
+        assert_eq!(outcome(&mut game, event, payload), "accepted", "{event}");
+    }
+    let resumed =
+        ReactiveSession::restore_json(&format!("{PLAY}\n{body}"), &game.save_json().unwrap())
+            .unwrap();
+    for mut game in [game, resumed] {
+        let held = game.snapshot().elapsed;
+        for (event, payload, expected) in [
+            ("tick", tick, "evaluation/ungrounded_citation"),
+            ("other", "{}", "accepted"),
+            ("tick", tick, "evaluation/ungrounded_citation"),
+            ("chart", "{}", "accepted"),
+            ("tick", tick, "evaluation/ungrounded_citation"),
+        ] {
+            assert_eq!(outcome(&mut game, event, payload), expected, "{event}");
+            let shown = game.snapshot();
+            assert_eq!(shown.elapsed.to_bits(), held.to_bits(), "{event}");
+            assert_eq!(shown.scheduled_qualifications.len(), 1, "{event}");
+            assert_eq!(
+                shown.bindings["hud"]["text"],
+                BindingValue::Text("fresh".into())
+            );
+        }
+        assert_eq!(outcome(&mut game, "regrow", "{}"), "accepted");
+        for _ in 0..3 {
+            assert_eq!(outcome(&mut game, "tick", tick), "accepted");
+        }
+        let shown = game.snapshot();
+        assert!(shown.elapsed > held + 0.25, "{}", shown.elapsed);
+        assert!(shown.scheduled_qualifications.is_empty());
+        assert_eq!(
+            shown.bindings["hud"]["text"],
+            BindingValue::Text("fresh".into())
+        );
+        assert_explanations_within_lineage(&game);
+    }
+}
+
 // A declaration that already wins when the program loads is checked then,
 // and the program does not load.
 #[test]
