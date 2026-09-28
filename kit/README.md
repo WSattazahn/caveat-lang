@@ -3,14 +3,11 @@
 A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
-The release candidate is **`caveat-lang@0.1.0-rc.3`**, with the command
-`caveat`. It is a preview, not a stable release. It was published to npm with
-the tag `next`, and the same tested tarball is attached to its [GitHub
-pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.3).
-Because it is the package's first version, npm also gave it the tag `latest`
-([npm/cli#8490](https://github.com/npm/cli/issues/8490)), so a bare
-`npm install caveat-lang` installs it too until a stable release takes that
-tag. It needs no Rust:
+The release candidate is **`caveat-lang@0.1.0-rc.4`**, with the command
+`caveat`. It is a preview, not a stable release: like the previous candidate,
+rc.3, it is published to npm with the tag `next`, with the same tested tarball
+attached to its GitHub pre-release. It needs no Rust. Once it is published,
+install it from npm:
 
 ```sh
 npm init -y
@@ -19,14 +16,18 @@ npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.3`. To use a
-verified tarball instead, such as the one on the GitHub pre-release, pass its
-path or URL to `npm install`.
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.4`. Before
+publication, or to use a verified tarball you were given, pass the tarball's
+path or URL to `npm install` instead. Until rc.4 is published,
+`caveat-lang@next` installs rc.3, whose tarball is also on its [GitHub
+pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.3).
 
-The kit in the repository's `main` branch is the next candidate's
-development version, `0.1.0-rc.4`, which is **not released**: it is on
-neither npm nor GitHub. A tarball built from `main` carries that version.
-Until rc.4 is released, install rc.3 as shown above.
+npm's documentation says that publishing with `--tag next` does not set the
+tag `latest`. rc.3 carries `latest` as well as `next`, because npm gives a
+package's first version that tag
+([npm/cli#8490](https://github.com/npm/cli/issues/8490)). So install a
+candidate by the tag `next` or by its exact version;
+`npm dist-tag ls caveat-lang` shows which version each tag names.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
