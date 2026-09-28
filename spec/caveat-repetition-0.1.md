@@ -35,6 +35,20 @@ keep the `;` from ending it. A block is a statement whose first word is
 `for`, so the `{` in `for{ supports c;`, about an evidence named `for{`, is
 text.
 
+An entity declared in a block's body is no member of its kind, for any
+block: it gets no copy, and `$index` does not count it. A `kind` event
+parameter counts it, where its block is expanded. When it comes before a
+top-level member of its kind, the parameter numbers that member, and each
+member after it, higher than its `$index`, so a copy that selects its member
+with `target == $index` acts for another member, and
+[`caveat check`](caveat-check-0.1.md) reports it (C004). A copy that selects
+its member by name, with `target == target.$p`, acts for its own member
+however the entities are counted. An event that names the entity itself
+reaches no copy of a block over its kind. Rules about it are written where it
+is declared, such as `on read when target == target.north` in the block that
+declares `north`. A [routed](caveat-routed-repetition-0.1.md) block refuses an
+entity of its kind in a `for` block.
+
 ## 2. The block
 
 ```caveat
@@ -176,3 +190,8 @@ what keeps the expansion checkable and the generated program ordinary.
   kind plot at field`, was not read either: its entity got no copy while a
   `kind` parameter counted it, so an event that named it changed nothing,
   silently, and a last block there was not expanded. Both are now read.
+- 2026-09-27: section 1 says what an entity declared in a block's body is:
+  no member, and counted by a `kind` parameter. `caveat check` reports a
+  plain block whose `target == $index` acts for another member because of it
+  (C004 in [Check 0.1](caveat-check-0.1.md)). Nothing about expansion or
+  loading changes.

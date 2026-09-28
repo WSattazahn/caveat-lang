@@ -46,6 +46,7 @@ pub struct Related {
 const REPEATED_RULES: (&str, &str) = ("C001", "repeated-rules");
 const NO_REOPENING_PATH: (&str, &str) = ("C002", "no-reopening-path");
 const UNROUTED_MEMBER_RULE: (&str, &str) = ("C003", "unrouted-member-rule");
+const SHIFTED_MEMBER_INDEX: (&str, &str) = ("C004", "shifted-member-index");
 const ALLOW: &str = "caveat check: allow";
 
 /// Loads the program, then looks for the patterns in
@@ -59,12 +60,7 @@ pub fn check_source(source: &str) -> Result<CheckReport, String> {
     let (statements, blocks) = statements(source)?;
     let mut found = repeated_rules(&session, &statements);
     found.extend(unreopened_decisions(&session, &statements));
-    found.extend(unrouted_member_rules(
-        &session,
-        &statements,
-        &blocks,
-        source,
-    ));
+    found.extend(member_rules(&session, &statements, &blocks, source));
     found.sort_by_key(|diagnostic| (diagnostic.line, diagnostic.column, diagnostic.code));
 
     let lines = source.lines().collect::<Vec<_>>();
@@ -479,20 +475,28 @@ fn unreopened_decisions(session: &ReactiveSession, statements: &[Statement]) -> 
         .collect()
 }
 
-/// C003. A rule written in a `for` block about its member, on an event that
-/// names a member of the block's kind, whose guard does not select which.
-fn unrouted_member_rules(
+/// C003 and C004. Each rule written in a plain `for` block about its member,
+/// on an event that names a member of the block's kind, read as written and
+/// in each member's copy. C003: its guard does not select which member the
+/// event names. C004: it selects it by `$index`, and the event numbers that
+/// member otherwise.
+fn member_rules(
     session: &ReactiveSession,
     statements: &[Statement],
     blocks: &[Block],
     source: &str,
 ) -> Vec<Diagnostic> {
-    // A name the source never uses, put for `$NAME` and `$index` to read a
-    // rule as written: whatever contains it came from one of them.
-    let mut marker = String::from("caveat_check_member");
-    while source.contains(&marker) {
-        marker.push('_');
-    }
+    // Names the source never uses, put for `$NAME` and for `$index` to read a
+    // rule as written: whatever contains one came from that binding.
+    let unused = |stem: &str| {
+        let mut marker = String::from(stem);
+        while source.contains(&marker) {
+            marker.push('_');
+        }
+        marker
+    };
+    let (member_marker, index_marker) =
+        (unused("caveat_check_member"), unused("caveat_check_index"));
     let program_defines = statements
         .iter()
         .filter_map(
@@ -504,12 +508,12 @@ fn unrouted_member_rules(
         .collect::<HashMap<_, _>>();
 
     let read_as_written = |text: &str, binding: &str, at: Position| {
-        let text = crate::repeat::instantiate(text, binding, &marker, &marker).ok()?;
+        let text = crate::repeat::instantiate(text, binding, &member_marker, &index_marker).ok()?;
         parse_directive_at(text.trim(), at)?.ok()
     };
     // The defines written in blocks, as written, by the kind the block ranges
-    // over. The marker stands for any binding, so a rule can use a define that
-    // another block over the same kind wrote.
+    // over. The markers stand for any binding, so a rule can use a define
+    // that another block over the same kind wrote.
     let mut kind_defines: HashMap<&str, Vec<(String, Expr)>> = HashMap::new();
     for block in blocks {
         for (text, at) in &block.body {
@@ -528,6 +532,8 @@ fn unrouted_member_rules(
     // A routed block's rules are routed, name no member, or stop loading.
     // Their copies are not read instead: there the route compares with a
     // number, which is not a selection here. Its defines still count above.
+    // A routed block refuses an entity of its kind in a `for` block, so its
+    // `$index` numbers each member as the event does.
     for block in blocks.iter().filter(|block| !block.routed) {
         let as_written = |text: &str, at: Position| read_as_written(text, &block.binding, at);
         let mut defines = program_defines.clone();
@@ -547,8 +553,12 @@ fn unrouted_member_rules(
                     })
             })
         };
-        let routes =
-            |value: &Expr| value.mentions(&marker) || value.as_name().is_some_and(member_constant);
+        let routes = |value: &Expr| {
+            value.mentions(&member_marker)
+                || value.mentions(&index_marker)
+                || value.as_name().is_some_and(member_constant)
+        };
+        let by_index = |value: &Expr| value.mentions(&index_marker);
 
         for (template, at) in &block.body {
             // A rule that mentions neither binding is not about one member.
@@ -560,9 +570,8 @@ fn unrouted_member_rules(
             };
             // An event named after the member is that member's own, so the
             // event already selects it.
-            if written.event.contains(&marker) {
-                continue;
-            }
+            let own_event =
+                written.event.contains(&member_marker) || written.event.contains(&index_marker);
             let mut conjuncts = Vec::new();
             guard_conjuncts(
                 &written.condition,
@@ -590,29 +599,45 @@ fn unrouted_member_rules(
                     .into_iter()
                     .flatten()
                     .filter(|parameter| of_kind(parameter, &block.kind))
-                    .map(|parameter| parameter.name.as_str())
                     .collect::<Vec<_>>();
                 let Some(first) = parameters.first() else {
                     continue;
                 };
-                let selects = |conjunct: &&Expr| {
-                    conjunct.equality().is_some_and(|(left, right)| {
-                        [(left, right), (right, left)]
-                            .into_iter()
-                            .any(|(parameter, value)| {
-                                parameter
-                                    .as_name()
-                                    .is_some_and(|name| parameters.contains(&name))
-                                    && routes(value)
-                            })
-                    })
+                // The parameter a conjunct `P == E` or `E == P` compares with
+                // a value `accepts` takes.
+                let compared = |conjunct: &Expr, accepts: &dyn Fn(&Expr) -> bool| {
+                    let (left, right) = conjunct.equality()?;
+                    [(left, right), (right, left)]
+                        .into_iter()
+                        .find_map(|(parameter, value)| {
+                            let name = parameter.as_name()?;
+                            let declared =
+                                parameters.iter().find(|declared| declared.name == name)?;
+                            accepts(value).then_some(*declared)
+                        })
                 };
-                if conjuncts.iter().any(selects) {
+                if let Some(parameter) = conjuncts
+                    .iter()
+                    .find_map(|conjunct| compared(conjunct, &by_index))
+                {
+                    found.extend(shifted_member_index(
+                        block,
+                        (index + 1, member),
+                        (&rule.event, parameter),
+                        *at,
+                        statements,
+                    ));
+                }
+                if own_event
+                    || conjuncts
+                        .iter()
+                        .any(|conjunct| compared(conjunct, &routes).is_some())
+                {
                     continue;
                 }
                 let named = parameters
                     .iter()
-                    .map(|parameter| format!("`{parameter}`"))
+                    .map(|parameter| format!("`{}`", parameter.name))
                     .collect::<Vec<_>>()
                     .join(" or ");
                 found.push(Diagnostic {
@@ -626,7 +651,8 @@ fn unrouted_member_rules(
                         rule.event, block.kind
                     ),
                     suggestion: format!(
-                        "If the rule is about the {kind} the event names, add the selection to its guard, such as `{first} == $index`. If it should run for every {kind} on each `{}`, put `# {ALLOW} {}` on the line above it.",
+                        "If the rule is about the {kind} the event names, add the selection to its guard, such as `{} == $index`. If it should run for every {kind} on each `{}`, put `# {ALLOW} {}` on the line above it.",
+                        first.name,
                         rule.event,
                         UNROUTED_MEMBER_RULE.1,
                         kind = block.kind
@@ -637,6 +663,94 @@ fn unrouted_member_rules(
         }
     }
     found
+}
+
+/// C004 for one member's copy of a rule that selects its member by comparing
+/// `parameter` with `$index`. `$index` is the member's position among the
+/// part's top-level entities of the kind; the parameter numbers every entity
+/// of the kind in the loaded program, those a `for` block declares included.
+/// None when the two agree for this member.
+fn shifted_member_index(
+    block: &Block,
+    (index, member): (usize, &str),
+    (event, parameter): (&str, &Parameter),
+    at: Position,
+    statements: &[Statement],
+) -> Option<Diagnostic> {
+    let ParameterDomain::Entity { members, .. } = &parameter.domain else {
+        return None;
+    };
+    let position = members.iter().position(|counted| counted == member)? + 1;
+    // The entities the parameter counts before the member and `$index` does
+    // not: the ones a `for` block declares.
+    let counted = members[..position - 1]
+        .iter()
+        .filter(|counted| !block.members.contains(counted))
+        .collect::<Vec<_>>();
+    if counted.is_empty() {
+        return None;
+    }
+    // The copy runs when the parameter names the entity it numbers `$index`.
+    let other = members.get(index - 1)?;
+    let names = counted
+        .iter()
+        .take(3)
+        .map(|name| format!("`{name}`"))
+        .collect::<Vec<_>>();
+    let also = match (names.as_slice(), counted.len()) {
+        ([one], 1) => format!("{one}, declared in a for block"),
+        ([rest @ .., last], count) if count == names.len() => {
+            format!(
+                "{} and {last}, each declared in a for block",
+                rest.join(", ")
+            )
+        }
+        (_, count) => format!(
+            "{} and {} others, each declared in a for block",
+            names.join(", "),
+            count - names.len()
+        ),
+    };
+    // Where each is declared: at its statement in the block, where each of
+    // the block's copies is placed.
+    let related = counted
+        .iter()
+        .take(3)
+        .filter_map(|name| {
+            statements
+                .iter()
+                .filter(|statement| statement.repeated)
+                .find(|statement| {
+                    matches!(
+                        statement.text.split_whitespace().collect::<Vec<_>>()[..],
+                        ["entity", declared, "kind", _, "at", _] if declared == name.as_str()
+                    )
+                })
+                .map(|statement| Related {
+                    line: statement.at.line,
+                    column: statement.at.column,
+                    note: format!("where a for block declares `{name}`"),
+                })
+        })
+        .collect();
+    let parameter = &parameter.name;
+    Some(Diagnostic {
+        code: SHIFTED_MEMBER_INDEX.0,
+        name: SHIFTED_MEMBER_INDEX.1,
+        severity: "warning",
+        line: at.line,
+        column: at.column,
+        message: format!(
+            "the rule on `{event}` for `{member}` runs when `{parameter}` names `{other}`, not `{member}`: `$index` is {index} in its copy, and `{parameter}` numbers `{member}` {position}, because it also counts {also}"
+        ),
+        suggestion: format!(
+            "If the rule is about the {kind} the event names, select it by name, such as `{parameter} == {parameter}.${}`, which names its own {kind} however the entities are counted. If comparing with `$index` is intended, put `# {ALLOW} {}` on the line above it.",
+            block.binding,
+            SHIFTED_MEMBER_INDEX.1,
+            kind = block.kind
+        ),
+        related,
+    })
 }
 
 /// Whether an event parameter is declared `NAME kind KIND`.
