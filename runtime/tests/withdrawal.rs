@@ -580,6 +580,41 @@ fn a_new_reading_of_withdrawn_evidence_is_not_withdrawn() {
     assert_eq!(shot["bindings"]["status"]["latest"], 0.0);
 }
 
+// Only a withdrawal's `withdrawn` stays with the observation it names. A
+// program that never withdraws may declare a caveat of that name, and its
+// readings inherit it as they inherit any declared caveat.
+#[test]
+fn a_reading_inherits_a_declared_withdrawn_when_the_program_never_withdraws() {
+    let source = r#"
+        claim safe;
+        caveat withdrawn consequence low;
+        evidence sensor from "a sensor";
+        withdrawn qualifies sensor;
+        readings flow from sensor limit 4;
+        event see; event rd;
+        on see reveal sensor supports safe;
+        on rd sample flow = 1 supports safe;
+    "#;
+    let mut game = session(source);
+    for event in ["see", "rd", "rd"] {
+        assert_eq!(go(&mut game, event)["outcome"], "accepted", "{event}");
+        restores_as_itself(source, &game, &[("rd", json!({}))]);
+    }
+    let shot = snapshot(&game);
+    assert!(shot.get("withdrawals").is_none());
+    for (index, reading) in ["flow@1", "flow@2"].into_iter().enumerate() {
+        assert!(
+            relates(&shot, "withdrawn", "qualifies", reading),
+            "{reading} lost its template's declared caveat"
+        );
+        assert_eq!(
+            caveats(&shot["reading_streams"]["flow"]["occurrences"][index]["provenance"]),
+            ["withdrawn"],
+            "{reading}"
+        );
+    }
+}
+
 /// Every save `game` writes restores to `game`, which then plays `next` the
 /// same way.
 fn restores_as_itself(source: &str, game: &ReactiveSession, next: &[(&str, Value)]) {
