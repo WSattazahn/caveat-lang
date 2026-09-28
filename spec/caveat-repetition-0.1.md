@@ -89,29 +89,6 @@ block: as text after its body, which is refused, or as statements of the
 part, which usually do not load, and which, where unquoted provenance takes
 them in, load as other statements than those written.
 
-The body is copied as written, `;`s included, and no `;` is added. So a
-body's last statement without its `;` has none in any copy either, and runs
-into what follows its copy: the next member's copy, or, for the last member,
-the text after the block. Where that begins with a `;`, after nothing but
-whitespace and comments, as after `};;` or before a copy whose first
-statement is empty, the `;` ends the statement, which runs into nothing, and
-where it does not read, the error is the loader's, about it. The loader
-reads a statement without its `;` only at the end of a program. With one member and nothing but whitespace and
-comments after the block, the copy's last statement is that, and the program
-loads. Where the statement and what it runs into read together as one
-statement, such as evidence whose unquoted provenance takes in the next copy,
-the program loads with that statement, as the same text written by hand
-does. Otherwise the program does not load:
-
-```text
-line L, column C: the last statement in the body of `HEADER` has no `;`, so the copy for `MEMBER` runs into the copy for `NEXT`, and together they are not a statement; end it with `;`
-```
-
-or `runs into the text after the block` for the last member. L and C are
-where the body's last statement is written, HEADER is the block's header as
-in [routed Repetition 0.1](caveat-routed-repetition-0.1.md) section 7, MEMBER
-is the first member whose copy does not read, and NEXT the member after it.
-
 Every statement in a body ends with `;`, the last one too, whatever the
 number of members. The body is copied as written and no `;` is added, so a
 last statement without one would run into what follows each copy: the next
@@ -292,16 +269,6 @@ what keeps the expansion checkable and the generated program ordinary.
   copy while a `kind` parameter counted it, so an event that named it
   changed nothing, silently, and a last block there was not expanded. Both
   are now read.
-- 2026-09-27: a body's last statement without its `;`, whose copy runs into
-  what follows it where the two are not a statement, gets an error that says
-  so (section 2). Such a program did not load before either, and the error
-  was the loader's, about the expanded text, such as "line 8, column 5:
-  expected '=' at byte 31" for the copy for one member run into the next.
-  No `;` is added, and every program that loaded before loads as before,
-  including one whose block has one member and nothing after it, and one
-  whose copies read together as one statement. Where a `;` ends the copy's
-  last statement, as after `};;`, the error is still the loader's, about
-  that statement.
 - 2026-09-27: section 1 says what an entity declared in a block's body is:
   no member, and counted by a `kind` parameter. `caveat check` reports a
   plain block whose `target == $index` acts for another member because of it
