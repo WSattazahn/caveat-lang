@@ -16,8 +16,9 @@ existing `session.dispatch()`, `dispatch_outcome`, `dispatch_view` and
 
 [Performance Baseline 0.1](../performance-0.1/RESULTS.md) is frozen evidence:
 nothing under `experiments/performance-0.1/results/` or its RESULTS.md
-changed. Its harness gained three modes and two suites, and nothing it
-measured before changed:
+changed. Its harness gained three modes, two suites and the job guard
+(`--monitor-lead`, `--job-guard`, off unless given), and nothing it measured
+before changed:
 
 | Mode | Times, per event |
 | --- | --- |
@@ -38,17 +39,21 @@ name `smoke`; the baseline's suites behave as before.
 - `size.mjs` measures, for the base and the branch, the WebAssembly and glue
   of both builds (raw and gzipped), the kit's session library and the kit
   tarball `npm pack` makes.
-- `load.mjs` gives the total CPU of every repeat of a run, from its
-  `load.csv` and the job times in `results.json`, and applies the keep rule:
-  a repeat is kept when its mean total CPU is at most 12% and no one-second
-  sample is above 20%, and a session is used only when every repeat is kept.
+- `load.mjs` gives the load of every timed job and every repeat of a run,
+  from its `load.csv` and the job times in `results.json`, and applies the
+  keep rules: every timed job keeps the job guard's rule
+  (`../performance-0.1/lib/guard.mjs`, which `run.mjs --job-guard` applied as
+  each job ended, running again any job that broke it), and a repeat is kept
+  when, over the samples covering its timed jobs, the mean total CPU is at
+  most 12% and no one-second sample is above 20%. A session is used only when
+  every job and every repeat is kept.
 - `report.mjs` renders the tables from a `view-path` run and a size report:
   each path's DIRECT per-event figures for the owner's event classes (Glowcap
   idle and state-changing ticks; Trail Rescue evidence, commit, reopen and
   qualify; ledger evidence; refusals), the saving paired by repeat, the
   wrapper's pieces, the existing paths on main against the branch, the load
-  per repeat, the sessions given with `--replicate` side by side, and the
-  sizes.
+  per repeat and per timed job with every attempt the job guard discarded,
+  the sessions given with `--replicate` side by side, and the sizes.
 
 ## Running it
 
@@ -56,7 +61,7 @@ name `smoke`; the baseline's suites behave as before.
 # A session: this branch and main, interleaved, samples kept (RESULTS.md ran
 # 5 repeats on processors 10-13 twice, and 3 on 0-1 with --affinity=0x3)
 node experiments/performance-0.1/run.mjs --suite=view-path --engines=wasm --keep-samples \
-  --repeats=5 --monitor-interval=1 --affinity=0x3C00 --priority=high \
+  --repeats=5 --monitor-interval=1 --monitor-lead=5 --job-guard --affinity=0x3C00 --priority=high \
   --target=opt=tree:. --target=main=tree:PATH/TO/checkout-at-768275b --out=DIR
 # Per event class (writes classes.json next to results.json), then the keep rule
 node experiments/performance-0.1/analyze.mjs DIR

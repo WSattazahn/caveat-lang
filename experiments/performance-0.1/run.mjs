@@ -4,6 +4,7 @@
 //        [--suite=baseline|smoke|view-path|view-path-smoke] [--repeats=N] [--engines=native,wasm]
 //        [--workloads=ID,...] [--modes=MODE,...] [--affinity=0xMASK|none]
 //        [--affinity-set=0xMASK,0xMASK,...] [--monitor-interval=SECONDS]
+//        [--monitor-lead=SECONDS] [--job-guard]
 //        [--priority=high|abovenormal|normal] [--build=auto|always|never]
 //        [--out=DIR] [--keep-samples] [--keep-work]
 //
@@ -26,6 +27,7 @@ import { parseTarget, prepareTarget } from './lib/targets.mjs';
 import { coresDuring, machine, load, startMonitor, summarizeMonitor, toolchain } from './lib/environment.mjs';
 import { maskLabel, maskOf, maskProcessors, parseMask, parseMaskSet, runPinned } from './lib/pinning.mjs';
 import { SUITES } from './lib/suites.mjs';
+import { JOB_GUARD, covering, describeGuard, judge, settled, toSamples } from './lib/guard.mjs';
 import { renderSummary } from './lib/report.mjs';
 
 const argv = process.argv.slice(2);
@@ -175,10 +177,48 @@ const correctness = [];
 const finalsSeen = [];
 let counter = 0;
 
-// Load during the timed jobs (builds are over by now).
-const monitor = argv.includes('--no-monitor') ? null : startMonitor(monitored, Number(single('monitor-interval', '5')));
+// Load during the timed jobs (builds are over by now). With --job-guard every
+// timed job is judged by its own load as it ends (lib/guard.mjs), and one that
+// overlapped a burst is discarded and run again in its place; the monitor then
+// also samples the processes the guard watches. --monitor-lead=SECONDS waits
+// for that many seconds of samples before the first job, so the first job is
+// covered from its start.
+const jobGuard = argv.includes('--job-guard');
+if (jobGuard && (process.platform !== 'win32' || argv.includes('--no-monitor'))) throw new Error('--job-guard needs the Windows load monitor');
+const monitor = argv.includes('--no-monitor') ? null : startMonitor(monitored, Number(single('monitor-interval', '5')), { processes: jobGuard ? [...JOB_GUARD.processes] : [] });
 const timedJobs = [];
+const guardDiscarded = [];
 if (monitor) await log(`monitoring load with typeperf every ${monitor.seconds} s (${monitor.counters.join(', ')})`);
+const pause = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+const monitorSamples = () => toSamples(monitor.rows(), monitor.counters);
+const monitorLead = Number(single('monitor-lead', '0'));
+if (monitor && monitorLead > 0) {
+  const until = Date.now() + (monitorLead + 10) * 1000;
+  while (Date.now() < until && monitorSamples().length < Math.ceil(monitorLead / monitor.seconds)) await pause(200);
+  await log(`monitor lead: ${monitorSamples().length} sample(s) before the first job`);
+}
+if (jobGuard) {
+  environment.jobGuard = { rule: { ...JOB_GUARD, processes: [...JOB_GUARD.processes] }, description: describeGuard(), monitorLeadSeconds: monitorLead, discarded: guardDiscarded };
+  await log(`job guard: ${describeGuard()}`);
+}
+// The load of one attempt [fromMs, toMs] on these processors, once the
+// monitor has a sample covering its end (at most 5 s later).
+async function guardVerdict(fromMs, toMs, processors) {
+  const until = Date.now() + 5000;
+  let samples = monitorSamples();
+  while (Date.now() < until && !(samples.length && samples.at(-1).at >= toMs)) {
+    await pause(100);
+    samples = monitorSamples();
+  }
+  const { samples: within, covered } = covering(samples, fromMs, toMs);
+  return judge(within, { processors, logicalProcessors: environment.machine.logicalProcessors, covered });
+}
+async function settle() {
+  const until = Date.now() + JOB_GUARD.settleSeconds * 1000;
+  const from = Date.now();
+  while (Date.now() < until && !settled(monitorSamples().filter((sample) => sample.since >= from))) await pause(250);
+  return (Date.now() - from) / 1000;
+}
 
 for (let repeat = 0; repeat < repeats; repeat++) {
   for (const job of jobs) {
@@ -198,10 +238,36 @@ for (let repeat = 0; repeat < repeats; repeat++) {
       const command = job.engine === 'native' ? target.native.binary : process.execPath;
       const args = job.engine === 'native' ? [planFile, rawFile]
         : ['--expose-gc', path.join(harnessDirectory, 'wasm-bench.mjs'), `--plan=${planFile}`, `--out=${rawFile}`];
-      const started = Date.now();
-      const child = runPinned(command, args, { affinity: target.affinity, priority });
-      const seconds = (Date.now() - started) / 1000;
+      let started;
+      let seconds;
+      let child;
+      let guard = null;
+      for (let attempt = 1; ; attempt++) {
+        started = Date.now();
+        child = runPinned(command, args, { affinity: target.affinity, priority });
+        seconds = (Date.now() - started) / 1000;
+        if (!jobGuard || !existsSync(rawFile)) break;
+        const attemptRaw = JSON.parse(await readFile(rawFile, 'utf8'));
+        if (!Object.keys(attemptRaw.ops ?? {}).length) break;
+        guard = { attempt, ...(await guardVerdict(started, started + seconds * 1000, maskProcessors(target.affinity) ?? [])) };
+        if (guard.kept) break;
+        const discarded = { job: name, repeat, attempt, from: new Date(started).toISOString(), seconds, ...guard };
+        guardDiscarded.push(discarded);
+        await log(`GUARD discarded ${name} attempt ${attempt} (${seconds.toFixed(1)} s): ${guard.reasons.join('; ')}`);
+        // A correctness note does not depend on load: keep it.
+        for (const note of attemptRaw.notes ?? []) if (note.startsWith('CORRECTNESS')) correctness.push({ job: `${name}#${attempt}`, note });
+        await rm(rawFile, { force: true });
+        if (attempt >= JOB_GUARD.attempts) {
+          failures.push({ job: name, detail: `job guard: no attempt of ${JOB_GUARD.attempts} was quiet` });
+          await log(`FAILED ${name}: job guard, no attempt of ${JOB_GUARD.attempts} was quiet`);
+          break;
+        }
+        const waited = await settle();
+        discarded.settledAfterSeconds = Number(waited.toFixed(1));
+        await log(`GUARD load settled after ${waited.toFixed(1)} s; running ${name} again`);
+      }
       if (!existsSync(rawFile)) {
+        if (jobGuard && guard && !guard.kept) continue;
         const detail = `${child.error?.message ?? ''}\n${child.stdout ?? ''}\n${child.stderr ?? ''}`.trim();
         failures.push({ job: name, detail });
         await log(`FAILED ${name} after ${seconds.toFixed(1)} s: ${detail.slice(0, 2000)}`);
@@ -209,6 +275,7 @@ for (let repeat = 0; repeat < repeats; repeat++) {
       }
       const raw = JSON.parse(await readFile(rawFile, 'utf8'));
       const summary = { repeat, seconds, affinityMask: maskLabel(target.affinity), startedAtMs: started, endedAtMs: started + seconds * 1000, process: raw.process, method: raw.method, notes: raw.notes, extra: raw.extra, ops: {} };
+      if (guard) summary.guard = guard;
       timedJobs.push(summary);
       const segments = perEventModes(job.mode) ? workload.segments : [];
       for (const [op, { unit, rounds }] of Object.entries(raw.ops)) {
@@ -231,7 +298,8 @@ for (let repeat = 0; repeat < repeats; repeat++) {
       }
       await rm(jobWork, { recursive: true, force: true });
       const headline = Object.entries(summary.ops).slice(0, 3).map(([op, s]) => `${op} ${s.pooled?.median ?? '-'}`).join(', ');
-      await log(`${name} ${seconds.toFixed(1)} s (parallelism ${raw.process?.availableParallelism ?? raw.process?.affinity?.logicalProcessors ?? '?'}): ${headline}`);
+      const guardNote = guard ? ` [guard: attempt ${guard.attempt}, ${guard.samples} samples, total CPU mean ${guard.meanTotal}% max ${guard.maxTotal}%, outside the mask ${guard.maxOutsideCores} cores, ${Object.entries(guard.maxProcess).map(([p, v]) => `${p} ${v}%`).join(' ')}]` : '';
+      await log(`${name} ${seconds.toFixed(1)} s (parallelism ${raw.process?.availableParallelism ?? raw.process?.affinity?.logicalProcessors ?? '?'}): ${headline}${guardNote}`);
     }
   }
 }

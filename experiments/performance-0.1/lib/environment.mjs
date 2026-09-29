@@ -124,25 +124,45 @@ export async function load(scratch) {
 // keeps about one pinned processor busy, so the pinned processors' sum above
 // 100% and the total above one processor's share (100 / logical processors)
 // is other load; the busy pinned processor is the one the benchmark ran on.
-export function startMonitor(processors = [], seconds = 5) {
+//
+// With `processes` (names, as the job guard asks for), each named process's use
+// in percent of one core follows, one column each, in that order. typeperf
+// leaves a process with no instance out of its header line but still writes
+// its column, as -1, so the columns are read by position in `counters`.
+// rows() gives the complete rows so far, while the run goes on.
+export function startMonitor(processors = [], seconds = 5, { processes = [] } = {}) {
   if (process.platform !== 'win32') return null;
   const counters = [
     '\\Processor(_Total)\\% Processor Time',
     ...processors.map((index) => `\\Processor(${index})\\% Processor Time`),
     ...processors.map((index) => `\\Processor Information(0,${index})\\Actual Frequency`),
+    ...processes.map((name) => `\\Process(${name})\\% Processor Time`),
   ];
   const child = spawn('typeperf', [...counters, '-si', String(seconds)], { stdio: ['ignore', 'pipe', 'ignore'] });
   let text = '';
   child.stdout.on('data', (chunk) => { text += chunk; });
+  const names = ['total', ...processors.map((index) => `processor ${index}`), ...processors.map((index) => `processor ${index} MHz`), ...processes.map((name) => `process ${name}`)];
   return {
     seconds,
     processors,
-    counters: ['total', ...processors.map((index) => `processor ${index}`), ...processors.map((index) => `processor ${index} MHz`)],
+    processes,
+    counters: names,
+    rows() {
+      return text.split(/\r?\n/).filter((line) => /^"\d/.test(line))
+        .map((line) => line.split('","').map((cell) => cell.replace(/"/g, '')))
+        .filter((row) => row.length === names.length + 1);
+    },
     stop() {
       child.kill();
       const rows = text.split(/\r?\n/).filter((line) => /^"\d/.test(line))
         .map((line) => line.split('","').map((cell) => cell.replace(/"/g, '')));
-      return { csv: text.trim(), rows };
+      // With processes, the header names every column (typeperf's may omit
+      // one), and a row cut off by the stop is dropped.
+      const csv = processes.length
+        ? [`"(PDH-CSV 4.0)",${counters.map((counter) => `"${counter}"`).join(',')}`,
+          ...rows.filter((row) => row.length === names.length + 1).map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n')
+        : text.trim();
+      return { csv, rows };
     },
   };
 }

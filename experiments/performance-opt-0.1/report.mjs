@@ -12,7 +12,7 @@
 // baseline's protocol (one process per target, workload and mode; 3 repeats,
 // interleaved; one warm-up pass and 3 timed passes). A saving is the
 // difference of two DIRECT medians of the same event class in the same repeat
-// of this session (paired by repeat), and its range is over the 3 repeats: no
+// of this session (paired by repeat), and its range is over the repeats: no
 // share, model or earlier session enters it.
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -95,7 +95,19 @@ const counts = (workload, group) => {
   return stats ? stats.nPerRun.join('/') : '-';
 };
 
-lines.push(`Run ${results.runId}; targets ${results.targets.map((t) => `${t.label} (${t.git?.revision?.slice(0, 7) ?? '?'}, reactive WebAssembly ${t.runtimeFiles?.['caveat_runtime_bg.wasm']?.sha256?.slice(0, 12) ?? '?'})`).join(', ')}; mask ${results.environment.pinning.affinityMask}, priority ${results.environment.pinning.priority}; total CPU during the run mean ${results.environment.loadDuring?.counters.total.mean}%, p95 ${results.environment.loadDuring?.counters.total.p95}%, max ${results.environment.loadDuring?.counters.total.max}%.`, '');
+// Load (load.mjs): per timed job and per repeat, over the samples covering
+// the kept timed jobs.
+const { loadPerRepeat } = await import('./load.mjs');
+const loadOf = async (directory) => {
+  const load = await loadPerRepeat(directory);
+  const seen = load.repeats.flatMap((repeat) => [repeat.total]);
+  const samples = seen.reduce((sum, total) => sum + total.samples, 0);
+  const mean = seen.reduce((sum, total) => sum + total.mean * total.samples, 0) / (samples || 1);
+  return { ...load, keptMean: mean, keptMax: Math.max(...seen.map((total) => total.max)), keptP95: Math.max(...seen.map((total) => total.p95)) };
+};
+const loadText = (load) => `total CPU over the kept timed jobs mean ${f(load.keptMean)}%, highest repeat p95 ${f(load.keptP95)}%, max ${f(load.keptMax)}%; ${load.discarded.length} attempt(s) discarded by the job guard and run again`;
+const load = option('load') === 'no' ? null : await loadOf(run);
+lines.push(`Run ${results.runId}; targets ${results.targets.map((t) => `${t.label} (${t.git?.revision?.slice(0, 7) ?? '?'}, reactive WebAssembly ${t.runtimeFiles?.['caveat_runtime_bg.wasm']?.sha256?.slice(0, 12) ?? '?'})`).join(', ')}; mask ${results.environment.pinning.affinityMask}, priority ${results.environment.pinning.priority}${load ? `; ${loadText(load)}` : ''}.`, '');
 
 // The headline: the paths side by side and the measured saving, per event
 // class. A refusal throws on the raw dispatch_view path, so its cell there is
@@ -198,14 +210,21 @@ if (hasPieces) {
   ]);
 }
 
-// Load per repeat (load.mjs): total CPU over all logical processors while the
-// repeat ran; the benchmark itself is about 4%.
-if (option('load') !== 'no') {
-  const { loadPerRepeat } = await import('./load.mjs');
-  const load = await loadPerRepeat(run);
-  lines.push(`### Load per repeat (typeperf; ${load.rule})`, '');
-  table(['Repeat', 'from (UTC)', 'seconds', 'samples', 'total CPU mean', 'p95', 'max', 'samples above 20%', 'kept'],
-    load.repeats.map((repeat) => [repeat.repeat, repeat.from.slice(11, 19), repeat.seconds, repeat.total.samples, `${f(repeat.total.mean)}%`, `${f(repeat.total.p95)}%`, `${f(repeat.total.max)}%`, repeat.total.above20, repeat.kept ? 'yes' : 'NO']));
+// Load per repeat and per timed job (load.mjs): total CPU over all logical
+// processors while the kept timed jobs ran (the benchmark itself is about 5%),
+// and the attempts the job guard discarded.
+if (load) {
+  lines.push(`### Load per repeat (typeperf every second; ${load.rule})`, '');
+  table(['Repeat', 'from (UTC)', 'seconds', 'timed jobs kept', 'attempts discarded', 'samples', 'total CPU mean', 'p95', 'max', 'samples above 20%', 'kept'],
+    load.repeats.map((repeat) => [repeat.repeat, repeat.from.slice(11, 19), repeat.seconds, `${repeat.jobsKept} of ${repeat.jobs}`, repeat.discardedAttempts, repeat.total.samples, `${f(repeat.total.mean)}%`, `${f(repeat.total.p95)}%`, `${f(repeat.total.max)}%`, repeat.total.above20, repeat.kept ? 'yes' : 'NO']));
+  const kept = load.jobs;
+  const most = (pick) => Math.max(...kept.map(pick).filter(Number.isFinite));
+  lines.push(`### Load per timed job (${load.jobRule ?? 'no job guard'})`, '');
+  lines.push(`Over the ${kept.length} kept timed jobs, judged again afterwards from load.csv: ${load.jobsBrokeRuleAfterwards} broke the rule; the highest job mean total CPU ${f(most((job) => job.after.meanTotal))}%, the highest sample ${f(most((job) => job.after.maxTotal))}%, at most ${f(most((job) => job.after.maxOutsideCores), 2)} cores busy outside the pinned processors, System at most ${f(most((job) => job.after.maxProcess.System ?? NaN))}% and MsMpEng at most ${f(most((job) => job.after.maxProcess.MsMpEng ?? NaN))}% of one core. The guard's own verdict, as each job ended, ${load.guardAgreesAfterwards ? 'agrees' : 'DISAGREES'} with it for every kept job.`, '');
+  if (load.discarded.length) {
+    table(['Discarded attempt', 'repeat', 'at (UTC)', 'seconds', 'why'],
+      load.discarded.map((attempt) => [`\`${attempt.job.replace(/^\d+-/, '').replace('-wasm-', ' ')}\` #${attempt.attempt}`, attempt.repeat + 1, attempt.from.slice(11, 19), f(attempt.seconds), attempt.reasons.join('; ')]));
+  }
 }
 
 // Sessions side by side: the saving and dispatchView's median in each.
@@ -236,7 +255,8 @@ if (replicates.length) {
   table(['Event', ...sessions.flatMap((s) => [`${s.name}: saving`, `${s.name}: gap to raw`, `${s.name}: \`dispatchView()\``])],
     [...KINDS, ...REFUSED].map(([workload, group, name]) => [name, ...sessions.flatMap((s) => [range(pairedIn(s, workload, KIT, VIEW, group)),
       REFUSED.some(([w, g]) => w === workload && g === group) ? '-' : signedIn(s, workload, VIEW, RAW, group), medianIn(s, workload, VIEW, group)])]));
-  lines.push(...sessions.map((s) => `- ${s.name}: run ${s.results.runId}, mask ${s.results.environment.pinning.affinityMask}, ${s.results.suite.repeats} repeats, total CPU during the run mean ${s.results.environment.loadDuring?.counters.total.mean}%, p95 ${s.results.environment.loadDuring?.counters.total.p95}%, max ${s.results.environment.loadDuring?.counters.total.max}%`), '');
+  for (const [index, [, directory]] of replicates.entries()) sessions[index].load = await loadOf(path.resolve(directory));
+  lines.push(...sessions.map((s) => `- ${s.name}: run ${s.results.runId}, mask ${s.results.environment.pinning.affinityMask}, ${s.results.suite.repeats} repeats, ${loadText(s.load)}`), '');
 }
 
 if (size) {

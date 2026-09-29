@@ -1,207 +1,237 @@
-[2026-09-29T18:34:05.621Z] run 2026-09-29T18-34-05-618-view-path: suite view-path, 5 repeat(s), engines wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-measure\runs\P3-3C00
-[2026-09-29T18:34:14.523Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
-[2026-09-29T18:34:14.523Z] load before: {"totalCpuPercent":[5,3,3],"busiestProcesses":[{"name":"powershell","pid":87916,"cpuSeconds":0.391},{"name":"claude","pid":95512,"cpuSeconds":0.375},{"name":"claude","pid":104712,"cpuSeconds":0.172},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.141},{"name":"claude","pid":103160,"cpuSeconds":0.094},{"name":"claude","pid":111184,"cpuSeconds":0.062}]}
-[2026-09-29T18:34:14.799Z] opt: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT\runtime\target\perf-baseline\pkg-reactive
-[2026-09-29T18:34:14.806Z] opt: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT; wasm 0a19e4b858862e3cfe6c35a7b8261f8aca912a90c86faed6bb46c8f06de71cdb; native -
-[2026-09-29T18:34:15.043Z] main: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-main\runtime\target\perf-baseline\pkg-reactive
-[2026-09-29T18:34:15.049Z] main: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-main; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native -
-[2026-09-29T18:34:15.057Z] 15 jobs x 2 target(s) x 5 repeat(s)
-[2026-09-29T18:34:15.063Z] monitoring load with typeperf every 1 s (total, processor 10, processor 11, processor 12, processor 13, processor 10 MHz, processor 11 MHz, processor 12 MHz, processor 13 MHz)
-[2026-09-29T18:34:17.012Z] 0001-opt-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.2, js.parse_view 15.8
-[2026-09-29T18:34:18.924Z] 0002-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.8, js.parse_view 15.6
-[2026-09-29T18:34:20.871Z] 0003-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 24.1, js.parse_view_outcome 16
-[2026-09-29T18:34:20.972Z] 0004-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:34:20.975Z] 0004-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:34:27.784Z] 0005-opt-glowcap-replay-wasm-kit 6.8 s (parallelism 4): kit.dispatch 132.3, kit.view 27.8, kit.dispatch+view 160.3
-[2026-09-29T18:34:34.615Z] 0006-main-glowcap-replay-wasm-kit 6.8 s (parallelism 4): kit.dispatch 132.9, kit.view 27.8, kit.dispatch+view 160.9
-[2026-09-29T18:34:36.567Z] 0007-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 41.2
-[2026-09-29T18:34:36.725Z] 0008-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:34:36.727Z] 0008-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:34:39.436Z] 0009-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.6 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 25.7, js.parse_view_outcome 16.3
-[2026-09-29T18:34:39.537Z] 0010-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:34:39.540Z] 0010-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:34:40.557Z] 0011-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.8, js.parse_view 7
-[2026-09-29T18:34:41.605Z] 0012-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.1, js.parse_view 6.9
-[2026-09-29T18:34:42.627Z] 0013-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 27.8, js.parse_view_outcome 6.7
-[2026-09-29T18:34:42.718Z] 0014-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:34:42.721Z] 0014-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:34:44.352Z] 0015-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 110.3, kit.view 14.3, kit.dispatch+view 124.3
-[2026-09-29T18:34:45.999Z] 0016-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 111.3, kit.view 14.4, kit.dispatch+view 125.4
-[2026-09-29T18:34:47.025Z] 0017-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 35.8
-[2026-09-29T18:34:47.169Z] 0018-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:34:47.171Z] 0018-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
-[2026-09-29T18:34:48.226Z] 0019-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 0.9, raw.dispatch_view_outcome 27.8, js.parse_view_outcome 6.5
-[2026-09-29T18:34:48.318Z] 0020-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:34:48.321Z] 0020-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:34:54.632Z] 0021-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 70.7, js.parse_view 24.9
-[2026-09-29T18:35:01.029Z] 0022-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.4 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 72, js.parse_view 25.1
-[2026-09-29T18:35:07.519Z] 0023-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view_outcome 70.7, js.parse_view_outcome 24.3
-[2026-09-29T18:35:07.608Z] 0024-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:35:07.611Z] 0024-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:35:15.736Z] 0025-opt-trail-rescue-scenarios-wasm-kit 8.1 s (parallelism 4): kit.dispatch 217.2, kit.view 33.4, kit.dispatch+view 253.7
-[2026-09-29T18:35:23.742Z] 0026-main-trail-rescue-scenarios-wasm-kit 8.0 s (parallelism 4): kit.dispatch 213.8, kit.view 33, kit.dispatch+view 250.5
-[2026-09-29T18:35:30.246Z] 0027-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.5 s (parallelism 4): kit.dispatchView 99.8
-[2026-09-29T18:35:30.435Z] 0028-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:35:30.437Z] 0028-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:35:37.152Z] 0029-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.7 s (parallelism 4): kit.payloadText 1.4, raw.dispatch_view_outcome 71.5, js.parse_view_outcome 22.3
-[2026-09-29T18:35:37.242Z] 0030-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:35:37.245Z] 0030-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:35:39.170Z] 0031-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.1, js.parse_view 15.7
-[2026-09-29T18:35:41.093Z] 0032-opt-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.8, js.parse_view 15.8
-[2026-09-29T18:35:41.193Z] 0033-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:35:41.195Z] 0033-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:35:43.147Z] 0034-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 24.1, js.parse_view_outcome 16
-[2026-09-29T18:35:49.957Z] 0035-main-glowcap-replay-wasm-kit 6.8 s (parallelism 4): kit.dispatch 132.7, kit.view 27.6, kit.dispatch+view 160.5
-[2026-09-29T18:35:56.670Z] 0036-opt-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 130.4, kit.view 27.4, kit.dispatch+view 158
-[2026-09-29T18:35:56.829Z] 0037-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:35:56.832Z] 0037-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:35:58.761Z] 0038-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 40.4
-[2026-09-29T18:35:58.859Z] 0039-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:35:58.862Z] 0039-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:36:01.507Z] 0040-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.6 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 25, js.parse_view_outcome 16
-[2026-09-29T18:36:02.500Z] 0041-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28, js.parse_view 6.7
-[2026-09-29T18:36:03.502Z] 0042-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.2, js.parse_view 6.8
-[2026-09-29T18:36:03.593Z] 0043-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:36:03.595Z] 0043-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:36:04.590Z] 0044-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 27.6, js.parse_view_outcome 6.5
-[2026-09-29T18:36:06.199Z] 0045-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 107.7, kit.view 14, kit.dispatch+view 121.5
-[2026-09-29T18:36:07.802Z] 0046-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 109, kit.view 14.1, kit.dispatch+view 123
-[2026-09-29T18:36:07.945Z] 0047-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:36:07.947Z] 0047-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
-[2026-09-29T18:36:08.940Z] 0048-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 35.3
-[2026-09-29T18:36:09.029Z] 0049-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:36:09.031Z] 0049-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:36:10.083Z] 0050-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 28.1, js.parse_view_outcome 6.4
-[2026-09-29T18:36:16.420Z] 0051-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 70.3, js.parse_view 24.6
-[2026-09-29T18:36:22.692Z] 0052-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 69, js.parse_view 24.8
-[2026-09-29T18:36:22.784Z] 0053-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:36:22.787Z] 0053-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:36:29.225Z] 0054-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.4 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 70.6, js.parse_view_outcome 24
-[2026-09-29T18:36:37.140Z] 0055-main-trail-rescue-scenarios-wasm-kit 7.9 s (parallelism 4): kit.dispatch 211.4, kit.view 32.5, kit.dispatch+view 247.7
-[2026-09-29T18:36:45.040Z] 0056-opt-trail-rescue-scenarios-wasm-kit 7.9 s (parallelism 4): kit.dispatch 211.2, kit.view 32.8, kit.dispatch+view 247
-[2026-09-29T18:36:45.204Z] 0057-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:36:45.207Z] 0057-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:36:51.619Z] 0058-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.4 s (parallelism 4): kit.dispatchView 98.6
-[2026-09-29T18:36:51.710Z] 0059-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:36:51.712Z] 0059-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:36:58.312Z] 0060-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.6 s (parallelism 4): kit.payloadText 1.4, raw.dispatch_view_outcome 70.6, js.parse_view_outcome 22.1
-[2026-09-29T18:37:00.229Z] 0061-opt-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.1, js.parse_view 15.6
-[2026-09-29T18:37:02.158Z] 0062-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.1, js.parse_view 15.8
-[2026-09-29T18:37:04.099Z] 0063-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 23.9, js.parse_view_outcome 15.7
-[2026-09-29T18:37:04.195Z] 0064-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:37:04.198Z] 0064-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:37:10.944Z] 0065-opt-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 131.7, kit.view 27.5, kit.dispatch+view 159.4
-[2026-09-29T18:37:17.690Z] 0066-main-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 130.8, kit.view 27.2, kit.dispatch+view 158.2
-[2026-09-29T18:37:19.601Z] 0067-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 39.9
-[2026-09-29T18:37:19.756Z] 0068-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:37:19.758Z] 0068-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:37:22.380Z] 0069-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.6 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 24.4, js.parse_view_outcome 15.6
-[2026-09-29T18:37:22.478Z] 0070-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:37:22.481Z] 0070-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:37:23.492Z] 0071-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.4, js.parse_view 6.9
-[2026-09-29T18:37:24.506Z] 0072-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.5, js.parse_view 6.8
-[2026-09-29T18:37:25.516Z] 0073-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 27.8, js.parse_view_outcome 6.6
-[2026-09-29T18:37:25.605Z] 0074-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:37:25.607Z] 0074-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:37:27.225Z] 0075-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 109.7, kit.view 14.2, kit.dispatch+view 123.7
-[2026-09-29T18:37:28.839Z] 0076-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 109.2, kit.view 14, kit.dispatch+view 122.9
-[2026-09-29T18:37:29.847Z] 0077-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 35.5
-[2026-09-29T18:37:29.989Z] 0078-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:37:29.992Z] 0078-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
-[2026-09-29T18:37:31.053Z] 0079-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 27.8, js.parse_view_outcome 6.4
-[2026-09-29T18:37:31.143Z] 0080-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:37:31.145Z] 0080-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:37:37.397Z] 0081-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 69.7, js.parse_view 24.1
-[2026-09-29T18:37:43.608Z] 0082-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 68.5, js.parse_view 24.6
-[2026-09-29T18:37:50.008Z] 0083-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.4 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 69.5, js.parse_view_outcome 23.7
-[2026-09-29T18:37:50.102Z] 0084-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:37:50.105Z] 0084-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:37:58.006Z] 0085-opt-trail-rescue-scenarios-wasm-kit 7.9 s (parallelism 4): kit.dispatch 210.8, kit.view 32.7, kit.dispatch+view 247.1
-[2026-09-29T18:38:05.898Z] 0086-main-trail-rescue-scenarios-wasm-kit 7.9 s (parallelism 4): kit.dispatch 211.6, kit.view 32.3, kit.dispatch+view 246.9
-[2026-09-29T18:38:12.324Z] 0087-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.4 s (parallelism 4): kit.dispatchView 100.1
-[2026-09-29T18:38:12.488Z] 0088-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:38:12.491Z] 0088-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:38:19.131Z] 0089-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.6 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 70.6, js.parse_view_outcome 22
-[2026-09-29T18:38:19.226Z] 0090-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:38:19.228Z] 0090-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:38:21.139Z] 0091-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.9, js.parse_view 15.7
-[2026-09-29T18:38:23.067Z] 0092-opt-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24, js.parse_view 15.8
-[2026-09-29T18:38:23.163Z] 0093-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:38:23.165Z] 0093-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:38:25.080Z] 0094-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 23.9, js.parse_view_outcome 15.7
-[2026-09-29T18:38:31.802Z] 0095-main-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 130.9, kit.view 27.3, kit.dispatch+view 158.4
-[2026-09-29T18:38:38.517Z] 0096-opt-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 130.4, kit.view 27.3, kit.dispatch+view 157.9
-[2026-09-29T18:38:38.674Z] 0097-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:38:38.677Z] 0097-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:38:40.582Z] 0098-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 40.3
-[2026-09-29T18:38:40.680Z] 0099-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:38:40.682Z] 0099-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:38:43.386Z] 0100-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.6 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 24.5, js.parse_view_outcome 16.1
-[2026-09-29T18:38:44.376Z] 0101-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.1, js.parse_view 6.7
-[2026-09-29T18:38:45.375Z] 0102-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.2, js.parse_view 6.8
-[2026-09-29T18:38:45.472Z] 0103-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:38:45.474Z] 0103-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:38:46.467Z] 0104-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 27.3, js.parse_view_outcome 6.6
-[2026-09-29T18:38:48.068Z] 0105-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 108.3, kit.view 14.1, kit.dispatch+view 122
-[2026-09-29T18:38:49.672Z] 0106-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 107.9, kit.view 14.2, kit.dispatch+view 121.9
-[2026-09-29T18:38:49.811Z] 0107-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:38:49.814Z] 0107-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
-[2026-09-29T18:38:50.805Z] 0108-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 34.7
-[2026-09-29T18:38:50.894Z] 0109-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:38:50.897Z] 0109-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:38:51.937Z] 0110-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 27.5, js.parse_view_outcome 6.5
-[2026-09-29T18:38:58.123Z] 0111-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 69.7, js.parse_view 25.9
-[2026-09-29T18:39:04.297Z] 0112-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 69, js.parse_view 24.7
-[2026-09-29T18:39:04.386Z] 0113-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:39:04.389Z] 0113-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:39:10.731Z] 0114-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 69.6, js.parse_view_outcome 23.6
-[2026-09-29T18:39:18.708Z] 0115-main-trail-rescue-scenarios-wasm-kit 8.0 s (parallelism 4): kit.dispatch 213.2, kit.view 32.6, kit.dispatch+view 249.1
-[2026-09-29T18:39:26.599Z] 0116-opt-trail-rescue-scenarios-wasm-kit 7.9 s (parallelism 4): kit.dispatch 210.3, kit.view 32.5, kit.dispatch+view 245.7
-[2026-09-29T18:39:26.762Z] 0117-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:39:26.765Z] 0117-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:39:33.189Z] 0118-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.4 s (parallelism 4): kit.dispatchView 98.6
-[2026-09-29T18:39:33.281Z] 0119-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:39:33.284Z] 0119-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:39:39.883Z] 0120-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.6 s (parallelism 4): kit.payloadText 1.4, raw.dispatch_view_outcome 69.3, js.parse_view_outcome 22.1
-[2026-09-29T18:39:41.785Z] 0121-opt-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.8, js.parse_view 15.5
-[2026-09-29T18:39:43.671Z] 0122-main-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.5, js.parse_view 15.5
-[2026-09-29T18:39:45.589Z] 0123-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 23.8, js.parse_view_outcome 15.8
-[2026-09-29T18:39:45.686Z] 0124-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:39:45.688Z] 0124-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:39:52.372Z] 0125-opt-glowcap-replay-wasm-kit 6.6 s (parallelism 4): kit.dispatch 129.9, kit.view 27.1, kit.dispatch+view 157.2
-[2026-09-29T18:39:59.023Z] 0126-main-glowcap-replay-wasm-kit 6.6 s (parallelism 4): kit.dispatch 129.1, kit.view 27.1, kit.dispatch+view 156.4
-[2026-09-29T18:40:00.941Z] 0127-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 40.5
-[2026-09-29T18:40:01.097Z] 0128-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:40:01.099Z] 0128-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:40:03.705Z] 0129-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.5 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 24.3, js.parse_view_outcome 15.9
-[2026-09-29T18:40:03.806Z] 0130-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:40:03.809Z] 0130-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:40:04.806Z] 0131-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.8, js.parse_view 6.6
-[2026-09-29T18:40:05.795Z] 0132-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.6, js.parse_view 6.6
-[2026-09-29T18:40:06.788Z] 0133-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 27.1, js.parse_view_outcome 6.5
-[2026-09-29T18:40:06.876Z] 0134-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:40:06.878Z] 0134-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:40:08.469Z] 0135-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 108.3, kit.view 14, kit.dispatch+view 121.9
-[2026-09-29T18:40:10.078Z] 0136-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 107.1, kit.view 13.8, kit.dispatch+view 120.6
-[2026-09-29T18:40:11.071Z] 0137-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 34.7
-[2026-09-29T18:40:11.211Z] 0138-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:40:11.214Z] 0138-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
-[2026-09-29T18:40:12.260Z] 0139-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 27.1, js.parse_view_outcome 6.4
-[2026-09-29T18:40:12.349Z] 0140-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:40:12.352Z] 0140-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:40:18.571Z] 0141-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 70, js.parse_view 24.8
-[2026-09-29T18:40:24.740Z] 0142-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 68.6, js.parse_view 24.7
-[2026-09-29T18:40:31.112Z] 0143-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.4 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 68.6, js.parse_view_outcome 23.7
-[2026-09-29T18:40:31.203Z] 0144-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:40:31.205Z] 0144-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
-[2026-09-29T18:40:39.112Z] 0145-opt-trail-rescue-scenarios-wasm-kit 7.9 s (parallelism 4): kit.dispatch 211.9, kit.view 32.7, kit.dispatch+view 247.6
-[2026-09-29T18:40:46.961Z] 0146-main-trail-rescue-scenarios-wasm-kit 7.8 s (parallelism 4): kit.dispatch 209.5, kit.view 32.2, kit.dispatch+view 245.6
-[2026-09-29T18:40:53.339Z] 0147-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.4 s (parallelism 4): kit.dispatchView 97.4
-[2026-09-29T18:40:53.499Z] 0148-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
-[2026-09-29T18:40:53.502Z] 0148-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
-[2026-09-29T18:41:00.060Z] 0149-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.5 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 69.9, js.parse_view_outcome 21.8
-[2026-09-29T18:41:00.167Z] 0150-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
-[2026-09-29T18:41:00.169Z] 0150-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
-[2026-09-29T18:41:00.186Z] load during: {"what":"typeperf every 1 s for the whole run","samples":402,"counters":{"total":{"samples":402,"mean":7.2,"p95":11.1,"max":15.7},"processor 10":{"samples":402,"mean":7.9,"p95":19.8,"max":29.2},"processor 11":{"samples":402,"mean":7.8,"p95":20.5,"max":31.9},"processor 12":{"samples":402,"mean":6.6,"p95":18.1,"max":28.3},"processor 13":{"samples":402,"mean":98.3,"p95":100,"max":100},"processor 10 MHz":{"samples":402,"mean":4252.7,"p95":4665.8,"max":4822.6},"processor 11 MHz":{"samples":402,"mean":4202.8,"p95":4475.3,"max":4756.9},"processor 12 MHz":{"samples":402,"mean":4180.1,"p95":4516.3,"max":4652.8},"processor 13 MHz":{"samples":402,"mean":4205.7,"p95":4306.9,"max":4381.7}},"totalAbove10Percent":42,"totalAbove25Percent":0,"pinnedSumAbove150Percent":31}
-[2026-09-29T18:41:05.395Z] load after: {"totalCpuPercent":[12,0,15],"busiestProcesses":[{"name":"powershell","pid":96496,"cpuSeconds":0.422},{"name":"claude","pid":95512,"cpuSeconds":0.328},{"name":"claude","pid":104712,"cpuSeconds":0.203},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.125},{"name":"claude","pid":103160,"cpuSeconds":0.125},{"name":"RemoteDesktopCompanion","pid":92360,"cpuSeconds":0.031}]}
-[2026-09-29T18:41:05.405Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-measure\runs\P3-3C00\results.json and summary.md; 0 failure(s), 45 skipped, 0 correctness finding(s)
+[2026-09-29T19:48:35.167Z] run 2026-09-29T19-48-35-164-view-path: suite view-path, 5 repeat(s), engines wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-measure2\runs\G1-3C00
+[2026-09-29T19:48:42.507Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
+[2026-09-29T19:48:42.508Z] load before: {"totalCpuPercent":[9,0,0],"busiestProcesses":[{"name":"powershell","pid":48760,"cpuSeconds":0.453},{"name":"claude","pid":103160,"cpuSeconds":0.281},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.094},{"name":"claude","pid":104712,"cpuSeconds":0.078},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.062},{"name":"OVRServer_x64","pid":98412,"cpuSeconds":0.047}]}
+[2026-09-29T19:48:42.760Z] opt: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T19:48:42.765Z] opt: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT; wasm 0a19e4b858862e3cfe6c35a7b8261f8aca912a90c86faed6bb46c8f06de71cdb; native -
+[2026-09-29T19:48:43.096Z] main: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-main\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T19:48:43.100Z] main: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-main; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native -
+[2026-09-29T19:48:43.108Z] 15 jobs x 2 target(s) x 5 repeat(s)
+[2026-09-29T19:48:43.114Z] monitoring load with typeperf every 1 s (total, processor 10, processor 11, processor 12, processor 13, processor 10 MHz, processor 11 MHz, processor 12 MHz, processor 13 MHz, process System, process MsMpEng)
+[2026-09-29T19:48:48.630Z] monitor lead: 5 sample(s) before the first job
+[2026-09-29T19:48:48.631Z] job guard: a timed job is kept when, over the 1-s samples covering it, the mean total CPU is at most 12% and no sample is above 20%, and in no sample does System or MsMpEng use more than 30% of one core or are more than 2 cores busy outside the pinned processors; otherwise it is discarded and run again in place (up to 5 attempts), after 3 quiet samples in a row
+[2026-09-29T19:48:50.656Z] GUARD discarded 0001-opt-glowcap-replay-wasm-raw.dispatch_view attempt 1 (1.8 s): System at 87% of a core > 30%
+[2026-09-29T19:48:55.770Z] GUARD load settled after 5.1 s; running 0001-opt-glowcap-replay-wasm-raw.dispatch_view again
+[2026-09-29T19:48:57.792Z] GUARD discarded 0001-opt-glowcap-replay-wasm-raw.dispatch_view attempt 2 (1.8 s): MsMpEng at 31% of a core > 30%
+[2026-09-29T19:49:01.884Z] GUARD load settled after 4.1 s; running 0001-opt-glowcap-replay-wasm-raw.dispatch_view again
+[2026-09-29T19:49:04.018Z] 0001-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.9, js.parse_view 15.7 [guard: attempt 3, 2 samples, total CPU mean 5.31% max 5.49%, outside the mask 0.32 cores, System 13.7% MsMpEng 7.6%]
+[2026-09-29T19:49:06.054Z] 0002-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24, js.parse_view 15.7 [guard: attempt 1, 2 samples, total CPU mean 7.62% max 8.65%, outside the mask 0.97 cores, System 12.2% MsMpEng 3.1%]
+[2026-09-29T19:49:09.108Z] 0003-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 24.8, js.parse_view_outcome 15.9 [guard: attempt 1, 3 samples, total CPU mean 4.92% max 7.32%, outside the mask 0.59 cores, System 10.8% MsMpEng 3%]
+[2026-09-29T19:49:09.202Z] 0004-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:49:09.206Z] 0004-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:49:16.304Z] 0005-opt-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 130.2, kit.view 27.3, kit.dispatch+view 157.7 [guard: attempt 1, 7 samples, total CPU mean 6.37% max 8.85%, outside the mask 0.73 cores, System 13.8% MsMpEng 7.6%]
+[2026-09-29T19:49:23.446Z] 0006-main-glowcap-replay-wasm-kit 6.5 s (parallelism 4): kit.dispatch 127.7, kit.view 26.5, kit.dispatch+view 154.4 [guard: attempt 1, 7 samples, total CPU mean 5.23% max 6.6%, outside the mask 0.56 cores, System 7.6% MsMpEng 1.5%]
+[2026-09-29T19:49:25.429Z] 0007-opt-glowcap-replay-wasm-kit.dispatchView 1.8 s (parallelism 4): kit.dispatchView 39 [guard: attempt 1, 2 samples, total CPU mean 5.46% max 6.16%, outside the mask 0.35 cores, System 9.2% MsMpEng 3.1%]
+[2026-09-29T19:49:25.578Z] 0008-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:49:25.581Z] 0008-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:49:28.577Z] 0009-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.5 s (parallelism 4): kit.payloadText 0.4, raw.dispatch_view_outcome 23.8, js.parse_view_outcome 15.4 [guard: attempt 1, 3 samples, total CPU mean 6.41% max 7.94%, outside the mask 0.69 cores, System 9.2% MsMpEng 7.6%]
+[2026-09-29T19:49:28.674Z] 0010-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:49:28.677Z] 0010-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:49:30.521Z] 0011-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.2, js.parse_view 6.6 [guard: attempt 1, 2 samples, total CPU mean 6.23% max 7.27%, outside the mask 0.65 cores, System 10.7% MsMpEng 6.1%]
+[2026-09-29T19:49:32.605Z] 0012-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.8, js.parse_view 6.7 [guard: attempt 1, 2 samples, total CPU mean 4.83% max 5.79%, outside the mask 0.41 cores, System 12.2% MsMpEng 0%]
+[2026-09-29T19:49:34.638Z] 0013-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 26, js.parse_view_outcome 6.2 [guard: attempt 1, 2 samples, total CPU mean 4.7% max 4.97%, outside the mask 0.67 cores, System 7.6% MsMpEng 4.6%]
+[2026-09-29T19:49:34.724Z] 0014-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:49:34.727Z] 0014-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:49:36.620Z] 0015-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 104.4, kit.view 13.7, kit.dispatch+view 117.6 [guard: attempt 1, 2 samples, total CPU mean 4.72% max 5.83%, outside the mask 0.33 cores, System 4.6% MsMpEng 9.2%]
+[2026-09-29T19:49:38.731Z] 0016-main-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 104.7, kit.view 13.7, kit.dispatch+view 118.1 [guard: attempt 1, 2 samples, total CPU mean 5.96% max 6.68%, outside the mask 0.42 cores, System 9.2% MsMpEng 6.1%]
+[2026-09-29T19:49:40.689Z] 0017-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 33.6 [guard: attempt 1, 2 samples, total CPU mean 4.84% max 7.88%, outside the mask 0.74 cores, System 13.8% MsMpEng 3.1%]
+[2026-09-29T19:49:40.835Z] 0018-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:49:40.838Z] 0018-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:49:42.752Z] 0019-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 27.5, js.parse_view_outcome 6.4 [guard: attempt 1, 2 samples, total CPU mean 6.65% max 7.64%, outside the mask 0.22 cores, System 10.8% MsMpEng 7.7%]
+[2026-09-29T19:49:42.849Z] 0020-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:49:42.851Z] 0020-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:49:49.871Z] 0021-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.0 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.1, js.parse_view 24 [guard: attempt 1, 7 samples, total CPU mean 5.34% max 7.93%, outside the mask 1.03 cores, System 9.2% MsMpEng 3.1%]
+[2026-09-29T19:49:57.089Z] GUARD discarded 0022-main-trail-rescue-scenarios-wasm-raw.dispatch_view attempt 1 (6.2 s): System at 108% of a core > 30%
+[2026-09-29T19:50:01.301Z] GUARD load settled after 4.2 s; running 0022-main-trail-rescue-scenarios-wasm-raw.dispatch_view again
+[2026-09-29T19:50:08.247Z] 0022-main-trail-rescue-scenarios-wasm-raw.dispatch_view 5.9 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.3, js.parse_view 23.5 [guard: attempt 2, 7 samples, total CPU mean 4.08% max 6.49%, outside the mask 0.46 cores, System 12.3% MsMpEng 6.1%]
+[2026-09-29T19:50:15.443Z] 0023-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 67.9, js.parse_view_outcome 22.6 [guard: attempt 1, 7 samples, total CPU mean 5.32% max 7.29%, outside the mask 0.58 cores, System 7.7% MsMpEng 7.7%]
+[2026-09-29T19:50:15.534Z] 0024-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:50:15.537Z] 0024-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:50:23.637Z] 0025-opt-trail-rescue-scenarios-wasm-kit 7.8 s (parallelism 4): kit.dispatch 203.8, kit.view 31.3, kit.dispatch+view 238.2 [guard: attempt 1, 8 samples, total CPU mean 5.38% max 8.8%, outside the mask 0.39 cores, System 12.3% MsMpEng 3.1%]
+[2026-09-29T19:50:31.730Z] 0026-main-trail-rescue-scenarios-wasm-kit 7.6 s (parallelism 4): kit.dispatch 203.3, kit.view 31.3, kit.dispatch+view 237.1 [guard: attempt 1, 8 samples, total CPU mean 5.89% max 8.96%, outside the mask 0.75 cores, System 6.2% MsMpEng 3.1%]
+[2026-09-29T19:50:38.909Z] 0027-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.3 s (parallelism 4): kit.dispatchView 94.3 [guard: attempt 1, 7 samples, total CPU mean 4.08% max 6%, outside the mask 0.38 cores, System 7.7% MsMpEng 4.6%]
+[2026-09-29T19:50:39.061Z] 0028-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:50:39.064Z] 0028-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:50:46.078Z] 0029-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.3 s (parallelism 4): kit.payloadText 1.2, raw.dispatch_view_outcome 65.7, js.parse_view_outcome 20.8 [guard: attempt 1, 7 samples, total CPU mean 6.18% max 8.78%, outside the mask 0.53 cores, System 10.7% MsMpEng 7.6%]
+[2026-09-29T19:50:46.167Z] 0030-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:50:46.170Z] 0030-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:50:48.156Z] 0031-main-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 22.5, js.parse_view 15 [guard: attempt 1, 2 samples, total CPU mean 6.16% max 6.59%, outside the mask 0.75 cores, System 7.6% MsMpEng 10.7%]
+[2026-09-29T19:50:50.193Z] 0032-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 22.7, js.parse_view 14.8 [guard: attempt 1, 2 samples, total CPU mean 5.57% max 6.33%, outside the mask 0.41 cores, System 6.1% MsMpEng 3.1%]
+[2026-09-29T19:50:50.310Z] 0033-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:50:50.313Z] 0033-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:50:53.211Z] GUARD discarded 0034-opt-glowcap-replay-wasm-raw.dispatch_view_outcome attempt 1 (1.8 s): System at 102% of a core > 30%; 2 cores busy outside the pinned processors > 2
+[2026-09-29T19:50:57.396Z] GUARD load settled after 4.2 s; running 0034-opt-glowcap-replay-wasm-raw.dispatch_view_outcome again
+[2026-09-29T19:50:59.359Z] 0034-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view_outcome 22.5, js.parse_view_outcome 15.1 [guard: attempt 2, 2 samples, total CPU mean 5.12% max 7.03%, outside the mask 0.49 cores, System 6.1% MsMpEng 3%]
+[2026-09-29T19:51:06.465Z] 0035-main-glowcap-replay-wasm-kit 6.4 s (parallelism 4): kit.dispatch 124.7, kit.view 26, kit.dispatch+view 150.8 [guard: attempt 1, 7 samples, total CPU mean 5.25% max 8.16%, outside the mask 0.65 cores, System 7.7% MsMpEng 3.1%]
+[2026-09-29T19:51:13.607Z] 0036-opt-glowcap-replay-wasm-kit 6.3 s (parallelism 4): kit.dispatch 123.5, kit.view 26, kit.dispatch+view 149.7 [guard: attempt 1, 7 samples, total CPU mean 6.31% max 8.49%, outside the mask 0.94 cores, System 6.2% MsMpEng 3.1%]
+[2026-09-29T19:51:13.808Z] 0037-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:51:13.811Z] 0037-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T19:51:16.667Z] 0038-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 39.7 [guard: attempt 1, 3 samples, total CPU mean 5.03% max 5.72%, outside the mask 0.75 cores, System 9.2% MsMpEng 6.1%]
+[2026-09-29T19:51:16.762Z] 0039-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:51:16.765Z] 0039-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:51:19.749Z] 0040-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.5 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 23, js.parse_view_outcome 15.3 [guard: attempt 1, 3 samples, total CPU mean 5.65% max 6.34%, outside the mask 0.44 cores, System 10.8% MsMpEng 9.2%]
+[2026-09-29T19:51:21.789Z] 0041-main-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.4, js.parse_view 6.3 [guard: attempt 1, 2 samples, total CPU mean 3.35% max 6.2%, outside the mask 0.58 cores, System 13.8% MsMpEng 7.6%]
+[2026-09-29T19:51:23.840Z] 0042-opt-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.3, js.parse_view 6.3 [guard: attempt 1, 2 samples, total CPU mean 4.56% max 6.94%, outside the mask 0.48 cores, System 6.2% MsMpEng 0%]
+[2026-09-29T19:51:23.931Z] 0043-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:51:23.934Z] 0043-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:51:25.861Z] 0044-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 25.2, js.parse_view_outcome 6.2 [guard: attempt 1, 2 samples, total CPU mean 6.8% max 7.32%, outside the mask 1.49 cores, System 15.4% MsMpEng 15.3%]
+[2026-09-29T19:51:27.818Z] 0045-main-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 101.2, kit.view 13.2, kit.dispatch+view 114.1 [guard: attempt 1, 2 samples, total CPU mean 4.1% max 4.22%, outside the mask 0.3 cores, System 10.7% MsMpEng 7.7%]
+[2026-09-29T19:51:29.878Z] 0046-opt-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 101.9, kit.view 13.3, kit.dispatch+view 115 [guard: attempt 1, 2 samples, total CPU mean 8.87% max 10.26%, outside the mask 1.08 cores, System 12.3% MsMpEng 4.6%]
+[2026-09-29T19:51:30.015Z] 0047-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:51:30.017Z] 0047-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:51:31.946Z] 0048-opt-ledger-session-wasm-kit.dispatchView 0.9 s (parallelism 4): kit.dispatchView 33.1 [guard: attempt 1, 2 samples, total CPU mean 4.92% max 5.89%, outside the mask 0.52 cores, System 6.1% MsMpEng 10.7%]
+[2026-09-29T19:51:32.033Z] 0049-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:51:32.038Z] 0049-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:51:34.011Z] 0050-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 0.9, raw.dispatch_view_outcome 25.1, js.parse_view_outcome 6 [guard: attempt 1, 2 samples, total CPU mean 2.99% max 4.18%, outside the mask 0.25 cores, System 7.7% MsMpEng 9.2%]
+[2026-09-29T19:51:41.088Z] 0051-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.3, js.parse_view 23.7 [guard: attempt 1, 7 samples, total CPU mean 5.88% max 9.18%, outside the mask 0.86 cores, System 10.8% MsMpEng 6.2%]
+[2026-09-29T19:51:47.260Z] 0052-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 5.9 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 66.7, js.parse_view 23.4 [guard: attempt 1, 6 samples, total CPU mean 5.68% max 7.69%, outside the mask 0.77 cores, System 12.3% MsMpEng 9.2%]
+[2026-09-29T19:51:47.350Z] 0053-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:51:47.353Z] 0053-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:51:54.310Z] GUARD discarded 0054-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome attempt 1 (6.2 s): System at 108% of a core > 30%
+[2026-09-29T19:51:58.468Z] GUARD load settled after 4.2 s; running 0054-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome again
+[2026-09-29T19:52:05.599Z] 0054-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 67.5, js.parse_view_outcome 23 [guard: attempt 2, 7 samples, total CPU mean 5.42% max 8.15%, outside the mask 0.91 cores, System 7.7% MsMpEng 4.6%]
+[2026-09-29T19:52:13.752Z] 0055-main-trail-rescue-scenarios-wasm-kit 7.5 s (parallelism 4): kit.dispatch 200.3, kit.view 31.1, kit.dispatch+view 235 [guard: attempt 1, 8 samples, total CPU mean 5.28% max 7.62%, outside the mask 0.73 cores, System 7.6% MsMpEng 6.2%]
+[2026-09-29T19:52:21.870Z] 0056-opt-trail-rescue-scenarios-wasm-kit 7.8 s (parallelism 4): kit.dispatch 204.8, kit.view 31.7, kit.dispatch+view 239.2 [guard: attempt 1, 8 samples, total CPU mean 5.75% max 8.72%, outside the mask 0.84 cores, System 7.6% MsMpEng 1.5%]
+[2026-09-29T19:52:22.033Z] 0057-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:52:22.036Z] 0057-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T19:52:28.989Z] 0058-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.3 s (parallelism 4): kit.dispatchView 97.3 [guard: attempt 1, 7 samples, total CPU mean 5.21% max 9.24%, outside the mask 1.09 cores, System 9.2% MsMpEng 7.7%]
+[2026-09-29T19:52:29.078Z] 0059-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:52:29.080Z] 0059-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:52:36.230Z] 0060-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.5 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 68.5, js.parse_view_outcome 21.5 [guard: attempt 1, 7 samples, total CPU mean 5.84% max 7.31%, outside the mask 0.52 cores, System 10.8% MsMpEng 12.2%]
+[2026-09-29T19:52:38.200Z] 0061-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.8, js.parse_view 15.6 [guard: attempt 1, 2 samples, total CPU mean 6.24% max 8.44%, outside the mask 0.97 cores, System 19.9% MsMpEng 6.1%]
+[2026-09-29T19:52:40.238Z] 0062-main-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 22.5, js.parse_view 14.7 [guard: attempt 1, 2 samples, total CPU mean 7.25% max 10.66%, outside the mask 1.23 cores, System 6.1% MsMpEng 6.1%]
+[2026-09-29T19:52:42.334Z] 0063-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 23.7, js.parse_view_outcome 15.6 [guard: attempt 1, 2 samples, total CPU mean 6.11% max 6.9%, outside the mask 0.45 cores, System 4.6% MsMpEng 1.5%]
+[2026-09-29T19:52:42.443Z] 0064-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:52:42.446Z] 0064-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:52:49.448Z] 0065-opt-glowcap-replay-wasm-kit 6.3 s (parallelism 4): kit.dispatch 123.2, kit.view 25.8, kit.dispatch+view 149.1 [guard: attempt 1, 7 samples, total CPU mean 5.46% max 6.43%, outside the mask 0.45 cores, System 7.6% MsMpEng 6.1%]
+[2026-09-29T19:52:56.618Z] GUARD discarded 0066-main-glowcap-replay-wasm-kit attempt 1 (6.4 s): System at 101% of a core > 30%
+[2026-09-29T19:53:00.766Z] GUARD load settled after 4.1 s; running 0066-main-glowcap-replay-wasm-kit again
+[2026-09-29T19:53:07.782Z] 0066-main-glowcap-replay-wasm-kit 6.4 s (parallelism 4): kit.dispatch 124.2, kit.view 26.1, kit.dispatch+view 150.5 [guard: attempt 2, 7 samples, total CPU mean 4.97% max 8.21%, outside the mask 0.87 cores, System 10.8% MsMpEng 4.6%]
+[2026-09-29T19:53:09.868Z] 0067-opt-glowcap-replay-wasm-kit.dispatchView 1.8 s (parallelism 4): kit.dispatchView 40.1 [guard: attempt 1, 2 samples, total CPU mean 6.5% max 7.24%, outside the mask 0.7 cores, System 10.7% MsMpEng 0%]
+[2026-09-29T19:53:10.015Z] 0068-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:53:10.018Z] 0068-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:53:12.951Z] 0069-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.4 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 23.3, js.parse_view_outcome 15.2 [guard: attempt 1, 3 samples, total CPU mean 5.84% max 7.39%, outside the mask 0.62 cores, System 10.7% MsMpEng 7.7%]
+[2026-09-29T19:53:13.047Z] 0070-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:53:13.050Z] 0070-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:53:14.874Z] 0071-opt-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.1, js.parse_view 6.3 [guard: attempt 1, 2 samples, total CPU mean 6.05% max 6.77%, outside the mask 1.05 cores, System 9.2% MsMpEng 6.1%]
+[2026-09-29T19:53:15.925Z] 0072-main-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.3, js.parse_view 6.2 [guard: attempt 1, 1 samples, total CPU mean 6.16% max 6.16%, outside the mask 0.22 cores, System 12.3% MsMpEng 6.1%]
+[2026-09-29T19:53:16.962Z] 0073-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 25.6, js.parse_view_outcome 6.1 [guard: attempt 1, 1 samples, total CPU mean 8.22% max 8.22%, outside the mask 0.57 cores, System 3.1% MsMpEng 3.1%]
+[2026-09-29T19:53:17.049Z] 0074-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:53:17.052Z] 0074-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:53:18.994Z] 0075-opt-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 102.5, kit.view 13.4, kit.dispatch+view 115.6 [guard: attempt 1, 2 samples, total CPU mean 4.92% max 5.86%, outside the mask 0.21 cores, System 6.1% MsMpEng 6.1%]
+[2026-09-29T19:53:21.070Z] 0076-main-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 101.8, kit.view 13.3, kit.dispatch+view 114.7 [guard: attempt 1, 2 samples, total CPU mean 5.27% max 7.45%, outside the mask 0.43 cores, System 12.2% MsMpEng 6.1%]
+[2026-09-29T19:53:23.121Z] 0077-opt-ledger-session-wasm-kit.dispatchView 0.9 s (parallelism 4): kit.dispatchView 33.9 [guard: attempt 1, 2 samples, total CPU mean 5.16% max 7.59%, outside the mask 0.41 cores, System 3.1% MsMpEng 3.1%]
+[2026-09-29T19:53:23.255Z] 0078-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:53:23.258Z] 0078-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:53:25.156Z] 0079-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 26.8, js.parse_view_outcome 6.1 [guard: attempt 1, 2 samples, total CPU mean 4.25% max 6.03%, outside the mask 0.26 cores, System 4.6% MsMpEng 12.2%]
+[2026-09-29T19:53:25.242Z] 0080-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:53:25.245Z] 0080-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:53:32.256Z] 0081-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.0 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 66.4, js.parse_view 23.4 [guard: attempt 1, 7 samples, total CPU mean 5.83% max 7.42%, outside the mask 0.61 cores, System 10.7% MsMpEng 9.2%]
+[2026-09-29T19:53:38.378Z] 0082-main-trail-rescue-scenarios-wasm-raw.dispatch_view 5.9 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 66.5, js.parse_view 23.1 [guard: attempt 1, 6 samples, total CPU mean 5.31% max 6.3%, outside the mask 0.5 cores, System 9.2% MsMpEng 4.6%]
+[2026-09-29T19:53:45.577Z] 0083-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 66.9, js.parse_view_outcome 22.6 [guard: attempt 1, 7 samples, total CPU mean 6.32% max 8.76%, outside the mask 0.91 cores, System 19.9% MsMpEng 4.6%]
+[2026-09-29T19:53:45.667Z] 0084-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:53:45.670Z] 0084-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:53:53.686Z] GUARD discarded 0085-opt-trail-rescue-scenarios-wasm-kit attempt 1 (7.6 s): System at 100% of a core > 30%
+[2026-09-29T19:53:58.919Z] GUARD load settled after 5.2 s; running 0085-opt-trail-rescue-scenarios-wasm-kit again
+[2026-09-29T19:54:06.925Z] 0085-opt-trail-rescue-scenarios-wasm-kit 7.4 s (parallelism 4): kit.dispatch 197.8, kit.view 30.4, kit.dispatch+view 231.2 [guard: attempt 2, 8 samples, total CPU mean 5.56% max 7%, outside the mask 0.56 cores, System 6.1% MsMpEng 6.1%]
+[2026-09-29T19:54:15.072Z] 0086-main-trail-rescue-scenarios-wasm-kit 7.5 s (parallelism 4): kit.dispatch 198, kit.view 30.3, kit.dispatch+view 231.3 [guard: attempt 1, 8 samples, total CPU mean 5.22% max 6.27%, outside the mask 0.36 cores, System 12.2% MsMpEng 4.6%]
+[2026-09-29T19:54:22.269Z] 0087-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.1 s (parallelism 4): kit.dispatchView 93.9 [guard: attempt 1, 7 samples, total CPU mean 5.28% max 6.99%, outside the mask 0.62 cores, System 7.6% MsMpEng 6.1%]
+[2026-09-29T19:54:22.450Z] 0088-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:54:22.453Z] 0088-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T19:54:29.326Z] 0089-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.2 s (parallelism 4): kit.payloadText 1.2, raw.dispatch_view_outcome 65.6, js.parse_view_outcome 20.8 [guard: attempt 1, 7 samples, total CPU mean 6.03% max 8.6%, outside the mask 1.01 cores, System 12.3% MsMpEng 9.2%]
+[2026-09-29T19:54:29.415Z] 0090-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:54:29.418Z] 0090-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:54:31.456Z] 0091-main-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 22.5, js.parse_view 14.6 [guard: attempt 1, 2 samples, total CPU mean 5.37% max 6.3%, outside the mask 0.5 cores, System 10.7% MsMpEng 6.1%]
+[2026-09-29T19:54:33.496Z] 0092-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 22.3, js.parse_view 14.6 [guard: attempt 1, 2 samples, total CPU mean 5.16% max 6.28%, outside the mask 0.33 cores, System 3.1% MsMpEng 3.1%]
+[2026-09-29T19:54:33.591Z] 0093-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:54:33.594Z] 0093-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:54:35.553Z] 0094-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view_outcome 22.5, js.parse_view_outcome 14.7 [guard: attempt 1, 2 samples, total CPU mean 6.81% max 8.05%, outside the mask 0.86 cores, System 7.6% MsMpEng 4.6%]
+[2026-09-29T19:54:42.630Z] GUARD discarded 0095-main-glowcap-replay-wasm-kit attempt 1 (6.3 s): 2.1 cores busy outside the pinned processors > 2
+[2026-09-29T19:54:46.794Z] GUARD load settled after 4.2 s; running 0095-main-glowcap-replay-wasm-kit again
+[2026-09-29T19:54:53.871Z] GUARD discarded 0095-main-glowcap-replay-wasm-kit attempt 2 (6.2 s): System at 78% of a core > 30%
+[2026-09-29T19:54:59.069Z] GUARD load settled after 5.2 s; running 0095-main-glowcap-replay-wasm-kit again
+[2026-09-29T19:55:06.196Z] 0095-main-glowcap-replay-wasm-kit 6.3 s (parallelism 4): kit.dispatch 122.8, kit.view 25.8, kit.dispatch+view 148.8 [guard: attempt 3, 7 samples, total CPU mean 5.37% max 9.88%, outside the mask 1.31 cores, System 7.6% MsMpEng 4.6%]
+[2026-09-29T19:55:13.308Z] 0096-opt-glowcap-replay-wasm-kit 6.3 s (parallelism 4): kit.dispatch 123.3, kit.view 25.8, kit.dispatch+view 149.3 [guard: attempt 1, 7 samples, total CPU mean 6.4% max 10.49%, outside the mask 1.46 cores, System 9.2% MsMpEng 9.2%]
+[2026-09-29T19:55:13.462Z] 0097-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:55:13.465Z] 0097-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:55:16.361Z] 0098-opt-glowcap-replay-wasm-kit.dispatchView 1.8 s (parallelism 4): kit.dispatchView 37.6 [guard: attempt 1, 3 samples, total CPU mean 5.19% max 7.54%, outside the mask 1.04 cores, System 7.7% MsMpEng 12.2%]
+[2026-09-29T19:55:16.457Z] 0099-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:55:16.460Z] 0099-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:55:19.439Z] 0100-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.4 s (parallelism 4): kit.payloadText 0.4, raw.dispatch_view_outcome 22.7, js.parse_view_outcome 14.7 [guard: attempt 1, 3 samples, total CPU mean 4.52% max 5.38%, outside the mask 0.55 cores, System 7.6% MsMpEng 6.1%]
+[2026-09-29T19:55:21.369Z] 0101-main-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26, js.parse_view 6.2 [guard: attempt 1, 2 samples, total CPU mean 5.61% max 8.1%, outside the mask 0.62 cores, System 7.7% MsMpEng 4.6%]
+[2026-09-29T19:55:22.437Z] 0102-opt-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.2, js.parse_view 6.3 [guard: attempt 1, 1 samples, total CPU mean 4.74% max 4.74%, outside the mask -0.11 cores, System 3.1% MsMpEng 7.7%]
+[2026-09-29T19:55:22.523Z] 0103-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:55:22.525Z] 0103-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:55:24.445Z] 0104-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 25.5, js.parse_view_outcome 6.1 [guard: attempt 1, 2 samples, total CPU mean 5.19% max 8.05%, outside the mask 0.85 cores, System 10.7% MsMpEng 6.1%]
+[2026-09-29T19:55:26.486Z] 0105-main-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 101, kit.view 13.1, kit.dispatch+view 114 [guard: attempt 1, 2 samples, total CPU mean 6.64% max 7.74%, outside the mask 0.69 cores, System 7.6% MsMpEng 7.6%]
+[2026-09-29T19:55:28.555Z] 0106-opt-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 102.3, kit.view 13.3, kit.dispatch+view 115.1 [guard: attempt 1, 2 samples, total CPU mean 4.13% max 4.71%, outside the mask 0.44 cores, System 12.2% MsMpEng 3.1%]
+[2026-09-29T19:55:28.695Z] 0107-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:55:28.699Z] 0107-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:55:30.517Z] GUARD discarded 0108-opt-ledger-session-wasm-kit.dispatchView attempt 1 (0.9 s): 2 cores busy outside the pinned processors > 2
+[2026-09-29T19:55:34.726Z] GUARD load settled after 4.2 s; running 0108-opt-ledger-session-wasm-kit.dispatchView again
+[2026-09-29T19:55:36.662Z] 0108-opt-ledger-session-wasm-kit.dispatchView 0.9 s (parallelism 4): kit.dispatchView 33.4 [guard: attempt 2, 2 samples, total CPU mean 5.14% max 9.54%, outside the mask 0.98 cores, System 7.6% MsMpEng 1.5%]
+[2026-09-29T19:55:36.755Z] 0109-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:55:36.758Z] 0109-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:55:38.711Z] 0110-opt-ledger-session-wasm-kit.dispatchView.pieces 0.9 s (parallelism 4): kit.payloadText 0.9, raw.dispatch_view_outcome 25, js.parse_view_outcome 5.8 [guard: attempt 1, 2 samples, total CPU mean 2.66% max 4.19%, outside the mask 0.05 cores, System 3.1% MsMpEng 4.6%]
+[2026-09-29T19:55:44.854Z] 0111-main-trail-rescue-scenarios-wasm-raw.dispatch_view 5.8 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 64.7, js.parse_view 22.9 [guard: attempt 1, 6 samples, total CPU mean 5.45% max 9.29%, outside the mask 0.96 cores, System 4.6% MsMpEng 7.6%]
+[2026-09-29T19:55:51.023Z] 0112-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 5.9 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 64.4, js.parse_view 22.9 [guard: attempt 1, 6 samples, total CPU mean 5.45% max 7.39%, outside the mask 0.73 cores, System 7.7% MsMpEng 3.1%]
+[2026-09-29T19:55:51.115Z] 0113-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:55:51.118Z] 0113-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:55:58.120Z] GUARD discarded 0114-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome attempt 1 (6.1 s): System at 109% of a core > 30%
+[2026-09-29T19:56:02.336Z] GUARD load settled after 4.2 s; running 0114-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome again
+[2026-09-29T19:56:09.269Z] 0114-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 5.9 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view_outcome 64.9, js.parse_view_outcome 22.5 [guard: attempt 2, 7 samples, total CPU mean 4.93% max 6.68%, outside the mask 0.44 cores, System 6.1% MsMpEng 3.1%]
+[2026-09-29T19:56:17.431Z] 0115-main-trail-rescue-scenarios-wasm-kit 7.4 s (parallelism 4): kit.dispatch 197.9, kit.view 30.2, kit.dispatch+view 231.7 [guard: attempt 1, 8 samples, total CPU mean 5.24% max 6.92%, outside the mask 0.56 cores, System 13.8% MsMpEng 6.1%]
+[2026-09-29T19:56:25.672Z] 0116-opt-trail-rescue-scenarios-wasm-kit 7.3 s (parallelism 4): kit.dispatch 195.9, kit.view 30.1, kit.dispatch+view 229.6 [guard: attempt 1, 8 samples, total CPU mean 5.36% max 8.73%, outside the mask 0.58 cores, System 6.1% MsMpEng 7.6%]
+[2026-09-29T19:56:25.824Z] 0117-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:56:25.827Z] 0117-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:56:32.784Z] 0118-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.1 s (parallelism 4): kit.dispatchView 92.8 [guard: attempt 1, 7 samples, total CPU mean 5.77% max 7.55%, outside the mask 0.62 cores, System 9.2% MsMpEng 7.7%]
+[2026-09-29T19:56:32.874Z] 0119-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:56:32.877Z] 0119-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:56:39.951Z] 0120-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.3 s (parallelism 4): kit.payloadText 1.2, raw.dispatch_view_outcome 64.9, js.parse_view_outcome 20.8 [guard: attempt 1, 7 samples, total CPU mean 5.59% max 7.23%, outside the mask 0.63 cores, System 7.7% MsMpEng 6.1%]
+[2026-09-29T19:56:41.986Z] 0121-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 22.2, js.parse_view 14.4 [guard: attempt 1, 2 samples, total CPU mean 4.8% max 5.31%, outside the mask 0.31 cores, System 9.2% MsMpEng 6.1%]
+[2026-09-29T19:56:44.005Z] 0122-main-glowcap-replay-wasm-raw.dispatch_view 1.7 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 22.2, js.parse_view 14.6 [guard: attempt 1, 2 samples, total CPU mean 6.46% max 7.33%, outside the mask 0.72 cores, System 6.1% MsMpEng 3.1%]
+[2026-09-29T19:56:46.019Z] 0123-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.7 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view_outcome 22.2, js.parse_view_outcome 14.6 [guard: attempt 1, 2 samples, total CPU mean 7.35% max 9.12%, outside the mask 1.21 cores, System 9.2% MsMpEng 9.2%]
+[2026-09-29T19:56:46.113Z] 0124-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:56:46.116Z] 0124-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:56:53.160Z] 0125-opt-glowcap-replay-wasm-kit 6.2 s (parallelism 4): kit.dispatch 121.8, kit.view 25.4, kit.dispatch+view 147.3 [guard: attempt 1, 7 samples, total CPU mean 5.52% max 8.41%, outside the mask 0.88 cores, System 7.7% MsMpEng 9.2%]
+[2026-09-29T19:57:00.265Z] GUARD discarded 0126-main-glowcap-replay-wasm-kit attempt 1 (6.3 s): System at 96% of a core > 30%
+[2026-09-29T19:57:04.483Z] GUARD load settled after 4.2 s; running 0126-main-glowcap-replay-wasm-kit again
+[2026-09-29T19:57:11.609Z] 0126-main-glowcap-replay-wasm-kit 6.3 s (parallelism 4): kit.dispatch 123, kit.view 25.6, kit.dispatch+view 148.8 [guard: attempt 2, 7 samples, total CPU mean 5.09% max 6.73%, outside the mask 0.48 cores, System 10.7% MsMpEng 6.1%]
+[2026-09-29T19:57:13.552Z] 0127-opt-glowcap-replay-wasm-kit.dispatchView 1.8 s (parallelism 4): kit.dispatchView 38.5 [guard: attempt 1, 2 samples, total CPU mean 6.03% max 6.66%, outside the mask 0.61 cores, System 6.1% MsMpEng 1.5%]
+[2026-09-29T19:57:13.699Z] 0128-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:57:13.702Z] 0128-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:57:16.648Z] 0129-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.4 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 23.5, js.parse_view_outcome 15.2 [guard: attempt 1, 3 samples, total CPU mean 5.47% max 8.04%, outside the mask 0.69 cores, System 7.6% MsMpEng 7.6%]
+[2026-09-29T19:57:16.741Z] 0130-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:57:16.744Z] 0130-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:57:18.674Z] 0131-opt-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.1, js.parse_view 6.2 [guard: attempt 1, 2 samples, total CPU mean 5.54% max 6.1%, outside the mask 0.59 cores, System 4.6% MsMpEng 9.2%]
+[2026-09-29T19:57:20.696Z] 0132-main-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26, js.parse_view 6.2 [guard: attempt 1, 2 samples, total CPU mean 3.95% max 6.2%, outside the mask 0.49 cores, System 7.6% MsMpEng 4.6%]
+[2026-09-29T19:57:22.740Z] 0133-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 25.4, js.parse_view_outcome 6.3 [guard: attempt 1, 2 samples, total CPU mean 4.74% max 6.5%, outside the mask 0.52 cores, System 7.7% MsMpEng 7.7%]
+[2026-09-29T19:57:22.826Z] 0134-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:57:22.829Z] 0134-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:57:24.807Z] 0135-opt-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 103.8, kit.view 13.6, kit.dispatch+view 117 [guard: attempt 1, 2 samples, total CPU mean 6.47% max 7.57%, outside the mask 0.64 cores, System 7.7% MsMpEng 9.2%]
+[2026-09-29T19:57:26.775Z] 0136-main-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 102.9, kit.view 13.3, kit.dispatch+view 116 [guard: attempt 1, 2 samples, total CPU mean 4.03% max 5.6%, outside the mask 0.42 cores, System 6.1% MsMpEng 4.6%]
+[2026-09-29T19:57:27.852Z] 0137-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 32.7 [guard: attempt 1, 1 samples, total CPU mean 8.63% max 8.63%, outside the mask 0.88 cores, System 7.6% MsMpEng 4.6%]
+[2026-09-29T19:57:27.986Z] 0138-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:57:27.989Z] 0138-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:57:29.865Z] 0139-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 0.9, raw.dispatch_view_outcome 25.8, js.parse_view_outcome 5.9 [guard: attempt 1, 2 samples, total CPU mean 7.12% max 10.51%, outside the mask 1.27 cores, System 9.2% MsMpEng 10.7%]
+[2026-09-29T19:57:29.951Z] 0140-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:57:29.954Z] 0140-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:57:37.055Z] 0141-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.0 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.1, js.parse_view 23.4 [guard: attempt 1, 7 samples, total CPU mean 5% max 9.55%, outside the mask 0.95 cores, System 6.1% MsMpEng 10.8%]
+[2026-09-29T19:57:43.181Z] 0142-main-trail-rescue-scenarios-wasm-raw.dispatch_view 5.8 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 65, js.parse_view 22.8 [guard: attempt 1, 6 samples, total CPU mean 5.82% max 6.54%, outside the mask 0.51 cores, System 6.1% MsMpEng 9.2%]
+[2026-09-29T19:57:50.291Z] 0143-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 67.3, js.parse_view_outcome 22.8 [guard: attempt 1, 7 samples, total CPU mean 4.95% max 8.42%, outside the mask 0.42 cores, System 4.6% MsMpEng 7.6%]
+[2026-09-29T19:57:50.382Z] 0144-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:57:50.386Z] 0144-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T19:57:58.486Z] GUARD discarded 0145-opt-trail-rescue-scenarios-wasm-kit attempt 1 (7.4 s): System at 107% of a core > 30%
+[2026-09-29T19:58:02.684Z] GUARD load settled after 4.2 s; running 0145-opt-trail-rescue-scenarios-wasm-kit again
+[2026-09-29T19:58:10.780Z] 0145-opt-trail-rescue-scenarios-wasm-kit 7.4 s (parallelism 4): kit.dispatch 199.1, kit.view 30.3, kit.dispatch+view 232.5 [guard: attempt 2, 8 samples, total CPU mean 5.02% max 7.11%, outside the mask 0.53 cores, System 9.2% MsMpEng 9.2%]
+[2026-09-29T19:58:18.881Z] 0146-main-trail-rescue-scenarios-wasm-kit 7.4 s (parallelism 4): kit.dispatch 199.1, kit.view 30.4, kit.dispatch+view 232.7 [guard: attempt 1, 8 samples, total CPU mean 6.1% max 10.64%, outside the mask 1.45 cores, System 7.7% MsMpEng 3.1%]
+[2026-09-29T19:58:26.037Z] 0147-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.0 s (parallelism 4): kit.dispatchView 91.7 [guard: attempt 1, 7 samples, total CPU mean 6.16% max 7.64%, outside the mask 1.63 cores, System 16.9% MsMpEng 9.2%]
+[2026-09-29T19:58:26.190Z] 0148-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T19:58:26.194Z] 0148-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T19:58:33.166Z] GUARD discarded 0149-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces attempt 1 (6.5 s): MsMpEng at 40% of a core > 30%; 3.6 cores busy outside the pinned processors > 2
+[2026-09-29T19:58:37.358Z] GUARD load settled after 4.2 s; running 0149-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces again
+[2026-09-29T19:58:44.439Z] 0149-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.3 s (parallelism 4): kit.payloadText 1.2, raw.dispatch_view_outcome 67.4, js.parse_view_outcome 21 [guard: attempt 2, 7 samples, total CPU mean 5.41% max 7.06%, outside the mask 0.81 cores, System 6.2% MsMpEng 21.6%]
+[2026-09-29T19:58:44.532Z] 0150-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T19:58:44.535Z] 0150-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T19:58:44.560Z] load during: {"what":"typeperf every 1 s for the whole run","samples":589,"counters":{"total":{"samples":589,"mean":5.4,"p95":9,"max":19.6},"processor 10":{"samples":589,"mean":52.9,"p95":100,"max":100},"processor 11":{"samples":589,"mean":11.3,"p95":47.5,"max":100},"processor 12":{"samples":589,"mean":10.9,"p95":46.5,"max":100},"processor 13":{"samples":589,"mean":16.8,"p95":87.7,"max":100},"processor 10 MHz":{"samples":589,"mean":4388.6,"p95":4731.1,"max":4992.2},"processor 11 MHz":{"samples":589,"mean":4080,"p95":4735.4,"max":4976},"processor 12 MHz":{"samples":589,"mean":4131.4,"p95":4702,"max":5029.8},"processor 13 MHz":{"samples":589,"mean":3931.8,"p95":4818.5,"max":5091},"process System":{"samples":589,"mean":9.1,"p95":29.1,"max":108.5},"process MsMpEng":{"samples":589,"mean":2.2,"p95":9.2,"max":40}},"totalAbove10Percent":14,"totalAbove25Percent":0,"pinnedSumAbove150Percent":7}
+[2026-09-29T19:58:49.764Z] load after: {"totalCpuPercent":[0,0,18],"busiestProcesses":[{"name":"powershell","pid":64820,"cpuSeconds":0.453},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.172},{"name":"claude","pid":103160,"cpuSeconds":0.094},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.078},{"name":"PredatorSense","pid":11864,"cpuSeconds":0.047},{"name":"uihost","pid":107008,"cpuSeconds":0.031}]}
+[2026-09-29T19:58:49.774Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-measure2\runs\G1-3C00\results.json and summary.md; 0 failure(s), 45 skipped, 0 correctness finding(s)
