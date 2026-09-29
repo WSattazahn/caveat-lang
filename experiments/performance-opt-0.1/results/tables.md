@@ -2,7 +2,7 @@ Run 2026-09-29T19-48-35-164-view-path; targets opt (d5938cc, reactive WebAssembl
 
 ### Headline, accepted events: the paths side by side (DIRECT, µs) and the saving (paired by repeat, µs)
 
-Refused events are not in this table, nor in any saving, ratio or range about the accepted events: they are in "Refused events" below.
+Refused events are not in this table, nor in any saving, ratio or range about the accepted events: they are in "Refused events", after all the accepted-event results.
 
 | Event | existing: kit `dispatch()` + `view()` | new: kit `dispatchView()` | existing: raw `dispatch_view` + `JSON.parse` | new: raw `dispatch_view_outcome` + `JSON.parse` | saving: kit `dispatch()` + `view()` − `dispatchView()` | old ÷ new | gap: `dispatchView()` − raw `dispatch_view` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -37,15 +37,6 @@ Refused events are not in this table, nor in any saving, ratio or range about th
 | Trail Rescue reopen | 141.8 [140.8–147.3] | 48.5% [47.9–49.0] | 1.94× [1.92–1.96] | +3.0 [-0.7 to +6.3] | +1.8 [-1.5 to +2.9] |
 | Trail Rescue qualify | 143.6 [140.8–150.1] | 52.8% [52.1–53.6] | 2.12× [2.09–2.16] | +2.8 [-1.7 to +6.3] | +1.9 [-4.3 to +3.1] |
 | Ledger evidence | 82.1 [81.5–85.4] | 69.5% [68.9–70.9] | 3.28× [3.21–3.44] | +0.7 [-0.2 to +1.8] | +1.3 [-0.2 to +2.7] |
-
-### Refused events (DIRECT, µs; savings paired by repeat)
-
-Not headline figures. A refusal leaves the view as it was, so a host that already holds the view need not call `view()` after one: against kit `dispatch()` alone, `dispatchView()` saves only 1.4–1.7 µs, and its saving of 14.5–28.0 µs against kit `dispatch()` + `view()` assumes the host would also have called `view()`. Raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so those two paths are not equivalent contracts; its cell is the throwing call alone.
-
-| Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Trail Rescue refused | 1320/1320/1320/1320/1320 | 36.2 [35.8–37.8] · p95 48.6 | 10.0 [9.8–10.1] · p95 14.5 | 8.3 [8.1–8.6] · p95 12.7 | 6.9 [6.7–7.0] · p95 12.2 | 7.4 [7.3–7.4] · p95 11.5 | 28.0 [27.5–29.2] | +1.7 [+1.5 to +1.8] |
-| Ledger refused | 1500/1500/1500/1500/1500 | 21.5 [21.4–22.2] · p95 26.4 | 8.4 [8.3–8.7] · p95 10.7 | 7.0 [6.9–7.3] · p95 8.4 | 6.5 [6.4–6.7] · p95 8.0 | 6.4 [6.3–6.6] · p95 8.0 | 14.5 [14.2–15.2] | +1.4 [+1.0 to +1.7] |
 
 ### The existing paths, main against opt (DIRECT medians, µs; change paired by repeat)
 
@@ -127,6 +118,19 @@ Over the 105 kept timed jobs, judged again afterwards from load.csv: 0 broke the
 | Trail Rescue qualify | 143.6 [140.8–150.1] | +2.8 [-1.7 to +6.3] | 129.4 [126.5–133.0] | 140.9 [134.1–144.9] | +6.5 [+1.6 to +11.5] | 131.7 [126.5–133.8] | 127.7 [125.8–127.8] | +4.4 [+3.8 to +5.4] | 111.9 [111.0–112.7] |
 | Ledger evidence | 82.1 [81.5–85.4] | +0.7 [-0.2 to +1.8] | 36.2 [35.0–36.8] | 81.3 [79.2–82.7] | +0.1 [-1.1 to +1.0] | 35.6 [34.9–35.9] | 70.7 [70.7–71.8] | +0.5 [+0.1 to +0.6] | 30.6 [30.5–30.7] |
 
+- 0x3C00: run 2026-09-29T19-48-35-164-view-path, mask 0x3C00, 5 repeats, total CPU over the kept timed jobs mean 5.5%, highest repeat p95 8.7%, max 10.7%; 14 attempt(s) discarded by the job guard and run again
+- 0x3C00-replicate: run 2026-09-29T20-06-57-466-view-path, mask 0x3C00, 5 repeats, total CPU over the kept timed jobs mean 5.4%, highest repeat p95 8.6%, max 10.4%; 9 attempt(s) discarded by the job guard and run again
+- 0x3: run 2026-09-29T20-00-02-459-view-path, mask 0x3, 3 repeats, total CPU over the kept timed jobs mean 5.4%, highest repeat p95 10.7%, max 12.4%; 9 attempt(s) discarded by the job guard and run again
+
+### Refused events (DIRECT, µs; savings paired by repeat)
+
+Not headline figures, and placed after all the accepted-event results. A refusal leaves the view as it was, so a host that already holds the view need not call `view()` after one: against kit `dispatch()` alone, `dispatchView()` saves only 1.4–1.7 µs, and its saving of 14.5–28.0 µs against kit `dispatch()` + `view()` assumes the host would also have called `view()`. Raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so those two paths are not equivalent contracts; its cell is the throwing call alone.
+
+| Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Trail Rescue refused | 1320/1320/1320/1320/1320 | 36.2 [35.8–37.8] · p95 48.6 | 10.0 [9.8–10.1] · p95 14.5 | 8.3 [8.1–8.6] · p95 12.7 | 6.9 [6.7–7.0] · p95 12.2 | 7.4 [7.3–7.4] · p95 11.5 | 28.0 [27.5–29.2] | +1.7 [+1.5 to +1.8] |
+| Ledger refused | 1500/1500/1500/1500/1500 | 21.5 [21.4–22.2] · p95 26.4 | 8.4 [8.3–8.7] · p95 10.7 | 7.0 [6.9–7.3] · p95 8.4 | 6.5 [6.4–6.7] · p95 8.0 | 6.4 [6.3–6.6] · p95 8.0 | 14.5 [14.2–15.2] | +1.4 [+1.0 to +1.7] |
+
 ### Every session, refused events (not headline figures): the saving against kit `dispatch()` + `view()` and against kit `dispatch()` alone (both paired by repeat, µs); `dispatchView()` (DIRECT median, µs)
 
 The saving against `dispatch()` + `view()` assumes the host would also have called `view()`; raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so there is no gap to it.
@@ -135,10 +139,6 @@ The saving against `dispatch()` + `view()` assumes the host would also have call
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Trail Rescue refused | 28.0 [27.5–29.2] | +1.7 [+1.5 to +1.8] | 8.3 [8.1–8.6] | 28.4 [27.6–28.5] | +1.6 [+1.5 to +1.8] | 8.4 [8.3–8.6] | 24.6 [24.3–24.8] | +1.5 [+1.5 to +1.6] | 7.4 [7.3–7.4] |
 | Ledger refused | 14.5 [14.2–15.2] | +1.4 [+1.0 to +1.7] | 7.0 [6.9–7.3] | 14.2 [14.0–14.4] | +1.3 [+1.2 to +1.4] | 7.0 [6.8–7.1] | 12.5 [12.4–12.5] | +1.2 [+1.1 to +1.3] | 6.0 [6.0–6.1] |
-
-- 0x3C00: run 2026-09-29T19-48-35-164-view-path, mask 0x3C00, 5 repeats, total CPU over the kept timed jobs mean 5.5%, highest repeat p95 8.7%, max 10.7%; 14 attempt(s) discarded by the job guard and run again
-- 0x3C00-replicate: run 2026-09-29T20-06-57-466-view-path, mask 0x3C00, 5 repeats, total CPU over the kept timed jobs mean 5.4%, highest repeat p95 8.6%, max 10.4%; 9 attempt(s) discarded by the job guard and run again
-- 0x3: run 2026-09-29T20-00-02-459-view-path, mask 0x3, 3 repeats, total CPU over the kept timed jobs mean 5.4%, highest repeat p95 10.7%, max 12.4%; 9 attempt(s) discarded by the job guard and run again
 
 ### Size (bytes)
 

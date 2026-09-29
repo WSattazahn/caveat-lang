@@ -2,7 +2,7 @@ Run 2026-09-29T20-06-57-466-view-path; targets opt (d5938cc, reactive WebAssembl
 
 ### Headline, accepted events: the paths side by side (DIRECT, µs) and the saving (paired by repeat, µs)
 
-Refused events are not in this table, nor in any saving, ratio or range about the accepted events: they are in "Refused events" below.
+Refused events are not in this table, nor in any saving, ratio or range about the accepted events: they are in "Refused events", after all the accepted-event results.
 
 | Event | existing: kit `dispatch()` + `view()` | new: kit `dispatchView()` | existing: raw `dispatch_view` + `JSON.parse` | new: raw `dispatch_view_outcome` + `JSON.parse` | saving: kit `dispatch()` + `view()` − `dispatchView()` | old ÷ new | gap: `dispatchView()` − raw `dispatch_view` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -37,15 +37,6 @@ Refused events are not in this table, nor in any saving, ratio or range about th
 | Trail Rescue reopen | 142.4 [135.9–143.9] | 48.0% [46.7–48.8] | 1.92× [1.88–1.95] | +5.0 [+2.3 to +9.4] | +4.1 [+1.4 to +6.1] |
 | Trail Rescue qualify | 140.9 [134.1–144.9] | 51.6% [50.1–53.2] | 2.07× [2.00–2.14] | +6.5 [+1.6 to +11.5] | +4.4 [-0.9 to +7.4] |
 | Ledger evidence | 81.3 [79.2–82.7] | 69.5% [68.8–70.0] | 3.28× [3.21–3.33] | +0.1 [-1.1 to +1.0] | +0.7 [-1.7 to +1.2] |
-
-### Refused events (DIRECT, µs; savings paired by repeat)
-
-Not headline figures. A refusal leaves the view as it was, so a host that already holds the view need not call `view()` after one: against kit `dispatch()` alone, `dispatchView()` saves only 1.3–1.6 µs, and its saving of 14.2–28.4 µs against kit `dispatch()` + `view()` assumes the host would also have called `view()`. Raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so those two paths are not equivalent contracts; its cell is the throwing call alone.
-
-| Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Trail Rescue refused | 1320/1320/1320/1320/1320 | 36.7 [35.9–37.1] · p95 48.9 | 10.0 [9.9–10.2] · p95 14.8 | 8.4 [8.3–8.6] · p95 12.6 | 6.8 [6.6–7.0] · p95 12.1 | 7.3 [7.1–7.3] · p95 11.2 | 28.4 [27.6–28.5] | +1.6 [+1.5 to +1.8] |
-| Ledger refused | 1500/1500/1500/1500/1500 | 21.2 [21.0–21.4] · p95 25.8 | 8.3 [8.2–8.3] · p95 10.4 | 7.0 [6.8–7.1] · p95 8.4 | 6.6 [6.4–6.7] · p95 8.1 | 6.5 [6.5–6.9] · p95 8.2 | 14.2 [14.0–14.4] | +1.3 [+1.2 to +1.4] |
 
 ### The existing paths, main against opt (DIRECT medians, µs; change paired by repeat)
 
@@ -109,4 +100,13 @@ Over the 105 kept timed jobs, judged again afterwards from load.csv: 0 broke the
 | `opt-trail-rescue-scenarios kit.dispatchView` #1 | 4 | 20:14:03 | 6.0 | System at 102% of a core > 30% |
 | `opt-ledger-session kit.dispatchView` #1 | 5 | 20:15:04 | 1.0 | System at 101% of a core > 30%; 2 cores busy outside the pinned processors > 2 |
 | `opt-trail-rescue-scenarios kit.dispatchView.pieces` #1 | 5 | 20:15:57 | 6.3 | MsMpEng at 32% of a core > 30% |
+
+### Refused events (DIRECT, µs; savings paired by repeat)
+
+Not headline figures, and placed after all the accepted-event results. A refusal leaves the view as it was, so a host that already holds the view need not call `view()` after one: against kit `dispatch()` alone, `dispatchView()` saves only 1.3–1.6 µs, and its saving of 14.2–28.4 µs against kit `dispatch()` + `view()` assumes the host would also have called `view()`. Raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so those two paths are not equivalent contracts; its cell is the throwing call alone.
+
+| Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Trail Rescue refused | 1320/1320/1320/1320/1320 | 36.7 [35.9–37.1] · p95 48.9 | 10.0 [9.9–10.2] · p95 14.8 | 8.4 [8.3–8.6] · p95 12.6 | 6.8 [6.6–7.0] · p95 12.1 | 7.3 [7.1–7.3] · p95 11.2 | 28.4 [27.6–28.5] | +1.6 [+1.5 to +1.8] |
+| Ledger refused | 1500/1500/1500/1500/1500 | 21.2 [21.0–21.4] · p95 25.8 | 8.3 [8.2–8.3] · p95 10.4 | 7.0 [6.8–7.1] · p95 8.4 | 6.6 [6.4–6.7] · p95 8.1 | 6.5 [6.5–6.9] · p95 8.2 | 14.2 [14.0–14.4] | +1.3 [+1.2 to +1.4] |
 
