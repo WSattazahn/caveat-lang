@@ -40,7 +40,8 @@ const baseClasses = await readJson(path.join(baseDir, 'classes.json'));
 const inst = await readJson(path.join(instDir, 'results.json'));
 const instClasses = await readJson(path.join(instDir, 'classes.json'));
 const verbatim = await Promise.all(option('verbatim').map(readJson));
-// An optional second complete baseline run (another session, other load).
+// Optional replicates: other quiet sessions that timed the same operations. A
+// session overlapped by background load is discarded, never passed here.
 const replicates = await Promise.all(option('replicate').map(async (dir) => ({ dir: path.resolve(dir), report: await readJson(path.join(path.resolve(dir), 'results.json')) })));
 // An optional short quiet session that re-timed the adapter, published
 // method, raw and kit paths (run.mjs --modes=...).
@@ -251,7 +252,7 @@ async function jobLoads(dir) {
 if (replicates.length) {
   const loadOf = (report) => `mean ${report.environment.loadDuring?.counters.total.mean}%, p95 ${report.environment.loadDuring?.counters.total.p95}%`;
   const sec = section('replicate', 'Replication: the same suite in other sessions',
-    `The primary baseline (${base.runId}; total CPU during the run ${loadOf(base)}) against the other complete runs of the same suite (${replicates.map(({ report }) => `${report.runId}: ${loadOf(report)}`).join('; ')}). Each cell: median over 3 runs [lowest–highest run], and the change from the primary.`);
+    `The primary baseline (${base.runId}; total CPU during the run ${loadOf(base)}) against the other sessions given as replicates, which timed the same operations (${replicates.map(({ report }) => `${report.runId}: ${loadOf(report)}`).join('; ')}). Each cell: median over 3 runs [lowest–highest run], and the change from the primary.`);
   const rows = [];
   const specs = [
     ['glowcap-replay', 'native', 'apply', 'apply'], ['glowcap-replay', 'native', 'web.dispatch_view', 'web.dispatch_view'], ['glowcap-replay', 'native', 'read', 'view'], ['glowcap-replay', 'native', 'read', 'snapshot'],
@@ -264,6 +265,7 @@ if (replicates.length) {
       const a = direct(runs(base, t, w, e, m, op));
       if (!a) continue;
       const others = replicates.map(({ report }) => direct(runs(report, t, w, e, m, op)));
+      if (others.every((b) => !b)) continue;
       keep(sec, { target: t, workload: w, engine: e, mode: m, op, primary: a, others: others.map((b, index) => ({ runId: replicates[index].report.runId, stats: b, changePercent: b ? ((b.median.median - a.median.median) / a.median.median) * 100 : null })) });
       rows.push([t, w, `${e} ${m} / ${op}`, directCell(a, { p95: false }), ...others.map((b) => (b ? `${directCell(b, { p95: false })} (${b.median.median >= a.median.median ? '+' : ''}${f(((b.median.median - a.median.median) / a.median.median) * 100)}%)` : '-'))]);
     }

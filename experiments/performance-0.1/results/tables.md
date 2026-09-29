@@ -44,60 +44,33 @@ Mean total CPU use (24 logical processors; the benchmark itself is about 4%) whi
 | baseline (primary) | ledger-session | 9.60% | 9.31% | 9.58% |
 | baseline (primary) | trail-rescue-scenarios | 8.74% | 8.46% | 8.20% |
 | baseline (primary) | **whole run** | mean 8.7%, p95 10.6%, max 21.6% |  |  |
-| baseline 02:18 UTC | glowcap-replay | 23.4% | 22.0% | 28.0% |
-| baseline 02:18 UTC | glowcap-resume | 17.2% | 23.0% | 20.2% |
-| baseline 02:18 UTC | glowcap-unbound | 21.5% | 17.9% | 15.7% |
-| baseline 02:18 UTC | glowcap-scaled-16 | 21.2% | 19.9% | 20.1% |
-| baseline 02:18 UTC | glowcap-scaled-64 | 20.8% | 14.9% | 38.5% |
-| baseline 02:18 UTC | ledger-session | 39.9% | 34.8% | 38.9% |
-| baseline 02:18 UTC | trail-rescue-scenarios | 25.9% | 33.8% | 18.0% |
-| baseline 02:18 UTC | **whole run** | mean 27.3%, p95 70.2%, max 91.2% |  |  |
-| baseline 03:53 UTC | glowcap-replay | 10.7% | 27.5% | 81.8% |
-| baseline 03:53 UTC | glowcap-resume | 9.66% | 50.4% | 93.2% |
-| baseline 03:53 UTC | glowcap-unbound | 8.70% | 52.3% | 67.6% |
-| baseline 03:53 UTC | glowcap-scaled-16 | 10.1% | 53.4% | 99.2% |
-| baseline 03:53 UTC | glowcap-scaled-64 | 42.5% | 62.3% | 90.0% |
-| baseline 03:53 UTC | ledger-session | 23.6% | 47.3% | 100.0% |
-| baseline 03:53 UTC | trail-rescue-scenarios | 25.5% | 54.6% | 84.3% |
-| baseline 03:53 UTC | **whole run** | mean 57%, p95 100%, max 100% |  |  |
 | baseline 05:20 UTC | glowcap-replay | 8.47% | 8.63% | 8.55% |
 | baseline 05:20 UTC | ledger-session | 9.51% | 9.63% | 9.19% |
 | baseline 05:20 UTC | trail-rescue-scenarios | 9.40% | 8.46% | 8.18% |
 | baseline 05:20 UTC | **whole run** | mean 8.7%, p95 10.7%, max 13.1% |  |  |
-| instrumented | glowcap-replay | 11.6% | 11.2% | 11.7% |
-| instrumented | glowcap-unbound | 11.4% | 10.7% | 12.7% |
-| instrumented | glowcap-resume | 11.0% | 16.2% | 19.9% |
-| instrumented | ledger-session | 11.9% | 12.6% | 11.8% |
-| instrumented | trail-rescue-scenarios | 11.0% | 11.7% | 9.82% |
-| instrumented | **whole run** | mean 11.3%, p95 14.9%, max 21.1% |  |  |
+| instrumented | glowcap-replay | 9.79% | 9.01% | 8.97% |
+| instrumented | glowcap-unbound | 9.59% | 8.83% | 9.55% |
+| instrumented | glowcap-resume | 9.32% | 9.86% | 8.76% |
+| instrumented | ledger-session | 11.3% | 9.94% | 9.41% |
+| instrumented | trail-rescue-scenarios | 8.84% | 8.64% | 8.61% |
+| instrumented | **whole run** | mean 9.1%, p95 11.1%, max 12.8% |  |  |
 
 ## Replication: the same suite in other sessions
 
-The primary baseline (2026-09-29T05-29-28-544-baseline; total CPU during the run mean 8.7%, p95 10.6%) against the other complete runs of the same suite (2026-09-29T02-18-48-081-baseline: mean 27.3%, p95 70.2%; 2026-09-29T03-53-23-652-baseline: mean 57%, p95 100%; 2026-09-29T05-20-51-056-baseline: mean 8.7%, p95 10.7%). Each cell: median over 3 runs [lowest–highest run], and the change from the primary.
+The primary baseline (2026-09-29T05-29-28-544-baseline; total CPU during the run mean 8.7%, p95 10.6%) against the other sessions given as replicates, which timed the same operations (2026-09-29T05-20-51-056-baseline: mean 8.7%, p95 10.7%). Each cell: median over 3 runs [lowest–highest run], and the change from the primary.
 
-| Target | Workload | Operation | primary µs | 02:18 UTC session µs | 03:53 UTC session µs | 05:20 UTC session µs |
-| --- | --- | --- | --- | --- | --- | --- |
-| main-local | glowcap-replay | native apply / apply | 13.1 [13.0–13.8] | 18.6 [15.2–18.7] (+42.0%) | 13.9 [13.7–18.5] (+6.11%) | - |
-| main-local | glowcap-replay | native web.dispatch_view / web.dispatch_view | 20.0 [20.0–21.3] | 27.6 [25.7–29.8] (+38.0%) | 21.8 [21.5–26.4] (+9.00%) | - |
-| main-local | glowcap-replay | native read / view | 2.60 [2.40–2.60] | 2.80 [2.50–3.60] (+7.69%) | 2.60 [2.60–2.70] (+0.00%) | - |
-| main-local | glowcap-replay | native read / snapshot | 26.2 [24.5–27.0] | 29.2 [25.8–36.6] (+11.5%) | 26.1 [26.1–28.2] (-0.38%) | - |
-| main-local | glowcap-replay | wasm published-method / adapter.dispatch+view | 46.7 [43.8–47.2] | 53.5 [46.4–66.0] (+14.6%) | 51.4 [44.0–62.9] (+10.1%) | 45.3 [44.5–46.5] (-3.00%) |
-| main-local | glowcap-replay | wasm abi.dispatch_view / abi.exec | 22.6 [21.2–22.6] | 24.8 [21.3–25.8] (+9.73%) | 23.3 [22.1–30.8] (+3.10%) | - |
-| main-local | glowcap-replay | wasm raw.dispatch_view / js.parse_view | 17.1 [16.1–17.9] | 19.1 [17.0–24.5] (+11.7%) | 18.1 [16.3–23.1] (+5.85%) | 16.8 [16.2–17.0] (-1.75%) |
-| main-local | glowcap-replay | wasm kit / kit.dispatch+view | 166.2 [163.9–175.6] | 188.9 [179.9–220.5] (+13.7%) | 185.0 [169.9–236.1] (+11.3%) | 171.6 [171.4–173.7] (+3.25%) |
-| main-local | trail-rescue-scenarios | native apply / apply | 46.7 [46.1–47.3] | 58.7 [50.0–65.2] (+25.7%) | 68.0 [64.3–74.6] (+45.6%) | - |
-| main-local | trail-rescue-scenarios | wasm abi.dispatch_view / abi.exec | 70.6 [70.0–72.1] | 75.5 [72.1–81.0] (+6.94%) | 102.3 [72.7–102.6] (+44.9%) | - |
-| main-local | trail-rescue-scenarios | wasm kit / kit.dispatch+view | 260.3 [258.8–261.1] | 313.9 [299.0–346.1] (+20.6%) | 348.6 [292.3–387.6] (+33.9%) | 268.3 [267.3–269.2] (+3.07%) |
-| main-local | ledger-session | wasm abi.dispatch_view / abi.exec | 27.6 [27.6–28.3] | 35.2 [34.6–42.9] (+27.5%) | 35.2 [34.7–40.1] (+27.5%) | - |
-| main-local | ledger-session | wasm kit / kit.dispatch+view | 124.5 [124.0–125.8] | 165.0 [134.0–168.2] (+32.5%) | 158.4 [152.3–189.7] (+27.2%) | 132.3 [131.6–133.5] (+6.27%) |
-| rc4-published | glowcap-replay | wasm published-method / adapter.dispatch+view | 46.8 [46.2–47.0] | 51.2 [46.4–68.8] (+9.40%) | 46.5 [43.7–62.6] (-0.64%) | 46.1 [44.3–46.3] (-1.50%) |
-| rc4-published | glowcap-replay | wasm abi.dispatch_view / abi.exec | 22.8 [22.6–23.3] | 25.3 [21.8–25.4] (+11.0%) | 24.8 [22.4–29.3] (+8.77%) | - |
-| rc4-published | glowcap-replay | wasm raw.dispatch_view / js.parse_view | 17.1 [16.8–17.2] | 24.5 [16.5–25.4] (+43.3%) | 18.1 [16.3–22.2] (+5.85%) | 16.7 [16.5–17.1] (-2.34%) |
-| rc4-published | glowcap-replay | wasm kit / kit.dispatch+view | 163.5 [162.7–171.2] | 176.7 [172.4–205.8] (+8.07%) | 180.6 [172.0–235.9] (+10.5%) | 171.0 [169.6–173.5] (+4.59%) |
-| rc4-published | trail-rescue-scenarios | wasm abi.dispatch_view / abi.exec | 70.6 [68.8–71.0] | 74.6 [72.8–77.7] (+5.67%) | 91.7 [74.5–108.5] (+29.9%) | - |
-| rc4-published | trail-rescue-scenarios | wasm kit / kit.dispatch+view | 261.2 [260.9–263.0] | 303.4 [293.7–342.1] (+16.2%) | 349.7 [312.3–382.8] (+33.9%) | 268.3 [265.7–269.6] (+2.72%) |
-| rc4-published | ledger-session | wasm abi.dispatch_view / abi.exec | 27.0 [27.0–27.9] | 34.0 [30.9–40.7] (+25.9%) | 35.2 [32.6–40.6] (+30.4%) | - |
-| rc4-published | ledger-session | wasm kit / kit.dispatch+view | 125.8 [125.4–126.2] | 164.2 [130.0–165.4] (+30.5%) | 155.6 [147.5–189.6] (+23.7%) | 131.4 [129.7–132.9] (+4.45%) |
+| Target | Workload | Operation | primary µs | 05:20 UTC session µs |
+| --- | --- | --- | --- | --- |
+| main-local | glowcap-replay | wasm published-method / adapter.dispatch+view | 46.7 [43.8–47.2] | 45.3 [44.5–46.5] (-3.00%) |
+| main-local | glowcap-replay | wasm raw.dispatch_view / js.parse_view | 17.1 [16.1–17.9] | 16.8 [16.2–17.0] (-1.75%) |
+| main-local | glowcap-replay | wasm kit / kit.dispatch+view | 166.2 [163.9–175.6] | 171.6 [171.4–173.7] (+3.25%) |
+| main-local | trail-rescue-scenarios | wasm kit / kit.dispatch+view | 260.3 [258.8–261.1] | 268.3 [267.3–269.2] (+3.07%) |
+| main-local | ledger-session | wasm kit / kit.dispatch+view | 124.5 [124.0–125.8] | 132.3 [131.6–133.5] (+6.27%) |
+| rc4-published | glowcap-replay | wasm published-method / adapter.dispatch+view | 46.8 [46.2–47.0] | 46.1 [44.3–46.3] (-1.50%) |
+| rc4-published | glowcap-replay | wasm raw.dispatch_view / js.parse_view | 17.1 [16.8–17.2] | 16.7 [16.5–17.1] (-2.34%) |
+| rc4-published | glowcap-replay | wasm kit / kit.dispatch+view | 163.5 [162.7–171.2] | 171.0 [169.6–173.5] (+4.59%) |
+| rc4-published | trail-rescue-scenarios | wasm kit / kit.dispatch+view | 261.2 [260.9–263.0] | 268.3 [265.7–269.6] (+2.72%) |
+| rc4-published | ledger-session | wasm kit / kit.dispatch+view | 125.8 [125.4–126.2] | 131.4 [129.7–132.9] (+4.45%) |
 
 ## Results per build and operation (questions a–h)
 
@@ -108,7 +81,7 @@ All events of each workload, pooled per run; median over the 3 runs [lowest–hi
 | Question | Engine, mode / operation | main-local (i1 for the bench row) | rc4-local | rc4-published | hist-e6ace96 |
 | --- | --- | --- | --- | --- | --- |
 | (a) transaction only, numeric parameters | native apply / apply | 13.1 [13.0–13.8] · p95 16.1 | 13.1 [13.1–13.8] · p95 16.0 | - | - |
-| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 15.2 [14.6–15.9] · p95 18.2 | - | - | - |
+| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 13.4 [13.3–15.8] · p95 16.1 | - | - | - |
 | (b) + view built, not serialized | native dispatch_view_json / dispatch_view_json | 15.9 [15.8–16.8] · p95 18.4 | 15.8 [15.7–16.7] · p95 18.1 | - | - |
 | (b) + full snapshot built (legacy dispatch_json) | native dispatch_json / dispatch_json | 36.6 [36.3–38.6] · p95 40.7 | 36.8 [36.6–39.0] · p95 40.2 | - | - |
 | (b) + outcome with snapshot built (dispatch_outcome_json) | native dispatch_outcome_json / dispatch_outcome_json | 38.5 [36.7–39.3] · p95 41.9 | 36.5 [36.3–39.4] · p95 40.1 | - | - |
@@ -137,7 +110,7 @@ All events of each workload, pooled per run; median over the 3 runs [lowest–hi
 | Question | Engine, mode / operation | main-local (i1 for the bench row) | rc4-local | rc4-published | hist-e6ace96 |
 | --- | --- | --- | --- | --- | --- |
 | (a) transaction only, numeric parameters | native apply / apply | 46.7 [46.1–47.3] · p95 121.8 | 47.4 [46.6–50.6] · p95 121.6 | - | - |
-| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 52.6 [52.4–53.7] · p95 133.8 | - | - | - |
+| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 50.7 [48.2–52.0] · p95 129.4 | - | - | - |
 | (b) + view built, not serialized | native dispatch_view_json / dispatch_view_json | 52.9 [49.7–53.5] · p95 130.8 | 51.4 [49.8–51.5] · p95 127.5 | - | - |
 | (b) + full snapshot built (legacy dispatch_json) | native dispatch_json / dispatch_json | 82.0 [79.6–82.1] · p95 158.9 | 81.9 [80.9–82.5] · p95 157.7 | - | - |
 | (b) + outcome with snapshot built (dispatch_outcome_json) | native dispatch_outcome_json / dispatch_outcome_json | 83.3 [81.4–85.6] · p95 159.8 | 87.1 [80.9–90.1] · p95 168.8 | - | - |
@@ -164,7 +137,7 @@ All events of each workload, pooled per run; median over the 3 runs [lowest–hi
 | Question | Engine, mode / operation | main-local (i1 for the bench row) | rc4-local | rc4-published | hist-e6ace96 |
 | --- | --- | --- | --- | --- | --- |
 | (a) transaction only, numeric parameters | native apply / apply | 16.2 [14.9–16.7] · p95 23.5 | 14.7 [14.6–14.9] · p95 21.5 | - | - |
-| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 18.2 [18.2–19.6] · p95 26.0 | - | - | - |
+| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 16.4 [16.2–17.2] · p95 22.7 | - | - | - |
 | (b) + view built, not serialized | native dispatch_view_json / dispatch_view_json | 20.4 [20.0–22.0] · p95 28.2 | 20.2 [20.1–22.0] · p95 28.0 | - | - |
 | (b) + full snapshot built (legacy dispatch_json) | native dispatch_json / dispatch_json | 35.4 [35.2–35.9] · p95 43.8 | 35.4 [35.2–38.5] · p95 44.1 | - | - |
 | (b) + outcome with snapshot built (dispatch_outcome_json) | native dispatch_outcome_json / dispatch_outcome_json | 35.3 [35.2–35.6] · p95 44.1 | 35.4 [35.2–35.5] · p95 44.4 | - | - |
@@ -190,18 +163,18 @@ All events of each workload, pooled per run; median over the 3 runs [lowest–hi
 
 | Method | Runtime | Reactive wasm | caveat5 median µs [runs] | p95 µs [runs] | per-run medians | ts per-run medians |
 | --- | --- | --- | --- | --- | --- | --- |
-| `harness.mjs --bench` verbatim, unpinned (as published), session 03:22 UTC | e6ace96 | `d897787f` | 49.9 [35.5–52.6] | 58.7 [58.1–60.0] | 35.5, 49.9, 52.6 | 2.50, 2.30, 2.30 |
-| `harness.mjs --bench` verbatim, unpinned (as published), session 03:22 UTC | rc4 | `e3594450` | 53.2 [51.5–53.4] | 61.0 [59.5–61.7] | 53.4, 51.5, 53.2 | 2.40, 2.30, 2.30 |
-| `harness.mjs --bench` verbatim, unpinned (as published), session 03:22 UTC | main | `e3594450` | 52.2 [50.9–52.3] | 59.0 [58.6–59.7] | 52.3, 52.2, 50.9 | 2.40, 2.30, 2.00 |
-| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 03:25 UTC | e6ace96 | `d897787f` | 48.9 [48.8–49.1] | 55.3 [55.0–55.9] | 48.8, 49.1, 48.9 | 2.40, 2.40, 2.20 |
-| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 03:25 UTC | rc4 | `e3594450` | 50.8 [50.0–51.1] | 56.8 [56.4–57.4] | 50.8, 50.0, 51.1 | 2.30, 2.40, 2.30 |
-| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 03:25 UTC | main | `e3594450` | 50.4 [50.4–50.6] | 56.4 [56.3–56.4] | 50.4, 50.4, 50.6 | 2.30, 2.30, 2.40 |
-| `harness.mjs --bench` verbatim, unpinned (as published), session 06:26 UTC | e6ace96 | `d897787f` | 48.1 [45.8–48.2] | 55.1 [54.4–56.9] | 48.2, 45.8, 48.1 | 2.00, 1.90, 2.10 |
-| `harness.mjs --bench` verbatim, unpinned (as published), session 06:26 UTC | rc4 | `e3594450` | 47.7 [45.2–49.9] | 56.4 [55.4–57.6] | 49.9, 47.7, 45.2 | 2.00, 2.10, 2.20 |
-| `harness.mjs --bench` verbatim, unpinned (as published), session 06:26 UTC | main | `e3594450` | 47.5 [44.9–49.6] | 55.7 [53.8–58.2] | 44.9, 49.6, 47.5 | 2.20, 2.10, 1.90 |
-| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 06:23 UTC | e6ace96 | `d897787f` | 44.3 [43.9–44.6] | 49.5 [48.7–50.6] | 43.9, 44.3, 44.6 | 2.00, 2.00, 2.00 |
-| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 06:23 UTC | rc4 | `e3594450` | 45.4 [45.0–45.5] | 50.4 [49.9–51.1] | 45.0, 45.4, 45.5 | 2.00, 2.00, 2.10 |
-| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 06:23 UTC | main | `e3594450` | 45.7 [45.3–45.9] | 50.9 [50.2–52.3] | 45.9, 45.3, 45.7 | 2.40, 1.90, 1.90 |
+| `harness.mjs --bench` verbatim, unpinned (as published), session 09:04 UTC | e6ace96 | `d897787f` | 47.5 [46.8–47.7] | 55.3 [55.2–55.4] | 47.7, 46.8, 47.5 | 2.30, 2.20, 2.10 |
+| `harness.mjs --bench` verbatim, unpinned (as published), session 09:04 UTC | rc4 | `e3594450` | 49.0 [48.9–49.6] | 57.4 [56.4–58.6] | 49.6, 48.9, 49.0 | 2.30, 2.10, 2.20 |
+| `harness.mjs --bench` verbatim, unpinned (as published), session 09:04 UTC | main | `e3594450` | 48.0 [46.2–49.4] | 56.2 [52.8–57.0] | 48.0, 46.2, 49.4 | 2.00, 2.00, 2.20 |
+| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 09:07 UTC | e6ace96 | `d897787f` | 44.0 [43.1–44.1] | 50.3 [48.7–51.8] | 43.1, 44.1, 44.0 | 2.00, 2.10, 2.20 |
+| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 09:07 UTC | rc4 | `e3594450` | 44.5 [44.3–44.9] | 49.8 [49.7–51.8] | 44.9, 44.5, 44.3 | 2.00, 2.00, 2.10 |
+| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 09:07 UTC | main | `e3594450` | 45.2 [44.9–45.8] | 50.9 [50.6–51.5] | 44.9, 45.2, 45.8 | 1.90, 2.00, 2.10 |
+| `harness.mjs --bench` verbatim, unpinned (as published), session 09:17 UTC | e6ace96 | `d897787f` | 47.3 [46.8–48.0] | 56.3 [55.4–56.7] | 47.3, 48.0, 46.8 | 2.00, 2.20, 2.20 |
+| `harness.mjs --bench` verbatim, unpinned (as published), session 09:17 UTC | rc4 | `e3594450` | 49.6 [46.1–50.9] | 57.9 [55.5–58.4] | 49.6, 50.9, 46.1 | 2.00, 2.00, 2.00 |
+| `harness.mjs --bench` verbatim, unpinned (as published), session 09:17 UTC | main | `e3594450` | 49.2 [46.1–50.5] | 57.0 [55.4–58.1] | 50.5, 49.2, 46.1 | 2.40, 2.10, 2.20 |
+| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 09:15 UTC | e6ace96 | `d897787f` | 44.4 [44.3–45.8] | 49.4 [48.9–51.4] | 44.3, 44.4, 45.8 | 2.00, 2.10, 2.00 |
+| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 09:15 UTC | rc4 | `e3594450` | 45.5 [45.4–46.0] | 51.3 [51.0–51.9] | 45.4, 45.5, 46.0 | 2.00, 2.30, 2.10 |
+| `harness.mjs --bench` verbatim, pinned 0x3C00 high, session 09:15 UTC | main | `e3594450` | 45.2 [45.2–45.9] | 50.9 [50.2–51.7] | 45.2, 45.2, 45.9 | 2.00, 2.00, 2.00 |
 | `published-method` (caveat5 alone, fresh process, pinned 0x3C00 high) | hist-e6ace96 | `d897787f` | 44.8 [41.3–45.1] | 53.2 [53.0–55.3] |  |  |
 | `published-method` (caveat5 alone, fresh process, pinned 0x3C00 high) | rc4-published | `698a0d0f` | 46.8 [46.2–47.0] | 57.2 [56.8–58.5] |  |  |
 | `published-method` (caveat5 alone, fresh process, pinned 0x3C00 high) | rc4-local | `e3594450` | 46.6 [46.0–46.7] | 56.1 [55.5–59.4] |  |  |
@@ -238,13 +211,11 @@ Paired, back to back in one quiet window, main-local, both pinned to 0x3C00 at H
 
 | Pair | in-process (verbatim) µs | alone (published-method) µs | in-process − alone µs |
 | --- | --- | --- | --- |
-| 2 | 43.2 | 46.3 | -3.10 |
-| 3 | 44.9 | 45.4 | -0.50 |
-| 4 | 45.4 | 46.1 | -0.70 |
+| 1 | 45.6 | 47.4 | -1.80 |
+| 2 | 45.3 | 44.0 | 1.30 |
+| 3 | 45.4 | 45.5 | -0.10 |
 
-Median difference -0.70 µs [-3.10–-0.50] (INFERRED, paired).
-
-`alone-1` (06:20 UTC, published-method 47.0 µs) has no published-command half: no `verbatim-1.json` was written for it, so it is kept only as a record and is not used.
+Median difference -0.10 µs [-1.80–1.30] (INFERRED, paired).
 
 ## Glowcap replay by event kind, every path (main-local)
 
@@ -298,45 +269,45 @@ The ledger log (20 events, 5 refused by policy), 100 times per pass. Every cell 
 
 ## Glowcap replay by event kind (instrumented session)
 
-The same main-local build measured in the instrumented session (2026-09-29T03-28-17-772-instrumented; total CPU mean 11.3%), the session the attribution in sections 9–10 comes from; it ran these paths but not the adapter or the kit. Every cell is DIRECT.
+The same main-local build measured in the instrumented session (2026-09-29T08-41-36-021-instrumented; total CPU mean 9.1%), the session the attribution in sections 9–10 comes from; it ran these paths but not the adapter or the kit. Every cell is DIRECT.
 
 | Path (µs: median [lowest–highest run] · p95) | idle tick (n 28182/run) | state-changing tick (n 1809/run) | renew (n 3/run) | qualify (n 3/run) | observation (commit) (n 3/run) | observation (reopen) (n 3/run) | observation (evidence) (n 3/run) | all (n 30000/run) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| native: apply (numeric parameters; the transaction only) | 15.0 [14.2–15.4] · p95 16.5 | 19.0 [17.5–19.1] · p95 20.9 | 116.6 [104.3–119.0] · p95 116.6 | 107.3 [101.6–117.8] · p95 107.3 | 91.3 [88.4–98.2] · p95 91.3 | 97.2 [91.7–99.9] · p95 97.2 | 82.8 [78.2–83.7] · p95 82.8 | 15.0 [14.3–15.4] · p95 18.6 |
-| native: WebReactiveSession::dispatch_view (the exported function, JSON in and out) | 22.7 [21.8–23.5] · p95 24.9 | 25.2 [24.6–26.2] · p95 28.6 | 149.8 [132.7–152.9] · p95 149.8 | 125.4 [124.0–128.8] · p95 125.4 | 132.5 [110.5–134.1] · p95 132.5 | 119.7 [114.4–122.1] · p95 119.7 | 119.5 [114.1–125.1] · p95 119.5 | 22.7 [21.9–23.5] · p95 26.1 |
-| native: WebReactiveSession::dispatch_outcome (the kit's call) | 75.2 [69.9–77.8] · p95 84.0 | 73.1 [66.9–73.8] · p95 78.7 | 204.3 [199.7–205.0] · p95 204.3 | 190.1 [187.5–193.8] · p95 190.1 | 199.6 [181.0–215.5] · p95 199.6 | 166.7 [163.4–173.5] · p95 166.7 | 150.6 [139.2–156.1] · p95 150.6 | 75.1 [69.6–77.6] · p95 83.8 |
-| wasm: dispatch_view, WebAssembly execution only | 24.8 [24.6–25.6] · p95 31.4 | 28.2 [27.1–28.7] · p95 41.5 | 170.7 [164.6–179.3] · p95 170.7 | 162.8 [153.0–164.5] · p95 162.8 | 156.0 [155.7–179.1] · p95 156.0 | 126.9 [125.1–129.2] · p95 126.9 | 123.7 [111.7–128.3] · p95 123.7 | 24.9 [24.7–25.8] · p95 32.1 |
-| wasm: dispatch_view through the glue + JSON.parse (the web pages' path) | 46.7 [46.3–48.3] · p95 58.0 | 52.0 [51.2–53.4] · p95 74.3 | 200.9 [154.4–204.6] · p95 200.9 | 199.5 [198.8–200.1] · p95 199.5 | 325.1 [303.3–333.9] · p95 325.1 | 172.3 [170.1–197.8] · p95 172.3 | 145.0 [143.3–151.4] · p95 145.0 | 46.8 [46.5–48.4] · p95 59.6 |
-| wasm: dispatch_outcome, WebAssembly execution only | 65.8 [65.1–67.1] · p95 77.9 | 64.7 [64.6–69.0] · p95 90.6 | 242.2 [241.1–248.9] · p95 242.2 | 240.8 [229.4–255.8] · p95 240.8 | 236.4 [232.8–251.3] · p95 236.4 | 176.3 [170.9–192.5] · p95 176.3 | 162.3 [160.2–170.6] · p95 162.3 | 65.7 [65.1–67.3] · p95 78.2 |
-| wasm: dispatch_outcome through the glue + JSON.parse | 152.3 [148.9–160.1] · p95 176.4 | 141.5 [136.3–147.3] · p95 186.0 | 337.0 [328.6–351.8] · p95 337.0 | 340.2 [333.1–344.8] · p95 340.2 | 467.9 [452.4–471.3] · p95 467.9 | 293.6 [284.1–318.1] · p95 293.6 | 254.5 [239.4–261.2] · p95 254.5 | 151.7 [148.6–159.3] · p95 176.6 |
+| native: apply (numeric parameters; the transaction only) | 13.0 [13.0–14.6] · p95 14.7 | 16.8 [16.1–18.3] · p95 19.7 | 100.1 [91.5–101.4] · p95 100.1 | 92.4 [89.6–98.9] · p95 92.4 | 83.1 [82.1–86.7] · p95 83.1 | 92.1 [90.2–92.3] · p95 92.1 | 76.9 [73.4–78.7] · p95 76.9 | 13.0 [13.0–14.6] · p95 16.6 |
+| native: WebReactiveSession::dispatch_view (the exported function, JSON in and out) | 20.1 [19.9–20.5] · p95 22.1 | 22.6 [22.3–23.6] · p95 26.2 | 111.2 [103.0–111.7] · p95 111.2 | 106.4 [102.2–110.3] · p95 106.4 | 119.5 [118.9–129.4] · p95 119.5 | 102.7 [99.0–104.5] · p95 102.7 | 109.4 [108.8–109.5] · p95 109.4 | 20.1 [19.9–20.6] · p95 22.7 |
+| native: WebReactiveSession::dispatch_outcome (the kit's call) | 63.3 [63.1–64.6] · p95 69.1 | 61.6 [61.4–62.8] · p95 67.4 | 164.0 [159.1–184.7] · p95 164.0 | 166.0 [149.9–166.0] · p95 166.0 | 186.4 [179.4–191.1] · p95 186.4 | 154.1 [148.3–158.5] · p95 154.1 | 131.7 [129.2–136.1] · p95 131.7 | 63.3 [63.0–64.5] · p95 69.1 |
+| wasm: dispatch_view, WebAssembly execution only | 21.4 [21.3–21.4] · p95 25.9 | 24.1 [23.2–25.6] · p95 35.7 | 142.1 [141.8–142.9] · p95 142.1 | 142.6 [141.2–144.5] · p95 142.6 | 135.2 [131.6–135.5] · p95 135.2 | 108.3 [96.4–116.7] · p95 108.3 | 99.5 [94.0–106.0] · p95 99.5 | 21.5 [21.4–21.7] · p95 26.7 |
+| wasm: dispatch_view through the glue + JSON.parse (the web pages' path) | 43.4 [40.6–45.4] · p95 49.3 | 46.9 [46.6–50.8] · p95 61.0 | 190.5 [151.6–201.3] · p95 190.5 | 165.4 [165.1–199.3] · p95 165.4 | 241.7 [221.1–246.8] · p95 241.7 | 171.9 [164.8–172.3] · p95 171.9 | 136.2 [135.3–145.9] · p95 136.2 | 43.6 [40.8–45.5] · p95 49.9 |
+| wasm: dispatch_outcome, WebAssembly execution only | 57.5 [56.9–58.6] · p95 70.3 | 57.1 [56.3–59.9] · p95 88.0 | 200.6 [200.2–213.9] · p95 200.6 | 205.1 [190.2–207.8] · p95 205.1 | 227.3 [224.4–236.8] · p95 227.3 | 155.5 [146.0–157.5] · p95 155.5 | 149.7 [141.4–154.4] · p95 149.7 | 57.5 [56.9–58.6] · p95 70.8 |
+| wasm: dispatch_outcome through the glue + JSON.parse | 138.0 [130.5–146.5] · p95 162.3 | 131.9 [124.6–135.6] · p95 170.6 | 299.1 [294.7–330.2] · p95 299.1 | 321.8 [284.6–324.5] · p95 321.8 | 380.4 [372.2–409.6] · p95 380.4 | 234.2 [224.5–269.0] · p95 234.2 | 226.8 [206.0–256.0] · p95 226.8 | 137.6 [130.3–146.1] · p95 162.6 |
 
 ## Trail Rescue by event class (instrumented session)
 
-The same main-local build measured in the instrumented session (2026-09-29T03-28-17-772-instrumented; total CPU mean 11.3%), the session the attribution in sections 9–10 comes from; it ran these paths but not the adapter or the kit. Every cell is DIRECT.
+The same main-local build measured in the instrumented session (2026-09-29T08-41-36-021-instrumented; total CPU mean 9.1%), the session the attribution in sections 9–10 comes from; it ran these paths but not the adapter or the kit. Every cell is DIRECT.
 
 | Path (µs: median [lowest–highest run] · p95) | idle (n 720/run) | state-changing (n 1320/run) | qualify (n 360/run) | evidence (n 2640/run) | commit (n 1440/run) | reopen (n 600/run) | refused (n 1320/run) | all (n 8400/run) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| native: apply (numeric parameters; the transaction only) | 13.8 [13.1–15.0] · p95 37.5 | 20.2 [18.8–21.4] · p95 57.1 | 98.3 [91.2–106.8] · p95 139.4 | 100.4 [92.5–106.8] · p95 148.3 | 47.0 [44.4–50.3] · p95 68.7 | 121.3 [113.6–122.7] · p95 148.4 | 3.60 [3.40–3.70] · p95 7.40 | 52.7 [48.0–54.7] · p95 135.9 |
-| native: WebReactiveSession::dispatch_view (the exported function, JSON in and out) | 20.5 [19.5–21.3] · p95 45.2 | 29.9 [27.9–31.7] · p95 66.0 | 108.6 [102.2–117.4] · p95 153.4 | 114.7 [107.7–121.6] · p95 156.7 | 59.5 [56.5–64.3] · p95 82.3 | 132.8 [127.2–137.9] · p95 164.1 | 4.80 [4.60–5.10] · p95 9.50 | 65.5 [61.1–68.6] · p95 146.8 |
-| native: WebReactiveSession::dispatch_outcome (the kit's call) | 68.5 [66.8–69.6] · p95 102.7 | 92.1 [87.5–92.1] · p95 133.2 | 174.6 [164.2–175.1] · p95 222.3 | 176.5 [169.0–176.6] · p95 226.3 | 121.9 [116.5–121.9] · p95 151.7 | 198.9 [191.3–199.4] · p95 232.7 | 5.10 [4.80–5.10] · p95 10.3 | 128.0 [123.2–128.6] · p95 215.0 |
-| wasm: dispatch_view, WebAssembly execution only | 25.3 [23.9–28.2] · p95 49.8 | 34.9 [33.0–37.9] · p95 80.5 | 118.6 [112.3–132.9] · p95 165.0 | 121.9 [117.0–135.6] · p95 171.1 | 68.9 [66.4–76.8] · p95 96.1 | 140.9 [136.5–152.0] · p95 177.9 | 6.30 [5.90–6.70] · p95 11.7 | 75.8 [73.2–82.2] · p95 157.9 |
-| wasm: dispatch_view through the glue + JSON.parse (the web pages' path) | 50.8 [46.9–51.0] · p95 85.3 | 64.8 [61.1–65.3] · p95 126.3 | 152.5 [142.8–159.1] · p95 214.3 | 157.4 [147.4–161.1] · p95 212.5 | 104.7 [97.0–106.3] · p95 141.8 | 179.9 [168.1–180.1] · p95 221.7 | - | 134.3 [125.7–134.9] · p95 203.5 · accepted only, n 7080/run |
-| wasm: dispatch_outcome, WebAssembly execution only | 83.8 [79.1–85.1] · p95 130.9 | 106.5 [102.4–109.1] · p95 169.8 | 203.0 [194.3–207.3] · p95 276.5 | 204.9 [194.3–214.7] · p95 274.0 | 144.8 [137.9–150.1] · p95 197.2 | 222.1 [209.8–224.6] · p95 288.3 | 6.10 [5.80–6.20] · p95 12.4 | 154.5 [145.0–157.2] · p95 256.2 |
-| wasm: dispatch_outcome through the glue + JSON.parse | 163.0 [155.3–167.1] · p95 219.2 | 193.6 [188.2–194.9] · p95 274.3 | 287.1 [281.9–289.6] · p95 365.4 | 286.9 [278.0–291.1] · p95 361.0 | 230.9 [222.9–234.9] · p95 293.1 | 306.0 [298.3–308.3] · p95 374.3 | 9.00 [8.80–9.20] · p95 14.2 | 241.4 [233.7–243.7] · p95 342.8 |
+| native: apply (numeric parameters; the transaction only) | 12.6 [12.6–12.7] · p95 33.3 | 18.1 [18.0–18.3] · p95 51.0 | 88.5 [87.4–89.0] · p95 126.2 | 90.3 [89.0–90.9] · p95 132.2 | 42.4 [42.4–42.7] · p95 61.4 | 109.2 [108.1–109.7] · p95 133.8 | 3.30 [3.20–3.30] · p95 6.70 | 47.4 [47.0–47.9] · p95 121.6 |
+| native: WebReactiveSession::dispatch_view (the exported function, JSON in and out) | 18.7 [18.5–19.1] · p95 40.9 | 26.8 [26.8–27.4] · p95 59.6 | 98.1 [97.6–100.8] · p95 136.3 | 103.4 [102.5–106.5] · p95 142.5 | 54.5 [54.5–55.0] · p95 73.6 | 120.8 [118.7–123.2] · p95 144.3 | 4.40 [4.40–4.40] · p95 8.60 | 58.7 [58.4–60.4] · p95 132.6 |
+| native: WebReactiveSession::dispatch_outcome (the kit's call) | 63.8 [63.5–68.3] · p95 94.3 | 84.6 [83.8–87.6] · p95 125.0 | 159.9 [157.0–165.6] · p95 200.1 | 162.2 [161.0–169.5] · p95 204.4 | 113.2 [112.1–117.6] · p95 138.6 | 183.0 [180.7–187.8] · p95 209.4 | 4.70 [4.60–5.00] · p95 9.60 | 118.3 [116.4–123.6] · p95 195.5 |
+| wasm: dispatch_view, WebAssembly execution only | 22.5 [22.4–23.6] · p95 45.7 | 31.5 [31.0–32.6] · p95 69.8 | 107.3 [105.1–112.4] · p95 150.2 | 110.2 [108.8–114.8] · p95 153.0 | 63.0 [62.1–64.8] · p95 87.1 | 128.8 [127.7–133.1] · p95 158.6 | 5.40 [5.40–5.70] · p95 9.90 | 68.3 [68.2–70.0] · p95 143.5 |
+| wasm: dispatch_view through the glue + JSON.parse (the web pages' path) | 45.4 [44.2–48.0] · p95 73.8 | 58.5 [57.9–60.9] · p95 116.6 | 136.7 [135.1–141.0] · p95 180.9 | 142.2 [140.2–147.0] · p95 187.0 | 93.6 [91.8–96.6] · p95 122.4 | 162.0 [159.6–166.2] · p95 195.5 | - | 120.7 [118.5–123.4] · p95 179.1 · accepted only, n 7080/run |
+| wasm: dispatch_outcome, WebAssembly execution only | 70.4 [69.8–70.7] · p95 104.8 | 90.6 [89.8–90.9] · p95 147.0 | 173.6 [170.4–174.3] · p95 221.1 | 173.9 [172.6–175.0] · p95 222.4 | 123.4 [122.5–123.9] · p95 159.4 | 189.9 [189.7–190.3] · p95 231.9 | 4.90 [4.90–5.00] · p95 10.3 | 129.6 [129.4–131.1] · p95 208.6 |
+| wasm: dispatch_outcome through the glue + JSON.parse | 148.6 [147.2–149.6] · p95 203.9 | 179.5 [175.6–181.1] · p95 248.6 | 263.9 [259.8–268.4] · p95 331.5 | 268.9 [260.1–273.8] · p95 334.7 | 214.4 [209.2–217.3] · p95 267.8 | 284.9 [279.4–285.7] · p95 346.4 | 8.20 [8.10–8.50] · p95 13.4 | 223.6 [217.6–224.4] · p95 317.6 |
 
 ## Agent ledger by event class (instrumented session)
 
-The same main-local build measured in the instrumented session (2026-09-29T03-28-17-772-instrumented; total CPU mean 11.3%), the session the attribution in sections 9–10 comes from; it ran these paths but not the adapter or the kit. Every cell is DIRECT.
+The same main-local build measured in the instrumented session (2026-09-29T08-41-36-021-instrumented; total CPU mean 9.1%), the session the attribution in sections 9–10 comes from; it ran these paths but not the adapter or the kit. Every cell is DIRECT.
 
 | Path (µs: median [lowest–highest run] · p95) | evidence (n 4500/run) | pushed evidence [renew,reveal] (n 1200/run) | refused (n 1500/run) | all (n 6000/run) |
 | --- | --- | --- | --- | --- |
-| native: apply (numeric parameters; the transaction only) | 20.6 [20.1–24.2] · p95 24.9 | 21.4 [20.9–25.5] · p95 24.0 | 4.30 [4.20–5.10] · p95 6.10 | 16.9 [16.8–21.0] · p95 24.6 |
-| native: WebReactiveSession::dispatch_view (the exported function, JSON in and out) | 28.4 [28.4–30.4] · p95 35.8 | 28.8 [28.7–31.0] · p95 32.5 | 5.10 [5.10–5.50] · p95 7.00 | 26.1 [25.6–27.7] · p95 35.2 |
-| native: WebReactiveSession::dispatch_outcome (the kit's call) | 65.8 [64.2–67.4] · p95 83.5 | 65.2 [63.6–66.7] · p95 77.1 | 6.30 [6.20–6.50] · p95 8.20 | 63.2 [61.9–64.7] · p95 80.8 |
-| wasm: dispatch_view, WebAssembly execution only | 33.5 [32.8–33.8] · p95 43.6 | 34.5 [33.5–36.4] · p95 43.7 | 6.50 [6.40–6.60] · p95 8.90 | 30.6 [30.0–30.7] · p95 42.6 |
-| wasm: dispatch_view through the glue + JSON.parse (the web pages' path) | 42.8 [41.8–43.5] · p95 55.6 | 43.0 [42.0–44.0] · p95 54.3 | - | 42.8 [41.8–43.5] · p95 55.6 · accepted only, n 4500/run |
-| wasm: dispatch_outcome, WebAssembly execution only | 69.4 [68.1–72.7] · p95 89.1 | 70.0 [68.5–73.1] · p95 87.8 | 6.60 [6.50–7.00] · p95 9.20 | 66.1 [64.7–68.7] · p95 86.3 |
-| wasm: dispatch_outcome through the glue + JSON.parse | 130.8 [125.5–134.5] · p95 166.4 | 128.8 [124.4–132.4] · p95 156.9 | 9.00 [8.50–9.20] · p95 12.2 | 123.4 [121.6–127.9] · p95 162.8 |
+| native: apply (numeric parameters; the transaction only) | 18.2 [18.1–18.4] · p95 21.6 | 18.7 [18.6–19.0] · p95 21.0 | 3.80 [3.80–3.90] · p95 5.30 | 14.7 [14.6–14.9] · p95 21.4 |
+| native: WebReactiveSession::dispatch_view (the exported function, JSON in and out) | 25.6 [25.4–26.2] · p95 31.7 | 26.0 [25.6–26.3] · p95 29.3 | 4.60 [4.60–4.80] · p95 6.20 | 23.1 [22.7–24.4] · p95 31.4 |
+| native: WebReactiveSession::dispatch_outcome (the kit's call) | 59.0 [58.5–59.0] · p95 74.2 | 58.4 [58.1–58.5] · p95 71.6 | 5.80 [5.70–5.80] · p95 7.30 | 56.9 [56.5–57.0] · p95 71.8 |
+| wasm: dispatch_view, WebAssembly execution only | 29.9 [29.7–30.5] · p95 37.9 | 30.9 [30.8–31.5] · p95 37.1 | 5.80 [5.70–5.80] · p95 7.80 | 27.3 [27.2–27.3] · p95 37.1 |
+| wasm: dispatch_view through the glue + JSON.parse (the web pages' path) | 38.5 [37.9–39.1] · p95 48.7 | 38.8 [37.9–39.2] · p95 48.3 | - | 38.5 [37.9–39.1] · p95 48.7 · accepted only, n 4500/run |
+| wasm: dispatch_outcome, WebAssembly execution only | 62.6 [62.3–62.6] · p95 79.6 | 62.5 [62.5–63.4] · p95 77.8 | 6.10 [6.00–6.10] · p95 8.40 | 59.2 [59.1–59.3] · p95 77.3 |
+| wasm: dispatch_outcome through the glue + JSON.parse | 113.5 [113.1–119.5] · p95 144.5 | 111.4 [111.0–117.2] · p95 138.7 | 7.80 [7.70–8.00] · p95 10.4 | 108.7 [108.2–112.8] · p95 140.2 |
 
 ## (4) Core runtime work: the event without view or snapshot
 
@@ -344,11 +315,11 @@ The instrumented session: the ordinary main-local build and the i1 build side by
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| transaction, numeric parameters (native apply) | DIRECT | 15.0 [14.2–15.4] · p95 16.5 | 19.0 [17.5–19.1] · p95 20.9 | 100.4 [92.5–106.8] · p95 148.3 | 47.0 [44.4–50.3] · p95 68.7 | 121.3 [113.6–122.7] · p95 148.4 | 20.6 [20.1–24.2] · p95 24.9 |
-| payload parse + names + transaction (native, i1 bench_dispatch_only) | DIRECT | 15.2 [14.6–15.9] · p95 16.8 | 18.8 [17.7–20.1] · p95 20.3 | 100.4 [100.2–102.8] · p95 146.5 | 47.9 [47.0–48.9] · p95 68.1 | 118.4 [117.1–119.8] · p95 149.3 | 21.5 [21.2–22.3] · p95 26.5 |
-| payload parse + names + transaction (wasm execution, i1 bench_dispatch_only) | DIRECT | 14.6 [14.5–14.7] · p95 18.4 | 18.8 [17.3–20.3] · p95 27.6 | 108.9 [108.7–110.6] · p95 160.3 | 54.0 [53.4–55.4] · p95 80.4 | 126.9 [126.7–130.8] · p95 164.9 | 23.7 [23.2–25.3] · p95 31.0 |
-| payload parse + name resolution (native) | INFERRED [4] | 0.30 [0.30–0.30] ±1.30 | 0.60 [0.10–0.90] ±2.00 | 2.80 [1.50–7.00] ±5.25 | 2.30 [1.40–2.90] ±2.65 | 0.00 [-0.10–2.80] ±4.15 | 1.00 [0.90–1.50] ±0.80 |
-| WebAssembly execution over native, the same work | INFERRED [5] | -0.70 [-1.30–0.10] ±0.75 | -1.30 [-1.50–2.60] ±2.70 | 8.50 [5.90–10.4] ±2.25 | 6.40 [5.10–7.50] ±1.95 | 9.60 [7.10–12.4] ±3.40 | 2.20 [0.90–4.10] ±1.60 |
+| transaction, numeric parameters (native apply) | DIRECT | 13.0 [13.0–14.6] · p95 14.7 | 16.8 [16.1–18.3] · p95 19.7 | 90.3 [89.0–90.9] · p95 132.2 | 42.4 [42.4–42.7] · p95 61.4 | 109.2 [108.1–109.7] · p95 133.8 | 18.2 [18.1–18.4] · p95 21.6 |
+| payload parse + names + transaction (native, i1 bench_dispatch_only) | DIRECT | 13.3 [13.3–15.7] · p95 14.7 | 16.4 [16.2–19.1] · p95 17.7 | 98.7 [93.0–101.0] · p95 142.4 | 46.7 [44.3–47.5] · p95 66.4 | 114.0 [108.5–114.9] · p95 143.9 | 19.3 [19.3–19.7] · p95 23.0 |
+| payload parse + names + transaction (wasm execution, i1 bench_dispatch_only) | DIRECT | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
+| payload parse + name resolution (native) | INFERRED [4] | 0.20 [0.10–2.70] ±1.30 | 0.10 [0.10–3.00] ±1.55 | 9.10 [2.00–12.1] ±5.05 | 4.40 [0.80–4.80] ±2.20 | 5.70 [-1.60–6.50] ±4.10 | 1.10 [-1.80–1.10] ±1.85 |
+| WebAssembly execution over native, the same work | INFERRED [5] | -0.50 [-2.60–-0.40] ±1.35 | 2.00 [-3.50–2.50] ±3.00 | 5.00 [3.60–6.10] ±6.75 | 4.60 [4.30–5.50] ±3.25 | 7.10 [6.50–7.40] ±6.10 | 2.10 [2.00–2.10] ±0.45 |
 
 - payload parse + names + transaction (native, i1 bench_dispatch_only): throwaway i1 build
 - payload parse + names + transaction (wasm execution, i1 bench_dispatch_only): throwaway i1 build
@@ -361,13 +332,13 @@ The instrumented session.
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| snapshot() built (native, not serialized, not dropped) | DIRECT | 28.4 [27.7–29.3] · p95 32.8 | 24.4 [24.1–25.1] · p95 27.2 | 32.9 [31.6–33.6] · p95 37.9 | 33.3 [32.0–33.9] · p95 38.4 | 34.6 [33.0–34.9] · p95 40.0 | 19.3 [19.2–19.7] · p95 24.1 |
-| snapshot compact JSON (native serde_json) | DIRECT | 17.1 [16.8–17.7] · p95 19.6 | 15.5 [15.1–15.8] · p95 17.1 | 21.1 [20.3–21.5] · p95 24.4 | 21.0 [20.2–21.3] · p95 24.1 | 21.8 [20.8–22.0] · p95 24.8 | 14.7 [14.6–15.1] · p95 18.0 |
-| snapshot drop (native) | DIRECT | 12.2 [11.8–12.5] · p95 13.9 | 10.5 [10.4–10.8] · p95 11.6 | 12.9 [12.4–13.2] · p95 14.8 | 13.3 [12.8–13.7] · p95 15.9 | 14.3 [13.7–14.5] · p95 16.1 | 7.70 [7.60–7.80] · p95 8.80 |
-| snapshot built + dropped (wasm, i1) | DIRECT | 32.5 [29.6–32.6] · p95 38.8 | 28.2 [27.1–29.0] · p95 38.0 | 48.6 [47.8–49.7] · p95 59.3 | 47.1 [46.2–47.2] · p95 56.9 | 49.9 [49.3–50.4] · p95 60.3 | 25.1 [24.4–27.4] · p95 31.4 |
-| dispatch_outcome over dispatch-only (native): snapshot + outcome + JSON | INFERRED [5] | 57.1 [54.5–57.5] ±2.80 | 51.2 [49.2–52.2] ±3.40 | 76.8 [67.7–77.0] ±7.05 | 74.0 [69.7–76.1] ±5.10 | 81.3 [72.3–81.5] ±7.30 | 44.4 [43.7–46.5] ±2.50 |
-| dispatch_outcome over dispatch-only (wasm execution) | INFERRED [6] | 50.2 [49.1–51.3] ±1.10 | 47.3 [47.0–50.4] ±4.70 | 89.9 [88.9–99.0] ±5.60 | 86.4 [85.5–93.3] ±4.15 | 85.7 [83.0–97.5] ±7.85 | 44.3 [43.5–46.1] ±1.70 |
-| JS JSON.parse of the outcome | DIRECT | 70.9 [69.6–74.4] · p95 81.3 | 64.0 [62.2–66.3] · p95 77.4 | 86.0 [83.6–87.5] · p95 104.4 | 84.1 [81.6–84.7] · p95 99.6 | 86.3 [83.9–86.8] · p95 101.8 | 53.6 [51.6–55.6] · p95 67.6 |
+| snapshot() built (native, not serialized, not dropped) | DIRECT | 24.5 [24.5–24.6] · p95 26.4 | 21.5 [21.4–21.5] · p95 24.2 | 30.4 [30.2–31.0] · p95 33.8 | 30.5 [30.4–31.3] · p95 35.0 | 31.5 [31.3–32.3] · p95 34.4 | 17.5 [17.0–18.5] · p95 21.1 |
+| snapshot compact JSON (native serde_json) | DIRECT | 14.7 [14.6–14.8] · p95 16.0 | 13.3 [13.1–13.4] · p95 14.8 | 19.1 [19.1–19.5] · p95 21.7 | 18.8 [18.7–19.2] · p95 21.1 | 19.5 [19.4–19.8] · p95 21.3 | 13.3 [13.1–14.2] · p95 16.8 |
+| snapshot drop (native) | DIRECT | 10.6 [10.5–10.7] · p95 11.4 | 9.30 [9.10–9.40] · p95 10.3 | 11.9 [11.8–12.1] · p95 13.5 | 12.3 [12.2–12.5] · p95 14.4 | 13.0 [12.9–13.2] · p95 14.3 | 7.00 [6.80–7.50] · p95 8.00 |
+| snapshot built + dropped (wasm, i1) | DIRECT | 29.3 [27.8–30.7] · p95 35.4 | 25.7 [24.8–29.3] · p95 33.3 | 44.2 [42.9–46.2] · p95 53.6 | 42.2 [41.2–44.6] · p95 51.7 | 44.8 [43.9–47.4] · p95 53.9 | 22.7 [22.4–23.1] · p95 28.1 |
+| dispatch_outcome over dispatch-only (native): snapshot + outcome + JSON | INFERRED [5] | 51.2 [46.9–56.5] ±4.80 | 46.1 [41.8–51.2] ±4.80 | 64.0 [61.0–71.0] ±5.00 | 66.4 [65.4–70.3] ±2.45 | 69.9 [68.5–76.7] ±4.10 | 39.6 [38.9–40.4] ±0.95 |
+| dispatch_outcome over dispatch-only (wasm execution) | INFERRED [6] | 46.6 [44.9–47.6] ±1.35 | 41.7 [39.8–49.5] ±7.80 | 71.3 [68.8–77.7] ±4.45 | 71.8 [71.0–76.8] ±3.10 | 70.6 [69.2–77.5] ±4.15 | 40.2 [40.1–40.4] ±0.65 |
+| JS JSON.parse of the outcome | DIRECT | 64.7 [61.3–68.2] · p95 74.9 | 59.7 [56.6–61.3] · p95 70.8 | 79.9 [78.0–80.6] · p95 94.7 | 78.3 [76.6–79.8] · p95 92.4 | 80.0 [78.2–81.1] · p95 93.5 | 46.7 [46.3–49.0] · p95 58.1 |
 
 - snapshot built + dropped (wasm, i1): throwaway i1 build
 - [5] i1 web.dispatch_outcome − i1 bench.dispatch_only
@@ -379,13 +350,13 @@ The instrumented session.
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| view() built (native, not serialized, not dropped) | DIRECT | 2.80 [2.70–2.90] · p95 3.20 | 2.10 [2.10–2.10] · p95 2.40 | 1.10 [1.10–1.20] · p95 1.90 | 1.70 [1.60–1.70] · p95 2.70 | 1.80 [1.80–1.90] · p95 2.60 | 3.30 [3.20–3.30] · p95 4.30 |
-| view compact JSON (native serde_json) | DIRECT | 5.40 [5.30–5.50] · p95 6.20 | 4.90 [4.90–5.00] · p95 5.50 | 7.80 [7.50–7.90] · p95 12.0 | 7.70 [7.40–7.80] · p95 9.00 | 8.10 [7.80–8.20] · p95 9.40 | 2.60 [2.60–2.60] · p95 3.30 |
-| view built + dropped (native, i1) | DIRECT | 4.30 [4.00–4.50] · p95 4.60 | 3.40 [3.20–3.60] · p95 3.70 | 2.30 [2.20–2.30] · p95 3.10 | 3.40 [3.30–3.40] · p95 4.80 | 3.10 [3.10–3.20] · p95 5.00 | 4.80 [4.80–5.00] · p95 6.30 |
-| view built + dropped (wasm, i1) | DIRECT | 3.90 [3.60–4.00] · p95 4.60 | 3.00 [2.90–3.20] · p95 4.10 | 2.60 [2.50–2.70] · p95 3.60 | 3.60 [3.50–3.60] · p95 5.30 | 3.50 [3.50–3.60] · p95 5.10 | 5.00 [4.90–5.30] · p95 6.60 |
-| view exported: built + JSON + dropped (wasm) | DIRECT | 10.2 [9.40–10.4] · p95 11.8 | 9.00 [8.50–9.40] · p95 11.9 | 14.4 [14.1–14.8] · p95 18.2 | 15.1 [14.9–15.2] · p95 19.3 | 15.9 [15.8–16.0] · p95 20.5 | 8.00 [7.80–8.60] · p95 10.6 |
-| view JSON inside wasm | INFERRED [6] | 6.30 [5.80–6.40] ±0.70 | 6.00 [5.60–6.20] ±0.60 | 11.8 [11.6–12.1] ±0.45 | 11.5 [11.4–11.6] ±0.20 | 12.3 [12.3–12.5] ±0.15 | 3.00 [2.90–3.30] ±0.60 |
-| JS JSON.parse of the view | DIRECT | 18.2 [18.2–18.4] · p95 22.9 | 18.4 [17.9–19.0] · p95 25.9 | 28.9 [27.5–29.4] · p95 37.3 | 29.0 [27.1–29.5] · p95 36.2 | 29.8 [28.3–31.0] · p95 37.4 | 7.80 [7.50–8.00] · p95 11.2 |
+| view() built (native, not serialized, not dropped) | DIRECT | 2.40 [2.40–2.50] · p95 2.70 | 1.90 [1.90–1.90] · p95 2.10 | 1.10 [1.10–1.10] · p95 1.70 | 1.60 [1.50–1.60] · p95 2.40 | 1.70 [1.60–1.70] · p95 2.40 | 3.00 [2.90–3.20] · p95 3.90 |
+| view compact JSON (native serde_json) | DIRECT | 4.60 [4.60–4.70] · p95 5.20 | 4.30 [4.20–4.30] · p95 4.80 | 7.00 [6.90–7.20] · p95 9.80 | 6.90 [6.90–7.10] · p95 8.10 | 7.20 [7.20–7.40] · p95 8.50 | 2.30 [2.30–2.50] · p95 3.00 |
+| view built + dropped (native, i1) | DIRECT | 3.90 [3.70–4.00] · p95 4.40 | 3.00 [2.90–3.10] · p95 3.30 | 2.10 [2.10–2.10] · p95 2.80 | 3.10 [3.10–3.10] · p95 4.40 | 2.90 [2.80–2.90] · p95 4.30 | 4.30 [4.30–4.70] · p95 5.70 |
+| view built + dropped (wasm, i1) | DIRECT | 3.50 [3.30–3.50] · p95 4.20 | 2.70 [2.70–3.10] · p95 3.40 | 2.30 [2.30–2.40] · p95 3.20 | 3.10 [3.10–3.30] · p95 4.70 | 3.10 [3.10–3.20] · p95 4.50 | 4.60 [4.50–4.60] · p95 5.90 |
+| view exported: built + JSON + dropped (wasm) | DIRECT | 9.20 [9.00–9.20] · p95 11.0 | 8.10 [7.90–9.30] · p95 11.1 | 13.0 [12.7–13.4] · p95 16.1 | 13.4 [13.2–14.2] · p95 17.2 | 14.2 [14.0–15.1] · p95 18.0 | 7.30 [7.10–7.40] · p95 9.60 |
+| view JSON inside wasm | INFERRED [6] | 5.70 [5.70–5.70] ±0.20 | 5.40 [5.20–6.20] ±0.90 | 10.7 [10.4–11.0] ±0.40 | 10.3 [10.1–10.9] ±0.60 | 11.1 [10.9–11.9] ±0.60 | 2.70 [2.60–2.80] ±0.20 |
+| JS JSON.parse of the view | DIRECT | 17.0 [16.1–17.9] · p95 19.5 | 16.8 [16.6–18.1] · p95 21.1 | 26.4 [26.2–26.8] · p95 32.5 | 26.3 [26.1–26.9] · p95 32.2 | 27.2 [27.0–28.0] · p95 33.2 | 6.90 [6.80–7.10] · p95 9.90 |
 
 - view built + dropped (native, i1): throwaway i1 build
 - view built + dropped (wasm, i1): throwaway i1 build
@@ -397,15 +368,15 @@ The ordinary main-local build in the instrumented session, every part DIRECT or 
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| payload JSON.stringify (JS) | DIRECT | 0.30 [0.30–0.40] · p95 0.60 | 0.40 [0.30–0.40] · p95 0.70 | 1.00 [1.00–1.10] · p95 2.20 | 0.50 [0.50–0.50] · p95 0.90 | 0.60 [0.60–0.60] · p95 1.00 | 0.40 [0.40–0.40] · p95 1.20 |
-| argument copy into wasm memory (passStringToWasm0 ×2) | DIRECT | 0.10 [0.10–0.10] · p95 0.30 | 0.30 [0.30–0.30] · p95 0.60 | 0.70 [0.60–0.70] · p95 1.40 | 0.40 [0.40–0.40] · p95 0.90 | 0.40 [0.30–0.40] · p95 0.70 | 0.30 [0.30–0.30] · p95 0.80 |
-| wasm execution of dispatch_view | DIRECT | 24.8 [24.6–25.6] · p95 31.4 | 28.2 [27.1–28.7] · p95 41.5 | 121.9 [117.0–135.6] · p95 171.1 | 68.9 [66.4–76.8] · p95 96.1 | 140.9 [136.5–152.0] · p95 177.9 | 33.5 [32.8–33.8] · p95 43.6 |
-| result decode (TextDecoder, fatal) | DIRECT | 2.90 [2.70–2.90] · p95 3.80 | 2.80 [2.80–2.90] · p95 4.30 | 2.10 [2.00–2.20] · p95 5.20 | 1.30 [1.30–1.50] · p95 3.80 | 1.40 [1.30–1.50] · p95 4.30 | 0.70 [0.60–0.70] · p95 2.10 |
-| result free (__wbindgen_free) | DIRECT | 0.10 [0.10–0.10] · p95 0.10 | 0.10 [0.10–0.10] · p95 0.20 | 0.30 [0.20–0.30] · p95 0.50 | 0.20 [0.20–0.20] · p95 0.40 | 0.20 [0.10–0.20] · p95 0.40 | 0.10 [0.10–0.10] · p95 0.30 |
-| JS JSON.parse of the view | DIRECT | 18.2 [18.2–18.4] · p95 22.9 | 18.4 [17.9–19.0] · p95 25.9 | 28.9 [27.5–29.4] · p95 37.3 | 29.0 [27.1–29.5] · p95 36.2 | 29.8 [28.3–31.0] · p95 37.4 | 7.80 [7.50–8.00] · p95 11.2 |
-| the same exported function natively | DIRECT | 22.7 [21.8–23.5] · p95 24.9 | 25.2 [24.6–26.2] · p95 28.6 | 114.7 [107.7–121.6] · p95 156.7 | 59.5 [56.5–64.3] · p95 82.3 | 132.8 [127.2–137.9] · p95 164.1 | 28.4 [28.4–30.4] · p95 35.8 |
-| wasm execution penalty over native, same function | INFERRED [8] | 1.90 [1.30–3.80] ±1.35 | 3.00 [0.90–4.10] ±1.60 | 9.30 [0.30–20.9] ±16.3 | 9.90 [4.60–17.3] ±9.10 | 9.30 [3.00–19.2] ±13.1 | 4.40 [3.10–5.40] ±1.50 |
-| glue overhead beyond the ABI pieces | INFERRED [9] | -0.20 [-1.20–1.90] ±1.55 | 2.00 [2.00–2.30] ±1.50 | -1.60 [-10.0–2.20] ±15.1 | -0.30 [-3.90–1.50] ±8.80 | -0.30 [-4.80–5.20] ±14.1 | -0.40 [-0.80–0.00] ±1.15 |
+| payload JSON.stringify (JS) | DIRECT | 0.30 [0.30–0.30] · p95 0.50 | 0.30 [0.30–0.30] · p95 0.60 | 0.90 [0.90–1.00] · p95 1.90 | 0.50 [0.40–0.50] · p95 0.80 | 0.50 [0.50–0.60] · p95 0.80 | 0.30 [0.30–0.40] · p95 1.00 |
+| argument copy into wasm memory (passStringToWasm0 ×2) | DIRECT | 0.10 [0.10–0.10] · p95 0.20 | 0.20 [0.20–0.30] · p95 0.40 | 0.60 [0.60–0.60] · p95 1.20 | 0.40 [0.30–0.40] · p95 0.70 | 0.30 [0.30–0.30] · p95 0.60 | 0.30 [0.30–0.30] · p95 0.60 |
+| wasm execution of dispatch_view | DIRECT | 21.4 [21.3–21.4] · p95 25.9 | 24.1 [23.2–25.6] · p95 35.7 | 110.2 [108.8–114.8] · p95 153.0 | 63.0 [62.1–64.8] · p95 87.1 | 128.8 [127.7–133.1] · p95 158.6 | 29.9 [29.7–30.5] · p95 37.9 |
+| result decode (TextDecoder, fatal) | DIRECT | 2.40 [2.40–2.50] · p95 3.20 | 2.50 [2.30–2.60] · p95 3.80 | 2.00 [1.90–2.00] · p95 4.60 | 1.20 [1.20–1.20] · p95 3.10 | 1.20 [1.20–1.30] · p95 3.90 | 0.60 [0.60–0.60] · p95 1.80 |
+| result free (__wbindgen_free) | DIRECT | 0.10 [0.10–0.10] · p95 0.10 | 0.10 [0.10–0.10] · p95 0.20 | 0.20 [0.20–0.20] · p95 0.40 | 0.20 [0.20–0.20] · p95 0.30 | 0.10 [0.10–0.20] · p95 0.30 | 0.10 [0.10–0.10] · p95 0.30 |
+| JS JSON.parse of the view | DIRECT | 17.0 [16.1–17.9] · p95 19.5 | 16.8 [16.6–18.1] · p95 21.1 | 26.4 [26.2–26.8] · p95 32.5 | 26.3 [26.1–26.9] · p95 32.2 | 27.2 [27.0–28.0] · p95 33.2 | 6.90 [6.80–7.10] · p95 9.90 |
+| the same exported function natively | DIRECT | 20.1 [19.9–20.5] · p95 22.1 | 22.6 [22.3–23.6] · p95 26.2 | 103.4 [102.5–106.5] · p95 142.5 | 54.5 [54.5–55.0] · p95 73.6 | 120.8 [118.7–123.2] · p95 144.3 | 25.6 [25.4–26.2] · p95 31.7 |
+| wasm execution penalty over native, same function | INFERRED [8] | 1.30 [0.90–1.40] ±0.35 | 0.60 [0.50–3.30] ±1.85 | 6.30 [3.70–11.4] ±5.00 | 8.00 [7.60–10.3] ±1.60 | 9.00 [5.60–12.3] ±4.95 | 4.30 [3.70–4.90] ±0.80 |
+| glue overhead beyond the ABI pieces | INFERRED [9] | 2.00 [0.10–3.10] ±1.50 | 2.70 [1.10–6.30] ±2.65 | -0.20 [-3.60–5.60] ±6.20 | 0.20 [-0.90–2.50] ±3.00 | 2.00 [-2.00–5.20] ±5.10 | -0.40 [-0.50–0.00] ±0.85 |
 
 - [8] wasm abi.exec − native web.dispatch_view
 - [9] raw.dispatch_view − abi.dispatch_view (whole)
@@ -447,15 +418,15 @@ Each part timed on its own (i1 throwaway build for the first two; the ordinary b
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| language execution: payload parse, names, transaction, rules, change detection, bindings, commit (wasm, i1 bench_dispatch_only) | DIRECT | 14.6 [14.5–14.7] · p95 18.4 | 18.8 [17.3–20.3] · p95 27.6 | 108.9 [108.7–110.6] · p95 160.3 | 54.0 [53.4–55.4] · p95 80.4 | 126.9 [126.7–130.8] · p95 164.9 | 23.7 [23.2–25.3] · p95 31.0 |
-| view building: name map, sort, records, assembly, drop (wasm, i1 bench_view_build) | DIRECT | 3.90 [3.60–4.00] · p95 4.60 | 3.00 [2.90–3.20] · p95 4.10 | 2.60 [2.50–2.70] · p95 3.60 | 3.60 [3.50–3.60] · p95 5.30 | 3.50 [3.50–3.60] · p95 5.10 | 5.00 [4.90–5.30] · p95 6.60 |
-| view serialization inside wasm (serde_json) | INFERRED [3] | 6.30 [5.80–6.40] ±0.70 | 6.00 [5.60–6.20] ±0.60 | 11.8 [11.6–12.1] ±0.45 | 11.5 [11.4–11.6] ±0.20 | 12.3 [12.3–12.5] ±0.15 | 3.00 [2.90–3.30] ±0.60 |
-| bridge: argument copy | DIRECT | 0.10 [0.10–0.10] · p95 0.30 | 0.30 [0.30–0.30] · p95 0.60 | 0.70 [0.60–0.70] · p95 1.40 | 0.40 [0.40–0.40] · p95 0.90 | 0.40 [0.30–0.40] · p95 0.70 | 0.30 [0.30–0.30] · p95 0.80 |
-| bridge: result decode to a JS string | DIRECT | 2.90 [2.70–2.90] · p95 3.80 | 2.80 [2.80–2.90] · p95 4.30 | 2.10 [2.00–2.20] · p95 5.20 | 1.30 [1.30–1.50] · p95 3.80 | 1.40 [1.30–1.50] · p95 4.30 | 0.70 [0.60–0.70] · p95 2.10 |
-| bridge: result free | DIRECT | 0.10 [0.10–0.10] · p95 0.10 | 0.10 [0.10–0.10] · p95 0.20 | 0.30 [0.20–0.30] · p95 0.50 | 0.20 [0.20–0.20] · p95 0.40 | 0.20 [0.10–0.20] · p95 0.40 | 0.10 [0.10–0.10] · p95 0.30 |
-| JS: JSON.parse of the view | DIRECT | 18.2 [18.2–18.4] · p95 22.9 | 18.4 [17.9–19.0] · p95 25.9 | 28.9 [27.5–29.4] · p95 37.3 | 29.0 [27.1–29.5] · p95 36.2 | 29.8 [28.3–31.0] · p95 37.4 | 7.80 [7.50–8.00] · p95 11.2 |
-| whole: dispatch_view through the glue + JSON.parse | DIRECT | 46.7 [46.3–48.3] · p95 58.0 | 52.0 [51.2–53.4] · p95 74.3 | 157.4 [147.4–161.1] · p95 212.5 | 104.7 [97.0–106.3] · p95 141.8 | 179.9 [168.1–180.1] · p95 221.7 | 42.8 [41.8–43.5] · p95 55.6 |
-| whole, wasm execution only | DIRECT | 24.8 [24.6–25.6] · p95 31.4 | 28.2 [27.1–28.7] · p95 41.5 | 121.9 [117.0–135.6] · p95 171.1 | 68.9 [66.4–76.8] · p95 96.1 | 140.9 [136.5–152.0] · p95 177.9 | 33.5 [32.8–33.8] · p95 43.6 |
+| language execution: payload parse, names, transaction, rules, change detection, bindings, commit (wasm, i1 bench_dispatch_only) | DIRECT | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
+| view building: name map, sort, records, assembly, drop (wasm, i1 bench_view_build) | DIRECT | 3.50 [3.30–3.50] · p95 4.20 | 2.70 [2.70–3.10] · p95 3.40 | 2.30 [2.30–2.40] · p95 3.20 | 3.10 [3.10–3.30] · p95 4.70 | 3.10 [3.10–3.20] · p95 4.50 | 4.60 [4.50–4.60] · p95 5.90 |
+| view serialization inside wasm (serde_json) | INFERRED [3] | 5.70 [5.70–5.70] ±0.20 | 5.40 [5.20–6.20] ±0.90 | 10.7 [10.4–11.0] ±0.40 | 10.3 [10.1–10.9] ±0.60 | 11.1 [10.9–11.9] ±0.60 | 2.70 [2.60–2.80] ±0.20 |
+| bridge: argument copy | DIRECT | 0.10 [0.10–0.10] · p95 0.20 | 0.20 [0.20–0.30] · p95 0.40 | 0.60 [0.60–0.60] · p95 1.20 | 0.40 [0.30–0.40] · p95 0.70 | 0.30 [0.30–0.30] · p95 0.60 | 0.30 [0.30–0.30] · p95 0.60 |
+| bridge: result decode to a JS string | DIRECT | 2.40 [2.40–2.50] · p95 3.20 | 2.50 [2.30–2.60] · p95 3.80 | 2.00 [1.90–2.00] · p95 4.60 | 1.20 [1.20–1.20] · p95 3.10 | 1.20 [1.20–1.30] · p95 3.90 | 0.60 [0.60–0.60] · p95 1.80 |
+| bridge: result free | DIRECT | 0.10 [0.10–0.10] · p95 0.10 | 0.10 [0.10–0.10] · p95 0.20 | 0.20 [0.20–0.20] · p95 0.40 | 0.20 [0.20–0.20] · p95 0.30 | 0.10 [0.10–0.20] · p95 0.30 | 0.10 [0.10–0.10] · p95 0.30 |
+| JS: JSON.parse of the view | DIRECT | 17.0 [16.1–17.9] · p95 19.5 | 16.8 [16.6–18.1] · p95 21.1 | 26.4 [26.2–26.8] · p95 32.5 | 26.3 [26.1–26.9] · p95 32.2 | 27.2 [27.0–28.0] · p95 33.2 | 6.90 [6.80–7.10] · p95 9.90 |
+| whole: dispatch_view through the glue + JSON.parse | DIRECT | 43.4 [40.6–45.4] · p95 49.3 | 46.9 [46.6–50.8] · p95 61.0 | 142.2 [140.2–147.0] · p95 187.0 | 93.6 [91.8–96.6] · p95 122.4 | 162.0 [159.6–166.2] · p95 195.5 | 38.5 [37.9–39.1] · p95 48.7 |
+| whole, wasm execution only | DIRECT | 21.4 [21.3–21.4] · p95 25.9 | 24.1 [23.2–25.6] · p95 35.7 | 110.2 [108.8–114.8] · p95 153.0 | 63.0 [62.1–64.8] · p95 87.1 | 128.8 [127.7–133.1] · p95 158.6 | 29.9 [29.7–30.5] · p95 37.9 |
 
 - [3] i1 abi.view.exec − i1 abi.view_build.exec, the same step
 
@@ -465,11 +436,11 @@ As above, for the `dispatch_outcome` call the kit's `session.dispatch()` makes, 
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| language execution (wasm, i1 bench_dispatch_only) | DIRECT | 14.6 [14.5–14.7] · p95 18.4 | 18.8 [17.3–20.3] · p95 27.6 | 108.9 [108.7–110.6] · p95 160.3 | 54.0 [53.4–55.4] · p95 80.4 | 126.9 [126.7–130.8] · p95 164.9 | 23.7 [23.2–25.3] · p95 31.0 |
-| snapshot + outcome built, serialized and dropped inside wasm | INFERRED [2] | 50.2 [49.1–51.3] ±1.10 | 47.3 [47.0–50.4] ±4.70 | 89.9 [88.9–99.0] ±5.60 | 86.4 [85.5–93.3] ±4.15 | 85.7 [83.0–97.5] ±7.85 | 44.3 [43.5–46.1] ±1.70 |
-| bridge: outcome decode to a JS string | DIRECT | 8.80 [8.60–8.90] · p95 12.5 | 8.00 [7.70–8.30] · p95 11.3 | 4.50 [4.50–4.80] · p95 11.0 | 3.70 [3.70–3.90] · p95 10.5 | 3.80 [3.70–4.00] · p95 11.1 | 2.80 [2.80–2.90] · p95 10.0 |
-| JS: JSON.parse of the outcome | DIRECT | 70.9 [69.6–74.4] · p95 81.3 | 64.0 [62.2–66.3] · p95 77.4 | 86.0 [83.6–87.5] · p95 104.4 | 84.1 [81.6–84.7] · p95 99.6 | 86.3 [83.9–86.8] · p95 101.8 | 53.6 [51.6–55.6] · p95 67.6 |
-| whole: raw dispatch_outcome + JSON.parse | DIRECT | 152.3 [148.9–160.1] · p95 176.4 | 141.5 [136.3–147.3] · p95 186.0 | 286.9 [278.0–291.1] · p95 361.0 | 230.9 [222.9–234.9] · p95 293.1 | 306.0 [298.3–308.3] · p95 374.3 | 130.8 [125.5–134.5] · p95 166.4 |
+| language execution (wasm, i1 bench_dispatch_only) | DIRECT | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
+| snapshot + outcome built, serialized and dropped inside wasm | INFERRED [2] | 46.6 [44.9–47.6] ±1.35 | 41.7 [39.8–49.5] ±7.80 | 71.3 [68.8–77.7] ±4.45 | 71.8 [71.0–76.8] ±3.10 | 70.6 [69.2–77.5] ±4.15 | 40.2 [40.1–40.4] ±0.65 |
+| bridge: outcome decode to a JS string | DIRECT | 7.30 [7.30–7.60] · p95 10.3 | 6.70 [6.60–6.90] · p95 10.0 | 3.90 [3.90–3.90] · p95 7.80 | 3.20 [3.20–3.20] · p95 8.20 | 3.30 [3.30–3.30] · p95 10.7 | 2.50 [2.50–2.50] · p95 9.10 |
+| JS: JSON.parse of the outcome | DIRECT | 64.7 [61.3–68.2] · p95 74.9 | 59.7 [56.6–61.3] · p95 70.8 | 79.9 [78.0–80.6] · p95 94.7 | 78.3 [76.6–79.8] · p95 92.4 | 80.0 [78.2–81.1] · p95 93.5 | 46.7 [46.3–49.0] · p95 58.1 |
+| whole: raw dispatch_outcome + JSON.parse | DIRECT | 138.0 [130.5–146.5] · p95 162.3 | 131.9 [124.6–135.6] · p95 170.6 | 268.9 [260.1–273.8] · p95 334.7 | 214.4 [209.2–217.3] · p95 267.8 | 284.9 [279.4–285.7] · p95 346.4 | 113.5 [113.1–119.5] · p95 144.5 |
 
 - [2] i1 abi.dispatch_outcome exec − i1 abi.dispatch_only exec
 
@@ -482,9 +453,9 @@ The unbound program is the replay program without its 39 one-line bind statement
 | primary baseline | idle tick | 13.0 [13.0–13.8] · p95 14.4 | 12.8 [11.8–13.0] · p95 13.7 | 0.20 [0.00–2.00] ±1.00 |
 | primary baseline | state-changing tick | 16.5 [16.2–17.1] · p95 17.8 | 14.2 [13.0–14.7] · p95 14.9 | 2.00 [1.80–4.10] ±1.30 |
 | primary baseline | all | 13.1 [13.0–13.8] · p95 16.1 | 12.8 [11.8–13.0] · p95 14.2 | 0.20 [0.10–2.00] ±1.00 |
-| instrumented session | idle tick | 15.0 [14.2–15.4] · p95 16.5 | 15.4 [13.7–16.7] · p95 16.5 | -1.20 [-1.70–1.70] ±2.10 |
-| instrumented session | state-changing tick | 19.0 [17.5–19.1] · p95 20.9 | 17.2 [15.6–18.8] · p95 18.9 | 0.30 [0.20–3.50] ±2.40 |
-| instrumented session | all | 15.0 [14.3–15.4] · p95 18.6 | 15.4 [13.7–16.8] · p95 17.1 | -1.10 [-1.80–1.70] ±2.10 |
+| instrumented session | idle tick | 13.0 [13.0–14.6] · p95 14.7 | 11.9 [11.8–13.5] · p95 13.1 | 1.20 [-0.50–2.70] ±1.65 |
+| instrumented session | state-changing tick | 16.8 [16.1–18.3] · p95 19.7 | 13.2 [13.2–14.9] · p95 14.2 | 2.90 [1.90–5.10] ±1.95 |
+| instrumented session | all | 13.0 [13.0–14.6] · p95 16.6 | 12.0 [11.9–13.6] · p95 13.4 | 1.10 [-0.60–2.60] ±1.65 |
 
 ## Size scaling: Glowcap with 4, 16 and 64 mushrooms (main-local)
 
@@ -508,26 +479,26 @@ Each ledger episode starts from a fresh session and its graph, journal and renew
 
 | Position and event | native apply µs | wasm dispatch_view exec µs | wasm dispatch_outcome exec µs | kit dispatch + view µs |
 | --- | --- | --- | --- | --- |
-| 00 pushed evidence [reveal] | 17.5 [17.2–20.9] | 32.7 [31.5–34.7] | 74.5 [73.5–76.6] | 143.6 [143.5–145.0] |
-| 01 pushed evidence [renew,reveal] | 22.5 [22.1–26.6] | 37.1 [35.8–39.3] | 73.1 [72.0–75.8] | 130.0 [129.2–130.7] |
-| 02 pushed evidence [renew,reveal] | 20.7 [20.3–24.6] | 34.2 [33.5–36.6] | 69.7 [68.7–72.9] | 124.6 [124.1–125.4] |
-| 03 checks evidence [sample] | 23.1 [22.5–26.7] | 36.2 [35.2–38.3] | 72.0 [70.9–74.0] | 128.2 [127.8–129.6] |
-| 04 merge refused [] reject | 3.50 [3.40–4.10] | 5.90 [5.80–6.10] | 5.70 [5.70–6.00] | 19.5 [19.4–19.8] |
-| 05 pushed evidence [reveal] | 15.0 [14.6–17.6] | 26.0 [25.5–27.3] | 60.3 [59.1–62.8] | 114.9 [114.9–116.6] |
-| 06 pushed evidence [renew,reveal] | 20.9 [20.3–24.6] | 33.3 [32.4–35.2] | 68.0 [66.2–70.6] | 123.3 [123.1–124.8] |
-| 07 pushed evidence [renew,reveal] | 21.4 [20.8–25.7] | 33.7 [32.8–35.9] | 68.8 [67.2–71.8] | 124.6 [124.4–125.5] |
-| 08 checks evidence [sample] | 22.7 [22.2–26.9] | 36.4 [35.4–38.9] | 71.6 [69.7–75.3] | 128.8 [128.6–130.2] |
-| 09 merged_elsewhere evidence [reveal] | 13.9 [13.4–16.2] | 25.4 [24.9–26.9] | 61.3 [59.2–63.7] | 119.0 [118.0–120.0] |
-| 10 gates evidence [sample] | 20.4 [19.9–24.6] | 33.9 [32.9–36.1] | 70.1 [68.8–72.7] | 131.1 [130.5–132.6] |
-| 11 approved evidence [reveal] | 15.4 [15.0–18.5] | 27.1 [26.4–28.5] | 63.7 [62.1–66.2] | 125.4 [123.9–125.8] |
-| 12 merge refused [] reject | 3.30 [3.30–3.90] | 5.50 [5.50–5.80] | 5.50 [5.50–5.70] | 21.8 [21.5–22.0] |
-| 13 pushed evidence [reveal] | 16.1 [15.6–19.3] | 28.1 [27.2–29.3] | 64.2 [63.0–66.8] | 126.1 [125.6–127.9] |
-| 14 merge refused [] reject | 4.30 [4.20–5.00] | 6.40 [6.30–6.60] | 6.50 [6.40–6.80] | 22.8 [22.7–22.9] |
-| 15 pushed evidence [reveal] | 15.6 [15.3–18.6] | 27.8 [26.9–29.3] | 63.7 [62.0–66.1] | 126.1 [125.9–128.1] |
-| 16 checks evidence [sample] | 24.1 [23.4–29.1] | 39.3 [38.5–42.1] | 77.5 [75.5–80.9] | 141.9 [141.9–144.7] |
-| 17 merge refused [] reject | 5.00 [4.80–5.80] | 7.00 [6.80–7.40] | 7.30 [7.10–7.50] | 25.0 [24.9–25.3] |
-| 18 checks evidence [sample] | 24.4 [23.8–28.4] | 39.7 [38.6–42.4] | 78.2 [76.5–81.3] | 144.4 [144.3–147.0] |
-| 19 merge refused [] reject | 5.90 [5.70–6.90] | 8.10 [8.00–8.50] | 8.10 [8.10–8.50] | 26.2 [25.9–26.3] |
+| 00 pushed evidence [reveal] | 15.2 [15.0–15.2] | 28.9 [28.8–29.3] | 68.1 [66.5–69.4] | 143.6 [143.5–145.0] |
+| 01 pushed evidence [renew,reveal] | 19.9 [19.6–20.0] | 33.0 [32.6–33.7] | 65.6 [65.5–67.5] | 130.0 [129.2–130.7] |
+| 02 pushed evidence [renew,reveal] | 18.3 [18.1–18.6] | 30.7 [30.5–31.5] | 62.5 [62.4–63.8] | 124.6 [124.1–125.4] |
+| 03 checks evidence [sample] | 20.0 [19.8–20.0] | 32.3 [32.2–32.9] | 64.0 [63.8–65.4] | 128.2 [127.8–129.6] |
+| 04 merge refused [] reject | 3.10 [3.10–3.10] | 5.30 [5.10–5.30] | 5.20 [5.20–5.40] | 19.5 [19.4–19.8] |
+| 05 pushed evidence [reveal] | 13.1 [13.0–13.2] | 23.3 [23.1–23.9] | 53.7 [53.1–54.8] | 114.9 [114.9–116.6] |
+| 06 pushed evidence [renew,reveal] | 18.3 [18.2–18.5] | 29.7 [29.7–30.4] | 60.1 [59.7–61.6] | 123.3 [123.1–124.8] |
+| 07 pushed evidence [renew,reveal] | 18.8 [18.7–19.1] | 30.1 [30.1–31.0] | 60.8 [60.7–62.4] | 124.6 [124.4–125.5] |
+| 08 checks evidence [sample] | 19.9 [19.8–20.2] | 32.6 [32.5–33.3] | 63.6 [62.6–64.6] | 128.8 [128.6–130.2] |
+| 09 merged_elsewhere evidence [reveal] | 12.1 [12.0–12.3] | 22.9 [22.7–23.3] | 53.6 [53.3–54.9] | 119.0 [118.0–120.0] |
+| 10 gates evidence [sample] | 18.1 [17.9–18.3] | 30.3 [30.0–30.9] | 62.8 [62.2–63.4] | 131.1 [130.5–132.6] |
+| 11 approved evidence [reveal] | 13.4 [13.3–13.6] | 24.3 [24.1–24.7] | 56.2 [56.0–57.5] | 125.4 [123.9–125.8] |
+| 12 merge refused [] reject | 2.90 [2.90–3.00] | 4.90 [4.90–5.00] | 5.00 [4.90–5.20] | 21.8 [21.5–22.0] |
+| 13 pushed evidence [reveal] | 14.1 [14.0–14.3] | 25.0 [24.8–25.5] | 57.1 [56.9–58.0] | 126.1 [125.6–127.9] |
+| 14 merge refused [] reject | 3.80 [3.80–3.90] | 5.70 [5.60–5.70] | 5.90 [5.80–6.00] | 22.8 [22.7–22.9] |
+| 15 pushed evidence [reveal] | 13.9 [13.8–14.0] | 24.9 [24.7–25.4] | 56.4 [56.2–57.3] | 126.1 [125.9–128.1] |
+| 16 checks evidence [sample] | 21.3 [20.9–21.5] | 35.4 [35.1–35.7] | 69.3 [67.7–69.4] | 141.9 [141.9–144.7] |
+| 17 merge refused [] reject | 4.30 [4.30–4.40] | 6.20 [6.20–6.30] | 6.60 [6.50–6.80] | 25.0 [24.9–25.3] |
+| 18 checks evidence [sample] | 21.0 [20.8–21.1] | 35.6 [35.5–36.2] | 69.5 [68.5–70.5] | 144.4 [144.3–147.0] |
+| 19 merge refused [] reject | 5.20 [5.20–5.30] | 7.20 [7.10–7.40] | 7.50 [7.30–7.60] | 26.2 [25.9–26.3] |
 
 ## (h) Native against WebAssembly, the same exported function
 
@@ -556,27 +527,27 @@ Native `web::WebReactiveSession` against the WebAssembly export's execution alon
 | primary baseline | ledger-session | save | 12.4 [12.4–13.6] · p95 16.9 | 14.8 [14.8–15.2] · p95 20.2 | 1.19× [1.12–1.19] | 2.40 [1.60–2.40] ±0.80 |
 | primary baseline | ledger-session | new (load) | 1287 [1284–1304] · p95 1356 | 1605 [1482–1616] · p95 1731 | 1.25× [1.14–1.26] | 321.7 [178.3–329.4] ±77.0 |
 | primary baseline | ledger-session | restore | 1349 [1346–1355] · p95 1476 | 1719 [1566–1723] · p95 1947 | 1.27× [1.16–1.28] | 367.5 [216.8–373.4] ±83.0 |
-| instrumented session | glowcap-replay | dispatch_view | 22.7 [21.9–23.5] · p95 26.1 | 24.9 [24.7–25.8] · p95 32.1 | 1.09× [1.06–1.18] | 2.00 [1.40–3.90] ±1.35 |
-| instrumented session | glowcap-replay | dispatch_outcome | 75.1 [69.6–77.6] · p95 83.8 | 65.7 [65.1–67.3] · p95 78.2 | 0.87× [0.84–0.97] | -9.40 [-12.5–-2.30] ±5.10 |
-| instrumented session | glowcap-replay | view | 7.50 [7.30–7.60] · p95 8.70 | 9.60 [9.20–10.1] · p95 11.1 | 1.32× [1.21–1.35] | 2.30 [1.60–2.60] ±0.60 |
-| instrumented session | glowcap-replay | snapshot (pretty) | 77.6 [76.4–79.9] · p95 89.1 | 80.1 [77.2–84.6] · p95 93.5 | 1.05× [0.97–1.09] | 3.70 [-2.70–7.00] ±5.45 |
-| instrumented session | glowcap-replay | save | 18.5 [18.1–18.8] · p95 21.4 | 17.1 [16.7–18.2] · p95 21.0 | 0.94× [0.89–0.98] | -1.00 [-2.10–-0.30] ±1.10 |
-| instrumented session | glowcap-replay | new (load) | 3034 [2840–3188] · p95 3170 | 2768 [2706–3180] · p95 3296 | 0.89× [0.87–1.12] | -327.8 [-419.5–340.0] ±410.9 |
-| instrumented session | glowcap-replay | restore | 3314 [3099–3395] · p95 3419 | 2795 [2770–3315] · p95 3609 | 0.84× [0.82–1.07] | -519.1 [-625.0–215.7] ±420.4 |
-| instrumented session | trail-rescue-scenarios | dispatch_view | 65.5 [61.1–68.6] · p95 146.8 | 75.8 [73.2–82.2] · p95 157.9 | 1.20× [1.10–1.25] | 12.1 [7.20–16.7] ±8.25 |
-| instrumented session | trail-rescue-scenarios | dispatch_outcome | 128.0 [123.2–128.6] · p95 215.0 | 154.5 [145.0–157.2] · p95 256.2 | 1.22× [1.13–1.25] | 28.6 [17.0–31.3] ±8.80 |
-| instrumented session | trail-rescue-scenarios | view | 6.80 [6.70–6.80] · p95 9.60 | 10.1 [9.60–10.4] · p95 13.9 | 1.49× [1.41–1.55] | 3.30 [2.80–3.70] ±0.45 |
-| instrumented session | trail-rescue-scenarios | snapshot (pretty) | 86.8 [86.7–88.1] · p95 103.0 | 109.8 [102.6–110.3] · p95 131.8 | 1.25× [1.18–1.27] | 22.2 [15.8–23.1] ±4.55 |
-| instrumented session | trail-rescue-scenarios | save | 11.9 [11.8–12.0] · p95 20.2 | 14.9 [14.0–15.0] · p95 25.9 | 1.24× [1.18–1.27] | 2.90 [2.10–3.20] ±0.60 |
-| instrumented session | trail-rescue-scenarios | new (load) | 3164 [3150–3232] · p95 3361 | 3241 [3221–3583] · p95 3886 | 1.02× [1.00–1.14] | 56.3 [8.90–433.1] ±222.2 |
-| instrumented session | trail-rescue-scenarios | restore | 3297 [3284–3318] · p95 3524 | 3271 [3213–3539] · p95 3879 | 1.00× [0.97–1.07] | -13.7 [-105.2–242.0] ±179.8 |
-| instrumented session | ledger-session | dispatch_view | 26.1 [25.6–27.7] · p95 35.2 | 30.6 [30.0–30.7] · p95 42.6 | 1.15× [1.11–1.20] | 3.90 [3.00–5.00] ±1.40 |
-| instrumented session | ledger-session | dispatch_outcome | 63.2 [61.9–64.7] · p95 80.8 | 66.1 [64.7–68.7] · p95 86.3 | 1.06× [1.02–1.07] | 4.00 [1.50–4.20] ±3.40 |
-| instrumented session | ledger-session | view | 5.70 [5.60–5.90] · p95 8.20 | 7.80 [7.40–7.90] · p95 10.9 | 1.39× [1.25–1.39] | 2.20 [1.50–2.20] ±0.40 |
-| instrumented session | ledger-session | snapshot (pretty) | 57.2 [56.4–58.6] · p95 69.1 | 71.6 [66.8–73.9] · p95 88.0 | 1.27× [1.14–1.29] | 15.2 [8.20–16.7] ±4.65 |
-| instrumented session | ledger-session | save | 14.0 [13.9–14.4] · p95 18.7 | 16.9 [16.2–17.4] · p95 24.3 | 1.22× [1.13–1.24] | 3.00 [1.80–3.40] ±0.85 |
-| instrumented session | ledger-session | new (load) | 1542 [1460–1589] · p95 1693 | 1645 [1587–1778] · p95 1881 | 1.12× [1.03–1.13] | 184.7 [45.2–188.5] ±159.9 |
-| instrumented session | ledger-session | restore | 1593 [1514–1659] · p95 1687 | 1780 [1736–1851] · p95 2106 | 1.12× [1.09–1.18] | 191.4 [143.4–266.7] ±130.0 |
+| instrumented session | glowcap-replay | dispatch_view | 20.1 [19.9–20.6] · p95 22.7 | 21.5 [21.4–21.7] · p95 26.7 | 1.08× [1.04–1.08] | 1.50 [0.90–1.60] ±0.50 |
+| instrumented session | glowcap-replay | dispatch_outcome | 63.3 [63.0–64.5] · p95 69.1 | 57.5 [56.9–58.6] · p95 70.8 | 0.91× [0.90–0.91] | -5.90 [-6.10–-5.80] ±1.60 |
+| instrumented session | glowcap-replay | view | 6.40 [6.40–6.60] · p95 7.30 | 8.70 [8.40–8.90] · p95 10.1 | 1.36× [1.27–1.39] | 2.30 [1.80–2.50] ±0.35 |
+| instrumented session | glowcap-replay | snapshot (pretty) | 65.9 [65.4–69.5] · p95 76.7 | 73.6 [70.5–75.2] · p95 86.9 | 1.13× [1.01–1.14] | 8.20 [1.00–9.30] ±4.40 |
+| instrumented session | glowcap-replay | save | 15.6 [15.5–16.3] · p95 18.1 | 15.8 [15.1–16.5] · p95 19.9 | 1.02× [0.93–1.06] | 0.30 [-1.20–0.90] ±1.10 |
+| instrumented session | glowcap-replay | new (load) | 2587 [2475–2735] · p95 2723 | 2538 [2505–2571] · p95 2829 | 0.98× [0.94–1.01] | -49.0 [-164.4–29.3] ±163.3 |
+| instrumented session | glowcap-replay | restore | 2795 [2670–2849] · p95 2952 | 2567 [2547–2642] · p95 2911 | 0.95× [0.90–0.95] | -152.8 [-282.4–-122.7] ±136.9 |
+| instrumented session | trail-rescue-scenarios | dispatch_view | 58.7 [58.4–60.4] · p95 132.6 | 68.3 [68.2–70.0] · p95 143.5 | 1.16× [1.13–1.20] | 9.50 [7.90–11.6] ±1.90 |
+| instrumented session | trail-rescue-scenarios | dispatch_outcome | 118.3 [116.4–123.6] · p95 195.5 | 129.6 [129.4–131.1] · p95 208.6 | 1.11× [1.05–1.11] | 12.8 [5.80–13.2] ±4.45 |
+| instrumented session | trail-rescue-scenarios | view | 6.10 [6.00–6.10] · p95 8.50 | 9.00 [8.80–9.50] · p95 12.1 | 1.48× [1.44–1.58] | 2.90 [2.70–3.50] ±0.40 |
+| instrumented session | trail-rescue-scenarios | snapshot (pretty) | 79.0 [78.9–80.1] · p95 91.4 | 97.3 [95.4–99.1] · p95 116.3 | 1.21× [1.21–1.26] | 17.2 [16.4–20.2] ±2.45 |
+| instrumented session | trail-rescue-scenarios | save | 10.7 [10.6–10.9] · p95 17.9 | 13.1 [13.0–13.4] · p95 22.8 | 1.23× [1.20–1.25] | 2.40 [2.20–2.70] ±0.35 |
+| instrumented session | trail-rescue-scenarios | new (load) | 2913 [2857–3007] · p95 2998 | 2874 [2723–3283] · p95 3504 | 1.01× [0.94–1.09] | 17.3 [-189.2–275.5] ±355.0 |
+| instrumented session | trail-rescue-scenarios | restore | 3055 [2959–3142] · p95 3169 | 2782 [2758–3291] · p95 3543 | 0.94× [0.90–1.05] | -176.9 [-297.1–148.6] ±358.2 |
+| instrumented session | ledger-session | dispatch_view | 23.1 [22.7–24.4] · p95 31.4 | 27.3 [27.2–27.3] · p95 37.1 | 1.18× [1.12–1.20] | 4.20 [2.90–4.50] ±0.90 |
+| instrumented session | ledger-session | dispatch_outcome | 56.9 [56.5–57.0] · p95 71.8 | 59.2 [59.1–59.3] · p95 77.3 | 1.04× [1.04–1.05] | 2.30 [2.10–2.80] ±0.35 |
+| instrumented session | ledger-session | view | 5.10 [5.10–5.80] · p95 7.40 | 6.70 [6.70–6.80] · p95 9.10 | 1.31× [1.16–1.33] | 1.60 [0.90–1.70] ±0.40 |
+| instrumented session | ledger-session | snapshot (pretty) | 51.4 [51.0–57.6] · p95 61.4 | 61.7 [60.9–62.7] · p95 73.9 | 1.20× [1.06–1.23] | 10.3 [3.30–11.7] ±4.20 |
+| instrumented session | ledger-session | save | 12.7 [12.6–14.1] · p95 17.0 | 14.9 [14.8–15.2] · p95 20.5 | 1.17× [1.05–1.21] | 2.20 [0.70–2.60] ±0.95 |
+| instrumented session | ledger-session | new (load) | 1332 [1302–1485] · p95 1489 | 1498 [1393–1517] · p95 1780 | 1.05× [1.02–1.15] | 60.3 [32.2–195.9] ±153.8 |
+| instrumented session | ledger-session | restore | 1388 [1379–1553] · p95 1577 | 1582 [1495–1646] · p95 1910 | 1.08× [1.06–1.14] | 115.4 [93.4–193.2] ±162.7 |
 
 Load and restore rows use the WebAssembly glue calls (`raw.new`, `raw.restore`), which add the source and save copies into memory. The runtime sets no `#[global_allocator]`, so "native" here is the Windows system heap and "wasm" is Rust's bundled dlmalloc: these ratios compare that pairing, not code generation alone.
 
@@ -669,215 +640,215 @@ Each instrumented build against the ordinary build on the same events, in the sa
 
 | Workload: events | Instrumented | Ordinary (main-local) | Statistic | instrumented µs | ordinary µs | overhead (INFERRED) | overhead % |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| glowcap-replay: all | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 22.8 | 22.7 | 0.10 [0.10–1.10] ±2.10 | 0.44% |
-| glowcap-replay: all | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 23.1 | 23.0 | 0.10 [0.05–1.23] ±1.72 | 0.42% |
-| glowcap-replay: all | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 72.2 | 75.1 | -1.80 [-5.40–-0.60] ±6.15 | -2.40% |
-| glowcap-replay: all | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 72.9 | 75.3 | -1.79 [-5.04–-1.25] ±4.43 | -2.38% |
-| glowcap-replay: all | i1 native apply / apply | apply / apply | median | 15.0 | 15.0 | 0.10 [0.00–0.20] ±1.15 | 0.67% |
-| glowcap-replay: all | i1 native apply / apply | apply / apply | mean | 15.4 | 15.5 | 0.08 [-0.10–0.14] ±0.91 | 0.54% |
-| glowcap-replay: all | i1 native read / view | read / view | median | 2.70 | 2.70 | 0.00 [0.00–0.10] ±0.15 | 0.00% |
-| glowcap-replay: all | i1 native read / view | read / view | mean | 2.74 | 2.75 | 0.02 [-0.03–0.09] ±0.17 | 0.66% |
-| glowcap-replay: all | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 24.3 | 24.9 | -0.40 [-2.90–0.10] ±1.60 | -1.61% |
-| glowcap-replay: all | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 25.1 | 26.2 | -0.55 [-2.33–-0.38] ±1.26 | -2.08% |
-| glowcap-replay: all | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 64.8 | 65.7 | -0.90 [-3.40–0.70] ±2.05 | -1.37% |
-| glowcap-replay: all | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 66.3 | 67.3 | -1.02 [-2.40–0.41] ±1.41 | -1.51% |
-| glowcap-replay: all | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 47.5 | 46.8 | 0.70 [-1.60–1.60] ±1.60 | 1.50% |
-| glowcap-replay: all | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 49.4 | 49.7 | -1.58 [-2.67–0.33] ±2.17 | -3.19% |
-| glowcap-replay: all | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 23.6 | 22.7 | 0.90 [0.60–0.90] ±1.45 | 3.96% |
-| glowcap-replay: all | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 23.9 | 23.0 | 0.89 [0.68–0.93] ±1.00 | 3.89% |
-| glowcap-replay: all | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 74.4 | 75.1 | 0.30 [-3.20–1.70] ±7.45 | 0.40% |
-| glowcap-replay: all | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 74.4 | 75.3 | -0.28 [-3.53–3.25] ±6.46 | -0.38% |
-| glowcap-replay: all | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 49.7 | 46.8 | 2.70 [1.30–2.90] ±1.20 | 5.77% |
-| glowcap-replay: all | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 52.9 | 49.3 | 3.27 [2.88–3.66] ±3.07 | 6.63% |
-| glowcap-replay: all | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 159.9 | 151.7 | 5.30 [2.20–11.3] ±7.60 | 3.49% |
-| glowcap-replay: all | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 169.3 | 154.9 | 12.7 [9.96–20.3] ±6.03 | 8.17% |
-| glowcap-replay: idle tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 22.8 | 22.7 | 0.10 [0.10–1.00] ±2.15 | 0.44% |
-| glowcap-replay: idle tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 22.9 | 22.8 | 0.11 [0.09–1.22] ±1.72 | 0.47% |
-| glowcap-replay: idle tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 72.3 | 75.2 | -1.80 [-5.50–-0.80] ±6.10 | -2.39% |
-| glowcap-replay: idle tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 72.9 | 75.3 | -1.80 [-5.20–-1.39] ±4.41 | -2.38% |
-| glowcap-replay: idle tick | i1 native apply / apply | apply / apply | median | 14.9 | 15.0 | 0.10 [-0.10–0.20] ±1.25 | 0.67% |
-| glowcap-replay: idle tick | i1 native apply / apply | apply / apply | mean | 15.1 | 15.2 | 0.11 [-0.06–0.15] ±0.87 | 0.74% |
-| glowcap-replay: idle tick | i1 native read / view | read / view | median | 2.70 | 2.80 | 0.00 [-0.10–0.00] ±0.20 | 0.00% |
-| glowcap-replay: idle tick | i1 native read / view | read / view | mean | 2.77 | 2.79 | 0.02 [-0.03–0.09] ±0.17 | 0.54% |
-| glowcap-replay: idle tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 24.2 | 24.8 | -0.40 [-2.90–0.10] ±1.60 | -1.61% |
-| glowcap-replay: idle tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 24.7 | 25.8 | -0.47 [-2.40–-0.41] ±1.32 | -1.83% |
-| glowcap-replay: idle tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 64.8 | 65.8 | -1.00 [-3.30–0.70] ±2.00 | -1.52% |
-| glowcap-replay: idle tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 66.0 | 67.0 | -1.08 [-2.52–0.67] ±1.60 | -1.61% |
-| glowcap-replay: idle tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 47.3 | 46.7 | 0.60 [-1.60–1.70] ±1.65 | 1.28% |
-| glowcap-replay: idle tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 48.9 | 49.2 | -1.62 [-2.51–0.55] ±2.21 | -3.29% |
-| glowcap-replay: idle tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 23.6 | 22.7 | 0.90 [0.60–0.90] ±1.55 | 3.96% |
-| glowcap-replay: idle tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 23.7 | 22.8 | 0.88 [0.73–0.98] ±1.04 | 3.87% |
-| glowcap-replay: idle tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 74.5 | 75.2 | 0.00 [-3.30–1.70] ±7.45 | 0.00% |
-| glowcap-replay: idle tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 74.4 | 75.3 | -0.47 [-3.63–3.28] ±6.50 | -0.63% |
-| glowcap-replay: idle tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 49.5 | 46.7 | 2.70 [1.30–2.80] ±1.30 | 5.78% |
-| glowcap-replay: idle tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 52.6 | 48.8 | 3.46 [3.39–3.77] ±3.12 | 7.09% |
-| glowcap-replay: idle tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 160.2 | 152.3 | 4.50 [2.20–11.3] ±8.35 | 2.95% |
-| glowcap-replay: idle tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 169.9 | 155.5 | 10.6 [10.1–20.6] ±7.19 | 6.81% |
-| glowcap-replay: state-changing tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 25.4 | 25.2 | 0.20 [-0.40–1.20] ±2.40 | 0.79% |
-| glowcap-replay: state-changing tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 26.0 | 26.4 | 0.24 [-0.91–1.28] ±1.94 | 0.93% |
-| glowcap-replay: state-changing tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 71.0 | 73.1 | -1.80 [-2.80–0.00] ±5.65 | -2.46% |
-| glowcap-replay: state-changing tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 72.3 | 74.1 | -1.81 [-2.66–0.84] ±4.57 | -2.44% |
-| glowcap-replay: state-changing tick | i1 native apply / apply | apply / apply | median | 18.2 | 19.0 | 0.10 [-0.80–0.10] ±1.60 | 0.53% |
-| glowcap-replay: state-changing tick | i1 native apply / apply | apply / apply | mean | 19.0 | 19.7 | -0.39 [-0.66–-0.06] ±1.46 | -1.97% |
-| glowcap-replay: state-changing tick | i1 native read / view | read / view | median | 2.10 | 2.10 | 0.00 [0.00–0.20] ±0.10 | 0.00% |
-| glowcap-replay: state-changing tick | i1 native read / view | read / view | mean | 2.16 | 2.17 | 0.06 [-0.06–0.16] ±0.15 | 2.91% |
-| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 27.8 | 28.2 | -0.10 [-0.90–0.30] ±1.15 | -0.35% |
-| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 29.9 | 30.8 | -1.14 [-1.64–0.19] ±1.01 | -3.70% |
-| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 66.1 | 64.7 | 1.50 [-0.40–1.70] ±5.40 | 2.32% |
-| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 70.7 | 71.2 | -0.54 [-3.53–0.31] ±4.76 | -0.76% |
-| glowcap-replay: state-changing tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 49.5 | 52.0 | -2.60 [-3.90–-0.10] ±1.95 | -5.00% |
-| glowcap-replay: state-changing tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 55.0 | 56.6 | -4.19 [-4.24–0.04] ±4.44 | -7.41% |
-| glowcap-replay: state-changing tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 26.2 | 25.2 | 0.50 [0.00–1.10] ±1.40 | 1.98% |
-| glowcap-replay: state-changing tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 27.0 | 26.4 | 0.26 [0.12–1.19] ±0.78 | 0.98% |
-| glowcap-replay: state-changing tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 72.1 | 73.1 | 1.30 [-1.70–2.00] ±6.20 | 1.78% |
-| glowcap-replay: state-changing tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 73.0 | 74.1 | 2.70 [-1.91–2.77] ±5.93 | 3.64% |
-| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 53.1 | 52.0 | -0.30 [-1.70–2.50] ±2.80 | -0.58% |
-| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 56.2 | 56.2 | 0.06 [-4.02–2.89] ±3.46 | 0.10% |
-| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 154.9 | 141.5 | 13.4 [2.50–27.5] ±12.5 | 9.47% |
-| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 163.9 | 149.2 | 14.6 [7.56–45.7] ±19.1 | 9.82% |
-| trail-rescue-scenarios: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 113.4 | 114.7 | -0.10 [-8.20–1.30] ±11.2 | -0.09% |
-| trail-rescue-scenarios: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 118.1 | 119.1 | -0.73 [-8.12–2.02] ±11.1 | -0.61% |
-| trail-rescue-scenarios: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 177.2 | 176.5 | 0.70 [-0.90–3.00] ±9.55 | 0.40% |
-| trail-rescue-scenarios: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 182.6 | 181.6 | 0.95 [0.01–2.98] ±9.89 | 0.52% |
-| trail-rescue-scenarios: evidence | i1 native apply / apply | apply / apply | median | 97.4 | 100.4 | 0.90 [-9.40–0.90] ±11.1 | 0.90% |
-| trail-rescue-scenarios: evidence | i1 native apply / apply | apply / apply | mean | 104.2 | 106.5 | 0.88 [-6.97–1.00] ±9.40 | 0.83% |
-| trail-rescue-scenarios: evidence | i1 native read / view | read / view | median | 1.20 | 1.10 | 0.00 [0.00–0.10] ±0.10 | 0.00% |
-| trail-rescue-scenarios: evidence | i1 native read / view | read / view | mean | 1.27 | 1.22 | 0.05 [0.04–0.07] ±0.08 | 3.84% |
-| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 125.6 | 121.9 | 3.50 [-5.20–3.70] ±14.3 | 2.87% |
-| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 131.0 | 127.3 | 3.66 [-4.59–3.76] ±13.2 | 2.88% |
-| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 199.5 | 204.9 | 3.00 [-16.1–5.20] ±14.8 | 1.46% |
-| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 204.2 | 212.0 | 0.75 [-11.8–4.36] ±12.9 | 0.35% |
-| trail-rescue-scenarios: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 158.5 | 157.4 | 1.40 [-2.60–2.80] ±11.2 | 0.89% |
-| trail-rescue-scenarios: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 165.1 | 164.8 | 0.24 [-1.29–1.32] ±11.0 | 0.15% |
-| trail-rescue-scenarios: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 115.8 | 114.7 | -0.20 [-1.30–8.10] ±9.85 | -0.17% |
-| trail-rescue-scenarios: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 121.3 | 119.1 | 0.03 [-1.08–8.39] ±9.68 | 0.03% |
-| trail-rescue-scenarios: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 184.0 | 176.5 | 7.40 [2.20–15.4] ±6.65 | 4.19% |
-| trail-rescue-scenarios: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 189.8 | 181.6 | 7.81 [1.92–16.4] ±7.42 | 4.30% |
-| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 166.3 | 157.4 | 5.20 [4.00–20.7] ±10.2 | 3.30% |
-| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 171.4 | 163.6 | 6.25 [3.30–20.2] ±9.21 | 3.82% |
-| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 306.2 | 286.9 | 20.1 [15.1–28.5] ±15.2 | 7.01% |
-| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 313.8 | 296.0 | 20.2 [13.7–27.7] ±13.5 | 6.84% |
-| trail-rescue-scenarios: commit | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 59.5 | 59.5 | -0.20 [-4.80–1.00] ±6.00 | -0.34% |
-| trail-rescue-scenarios: commit | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 62.1 | 62.6 | -0.24 [-4.22–1.19] ±6.36 | -0.39% |
-| trail-rescue-scenarios: commit | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 121.9 | 121.9 | 0.20 [0.00–3.10] ±6.85 | 0.16% |
-| trail-rescue-scenarios: commit | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 124.7 | 124.6 | 0.08 [0.04–2.36] ±6.82 | 0.06% |
-| trail-rescue-scenarios: commit | i1 native apply / apply | apply / apply | median | 45.6 | 47.0 | -0.30 [-4.70–0.50] ±4.65 | -0.64% |
-| trail-rescue-scenarios: commit | i1 native apply / apply | apply / apply | mean | 48.8 | 49.9 | 0.34 [-3.40–0.45] ±4.43 | 0.68% |
-| trail-rescue-scenarios: commit | i1 native read / view | read / view | median | 1.70 | 1.70 | 0.00 [0.00–0.00] ±0.10 | 0.00% |
-| trail-rescue-scenarios: commit | i1 native read / view | read / view | mean | 1.84 | 1.80 | 0.04 [-0.03–0.05] ±0.09 | 2.17% |
-| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 71.0 | 68.9 | 1.50 [-2.20–2.10] ±8.55 | 2.18% |
-| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 74.6 | 72.3 | 1.77 [-1.78–2.30] ±7.53 | 2.45% |
-| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 140.9 | 144.8 | 1.90 [-9.70–3.00] ±9.25 | 1.31% |
-| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 144.2 | 149.4 | 0.44 [-7.72–2.97] ±8.53 | 0.30% |
-| trail-rescue-scenarios: commit | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 104.6 | 104.7 | 0.20 [-1.70–1.70] ±7.75 | 0.19% |
-| trail-rescue-scenarios: commit | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 108.4 | 109.4 | -0.28 [-1.05–0.84] ±7.15 | -0.25% |
-| trail-rescue-scenarios: commit | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 61.6 | 59.5 | 0.70 [-1.30–5.10] ±5.30 | 1.18% |
-| trail-rescue-scenarios: commit | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 64.3 | 62.6 | 0.52 [-0.13–5.51] ±5.25 | 0.83% |
-| trail-rescue-scenarios: commit | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 126.9 | 121.9 | 5.40 [1.40–10.4] ±4.70 | 4.43% |
-| trail-rescue-scenarios: commit | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 129.3 | 124.6 | 4.57 [1.39–10.8] ±4.80 | 3.67% |
-| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 111.8 | 104.7 | 5.50 [3.00–15.0] ±6.80 | 5.25% |
-| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 115.6 | 108.9 | 9.18 [3.06–14.2] ±7.26 | 8.43% |
-| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 247.2 | 230.9 | 19.8 [12.3–25.1] ±12.7 | 8.58% |
-| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 258.5 | 238.9 | 23.2 [17.7–27.0] ±11.3 | 9.70% |
-| trail-rescue-scenarios: reopen | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 131.4 | 132.8 | -1.70 [-6.50–2.60] ±10.3 | -1.28% |
-| trail-rescue-scenarios: reopen | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 126.3 | 128.4 | -1.41 [-9.16–1.73] ±11.9 | -1.10% |
-| trail-rescue-scenarios: reopen | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 199.7 | 198.9 | 0.30 [-1.90–2.40] ±10.0 | 0.15% |
-| trail-rescue-scenarios: reopen | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 192.9 | 192.8 | 0.06 [-0.07–3.57] ±11.1 | 0.03% |
-| trail-rescue-scenarios: reopen | i1 native apply / apply | apply / apply | median | 118.4 | 121.3 | -1.40 [-4.30–0.70] ±7.35 | -1.15% |
-| trail-rescue-scenarios: reopen | i1 native apply / apply | apply / apply | mean | 113.5 | 116.3 | 0.22 [-7.59–0.86] ±9.66 | 0.19% |
-| trail-rescue-scenarios: reopen | i1 native read / view | read / view | median | 1.90 | 1.80 | 0.00 [0.00–0.10] ±0.10 | 0.00% |
-| trail-rescue-scenarios: reopen | i1 native read / view | read / view | mean | 1.96 | 1.95 | 0.02 [-0.12–0.05] ±0.10 | 1.08% |
-| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 146.3 | 140.9 | 4.50 [-1.50–5.40] ±12.5 | 3.19% |
-| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 144.5 | 139.3 | 5.18 [-3.10–5.24] ±15.9 | 3.72% |
-| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 213.8 | 222.1 | 2.10 [-12.0–4.00] ±13.2 | 0.95% |
-| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 215.5 | 222.7 | 0.93 [-12.4–4.10] ±13.5 | 0.42% |
-| trail-rescue-scenarios: reopen | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 180.1 | 179.9 | 1.00 [0.20–3.80] ±10.6 | 0.56% |
-| trail-rescue-scenarios: reopen | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 178.6 | 177.9 | 0.72 [-1.97–3.21] ±12.8 | 0.40% |
-| trail-rescue-scenarios: reopen | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 133.9 | 132.8 | 0.80 [0.50–6.70] ±7.75 | 0.60% |
-| trail-rescue-scenarios: reopen | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 131.0 | 128.4 | 0.22 [0.05–9.42] ±10.3 | 0.17% |
-| trail-rescue-scenarios: reopen | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 202.6 | 198.9 | 3.70 [-0.40–12.1] ±6.25 | 1.86% |
-| trail-rescue-scenarios: reopen | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 200.8 | 192.8 | 7.76 [1.39–18.0] ±8.39 | 4.02% |
-| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 183.4 | 179.9 | 3.50 [3.30–19.5] ±8.10 | 1.95% |
-| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 185.3 | 177.3 | 3.48 [1.91–21.2] ±11.9 | 1.96% |
-| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 326.4 | 306.0 | 20.4 [18.0–21.4] ±11.7 | 6.67% |
-| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 328.2 | 309.0 | 19.1 [15.5–30.1] ±14.3 | 6.17% |
-| trail-rescue-scenarios: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 4.90 | 4.80 | 0.10 [-0.20–0.30] ±0.45 | 2.08% |
-| trail-rescue-scenarios: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 5.16 | 5.21 | 0.03 [-0.27–0.12] ±0.59 | 0.52% |
-| trail-rescue-scenarios: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 5.30 | 5.10 | 0.20 [0.10–0.20] ±0.35 | 3.92% |
-| trail-rescue-scenarios: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 5.81 | 5.65 | 0.28 [0.16–0.30] ±0.35 | 4.88% |
-| trail-rescue-scenarios: refused | i1 native apply / apply | apply / apply | median | 3.60 | 3.60 | 0.00 [-0.10–0.00] ±0.25 | 0.00% |
-| trail-rescue-scenarios: refused | i1 native apply / apply | apply / apply | mean | 3.91 | 3.92 | 0.03 [-0.20–0.10] ±0.45 | 0.84% |
-| trail-rescue-scenarios: refused | i1 native read / view | read / view | median | 1.80 | 1.80 | 0.00 [0.00–0.00] ±0.10 | 0.00% |
-| trail-rescue-scenarios: refused | i1 native read / view | read / view | mean | 1.79 | 1.81 | -0.02 [-0.06–0.00] ±0.07 | -1.16% |
-| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 6.40 | 6.30 | 0.00 [-0.10–0.10] ±0.75 | 0.00% |
-| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 7.11 | 7.08 | -0.08 [-0.25–0.03] ±0.93 | -1.13% |
-| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 5.80 | 6.10 | -0.10 [-0.40–-0.10] ±0.35 | -1.64% |
-| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 6.57 | 6.86 | -0.04 [-0.29–0.03] ±0.40 | -0.55% |
-| trail-rescue-scenarios: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | median | 9.60 | 9.50 | 0.30 [0.10–0.30] ±1.60 | 3.16% |
-| trail-rescue-scenarios: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | mean | 10.8 | 10.5 | 0.42 [0.30–0.55] ±1.65 | 3.96% |
-| trail-rescue-scenarios: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 5.20 | 4.80 | 0.30 [0.30–0.60] ±0.40 | 6.25% |
-| trail-rescue-scenarios: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 5.47 | 5.21 | 0.26 [0.22–0.67] ±0.43 | 4.91% |
-| trail-rescue-scenarios: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 5.90 | 5.10 | 0.80 [0.60–1.10] ±0.25 | 15.7% |
-| trail-rescue-scenarios: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 6.37 | 5.65 | 0.76 [0.53–1.03] ±0.29 | 13.5% |
-| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | median | 11.5 | 9.50 | 2.90 [1.90–3.20] ±1.40 | 30.5% |
-| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | mean | 13.2 | 10.5 | 2.72 [2.71–3.32] ±1.41 | 25.9% |
-| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 10.5 | 9.00 | 1.40 [1.00–1.50] ±0.60 | 15.6% |
-| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 10.3 | 8.60 | 1.51 [1.33–1.83] ±0.48 | 17.5% |
-| ledger-session: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 29.0 | 28.4 | 0.40 [-0.30–0.60] ±2.35 | 1.41% |
-| ledger-session: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 28.7 | 28.3 | -0.21 [-0.34–0.39] ±2.61 | -0.76% |
-| ledger-session: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 65.9 | 65.8 | 0.70 [0.10–1.40] ±3.55 | 1.06% |
-| ledger-session: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 67.9 | 68.0 | 2.28 [-0.63–2.98] ±4.73 | 3.35% |
-| ledger-session: evidence | i1 native apply / apply | apply / apply | median | 20.5 | 20.6 | -0.10 [-3.40–0.20] ±2.30 | -0.49% |
-| ledger-session: evidence | i1 native apply / apply | apply / apply | mean | 19.8 | 19.8 | -0.01 [-3.49–0.31] ±2.48 | -0.05% |
-| ledger-session: evidence | i1 native read / view | read / view | median | 3.30 | 3.30 | 0.00 [0.00–0.10] ±0.15 | 0.00% |
-| ledger-session: evidence | i1 native read / view | read / view | mean | 3.36 | 3.36 | 0.00 [-0.01–0.04] ±0.14 | 0.03% |
-| ledger-session: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 33.6 | 33.5 | -0.10 [-0.20–0.10] ±1.05 | -0.30% |
-| ledger-session: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 33.8 | 33.5 | 0.08 [-0.47–0.27] ±2.02 | 0.24% |
-| ledger-session: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 68.8 | 69.4 | -0.60 [-3.40–-0.10] ±2.95 | -0.86% |
-| ledger-session: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 70.5 | 71.3 | -0.70 [-3.85–-0.51] ±3.30 | -0.98% |
-| ledger-session: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 42.8 | 42.8 | 0.50 [0.00–1.40] ±2.15 | 1.17% |
-| ledger-session: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 43.8 | 44.0 | 0.80 [-0.24–1.30] ±2.69 | 1.83% |
-| ledger-session: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 29.5 | 28.4 | 0.70 [-0.60–1.10] ±1.35 | 2.46% |
-| ledger-session: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 29.4 | 28.3 | 1.05 [-0.94–1.21] ±1.59 | 3.72% |
-| ledger-session: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 66.3 | 65.8 | 0.60 [0.50–1.10] ±2.95 | 0.91% |
-| ledger-session: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 68.8 | 68.0 | 0.79 [0.71–3.12] ±2.90 | 1.17% |
-| ledger-session: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 44.9 | 42.8 | 2.10 [0.20–5.00] ±2.40 | 4.91% |
-| ledger-session: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 46.8 | 43.5 | 3.27 [0.58–5.28] ±2.35 | 7.51% |
-| ledger-session: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 134.3 | 130.8 | 7.90 [-6.70–8.80] ±9.95 | 6.04% |
-| ledger-session: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 140.0 | 135.1 | 9.00 [-6.69–10.4] ±10.6 | 6.66% |
-| ledger-session: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 5.20 | 5.10 | 0.00 [-0.10–0.10] ±0.45 | 0.00% |
-| ledger-session: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 5.49 | 5.39 | 0.02 [0.01–0.09] ±0.50 | 0.43% |
-| ledger-session: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 6.30 | 6.30 | 0.00 [-0.10–0.10] ±0.40 | 0.00% |
-| ledger-session: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 6.55 | 6.49 | 0.06 [-0.02–0.25] ±0.38 | 0.96% |
-| ledger-session: refused | i1 native apply / apply | apply / apply | median | 4.30 | 4.30 | 0.00 [-0.70–0.00] ±0.55 | 0.00% |
-| ledger-session: refused | i1 native apply / apply | apply / apply | mean | 4.51 | 4.45 | 0.06 [-0.54–0.07] ±0.65 | 1.26% |
-| ledger-session: refused | i1 native read / view | read / view | median | 4.60 | 4.60 | 0.00 [-0.10–0.10] ±0.20 | 0.00% |
-| ledger-session: refused | i1 native read / view | read / view | mean | 4.54 | 4.51 | -0.02 [-0.03–0.03] ±0.22 | -0.40% |
-| ledger-session: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 6.70 | 6.50 | 0.10 [-0.10–0.20] ±0.30 | 1.54% |
-| ledger-session: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 7.22 | 7.06 | 0.15 [-0.51–0.23] ±0.37 | 2.18% |
-| ledger-session: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 6.60 | 6.60 | 0.00 [-0.40–0.00] ±0.30 | 0.00% |
-| ledger-session: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 6.84 | 6.88 | -0.04 [-0.31–0.04] ±0.31 | -0.58% |
-| ledger-session: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | median | 8.00 | 7.90 | 0.10 [0.10–0.20] ±0.45 | 1.27% |
-| ledger-session: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | mean | 8.65 | 8.57 | 0.19 [0.08–0.38] ±0.51 | 2.22% |
-| ledger-session: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 5.50 | 5.10 | 0.40 [0.20–0.40] ±0.30 | 7.84% |
-| ledger-session: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 5.97 | 5.39 | 0.52 [0.19–0.57] ±0.33 | 9.68% |
-| ledger-session: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 6.80 | 6.30 | 0.50 [0.40–0.50] ±0.25 | 7.94% |
-| ledger-session: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 6.95 | 6.49 | 0.47 [0.46–0.48] ±0.25 | 7.26% |
-| ledger-session: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | median | 9.80 | 7.90 | 1.90 [1.20–2.30] ±0.55 | 24.1% |
-| ledger-session: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | mean | 10.6 | 8.57 | 2.18 [1.11–2.19] ±0.61 | 25.5% |
-| ledger-session: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 9.90 | 9.00 | 1.30 [0.30–1.40] ±0.75 | 14.4% |
-| ledger-session: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 10.4 | 9.35 | 1.33 [0.25–1.42] ±0.74 | 14.2% |
+| glowcap-replay: all | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 20.2 | 20.1 | 0.00 [0.00–0.30] ±0.60 | 0.00% |
+| glowcap-replay: all | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 20.9 | 20.5 | 0.64 [0.02–0.72] ±0.92 | 3.12% |
+| glowcap-replay: all | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 64.4 | 63.3 | 1.10 [-0.50–5.20] ±4.35 | 1.74% |
+| glowcap-replay: all | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 65.1 | 64.2 | 0.92 [-0.38–4.98] ±4.13 | 1.43% |
+| glowcap-replay: all | i1 native apply / apply | apply / apply | median | 13.1 | 13.0 | 0.00 [-1.40–0.10] ±0.90 | 0.00% |
+| glowcap-replay: all | i1 native apply / apply | apply / apply | mean | 13.4 | 13.4 | -0.10 [-1.68–0.02] ±1.07 | -0.78% |
+| glowcap-replay: all | i1 native read / view | read / view | median | 2.40 | 2.40 | 0.00 [0.00–0.20] ±0.10 | 0.00% |
+| glowcap-replay: all | i1 native read / view | read / view | mean | 2.41 | 2.42 | -0.02 [-0.03–0.18] ±0.12 | -0.66% |
+| glowcap-replay: all | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 21.7 | 21.5 | 0.00 [-0.70–1.00] ±1.05 | 0.00% |
+| glowcap-replay: all | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 22.4 | 22.3 | 0.04 [-0.50–0.65] ±0.68 | 0.19% |
+| glowcap-replay: all | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 59.8 | 57.5 | 1.20 [1.00–2.90] ±2.10 | 2.09% |
+| glowcap-replay: all | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 61.1 | 59.4 | 1.65 [1.00–1.70] ±2.02 | 2.78% |
+| glowcap-replay: all | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 42.5 | 43.6 | -0.50 [-3.00–-0.30] ±3.85 | -1.15% |
+| glowcap-replay: all | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 42.9 | 43.9 | -0.13 [-3.69–0.48] ±3.20 | -0.31% |
+| glowcap-replay: all | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 20.7 | 20.1 | 0.40 [0.10–0.90] ±0.50 | 1.99% |
+| glowcap-replay: all | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 21.0 | 20.5 | 0.27 [0.06–0.96] ±0.56 | 1.32% |
+| glowcap-replay: all | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 64.6 | 63.3 | 1.20 [0.30–1.30] ±1.05 | 1.90% |
+| glowcap-replay: all | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 65.1 | 64.2 | 0.89 [0.75–0.93] ±1.36 | 1.39% |
+| glowcap-replay: all | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 43.2 | 43.6 | -1.00 [-2.30–2.80] ±2.85 | -2.29% |
+| glowcap-replay: all | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 46.2 | 43.6 | 2.69 [-0.07–4.17] ±2.14 | 6.18% |
+| glowcap-replay: all | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 137.1 | 137.6 | -2.80 [-9.00–7.50] ±9.40 | -2.03% |
+| glowcap-replay: all | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 141.9 | 142.0 | -1.17 [-4.44–10.2] ±7.82 | -0.82% |
+| glowcap-replay: idle tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 20.1 | 20.1 | 0.00 [-0.10–0.20] ±0.55 | 0.00% |
+| glowcap-replay: idle tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 20.7 | 20.4 | 0.72 [0.03–0.76] ±0.95 | 3.55% |
+| glowcap-replay: idle tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 64.5 | 63.3 | 1.20 [-0.50–5.20] ±4.35 | 1.90% |
+| glowcap-replay: idle tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 65.1 | 64.2 | 0.91 [-0.37–4.98] ±4.14 | 1.42% |
+| glowcap-replay: idle tick | i1 native apply / apply | apply / apply | median | 13.1 | 13.0 | 0.00 [-1.40–0.10] ±0.90 | 0.00% |
+| glowcap-replay: idle tick | i1 native apply / apply | apply / apply | mean | 13.2 | 13.1 | -0.12 [-1.64–0.09] ±1.07 | -0.88% |
+| glowcap-replay: idle tick | i1 native read / view | read / view | median | 2.40 | 2.40 | 0.00 [-0.10–0.20] ±0.15 | 0.00% |
+| glowcap-replay: idle tick | i1 native read / view | read / view | mean | 2.44 | 2.46 | -0.02 [-0.02–0.18] ±0.12 | -0.61% |
+| glowcap-replay: idle tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 21.5 | 21.4 | 0.10 [-0.60–0.90] ±0.85 | 0.47% |
+| glowcap-replay: idle tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 22.0 | 22.0 | -0.01 [-0.71–0.59] ±0.68 | -0.03% |
+| glowcap-replay: idle tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 59.5 | 57.5 | 1.10 [0.90–2.90] ±2.05 | 1.91% |
+| glowcap-replay: idle tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 60.8 | 59.3 | 1.52 [0.79–1.87] ±1.79 | 2.56% |
+| glowcap-replay: idle tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 42.4 | 43.4 | -0.40 [-3.00–-0.20] ±3.90 | -0.92% |
+| glowcap-replay: idle tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 42.7 | 43.5 | -0.17 [-3.43–0.46] ±3.24 | -0.39% |
+| glowcap-replay: idle tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 20.6 | 20.1 | 0.30 [0.10–0.90] ±0.50 | 1.49% |
+| glowcap-replay: idle tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 20.9 | 20.4 | 0.27 [0.10–1.03] ±0.58 | 1.31% |
+| glowcap-replay: idle tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 64.7 | 63.3 | 1.20 [0.20–1.40] ±1.00 | 1.90% |
+| glowcap-replay: idle tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 65.1 | 64.2 | 0.88 [0.75–0.94] ±1.37 | 1.37% |
+| glowcap-replay: idle tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 43.0 | 43.4 | -1.00 [-2.40–3.00] ±3.00 | -2.30% |
+| glowcap-replay: idle tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 46.0 | 43.2 | 2.92 [0.20–4.39] ±2.17 | 6.77% |
+| glowcap-replay: idle tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 137.2 | 138.0 | -3.00 [-9.30–7.60] ±9.55 | -2.17% |
+| glowcap-replay: idle tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 141.8 | 142.4 | -1.62 [-5.04–10.3] ±8.16 | -1.14% |
+| glowcap-replay: state-changing tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 22.4 | 22.6 | 0.00 [-1.20–0.20] ±0.90 | 0.00% |
+| glowcap-replay: state-changing tick | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 23.0 | 23.4 | -0.12 [-1.14–0.70] ±1.17 | -0.50% |
+| glowcap-replay: state-changing tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 62.3 | 61.6 | 0.70 [-0.50–4.80] ±4.05 | 1.14% |
+| glowcap-replay: state-changing tick | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 63.9 | 62.9 | 1.03 [-0.59–4.95] ±3.99 | 1.64% |
+| glowcap-replay: state-changing tick | i1 native apply / apply | apply / apply | median | 16.1 | 16.8 | -0.70 [-2.00–0.00] ±1.20 | -4.17% |
+| glowcap-replay: state-changing tick | i1 native apply / apply | apply / apply | mean | 16.6 | 17.7 | -1.04 [-2.23–0.10] ±1.27 | -5.90% |
+| glowcap-replay: state-changing tick | i1 native read / view | read / view | median | 1.90 | 1.90 | 0.00 [-0.10–0.10] ±0.10 | 0.00% |
+| glowcap-replay: state-changing tick | i1 native read / view | read / view | mean | 1.91 | 1.90 | -0.01 [-0.04–0.15] ±0.10 | -0.42% |
+| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 26.1 | 24.1 | 1.60 [0.80–2.00] ±2.00 | 6.64% |
+| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 28.2 | 26.8 | 1.67 [0.80–2.63] ±1.82 | 6.21% |
+| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 60.4 | 57.1 | 3.30 [-0.90–8.00] ±8.05 | 5.78% |
+| glowcap-replay: state-changing tick | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 64.8 | 62.1 | 4.46 [-1.71–4.47] ±6.39 | 7.19% |
+| glowcap-replay: state-changing tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 44.5 | 46.9 | -2.10 [-7.30–-1.70] ±2.95 | -4.48% |
+| glowcap-replay: state-changing tick | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 48.7 | 49.2 | 0.16 [-7.06–0.65] ±4.21 | 0.32% |
+| glowcap-replay: state-changing tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 22.8 | 22.6 | 0.00 [-0.50–0.50] ±0.90 | 0.00% |
+| glowcap-replay: state-changing tick | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 23.5 | 23.4 | -0.03 [-0.50–0.44] ±0.72 | -0.11% |
+| glowcap-replay: state-changing tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 63.1 | 61.6 | 0.70 [0.40–1.50] ±1.25 | 1.14% |
+| glowcap-replay: state-changing tick | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 64.0 | 62.9 | 0.84 [0.82–1.13] ±1.21 | 1.34% |
+| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 44.7 | 46.9 | -2.70 [-6.10–-2.00] ±2.60 | -5.76% |
+| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 48.0 | 48.8 | -0.89 [-4.66–0.91] ±2.79 | -1.83% |
+| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 131.2 | 131.9 | -0.30 [-2.40–6.60] ±8.40 | -0.23% |
+| glowcap-replay: state-changing tick | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 141.2 | 134.2 | 6.57 [3.75–6.99] ±4.04 | 4.90% |
+| trail-rescue-scenarios: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 104.7 | 103.4 | 2.20 [0.90–8.30] ±7.25 | 2.13% |
+| trail-rescue-scenarios: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 109.1 | 108.2 | 1.69 [0.98–9.29] ±7.09 | 1.57% |
+| trail-rescue-scenarios: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 162.7 | 162.2 | 0.50 [-5.50–1.00] ±5.25 | 0.31% |
+| trail-rescue-scenarios: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 167.8 | 166.7 | 1.10 [-5.36–1.26] ±5.69 | 0.66% |
+| trail-rescue-scenarios: evidence | i1 native apply / apply | apply / apply | median | 89.6 | 90.3 | -0.10 [-1.30–0.70] ±2.00 | -0.11% |
+| trail-rescue-scenarios: evidence | i1 native apply / apply | apply / apply | mean | 95.8 | 96.6 | -0.22 [-1.12–0.44] ±1.86 | -0.23% |
+| trail-rescue-scenarios: evidence | i1 native read / view | read / view | median | 1.10 | 1.10 | 0.00 [0.00–0.00] ±0.00 | 0.00% |
+| trail-rescue-scenarios: evidence | i1 native read / view | read / view | mean | 1.20 | 1.15 | 0.04 [0.03–0.06] ±0.02 | 3.49% |
+| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 108.8 | 110.2 | -0.80 [-6.00–2.80] ±5.50 | -0.73% |
+| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 114.2 | 115.5 | -1.04 [-4.83–1.50] ±4.32 | -0.90% |
+| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 175.0 | 173.9 | 0.00 [-0.50–4.20] ±2.90 | 0.00% |
+| trail-rescue-scenarios: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 179.6 | 178.3 | -0.12 [-1.01–4.49] ±3.50 | -0.07% |
+| trail-rescue-scenarios: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 145.9 | 142.2 | 0.80 [-1.10–6.20] ±5.10 | 0.56% |
+| trail-rescue-scenarios: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 151.1 | 147.5 | 0.58 [-1.79–5.64] ±5.41 | 0.39% |
+| trail-rescue-scenarios: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 104.7 | 103.4 | 2.20 [0.80–5.30] ±5.80 | 2.13% |
+| trail-rescue-scenarios: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 110.1 | 108.2 | 2.83 [1.13–5.70] ±5.12 | 2.61% |
+| trail-rescue-scenarios: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 165.4 | 162.2 | 0.20 [-0.30–4.40] ±8.15 | 0.12% |
+| trail-rescue-scenarios: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 170.4 | 166.7 | -0.53 [-0.65–5.03] ±8.41 | -0.32% |
+| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 143.7 | 142.2 | 1.50 [-2.10–3.10] ±4.20 | 1.05% |
+| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 149.0 | 146.5 | 2.57 [-1.53–4.19] ±4.89 | 1.75% |
+| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 273.2 | 268.9 | 4.30 [-0.60–10.9] ±7.95 | 1.60% |
+| trail-rescue-scenarios: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 281.0 | 276.5 | 4.90 [4.55–10.5] ±5.14 | 1.77% |
+| trail-rescue-scenarios: commit | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 55.1 | 54.5 | 0.60 [0.00–5.40] ±3.20 | 1.10% |
+| trail-rescue-scenarios: commit | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 57.0 | 56.7 | 0.65 [0.25–4.77] ±3.60 | 1.14% |
+| trail-rescue-scenarios: commit | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 113.1 | 113.2 | -0.10 [-3.00–0.80] ±3.60 | -0.09% |
+| trail-rescue-scenarios: commit | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 115.0 | 114.7 | 0.27 [-3.47–1.15] ±4.43 | 0.23% |
+| trail-rescue-scenarios: commit | i1 native apply / apply | apply / apply | median | 42.7 | 42.4 | 0.30 [-0.40–1.10] ±0.75 | 0.71% |
+| trail-rescue-scenarios: commit | i1 native apply / apply | apply / apply | mean | 44.9 | 45.2 | 0.13 [-0.31–0.14] ±0.80 | 0.30% |
+| trail-rescue-scenarios: commit | i1 native read / view | read / view | median | 1.50 | 1.60 | 0.00 [-0.10–0.00] ±0.10 | 0.00% |
+| trail-rescue-scenarios: commit | i1 native read / view | read / view | mean | 1.69 | 1.67 | 0.01 [-0.00–0.03] ±0.04 | 0.72% |
+| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 61.5 | 63.0 | -0.90 [-3.30–0.70] ±2.60 | -1.43% |
+| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 64.7 | 65.6 | -0.69 [-3.01–0.97] ±2.49 | -1.04% |
+| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 124.0 | 123.4 | 0.10 [-0.60–3.20] ±2.15 | 0.08% |
+| trail-rescue-scenarios: commit | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 126.5 | 126.5 | -0.55 [-1.02–3.59] ±2.58 | -0.44% |
+| trail-rescue-scenarios: commit | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 95.8 | 93.6 | 0.30 [-0.10–4.00] ±3.70 | 0.32% |
+| trail-rescue-scenarios: commit | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 98.8 | 98.1 | -0.20 [-0.91–3.76] ±2.87 | -0.21% |
+| trail-rescue-scenarios: commit | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 56.0 | 54.5 | 1.50 [1.30–4.50] ±2.10 | 2.75% |
+| trail-rescue-scenarios: commit | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 58.2 | 56.7 | 1.85 [1.25–3.55] ±2.49 | 3.27% |
+| trail-rescue-scenarios: commit | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 114.1 | 113.2 | -1.00 [-1.80–2.00] ±4.55 | -0.88% |
+| trail-rescue-scenarios: commit | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 116.0 | 114.7 | -1.43 [-1.71–2.78] ±5.88 | -1.24% |
+| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 96.0 | 93.6 | 2.40 [0.40–4.10] ±2.95 | 2.56% |
+| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 100.5 | 97.6 | 1.79 [1.67–5.92] ±3.05 | 1.84% |
+| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 221.9 | 214.4 | 7.60 [4.60–10.3] ±5.30 | 3.54% |
+| trail-rescue-scenarios: commit | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 229.7 | 220.2 | 11.2 [7.81–13.5] ±4.29 | 5.08% |
+| trail-rescue-scenarios: reopen | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 121.5 | 120.8 | 2.80 [-0.30–8.90] ±8.05 | 2.32% |
+| trail-rescue-scenarios: reopen | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 117.3 | 115.8 | 2.19 [1.51–9.24] ±7.57 | 1.89% |
+| trail-rescue-scenarios: reopen | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 183.9 | 183.0 | 0.90 [-2.60–2.70] ±4.45 | 0.49% |
+| trail-rescue-scenarios: reopen | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 176.7 | 176.6 | 0.06 [-4.99–1.91] ±7.04 | 0.03% |
+| trail-rescue-scenarios: reopen | i1 native apply / apply | apply / apply | median | 108.4 | 109.2 | 0.30 [-1.40–0.90] ±1.70 | 0.27% |
+| trail-rescue-scenarios: reopen | i1 native apply / apply | apply / apply | mean | 103.7 | 105.0 | -0.16 [-2.05–0.66] ±1.89 | -0.15% |
+| trail-rescue-scenarios: reopen | i1 native read / view | read / view | median | 1.70 | 1.70 | 0.00 [0.00–0.10] ±0.05 | 0.00% |
+| trail-rescue-scenarios: reopen | i1 native read / view | read / view | mean | 1.82 | 1.78 | 0.04 [0.02–0.05] ±0.03 | 2.02% |
+| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 127.8 | 128.8 | -0.20 [-5.30–2.60] ±4.65 | -0.16% |
+| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 124.8 | 126.1 | -1.23 [-6.01–1.53] ±4.40 | -0.97% |
+| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 192.0 | 189.9 | 1.70 [0.70–3.40] ±1.55 | 0.90% |
+| trail-rescue-scenarios: reopen | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 188.4 | 187.3 | -0.21 [-1.16–4.93] ±3.70 | -0.11% |
+| trail-rescue-scenarios: reopen | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 164.2 | 162.0 | 0.00 [-1.60–4.60] ±4.60 | 0.00% |
+| trail-rescue-scenarios: reopen | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 164.2 | 160.3 | 0.44 [-2.18–8.66] ±7.12 | 0.27% |
+| trail-rescue-scenarios: reopen | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 122.0 | 120.8 | 3.30 [0.70–4.80] ±5.50 | 2.73% |
+| trail-rescue-scenarios: reopen | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 118.5 | 115.8 | 3.64 [1.81–6.75] ±6.02 | 3.15% |
+| trail-rescue-scenarios: reopen | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 182.7 | 183.0 | -3.10 [-4.20–2.00] ±6.50 | -1.69% |
+| trail-rescue-scenarios: reopen | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 179.4 | 176.6 | -1.73 [-2.58–4.76] ±9.04 | -0.98% |
+| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 163.9 | 162.0 | 1.90 [-1.20–4.10] ±3.95 | 1.17% |
+| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 161.6 | 159.8 | 4.41 [-4.24–4.80] ±6.54 | 2.76% |
+| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 290.3 | 284.9 | 6.80 [4.60–7.90] ±5.35 | 2.39% |
+| trail-rescue-scenarios: reopen | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 295.5 | 286.5 | 9.02 [5.96–15.0] ±4.94 | 3.15% |
+| trail-rescue-scenarios: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 4.50 | 4.40 | 0.10 [0.10–0.60] ±0.25 | 2.27% |
+| trail-rescue-scenarios: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 4.69 | 4.63 | 0.09 [0.04–0.51] ±0.29 | 1.94% |
+| trail-rescue-scenarios: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 4.80 | 4.70 | 0.10 [-0.10–0.10] ±0.30 | 2.13% |
+| trail-rescue-scenarios: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 5.29 | 5.23 | 0.08 [-0.19–0.09] ±0.24 | 1.53% |
+| trail-rescue-scenarios: refused | i1 native apply / apply | apply / apply | median | 3.30 | 3.30 | 0.00 [0.00–0.00] ±0.10 | 0.00% |
+| trail-rescue-scenarios: refused | i1 native apply / apply | apply / apply | mean | 3.55 | 3.52 | 0.03 [-0.01–0.04] ±0.06 | 0.80% |
+| trail-rescue-scenarios: refused | i1 native read / view | read / view | median | 1.60 | 1.70 | -0.10 [-0.10–0.10] ±0.10 | -5.88% |
+| trail-rescue-scenarios: refused | i1 native read / view | read / view | mean | 1.66 | 1.68 | -0.02 [-0.04–0.01] ±0.03 | -1.31% |
+| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 5.30 | 5.40 | -0.10 [-0.50–0.20] ±0.35 | -1.85% |
+| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 5.89 | 6.06 | -0.16 [-0.41–0.12] ±0.27 | -2.62% |
+| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 5.00 | 4.90 | 0.10 [0.00–0.10] ±0.05 | 2.04% |
+| trail-rescue-scenarios: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 5.72 | 5.75 | -0.04 [-0.07–0.15] ±0.12 | -0.61% |
+| trail-rescue-scenarios: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | median | 8.00 | 7.90 | 0.10 [-0.30–0.60] ±0.55 | 1.27% |
+| trail-rescue-scenarios: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | mean | 8.85 | 8.93 | -0.03 [-0.39–0.38] ±0.50 | -0.37% |
+| trail-rescue-scenarios: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 4.80 | 4.40 | 0.40 [0.30–0.60] ±0.15 | 9.09% |
+| trail-rescue-scenarios: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 5.03 | 4.63 | 0.43 [0.29–0.55] ±0.18 | 9.31% |
+| trail-rescue-scenarios: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 5.30 | 4.70 | 0.50 [0.40–0.70] ±0.30 | 10.6% |
+| trail-rescue-scenarios: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 5.68 | 5.23 | 0.43 [0.33–0.57] ±0.26 | 8.28% |
+| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | median | 9.40 | 7.90 | 1.50 [1.40–1.90] ±0.35 | 19.0% |
+| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | mean | 10.2 | 8.93 | 1.27 [1.15–1.63] ±0.33 | 14.2% |
+| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 9.20 | 8.20 | 1.00 [0.60–1.10] ±0.25 | 12.2% |
+| trail-rescue-scenarios: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 8.92 | 7.92 | 1.16 [0.81–1.24] ±0.29 | 14.7% |
+| ledger-session: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 27.4 | 25.6 | 1.80 [0.20–1.80] ±1.60 | 7.03% |
+| ledger-session: evidence | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 27.1 | 25.3 | 1.28 [0.27–1.75] ±1.80 | 5.04% |
+| ledger-session: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 59.3 | 59.0 | 0.30 [-0.30–0.70] ±1.00 | 0.51% |
+| ledger-session: evidence | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 60.9 | 60.7 | 0.41 [-0.87–1.01] ±1.43 | 0.68% |
+| ledger-session: evidence | i1 native apply / apply | apply / apply | median | 18.2 | 18.2 | 0.10 [0.00–3.10] ±1.80 | 0.55% |
+| ledger-session: evidence | i1 native apply / apply | apply / apply | mean | 17.5 | 17.4 | 0.18 [-0.13–3.02] ±1.76 | 1.04% |
+| ledger-session: evidence | i1 native read / view | read / view | median | 3.00 | 3.00 | 0.00 [-0.30–0.10] ±0.20 | 0.00% |
+| ledger-session: evidence | i1 native read / view | read / view | mean | 3.10 | 3.07 | 0.03 [-0.25–0.17] ±0.21 | 0.85% |
+| ledger-session: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 29.6 | 29.9 | -0.30 [-1.00–-0.10] ±0.45 | -1.00% |
+| ledger-session: evidence | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 29.5 | 30.0 | -0.46 [-0.74–0.13] ±0.43 | -1.53% |
+| ledger-session: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 61.6 | 62.6 | -1.00 [-1.20–-0.10] ±0.55 | -1.60% |
+| ledger-session: evidence | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 62.5 | 63.6 | -0.75 [-1.36–-0.09] ±0.81 | -1.18% |
+| ledger-session: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | median | 38.9 | 38.5 | -0.20 [-0.20–0.90] ±1.45 | -0.52% |
+| ledger-session: evidence | i1 wasm raw.dispatch_view / raw.dispatch_view+parse | raw.dispatch_view / raw.dispatch_view+parse | mean | 39.9 | 39.0 | -0.20 [-0.59–1.22] ±1.82 | -0.50% |
+| ledger-session: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 26.8 | 25.6 | 1.20 [1.10–2.10] ±1.30 | 4.69% |
+| ledger-session: evidence | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 26.4 | 25.3 | 1.13 [1.09–2.48] ±1.97 | 4.46% |
+| ledger-session: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 59.7 | 59.0 | 0.70 [0.60–6.00] ±2.70 | 1.19% |
+| ledger-session: evidence | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 61.4 | 60.7 | 0.79 [0.26–5.50] ±2.71 | 1.30% |
+| ledger-session: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view+parse | median | 41.0 | 38.5 | 2.90 [2.50–3.70] ±1.60 | 7.53% |
+| ledger-session: evidence | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view + raw.dispatch_view / js.parse_view | mean | 42.2 | 38.6 | 3.57 [3.57–4.54] ±2.40 | 9.26% |
+| ledger-session: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 119.9 | 113.5 | 6.80 [-0.40–8.00] ±4.40 | 5.99% |
+| ledger-session: evidence | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 125.8 | 117.7 | 8.48 [2.64–8.72] ±3.20 | 7.21% |
+| ledger-session: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | median | 4.90 | 4.60 | 0.20 [-0.10–0.30] ±0.35 | 4.35% |
+| ledger-session: refused | i1 native web.dispatch_view / web.dispatch_view | web.dispatch_view / web.dispatch_view | mean | 5.20 | 4.89 | 0.22 [0.02–0.30] ±0.37 | 4.50% |
+| ledger-session: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | median | 5.70 | 5.80 | -0.10 [-0.10–-0.10] ±0.10 | -1.72% |
+| ledger-session: refused | i1 native web.dispatch_outcome / web.dispatch_outcome | web.dispatch_outcome / web.dispatch_outcome | mean | 5.84 | 5.87 | -0.03 [-0.06–0.02] ±0.11 | -0.48% |
+| ledger-session: refused | i1 native apply / apply | apply / apply | median | 3.90 | 3.80 | 0.10 [0.00–0.80] ±0.50 | 2.63% |
+| ledger-session: refused | i1 native apply / apply | apply / apply | mean | 4.06 | 3.94 | 0.20 [-0.03–0.83] ±0.49 | 5.02% |
+| ledger-session: refused | i1 native read / view | read / view | median | 4.20 | 4.20 | 0.00 [-0.40–0.10] ±0.25 | 0.00% |
+| ledger-session: refused | i1 native read / view | read / view | mean | 4.17 | 4.13 | 0.04 [-0.41–0.18] ±0.29 | 0.97% |
+| ledger-session: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | median | 5.70 | 5.80 | 0.00 [-0.10–0.00] ±0.10 | 0.00% |
+| ledger-session: refused | i1 wasm abi.dispatch_view / abi.exec | abi.dispatch_view / abi.exec | mean | 6.08 | 6.19 | -0.08 [-0.16–0.36] ±0.27 | -1.31% |
+| ledger-session: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | median | 5.90 | 6.10 | -0.10 [-0.20–-0.10] ±0.10 | -1.64% |
+| ledger-session: refused | i1 wasm abi.dispatch_outcome / abi.exec | abi.dispatch_outcome / abi.exec | mean | 6.14 | 6.29 | -0.16 [-0.19–-0.15] ±0.12 | -2.50% |
+| ledger-session: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | median | 7.30 | 7.10 | 0.00 [-0.10–0.20] ±0.35 | 0.00% |
+| ledger-session: refused | i1 wasm raw.dispatch_view / raw.dispatch_view | raw.dispatch_view / raw.dispatch_view | mean | 7.75 | 7.70 | 0.04 [-0.05–0.06] ±0.45 | 0.51% |
+| ledger-session: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | median | 5.10 | 4.60 | 0.50 [0.40–0.70] ±0.35 | 10.9% |
+| ledger-session: refused | i2 native probe.dispatch_view / total | web.dispatch_view / web.dispatch_view | mean | 5.35 | 4.89 | 0.46 [0.44–0.61] ±0.35 | 9.38% |
+| ledger-session: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | median | 6.10 | 5.80 | 0.30 [0.30–1.00] ±0.35 | 5.17% |
+| ledger-session: refused | i2 native probe.dispatch_outcome / total | web.dispatch_outcome / web.dispatch_outcome | mean | 6.29 | 5.87 | 0.42 [0.40–1.01] ±0.30 | 7.09% |
+| ledger-session: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | median | 8.80 | 7.10 | 1.70 [1.70–1.90] ±0.50 | 23.9% |
+| ledger-session: refused | i2 wasm probe.dispatch_view / total | raw.dispatch_view / raw.dispatch_view | mean | 9.43 | 7.70 | 1.78 [1.73–2.15] ±0.59 | 23.2% |
+| ledger-session: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 8.90 | 7.80 | 1.20 [0.90–1.30] ±0.25 | 15.4% |
+| ledger-session: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 9.30 | 8.03 | 1.40 [1.01–1.47] ±0.29 | 17.4% |
 
-Largest absolute overhead in the table above, by build and engine: i1 native 4.88%; i1 wasm 7.41%; i2 native 15.7%; i2 wasm 30.5%.
+Largest absolute overhead in the table above, by build and engine: i1 native 7.03%; i1 wasm 7.19%; i2 native 10.9%; i2 wasm 23.9%.
 
 The cost of one mark (batches of 100):
 
 | Engine | Operation | µs per call: median [runs] · p95 |
 | --- | --- | --- |
-| native | probe.mark | 0.04 [0.04–0.04] · p95 0.04 |
-| native | probe.now | 0.04 [0.04–0.04] · p95 0.04 |
-| wasm | probe.mark | 0.05 [0.05–0.06] · p95 0.06 |
-| wasm | js.performance_now | 0.04 [0.04–0.06] · p95 0.07 |
+| native | probe.mark | 0.03 [0.03–0.03] · p95 0.04 |
+| native | probe.now | 0.03 [0.03–0.03] · p95 0.03 |
+| wasm | probe.mark | 0.05 [0.04–0.05] · p95 0.05 |
+| wasm | js.performance_now | 0.04 [0.04–0.04] · p95 0.06 |
 
 ## Where the time goes inside one call (i2 marks: proportions only)
 
@@ -887,295 +858,295 @@ Each cell: the mean time per event of one disjoint region between consecutive ma
 
 | Region: share (≈ µs, INFERRED) | idle tick | state-changing tick |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.25% (≈0.06) | 0.22% (≈0.06) |
-| payload parse + name resolution | 1.70% (≈0.38) | 1.52% (≈0.40) |
-| transaction setup + session copy | 1.94% (≈0.44) | 1.69% (≈0.43) |
-| clock and due qualifications | 0.35% (≈0.08) | 0.38% (≈0.09) |
-| rules | 51.3% (≈11.7) | 52.2% (≈13.2) |
-| change detection | 1.60% (≈0.36) | 1.30% (≈0.33) |
-| binding evaluation | 5.55% (≈1.26) | 13.3% (≈3.35) |
-| commit (old session dropped) or rollback | 5.21% (≈1.18) | 4.91% (≈1.24) |
-| view: NodeId→name map | 1.86% (≈0.42) | 1.37% (≈0.34) |
-| view: symbol sort | 2.61% (≈0.58) | 1.72% (≈0.44) |
-| view: commitment records | 2.19% (≈0.49) | 1.66% (≈0.42) |
-| view: relation records | 5.87% (≈1.33) | 4.17% (≈1.05) |
-| view: assemble + drop map | 0.26% (≈0.06) | 0.23% (≈0.06) |
-| serialize (serde_json) | 16.4% (≈3.74) | 13.2% (≈3.33) |
-| drop the built view/outcome | 2.65% (≈0.61) | 1.97% (≈0.50) |
-| bridge out (return, decode, free) | 0.19% (≈0.04) | 0.17% (≈0.04) |
-| instrumented total (i2, DIRECT) | mean 23.7 µs | mean 27.0 µs |
-| ordinary reference (DIRECT median) | 22.7 µs | 25.2 µs |
-| i2 overhead (means, like for like) | 3.87% | 0.98% |
+| bridge in (JS call, argument copy) | 0.25% (≈0.05) | 0.23% (≈0.05) |
+| payload parse + name resolution | 1.68% (≈0.34) | 1.49% (≈0.34) |
+| transaction setup + session copy | 1.92% (≈0.38) | 1.70% (≈0.38) |
+| clock and due qualifications | 0.35% (≈0.07) | 0.37% (≈0.09) |
+| rules | 51.5% (≈10.4) | 52.3% (≈11.9) |
+| change detection | 1.60% (≈0.32) | 1.29% (≈0.29) |
+| binding evaluation | 5.53% (≈1.12) | 13.2% (≈2.97) |
+| commit (old session dropped) or rollback | 5.20% (≈1.05) | 4.86% (≈1.09) |
+| view: NodeId→name map | 1.93% (≈0.39) | 1.41% (≈0.32) |
+| view: symbol sort | 2.50% (≈0.50) | 1.64% (≈0.36) |
+| view: commitment records | 2.16% (≈0.44) | 1.60% (≈0.38) |
+| view: relation records | 5.85% (≈1.17) | 4.15% (≈0.94) |
+| view: assemble + drop map | 0.26% (≈0.05) | 0.23% (≈0.05) |
+| serialize (serde_json) | 16.4% (≈3.30) | 13.4% (≈3.03) |
+| drop the built view/outcome | 2.63% (≈0.54) | 2.01% (≈0.45) |
+| bridge out (return, decode, free) | 0.19% (≈0.04) | 0.16% (≈0.04) |
+| instrumented total (i2, DIRECT) | mean 20.9 µs | mean 23.5 µs |
+| ordinary reference (DIRECT median) | 20.1 µs | 22.6 µs |
+| i2 overhead (means, like for like) | 1.31% | -0.11% |
 
 ### glowcap-replay, wasm dispatch_view
 
 | Region: share (≈ µs, INFERRED) | idle tick | state-changing tick |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.46% (≈0.22) | 0.92% (≈0.47) |
-| payload parse + name resolution | 0.94% (≈0.44) | 0.99% (≈0.52) |
-| transaction setup + session copy | 0.60% (≈0.29) | 0.61% (≈0.32) |
-| clock and due qualifications | 0.16% (≈0.08) | 0.21% (≈0.11) |
-| rules | 24.3% (≈11.4) | 28.4% (≈14.5) |
-| change detection | 1.28% (≈0.61) | 1.08% (≈0.57) |
-| binding evaluation | 3.40% (≈1.59) | 8.26% (≈4.37) |
-| commit (old session dropped) or rollback | 1.67% (≈0.78) | 1.83% (≈0.95) |
-| view: NodeId→name map | 1.34% (≈0.62) | 1.07% (≈0.56) |
-| view: symbol sort | 1.35% (≈0.63) | 0.99% (≈0.52) |
-| view: commitment records | 1.26% (≈0.60) | 1.07% (≈0.55) |
-| view: relation records | 2.21% (≈1.03) | 1.77% (≈0.91) |
-| view: assemble + drop map | 0.15% (≈0.07) | 0.13% (≈0.07) |
-| serialize (serde_json) | 12.2% (≈5.63) | 11.0% (≈5.68) |
-| drop the built view/outcome | 1.03% (≈0.48) | 0.91% (≈0.47) |
-| bridge out (return, decode, free) | 9.68% (≈4.52) | 5.61% (≈2.89) |
-| JS JSON.parse | 38.2% (≈17.9) | 35.1% (≈18.0) |
-| instrumented total (i2, DIRECT) | mean 52.6 µs | mean 56.2 µs |
-| ordinary reference (DIRECT median) | 46.7 µs | 52.0 µs |
-| i2 overhead (means, like for like) | 7.09% | 0.10% |
+| bridge in (JS call, argument copy) | 0.47% (≈0.20) | 0.93% (≈0.44) |
+| payload parse + name resolution | 0.96% (≈0.42) | 1.02% (≈0.49) |
+| transaction setup + session copy | 0.60% (≈0.26) | 0.61% (≈0.29) |
+| clock and due qualifications | 0.17% (≈0.07) | 0.21% (≈0.10) |
+| rules | 24.5% (≈10.6) | 28.2% (≈13.1) |
+| change detection | 1.27% (≈0.54) | 1.04% (≈0.50) |
+| binding evaluation | 3.39% (≈1.50) | 8.22% (≈3.83) |
+| commit (old session dropped) or rollback | 1.67% (≈0.72) | 1.87% (≈0.88) |
+| view: NodeId→name map | 1.30% (≈0.59) | 1.08% (≈0.53) |
+| view: symbol sort | 1.32% (≈0.58) | 0.96% (≈0.47) |
+| view: commitment records | 1.25% (≈0.54) | 1.06% (≈0.50) |
+| view: relation records | 2.20% (≈0.95) | 1.63% (≈0.76) |
+| view: assemble + drop map | 0.14% (≈0.06) | 0.13% (≈0.06) |
+| serialize (serde_json) | 12.1% (≈5.26) | 11.1% (≈5.62) |
+| drop the built view/outcome | 1.02% (≈0.44) | 0.88% (≈0.41) |
+| bridge out (return, decode, free) | 9.11% (≈4.06) | 5.61% (≈2.62) |
+| JS JSON.parse | 38.5% (≈16.3) | 34.9% (≈16.9) |
+| instrumented total (i2, DIRECT) | mean 46.0 µs | mean 48.0 µs |
+| ordinary reference (DIRECT median) | 43.4 µs | 46.9 µs |
+| i2 overhead (means, like for like) | 6.77% | -1.83% |
 
 ### glowcap-replay, native dispatch_outcome
 
 | Region: share (≈ µs, INFERRED) | idle tick | state-changing tick |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.08% (≈0.06) | 0.08% (≈0.06) |
-| payload parse + name resolution | 0.69% (≈0.52) | 0.71% (≈0.52) |
-| transaction setup + session copy | 0.65% (≈0.49) | 0.66% (≈0.48) |
-| clock and due qualifications | 0.19% (≈0.14) | 0.22% (≈0.16) |
-| rules | 17.8% (≈13.4) | 20.7% (≈15.1) |
-| change detection | 0.66% (≈0.50) | 0.62% (≈0.45) |
-| binding evaluation | 1.85% (≈1.39) | 5.99% (≈4.39) |
-| commit (old session dropped) or rollback | 1.79% (≈1.35) | 2.07% (≈1.50) |
-| snapshot: name map + symbol sort | 2.05% (≈1.51) | 1.74% (≈1.27) |
-| snapshot: symbols + commitment records | 5.55% (≈4.18) | 4.87% (≈3.56) |
-| snapshot: bindings, values, records, static world (clones) | 27.5% (≈20.7) | 25.3% (≈18.5) |
-| snapshot: relation records + assemble | 2.45% (≈1.85) | 2.00% (≈1.45) |
-| outcome wrapper | 0.19% (≈0.14) | 0.19% (≈0.14) |
-| serialize (serde_json) | 22.4% (≈16.9) | 20.6% (≈15.0) |
-| drop the built view/outcome | 15.9% (≈12.0) | 14.3% (≈10.4) |
-| bridge out (return, decode, free) | 0.07% (≈0.05) | 0.07% (≈0.05) |
-| instrumented total (i2, DIRECT) | mean 74.4 µs | mean 73.0 µs |
-| ordinary reference (DIRECT median) | 75.2 µs | 73.1 µs |
-| i2 overhead (means, like for like) | -0.63% | 3.64% |
+| bridge in (JS call, argument copy) | 0.08% (≈0.05) | 0.09% (≈0.05) |
+| payload parse + name resolution | 0.70% (≈0.44) | 0.72% (≈0.44) |
+| transaction setup + session copy | 0.66% (≈0.42) | 0.67% (≈0.42) |
+| clock and due qualifications | 0.20% (≈0.12) | 0.23% (≈0.14) |
+| rules | 17.9% (≈11.4) | 20.7% (≈12.8) |
+| change detection | 0.67% (≈0.42) | 0.63% (≈0.39) |
+| binding evaluation | 1.86% (≈1.18) | 6.06% (≈3.76) |
+| commit (old session dropped) or rollback | 1.82% (≈1.16) | 2.07% (≈1.29) |
+| snapshot: name map + symbol sort | 2.06% (≈1.30) | 1.72% (≈1.06) |
+| snapshot: symbols + commitment records | 5.55% (≈3.51) | 4.89% (≈3.01) |
+| snapshot: bindings, values, records, static world (clones) | 27.3% (≈17.2) | 25.0% (≈15.4) |
+| snapshot: relation records + assemble | 2.45% (≈1.55) | 2.02% (≈1.24) |
+| outcome wrapper | 0.18% (≈0.12) | 0.17% (≈0.11) |
+| serialize (serde_json) | 22.5% (≈14.2) | 20.7% (≈12.8) |
+| drop the built view/outcome | 15.9% (≈10.2) | 14.2% (≈8.83) |
+| bridge out (return, decode, free) | 0.08% (≈0.05) | 0.08% (≈0.05) |
+| instrumented total (i2, DIRECT) | mean 65.1 µs | mean 64.0 µs |
+| ordinary reference (DIRECT median) | 63.3 µs | 61.6 µs |
+| i2 overhead (means, like for like) | 1.37% | 1.34% |
 
 ### glowcap-replay, wasm dispatch_outcome
 
 | Region: share (≈ µs, INFERRED) | idle tick | state-changing tick |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.19% (≈0.28) | 0.40% (≈0.57) |
-| payload parse + name resolution | 0.36% (≈0.57) | 0.44% (≈0.61) |
-| transaction setup + session copy | 0.23% (≈0.35) | 0.25% (≈0.34) |
-| clock and due qualifications | 0.06% (≈0.09) | 0.08% (≈0.11) |
-| rules | 8.40% (≈12.7) | 10.5% (≈14.8) |
-| change detection | 0.47% (≈0.70) | 0.43% (≈0.61) |
-| binding evaluation | 1.15% (≈1.75) | 3.05% (≈4.36) |
-| commit (old session dropped) or rollback | 0.74% (≈1.12) | 0.82% (≈1.14) |
-| snapshot: name map + symbol sort | 1.00% (≈1.50) | 0.83% (≈1.17) |
-| snapshot: symbols + commitment records | 2.03% (≈3.18) | 1.89% (≈2.64) |
-| snapshot: bindings, values, records, static world (clones) | 9.32% (≈14.4) | 9.65% (≈13.2) |
-| snapshot: relation records + assemble | 0.87% (≈1.37) | 0.80% (≈1.13) |
-| outcome wrapper | 0.06% (≈0.09) | 0.06% (≈0.08) |
-| serialize (serde_json) | 14.2% (≈21.6) | 13.9% (≈20.0) |
-| drop the built view/outcome | 8.27% (≈12.6) | 7.68% (≈11.3) |
-| bridge out (return, decode, free) | 7.82% (≈12.0) | 5.81% (≈8.26) |
-| JS JSON.parse | 44.9% (≈68.1) | 43.4% (≈62.1) |
-| instrumented total (i2, DIRECT) | mean 169.9 µs | mean 163.9 µs |
-| ordinary reference (DIRECT median) | 152.3 µs | 141.5 µs |
-| i2 overhead (means, like for like) | 6.81% | 9.82% |
+| bridge in (JS call, argument copy) | 0.18% (≈0.25) | 0.39% (≈0.51) |
+| payload parse + name resolution | 0.35% (≈0.48) | 0.42% (≈0.57) |
+| transaction setup + session copy | 0.22% (≈0.29) | 0.24% (≈0.30) |
+| clock and due qualifications | 0.06% (≈0.08) | 0.08% (≈0.11) |
+| rules | 8.31% (≈11.5) | 10.5% (≈14.2) |
+| change detection | 0.47% (≈0.65) | 0.42% (≈0.56) |
+| binding evaluation | 1.17% (≈1.63) | 3.10% (≈4.09) |
+| commit (old session dropped) or rollback | 0.73% (≈1.02) | 0.80% (≈1.04) |
+| snapshot: name map + symbol sort | 0.98% (≈1.35) | 0.80% (≈1.06) |
+| snapshot: symbols + commitment records | 2.01% (≈2.85) | 1.88% (≈2.48) |
+| snapshot: bindings, values, records, static world (clones) | 9.36% (≈12.9) | 9.10% (≈12.0) |
+| snapshot: relation records + assemble | 0.88% (≈1.21) | 0.77% (≈1.02) |
+| outcome wrapper | 0.06% (≈0.08) | 0.06% (≈0.08) |
+| serialize (serde_json) | 14.3% (≈19.7) | 14.2% (≈19.1) |
+| drop the built view/outcome | 8.25% (≈11.4) | 7.83% (≈10.5) |
+| bridge out (return, decode, free) | 7.63% (≈10.5) | 5.78% (≈7.63) |
+| JS JSON.parse | 45.0% (≈62.1) | 43.3% (≈56.4) |
+| instrumented total (i2, DIRECT) | mean 141.8 µs | mean 141.2 µs |
+| ordinary reference (DIRECT median) | 138.0 µs | 131.9 µs |
+| i2 overhead (means, like for like) | -1.14% | 4.90% |
 
 ### trail-rescue-scenarios, native dispatch_view
 
 | Region: share (≈ µs, INFERRED) | evidence | commit | reopen | refused |
 | --- | --- | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.08% (≈0.09) | 0.09% (≈0.06) | 0.05% (≈0.06) | 1.21% (≈0.06) |
-| payload parse + name resolution | 2.46% (≈2.82) | 2.11% (≈1.30) | 0.77% (≈1.03) | 21.6% (≈1.03) |
-| transaction setup + session copy | 0.87% (≈1.00) | 1.31% (≈0.78) | 0.55% (≈0.72) | 11.9% (≈0.59) |
-| clock and due qualifications | 0.14% (≈0.16) | 0.34% (≈0.20) | 3.70% (≈4.92) | 2.55% (≈0.12) |
-| rules | 52.6% (≈60.3) | 33.7% (≈20.0) | 45.5% (≈60.5) | 4.49% (≈0.21) |
-| change detection | 1.28% (≈1.47) | 0.41% (≈0.25) | 0.91% (≈1.20) | 0.00% (≈0.00) |
-| binding evaluation | 31.2% (≈35.8) | 40.3% (≈24.0) | 36.7% (≈48.7) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 2.23% (≈2.55) | 4.33% (≈2.58) | 2.63% (≈3.49) | 52.6% (≈2.52) |
-| view: NodeId→name map | 0.29% (≈0.33) | 0.47% (≈0.28) | 0.23% (≈0.32) | 0.00% (≈0.00) |
-| view: symbol sort | 0.59% (≈0.68) | 1.04% (≈0.62) | 0.42% (≈0.56) | 0.00% (≈0.00) |
-| view: commitment records | 0.24% (≈0.28) | 1.32% (≈0.79) | 0.58% (≈0.77) | 0.00% (≈0.00) |
-| view: relation records | 0.63% (≈0.73) | 1.50% (≈0.89) | 0.85% (≈1.15) | 0.00% (≈0.00) |
-| view: assemble + drop map | 0.05% (≈0.06) | 0.09% (≈0.06) | 0.05% (≈0.07) | 0.00% (≈0.00) |
-| serialize (serde_json) | 7.02% (≈8.05) | 12.0% (≈7.15) | 6.43% (≈8.55) | 0.00% (≈0.00) |
-| drop the built view/outcome | 0.30% (≈0.35) | 0.97% (≈0.58) | 0.55% (≈0.73) | 0.00% (≈0.00) |
-| bridge out (return, decode, free) | 0.04% (≈0.04) | 0.07% (≈0.04) | 0.04% (≈0.04) | 5.66% (≈0.27) |
-| instrumented total (i2, DIRECT) | mean 121.3 µs | mean 64.3 µs | mean 131.0 µs | mean 5.47 µs |
-| ordinary reference (DIRECT median) | 114.7 µs | 59.5 µs | 132.8 µs | 4.80 µs |
-| i2 overhead (means, like for like) | 0.03% | 0.83% | 0.17% | 4.91% |
+| bridge in (JS call, argument copy) | 0.07% (≈0.07) | 0.09% (≈0.05) | 0.04% (≈0.05) | 1.11% (≈0.05) |
+| payload parse + name resolution | 2.48% (≈2.56) | 2.15% (≈1.18) | 0.78% (≈0.93) | 21.5% (≈0.95) |
+| transaction setup + session copy | 0.88% (≈0.93) | 1.31% (≈0.72) | 0.54% (≈0.65) | 11.8% (≈0.52) |
+| clock and due qualifications | 0.14% (≈0.14) | 0.34% (≈0.19) | 3.70% (≈4.47) | 2.53% (≈0.11) |
+| rules | 52.7% (≈54.6) | 33.7% (≈18.4) | 45.6% (≈55.1) | 4.43% (≈0.19) |
+| change detection | 1.28% (≈1.33) | 0.41% (≈0.22) | 0.91% (≈1.10) | 0.00% (≈0.00) |
+| binding evaluation | 31.1% (≈32.2) | 40.3% (≈22.0) | 36.7% (≈44.3) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 2.22% (≈2.29) | 4.30% (≈2.34) | 2.62% (≈3.17) | 52.6% (≈2.31) |
+| view: NodeId→name map | 0.29% (≈0.30) | 0.47% (≈0.26) | 0.23% (≈0.28) | 0.00% (≈0.00) |
+| view: symbol sort | 0.58% (≈0.60) | 1.05% (≈0.57) | 0.43% (≈0.51) | 0.00% (≈0.00) |
+| view: commitment records | 0.24% (≈0.25) | 1.33% (≈0.72) | 0.58% (≈0.71) | 0.00% (≈0.00) |
+| view: relation records | 0.62% (≈0.65) | 1.49% (≈0.81) | 0.86% (≈1.04) | 0.00% (≈0.00) |
+| view: assemble + drop map | 0.05% (≈0.05) | 0.10% (≈0.05) | 0.05% (≈0.06) | 0.00% (≈0.00) |
+| serialize (serde_json) | 6.89% (≈7.13) | 12.0% (≈6.54) | 6.37% (≈7.68) | 0.00% (≈0.00) |
+| drop the built view/outcome | 0.31% (≈0.32) | 0.96% (≈0.53) | 0.55% (≈0.67) | 0.00% (≈0.00) |
+| bridge out (return, decode, free) | 0.04% (≈0.04) | 0.07% (≈0.04) | 0.03% (≈0.04) | 5.75% (≈0.25) |
+| instrumented total (i2, DIRECT) | mean 110.1 µs | mean 58.2 µs | mean 118.5 µs | mean 5.03 µs |
+| ordinary reference (DIRECT median) | 103.4 µs | 54.5 µs | 120.8 µs | 4.40 µs |
+| i2 overhead (means, like for like) | 2.61% | 3.27% | 3.15% | 9.31% |
 
 ### trail-rescue-scenarios, wasm dispatch_view
 
 | Region: share (≈ µs, INFERRED) | evidence | commit | reopen | refused |
 | --- | --- | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.57% (≈0.92) | 0.58% (≈0.62) | 0.30% (≈0.54) | 4.76% (≈0.44) |
-| payload parse + name resolution | 2.28% (≈3.59) | 1.56% (≈1.60) | 0.79% (≈1.42) | 12.7% (≈1.15) |
-| transaction setup + session copy | 0.60% (≈0.95) | 0.61% (≈0.64) | 0.36% (≈0.65) | 4.45% (≈0.39) |
-| clock and due qualifications | 0.11% (≈0.16) | 0.19% (≈0.19) | 2.98% (≈5.37) | 1.32% (≈0.11) |
-| rules | 41.3% (≈64.9) | 22.2% (≈22.8) | 36.5% (≈65.1) | 1.78% (≈0.16) |
-| change detection | 1.08% (≈1.69) | 0.34% (≈0.36) | 0.87% (≈1.57) | 0.00% (≈0.00) |
-| binding evaluation | 23.1% (≈36.4) | 26.6% (≈27.6) | 28.0% (≈50.3) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 1.97% (≈3.10) | 3.09% (≈3.14) | 2.64% (≈4.69) | 25.4% (≈2.26) |
-| view: NodeId→name map | 0.35% (≈0.56) | 0.48% (≈0.49) | 0.30% (≈0.53) | 0.00% (≈0.00) |
-| view: symbol sort | 0.54% (≈0.84) | 0.76% (≈0.79) | 0.43% (≈0.72) | 0.00% (≈0.00) |
-| view: commitment records | 0.24% (≈0.37) | 0.87% (≈0.89) | 0.46% (≈0.82) | 0.00% (≈0.00) |
-| view: relation records | 0.37% (≈0.59) | 0.79% (≈0.83) | 0.59% (≈1.07) | 0.00% (≈0.00) |
-| view: assemble + drop map | 0.06% (≈0.10) | 0.08% (≈0.08) | 0.05% (≈0.09) | 0.00% (≈0.00) |
-| serialize (serde_json) | 6.94% (≈10.9) | 10.5% (≈11.0) | 6.61% (≈11.9) | 0.00% (≈0.00) |
-| drop the built view/outcome | 0.25% (≈0.39) | 0.74% (≈0.78) | 0.54% (≈0.98) | 0.00% (≈0.00) |
-| bridge out (return, decode, free) | 1.76% (≈2.76) | 1.72% (≈1.80) | 1.12% (≈2.02) | 46.7% (≈4.24) |
-| JS JSON.parse | 18.4% (≈29.1) | 28.3% (≈29.6) | 17.5% (≈31.1) | 0.00% (≈0.00) |
-| instrumented total (i2, DIRECT) | mean 171.4 µs | mean 115.6 µs | mean 185.3 µs | mean 13.2 µs |
-| ordinary reference (DIRECT median) | 157.4 µs | 104.7 µs | 179.9 µs | 9.50 µs |
-| i2 overhead (means, like for like) | 3.82% | 8.43% | 1.96% | 25.9% |
+| bridge in (JS call, argument copy) | 0.55% (≈0.79) | 0.57% (≈0.55) | 0.28% (≈0.46) | 5.06% (≈0.40) |
+| payload parse + name resolution | 2.26% (≈3.25) | 1.54% (≈1.48) | 0.79% (≈1.27) | 14.1% (≈1.11) |
+| transaction setup + session copy | 0.58% (≈0.83) | 0.61% (≈0.57) | 0.36% (≈0.60) | 4.69% (≈0.37) |
+| clock and due qualifications | 0.10% (≈0.15) | 0.20% (≈0.18) | 2.92% (≈4.73) | 1.36% (≈0.11) |
+| rules | 41.7% (≈59.1) | 22.4% (≈20.9) | 36.4% (≈58.3) | 2.04% (≈0.16) |
+| change detection | 1.08% (≈1.56) | 0.35% (≈0.33) | 0.86% (≈1.39) | 0.00% (≈0.00) |
+| binding evaluation | 23.2% (≈33.3) | 26.8% (≈25.1) | 28.1% (≈45.1) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 1.94% (≈2.78) | 3.05% (≈2.86) | 2.65% (≈4.24) | 28.1% (≈2.21) |
+| view: NodeId→name map | 0.36% (≈0.51) | 0.48% (≈0.45) | 0.30% (≈0.49) | 0.00% (≈0.00) |
+| view: symbol sort | 0.56% (≈0.80) | 0.80% (≈0.75) | 0.44% (≈0.71) | 0.00% (≈0.00) |
+| view: commitment records | 0.24% (≈0.35) | 0.86% (≈0.84) | 0.46% (≈0.74) | 0.00% (≈0.00) |
+| view: relation records | 0.37% (≈0.54) | 0.81% (≈0.76) | 0.59% (≈0.94) | 0.00% (≈0.00) |
+| view: assemble + drop map | 0.06% (≈0.09) | 0.08% (≈0.08) | 0.05% (≈0.08) | 0.00% (≈0.00) |
+| serialize (serde_json) | 6.88% (≈9.84) | 10.5% (≈9.88) | 6.56% (≈10.5) | 0.00% (≈0.00) |
+| drop the built view/outcome | 0.24% (≈0.35) | 0.74% (≈0.69) | 0.53% (≈0.86) | 0.00% (≈0.00) |
+| bridge out (return, decode, free) | 1.88% (≈2.63) | 2.29% (≈2.14) | 1.10% (≈1.80) | 44.7% (≈3.53) |
+| JS JSON.parse | 18.0% (≈25.8) | 28.0% (≈25.9) | 17.5% (≈29.1) | 0.00% (≈0.00) |
+| instrumented total (i2, DIRECT) | mean 149.0 µs | mean 100.5 µs | mean 161.6 µs | mean 10.2 µs |
+| ordinary reference (DIRECT median) | 142.2 µs | 93.6 µs | 162.0 µs | 7.90 µs |
+| i2 overhead (means, like for like) | 1.75% | 1.84% | 2.76% | 14.2% |
 
 ### trail-rescue-scenarios, native dispatch_outcome
 
 | Region: share (≈ µs, INFERRED) | evidence | commit | reopen | refused |
 | --- | --- | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.06% (≈0.10) | 0.05% (≈0.06) | 0.03% (≈0.07) | 1.18% (≈0.06) |
-| payload parse + name resolution | 1.72% (≈2.99) | 1.22% (≈1.49) | 0.61% (≈1.22) | 20.8% (≈1.06) |
-| transaction setup + session copy | 0.61% (≈1.08) | 0.68% (≈0.82) | 0.39% (≈0.77) | 10.9% (≈0.56) |
-| clock and due qualifications | 0.09% (≈0.16) | 0.15% (≈0.19) | 2.60% (≈5.18) | 2.23% (≈0.11) |
-| rules | 35.1% (≈61.7) | 17.9% (≈21.6) | 31.2% (≈62.0) | 3.85% (≈0.20) |
-| change detection | 0.86% (≈1.52) | 0.22% (≈0.26) | 0.63% (≈1.25) | 0.00% (≈0.00) |
-| binding evaluation | 20.7% (≈36.6) | 21.4% (≈26.0) | 25.4% (≈50.4) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 1.51% (≈2.62) | 2.28% (≈2.73) | 1.86% (≈3.69) | 49.9% (≈2.54) |
-| snapshot: name map + symbol sort | 0.70% (≈1.23) | 0.97% (≈1.19) | 0.55% (≈1.09) | 0.00% (≈0.00) |
-| snapshot: symbols + commitment records | 1.55% (≈2.73) | 2.43% (≈2.95) | 1.56% (≈3.10) | 0.00% (≈0.00) |
-| snapshot: bindings, values, records, static world (clones) | 16.0% (≈28.3) | 22.8% (≈27.8) | 15.2% (≈30.2) | 0.00% (≈0.00) |
-| snapshot: relation records + assemble | 0.54% (≈0.94) | 0.98% (≈1.17) | 0.72% (≈1.40) | 0.00% (≈0.00) |
-| outcome wrapper | 0.13% (≈0.21) | 0.12% (≈0.15) | 0.08% (≈0.16) | 3.55% (≈0.18) |
-| serialize (serde_json) | 13.1% (≈23.2) | 17.6% (≈21.5) | 11.7% (≈23.2) | 5.75% (≈0.29) |
-| drop the built view/outcome | 7.20% (≈12.7) | 10.9% (≈13.3) | 7.44% (≈14.8) | 0.97% (≈0.05) |
-| bridge out (return, decode, free) | 0.03% (≈0.05) | 0.05% (≈0.05) | 0.03% (≈0.05) | 0.74% (≈0.04) |
-| instrumented total (i2, DIRECT) | mean 189.8 µs | mean 129.3 µs | mean 200.8 µs | mean 6.37 µs |
-| ordinary reference (DIRECT median) | 176.5 µs | 121.9 µs | 198.9 µs | 5.10 µs |
-| i2 overhead (means, like for like) | 4.30% | 3.67% | 4.02% | 13.5% |
+| bridge in (JS call, argument copy) | 0.05% (≈0.07) | 0.05% (≈0.05) | 0.03% (≈0.06) | 1.07% (≈0.05) |
+| payload parse + name resolution | 1.72% (≈2.79) | 1.23% (≈1.42) | 0.61% (≈1.11) | 21.0% (≈0.97) |
+| transaction setup + session copy | 0.60% (≈0.97) | 0.70% (≈0.79) | 0.40% (≈0.73) | 11.0% (≈0.52) |
+| clock and due qualifications | 0.09% (≈0.15) | 0.16% (≈0.18) | 2.62% (≈4.80) | 2.22% (≈0.10) |
+| rules | 35.2% (≈57.1) | 17.8% (≈20.1) | 31.0% (≈56.7) | 3.87% (≈0.18) |
+| change detection | 0.87% (≈1.44) | 0.22% (≈0.25) | 0.63% (≈1.18) | 0.00% (≈0.00) |
+| binding evaluation | 20.8% (≈33.7) | 21.4% (≈24.3) | 25.3% (≈46.7) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 1.49% (≈2.42) | 2.25% (≈2.58) | 1.87% (≈3.42) | 49.7% (≈2.33) |
+| snapshot: name map + symbol sort | 0.70% (≈1.14) | 0.97% (≈1.11) | 0.56% (≈1.02) | 0.00% (≈0.00) |
+| snapshot: symbols + commitment records | 1.53% (≈2.48) | 2.45% (≈2.78) | 1.58% (≈2.89) | 0.00% (≈0.00) |
+| snapshot: bindings, values, records, static world (clones) | 16.1% (≈26.0) | 22.9% (≈25.9) | 15.3% (≈27.9) | 0.00% (≈0.00) |
+| snapshot: relation records + assemble | 0.54% (≈0.87) | 0.96% (≈1.09) | 0.70% (≈1.31) | 0.00% (≈0.00) |
+| outcome wrapper | 0.13% (≈0.21) | 0.12% (≈0.14) | 0.08% (≈0.14) | 3.48% (≈0.16) |
+| serialize (serde_json) | 13.0% (≈21.1) | 17.7% (≈20.0) | 11.7% (≈21.4) | 5.75% (≈0.26) |
+| drop the built view/outcome | 7.23% (≈11.7) | 11.0% (≈12.4) | 7.50% (≈13.6) | 1.06% (≈0.05) |
+| bridge out (return, decode, free) | 0.03% (≈0.05) | 0.04% (≈0.05) | 0.03% (≈0.05) | 0.72% (≈0.03) |
+| instrumented total (i2, DIRECT) | mean 170.4 µs | mean 116.0 µs | mean 179.4 µs | mean 5.68 µs |
+| ordinary reference (DIRECT median) | 162.2 µs | 113.2 µs | 183.0 µs | 4.70 µs |
+| i2 overhead (means, like for like) | -0.32% | -1.24% | -0.98% | 8.28% |
 
 ### trail-rescue-scenarios, wasm dispatch_outcome
 
 | Region: share (≈ µs, INFERRED) | evidence | commit | reopen | refused |
 | --- | --- | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.35% (≈1.00) | 0.34% (≈0.78) | 0.21% (≈0.64) | 6.68% (≈0.60) |
-| payload parse + name resolution | 1.35% (≈3.88) | 0.87% (≈2.00) | 0.54% (≈1.64) | 18.7% (≈1.66) |
-| transaction setup + session copy | 0.34% (≈0.97) | 0.30% (≈0.69) | 0.23% (≈0.69) | 6.19% (≈0.56) |
-| clock and due qualifications | 0.05% (≈0.16) | 0.08% (≈0.19) | 1.67% (≈5.12) | 1.37% (≈0.12) |
-| rules | 22.7% (≈65.1) | 10.2% (≈23.7) | 20.6% (≈62.6) | 2.45% (≈0.22) |
-| change detection | 0.59% (≈1.66) | 0.16% (≈0.37) | 0.49% (≈1.50) | 0.00% (≈0.00) |
-| binding evaluation | 12.7% (≈36.5) | 12.1% (≈27.8) | 16.2% (≈48.9) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 1.10% (≈3.15) | 1.45% (≈3.31) | 1.49% (≈4.55) | 34.5% (≈3.05) |
-| snapshot: name map + symbol sort | 0.58% (≈1.65) | 0.65% (≈1.48) | 0.48% (≈1.45) | 0.00% (≈0.00) |
-| snapshot: symbols + commitment records | 0.96% (≈2.72) | 1.31% (≈2.98) | 1.00% (≈2.97) | 0.00% (≈0.00) |
-| snapshot: bindings, values, records, static world (clones) | 9.05% (≈25.7) | 10.4% (≈24.0) | 8.28% (≈25.3) | 0.00% (≈0.00) |
-| snapshot: relation records + assemble | 0.23% (≈0.67) | 0.34% (≈0.79) | 0.30% (≈0.94) | 0.00% (≈0.00) |
-| outcome wrapper | 0.06% (≈0.18) | 0.06% (≈0.15) | 0.05% (≈0.14) | 2.67% (≈0.24) |
-| serialize (serde_json) | 11.1% (≈31.6) | 12.9% (≈29.9) | 10.2% (≈31.3) | 5.48% (≈0.49) |
-| drop the built view/outcome | 7.10% (≈20.4) | 8.97% (≈20.7) | 7.37% (≈22.5) | 0.75% (≈0.07) |
-| bridge out (return, decode, free) | 2.61% (≈7.59) | 4.98% (≈11.5) | 3.09% (≈9.52) | 7.36% (≈0.67) |
-| JS JSON.parse | 29.2% (≈83.7) | 34.6% (≈80.1) | 27.7% (≈84.5) | 14.3% (≈1.28) |
-| instrumented total (i2, DIRECT) | mean 313.8 µs | mean 258.5 µs | mean 328.2 µs | mean 10.3 µs |
-| ordinary reference (DIRECT median) | 286.9 µs | 230.9 µs | 306.0 µs | 9.00 µs |
-| i2 overhead (means, like for like) | 6.84% | 9.70% | 6.17% | 17.5% |
+| bridge in (JS call, argument copy) | 0.35% (≈0.92) | 0.34% (≈0.71) | 0.21% (≈0.61) | 6.91% (≈0.58) |
+| payload parse + name resolution | 1.37% (≈3.70) | 0.87% (≈1.86) | 0.56% (≈1.58) | 18.9% (≈1.55) |
+| transaction setup + session copy | 0.33% (≈0.89) | 0.30% (≈0.62) | 0.22% (≈0.64) | 5.83% (≈0.47) |
+| clock and due qualifications | 0.06% (≈0.15) | 0.08% (≈0.17) | 1.66% (≈4.73) | 1.37% (≈0.11) |
+| rules | 22.7% (≈61.1) | 10.2% (≈21.9) | 20.4% (≈58.3) | 2.60% (≈0.21) |
+| change detection | 0.60% (≈1.60) | 0.16% (≈0.35) | 0.50% (≈1.44) | 0.00% (≈0.00) |
+| binding evaluation | 12.8% (≈34.4) | 12.1% (≈26.0) | 16.0% (≈45.7) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 1.10% (≈2.96) | 1.46% (≈3.10) | 1.52% (≈4.29) | 34.3% (≈2.80) |
+| snapshot: name map + symbol sort | 0.59% (≈1.58) | 0.67% (≈1.41) | 0.50% (≈1.42) | 0.00% (≈0.00) |
+| snapshot: symbols + commitment records | 0.96% (≈2.55) | 1.33% (≈2.85) | 1.00% (≈2.86) | 0.00% (≈0.00) |
+| snapshot: bindings, values, records, static world (clones) | 9.06% (≈24.4) | 10.4% (≈22.3) | 8.21% (≈23.4) | 0.00% (≈0.00) |
+| snapshot: relation records + assemble | 0.24% (≈0.64) | 0.34% (≈0.74) | 0.30% (≈0.86) | 0.00% (≈0.00) |
+| outcome wrapper | 0.06% (≈0.16) | 0.06% (≈0.13) | 0.05% (≈0.13) | 2.76% (≈0.23) |
+| serialize (serde_json) | 11.1% (≈30.0) | 13.2% (≈27.9) | 10.3% (≈29.3) | 5.79% (≈0.47) |
+| drop the built view/outcome | 7.14% (≈19.2) | 9.04% (≈19.4) | 7.35% (≈20.9) | 0.79% (≈0.07) |
+| bridge out (return, decode, free) | 2.85% (≈7.41) | 5.03% (≈10.5) | 3.72% (≈10.6) | 7.44% (≈0.61) |
+| JS JSON.parse | 28.9% (≈78.1) | 34.6% (≈74.1) | 27.4% (≈78.3) | 13.3% (≈1.09) |
+| instrumented total (i2, DIRECT) | mean 281.0 µs | mean 229.7 µs | mean 295.5 µs | mean 8.92 µs |
+| ordinary reference (DIRECT median) | 268.9 µs | 214.4 µs | 284.9 µs | 8.20 µs |
+| i2 overhead (means, like for like) | 1.77% | 5.08% | 3.15% | 14.7% |
 
 ### ledger-session, native dispatch_view
 
 | Region: share (≈ µs, INFERRED) | evidence | refused |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.18% (≈0.05) | 0.87% (≈0.04) |
-| payload parse + name resolution | 4.18% (≈1.19) | 13.6% (≈0.69) |
-| transaction setup + session copy | 2.46% (≈0.70) | 10.5% (≈0.55) |
-| clock and due qualifications | 0.57% (≈0.16) | 3.00% (≈0.15) |
-| rules | 41.2% (≈11.8) | 3.19% (≈0.17) |
-| change detection | 0.72% (≈0.21) | 0.00% (≈0.00) |
-| binding evaluation | 16.5% (≈4.73) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 9.24% (≈2.64) | 65.3% (≈3.33) |
-| view: NodeId→name map | 2.00% (≈0.57) | 0.00% (≈0.00) |
-| view: symbol sort | 7.23% (≈2.05) | 0.00% (≈0.00) |
-| view: commitment records | 1.89% (≈0.54) | 0.00% (≈0.00) |
-| view: relation records | 3.95% (≈1.12) | 0.00% (≈0.00) |
-| view: assemble + drop map | 0.21% (≈0.06) | 0.00% (≈0.00) |
-| serialize (serde_json) | 7.99% (≈2.27) | 0.00% (≈0.00) |
-| drop the built view/outcome | 1.42% (≈0.41) | 0.00% (≈0.00) |
-| bridge out (return, decode, free) | 0.15% (≈0.04) | 3.40% (≈0.17) |
-| instrumented total (i2, DIRECT) | mean 29.4 µs | mean 5.97 µs |
-| ordinary reference (DIRECT median) | 28.4 µs | 5.10 µs |
-| i2 overhead (means, like for like) | 3.72% | 9.68% |
+| bridge in (JS call, argument copy) | 0.18% (≈0.05) | 0.88% (≈0.04) |
+| payload parse + name resolution | 4.26% (≈1.09) | 13.8% (≈0.64) |
+| transaction setup + session copy | 2.43% (≈0.63) | 10.7% (≈0.49) |
+| clock and due qualifications | 0.57% (≈0.15) | 3.02% (≈0.14) |
+| rules | 41.1% (≈10.5) | 3.25% (≈0.15) |
+| change detection | 0.72% (≈0.18) | 0.00% (≈0.00) |
+| binding evaluation | 16.5% (≈4.22) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 9.24% (≈2.38) | 65.0% (≈3.00) |
+| view: NodeId→name map | 2.04% (≈0.52) | 0.00% (≈0.00) |
+| view: symbol sort | 7.27% (≈1.86) | 0.00% (≈0.00) |
+| view: commitment records | 1.91% (≈0.49) | 0.00% (≈0.00) |
+| view: relation records | 3.84% (≈0.98) | 0.00% (≈0.00) |
+| view: assemble + drop map | 0.22% (≈0.06) | 0.00% (≈0.00) |
+| serialize (serde_json) | 7.90% (≈2.04) | 0.00% (≈0.00) |
+| drop the built view/outcome | 1.45% (≈0.37) | 0.00% (≈0.00) |
+| bridge out (return, decode, free) | 0.15% (≈0.04) | 3.42% (≈0.16) |
+| instrumented total (i2, DIRECT) | mean 26.4 µs | mean 5.35 µs |
+| ordinary reference (DIRECT median) | 25.6 µs | 4.60 µs |
+| i2 overhead (means, like for like) | 4.46% | 9.38% |
 
 ### ledger-session, wasm dispatch_view
 
 | Region: share (≈ µs, INFERRED) | evidence | refused |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.93% (≈0.40) | 3.40% (≈0.27) |
-| payload parse + name resolution | 4.10% (≈1.78) | 11.2% (≈0.88) |
-| transaction setup + session copy | 1.38% (≈0.59) | 5.21% (≈0.41) |
-| clock and due qualifications | 0.38% (≈0.17) | 1.66% (≈0.14) |
-| rules | 28.5% (≈12.2) | 2.38% (≈0.20) |
-| change detection | 0.69% (≈0.30) | 0.00% (≈0.00) |
-| binding evaluation | 11.6% (≈4.95) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 8.77% (≈3.76) | 41.7% (≈3.29) |
-| view: NodeId→name map | 1.97% (≈0.86) | 0.00% (≈0.00) |
-| view: symbol sort | 4.95% (≈2.12) | 0.00% (≈0.00) |
-| view: commitment records | 1.64% (≈0.69) | 0.00% (≈0.00) |
-| view: relation records | 2.11% (≈0.90) | 0.00% (≈0.00) |
-| view: assemble + drop map | 0.19% (≈0.08) | 0.00% (≈0.00) |
-| serialize (serde_json) | 8.51% (≈3.62) | 0.00% (≈0.00) |
-| drop the built view/outcome | 1.52% (≈0.65) | 0.00% (≈0.00) |
-| bridge out (return, decode, free) | 2.44% (≈1.06) | 34.5% (≈2.73) |
-| JS JSON.parse | 19.3% (≈8.10) | 0.00% (≈0.00) |
-| instrumented total (i2, DIRECT) | mean 46.8 µs | mean 10.6 µs |
-| ordinary reference (DIRECT median) | 42.8 µs | 7.90 µs |
-| i2 overhead (means, like for like) | 7.51% | 25.5% |
+| bridge in (JS call, argument copy) | 0.94% (≈0.36) | 3.49% (≈0.25) |
+| payload parse + name resolution | 4.14% (≈1.61) | 11.6% (≈0.82) |
+| transaction setup + session copy | 1.41% (≈0.55) | 5.23% (≈0.37) |
+| clock and due qualifications | 0.40% (≈0.15) | 1.63% (≈0.12) |
+| rules | 28.5% (≈11.1) | 2.27% (≈0.16) |
+| change detection | 0.67% (≈0.26) | 0.00% (≈0.00) |
+| binding evaluation | 11.4% (≈4.38) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 8.84% (≈3.40) | 41.2% (≈2.94) |
+| view: NodeId→name map | 2.04% (≈0.77) | 0.00% (≈0.00) |
+| view: symbol sort | 4.93% (≈1.93) | 0.00% (≈0.00) |
+| view: commitment records | 1.66% (≈0.64) | 0.00% (≈0.00) |
+| view: relation records | 2.12% (≈0.83) | 0.00% (≈0.00) |
+| view: assemble + drop map | 0.20% (≈0.07) | 0.00% (≈0.00) |
+| serialize (serde_json) | 8.54% (≈3.27) | 0.00% (≈0.00) |
+| drop the built view/outcome | 1.55% (≈0.61) | 0.00% (≈0.00) |
+| bridge out (return, decode, free) | 2.50% (≈0.96) | 34.7% (≈2.46) |
+| JS JSON.parse | 19.8% (≈7.63) | 0.00% (≈0.00) |
+| instrumented total (i2, DIRECT) | mean 42.2 µs | mean 9.43 µs |
+| ordinary reference (DIRECT median) | 38.5 µs | 7.10 µs |
+| i2 overhead (means, like for like) | 9.26% | 23.2% |
 
 ### ledger-session, native dispatch_outcome
 
 | Region: share (≈ µs, INFERRED) | evidence | refused |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.08% (≈0.05) | 0.70% (≈0.04) |
-| payload parse + name resolution | 2.28% (≈1.52) | 16.3% (≈1.02) |
-| transaction setup + session copy | 1.09% (≈0.73) | 9.65% (≈0.60) |
-| clock and due qualifications | 0.25% (≈0.17) | 2.55% (≈0.16) |
-| rules | 18.4% (≈12.1) | 3.71% (≈0.23) |
-| change detection | 0.33% (≈0.22) | 0.00% (≈0.00) |
-| binding evaluation | 7.56% (≈5.01) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 4.25% (≈2.78) | 58.9% (≈3.71) |
-| snapshot: name map + symbol sort | 4.57% (≈3.07) | 0.00% (≈0.00) |
-| snapshot: symbols + commitment records | 8.19% (≈5.52) | 0.00% (≈0.00) |
-| snapshot: bindings, values, records, static world (clones) | 16.5% (≈10.9) | 0.00% (≈0.00) |
-| snapshot: relation records + assemble | 2.20% (≈1.45) | 0.00% (≈0.00) |
-| outcome wrapper | 0.26% (≈0.18) | 2.05% (≈0.13) |
-| serialize (serde_json) | 22.4% (≈14.9) | 4.83% (≈0.31) |
-| drop the built view/outcome | 11.2% (≈7.36) | 0.88% (≈0.06) |
-| bridge out (return, decode, free) | 0.08% (≈0.05) | 0.65% (≈0.04) |
-| instrumented total (i2, DIRECT) | mean 68.8 µs | mean 6.95 µs |
-| ordinary reference (DIRECT median) | 65.8 µs | 6.30 µs |
-| i2 overhead (means, like for like) | 1.17% | 7.26% |
+| bridge in (JS call, argument copy) | 0.08% (≈0.05) | 0.72% (≈0.04) |
+| payload parse + name resolution | 2.29% (≈1.35) | 16.3% (≈0.95) |
+| transaction setup + session copy | 1.12% (≈0.66) | 9.75% (≈0.57) |
+| clock and due qualifications | 0.26% (≈0.15) | 2.55% (≈0.15) |
+| rules | 18.8% (≈11.1) | 3.75% (≈0.22) |
+| change detection | 0.34% (≈0.20) | 0.00% (≈0.00) |
+| binding evaluation | 7.70% (≈4.54) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 4.32% (≈2.55) | 58.6% (≈3.36) |
+| snapshot: name map + symbol sort | 4.64% (≈2.72) | 0.00% (≈0.00) |
+| snapshot: symbols + commitment records | 7.82% (≈4.59) | 0.00% (≈0.00) |
+| snapshot: bindings, values, records, static world (clones) | 16.5% (≈9.73) | 0.00% (≈0.00) |
+| snapshot: relation records + assemble | 2.24% (≈1.32) | 0.00% (≈0.00) |
+| outcome wrapper | 0.28% (≈0.16) | 2.02% (≈0.12) |
+| serialize (serde_json) | 22.5% (≈13.2) | 4.81% (≈0.28) |
+| drop the built view/outcome | 11.1% (≈6.52) | 0.88% (≈0.05) |
+| bridge out (return, decode, free) | 0.08% (≈0.05) | 0.64% (≈0.04) |
+| instrumented total (i2, DIRECT) | mean 61.4 µs | mean 6.29 µs |
+| ordinary reference (DIRECT median) | 59.0 µs | 5.80 µs |
+| i2 overhead (means, like for like) | 1.30% | 7.09% |
 
 ### ledger-session, wasm dispatch_outcome
 
 | Region: share (≈ µs, INFERRED) | evidence | refused |
 | --- | --- | --- |
-| bridge in (JS call, argument copy) | 0.39% (≈0.52) | 4.59% (≈0.41) |
-| payload parse + name resolution | 1.63% (≈2.14) | 14.7% (≈1.35) |
-| transaction setup + session copy | 0.50% (≈0.66) | 5.71% (≈0.52) |
-| clock and due qualifications | 0.14% (≈0.18) | 1.82% (≈0.16) |
-| rules | 9.47% (≈12.4) | 2.61% (≈0.23) |
-| change detection | 0.24% (≈0.31) | 0.00% (≈0.00) |
-| binding evaluation | 3.99% (≈5.25) | 0.00% (≈0.00) |
-| commit (old session dropped) or rollback | 3.25% (≈4.25) | 45.0% (≈4.06) |
-| snapshot: name map + symbol sort | 2.69% (≈3.54) | 0.00% (≈0.00) |
-| snapshot: symbols + commitment records | 2.56% (≈3.33) | 0.00% (≈0.00) |
-| snapshot: bindings, values, records, static world (clones) | 6.04% (≈8.01) | 0.00% (≈0.00) |
-| snapshot: relation records + assemble | 0.66% (≈0.88) | 0.00% (≈0.00) |
-| outcome wrapper | 0.09% (≈0.11) | 2.10% (≈0.19) |
-| serialize (serde_json) | 16.1% (≈21.0) | 4.94% (≈0.44) |
-| drop the built view/outcome | 7.92% (≈10.3) | 0.93% (≈0.08) |
-| bridge out (return, decode, free) | 5.15% (≈6.46) | 6.68% (≈0.61) |
-| JS JSON.parse | 39.2% (≈51.2) | 10.4% (≈0.93) |
-| instrumented total (i2, DIRECT) | mean 140.0 µs | mean 10.4 µs |
-| ordinary reference (DIRECT median) | 130.8 µs | 9.00 µs |
-| i2 overhead (means, like for like) | 6.66% | 14.2% |
+| bridge in (JS call, argument copy) | 0.40% (≈0.46) | 4.86% (≈0.38) |
+| payload parse + name resolution | 1.60% (≈1.88) | 14.8% (≈1.16) |
+| transaction setup + session copy | 0.49% (≈0.57) | 5.58% (≈0.45) |
+| clock and due qualifications | 0.14% (≈0.16) | 1.87% (≈0.15) |
+| rules | 9.47% (≈10.7) | 2.62% (≈0.21) |
+| change detection | 0.24% (≈0.28) | 0.00% (≈0.00) |
+| binding evaluation | 3.98% (≈4.51) | 0.00% (≈0.00) |
+| commit (old session dropped) or rollback | 3.24% (≈3.67) | 45.2% (≈3.48) |
+| snapshot: name map + symbol sort | 2.69% (≈3.05) | 0.00% (≈0.00) |
+| snapshot: symbols + commitment records | 2.51% (≈2.92) | 0.00% (≈0.00) |
+| snapshot: bindings, values, records, static world (clones) | 6.12% (≈6.95) | 0.00% (≈0.00) |
+| snapshot: relation records + assemble | 0.65% (≈0.77) | 0.00% (≈0.00) |
+| outcome wrapper | 0.09% (≈0.10) | 2.07% (≈0.16) |
+| serialize (serde_json) | 16.1% (≈18.2) | 4.86% (≈0.38) |
+| drop the built view/outcome | 7.89% (≈8.92) | 0.94% (≈0.07) |
+| bridge out (return, decode, free) | 4.86% (≈5.77) | 6.73% (≈0.52) |
+| JS JSON.parse | 39.6% (≈44.9) | 10.6% (≈0.83) |
+| instrumented total (i2, DIRECT) | mean 125.8 µs | mean 9.30 µs |
+| ordinary reference (DIRECT median) | 113.5 µs | 7.80 µs |
+| i2 overhead (means, like for like) | 7.21% | 17.4% |
 
 ## The three buckets inside one call (i2 marks: proportions only)
 
@@ -1185,55 +1156,55 @@ The region shares above, summed into language execution, view or snapshot buildi
 
 | Bucket: share (≈ µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 32.4% (≈15.1) | 41.5% (≈22.1) | 70.4% (≈110.8) | 54.6% (≈56.4) | 72.2% (≈129.2) | 55.7% (≈23.8) |
-|   of which rules | 24.3% (≈11.4) | 28.4% (≈14.5) | 41.3% (≈64.9) | 22.2% (≈22.8) | 36.5% (≈65.1) | 28.5% (≈12.2) |
-|   of which binding evaluation | 3.40% (≈1.59) | 8.26% (≈4.37) | 23.1% (≈36.4) | 26.6% (≈27.6) | 28.0% (≈50.3) | 11.6% (≈4.95) |
-|   of which session copy + old session dropped | 2.00% (≈0.93) | 2.16% (≈1.12) | 2.20% (≈3.47) | 3.45% (≈3.54) | 2.83% (≈5.06) | 9.50% (≈4.07) |
-| view building | 6.29% (≈2.94) | 5.03% (≈2.61) | 1.57% (≈2.46) | 3.01% (≈3.10) | 1.82% (≈3.28) | 10.9% (≈4.67) |
-| serialization (serde_json) + drop of what was serialized | 13.2% (≈6.12) | 11.9% (≈6.11) | 7.19% (≈11.3) | 11.3% (≈11.7) | 7.16% (≈12.9) | 10.0% (≈4.27) |
-| bridge in and out (JS call, argument copy, return, decode, free) | 10.1% (≈4.74) | 6.48% (≈3.35) | 2.34% (≈3.69) | 2.32% (≈2.43) | 1.43% (≈2.58) | 3.37% (≈1.47) |
-| JS JSON.parse | 38.2% (≈17.9) | 35.1% (≈18.0) | 18.4% (≈29.1) | 28.3% (≈29.6) | 17.5% (≈31.1) | 19.3% (≈8.10) |
-| instrumented mean total (i2, DIRECT), µs | 52.6 | 56.2 | 171.4 | 115.6 | 185.3 | 46.8 |
+| language execution | 32.5% (≈14.1) | 41.2% (≈19.2) | 70.9% (≈100.9) | 55.0% (≈51.5) | 72.1% (≈115.5) | 55.4% (≈21.5) |
+|   of which rules | 24.5% (≈10.6) | 28.2% (≈13.1) | 41.7% (≈59.1) | 22.4% (≈20.9) | 36.4% (≈58.3) | 28.5% (≈11.1) |
+|   of which binding evaluation | 3.39% (≈1.50) | 8.22% (≈3.83) | 23.2% (≈33.3) | 26.8% (≈25.1) | 28.1% (≈45.1) | 11.4% (≈4.38) |
+|   of which session copy + old session dropped | 1.99% (≈0.86) | 2.19% (≈1.03) | 2.16% (≈3.10) | 3.43% (≈3.21) | 2.85% (≈4.56) | 9.57% (≈3.68) |
+| view building | 6.26% (≈2.72) | 4.89% (≈2.28) | 1.59% (≈2.26) | 3.04% (≈2.90) | 1.83% (≈3.01) | 11.0% (≈4.23) |
+| serialization (serde_json) + drop of what was serialized | 13.1% (≈5.71) | 12.0% (≈6.09) | 7.12% (≈10.2) | 11.3% (≈10.6) | 7.08% (≈11.3) | 10.1% (≈3.88) |
+| bridge in and out (JS call, argument copy, return, decode, free) | 9.59% (≈4.27) | 6.28% (≈3.06) | 2.40% (≈3.37) | 2.87% (≈2.69) | 1.38% (≈2.29) | 3.41% (≈1.31) |
+| JS JSON.parse | 38.5% (≈16.3) | 34.9% (≈16.9) | 18.0% (≈25.8) | 28.0% (≈25.9) | 17.5% (≈29.1) | 19.8% (≈7.63) |
+| instrumented mean total (i2, DIRECT), µs | 46.0 | 48.0 | 149.0 | 100.5 | 161.6 | 42.2 |
 
 ### wasm dispatch_outcome
 
 | Bucket: share (≈ µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 11.4% (≈17.2) | 15.5% (≈21.9) | 38.8% (≈111.4) | 25.2% (≈58.3) | 41.4% (≈125.0) | 19.2% (≈25.2) |
-|   of which rules | 8.40% (≈12.7) | 10.5% (≈14.8) | 22.7% (≈65.1) | 10.2% (≈23.7) | 20.6% (≈62.6) | 9.47% (≈12.4) |
-|   of which binding evaluation | 1.15% (≈1.75) | 3.05% (≈4.36) | 12.7% (≈36.5) | 12.1% (≈27.8) | 16.2% (≈48.9) | 3.99% (≈5.25) |
-|   of which session copy + old session dropped | 0.85% (≈1.30) | 0.94% (≈1.31) | 1.24% (≈3.52) | 1.63% (≈3.73) | 1.62% (≈4.93) | 3.49% (≈4.58) |
-| snapshot building (outcome) | 13.3% (≈20.5) | 13.2% (≈18.2) | 10.9% (≈31.0) | 12.7% (≈29.3) | 10.1% (≈30.9) | 12.1% (≈15.9) |
-| serialization (serde_json) + drop of what was serialized | 22.5% (≈34.3) | 21.7% (≈30.7) | 18.2% (≈51.6) | 21.9% (≈50.5) | 17.6% (≈54.0) | 24.0% (≈31.3) |
-| bridge in and out (JS call, argument copy, return, decode, free) | 8.01% (≈12.2) | 6.21% (≈8.83) | 2.99% (≈8.72) | 5.31% (≈12.3) | 3.30% (≈10.2) | 5.56% (≈6.98) |
-| JS JSON.parse | 44.9% (≈68.1) | 43.4% (≈62.1) | 29.2% (≈83.7) | 34.6% (≈80.1) | 27.7% (≈84.5) | 39.2% (≈51.2) |
-| instrumented mean total (i2, DIRECT), µs | 169.9 | 163.9 | 313.8 | 258.5 | 328.2 | 140.0 |
+| language execution | 11.3% (≈15.6) | 15.8% (≈20.9) | 39.0% (≈104.9) | 25.2% (≈53.9) | 40.9% (≈116.7) | 19.2% (≈21.8) |
+|   of which rules | 8.31% (≈11.5) | 10.5% (≈14.2) | 22.7% (≈61.1) | 10.2% (≈21.9) | 20.4% (≈58.3) | 9.47% (≈10.7) |
+|   of which binding evaluation | 1.17% (≈1.63) | 3.10% (≈4.09) | 12.8% (≈34.4) | 12.1% (≈26.0) | 16.0% (≈45.7) | 3.98% (≈4.51) |
+|   of which session copy + old session dropped | 0.84% (≈1.17) | 0.91% (≈1.19) | 1.23% (≈3.29) | 1.64% (≈3.44) | 1.64% (≈4.63) | 3.49% (≈3.97) |
+| snapshot building (outcome) | 13.3% (≈18.4) | 12.6% (≈16.6) | 10.9% (≈29.3) | 12.8% (≈27.4) | 10.1% (≈28.7) | 12.1% (≈13.7) |
+| serialization (serde_json) + drop of what was serialized | 22.6% (≈31.1) | 22.0% (≈29.7) | 18.2% (≈49.2) | 22.2% (≈47.3) | 17.6% (≈50.2) | 23.9% (≈27.1) |
+| bridge in and out (JS call, argument copy, return, decode, free) | 7.81% (≈10.8) | 6.20% (≈8.18) | 3.20% (≈8.32) | 5.37% (≈11.2) | 3.94% (≈11.3) | 5.26% (≈6.24) |
+| JS JSON.parse | 45.0% (≈62.1) | 43.3% (≈56.4) | 28.9% (≈78.1) | 34.6% (≈74.1) | 27.4% (≈78.3) | 39.6% (≈44.9) |
+| instrumented mean total (i2, DIRECT), µs | 141.8 | 141.2 | 281.0 | 229.7 | 295.5 | 125.8 |
 
 ### native dispatch_view
 
 | Bucket: share (≈ µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 67.7% (≈15.4) | 75.2% (≈19.0) | 90.8% (≈104.1) | 82.4% (≈49.0) | 90.8% (≈120.6) | 75.0% (≈21.3) |
-|   of which rules | 51.3% (≈11.7) | 52.2% (≈13.2) | 52.6% (≈60.3) | 33.7% (≈20.0) | 45.5% (≈60.5) | 41.2% (≈11.8) |
-|   of which binding evaluation | 5.55% (≈1.26) | 13.3% (≈3.35) | 31.2% (≈35.8) | 40.3% (≈24.0) | 36.7% (≈48.7) | 16.5% (≈4.73) |
-|   of which session copy + old session dropped | 6.73% (≈1.53) | 6.24% (≈1.57) | 2.65% (≈3.04) | 5.28% (≈3.14) | 3.01% (≈4.00) | 10.9% (≈3.10) |
-| view building | 12.8% (≈2.90) | 9.14% (≈2.30) | 1.81% (≈2.07) | 4.43% (≈2.64) | 2.14% (≈2.84) | 15.3% (≈4.34) |
-| serialization (serde_json) + drop of what was serialized | 19.1% (≈4.34) | 15.2% (≈3.83) | 7.33% (≈8.40) | 13.0% (≈7.73) | 6.97% (≈9.28) | 9.43% (≈2.68) |
-| bridge in and out (JS call, argument copy, return, decode, free) | 0.44% (≈0.10) | 0.40% (≈0.10) | 0.12% (≈0.13) | 0.16% (≈0.10) | 0.08% (≈0.11) | 0.32% (≈0.09) |
-| instrumented mean total (i2, DIRECT), µs | 23.7 | 27.0 | 121.3 | 64.3 | 131.0 | 29.4 |
+| language execution | 67.8% (≈13.6) | 75.2% (≈17.0) | 90.9% (≈94.0) | 82.4% (≈44.9) | 90.9% (≈109.8) | 75.0% (≈19.2) |
+|   of which rules | 51.5% (≈10.4) | 52.3% (≈11.9) | 52.7% (≈54.6) | 33.7% (≈18.4) | 45.6% (≈55.1) | 41.1% (≈10.5) |
+|   of which binding evaluation | 5.53% (≈1.12) | 13.2% (≈2.97) | 31.1% (≈32.2) | 40.3% (≈22.0) | 36.7% (≈44.3) | 16.5% (≈4.22) |
+|   of which session copy + old session dropped | 6.72% (≈1.35) | 6.18% (≈1.39) | 2.64% (≈2.73) | 5.27% (≈2.87) | 3.00% (≈3.62) | 10.9% (≈2.80) |
+| view building | 12.7% (≈2.53) | 9.06% (≈2.02) | 1.80% (≈1.86) | 4.44% (≈2.44) | 2.15% (≈2.60) | 15.3% (≈3.93) |
+| serialization (serde_json) + drop of what was serialized | 19.1% (≈3.84) | 15.4% (≈3.48) | 7.20% (≈7.45) | 12.9% (≈7.07) | 6.92% (≈8.34) | 9.40% (≈2.41) |
+| bridge in and out (JS call, argument copy, return, decode, free) | 0.44% (≈0.09) | 0.39% (≈0.09) | 0.11% (≈0.11) | 0.16% (≈0.09) | 0.08% (≈0.09) | 0.33% (≈0.08) |
+| instrumented mean total (i2, DIRECT), µs | 20.9 | 23.5 | 110.1 | 58.2 | 118.5 | 26.4 |
 
 ### native dispatch_outcome
 
 | Bucket: share (≈ µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 23.6% (≈17.8) | 30.9% (≈22.6) | 60.6% (≈106.7) | 43.9% (≈53.1) | 62.7% (≈124.6) | 34.3% (≈22.6) |
-|   of which rules | 17.8% (≈13.4) | 20.7% (≈15.1) | 35.1% (≈61.7) | 17.9% (≈21.6) | 31.2% (≈62.0) | 18.4% (≈12.1) |
-|   of which binding evaluation | 1.85% (≈1.39) | 5.99% (≈4.39) | 20.7% (≈36.6) | 21.4% (≈26.0) | 25.4% (≈50.4) | 7.56% (≈5.01) |
-|   of which session copy + old session dropped | 2.29% (≈1.72) | 2.56% (≈1.87) | 1.79% (≈3.11) | 2.74% (≈3.29) | 2.12% (≈4.20) | 4.94% (≈3.23) |
-| snapshot building (outcome) | 37.7% (≈28.4) | 34.1% (≈24.9) | 18.9% (≈33.4) | 27.4% (≈33.4) | 18.1% (≈36.0) | 31.7% (≈20.9) |
-| serialization (serde_json) + drop of what was serialized | 38.5% (≈28.9) | 34.9% (≈25.5) | 20.3% (≈35.9) | 28.6% (≈34.9) | 19.1% (≈38.0) | 33.7% (≈22.3) |
-| bridge in and out (JS call, argument copy, return, decode, free) | 0.16% (≈0.12) | 0.16% (≈0.12) | 0.09% (≈0.15) | 0.10% (≈0.11) | 0.06% (≈0.12) | 0.15% (≈0.10) |
-| instrumented mean total (i2, DIRECT), µs | 74.4 | 73.0 | 189.8 | 129.3 | 200.8 | 68.8 |
+| language execution | 23.8% (≈15.1) | 31.1% (≈19.2) | 60.7% (≈98.6) | 43.7% (≈49.6) | 62.5% (≈114.6) | 34.8% (≈20.5) |
+|   of which rules | 17.9% (≈11.4) | 20.7% (≈12.8) | 35.2% (≈57.1) | 17.8% (≈20.1) | 31.0% (≈56.7) | 18.8% (≈11.1) |
+|   of which binding evaluation | 1.86% (≈1.18) | 6.06% (≈3.76) | 20.8% (≈33.7) | 21.4% (≈24.3) | 25.3% (≈46.7) | 7.70% (≈4.54) |
+|   of which session copy + old session dropped | 2.33% (≈1.48) | 2.57% (≈1.60) | 1.78% (≈2.88) | 2.73% (≈3.12) | 2.13% (≈3.90) | 5.02% (≈2.96) |
+| snapshot building (outcome) | 37.6% (≈23.7) | 33.7% (≈20.8) | 19.0% (≈30.7) | 27.4% (≈31.0) | 18.2% (≈33.3) | 31.3% (≈18.5) |
+| serialization (serde_json) + drop of what was serialized | 38.5% (≈24.5) | 34.9% (≈21.6) | 20.3% (≈32.8) | 28.7% (≈32.5) | 19.2% (≈35.0) | 33.7% (≈19.7) |
+| bridge in and out (JS call, argument copy, return, decode, free) | 0.16% (≈0.10) | 0.16% (≈0.10) | 0.07% (≈0.12) | 0.09% (≈0.11) | 0.06% (≈0.11) | 0.15% (≈0.09) |
+| instrumented mean total (i2, DIRECT), µs | 65.1 | 64.0 | 170.4 | 116.0 | 179.4 | 61.4 |
 
 ## i2 shares converted to microseconds (INFERRED)
 
@@ -1243,67 +1214,67 @@ Each cell: the region's share of the i2 call (median over runs, in brackets its 
 
 | Quantity (µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 15.1 [15.1–15.6] ±1.07 (share 32.4%) | 22.1 [21.2–22.4] ±0.02 (share 41.5%) | 110.8 [104.4–113.5] ±4.24 (share 70.4%) | 56.4 [53.6–57.2] ±4.75 (share 54.6%) | 129.2 [121.4–130.1] ±2.53 (share 72.2%) | 23.8 [23.3–24.1] ±1.79 (share 55.7%) |
-|   rules | 11.4 [11.3–11.7] ±0.81 (share 24.3%) | 14.5 [14.3–15.3] ±0.01 (share 28.4%) | 64.9 [61.2–66.6] ±2.48 (share 41.3%) | 22.8 [21.7–23.2] ±1.93 (share 22.2%) | 65.1 [61.3–65.8] ±1.28 (share 36.5%) | 12.2 [12.0–12.4] ±0.92 (share 28.5%) |
-|   binding evaluation | 1.59 [1.57–1.65] ±0.11 (share 3.40%) | 4.37 [4.23–5.65] ±0.00 (share 8.26%) | 36.4 [34.3–37.2] ±1.39 (share 23.1%) | 27.6 [26.2–27.8] ±2.33 (share 26.6%) | 50.3 [47.3–50.4] ±0.99 (share 28.0%) | 4.95 [4.83–5.03] ±0.37 (share 11.6%) |
-|   session copy + old session dropped (or rolled back) | 0.93 [0.93–0.96] ±0.07 (share 2.00%) | 1.12 [1.08–1.15] ±0.00 (share 2.16%) | 3.47 [3.24–3.48] ±0.13 (share 2.20%) | 3.54 [3.35–3.67] ±0.30 (share 3.45%) | 5.06 [4.76–5.19] ±0.10 (share 2.83%) | 4.07 [3.97–4.17] ±0.31 (share 9.50%) |
-| view building | 2.94 [2.92–3.01] ±0.21 (share 6.29%) | 2.61 [2.58–2.72] ±0.00 (share 5.03%) | 2.46 [2.31–2.53] ±0.09 (share 1.57%) | 3.10 [2.93–3.15] ±0.26 (share 3.01%) | 3.28 [3.03–3.31] ±0.06 (share 1.82%) | 4.67 [4.54–5.15] ±0.35 (share 10.9%) |
-|   NodeId→name map | 0.62 [0.60–0.65] ±0.04 (share 1.34%) | 0.56 [0.53–0.65] ±0.00 (share 1.07%) | 0.56 [0.52–0.57] ±0.02 (share 0.35%) | 0.49 [0.46–0.50] ±0.04 (share 0.48%) | 0.53 [0.50–0.53] ±0.01 (share 0.30%) | 0.86 [0.82–1.34] ±0.06 (share 1.97%) |
-|   symbol sort | 0.63 [0.62–0.63] ±0.04 (share 1.35%) | 0.52 [0.50–0.53] ±0.00 (share 0.99%) | 0.84 [0.80–0.88] ±0.03 (share 0.54%) | 0.79 [0.77–0.81] ±0.07 (share 0.76%) | 0.72 [0.72–0.80] ±0.01 (share 0.43%) | 2.12 [2.07–2.12] ±0.16 (share 4.95%) |
-|   commitment records | 0.60 [0.58–0.61] ±0.04 (share 1.26%) | 0.55 [0.53–0.57] ±0.00 (share 1.07%) | 0.37 [0.35–0.40] ±0.01 (share 0.24%) | 0.89 [0.85–0.91] ±0.07 (share 0.87%) | 0.82 [0.77–0.83] ±0.02 (share 0.46%) | 0.69 [0.69–0.71] ±0.05 (share 1.64%) |
-|   relation records | 1.03 [1.03–1.07] ±0.07 (share 2.21%) | 0.91 [0.90–0.96] ±0.00 (share 1.77%) | 0.59 [0.54–0.59] ±0.02 (share 0.37%) | 0.83 [0.76–0.86] ±0.07 (share 0.79%) | 1.07 [0.96–1.10] ±0.02 (share 0.59%) | 0.90 [0.88–0.92] ±0.07 (share 2.11%) |
-| serialization (serde_json) + drop of what was serialized | 6.12 [5.98–6.36] ±0.43 (share 13.2%) | 6.11 [6.10–6.42] ±0.01 (share 11.9%) | 11.3 [10.6–11.7] ±0.43 (share 7.19%) | 11.7 [10.9–11.8] ±0.99 (share 11.3%) | 12.9 [11.9–12.9] ±0.25 (share 7.16%) | 4.27 [4.20–4.36] ±0.32 (share 10.0%) |
-| bridge in and out | 4.74 [4.61–4.91] ±0.34 (share 10.1%) | 3.35 [3.34–3.37] ±0.00 (share 6.48%) | 3.69 [3.07–3.90] ±0.14 (share 2.34%) | 2.43 [2.15–5.46] ±0.20 (share 2.32%) | 2.58 [2.36–2.60] ±0.05 (share 1.43%) | 1.47 [1.43–1.68] ±0.11 (share 3.37%) |
-| JS JSON.parse | 17.9 [17.6–18.4] ±1.27 (share 38.2%) | 18.0 [17.5–18.8] ±0.02 (share 35.1%) | 29.1 [27.1–29.5] ±1.11 (share 18.4%) | 29.6 [27.4–30.1] ±2.50 (share 28.3%) | 31.1 [29.4–32.0] ±0.61 (share 17.5%) | 8.10 [8.05–8.88] ±0.61 (share 19.3%) |
-| serialization + bridge + JSON.parse | 28.6 [28.3–29.7] ±2.03 (share 61.3%) | 27.4 [27.0–28.5] ±0.03 (share 53.4%) | 44.1 [40.7–45.1] ±1.69 (share 28.0%) | 44.4 [40.5–46.8] ±3.74 (share 42.4%) | 46.6 [43.7–47.5] ±0.91 (share 26.0%) | 13.9 [13.8–14.7] ±1.05 (share 33.3%) |
-| i2 overhead (mean, like for like); worst case µs | 7.09%; ±3.31 | 0.10%; ±0.05 | 3.82%; ±6.01 | 8.43%; ±8.83 | 1.96%; ±3.53 | 7.51%; ±3.21 |
+| language execution | 14.1 [13.2–14.9] ±0.96 (share 32.5%) | 19.2 [19.2–21.3] ±0.35 (share 41.2%) | 100.9 [99.4–104.1] ±1.77 (share 70.9%) | 51.5 [50.0–53.1] ±0.95 (share 55.0%) | 115.5 [114.6–119.8] ±3.19 (share 72.1%) | 21.5 [21.0–21.6] ±1.99 (share 55.4%) |
+|   rules | 10.6 [9.89–11.3] ±0.72 (share 24.5%) | 13.1 [13.1–14.7] ±0.24 (share 28.2%) | 59.1 [58.4–61.3] ±1.04 (share 41.7%) | 20.9 [20.3–21.7] ±0.38 (share 22.4%) | 58.3 [57.4–60.5] ±1.61 (share 36.4%) | 11.1 [10.8–11.1] ±1.03 (share 28.5%) |
+|   binding evaluation | 1.50 [1.38–1.54] ±0.10 (share 3.39%) | 3.83 [3.82–4.21] ±0.07 (share 8.22%) | 33.3 [32.6–34.0] ±0.58 (share 23.2%) | 25.1 [24.5–25.9] ±0.46 (share 26.8%) | 45.1 [45.0–46.7] ±1.25 (share 28.1%) | 4.38 [4.31–4.46] ±0.41 (share 11.4%) |
+|   session copy + old session dropped (or rolled back) | 0.86 [0.81–0.91] ±0.06 (share 1.99%) | 1.03 [1.02–1.14] ±0.02 (share 2.19%) | 3.10 [3.03–3.17] ±0.05 (share 2.16%) | 3.21 [3.15–3.29] ±0.06 (share 3.43%) | 4.56 [4.47–4.74] ±0.13 (share 2.85%) | 3.68 [3.64–3.70] ±0.34 (share 9.57%) |
+| view building | 2.72 [2.53–2.84] ±0.18 (share 6.26%) | 2.28 [2.28–2.51] ±0.04 (share 4.89%) | 2.26 [2.22–2.36] ±0.04 (share 1.59%) | 2.90 [2.72–2.93] ±0.05 (share 3.04%) | 3.01 [2.89–3.05] ±0.08 (share 1.83%) | 4.23 [4.14–4.58] ±0.39 (share 11.0%) |
+|   NodeId→name map | 0.59 [0.52–0.59] ±0.04 (share 1.30%) | 0.53 [0.50–0.55] ±0.01 (share 1.08%) | 0.51 [0.50–0.53] ±0.01 (share 0.36%) | 0.45 [0.44–0.46] ±0.01 (share 0.48%) | 0.49 [0.46–0.56] ±0.01 (share 0.30%) | 0.77 [0.75–1.13] ±0.07 (share 2.04%) |
+|   symbol sort | 0.58 [0.57–0.60] ±0.04 (share 1.32%) | 0.47 [0.43–0.49] ±0.01 (share 0.96%) | 0.80 [0.75–0.83] ±0.01 (share 0.56%) | 0.75 [0.70–0.78] ±0.01 (share 0.80%) | 0.71 [0.67–0.75] ±0.02 (share 0.44%) | 1.93 [1.86–1.93] ±0.18 (share 4.93%) |
+|   commitment records | 0.54 [0.51–0.58] ±0.04 (share 1.25%) | 0.50 [0.49–0.53] ±0.01 (share 1.06%) | 0.35 [0.34–0.35] ±0.01 (share 0.24%) | 0.84 [0.78–0.87] ±0.02 (share 0.86%) | 0.74 [0.74–0.75] ±0.02 (share 0.46%) | 0.64 [0.62–0.64] ±0.06 (share 1.66%) |
+|   relation records | 0.95 [0.89–1.01] ±0.06 (share 2.20%) | 0.76 [0.75–0.87] ±0.01 (share 1.63%) | 0.54 [0.52–0.55] ±0.01 (share 0.37%) | 0.76 [0.73–0.78] ±0.01 (share 0.81%) | 0.94 [0.92–0.98] ±0.03 (share 0.59%) | 0.83 [0.80–0.84] ±0.08 (share 2.12%) |
+| serialization (serde_json) + drop of what was serialized | 5.71 [5.37–5.89] ±0.39 (share 13.1%) | 6.09 [5.64–6.13] ±0.11 (share 12.0%) | 10.2 [9.94–10.5] ±0.18 (share 7.12%) | 10.6 [10.2–10.9] ±0.19 (share 11.3%) | 11.3 [11.2–11.9] ±0.31 (share 7.08%) | 3.88 [3.84–3.94] ±0.36 (share 10.1%) |
+| bridge in and out | 4.27 [3.89–4.56] ±0.29 (share 9.59%) | 3.06 [2.94–3.15] ±0.06 (share 6.28%) | 3.37 [2.98–3.63] ±0.06 (share 2.40%) | 2.69 [2.20–3.14] ±0.05 (share 2.87%) | 2.29 [2.20–3.73] ±0.06 (share 1.38%) | 1.31 [1.28–1.71] ±0.12 (share 3.41%) |
+| JS JSON.parse | 16.3 [15.6–17.5] ±1.10 (share 38.5%) | 16.9 [15.9–17.7] ±0.31 (share 34.9%) | 25.8 [25.3–26.5] ±0.45 (share 18.0%) | 25.9 [25.7–27.5] ±0.48 (share 28.0%) | 29.1 [27.7–29.5] ±0.80 (share 17.5%) | 7.63 [7.29–7.66] ±0.71 (share 19.8%) |
+| serialization + bridge + JSON.parse | 26.6 [24.9–27.6] ±1.80 (share 61.2%) | 25.4 [25.1–27.0] ±0.47 (share 53.9%) | 39.0 [38.6–40.6] ±0.68 (share 27.5%) | 39.2 [39.0–40.6] ±0.72 (share 42.0%) | 43.3 [41.2–44.4] ±1.20 (share 26.1%) | 12.8 [12.8–12.9] ±1.19 (share 33.3%) |
+| i2 overhead (mean, like for like); worst case µs | 6.77%; ±2.94 | -1.83%; ±0.86 | 1.75%; ±2.50 | 1.84%; ±1.72 | 2.76%; ±4.48 | 9.26%; ±3.57 |
 
 ### native dispatch_view (reference web.dispatch_view)
 
 | Quantity (µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 15.4 [14.7–15.9] ±0.59 (share 67.7%) | 19.0 [18.5–19.7] ±0.19 (share 75.2%) | 104.1 [97.7–110.4] ±0.03 (share 90.8%) | 49.0 [46.6–53.0] ±0.41 (share 82.4%) | 120.6 [115.5–125.4] ±0.21 (share 90.8%) | 21.3 [21.3–22.8] ±0.79 (share 75.0%) |
-|   rules | 11.7 [11.2–12.1] ±0.45 (share 51.3%) | 13.2 [12.8–13.7] ±0.13 (share 52.2%) | 60.3 [56.7–64.0] ±0.02 (share 52.6%) | 20.0 [19.0–21.7] ±0.17 (share 33.7%) | 60.5 [57.6–62.9] ±0.10 (share 45.5%) | 11.8 [11.7–12.5] ±0.44 (share 41.2%) |
-|   binding evaluation | 1.26 [1.20–1.30] ±0.05 (share 5.55%) | 3.35 [3.26–3.46] ±0.03 (share 13.3%) | 35.8 [33.5–37.9] ±0.01 (share 31.2%) | 24.0 [22.8–25.9] ±0.20 (share 40.3%) | 48.7 [47.1–50.5] ±0.08 (share 36.7%) | 4.73 [4.67–5.01] ±0.18 (share 16.5%) |
-|   session copy + old session dropped (or rolled back) | 1.53 [1.47–1.59] ±0.06 (share 6.73%) | 1.57 [1.53–1.65] ±0.02 (share 6.24%) | 3.04 [2.85–3.23] ±0.00 (share 2.65%) | 3.14 [2.99–3.40] ±0.03 (share 5.28%) | 4.00 [3.82–4.16] ±0.01 (share 3.01%) | 3.10 [3.10–3.29] ±0.12 (share 10.9%) |
-| view building | 2.90 [2.79–3.01] ±0.11 (share 12.8%) | 2.30 [2.24–2.42] ±0.02 (share 9.14%) | 2.07 [1.96–2.20] ±0.00 (share 1.81%) | 2.64 [2.52–2.84] ±0.02 (share 4.43%) | 2.84 [2.76–2.95] ±0.00 (share 2.14%) | 4.34 [4.32–4.67] ±0.16 (share 15.3%) |
-|   NodeId→name map | 0.42 [0.41–0.44] ±0.02 (share 1.86%) | 0.34 [0.34–0.36] ±0.00 (share 1.37%) | 0.33 [0.33–0.35] ±0.00 (share 0.29%) | 0.28 [0.28–0.30] ±0.00 (share 0.47%) | 0.32 [0.31–0.33] ±0.00 (share 0.23%) | 0.57 [0.57–0.60] ±0.02 (share 2.00%) |
-|   symbol sort | 0.58 [0.58–0.59] ±0.02 (share 2.61%) | 0.44 [0.42–0.44] ±0.00 (share 1.72%) | 0.68 [0.64–0.71] ±0.00 (share 0.59%) | 0.62 [0.59–0.67] ±0.01 (share 1.04%) | 0.56 [0.55–0.58] ±0.00 (share 0.42%) | 2.05 [2.03–2.20] ±0.08 (share 7.23%) |
-|   commitment records | 0.49 [0.48–0.52] ±0.02 (share 2.19%) | 0.42 [0.40–0.44] ±0.00 (share 1.66%) | 0.28 [0.26–0.31] ±0.00 (share 0.24%) | 0.79 [0.75–0.86] ±0.01 (share 1.32%) | 0.77 [0.73–0.80] ±0.00 (share 0.58%) | 0.54 [0.53–0.58] ±0.02 (share 1.89%) |
-|   relation records | 1.33 [1.26–1.41] ±0.05 (share 5.87%) | 1.05 [1.02–1.11] ±0.01 (share 4.17%) | 0.73 [0.67–0.77] ±0.00 (share 0.63%) | 0.89 [0.85–0.96] ±0.01 (share 1.50%) | 1.15 [1.08–1.18] ±0.00 (share 0.85%) | 1.12 [1.12–1.23] ±0.04 (share 3.95%) |
-| serialization (serde_json) + drop of what was serialized | 4.34 [4.17–4.46] ±0.17 (share 19.1%) | 3.83 [3.77–3.99] ±0.04 (share 15.2%) | 8.40 [7.92–8.84] ±0.00 (share 7.33%) | 7.73 [7.33–8.34] ±0.06 (share 13.0%) | 9.28 [8.87–9.47] ±0.02 (share 6.97%) | 2.68 [2.67–2.87] ±0.10 (share 9.43%) |
-| bridge in and out | 0.10 [0.10–0.10] ±0.00 (share 0.44%) | 0.10 [0.09–0.10] ±0.00 (share 0.40%) | 0.13 [0.12–0.15] ±0.00 (share 0.12%) | 0.10 [0.09–0.11] ±0.00 (share 0.16%) | 0.11 [0.10–0.12] ±0.00 (share 0.08%) | 0.09 [0.09–0.10] ±0.00 (share 0.32%) |
-| serialization + bridge + JSON.parse | 4.44 [4.27–4.56] ±0.17 (share 19.6%) | 3.93 [3.86–4.09] ±0.04 (share 15.6%) | 8.53 [8.05–8.98] ±0.00 (share 7.44%) | 7.83 [7.42–8.44] ±0.06 (share 13.1%) | 9.38 [8.97–9.59] ±0.02 (share 7.05%) | 2.77 [2.76–2.97] ±0.10 (share 9.75%) |
-| i2 overhead (mean, like for like); worst case µs | 3.87%; ±0.88 | 0.98%; ±0.25 | 0.03%; ±0.03 | 0.83%; ±0.49 | 0.17%; ±0.23 | 3.72%; ±1.06 |
+| language execution | 13.6 [13.5–13.9] ±0.18 (share 67.8%) | 17.0 [16.8–17.8] ±0.02 (share 75.2%) | 94.0 [93.2–96.7] ±2.46 (share 90.9%) | 44.9 [44.9–45.4] ±1.47 (share 82.4%) | 109.8 [107.8–111.9] ±3.45 (share 90.9%) | 19.2 [19.0–19.6] ±0.86 (share 75.0%) |
+|   rules | 10.4 [10.3–10.5] ±0.14 (share 51.5%) | 11.9 [11.7–12.3] ±0.01 (share 52.3%) | 54.6 [54.0–56.1] ±1.43 (share 52.7%) | 18.4 [18.3–18.6] ±0.60 (share 33.7%) | 55.1 [54.2–56.1] ±1.73 (share 45.6%) | 10.5 [10.5–10.7] ±0.47 (share 41.1%) |
+|   binding evaluation | 1.12 [1.09–1.13] ±0.01 (share 5.53%) | 2.97 [2.94–3.12] ±0.00 (share 13.2%) | 32.2 [32.0–33.2] ±0.84 (share 31.1%) | 22.0 [21.9–22.1] ±0.72 (share 40.3%) | 44.3 [43.5–45.3] ±1.39 (share 36.7%) | 4.22 [4.19–4.43] ±0.19 (share 16.5%) |
+|   session copy + old session dropped (or rolled back) | 1.35 [1.34–1.37] ±0.02 (share 6.72%) | 1.39 [1.38–1.48] ±0.00 (share 6.18%) | 2.73 [2.70–2.82] ±0.07 (share 2.64%) | 2.87 [2.83–2.90] ±0.09 (share 5.27%) | 3.62 [3.54–3.71] ±0.11 (share 3.00%) | 2.80 [2.77–2.84] ±0.12 (share 10.9%) |
+| view building | 2.53 [2.52–2.64] ±0.03 (share 12.7%) | 2.02 [2.02–2.14] ±0.00 (share 9.06%) | 1.86 [1.82–1.92] ±0.05 (share 1.80%) | 2.44 [2.41–2.44] ±0.08 (share 4.44%) | 2.60 [2.54–2.65] ±0.08 (share 2.15%) | 3.93 [3.88–4.04] ±0.18 (share 15.3%) |
+|   NodeId→name map | 0.39 [0.37–0.40] ±0.01 (share 1.93%) | 0.32 [0.31–0.33] ±0.00 (share 1.41%) | 0.30 [0.29–0.33] ±0.01 (share 0.29%) | 0.26 [0.25–0.27] ±0.01 (share 0.47%) | 0.28 [0.27–0.29] ±0.01 (share 0.23%) | 0.52 [0.52–0.54] ±0.02 (share 2.04%) |
+|   symbol sort | 0.50 [0.49–0.55] ±0.01 (share 2.50%) | 0.36 [0.36–0.40] ±0.00 (share 1.64%) | 0.60 [0.60–0.61] ±0.02 (share 0.58%) | 0.57 [0.57–0.58] ±0.02 (share 1.05%) | 0.51 [0.51–0.53] ±0.02 (share 0.43%) | 1.86 [1.85–1.89] ±0.08 (share 7.27%) |
+|   commitment records | 0.44 [0.43–0.44] ±0.01 (share 2.16%) | 0.38 [0.35–0.38] ±0.00 (share 1.60%) | 0.25 [0.24–0.25] ±0.01 (share 0.24%) | 0.72 [0.72–0.74] ±0.02 (share 1.33%) | 0.71 [0.69–0.71] ±0.02 (share 0.58%) | 0.49 [0.48–0.50] ±0.02 (share 1.91%) |
+|   relation records | 1.17 [1.16–1.20] ±0.02 (share 5.85%) | 0.94 [0.93–0.98] ±0.00 (share 4.15%) | 0.65 [0.64–0.66] ±0.02 (share 0.62%) | 0.81 [0.81–0.83] ±0.03 (share 1.49%) | 1.04 [1.02–1.06] ±0.03 (share 0.86%) | 0.98 [0.97–1.05] ±0.04 (share 3.84%) |
+| serialization (serde_json) + drop of what was serialized | 3.84 [3.81–3.90] ±0.05 (share 19.1%) | 3.48 [3.44–3.61] ±0.00 (share 15.4%) | 7.45 [7.36–7.78] ±0.19 (share 7.20%) | 7.07 [7.04–7.10] ±0.23 (share 12.9%) | 8.34 [8.23–8.52] ±0.26 (share 6.92%) | 2.41 [2.39–2.43] ±0.11 (share 9.40%) |
+| bridge in and out | 0.09 [0.09–0.09] ±0.00 (share 0.44%) | 0.09 [0.09–0.09] ±0.00 (share 0.39%) | 0.11 [0.10–0.12] ±0.00 (share 0.11%) | 0.09 [0.09–0.09] ±0.00 (share 0.16%) | 0.09 [0.08–0.09] ±0.00 (share 0.08%) | 0.08 [0.08–0.09] ±0.00 (share 0.33%) |
+| serialization + bridge + JSON.parse | 3.93 [3.89–3.99] ±0.05 (share 19.5%) | 3.57 [3.52–3.70] ±0.00 (share 15.8%) | 7.56 [7.46–7.90] ±0.20 (share 7.31%) | 7.15 [7.13–7.18] ±0.23 (share 13.1%) | 8.44 [8.31–8.62] ±0.27 (share 6.99%) | 2.50 [2.47–2.52] ±0.11 (share 9.73%) |
+| i2 overhead (mean, like for like); worst case µs | 1.31%; ±0.26 | -0.11%; ±0.02 | 2.61%; ±2.70 | 3.27%; ±1.78 | 3.15%; ±3.80 | 4.46%; ±1.14 |
 
 ### wasm dispatch_outcome + JSON.parse (the kit's call; reference raw.dispatch_outcome+parse)
 
 | Quantity (µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 17.2 [17.0–18.3] ±1.17 (share 11.4%) | 21.9 [20.9–22.9] ±2.15 (share 15.5%) | 111.4 [108.3–112.8] ±7.62 (share 38.8%) | 58.3 [56.1–58.7] ±5.65 (share 25.2%) | 125.0 [123.5–127.7] ±7.72 (share 41.4%) | 25.2 [24.1–25.7] ±1.68 (share 19.2%) |
-|   rules | 12.7 [12.6–13.5] ±0.86 (share 8.40%) | 14.8 [14.0–15.4] ±1.45 (share 10.5%) | 65.1 [63.1–65.7] ±4.45 (share 22.7%) | 23.7 [22.7–23.8] ±2.30 (share 10.2%) | 62.6 [61.5–63.8] ±3.86 (share 20.6%) | 12.4 [11.9–12.7] ±0.82 (share 9.47%) |
-|   binding evaluation | 1.75 [1.72–1.84] ±0.12 (share 1.15%) | 4.36 [4.12–4.49] ±0.43 (share 3.05%) | 36.5 [35.6–36.8] ±2.49 (share 12.7%) | 27.8 [27.0–28.5] ±2.69 (share 12.1%) | 48.9 [48.8–50.0] ±3.02 (share 16.2%) | 5.25 [5.01–5.30] ±0.35 (share 3.99%) |
-|   session copy + old session dropped (or rolled back) | 1.30 [1.27–1.38] ±0.09 (share 0.85%) | 1.31 [1.30–1.39] ±0.13 (share 0.94%) | 3.52 [3.44–3.66] ±0.24 (share 1.24%) | 3.73 [3.63–3.82] ±0.36 (share 1.63%) | 4.93 [4.91–4.99] ±0.30 (share 1.62%) | 4.58 [4.36–4.70] ±0.31 (share 3.49%) |
-| snapshot + outcome building | 20.5 [19.8–21.2] ±1.40 (share 13.3%) | 18.2 [18.0–19.5] ±1.78 (share 13.2%) | 31.0 [30.3–31.8] ±2.12 (share 10.9%) | 29.3 [28.7–29.9] ±2.85 (share 12.7%) | 30.9 [30.5–30.9] ±1.91 (share 10.1%) | 15.9 [15.2–16.1] ±1.06 (share 12.1%) |
-| serialization (serde_json) + drop of what was serialized | 34.3 [33.8–35.9] ±2.33 (share 22.5%) | 30.7 [30.0–31.8] ±3.01 (share 21.7%) | 51.6 [51.5–52.9] ±3.53 (share 18.2%) | 50.5 [50.0–51.3] ±4.89 (share 21.9%) | 54.0 [53.8–54.0] ±3.34 (share 17.6%) | 31.3 [30.1–32.4] ±2.08 (share 24.0%) |
-| bridge in and out | 12.2 [11.5–12.8] ±0.83 (share 8.01%) | 8.83 [8.43–9.15] ±0.87 (share 6.21%) | 8.72 [7.72–9.13] ±0.60 (share 2.99%) | 12.3 [11.6–14.2] ±1.19 (share 5.31%) | 10.2 [7.42–11.8] ±0.63 (share 3.30%) | 6.98 [6.96–7.27] ±0.46 (share 5.56%) |
-| JS JSON.parse | 68.1 [66.8–71.9] ±4.64 (share 44.9%) | 62.1 [58.8–64.0] ±6.10 (share 43.4%) | 83.7 [80.2–84.9] ±5.73 (share 29.2%) | 80.1 [76.5–81.2] ±7.77 (share 34.6%) | 84.5 [82.8–85.5] ±5.22 (share 27.7%) | 51.2 [49.1–53.3] ±3.41 (share 39.2%) |
-| serialization + bridge + JSON.parse | 114.6 [112.1–120.6] ±7.81 (share 75.3%) | 101.6 [97.3–105.0] ±9.97 (share 71.4%) | 144.5 [139.4–146.6] ±9.88 (share 50.4%) | 142.8 [138.1–146.7] ±13.9 (share 62.0%) | 149.7 [144.2–150.0] ±9.25 (share 48.6%) | 89.7 [86.3–92.7] ±5.97 (share 68.7%) |
-| i2 overhead (mean, like for like); worst case µs | 6.81%; ±10.4 | 9.82%; ±13.9 | 6.84%; ±19.6 | 9.70%; ±22.4 | 6.17%; ±18.9 | 6.66%; ±8.71 |
+| language execution | 15.6 [14.7–16.7] ±0.18 (share 11.3%) | 20.9 [19.3–21.4] ±1.03 (share 15.8%) | 104.9 [101.5–106.1] ±1.86 (share 39.0%) | 53.9 [52.7–54.9] ±2.74 (share 25.2%) | 116.7 [113.5–117.1] ±3.68 (share 40.9%) | 21.8 [21.4–22.9] ±1.57 (share 19.2%) |
+|   rules | 11.5 [10.8–12.3] ±0.13 (share 8.31%) | 14.2 [13.0–14.3] ±0.70 (share 10.5%) | 61.1 [59.2–62.1] ±1.08 (share 22.7%) | 21.9 [21.4–22.4] ±1.12 (share 10.2%) | 58.3 [56.5–58.3] ±1.84 (share 20.4%) | 10.7 [10.5–11.3] ±0.77 (share 9.47%) |
+|   binding evaluation | 1.63 [1.53–1.67] ±0.02 (share 1.17%) | 4.09 [3.85–4.46] ±0.20 (share 3.10%) | 34.4 [33.3–34.6] ±0.61 (share 12.8%) | 26.0 [25.4–26.1] ±1.32 (share 12.1%) | 45.7 [44.7–46.1] ±1.44 (share 16.0%) | 4.51 [4.49–4.76] ±0.33 (share 3.98%) |
+|   session copy + old session dropped (or rolled back) | 1.17 [1.09–1.23] ±0.01 (share 0.84%) | 1.19 [1.14–1.26] ±0.06 (share 0.91%) | 3.29 [3.19–3.38] ±0.06 (share 1.23%) | 3.44 [3.43–3.61] ±0.17 (share 1.64%) | 4.63 [4.59–4.71] ±0.15 (share 1.64%) | 3.97 [3.95–4.21] ±0.29 (share 3.49%) |
+| snapshot + outcome building | 18.4 [17.3–19.5] ±0.21 (share 13.3%) | 16.6 [15.7–17.5] ±0.81 (share 12.6%) | 29.3 [28.2–29.9] ±0.52 (share 10.9%) | 27.4 [26.8–28.5] ±1.39 (share 12.8%) | 28.7 [28.0–29.2] ±0.90 (share 10.1%) | 13.7 [13.6–14.4] ±0.99 (share 12.1%) |
+| serialization (serde_json) + drop of what was serialized | 31.1 [29.6–33.1] ±0.35 (share 22.6%) | 29.7 [27.3–29.8] ±1.45 (share 22.0%) | 49.2 [47.4–49.9] ±0.87 (share 18.2%) | 47.3 [46.5–48.3] ±2.40 (share 22.2%) | 50.2 [49.0–50.4] ±1.58 (share 17.6%) | 27.1 [27.1–28.6] ±1.96 (share 23.9%) |
+| bridge in and out | 10.8 [10.2–11.3] ±0.12 (share 7.81%) | 8.18 [7.72–8.24] ±0.40 (share 6.20%) | 8.32 [7.36–8.85] ±0.15 (share 3.20%) | 11.2 [9.70–11.6] ±0.57 (share 5.37%) | 11.3 [10.4–13.4] ±0.35 (share 3.94%) | 6.24 [5.97–6.33] ±0.45 (share 5.26%) |
+| JS JSON.parse | 62.1 [58.8–65.9] ±0.71 (share 45.0%) | 56.4 [54.6–58.8] ±2.76 (share 43.3%) | 78.1 [74.8–79.1] ±1.38 (share 28.9%) | 74.1 [72.0–76.0] ±3.77 (share 34.6%) | 78.3 [75.5–78.3] ±2.46 (share 27.4%) | 44.9 [44.5–47.3] ±3.24 (share 39.6%) |
+| serialization + bridge + JSON.parse | 104.0 [98.5–110.3] ±1.18 (share 75.3%) | 94.3 [89.6–96.7] ±4.62 (share 71.5%) | 134.7 [130.5–137.8] ±2.38 (share 50.2%) | 133.1 [129.7–133.9] ±6.76 (share 62.0%) | 139.1 [137.9–139.8] ±4.38 (share 48.9%) | 78.0 [78.0–82.1] ±5.62 (share 68.8%) |
+| i2 overhead (mean, like for like); worst case µs | -1.14%; ±1.57 | 4.90%; ±6.46 | 1.77%; ±4.76 | 5.08%; ±10.9 | 3.15%; ±8.97 | 7.21%; ±8.18 |
 
 ### native dispatch_outcome (reference web.dispatch_outcome)
 
 | Quantity (µs, INFERRED) | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| language execution | 17.8 [16.5–18.3] ±0.11 (share 23.6%) | 22.6 [20.8–22.8] ±0.82 (share 30.9%) | 106.7 [102.5–107.1] ±4.58 (share 60.6%) | 53.1 [51.4–53.5] ±1.95 (share 43.9%) | 124.6 [120.2–124.7] ±5.02 (share 62.7%) | 22.6 [21.9–23.2] ±0.26 (share 34.3%) |
-|   rules | 13.4 [12.4–13.7] ±0.08 (share 17.8%) | 15.1 [13.9–15.2] ±0.55 (share 20.7%) | 61.7 [59.5–62.0] ±2.65 (share 35.1%) | 21.6 [21.0–21.9] ±0.79 (share 17.9%) | 62.0 [60.0–62.1] ±2.50 (share 31.2%) | 12.1 [11.8–12.6] ±0.14 (share 18.4%) |
-|   binding evaluation | 1.39 [1.30–1.43] ±0.01 (share 1.85%) | 4.39 [3.99–4.42] ±0.16 (share 5.99%) | 36.6 [34.9–36.6] ±1.57 (share 20.7%) | 26.0 [25.1–26.1] ±0.95 (share 21.4%) | 50.4 [48.5–50.5] ±2.03 (share 25.4%) | 5.01 [4.84–5.09] ±0.06 (share 7.56%) |
-|   session copy + old session dropped (or rolled back) | 1.72 [1.60–1.79] ±0.01 (share 2.29%) | 1.87 [1.78–1.88] ±0.07 (share 2.56%) | 3.11 [3.02–3.17] ±0.13 (share 1.79%) | 3.29 [3.19–3.35] ±0.12 (share 2.74%) | 4.20 [4.05–4.28] ±0.17 (share 2.12%) | 3.23 [3.17–3.33] ±0.04 (share 4.94%) |
-| snapshot + outcome building | 28.4 [26.3–29.6] ±0.18 (share 37.7%) | 24.9 [22.6–25.2] ±0.91 (share 34.1%) | 33.4 [32.0–33.5] ±1.44 (share 18.9%) | 33.4 [31.7–33.4] ±1.22 (share 27.4%) | 36.0 [34.6–36.1] ±1.45 (share 18.1%) | 20.9 [20.8–21.4] ±0.24 (share 31.7%) |
-| serialization (serde_json) + drop of what was serialized | 28.9 [27.0–29.8] ±0.18 (share 38.5%) | 25.5 [23.4–25.7] ±0.93 (share 34.9%) | 35.9 [34.3–36.2] ±1.54 (share 20.3%) | 34.9 [33.2–35.3] ±1.28 (share 28.6%) | 38.0 [36.5–38.6] ±1.53 (share 19.1%) | 22.3 [21.4–22.7] ±0.26 (share 33.7%) |
-| bridge in and out | 0.12 [0.11–0.12] ±0.00 (share 0.16%) | 0.12 [0.11–0.12] ±0.00 (share 0.16%) | 0.15 [0.15–0.15] ±0.01 (share 0.09%) | 0.11 [0.11–0.12] ±0.00 (share 0.10%) | 0.12 [0.12–0.13] ±0.00 (share 0.06%) | 0.10 [0.10–0.10] ±0.00 (share 0.15%) |
-| serialization + bridge + JSON.parse | 29.0 [27.1–29.9] ±0.18 (share 38.6%) | 25.6 [23.5–25.8] ±0.93 (share 35.0%) | 36.0 [34.5–36.4] ±1.55 (share 20.4%) | 35.0 [33.4–35.4] ±1.28 (share 28.7%) | 38.1 [36.6–38.7] ±1.53 (share 19.2%) | 22.4 [21.5–22.8] ±0.26 (share 33.9%) |
-| i2 overhead (mean, like for like); worst case µs | -0.63%; ±0.47 | 3.64%; ±2.66 | 4.30%; ±7.58 | 3.67%; ±4.47 | 4.02%; ±8.00 | 1.17%; ±0.77 |
+| language execution | 15.1 [15.1–15.3] ±0.21 (share 23.8%) | 19.2 [19.1–19.5] ±0.26 (share 31.1%) | 98.6 [97.8–102.3] ±0.31 (share 60.7%) | 49.6 [49.0–51.4] ±0.62 (share 43.7%) | 114.6 [112.7–117.3] ±1.12 (share 62.5%) | 20.5 [20.3–20.6] ±0.27 (share 34.8%) |
+|   rules | 11.4 [11.3–11.5] ±0.16 (share 17.9%) | 12.8 [12.7–13.0] ±0.17 (share 20.7%) | 57.1 [56.6–59.4] ±0.18 (share 35.2%) | 20.1 [19.9–21.0] ±0.25 (share 17.8%) | 56.7 [56.0–58.3] ±0.56 (share 31.0%) | 11.1 [11.0–11.1] ±0.14 (share 18.8%) |
+|   binding evaluation | 1.18 [1.17–1.19] ±0.02 (share 1.86%) | 3.76 [3.72–3.79] ±0.05 (share 6.06%) | 33.7 [33.5–34.8] ±0.11 (share 20.8%) | 24.3 [24.0–25.1] ±0.30 (share 21.4%) | 46.7 [45.7–47.4] ±0.46 (share 25.3%) | 4.54 [4.51–4.54] ±0.06 (share 7.70%) |
+|   session copy + old session dropped (or rolled back) | 1.48 [1.47–1.48] ±0.02 (share 2.33%) | 1.60 [1.57–1.61] ±0.02 (share 2.57%) | 2.88 [2.87–3.00] ±0.01 (share 1.78%) | 3.12 [3.05–3.20] ±0.04 (share 2.73%) | 3.90 [3.90–4.00] ±0.04 (share 2.13%) | 2.96 [2.94–2.98] ±0.04 (share 5.02%) |
+| snapshot + outcome building | 23.7 [23.7–24.3] ±0.32 (share 37.6%) | 20.8 [20.6–21.3] ±0.28 (share 33.7%) | 30.7 [30.5–32.1] ±0.10 (share 19.0%) | 31.0 [30.7–32.3] ±0.39 (share 27.4%) | 33.3 [32.9–34.3] ±0.33 (share 18.2%) | 18.5 [18.3–18.6] ±0.24 (share 31.3%) |
+| serialization (serde_json) + drop of what was serialized | 24.5 [24.2–24.9] ±0.33 (share 38.5%) | 21.6 [21.4–21.9] ±0.29 (share 34.9%) | 32.8 [32.6–34.9] ±0.10 (share 20.3%) | 32.5 [32.3–33.8] ±0.40 (share 28.7%) | 35.0 [34.9–36.1] ±0.34 (share 19.2%) | 19.7 [19.7–19.9] ±0.26 (share 33.7%) |
+| bridge in and out | 0.10 [0.10–0.11] ±0.00 (share 0.16%) | 0.10 [0.10–0.11] ±0.00 (share 0.16%) | 0.12 [0.11–0.13] ±0.00 (share 0.07%) | 0.11 [0.10–0.11] ±0.00 (share 0.09%) | 0.11 [0.11–0.12] ±0.00 (share 0.06%) | 0.09 [0.09–0.09] ±0.00 (share 0.15%) |
+| serialization + bridge + JSON.parse | 24.6 [24.3–25.0] ±0.34 (share 38.7%) | 21.7 [21.5–22.0] ±0.29 (share 35.1%) | 32.9 [32.7–35.0] ±0.11 (share 20.3%) | 32.6 [32.4–33.9] ±0.41 (share 28.8%) | 35.1 [35.0–36.2] ±0.34 (share 19.3%) | 19.8 [19.8–20.0] ±0.26 (share 33.8%) |
+| i2 overhead (mean, like for like); worst case µs | 1.37%; ±0.87 | 1.34%; ±0.82 | -0.32%; ±0.52 | -1.24%; ±1.41 | -0.98%; ±1.80 | 1.30%; ±0.77 |
 
 ## Core placement: the same bytes on each performance-core pair
 
@@ -1391,7 +1362,7 @@ The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): t
 | the i3 call (mean µs) | 26.2 | 32.2 | 121.3 | 71.8 | 132.0 | 33.9 | 9.10 | 8.49 |
 | structure copies (make_mut that copied): time, µs (share of the call) | 0.85 [0.83–0.87] (3.22%) | 0.61 [0.61–0.62] (1.92%) | 1.76 [1.76–1.80] (1.45%) | 2.88 [2.82–2.92] (4.00%) | 3.17 [3.16–3.61] (2.40%) | 3.90 [3.79–4.41] (11.5%) | 0.02 [0.02–0.02] (0.18%) | 0.00 [0.00–0.00] (0.00%) |
 |   how many per event | 2.00 | 2.02 | 4.11 | 7.00 | 9.30 | 4.13 | 0.09 | 0.00 |
-|   the same less one clock read per copy (INFERRED: time − count × 39.0 ns) | 0.77 | 0.53 | 1.60 | 2.60 | 2.81 | 3.74 | 0.01 | 0.00 |
+|   the same less one clock read per copy (INFERRED: time − count × 38.0 ns) | 0.77 | 0.53 | 1.61 | 2.61 | 2.82 | 3.74 | 0.01 | 0.00 |
 |   states: time, µs (share) | 0.10 [0.10–0.12] (0.39%) | 0.12 [0.11–0.13] (0.36%) | 0.23 [0.22–0.24] (0.19%) | 0.16 [0.16–0.17] (0.23%) | 1.08 [1.05–1.53] (0.80%) | 0.15 [0.14–0.16] (0.42%) | 0.02 [0.02–0.02] (0.18%) | 0.00 [0.00–0.00] (0.00%) |
 |   states: copies per event | 1.00 | 1.01 | 1.00 | 1.00 | 5.30 | 0.93 | 0.09 | 0.00 |
 |   graph: time, µs (share) | 0.00 [0.00–0.00] (0.00%) | 0.01 [0.01–0.01] (0.03%) | 1.01 [1.01–1.04] (0.83%) | 0.98 [0.97–1.00] (1.38%) | 1.01 [0.99–1.07] (0.75%) | 1.98 [1.93–2.24] (5.84%) | 0.00 [0.00–0.00] (0.00%) | 0.00 [0.00–0.00] (0.00%) |
@@ -1416,7 +1387,7 @@ The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): t
 | the i3 call (mean µs) | 21.9 | 26.2 | 116.1 | 59.8 | 121.4 | 27.1 | 4.77 | 5.62 |
 | structure copies (make_mut that copied): time, µs (share of the call) | 1.08 [1.07–1.10] (4.98%) | 0.67 [0.65–0.68] (2.56%) | 1.60 [1.59–1.62] (1.38%) | 2.21 [2.19–2.21] (3.67%) | 2.83 [2.79–2.83] (2.32%) | 3.80 [3.76–3.87] (14.0%) | 0.03 [0.03–0.03] (0.59%) | 0.00 [0.00–0.00] (0.00%) |
 |   how many per event | 2.00 | 2.02 | 4.11 | 7.00 | 9.30 | 4.13 | 0.09 | 0.00 |
-|   the same less one clock read per copy (INFERRED: time − count × 8.3 ns) | 1.07 | 0.65 | 1.57 | 2.15 | 2.75 | 3.77 | 0.03 | 0.00 |
+|   the same less one clock read per copy (INFERRED: time − count × 8.5 ns) | 1.07 | 0.65 | 1.57 | 2.15 | 2.75 | 3.76 | 0.03 | 0.00 |
 |   states: time, µs (share) | 0.18 [0.17–0.19] (0.82%) | 0.18 [0.17–0.18] (0.68%) | 0.40 [0.39–0.40] (0.34%) | 0.31 [0.31–0.31] (0.52%) | 1.15 [1.14–1.16] (0.95%) | 0.19 [0.16–0.22] (0.70%) | 0.03 [0.03–0.03] (0.59%) | 0.00 [0.00–0.00] (0.00%) |
 |   states: copies per event | 1.00 | 1.01 | 1.00 | 1.00 | 5.30 | 0.93 | 0.09 | 0.00 |
 |   graph: time, µs (share) | 0.00 [0.00–0.00] (0.00%) | 0.01 [0.01–0.01] (0.02%) | 0.89 [0.88–0.90] (0.76%) | 0.78 [0.77–0.81] (1.30%) | 0.82 [0.81–0.83] (0.68%) | 1.89 [1.88–1.91] (6.93%) | 0.00 [0.00–0.00] (0.00%) | 0.00 [0.00–0.00] (0.00%) |
@@ -1431,7 +1402,7 @@ The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): t
 |   qualifications: copies per event | 1.00 | 1.00 | 2.11 | 0.00 | 2.00 | 1.60 | 0.00 | 0.00 |
 |   other: copies per event | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
 | provenance copies outside structure copies: time, µs (share) | 2.08 [2.07–2.15] (9.63%) | 3.02 [3.01–3.12] (11.7%) | 8.71 [8.68–8.75] (7.50%) | 3.61 [3.56–3.61] (6.00%) | 7.48 [7.37–7.53] (6.17%) | 1.11 [1.08–1.12] (4.04%) | 0.18 [0.18–0.18] (3.78%) | 0.56 [0.55–0.56] (9.92%) |
-|   the same less one clock read per copy (INFERRED: time − count × 8.3 ns) | 1.46 | 1.86 | 6.04 | 2.56 | 5.69 | 0.63 | 0.13 | 0.33 |
+|   the same less one clock read per copy (INFERRED: time − count × 8.5 ns) | 1.44 | 1.83 | 5.98 | 2.53 | 5.65 | 0.62 | 0.12 | 0.32 |
 | provenance copies per event | 74.8 | 140.1 | 321.0 | 127.3 | 215.9 | 58.3 | 6.50 | 27.6 |
 |   names copied per event | 12.0 | 12.8 | 71.4 | 49.7 | 101.9 | 0.40 | 1.59 | 0.00 |
 | provenance copied inside structure copies, per event | 11.8 | 6.02 | 1.32 | 1.25 | 9.90 | 10.3 | 0.00 | 0.00 |
@@ -1443,7 +1414,7 @@ The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): t
 | the i3 call (mean µs) | 75.8 | 73.0 | 192.7 | 142.4 | 206.0 | 74.3 | 6.70 | 7.59 |
 | structure copies (make_mut that copied): time, µs (share of the call) | 0.99 [0.99–1.01] (1.32%) | 0.64 [0.61–0.65] (0.87%) | 1.70 [1.69–1.72] (0.88%) | 2.64 [2.59–2.69] (1.84%) | 2.84 [2.80–2.85] (1.37%) | 3.29 [3.20–3.30] (4.42%) | 0.02 [0.02–0.02] (0.25%) | 0.00 [0.00–0.00] (0.00%) |
 |   how many per event | 2.00 | 2.02 | 4.11 | 7.00 | 9.30 | 4.13 | 0.09 | 0.00 |
-|   the same less one clock read per copy (INFERRED: time − count × 39.0 ns) | 0.92 | 0.56 | 1.54 | 2.36 | 2.47 | 3.13 | 0.01 | 0.00 |
+|   the same less one clock read per copy (INFERRED: time − count × 38.0 ns) | 0.92 | 0.56 | 1.54 | 2.37 | 2.48 | 3.13 | 0.01 | 0.00 |
 |   states: time, µs (share) | 0.12 [0.12–0.12] (0.16%) | 0.12 [0.12–0.12] (0.17%) | 0.25 [0.24–0.27] (0.13%) | 0.18 [0.18–0.19] (0.13%) | 0.97 [0.94–0.99] (0.46%) | 0.14 [0.14–0.14] (0.19%) | 0.02 [0.02–0.02] (0.25%) | 0.00 [0.00–0.00] (0.00%) |
 |   states: copies per event | 1.00 | 1.01 | 1.00 | 1.00 | 5.30 | 0.93 | 0.09 | 0.00 |
 |   graph: time, µs (share) | 0.00 [0.00–0.00] (0.00%) | 0.01 [0.01–0.01] (0.02%) | 0.96 [0.95–1.00] (0.50%) | 0.90 [0.90–0.94] (0.63%) | 1.00 [0.96–1.01] (0.47%) | 1.59 [1.56–1.62] (2.15%) | 0.00 [0.00–0.00] (0.00%) | 0.00 [0.00–0.00] (0.00%) |
@@ -1468,7 +1439,7 @@ The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): t
 | the i3 call (mean µs) | 68.2 | 68.2 | 178.9 | 121.4 | 184.5 | 63.9 | 5.26 | 6.54 |
 | structure copies (make_mut that copied): time, µs (share of the call) | 1.17 [1.14–1.28] (1.70%) | 0.75 [0.75–0.81] (1.10%) | 1.62 [1.62–1.71] (0.91%) | 2.16 [2.16–2.26] (1.78%) | 2.83 [2.82–2.98] (1.53%) | 4.05 [4.04–4.40] (6.35%) | 0.03 [0.03–0.03] (0.55%) | 0.00 [0.00–0.00] (0.00%) |
 |   how many per event | 2.00 | 2.02 | 4.11 | 7.00 | 9.30 | 4.13 | 0.09 | 0.00 |
-|   the same less one clock read per copy (INFERRED: time − count × 8.3 ns) | 1.16 | 0.73 | 1.59 | 2.10 | 2.75 | 4.02 | 0.03 | 0.00 |
+|   the same less one clock read per copy (INFERRED: time − count × 8.5 ns) | 1.16 | 0.73 | 1.59 | 2.10 | 2.75 | 4.02 | 0.03 | 0.00 |
 |   states: time, µs (share) | 0.20 [0.20–0.23] (0.30%) | 0.20 [0.20–0.22] (0.29%) | 0.39 [0.39–0.41] (0.22%) | 0.31 [0.31–0.33] (0.26%) | 1.15 [1.15–1.23] (0.62%) | 0.17 [0.17–0.19] (0.27%) | 0.03 [0.03–0.03] (0.55%) | 0.00 [0.00–0.00] (0.00%) |
 |   states: copies per event | 1.00 | 1.01 | 1.00 | 1.00 | 5.30 | 0.93 | 0.09 | 0.00 |
 |   graph: time, µs (share) | 0.00 [0.00–0.00] (0.00%) | 0.01 [0.01–0.01] (0.01%) | 0.89 [0.89–0.94] (0.50%) | 0.83 [0.82–0.86] (0.68%) | 0.89 [0.88–0.91] (0.48%) | 2.06 [2.05–2.23] (3.23%) | 0.00 [0.00–0.00] (0.00%) | 0.00 [0.00–0.00] (0.00%) |
@@ -1483,12 +1454,12 @@ The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): t
 |   qualifications: copies per event | 1.00 | 1.00 | 2.11 | 0.00 | 2.00 | 1.60 | 0.00 | 0.00 |
 |   other: copies per event | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
 | provenance copies outside structure copies: time, µs (share) | 8.37 [8.29–9.57] (12.4%) | 7.83 [7.76–8.58] (11.4%) | 13.5 [13.4–14.1] (7.56%) | 9.12 [9.11–9.51] (7.50%) | 13.5 [13.5–14.2] (7.34%) | 2.11 [2.10–2.30] (3.32%) | 0.21 [0.20–0.21] (3.84%) | 0.58 [0.56–0.61] (8.59%) |
-|   the same less one clock read per copy (INFERRED: time − count × 8.3 ns) | 6.66 | 5.68 | 9.06 | 6.25 | 9.94 | 1.05 | 0.15 | 0.35 |
+|   the same less one clock read per copy (INFERRED: time − count × 8.5 ns) | 6.62 | 5.62 | 8.95 | 6.18 | 9.85 | 1.02 | 0.15 | 0.34 |
 | provenance copies per event | 205.4 | 260.1 | 537.8 | 345.9 | 434.9 | 128.2 | 6.50 | 27.6 |
 |   names copied per event | 142.0 | 105.9 | 128.5 | 123.1 | 197.6 | 6.87 | 1.59 | 0.00 |
 | provenance copied inside structure copies, per event | 11.8 | 6.02 | 1.32 | 1.25 | 9.90 | 10.3 | 0.00 | 0.00 |
 
-One clock read, as subtracted above: natively 8.3 ns (`rdtsc`, the allocator check's batches of 1,000), in WebAssembly 39 ns (`performance.now()` from JavaScript, the i2 session; a call from WebAssembly through the import costs at least that). Timing a copy puts about one read inside the timed region; the rest of the timers' cost falls outside it but inside the call (the safeguard below).
+One clock read, as subtracted above: natively 8.5 ns (`rdtsc`, the allocator check's batches of 1,000), in WebAssembly 38 ns (`performance.now()` from JavaScript, the i2 session; a call from WebAssembly through the import costs at least that). Timing a copy puts about one read inside the timed region; the rest of the timers' cost falls outside it but inside the call (the safeguard below).
 
 i3 against the ordinary build (same session, same events):
 
@@ -1565,8 +1536,8 @@ The same Rust code (a throwaway crate with no dependencies, the runtime's releas
 
 | Loop | native ns (system heap) | wasm ns (dlmalloc) | wasm ÷ native (INFERRED) |
 | --- | --- | --- | --- |
-| `map_copy`: copy a 64-entry map of names to (number, provenance names) and drop the copy | 7237 [6815–7364] | 3743 [3721–3894] | 0.54× [0.51–0.55] |
-| `map_walk`: walk the same map, reading every string (no allocation) | 290.5 [255.5–297.0] | 321.5 [303.0–326.5] | 1.10× [1.04–1.26] |
-| `alloc_ring`: allocate a 96–143 byte buffer, freeing the one 64 allocations older | 25.9 [22.9–26.1] | 13.3 [12.7–13.4] | 0.51× [0.49–0.58] |
-| `touch_ring`: the same writes into a preallocated ring (no allocation) | 1.17 [1.05–1.19] | 1.24 [1.21–1.30] | 1.12× [1.02–1.18] |
+| `map_copy`: copy a 64-entry map of names to (number, provenance names) and drop the copy | 7367 [6814–7513] | 3694 [3475–3702] | 0.50× [0.46–0.54] |
+| `map_walk`: walk the same map, reading every string (no allocation) | 285.0 [266.0–305.5] | 320.0 [294.5–329.0] | 1.08× [1.03–1.20] |
+| `alloc_ring`: allocate a 96–143 byte buffer, freeing the one 64 allocations older | 25.8 [22.1–26.3] | 13.2 [12.6–13.3] | 0.50× [0.49–0.60] |
+| `touch_ring`: the same writes into a preallocated ring (no allocation) | 1.18 [1.04–1.20] | 1.36 [1.30–1.39] | 1.16× [1.10–1.31] |
 

@@ -137,6 +137,10 @@ checkout's adapter is used. Its hash is recorded in both cases.
   clock (MHz) every 5 s (`--monitor-interval=N` changes it)
   (`load.csv`, summarized as `environment.loadDuring`; `--no-monitor` turns
   it off). The harness does not stop anything: close heavy programs first.
+  A session whose recorded load is above the quiet level, or which overlapped
+  other jobs, is discarded, not kept as a replicate. A session with no load
+  record during the run is rerun (RESULTS.md, section 2;
+  [results/excluded/](results/excluded/README.md)).
 - **Power.** On Windows a measurement (any suite but `smoke`) stops before
   timing unless the machine is on mains power with the High performance plan
   (`--allow-any-power` overrides).

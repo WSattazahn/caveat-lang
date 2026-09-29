@@ -1,9 +1,9 @@
 {
  "schema": "caveat-performance-results/0.1",
- "runId": "2026-09-29T06-21-17-307-baseline",
- "startedAt": "2026-09-29T06:21:17.309Z",
- "finishedAt": "2026-09-29T06:21:34.659Z",
- "command": "node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF --out=C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\perf-scratch\\m\\runs\\method\\alone-2",
+ "runId": "2026-09-29T09-11-55-973-baseline",
+ "startedAt": "2026-09-29T09:11:55.975Z",
+ "finishedAt": "2026-09-29T09:12:13.342Z",
+ "command": "node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/prPERF --monitor-interval=1 --out=C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/audit/method/alone-2",
  "suite": {
   "name": "baseline",
   "rounds": 3,
@@ -39,7 +39,7 @@
     "ramBytes": 68112736256,
     "powerScheme": "Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)",
     "batteryStatus": 2,
-    "cpuSets": "0:0:1,1:1:1,2:2:0,3:3:0,4:4:0,5:5:0,6:6:0,7:7:0,8:8:0,9:9:0,10:10:1,11:11:1,12:12:1,13:13:1,14:14:0,15:15:0,16:16:0,17:17:0,18:18:0,19:19:0,20:20:0,21:21:0,22:22:1,23:23:1"
+    "cpuSets": "0:0:1:1:0,1:1:1:1:0,2:2:0:0:0,3:3:0:0:0,4:4:0:0:0,5:5:0:0:0,6:6:0:0:0,7:7:0:0:0,8:8:0:0:0,9:9:0:0:0,10:10:1:1:0,11:11:1:1:0,12:12:1:1:0,13:13:1:2:0,14:14:0:0:0,15:15:0:0:0,16:16:0:0:0,17:17:0:0:0,18:18:0:0:0,19:19:0:0:0,20:20:0:0:0,21:21:0:0:0,22:22:1:1:0,23:23:1:2:0"
    },
    "performanceCores": [
     0,
@@ -50,6 +50,176 @@
     13,
     22,
     23
+   ],
+   "cpuSetList": [
+    {
+     "logicalProcessor": 0,
+     "core": 0,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 1,
+     "core": 1,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 2,
+     "core": 2,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 3,
+     "core": 3,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 4,
+     "core": 4,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 5,
+     "core": 5,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 6,
+     "core": 6,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 7,
+     "core": 7,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 8,
+     "core": 8,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 9,
+     "core": 9,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 10,
+     "core": 10,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 11,
+     "core": 11,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 12,
+     "core": 12,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 13,
+     "core": 13,
+     "efficiencyClass": 1,
+     "schedulingClass": 2,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 14,
+     "core": 14,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 15,
+     "core": 15,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 16,
+     "core": 16,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 17,
+     "core": 17,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 18,
+     "core": 18,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 19,
+     "core": 19,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 20,
+     "core": 20,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 21,
+     "core": 21,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 22,
+     "core": 22,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 23,
+     "core": 23,
+     "efficiencyClass": 1,
+     "schedulingClass": 2,
+     "lastLevelCache": 0
+    }
    ]
   },
   "pinning": {
@@ -60,6 +230,7 @@
     12,
     13
    ],
+   "affinitySet": null,
    "priority": "high",
    "how": "cmd /c start /b /wait /<priority> /affinity <mask>"
   },
@@ -74,107 +245,29 @@
    "wasmOpt": null
   },
   "harness": {
-   "revision": "dbfd2e36e75b8f3443e2889f6a6bf8171f7c8857"
+   "revision": "d9c935898e65ecb5881ed69eb6af1293fe2eeed4"
   },
   "loadBefore": {
    "totalCpuPercent": [
-    0,
-    9,
-    5
+    5,
+    5,
+    1
    ],
    "busiestProcesses": [
     {
      "name": "claude",
      "pid": 95512,
-     "cpuSeconds": 1.016
+     "cpuSeconds": 0.953
     },
     {
      "name": "powershell",
-     "pid": 107960,
-     "cpuSeconds": 0.641
+     "pid": 58784,
+     "cpuSeconds": 0.562
     },
     {
      "name": "claude",
      "pid": 104712,
-     "cpuSeconds": 0.406
-    },
-    {
-     "name": "ChatGPT",
-     "pid": 8524,
-     "cpuSeconds": 0.266
-    },
-    {
-     "name": "ChatGPT",
-     "pid": 87544,
-     "cpuSeconds": 0.188
-    },
-    {
-     "name": "Reallusion Hub",
-     "pid": 70736,
-     "cpuSeconds": 0.172
-    }
-   ]
-  },
-  "loadDuring": {
-   "what": "typeperf every 5 s for the whole run",
-   "samples": 0,
-   "counters": {
-    "total": {
-     "samples": 0,
-     "mean": 0,
-     "p95": null,
-     "max": null
-    },
-    "processor 10": {
-     "samples": 0,
-     "mean": 0,
-     "p95": null,
-     "max": null
-    },
-    "processor 11": {
-     "samples": 0,
-     "mean": 0,
-     "p95": null,
-     "max": null
-    },
-    "processor 12": {
-     "samples": 0,
-     "mean": 0,
-     "p95": null,
-     "max": null
-    },
-    "processor 13": {
-     "samples": 0,
-     "mean": 0,
-     "p95": null,
-     "max": null
-    }
-   },
-   "totalAbove10Percent": 0,
-   "totalAbove25Percent": 0,
-   "pinnedSumAbove150Percent": 0
-  },
-  "loadAfter": {
-   "totalCpuPercent": [
-    0,
-    0,
-    12
-   ],
-   "busiestProcesses": [
-    {
-     "name": "claude",
-     "pid": 95512,
-     "cpuSeconds": 1.391
-    },
-    {
-     "name": "powershell",
-     "pid": 74708,
-     "cpuSeconds": 0.672
-    },
-    {
-     "name": "claude",
-     "pid": 104712,
-     "cpuSeconds": 0.375
+     "cpuSeconds": 0.344
     },
     {
      "name": "ChatGPT",
@@ -187,9 +280,111 @@
      "cpuSeconds": 0.109
     },
     {
+     "name": "claude",
+     "pid": 103160,
+     "cpuSeconds": 0.109
+    }
+   ]
+  },
+  "loadDuring": {
+   "what": "typeperf every 1 s for the whole run",
+   "samples": 3,
+   "counters": {
+    "total": {
+     "samples": 3,
+     "mean": 10.6,
+     "p95": 10.6,
+     "max": 11.8
+    },
+    "processor 10": {
+     "samples": 3,
+     "mean": 70,
+     "p95": 62.7,
+     "max": 90.7
+    },
+    "processor 11": {
+     "samples": 3,
+     "mean": 35,
+     "p95": 23.9,
+     "max": 59.8
+    },
+    "processor 12": {
+     "samples": 3,
+     "mean": 29.8,
+     "p95": 27.5,
+     "max": 36.3
+    },
+    "processor 13": {
+     "samples": 3,
+     "mean": 7.1,
+     "p95": 7.5,
+     "max": 10.2
+    },
+    "processor 10 MHz": {
+     "samples": 3,
+     "mean": 4001.9,
+     "p95": 3959.9,
+     "max": 4105.2
+    },
+    "processor 11 MHz": {
+     "samples": 3,
+     "mean": 4108,
+     "p95": 4111.5,
+     "max": 4159.6
+    },
+    "processor 12 MHz": {
+     "samples": 3,
+     "mean": 3769.1,
+     "p95": 3791.4,
+     "max": 3881.1
+    },
+    "processor 13 MHz": {
+     "samples": 3,
+     "mean": 4423,
+     "p95": 4429.4,
+     "max": 4444.6
+    }
+   },
+   "totalAbove10Percent": 2,
+   "totalAbove25Percent": 0,
+   "pinnedSumAbove150Percent": 1
+  },
+  "loadAfter": {
+   "totalCpuPercent": [
+    6,
+    2,
+    0
+   ],
+   "busiestProcesses": [
+    {
+     "name": "claude",
+     "pid": 95512,
+     "cpuSeconds": 1.406
+    },
+    {
+     "name": "powershell",
+     "pid": 43632,
+     "cpuSeconds": 0.656
+    },
+    {
+     "name": "claude",
+     "pid": 104712,
+     "cpuSeconds": 0.469
+    },
+    {
+     "name": "ChatGPT",
+     "pid": 8524,
+     "cpuSeconds": 0.203
+    },
+    {
+     "name": "IntelGraphicsSoftware",
+     "pid": 14784,
+     "cpuSeconds": 0.141
+    },
+    {
      "name": "ChatGPT",
      "pid": 87544,
-     "cpuSeconds": 0.078
+     "cpuSeconds": 0.094
     }
    ]
   }
@@ -230,11 +425,13 @@
  "targets": [
   {
    "label": "main-local",
+   "baseLabel": "main-local",
+   "affinityMask": "0x3C00",
    "kind": "tree",
    "directory": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF",
    "git": {
-    "revision": "dbfd2e36e75b8f3443e2889f6a6bf8171f7c8857",
-    "describe": "v0.1.0-rc.4-5-gdbfd2e3-dirty",
+    "revision": "d9c935898e65ecb5881ed69eb6af1293fe2eeed4",
+    "describe": "v0.1.0-rc.4-7-gd9c9358-dirty",
     "branch": "perf/baseline-0.1",
     "trackedClean": false,
     "runtimeTreeSha": "ffb681c9e385391c12b3f855cd5858b07d3b7825",
@@ -353,9 +550,12 @@
       "runs": [
        {
         "repeat": 0,
-        "seconds": 1.678,
+        "seconds": 1.624,
+        "affinityMask": "0x3C00",
+        "startedAtMs": 1790673124171,
+        "endedAtMs": 1790673125795,
         "process": {
-         "pid": 101180,
+         "pid": 91588,
          "node": "v24.11.1",
          "v8": "13.6.233.10-node.28",
          "execArgv": [
@@ -382,7 +582,7 @@
          "adapter": {
           "file": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\experiments\\glowcap\\caveat5\\adapter.mjs",
           "originalSha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
-          "rewrittenSha256": "538ffa4b715d0d98e9f20e04d2a793f2b5a46988abc428e76ca36e90463d1303",
+          "rewrittenSha256": "1bec7bd288e0d4757068383224f449ed3693d506c6d9d027c86cc1c0c780426b",
           "rewritten": [
            "'../../../dist/pkg-reactive/caveat_runtime.js'",
            "new URL('../../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url)",
@@ -394,102 +594,102 @@
          "adapter.dispatch+view": {
           "pooled": {
            "n": 30000,
-           "median": 46.3,
-           "p95": 57.9,
-           "p99": 104.4,
-           "p25": 44.8,
-           "p75": 48.2,
-           "iqr": 3.4,
-           "min": 33.5,
-           "max": 4625.4,
-           "mean": 49.083
+           "median": 44,
+           "p95": 58.2,
+           "p99": 93,
+           "p25": 42.2,
+           "p75": 46.7,
+           "iqr": 4.5,
+           "min": 32.9,
+           "max": 4454.8,
+           "mean": 46.936
           },
           "rounds": [
            {
             "n": 10000,
-            "median": 47.1,
-            "p95": 72,
-            "p99": 124.9,
-            "p25": 45.4,
-            "p75": 49.9,
-            "iqr": 4.5,
-            "min": 34,
-            "max": 4625.4,
-            "mean": 52.219
+            "median": 44,
+            "p95": 67.3,
+            "p99": 111.5,
+            "p25": 42.6,
+            "p75": 48,
+            "iqr": 5.4,
+            "min": 36.8,
+            "max": 4454.8,
+            "mean": 49.642
            },
            {
             "n": 10000,
-            "median": 45.8,
-            "p95": 53,
-            "p99": 88.7,
-            "p25": 44.6,
-            "p75": 47.2,
-            "iqr": 2.6,
-            "min": 40.5,
-            "max": 512.7,
-            "mean": 47.449
+            "median": 43.3,
+            "p95": 56.6,
+            "p99": 82,
+            "p25": 42.1,
+            "p75": 46.7,
+            "iqr": 4.6,
+            "min": 33.4,
+            "max": 473.3,
+            "mean": 45.966
            },
            {
             "n": 10000,
-            "median": 46.1,
-            "p95": 53.7,
-            "p99": 86.5,
-            "p25": 44.6,
-            "p75": 47.8,
-            "iqr": 3.2,
-            "min": 33.5,
-            "max": 406.7,
-            "mean": 47.583
+            "median": 44.7,
+            "p95": 50.7,
+            "p99": 70.8,
+            "p25": 41.8,
+            "p75": 46.2,
+            "iqr": 4.4,
+            "min": 32.9,
+            "max": 502.1,
+            "mean": 45.199
            }
           ],
           "segments": {
            "observations": {
             "n": 9,
-            "median": 167.1,
-            "p95": 627.9,
-            "p99": 627.9,
-            "p25": 160.2,
-            "p75": 512.7,
-            "iqr": 352.5,
-            "min": 138.8,
-            "max": 4625.4,
-            "mean": 777.4
+            "median": 180.8,
+            "p95": 558.4,
+            "p99": 558.4,
+            "p25": 142.5,
+            "p75": 473.3,
+            "iqr": 330.8,
+            "min": 118.3,
+            "max": 4454.8,
+            "mean": 734.278
            },
            "decay": {
             "n": 1800,
-            "median": 50.7,
-            "p95": 113.7,
-            "p99": 244.7,
-            "p25": 47.2,
-            "p75": 61.3,
-            "iqr": 14.1,
-            "min": 35,
-            "max": 2714.2,
-            "mean": 65.771
+            "median": 55,
+            "p95": 104.4,
+            "p99": 205.3,
+            "p25": 47,
+            "p75": 68,
+            "iqr": 21,
+            "min": 37.3,
+            "max": 3437.9,
+            "mean": 67.141
            },
            "transition": {
             "n": 2091,
-            "median": 47.8,
-            "p95": 60.4,
-            "p99": 116.4,
-            "p25": 45.7,
-            "p75": 50.6,
-            "iqr": 4.9,
-            "min": 40.8,
-            "max": 607.2,
-            "mean": 50.932
+            "median": 48,
+            "p95": 69.5,
+            "p99": 129.1,
+            "p25": 42.5,
+            "p75": 52.1,
+            "iqr": 9.6,
+            "min": 32.9,
+            "max": 715.9,
+            "mean": 51.22
            },
            "steady": {
             "n": 26100,
-            "median": 46.1,
-            "p95": 54.4,
-            "p99": 82.9,
-            "p25": 44.7,
-            "p75": 47.7,
-            "iqr": 3,
-            "min": 33.5,
-            "max": 440.5,
-            "mean": 47.533
+            "median": 43.7,
+            "p95": 51.8,
+            "p99": 64.5,
+            "p25": 42.1,
+            "p75": 46,
+            "iqr": 3.9,
+            "min": 33,
+            "max": 501.9,
+            "mean": 44.962
            }
           }
          }
@@ -498,6 +698,31 @@
          "kind": "adapter-save-json",
          "sha256": "bcc2ec60c6f54cd9465a3feed06ed6917c00d52554839bed28f8964e63490307",
          "count": 1
+        },
+        "cores": {
+         "samples": 1,
+         "cores": {
+          "10": {
+           "busyPercent": 90.7,
+           "mhzWhileBusy": 3940.6,
+           "busySamples": 1
+          },
+          "11": {
+           "busyPercent": 21.3,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "12": {
+           "busyPercent": 27.5,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "13": {
+           "busyPercent": 7.5,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          }
+         }
         }
        }
       ],
@@ -505,60 +730,60 @@
        "adapter.dispatch+view": {
         "median": {
          "runs": 1,
-         "median": 46.3,
-         "min": 46.3,
-         "max": 46.3,
+         "median": 44,
+         "min": 44,
+         "max": 44,
          "rangePercent": 0
         },
         "p95": {
          "runs": 1,
-         "median": 57.9,
-         "min": 57.9,
-         "max": 57.9,
+         "median": 58.2,
+         "min": 58.2,
+         "max": 58.2,
          "rangePercent": 0
         },
         "iqr": {
          "runs": 1,
-         "median": 3.4,
-         "min": 3.4,
-         "max": 3.4,
+         "median": 4.5,
+         "min": 4.5,
+         "max": 4.5,
          "rangePercent": 0
         },
         "max": {
          "runs": 1,
-         "median": 4625.4,
-         "min": 4625.4,
-         "max": 4625.4,
+         "median": 4454.8,
+         "min": 4454.8,
+         "max": 4454.8,
          "rangePercent": 0
         },
         "n": 30000,
         "segments": {
          "observations": {
           "runs": 1,
-          "median": 167.1,
-          "min": 167.1,
-          "max": 167.1,
+          "median": 180.8,
+          "min": 180.8,
+          "max": 180.8,
           "rangePercent": 0
          },
          "decay": {
           "runs": 1,
-          "median": 50.7,
-          "min": 50.7,
-          "max": 50.7,
+          "median": 55,
+          "min": 55,
+          "max": 55,
           "rangePercent": 0
          },
          "transition": {
           "runs": 1,
-          "median": 47.8,
-          "min": 47.8,
-          "max": 47.8,
+          "median": 48,
+          "min": 48,
+          "max": 48,
           "rangePercent": 0
          },
          "steady": {
           "runs": 1,
-          "median": 46.1,
-          "min": 46.1,
-          "max": 46.1,
+          "median": 43.7,
+          "min": 43.7,
+          "max": 43.7,
           "rangePercent": 0
          }
         }
@@ -570,8 +795,11 @@
        {
         "repeat": 0,
         "seconds": 2.174,
+        "affinityMask": "0x3C00",
+        "startedAtMs": 1790673125816,
+        "endedAtMs": 1790673127990,
         "process": {
-         "pid": 73772,
+         "pid": 109784,
          "node": "v24.11.1",
          "v8": "13.6.233.10-node.28",
          "execArgv": [
@@ -598,7 +826,7 @@
          "adapter": {
           "file": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\experiments\\glowcap\\caveat5\\adapter.mjs",
           "originalSha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
-          "rewrittenSha256": "785a2dedf507b8ad74283d7b40e73a615c31055cd3980c51c9a98a6aa55587aa",
+          "rewrittenSha256": "b18db35fd9d172aa8a1b79004ecff96d8c5dba76b04afa42dfa4a2fb67dc2d3f",
           "rewritten": [
            "'../../../dist/pkg-reactive/caveat_runtime.js'",
            "new URL('../../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url)",
@@ -610,102 +838,102 @@
          "adapter.dispatch": {
           "pooled": {
            "n": 30000,
-           "median": 43.6,
-           "p95": 49.8,
-           "p99": 65.7,
-           "p25": 42.4,
-           "p75": 44.9,
-           "iqr": 2.5,
-           "min": 31,
-           "max": 365,
-           "mean": 44.753
+           "median": 45.5,
+           "p95": 52.7,
+           "p99": 71,
+           "p25": 41.6,
+           "p75": 47.6,
+           "iqr": 6,
+           "min": 31.2,
+           "max": 794.8,
+           "mean": 45.961
           },
           "rounds": [
            {
             "n": 10000,
-            "median": 43.7,
-            "p95": 50,
-            "p99": 68.9,
-            "p25": 42.5,
-            "p75": 45,
-            "iqr": 2.5,
-            "min": 33.2,
-            "max": 365,
-            "mean": 44.933
+            "median": 41,
+            "p95": 54.4,
+            "p99": 80.3,
+            "p25": 40.1,
+            "p75": 43,
+            "iqr": 2.9,
+            "min": 36.2,
+            "max": 794.8,
+            "mean": 43.394
            },
            {
             "n": 10000,
-            "median": 43.4,
-            "p95": 50,
-            "p99": 65.7,
-            "p25": 42.2,
-            "p75": 44.8,
-            "iqr": 2.6,
-            "min": 31,
-            "max": 310.7,
-            "mean": 44.68
+            "median": 46,
+            "p95": 52.6,
+            "p99": 66.9,
+            "p25": 43.3,
+            "p75": 47.9,
+            "iqr": 4.6,
+            "min": 31.2,
+            "max": 324.3,
+            "mean": 46.552
            },
            {
             "n": 10000,
-            "median": 43.6,
-            "p95": 49.4,
-            "p99": 62,
-            "p25": 42.4,
-            "p75": 45,
+            "median": 46.9,
+            "p95": 52.1,
+            "p99": 63,
+            "p25": 45.7,
+            "p75": 48.3,
             "iqr": 2.6,
-            "min": 31.1,
-            "max": 298.1,
-            "mean": 44.646
+            "min": 36.8,
+            "max": 296.5,
+            "mean": 47.939
            }
           ],
           "segments": {
            "observations": {
             "n": 9,
-            "median": 166.3,
-            "p95": 198.4,
-            "p99": 198.4,
-            "p25": 156.9,
-            "p75": 190.2,
-            "iqr": 33.3,
-            "min": 131.8,
-            "max": 233.7,
-            "mean": 172.989
+            "median": 164.7,
+            "p95": 201.8,
+            "p99": 201.8,
+            "p25": 138.7,
+            "p75": 187.6,
+            "iqr": 48.9,
+            "min": 135.3,
+            "max": 246.7,
+            "mean": 169.378
            },
            "decay": {
             "n": 1800,
-            "median": 45.8,
-            "p95": 62.6,
-            "p99": 95.3,
-            "p25": 44.2,
-            "p75": 48.4,
-            "iqr": 4.2,
-            "min": 39.2,
-            "max": 365,
-            "mean": 48.78
+            "median": 47,
+            "p95": 66.3,
+            "p99": 102.7,
+            "p25": 43.6,
+            "p75": 54.1,
+            "iqr": 10.5,
+            "min": 35.3,
+            "max": 794.8,
+            "mean": 50.714
            },
            "transition": {
             "n": 2091,
-            "median": 42.6,
-            "p95": 50.1,
-            "p99": 100,
-            "p25": 40.8,
-            "p75": 44.4,
-            "iqr": 3.6,
-            "min": 31,
-            "max": 312.7,
-            "mean": 44.051
+            "median": 44,
+            "p95": 51.9,
+            "p99": 98.2,
+            "p25": 41.4,
+            "p75": 46.7,
+            "iqr": 5.3,
+            "min": 31.2,
+            "max": 324.3,
+            "mean": 45.726
            },
            "steady": {
             "n": 26100,
-            "median": 43.5,
-            "p95": 48.8,
-            "p99": 61.6,
-            "p25": 42.4,
-            "p75": 44.8,
-            "iqr": 2.4,
-            "min": 31.7,
-            "max": 314.1,
-            "mean": 44.488
+            "median": 45.5,
+            "p95": 51.3,
+            "p99": 62.7,
+            "p25": 41.5,
+            "p75": 47.5,
+            "iqr": 6,
+            "min": 33.5,
+            "max": 292.2,
+            "mean": 45.61
            }
           }
          },
@@ -713,203 +941,203 @@
           "pooled": {
            "n": 30000,
            "median": 2.3,
-           "p95": 3.6,
-           "p99": 5,
+           "p95": 3.5,
+           "p99": 5.3,
            "p25": 2.1,
            "p75": 2.5,
            "iqr": 0.4,
            "min": 1.5,
-           "max": 340.4,
-           "mean": 2.505
+           "max": 358.1,
+           "mean": 2.49
           },
           "rounds": [
            {
             "n": 10000,
-            "median": 2.3,
+            "median": 2.1,
             "p95": 3.6,
-            "p99": 5.2,
+            "p99": 5.7,
+            "p25": 2,
+            "p75": 2.3,
+            "iqr": 0.3,
+            "min": 1.5,
+            "max": 358.1,
+            "mean": 2.409
+           },
+           {
+            "n": 10000,
+            "median": 2.3,
+            "p95": 3.5,
+            "p99": 5.3,
             "p25": 2.1,
             "p75": 2.5,
             "iqr": 0.4,
-            "min": 1.7,
-            "max": 340.4,
-            "mean": 2.539
+            "min": 1.5,
+            "max": 167.6,
+            "mean": 2.512
            },
            {
             "n": 10000,
-            "median": 2.2,
-            "p95": 3.5,
-            "p99": 5.1,
-            "p25": 2.1,
-            "p75": 2.4,
-            "iqr": 0.3,
-            "min": 1.6,
-            "max": 112.3,
-            "mean": 2.453
-           },
-           {
-            "n": 10000,
-            "median": 2.3,
-            "p95": 3.5,
+            "median": 2.4,
+            "p95": 3.4,
             "p99": 4.8,
             "p25": 2.2,
             "p75": 2.5,
             "iqr": 0.3,
-            "min": 1.5,
-            "max": 233.7,
-            "mean": 2.522
+            "min": 1.8,
+            "max": 180.1,
+            "mean": 2.549
            }
           ],
           "segments": {
            "observations": {
             "n": 9,
-            "median": 33.4,
-            "p95": 66.2,
-            "p99": 66.2,
-            "p25": 7.4,
-            "p75": 58.2,
-            "iqr": 50.8,
-            "min": 5.6,
-            "max": 112.3,
-            "mean": 39.222
+            "median": 46,
+            "p95": 63.2,
+            "p99": 63.2,
+            "p25": 7.6,
+            "p75": 54.5,
+            "iqr": 46.9,
+            "min": 6.1,
+            "max": 176.9,
+            "mean": 47.422
            },
            "decay": {
             "n": 1800,
-            "median": 2.6,
-            "p95": 4.9,
-            "p99": 13.6,
-            "p25": 2.3,
-            "p75": 3.3,
-            "iqr": 1,
-            "min": 1.8,
-            "max": 340.4,
-            "mean": 3.415
+            "median": 2.8,
+            "p95": 5.3,
+            "p99": 19.1,
+            "p25": 2.4,
+            "p75": 3.5,
+            "iqr": 1.1,
+            "min": 1.7,
+            "max": 358.1,
+            "mean": 3.869
            },
            "transition": {
             "n": 2091,
-            "median": 2.3,
-            "p95": 3.6,
+            "median": 2.4,
+            "p95": 4,
             "p99": 6.2,
-            "p25": 2.1,
-            "p75": 2.6,
+            "p25": 2.2,
+            "p75": 2.7,
             "iqr": 0.5,
-            "min": 1.6,
-            "max": 48.5,
-            "mean": 2.554
+            "min": 1.7,
+            "max": 56.9,
+            "mean": 2.71
            },
            "steady": {
             "n": 26100,
             "median": 2.3,
-            "p95": 3.4,
-            "p99": 4.8,
+            "p95": 3.2,
+            "p99": 4.7,
             "p25": 2.1,
             "p75": 2.4,
             "iqr": 0.3,
             "min": 1.5,
-            "max": 233.7,
-            "mean": 2.425
+            "max": 56.9,
+            "mean": 2.362
            }
           }
          },
          "adapter.dispatch+view": {
           "pooled": {
            "n": 30000,
-           "median": 45.9,
-           "p95": 52.8,
-           "p99": 71.3,
-           "p25": 44.6,
-           "p75": 47.4,
-           "iqr": 2.8,
-           "min": 32.8,
-           "max": 408.5,
-           "mean": 47.258
+           "median": 47.8,
+           "p95": 55.7,
+           "p99": 77.5,
+           "p25": 43.9,
+           "p75": 50.1,
+           "iqr": 6.2,
+           "min": 33.1,
+           "max": 803.1,
+           "mean": 48.452
           },
           "rounds": [
            {
             "n": 10000,
-            "median": 46,
-            "p95": 53,
-            "p99": 76.9,
-            "p25": 44.7,
-            "p75": 47.4,
+            "median": 43.1,
+            "p95": 57.8,
+            "p99": 87.5,
+            "p25": 42.2,
+            "p75": 45.5,
+            "iqr": 3.3,
+            "min": 38.2,
+            "max": 803.1,
+            "mean": 45.803
+           },
+           {
+            "n": 10000,
+            "median": 48.3,
+            "p95": 55.7,
+            "p99": 73.1,
+            "p25": 45.6,
+            "p75": 50.4,
+            "iqr": 4.8,
+            "min": 33.1,
+            "max": 337.5,
+            "mean": 49.064
+           },
+           {
+            "n": 10000,
+            "median": 49.3,
+            "p95": 55,
+            "p99": 68.1,
+            "p25": 48.1,
+            "p75": 50.8,
             "iqr": 2.7,
-            "min": 35.1,
-            "max": 408.5,
-            "mean": 47.472
-           },
-           {
-            "n": 10000,
-            "median": 45.7,
-            "p95": 53,
-            "p99": 70.6,
-            "p25": 44.5,
-            "p75": 47.3,
-            "iqr": 2.8,
-            "min": 32.8,
-            "max": 321,
-            "mean": 47.134
-           },
-           {
-            "n": 10000,
-            "median": 46,
-            "p95": 52.3,
-            "p99": 66.2,
-            "p25": 44.7,
-            "p75": 47.5,
-            "iqr": 2.8,
-            "min": 32.9,
-            "max": 316.1,
-            "mean": 47.169
+            "min": 39.3,
+            "max": 304,
+            "mean": 50.488
            }
           ],
           "segments": {
            "observations": {
             "n": 9,
-            "median": 223.6,
-            "p95": 247.1,
-            "p99": 247.1,
-            "p25": 171,
-            "p75": 236.1,
-            "iqr": 65.1,
-            "min": 137.4,
-            "max": 291.9,
-            "mean": 212.211
+            "median": 189.8,
+            "p95": 247.8,
+            "p99": 247.8,
+            "p25": 181.5,
+            "p75": 229.9,
+            "iqr": 48.4,
+            "min": 143.2,
+            "max": 423.6,
+            "mean": 216.8
            },
            "decay": {
             "n": 1800,
-            "median": 48.6,
-            "p95": 69.1,
-            "p99": 110.5,
-            "p25": 46.8,
-            "p75": 51.7,
-            "iqr": 4.9,
-            "min": 41.6,
-            "max": 408.5,
-            "mean": 52.195
+            "median": 49.9,
+            "p95": 72.4,
+            "p99": 115.6,
+            "p25": 46.3,
+            "p75": 57.5,
+            "iqr": 11.2,
+            "min": 37.1,
+            "max": 803.1,
+            "mean": 54.583
            },
            "transition": {
             "n": 2091,
-            "median": 45.1,
-            "p95": 53.4,
+            "median": 46.6,
+            "p95": 55,
             "p99": 103.3,
-            "p25": 43.1,
-            "p75": 47,
-            "iqr": 3.9,
-            "min": 32.8,
-            "max": 323.4,
-            "mean": 46.605
+            "p25": 43.9,
+            "p75": 49.4,
+            "iqr": 5.5,
+            "min": 33.1,
+            "max": 337.5,
+            "mean": 48.436
            },
            "steady": {
             "n": 26100,
-            "median": 45.8,
-            "p95": 51.7,
-            "p99": 65.2,
-            "p25": 44.6,
-            "p75": 47.2,
-            "iqr": 2.6,
-            "min": 33.7,
-            "max": 323.6,
-            "mean": 46.913
+            "median": 47.8,
+            "p95": 54,
+            "p99": 66.7,
+            "p25": 43.7,
+            "p75": 50,
+            "iqr": 6.3,
+            "min": 35.3,
+            "max": 295.6,
+            "mean": 47.972
            }
           }
          }
@@ -918,6 +1146,31 @@
          "kind": "adapter-save-json",
          "sha256": "bcc2ec60c6f54cd9465a3feed06ed6917c00d52554839bed28f8964e63490307",
          "count": 1
+        },
+        "cores": {
+         "samples": 2,
+         "cores": {
+          "10": {
+           "busyPercent": 59.7,
+           "mhzWhileBusy": 4032.6,
+           "busySamples": 2
+          },
+          "11": {
+           "busyPercent": 41.8,
+           "mhzWhileBusy": 4052.9,
+           "busySamples": 1
+          },
+          "12": {
+           "busyPercent": 31,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "13": {
+           "busyPercent": 7,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          }
+         }
         }
        }
       ],
@@ -925,60 +1178,60 @@
        "adapter.dispatch": {
         "median": {
          "runs": 1,
-         "median": 43.6,
-         "min": 43.6,
-         "max": 43.6,
+         "median": 45.5,
+         "min": 45.5,
+         "max": 45.5,
          "rangePercent": 0
         },
         "p95": {
          "runs": 1,
-         "median": 49.8,
-         "min": 49.8,
-         "max": 49.8,
+         "median": 52.7,
+         "min": 52.7,
+         "max": 52.7,
          "rangePercent": 0
         },
         "iqr": {
          "runs": 1,
-         "median": 2.5,
-         "min": 2.5,
-         "max": 2.5,
+         "median": 6,
+         "min": 6,
+         "max": 6,
          "rangePercent": 0
         },
         "max": {
          "runs": 1,
-         "median": 365,
-         "min": 365,
-         "max": 365,
+         "median": 794.8,
+         "min": 794.8,
+         "max": 794.8,
          "rangePercent": 0
         },
         "n": 30000,
         "segments": {
          "observations": {
           "runs": 1,
-          "median": 166.3,
-          "min": 166.3,
-          "max": 166.3,
+          "median": 164.7,
+          "min": 164.7,
+          "max": 164.7,
           "rangePercent": 0
          },
          "decay": {
           "runs": 1,
-          "median": 45.8,
-          "min": 45.8,
-          "max": 45.8,
+          "median": 47,
+          "min": 47,
+          "max": 47,
           "rangePercent": 0
          },
          "transition": {
           "runs": 1,
-          "median": 42.6,
-          "min": 42.6,
-          "max": 42.6,
+          "median": 44,
+          "min": 44,
+          "max": 44,
           "rangePercent": 0
          },
          "steady": {
           "runs": 1,
-          "median": 43.5,
-          "min": 43.5,
-          "max": 43.5,
+          "median": 45.5,
+          "min": 45.5,
+          "max": 45.5,
           "rangePercent": 0
          }
         }
@@ -993,9 +1246,9 @@
         },
         "p95": {
          "runs": 1,
-         "median": 3.6,
-         "min": 3.6,
-         "max": 3.6,
+         "median": 3.5,
+         "min": 3.5,
+         "max": 3.5,
          "rangePercent": 0
         },
         "iqr": {
@@ -1007,32 +1260,32 @@
         },
         "max": {
          "runs": 1,
-         "median": 340.4,
-         "min": 340.4,
-         "max": 340.4,
+         "median": 358.1,
+         "min": 358.1,
+         "max": 358.1,
          "rangePercent": 0
         },
         "n": 30000,
         "segments": {
          "observations": {
           "runs": 1,
-          "median": 33.4,
-          "min": 33.4,
-          "max": 33.4,
+          "median": 46,
+          "min": 46,
+          "max": 46,
           "rangePercent": 0
          },
          "decay": {
           "runs": 1,
-          "median": 2.6,
-          "min": 2.6,
-          "max": 2.6,
+          "median": 2.8,
+          "min": 2.8,
+          "max": 2.8,
           "rangePercent": 0
          },
          "transition": {
           "runs": 1,
-          "median": 2.3,
-          "min": 2.3,
-          "max": 2.3,
+          "median": 2.4,
+          "min": 2.4,
+          "max": 2.4,
           "rangePercent": 0
          },
          "steady": {
@@ -1047,60 +1300,60 @@
        "adapter.dispatch+view": {
         "median": {
          "runs": 1,
-         "median": 45.9,
-         "min": 45.9,
-         "max": 45.9,
+         "median": 47.8,
+         "min": 47.8,
+         "max": 47.8,
          "rangePercent": 0
         },
         "p95": {
          "runs": 1,
-         "median": 52.8,
-         "min": 52.8,
-         "max": 52.8,
+         "median": 55.7,
+         "min": 55.7,
+         "max": 55.7,
          "rangePercent": 0
         },
         "iqr": {
          "runs": 1,
-         "median": 2.8,
-         "min": 2.8,
-         "max": 2.8,
+         "median": 6.2,
+         "min": 6.2,
+         "max": 6.2,
          "rangePercent": 0
         },
         "max": {
          "runs": 1,
-         "median": 408.5,
-         "min": 408.5,
-         "max": 408.5,
+         "median": 803.1,
+         "min": 803.1,
+         "max": 803.1,
          "rangePercent": 0
         },
         "n": 30000,
         "segments": {
          "observations": {
           "runs": 1,
-          "median": 223.6,
-          "min": 223.6,
-          "max": 223.6,
+          "median": 189.8,
+          "min": 189.8,
+          "max": 189.8,
           "rangePercent": 0
          },
          "decay": {
           "runs": 1,
-          "median": 48.6,
-          "min": 48.6,
-          "max": 48.6,
+          "median": 49.9,
+          "min": 49.9,
+          "max": 49.9,
           "rangePercent": 0
          },
          "transition": {
           "runs": 1,
-          "median": 45.1,
-          "min": 45.1,
-          "max": 45.1,
+          "median": 46.6,
+          "min": 46.6,
+          "max": 46.6,
           "rangePercent": 0
          },
          "steady": {
           "runs": 1,
-          "median": 45.8,
-          "min": 45.8,
-          "max": 45.8,
+          "median": 47.8,
+          "min": 47.8,
+          "max": 47.8,
           "rangePercent": 0
          }
         }

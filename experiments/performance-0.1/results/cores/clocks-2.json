@@ -1,6 +1,6 @@
 {
  "schema": "caveat-performance-clocks/0.1",
- "at": "2026-09-29T08:17:52.538Z",
+ "at": "2026-09-29T09:26:31.609Z",
  "seconds": 5,
  "machine": {
   "platform": "win32",
@@ -205,40 +205,40 @@
  },
  "loadAfter": {
   "totalCpuPercent": [
-   6,
-   1,
-   0
+   7,
+   3,
+   2
   ],
   "busiestProcesses": [
    {
     "name": "claude",
     "pid": 95512,
-    "cpuSeconds": 1.453
+    "cpuSeconds": 1.203
    },
    {
     "name": "powershell",
-    "pid": 104316,
-    "cpuSeconds": 0.641
+    "pid": 76568,
+    "cpuSeconds": 0.656
    },
    {
     "name": "claude",
     "pid": 104712,
-    "cpuSeconds": 0.328
+    "cpuSeconds": 0.406
+   },
+   {
+    "name": "MicrosoftSecurityApp",
+    "pid": 49296,
+    "cpuSeconds": 0.234
    },
    {
     "name": "ChatGPT",
     "pid": 8524,
-    "cpuSeconds": 0.234
+    "cpuSeconds": 0.188
    },
    {
     "name": "IntelGraphicsSoftware",
     "pid": 14784,
-    "cpuSeconds": 0.156
-   },
-   {
-    "name": "claude",
-    "pid": 103160,
-    "cpuSeconds": 0.125
+    "cpuSeconds": 0.141
    }
   ]
  },
@@ -253,13 +253,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 5128,
+   "meanMHz": 5132,
    "samplesMHz": [
-    5130,
+    5134,
     5132,
-    5131,
-    5130,
-    5116
+    5137,
+    5137,
+    5122
    ]
   },
   {
@@ -272,13 +272,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 5139,
+   "meanMHz": 5138,
    "samplesMHz": [
+    5139,
     5141,
     5142,
     5142,
-    5142,
-    5129
+    5125
    ]
   },
   {
@@ -291,13 +291,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 4313,
+   "meanMHz": 4321,
    "samplesMHz": [
-    4348,
+    4343,
+    4333,
     4306,
-    4336,
-    4345,
-    4228
+    4315,
+    4308
    ]
   },
   {
@@ -310,13 +310,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 3879,
+   "meanMHz": 3934,
    "samplesMHz": [
-    3619,
-    3898,
+    3953,
+    3875,
+    3928,
     3957,
-    3968,
-    3951
+    3959
    ]
   },
   {
@@ -329,13 +329,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 3844,
+   "meanMHz": 3785,
    "samplesMHz": [
-    3874,
-    3838,
-    3815,
-    3851,
-    3840
+    3748,
+    3742,
+    3786,
+    3817,
+    3833
    ]
   },
   {
@@ -348,13 +348,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 4126,
+   "meanMHz": 4080,
    "samplesMHz": [
-    4132,
-    4107,
-    4129,
-    4125,
-    4136
+    4100,
+    4062,
+    4099,
+    4063,
+    4075
    ]
   },
   {
@@ -367,13 +367,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 4018,
+   "meanMHz": 3924,
    "samplesMHz": [
-    4044,
-    4017,
-    4010,
-    4014,
-    4008
+    3970,
+    3900,
+    3880,
+    3927,
+    3940
    ]
   },
   {
@@ -386,13 +386,13 @@
     "lastLevelCache": 0
    },
    "busySamples": 5,
-   "meanMHz": 3751,
+   "meanMHz": 3689,
    "samplesMHz": [
-    3747,
-    3699,
-    3765,
-    3777,
-    3765
+    3676,
+    3681,
+    3675,
+    3689,
+    3726
    ]
   }
  ]

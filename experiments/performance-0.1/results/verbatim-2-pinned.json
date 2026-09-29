@@ -1,7 +1,7 @@
 {
  "schema": "caveat-performance-verbatim/0.1",
  "command": "node experiments/glowcap/harness.mjs --bench",
- "startedAt": "2026-09-29T06:23:42.631Z",
+ "startedAt": "2026-09-29T09:15:04.311Z",
  "machine": {
   "platform": "win32",
   "arch": "x64",
@@ -20,7 +20,7 @@
    "ramBytes": 68112736256,
    "powerScheme": "Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)",
    "batteryStatus": 2,
-   "cpuSets": "0:0:1,1:1:1,2:2:0,3:3:0,4:4:0,5:5:0,6:6:0,7:7:0,8:8:0,9:9:0,10:10:1,11:11:1,12:12:1,13:13:1,14:14:0,15:15:0,16:16:0,17:17:0,18:18:0,19:19:0,20:20:0,21:21:0,22:22:1,23:23:1"
+   "cpuSets": "0:0:1:1:0,1:1:1:1:0,2:2:0:0:0,3:3:0:0:0,4:4:0:0:0,5:5:0:0:0,6:6:0:0:0,7:7:0:0:0,8:8:0:0:0,9:9:0:0:0,10:10:1:1:0,11:11:1:1:0,12:12:1:1:0,13:13:1:2:0,14:14:0:0:0,15:15:0:0:0,16:16:0:0:0,17:17:0:0:0,18:18:0:0:0,19:19:0:0:0,20:20:0:0:0,21:21:0:0:0,22:22:1:1:0,23:23:1:2:0"
   },
   "performanceCores": [
    0,
@@ -31,34 +31,210 @@
    13,
    22,
    23
+  ],
+  "cpuSetList": [
+   {
+    "logicalProcessor": 0,
+    "core": 0,
+    "efficiencyClass": 1,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 1,
+    "core": 1,
+    "efficiencyClass": 1,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 2,
+    "core": 2,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 3,
+    "core": 3,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 4,
+    "core": 4,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 5,
+    "core": 5,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 6,
+    "core": 6,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 7,
+    "core": 7,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 8,
+    "core": 8,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 9,
+    "core": 9,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 10,
+    "core": 10,
+    "efficiencyClass": 1,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 11,
+    "core": 11,
+    "efficiencyClass": 1,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 12,
+    "core": 12,
+    "efficiencyClass": 1,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 13,
+    "core": 13,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 14,
+    "core": 14,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 15,
+    "core": 15,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 16,
+    "core": 16,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 17,
+    "core": 17,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 18,
+    "core": 18,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 19,
+    "core": 19,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 20,
+    "core": 20,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 21,
+    "core": 21,
+    "efficiencyClass": 0,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 22,
+    "core": 22,
+    "efficiencyClass": 1,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 23,
+    "core": 23,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   }
   ]
  },
  "pinning": {
   "affinity": "0x3C00",
+  "affinitySet": null,
   "priority": "high",
   "how": "cmd /c start /b /wait"
  },
  "loadBefore": {
   "totalCpuPercent": [
-   3,
-   4,
+   5,
+   12,
    0
   ],
   "busiestProcesses": [
    {
     "name": "claude",
     "pid": 95512,
-    "cpuSeconds": 1.312
+    "cpuSeconds": 1.453
    },
    {
     "name": "powershell",
-    "pid": 47796,
-    "cpuSeconds": 0.672
+    "pid": 109664,
+    "cpuSeconds": 0.984
+   },
+   {
+    "name": "powershell",
+    "pid": 47520,
+    "cpuSeconds": 0.938
    },
    {
     "name": "claude",
     "pid": 104712,
-    "cpuSeconds": 0.422
+    "cpuSeconds": 0.609
    },
    {
     "name": "ChatGPT",
@@ -66,14 +242,9 @@
     "cpuSeconds": 0.219
    },
    {
-    "name": "MicrosoftSecurityApp",
-    "pid": 49296,
-    "cpuSeconds": 0.156
-   },
-   {
-    "name": "Reallusion Hub",
-    "pid": 70736,
-    "cpuSeconds": 0.109
+    "name": "IntelGraphicsSoftware",
+    "pid": 14784,
+    "cpuSeconds": 0.141
    }
   ]
  },
@@ -125,7 +296,7 @@
   {
    "label": "main",
    "directory": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF",
-   "revision": "dbfd2e36e75b8f3443e2889f6a6bf8171f7c8857",
+   "revision": "d9c935898e65ecb5881ed69eb6af1293fe2eeed4",
    "files": {
     "experiments/glowcap/harness.mjs": "66d37e5b212764a2862b890d1b4a1e3d47ac81ceeaefac346928d152fbe970ae",
     "experiments/glowcap/caveat5/adapter.mjs": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
@@ -148,404 +319,719 @@
  "runs": [
   {
    "tree": "e6ace96",
+   "affinity": "0x3C00",
    "repeat": 0,
-   "seconds": 15.674,
+   "seconds": 15.83,
+   "startedAtMs": 1790673312096,
+   "endedAtMs": 1790673327926,
+   "status": 0,
+   "lines": {
+    "ts": {
+     "median": 2,
+     "p95": 4,
+     "max": 836.2
+    },
+    "caveat": {
+     "median": 107.8,
+     "p95": 124.2,
+     "max": 3847.9
+    },
+    "caveat2": {
+     "median": 147.9,
+     "p95": 167.8,
+     "max": 812
+    },
+    "caveat3": {
+     "median": 33.3,
+     "p95": 39.3,
+     "max": 3806.8
+    },
+    "caveat4": {
+     "median": 161.9,
+     "p95": 175.6,
+     "max": 977.5
+    },
+    "caveat5": {
+     "median": 44.3,
+     "p95": 49.4,
+     "max": 439.9
+    }
+   },
+   "stdout": "ts     dispatch+view µs  median 2.0  p95 4.0  max 836.2\ncaveat dispatch+view µs  median 107.8  p95 124.2  max 3847.9\ncaveat2 dispatch+view µs  median 147.9  p95 167.8  max 812.0\ncaveat3 dispatch+view µs  median 33.3  p95 39.3  max 3806.8\ncaveat4 dispatch+view µs  median 161.9  p95 175.6  max 977.5\ncaveat5 dispatch+view µs  median 44.3  p95 49.4  max 439.9\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 1974580 bytes (560952 gzipped)\ncaveat2 shipped 1979119 bytes (561820 gzipped)\ncaveat3 shipped 1706124 bytes (482289 gzipped)\ncaveat4 shipped 1710089 bytes (483083 gzipped)\ncaveat5 shipped 1707487 bytes (482716 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 15,
+    "cores": {
+     "10": {
+      "busyPercent": 9.2,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 9.2,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 9.1,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.3,
+      "mhzWhileBusy": 3766.9,
+      "busySamples": 15
+     }
+    }
+   }
+  },
+  {
+   "tree": "rc4",
+   "affinity": "0x3C00",
+   "repeat": 0,
+   "seconds": 16.094,
+   "startedAtMs": 1790673327930,
+   "endedAtMs": 1790673344024,
    "status": 0,
    "lines": {
     "ts": {
      "median": 2,
      "p95": 3.9,
-     "max": 590.5
+     "max": 491.2
     },
     "caveat": {
-     "median": 106.6,
-     "p95": 124.7,
-     "max": 4100.2
+     "median": 109.9,
+     "p95": 130,
+     "max": 4315.9
     },
     "caveat2": {
-     "median": 145.2,
-     "p95": 162.2,
-     "max": 887.6
+     "median": 147.9,
+     "p95": 167.6,
+     "max": 1643.9
     },
     "caveat3": {
-     "median": 32.6,
-     "p95": 39.4,
-     "max": 4493.3
+     "median": 33.9,
+     "p95": 41.2,
+     "max": 6424.7
     },
     "caveat4": {
-     "median": 159.8,
-     "p95": 176.9,
-     "max": 1220.2
+     "median": 163.3,
+     "p95": 181.4,
+     "max": 1017.3
     },
     "caveat5": {
-     "median": 43.9,
-     "p95": 49.5,
-     "max": 428
+     "median": 45.4,
+     "p95": 51.3,
+     "max": 479.9
     }
    },
-   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.9  max 590.5\ncaveat dispatch+view µs  median 106.6  p95 124.7  max 4100.2\ncaveat2 dispatch+view µs  median 145.2  p95 162.2  max 887.6\ncaveat3 dispatch+view µs  median 32.6  p95 39.4  max 4493.3\ncaveat4 dispatch+view µs  median 159.8  p95 176.9  max 1220.2\ncaveat5 dispatch+view µs  median 43.9  p95 49.5  max 428.0\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 1974580 bytes (560952 gzipped)\ncaveat2 shipped 1979119 bytes (561820 gzipped)\ncaveat3 shipped 1706124 bytes (482289 gzipped)\ncaveat4 shipped 1710089 bytes (483083 gzipped)\ncaveat5 shipped 1707487 bytes (482716 gzipped)\n",
-   "stderr": ""
+   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.9  max 491.2\ncaveat dispatch+view µs  median 109.9  p95 130.0  max 4315.9\ncaveat2 dispatch+view µs  median 147.9  p95 167.6  max 1643.9\ncaveat3 dispatch+view µs  median 33.9  p95 41.2  max 6424.7\ncaveat4 dispatch+view µs  median 163.3  p95 181.4  max 1017.3\ncaveat5 dispatch+view µs  median 45.4  p95 51.3  max 479.9\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 8.7,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 9.1,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 9.4,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.3,
+      "mhzWhileBusy": 3791.5,
+      "busySamples": 16
+     }
+    }
+   }
   },
   {
-   "tree": "rc4",
+   "tree": "main",
+   "affinity": "0x3C00",
    "repeat": 0,
-   "seconds": 15.917,
+   "seconds": 15.974,
+   "startedAtMs": 1790673344028,
+   "endedAtMs": 1790673360002,
    "status": 0,
    "lines": {
     "ts": {
      "median": 2,
-     "p95": 3.7,
-     "max": 571.5
+     "p95": 4.2,
+     "max": 537.5
     },
     "caveat": {
-     "median": 109.2,
-     "p95": 131.9,
-     "max": 4489.6
+     "median": 108.8,
+     "p95": 128.2,
+     "max": 4174.7
     },
     "caveat2": {
-     "median": 145.9,
-     "p95": 166.1,
-     "max": 1647.5
-    },
-    "caveat3": {
-     "median": 33.5,
-     "p95": 40.5,
-     "max": 4207.6
-    },
-    "caveat4": {
-     "median": 161.4,
-     "p95": 173.4,
-     "max": 1055
-    },
-    "caveat5": {
-     "median": 45,
-     "p95": 49.9,
-     "max": 418.9
-    }
-   },
-   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.7  max 571.5\ncaveat dispatch+view µs  median 109.2  p95 131.9  max 4489.6\ncaveat2 dispatch+view µs  median 145.9  p95 166.1  max 1647.5\ncaveat3 dispatch+view µs  median 33.5  p95 40.5  max 4207.6\ncaveat4 dispatch+view µs  median 161.4  p95 173.4  max 1055.0\ncaveat5 dispatch+view µs  median 45.0  p95 49.9  max 418.9\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
-   "stderr": ""
-  },
-  {
-   "tree": "main",
-   "repeat": 0,
-   "seconds": 16.07,
-   "status": 0,
-   "lines": {
-    "ts": {
-     "median": 2.4,
-     "p95": 4.9,
-     "max": 626.3
-    },
-    "caveat": {
-     "median": 109,
-     "p95": 129.1,
-     "max": 4469.8
-    },
-    "caveat2": {
-     "median": 147.2,
-     "p95": 167.6,
-     "max": 935.8
+     "median": 146,
+     "p95": 164.7,
+     "max": 1500.1
     },
     "caveat3": {
      "median": 33.8,
      "p95": 41.4,
-     "max": 4005.4
+     "max": 4014.5
     },
     "caveat4": {
-     "median": 162.6,
-     "p95": 178.4,
-     "max": 1142.3
+     "median": 162.8,
+     "p95": 179.9,
+     "max": 1478.7
     },
     "caveat5": {
-     "median": 45.9,
-     "p95": 52.3,
-     "max": 432.2
+     "median": 45.2,
+     "p95": 50.9,
+     "max": 463.3
     }
    },
-   "stdout": "ts     dispatch+view µs  median 2.4  p95 4.9  max 626.3\ncaveat dispatch+view µs  median 109.0  p95 129.1  max 4469.8\ncaveat2 dispatch+view µs  median 147.2  p95 167.6  max 935.8\ncaveat3 dispatch+view µs  median 33.8  p95 41.4  max 4005.4\ncaveat4 dispatch+view µs  median 162.6  p95 178.4  max 1142.3\ncaveat5 dispatch+view µs  median 45.9  p95 52.3  max 432.2\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
-   "stderr": ""
+   "stdout": "ts     dispatch+view µs  median 2.0  p95 4.2  max 537.5\ncaveat dispatch+view µs  median 108.8  p95 128.2  max 4174.7\ncaveat2 dispatch+view µs  median 146.0  p95 164.7  max 1500.1\ncaveat3 dispatch+view µs  median 33.8  p95 41.4  max 4014.5\ncaveat4 dispatch+view µs  median 162.8  p95 179.9  max 1478.7\ncaveat5 dispatch+view µs  median 45.2  p95 50.9  max 463.3\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 7.3,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 8.8,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 8.4,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99,
+      "mhzWhileBusy": 3818.9,
+      "busySamples": 16
+     }
+    }
+   }
   },
   {
    "tree": "rc4",
+   "affinity": "0x3C00",
    "repeat": 1,
-   "seconds": 16.007,
+   "seconds": 16.178,
+   "startedAtMs": 1790673360004,
+   "endedAtMs": 1790673376182,
    "status": 0,
    "lines": {
     "ts": {
-     "median": 2,
-     "p95": 3.7,
-     "max": 509.7
+     "median": 2.3,
+     "p95": 4.3,
+     "max": 607.6
     },
     "caveat": {
-     "median": 108.9,
-     "p95": 130.1,
-     "max": 4361.3
+     "median": 111.1,
+     "p95": 130.4,
+     "max": 4548.2
     },
     "caveat2": {
-     "median": 146.1,
-     "p95": 166.2,
-     "max": 1832.5
+     "median": 148.1,
+     "p95": 167.4,
+     "max": 1517.5
     },
     "caveat3": {
-     "median": 34,
-     "p95": 41.6,
-     "max": 4170
+     "median": 33.9,
+     "p95": 40.4,
+     "max": 4046.5
     },
     "caveat4": {
-     "median": 163.3,
-     "p95": 178.9,
-     "max": 1025.7
+     "median": 163.6,
+     "p95": 181.5,
+     "max": 1553.4
     },
     "caveat5": {
-     "median": 45.4,
-     "p95": 51.1,
-     "max": 1010.6
+     "median": 45.5,
+     "p95": 51,
+     "max": 427.4
     }
    },
-   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.7  max 509.7\ncaveat dispatch+view µs  median 108.9  p95 130.1  max 4361.3\ncaveat2 dispatch+view µs  median 146.1  p95 166.2  max 1832.5\ncaveat3 dispatch+view µs  median 34.0  p95 41.6  max 4170.0\ncaveat4 dispatch+view µs  median 163.3  p95 178.9  max 1025.7\ncaveat5 dispatch+view µs  median 45.4  p95 51.1  max 1010.6\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
-   "stderr": ""
+   "stdout": "ts     dispatch+view µs  median 2.3  p95 4.3  max 607.6\ncaveat dispatch+view µs  median 111.1  p95 130.4  max 4548.2\ncaveat2 dispatch+view µs  median 148.1  p95 167.4  max 1517.5\ncaveat3 dispatch+view µs  median 33.9  p95 40.4  max 4046.5\ncaveat4 dispatch+view µs  median 163.6  p95 181.5  max 1553.4\ncaveat5 dispatch+view µs  median 45.5  p95 51.0  max 427.4\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 10.8,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 9.1,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 10.6,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.2,
+      "mhzWhileBusy": 3767.5,
+      "busySamples": 16
+     }
+    }
+   }
   },
   {
    "tree": "main",
+   "affinity": "0x3C00",
    "repeat": 1,
-   "seconds": 15.921,
-   "status": 0,
-   "lines": {
-    "ts": {
-     "median": 1.9,
-     "p95": 3.4,
-     "max": 631.3
-    },
-    "caveat": {
-     "median": 109.1,
-     "p95": 130,
-     "max": 4474.1
-    },
-    "caveat2": {
-     "median": 146.5,
-     "p95": 165.4,
-     "max": 1773.4
-    },
-    "caveat3": {
-     "median": 33.7,
-     "p95": 39.7,
-     "max": 4327.1
-    },
-    "caveat4": {
-     "median": 161.5,
-     "p95": 173.4,
-     "max": 1265.2
-    },
-    "caveat5": {
-     "median": 45.3,
-     "p95": 50.2,
-     "max": 466.3
-    }
-   },
-   "stdout": "ts     dispatch+view µs  median 1.9  p95 3.4  max 631.3\ncaveat dispatch+view µs  median 109.1  p95 130.0  max 4474.1\ncaveat2 dispatch+view µs  median 146.5  p95 165.4  max 1773.4\ncaveat3 dispatch+view µs  median 33.7  p95 39.7  max 4327.1\ncaveat4 dispatch+view µs  median 161.5  p95 173.4  max 1265.2\ncaveat5 dispatch+view µs  median 45.3  p95 50.2  max 466.3\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
-   "stderr": ""
-  },
-  {
-   "tree": "e6ace96",
-   "repeat": 1,
-   "seconds": 15.656,
+   "seconds": 16.11,
+   "startedAtMs": 1790673376184,
+   "endedAtMs": 1790673392294,
    "status": 0,
    "lines": {
     "ts": {
      "median": 2,
      "p95": 3.8,
-     "max": 418.8
+     "max": 750.4
     },
     "caveat": {
-     "median": 107.5,
-     "p95": 124.6,
-     "max": 4246.5
-    },
-    "caveat2": {
-     "median": 146.8,
-     "p95": 161.9,
-     "max": 708
-    },
-    "caveat3": {
-     "median": 32.7,
-     "p95": 38.5,
-     "max": 4029.8
-    },
-    "caveat4": {
-     "median": 159.6,
-     "p95": 171.2,
-     "max": 1071.1
-    },
-    "caveat5": {
-     "median": 44.3,
-     "p95": 48.7,
-     "max": 422.1
-    }
-   },
-   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.8  max 418.8\ncaveat dispatch+view µs  median 107.5  p95 124.6  max 4246.5\ncaveat2 dispatch+view µs  median 146.8  p95 161.9  max 708.0\ncaveat3 dispatch+view µs  median 32.7  p95 38.5  max 4029.8\ncaveat4 dispatch+view µs  median 159.6  p95 171.2  max 1071.1\ncaveat5 dispatch+view µs  median 44.3  p95 48.7  max 422.1\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 1974580 bytes (560952 gzipped)\ncaveat2 shipped 1979119 bytes (561820 gzipped)\ncaveat3 shipped 1706124 bytes (482289 gzipped)\ncaveat4 shipped 1710089 bytes (483083 gzipped)\ncaveat5 shipped 1707487 bytes (482716 gzipped)\n",
-   "stderr": ""
-  },
-  {
-   "tree": "main",
-   "repeat": 2,
-   "seconds": 16.206,
-   "status": 0,
-   "lines": {
-    "ts": {
-     "median": 1.9,
-     "p95": 3.7,
-     "max": 566.2
-    },
-    "caveat": {
-     "median": 110.8,
-     "p95": 128.8,
-     "max": 4255.4
-    },
-    "caveat2": {
-     "median": 150.4,
-     "p95": 168.5,
-     "max": 787.2
-    },
-    "caveat3": {
-     "median": 34.5,
-     "p95": 40.4,
-     "max": 4036.1
-    },
-    "caveat4": {
-     "median": 164,
-     "p95": 176.5,
-     "max": 1015
-    },
-    "caveat5": {
-     "median": 45.7,
-     "p95": 50.9,
-     "max": 435.5
-    }
-   },
-   "stdout": "ts     dispatch+view µs  median 1.9  p95 3.7  max 566.2\ncaveat dispatch+view µs  median 110.8  p95 128.8  max 4255.4\ncaveat2 dispatch+view µs  median 150.4  p95 168.5  max 787.2\ncaveat3 dispatch+view µs  median 34.5  p95 40.4  max 4036.1\ncaveat4 dispatch+view µs  median 164.0  p95 176.5  max 1015.0\ncaveat5 dispatch+view µs  median 45.7  p95 50.9  max 435.5\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
-   "stderr": ""
-  },
-  {
-   "tree": "e6ace96",
-   "repeat": 2,
-   "seconds": 15.825,
-   "status": 0,
-   "lines": {
-    "ts": {
-     "median": 2,
-     "p95": 3.6,
-     "max": 522.8
-    },
-    "caveat": {
-     "median": 108.5,
-     "p95": 125.7,
-     "max": 4414.9
+     "median": 109.4,
+     "p95": 130.2,
+     "max": 3836.6
     },
     "caveat2": {
      "median": 148.6,
-     "p95": 163.7,
-     "max": 1652.2
+     "p95": 173.7,
+     "max": 761.5
     },
     "caveat3": {
-     "median": 32.8,
-     "p95": 38,
-     "max": 4014.3
+     "median": 34,
+     "p95": 41.3,
+     "max": 4107.2
     },
     "caveat4": {
-     "median": 161.7,
-     "p95": 173,
-     "max": 1063
+     "median": 163.6,
+     "p95": 179.6,
+     "max": 1004.6
     },
     "caveat5": {
-     "median": 44.6,
-     "p95": 50.6,
-     "max": 930.7
+     "median": 45.2,
+     "p95": 50.2,
+     "max": 457
     }
    },
-   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.6  max 522.8\ncaveat dispatch+view µs  median 108.5  p95 125.7  max 4414.9\ncaveat2 dispatch+view µs  median 148.6  p95 163.7  max 1652.2\ncaveat3 dispatch+view µs  median 32.8  p95 38.0  max 4014.3\ncaveat4 dispatch+view µs  median 161.7  p95 173.0  max 1063.0\ncaveat5 dispatch+view µs  median 44.6  p95 50.6  max 930.7\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 1974580 bytes (560952 gzipped)\ncaveat2 shipped 1979119 bytes (561820 gzipped)\ncaveat3 shipped 1706124 bytes (482289 gzipped)\ncaveat4 shipped 1710089 bytes (483083 gzipped)\ncaveat5 shipped 1707487 bytes (482716 gzipped)\n",
-   "stderr": ""
+   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.8  max 750.4\ncaveat dispatch+view µs  median 109.4  p95 130.2  max 3836.6\ncaveat2 dispatch+view µs  median 148.6  p95 173.7  max 761.5\ncaveat3 dispatch+view µs  median 34.0  p95 41.3  max 4107.2\ncaveat4 dispatch+view µs  median 163.6  p95 179.6  max 1004.6\ncaveat5 dispatch+view µs  median 45.2  p95 50.2  max 457.0\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 7.8,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.3,
+      "mhzWhileBusy": 3815.7,
+      "busySamples": 16
+     }
+    }
+   }
   },
   {
-   "tree": "rc4",
-   "repeat": 2,
-   "seconds": 16.037,
+   "tree": "e6ace96",
+   "affinity": "0x3C00",
+   "repeat": 1,
+   "seconds": 15.795,
+   "startedAtMs": 1790673392296,
+   "endedAtMs": 1790673408091,
    "status": 0,
    "lines": {
     "ts": {
      "median": 2.1,
-     "p95": 4,
-     "max": 440.4
+     "p95": 3.7,
+     "max": 680.6
     },
     "caveat": {
-     "median": 110.2,
-     "p95": 127.9,
-     "max": 4233
+     "median": 108.1,
+     "p95": 125.1,
+     "max": 4175.7
     },
     "caveat2": {
-     "median": 148.5,
-     "p95": 164,
-     "max": 1508.2
+     "median": 147.9,
+     "p95": 167.2,
+     "max": 769.6
     },
     "caveat3": {
-     "median": 34,
-     "p95": 39.7,
-     "max": 6439.3
+     "median": 32.5,
+     "p95": 38.4,
+     "max": 4071.8
     },
     "caveat4": {
-     "median": 163.1,
-     "p95": 175.4,
-     "max": 1088.5
+     "median": 161.2,
+     "p95": 174.6,
+     "max": 989.6
     },
     "caveat5": {
-     "median": 45.5,
-     "p95": 50.4,
-     "max": 935.7
+     "median": 44.4,
+     "p95": 48.9,
+     "max": 417.1
     }
    },
-   "stdout": "ts     dispatch+view µs  median 2.1  p95 4.0  max 440.4\ncaveat dispatch+view µs  median 110.2  p95 127.9  max 4233.0\ncaveat2 dispatch+view µs  median 148.5  p95 164.0  max 1508.2\ncaveat3 dispatch+view µs  median 34.0  p95 39.7  max 6439.3\ncaveat4 dispatch+view µs  median 163.1  p95 175.4  max 1088.5\ncaveat5 dispatch+view µs  median 45.5  p95 50.4  max 935.7\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
-   "stderr": ""
+   "stdout": "ts     dispatch+view µs  median 2.1  p95 3.7  max 680.6\ncaveat dispatch+view µs  median 108.1  p95 125.1  max 4175.7\ncaveat2 dispatch+view µs  median 147.9  p95 167.2  max 769.6\ncaveat3 dispatch+view µs  median 32.5  p95 38.4  max 4071.8\ncaveat4 dispatch+view µs  median 161.2  p95 174.6  max 989.6\ncaveat5 dispatch+view µs  median 44.4  p95 48.9  max 417.1\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 1974580 bytes (560952 gzipped)\ncaveat2 shipped 1979119 bytes (561820 gzipped)\ncaveat3 shipped 1706124 bytes (482289 gzipped)\ncaveat4 shipped 1710089 bytes (483083 gzipped)\ncaveat5 shipped 1707487 bytes (482716 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 8.4,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 7.1,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 9.5,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.3,
+      "mhzWhileBusy": 3806.5,
+      "busySamples": 16
+     }
+    }
+   }
+  },
+  {
+   "tree": "main",
+   "affinity": "0x3C00",
+   "repeat": 2,
+   "seconds": 16.016,
+   "startedAtMs": 1790673408093,
+   "endedAtMs": 1790673424109,
+   "status": 0,
+   "lines": {
+    "ts": {
+     "median": 2,
+     "p95": 3.8,
+     "max": 500.4
+    },
+    "caveat": {
+     "median": 108.8,
+     "p95": 130.4,
+     "max": 4421.7
+    },
+    "caveat2": {
+     "median": 146.3,
+     "p95": 165.1,
+     "max": 795
+    },
+    "caveat3": {
+     "median": 33.7,
+     "p95": 42.1,
+     "max": 5763.3
+    },
+    "caveat4": {
+     "median": 163,
+     "p95": 179,
+     "max": 1120.3
+    },
+    "caveat5": {
+     "median": 45.9,
+     "p95": 51.7,
+     "max": 412.3
+    }
+   },
+   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.8  max 500.4\ncaveat dispatch+view µs  median 108.8  p95 130.4  max 4421.7\ncaveat2 dispatch+view µs  median 146.3  p95 165.1  max 795.0\ncaveat3 dispatch+view µs  median 33.7  p95 42.1  max 5763.3\ncaveat4 dispatch+view µs  median 163.0  p95 179.0  max 1120.3\ncaveat5 dispatch+view µs  median 45.9  p95 51.7  max 412.3\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 15,
+    "cores": {
+     "10": {
+      "busyPercent": 8.9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 8.5,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 8.9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.4,
+      "mhzWhileBusy": 3830.7,
+      "busySamples": 15
+     }
+    }
+   }
+  },
+  {
+   "tree": "e6ace96",
+   "affinity": "0x3C00",
+   "repeat": 2,
+   "seconds": 15.996,
+   "startedAtMs": 1790673424111,
+   "endedAtMs": 1790673440107,
+   "status": 0,
+   "lines": {
+    "ts": {
+     "median": 2,
+     "p95": 3.8,
+     "max": 605.3
+    },
+    "caveat": {
+     "median": 107.7,
+     "p95": 127.4,
+     "max": 3790.2
+    },
+    "caveat2": {
+     "median": 145.6,
+     "p95": 169.3,
+     "max": 674.2
+    },
+    "caveat3": {
+     "median": 32.8,
+     "p95": 40,
+     "max": 4053
+    },
+    "caveat4": {
+     "median": 166.1,
+     "p95": 182,
+     "max": 1062
+    },
+    "caveat5": {
+     "median": 45.8,
+     "p95": 51.4,
+     "max": 565.9
+    }
+   },
+   "stdout": "ts     dispatch+view µs  median 2.0  p95 3.8  max 605.3\ncaveat dispatch+view µs  median 107.7  p95 127.4  max 3790.2\ncaveat2 dispatch+view µs  median 145.6  p95 169.3  max 674.2\ncaveat3 dispatch+view µs  median 32.8  p95 40.0  max 4053.0\ncaveat4 dispatch+view µs  median 166.1  p95 182.0  max 1062.0\ncaveat5 dispatch+view µs  median 45.8  p95 51.4  max 565.9\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 1974580 bytes (560952 gzipped)\ncaveat2 shipped 1979119 bytes (561820 gzipped)\ncaveat3 shipped 1706124 bytes (482289 gzipped)\ncaveat4 shipped 1710089 bytes (483083 gzipped)\ncaveat5 shipped 1707487 bytes (482716 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 12,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 9.2,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 10.9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.1,
+      "mhzWhileBusy": 3771,
+      "busySamples": 16
+     }
+    }
+   }
+  },
+  {
+   "tree": "rc4",
+   "affinity": "0x3C00",
+   "repeat": 2,
+   "seconds": 16.263,
+   "startedAtMs": 1790673440109,
+   "endedAtMs": 1790673456372,
+   "status": 0,
+   "lines": {
+    "ts": {
+     "median": 2.1,
+     "p95": 3.9,
+     "max": 675.1
+    },
+    "caveat": {
+     "median": 112,
+     "p95": 130.8,
+     "max": 4438.5
+    },
+    "caveat2": {
+     "median": 149.5,
+     "p95": 165.5,
+     "max": 2242.9
+    },
+    "caveat3": {
+     "median": 34.6,
+     "p95": 40.6,
+     "max": 5110.4
+    },
+    "caveat4": {
+     "median": 164.8,
+     "p95": 180.3,
+     "max": 1044.9
+    },
+    "caveat5": {
+     "median": 46,
+     "p95": 51.9,
+     "max": 498.1
+    }
+   },
+   "stdout": "ts     dispatch+view µs  median 2.1  p95 3.9  max 675.1\ncaveat dispatch+view µs  median 112.0  p95 130.8  max 4438.5\ncaveat2 dispatch+view µs  median 149.5  p95 165.5  max 2242.9\ncaveat3 dispatch+view µs  median 34.6  p95 40.6  max 5110.4\ncaveat4 dispatch+view µs  median 164.8  p95 180.3  max 1044.9\ncaveat5 dispatch+view µs  median 46.0  p95 51.9  max 498.1\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 16,
+    "cores": {
+     "10": {
+      "busyPercent": 7.9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 7.9,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 7.7,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.5,
+      "mhzWhileBusy": 3758.4,
+      "busySamples": 16
+     }
+    }
+   }
   }
  ],
  "runsJsonl": [],
+ "loadDuring": {
+  "what": "typeperf every 1 s for the whole run",
+  "samples": 142,
+  "counters": {
+   "total": {
+    "samples": 142,
+    "mean": 8.7,
+    "p95": 11.6,
+    "max": 16.2
+   },
+   "processor 10": {
+    "samples": 142,
+    "mean": 9.1,
+    "p95": 19.3,
+    "max": 38.2
+   },
+   "processor 11": {
+    "samples": 142,
+    "mean": 8.5,
+    "p95": 15,
+    "max": 28.8
+   },
+   "processor 12": {
+    "samples": 142,
+    "mean": 9.3,
+    "p95": 17.8,
+    "max": 29
+   },
+   "processor 13": {
+    "samples": 142,
+    "mean": 99.3,
+    "p95": 100,
+    "max": 100
+   },
+   "processor 10 MHz": {
+    "samples": 142,
+    "mean": 3981.5,
+    "p95": 4398.9,
+    "max": 4896.7
+   },
+   "processor 11 MHz": {
+    "samples": 142,
+    "mean": 3729.5,
+    "p95": 4059.2,
+    "max": 4175.7
+   },
+   "processor 12 MHz": {
+    "samples": 142,
+    "mean": 3890.2,
+    "p95": 4175.3,
+    "max": 4396.1
+   },
+   "processor 13 MHz": {
+    "samples": 142,
+    "mean": 3791.8,
+    "p95": 3868.4,
+    "max": 3962.3
+   }
+  },
+  "totalAbove10Percent": 27,
+  "totalAbove25Percent": 0,
+  "pinnedSumAbove150Percent": 5
+ },
  "loadAfter": {
   "totalCpuPercent": [
+   22,
    0,
-   0,
-   4
+   0
   ],
   "busiestProcesses": [
    {
     "name": "claude",
     "pid": 95512,
-    "cpuSeconds": 1.969
-   },
-   {
-    "name": "powershell",
-    "pid": 9960,
-    "cpuSeconds": 0.641
+    "cpuSeconds": 1.438
    },
    {
     "name": "claude",
     "pid": 104712,
-    "cpuSeconds": 0.562
+    "cpuSeconds": 1.219
+   },
+   {
+    "name": "powershell",
+    "pid": 105800,
+    "cpuSeconds": 0.656
    },
    {
     "name": "ChatGPT",
     "pid": 8524,
-    "cpuSeconds": 0.297
+    "cpuSeconds": 0.203
+   },
+   {
+    "name": "ChatGPT",
+    "pid": 87544,
+    "cpuSeconds": 0.109
    },
    {
     "name": "IntelGraphicsSoftware",
     "pid": 14784,
-    "cpuSeconds": 0.219
-   },
-   {
-    "name": "claude",
-    "pid": 103160,
-    "cpuSeconds": 0.188
+    "cpuSeconds": 0.094
    }
   ]
  },
- "finishedAt": "2026-09-29T06:26:20.715Z"
+ "finishedAt": "2026-09-29T09:17:42.049Z"
 }

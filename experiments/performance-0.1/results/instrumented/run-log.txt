@@ -1,422 +1,422 @@
-[2026-09-29T03:28:17.775Z] run 2026-09-29T03-28-17-772-instrumented: suite instrumented, 3 repeat(s), engines native,wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\instrumented
-[2026-09-29T03:28:26.848Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
-[2026-09-29T03:28:26.849Z] load before: {"totalCpuPercent":[29,6,23],"busiestProcesses":[{"name":"ChatGPT","pid":87544,"cpuSeconds":3.422},{"name":"ChatGPT","pid":104948,"cpuSeconds":1.156},{"name":"claude","pid":95512,"cpuSeconds":0.938},{"name":"powershell","pid":91092,"cpuSeconds":0.828},{"name":"claude","pid":104712,"cpuSeconds":0.266},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.188}]}
-[2026-09-29T03:28:27.119Z] main-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\pkg-reactive
-[2026-09-29T03:28:27.125Z] main-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
-[2026-09-29T03:28:27.125Z] i1: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i1\runtime\target\perf-baseline\pkg-reactive
-[2026-09-29T03:28:27.131Z] i1: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i1; wasm 0368965f71b7339f9f340f70ec524e391b0b50832c2cf2a80dd74314c8424944; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i1\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
-[2026-09-29T03:28:27.131Z] i2: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i2\runtime\target\perf-baseline\pkg-reactive
-[2026-09-29T03:28:27.137Z] i2: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i2; wasm 2ee34de9ffabd2e433b5ff717df687420f1cb8d06255ddcf138a79d99bc29df0; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i2\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
-[2026-09-29T03:28:27.153Z] 92 jobs x 3 target(s) x 3 repeat(s)
-[2026-09-29T03:28:27.163Z] monitoring load with typeperf every 5 s (total, processor 10, processor 11, processor 12, processor 13)
-[2026-09-29T03:28:27.928Z] 0001-main-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 15.4
-[2026-09-29T03:28:28.693Z] 0002-i1-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 15.6
-[2026-09-29T03:28:29.756Z] 0003-main-local-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 23.5
-[2026-09-29T03:28:30.854Z] 0004-i1-glowcap-replay-native-web.dispatch_view 1.1 s (parallelism 4): web.dispatch_view 24.6
-[2026-09-29T03:28:34.049Z] 0005-main-local-glowcap-replay-native-web.dispatch_outcome 3.2 s (parallelism 4): web.dispatch_outcome 75.1
-[2026-09-29T03:28:37.152Z] 0006-i1-glowcap-replay-native-web.dispatch_outcome 3.1 s (parallelism 4): web.dispatch_outcome 73.3
-[2026-09-29T03:28:44.382Z] 0007-main-local-glowcap-replay-native-read 7.0 s (parallelism 4): clone 8.2, clone.drop 4.5, save 10.7
-[2026-09-29T03:28:51.941Z] 0008-i1-glowcap-replay-native-read 7.4 s (parallelism 4): clone 8.4, clone.drop 4.6, save 10.8
-[2026-09-29T03:28:57.462Z] 0009-main-local-glowcap-replay-native-web.read 5.5 s (parallelism 4): web.save 18.5, web.snapshot 77.6, web.view 7.5
-[2026-09-29T03:29:02.843Z] 0010-i1-glowcap-replay-native-web.read 5.3 s (parallelism 4): web.save 18.2, web.snapshot 76, web.view 7.3
-[2026-09-29T03:29:03.948Z] 0011-main-local-glowcap-replay-native-lifecycle 1.1 s (parallelism 4): from_source 3073.4, restore 3237.4, restore.parse 38.6
-[2026-09-29T03:29:05.012Z] 0012-i1-glowcap-replay-native-lifecycle 1.1 s (parallelism 4): from_source 2886.9, restore 3033.8, restore.parse 38.1
-[2026-09-29T03:29:05.771Z] 0013-i1-glowcap-replay-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 15.9
-[2026-09-29T03:29:11.909Z] 0014-i1-glowcap-replay-native-bench.read 6.1 s (parallelism 4): bench.snapshot_build 40.2, bench.view_build 4.5, web.snapshot 76.3
-[2026-09-29T03:29:13.303Z] 0015-i2-glowcap-replay-native-probe.dispatch_view 1.2 s (parallelism 4): apply.clone 0.4, apply.swap 1.3, apply.validate 0.1
-[2026-09-29T03:29:16.915Z] 0016-i2-glowcap-replay-native-probe.dispatch_outcome 3.3 s (parallelism 4): apply.clone 0.4, apply.swap 1.4, apply.validate 0.1
-[2026-09-29T03:29:22.715Z] 0017-i2-glowcap-replay-native-probe.read 5.5 s (parallelism 4): save:exit 0, save:save.build 9.8, save:save.drop 3.3
-[2026-09-29T03:29:23.259Z] 0018-i2-glowcap-replay-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 28, new:bind.explain 3.7, new:bind.sort 3
-[2026-09-29T03:29:23.353Z] 0019-i2-glowcap-replay-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.041, probe.now 0.04
-[2026-09-29T03:29:25.982Z] 0020-main-local-glowcap-replay-wasm-raw.dispatch_view 2.6 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 28, js.parse_view 18.4
-[2026-09-29T03:29:28.298Z] 0021-i1-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 28.3, js.parse_view 18.7
-[2026-09-29T03:29:34.915Z] 0022-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.6 s (parallelism 4): raw.dispatch_outcome 80.7, js.parse_outcome 70.6, raw.dispatch_outcome+parse 151.7
-[2026-09-29T03:29:41.766Z] 0023-i1-glowcap-replay-wasm-raw.dispatch_outcome 6.8 s (parallelism 4): raw.dispatch_outcome 87.1, js.parse_outcome 76.5, raw.dispatch_outcome+parse 164.3
-[2026-09-29T03:29:43.312Z] 0024-main-local-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 4): abi.encode_args 0.2, abi.exec 24.9, abi.decode 2.9
-[2026-09-29T03:29:44.860Z] 0025-i1-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 4): abi.encode_args 0.2, abi.exec 25, abi.decode 2.9
-[2026-09-29T03:29:48.384Z] 0026-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.5 s (parallelism 4): abi.encode_args 0.2, abi.exec 65.7, abi.decode 8.7
-[2026-09-29T03:29:51.901Z] 0027-i1-glowcap-replay-wasm-abi.dispatch_outcome 3.5 s (parallelism 4): abi.encode_args 0.2, abi.exec 64.8, abi.decode 8.6
-[2026-09-29T03:30:04.110Z] 0028-main-local-glowcap-replay-wasm-read 12.1 s (parallelism 4): raw.view 13.6, js.parse_view 22.4, raw.snapshot 112.9
-[2026-09-29T03:30:15.662Z] 0029-i1-glowcap-replay-wasm-read 11.5 s (parallelism 4): raw.view 12.6, js.parse_view 20.4, raw.snapshot 103
-[2026-09-29T03:30:22.751Z] 0030-main-local-glowcap-replay-wasm-abi.read 7.0 s (parallelism 4): abi.view.exec 10.1, abi.view.decode 2.8, abi.snapshot.exec 84.6
-[2026-09-29T03:30:29.524Z] 0031-i1-glowcap-replay-wasm-abi.read 6.7 s (parallelism 4): abi.view.exec 9.2, abi.view.decode 2.6, abi.snapshot.exec 78.1
-[2026-09-29T03:30:30.474Z] 0032-main-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2706, raw.save 55.1, raw.restore 2794.6
-[2026-09-29T03:30:31.486Z] 0033-i1-glowcap-replay-wasm-lifecycle 1.0 s (parallelism 4): raw.new 3255.6, raw.save 64.7, raw.restore 3325.6
-[2026-09-29T03:30:32.419Z] 0034-i1-glowcap-replay-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 14.7, abi.dispatch_only 14.8
-[2026-09-29T03:30:39.652Z] 0035-i1-glowcap-replay-wasm-abi.bench_read 7.1 s (parallelism 4): abi.view_build.exec 3.9, abi.snapshot_build.exec 32.3, abi.view.exec 10.1
-[2026-09-29T03:30:42.892Z] 0036-i2-glowcap-replay-wasm-probe.dispatch_view 2.9 s (parallelism 4): total 49.7, web.enter 0.2, payload.parse 0.3
-[2026-09-29T03:30:50.791Z] 0037-i2-glowcap-replay-wasm-probe.dispatch_outcome 7.5 s (parallelism 4): total 157, web.enter 0.3, payload.parse 0.3
-[2026-09-29T03:31:04.487Z] 0038-i2-glowcap-replay-wasm-probe.read 13.2 s (parallelism 4): view:total 35.5, view:web.enter 0.2, view:view.enter 0.1
-[2026-09-29T03:31:05.347Z] 0039-i2-glowcap-replay-wasm-probe.lifecycle 0.9 s (parallelism 4): restore:total 3485.3, restore:web.enter 22.3, restore:restore.enter 0.1
-[2026-09-29T03:31:05.533Z] 0040-i2-glowcap-replay-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.049, js.performance_now 0.039
-[2026-09-29T03:31:06.219Z] 0041-main-local-glowcap-unbound-native-apply 0.7 s (parallelism 4): apply 13.7
-[2026-09-29T03:31:06.917Z] 0042-i1-glowcap-unbound-native-apply 0.7 s (parallelism 4): apply 14.1
-[2026-09-29T03:31:07.810Z] 0043-main-local-glowcap-unbound-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 19.7
-[2026-09-29T03:31:08.707Z] 0044-i1-glowcap-unbound-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 19.6
-[2026-09-29T03:31:09.397Z] 0045-i1-glowcap-unbound-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 13.8
-[2026-09-29T03:31:10.583Z] 0046-i2-glowcap-unbound-native-probe.dispatch_view 1.0 s (parallelism 4): apply.clone 0.4, apply.swap 1.2, apply.validate 0.1
-[2026-09-29T03:31:11.797Z] 0047-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.2 s (parallelism 4): abi.encode_args 0.1, abi.exec 20, abi.decode 0.5
-[2026-09-29T03:31:13.026Z] 0048-i1-glowcap-unbound-wasm-abi.dispatch_view 1.2 s (parallelism 4): abi.encode_args 0.1, abi.exec 19.9, abi.decode 0.5
-[2026-09-29T03:31:13.920Z] 0049-i1-glowcap-unbound-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 14.7, abi.dispatch_only 14.8
-[2026-09-29T03:31:16.176Z] 0050-i2-glowcap-unbound-wasm-probe.dispatch_view 2.0 s (parallelism 4): total 30.3, web.enter 0.2, payload.parse 0.3
-[2026-09-29T03:31:17.108Z] 0051-main-local-glowcap-resume-native-lifecycle 0.9 s (parallelism 4): from_source 2821.3, restore 2864.8, restore.parse 28.7
-[2026-09-29T03:31:18.128Z] 0052-i1-glowcap-resume-native-lifecycle 1.0 s (parallelism 4): from_source 3189.7, restore 3253.7, restore.parse 30.3
-[2026-09-29T03:31:18.619Z] 0053-i2-glowcap-resume-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 28.3, new:bind.explain 3.7, new:bind.sort 3.1
-[2026-09-29T03:31:19.595Z] 0054-main-local-glowcap-resume-wasm-lifecycle 1.0 s (parallelism 4): raw.new 3336.8, raw.save 47, raw.restore 3294.5
-[2026-09-29T03:31:20.514Z] 0055-i1-glowcap-resume-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2787.4, raw.save 41.5, raw.restore 2810
-[2026-09-29T03:31:21.277Z] 0056-i2-glowcap-resume-wasm-probe.lifecycle 0.8 s (parallelism 4): restore:total 3427.3, restore:web.enter 19.6, restore:restore.enter 0.1
-[2026-09-29T03:31:22.129Z] 0057-main-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 16.8
-[2026-09-29T03:31:22.963Z] 0058-i1-ledger-session-native-apply 0.8 s (parallelism 4): apply 17.3
-[2026-09-29T03:31:23.829Z] 0059-main-local-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 25.6
-[2026-09-29T03:31:24.687Z] 0060-i1-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 25.6
-[2026-09-29T03:31:25.810Z] 0061-main-local-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 61.9
-[2026-09-29T03:31:26.936Z] 0062-i1-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 62.3
-[2026-09-29T03:31:28.709Z] 0063-main-local-ledger-session-native-read 1.7 s (parallelism 4): clone 1.9, clone.drop 1.1, save 7.1
-[2026-09-29T03:31:30.453Z] 0064-i1-ledger-session-native-read 1.7 s (parallelism 4): clone 1.8, clone.drop 1, save 7.1
-[2026-09-29T03:31:31.951Z] 0065-main-local-ledger-session-native-web.read 1.5 s (parallelism 4): web.save 13.9, web.snapshot 56.4, web.view 5.6
-[2026-09-29T03:31:33.459Z] 0066-i1-ledger-session-native-web.read 1.5 s (parallelism 4): web.save 13.9, web.snapshot 56.2, web.view 5.6
-[2026-09-29T03:31:33.820Z] 0067-main-local-ledger-session-native-lifecycle 0.4 s (parallelism 4): from_source 1443.5, restore 1485.1, restore.parse 28.4
-[2026-09-29T03:31:34.155Z] 0068-i1-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1479.7, restore 1480.6, restore.parse 28.8
-[2026-09-29T03:31:34.999Z] 0069-i1-ledger-session-native-bench.dispatch_only 0.8 s (parallelism 4): bench.dispatch_only 18.2
-[2026-09-29T03:31:36.660Z] 0070-i1-ledger-session-native-bench.read 1.6 s (parallelism 4): bench.snapshot_build 25.9, bench.view_build 4.8, web.snapshot 54.2
-[2026-09-29T03:31:37.602Z] 0071-i2-ledger-session-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.5, apply.rollback 3.7, apply.swap 2.7
-[2026-09-29T03:31:38.791Z] 0072-i2-ledger-session-native-probe.dispatch_outcome 1.1 s (parallelism 4): apply.clone 0.5, apply.rollback 4.1, apply.swap 3
-[2026-09-29T03:31:40.375Z] 0073-i2-ledger-session-native-probe.read 1.5 s (parallelism 4): save:exit 0, save:save.build 6.9, save:save.drop 2.2
-[2026-09-29T03:31:40.558Z] 0074-i2-ledger-session-native-probe.lifecycle 0.2 s (parallelism 4): new:bind.eval 3.7, new:bind.explain 0.4, new:bind.sort 0.2
-[2026-09-29T03:31:40.635Z] 0075-i2-ledger-session-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.034, probe.now 0.034
-[2026-09-29T03:31:41.844Z] 0076-main-local-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 31.8, js.parse_view 7.8
-[2026-09-29T03:31:43.024Z] 0077-i1-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 31.8, js.parse_view 7.8
-[2026-09-29T03:31:44.811Z] 0078-main-local-ledger-session-wasm-raw.dispatch_outcome 1.8 s (parallelism 4): raw.dispatch_outcome 72.3, js.parse_outcome 50.7, raw.dispatch_outcome+parse 123.4
-[2026-09-29T03:31:46.535Z] 0079-i1-ledger-session-wasm-raw.dispatch_outcome 1.7 s (parallelism 4): raw.dispatch_outcome 70, js.parse_outcome 49.9, raw.dispatch_outcome+parse 120.6
-[2026-09-29T03:31:47.669Z] 0080-main-local-ledger-session-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.3, abi.exec 30.6, abi.decode 0.7
-[2026-09-29T03:31:48.846Z] 0081-i1-ledger-session-wasm-abi.dispatch_view 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 31.1, abi.decode 0.7
-[2026-09-29T03:31:50.278Z] 0082-main-local-ledger-session-wasm-abi.dispatch_outcome 1.4 s (parallelism 4): abi.encode_args 0.3, abi.exec 66.1, abi.decode 2.6
-[2026-09-29T03:31:51.711Z] 0083-i1-ledger-session-wasm-abi.dispatch_outcome 1.4 s (parallelism 4): abi.encode_args 0.3, abi.exec 65.5, abi.decode 2.6
-[2026-09-29T03:31:54.398Z] 0084-main-local-ledger-session-wasm-read 2.7 s (parallelism 4): raw.view 8.1, js.parse_view 9.1, raw.snapshot 77.4
-[2026-09-29T03:31:57.107Z] 0085-i1-ledger-session-wasm-read 2.7 s (parallelism 4): raw.view 8.3, js.parse_view 9.2, raw.snapshot 80.6
-[2026-09-29T03:31:59.212Z] 0086-main-local-ledger-session-wasm-abi.read 2.1 s (parallelism 4): abi.view.exec 7.8, abi.view.decode 0.4, abi.snapshot.exec 71.6
-[2026-09-29T03:32:01.264Z] 0087-i1-ledger-session-wasm-abi.read 2.0 s (parallelism 4): abi.view.exec 7.5, abi.view.decode 0.4, abi.snapshot.exec 69.3
-[2026-09-29T03:32:01.750Z] 0088-main-local-ledger-session-wasm-lifecycle 0.5 s (parallelism 4): raw.new 1644.8, raw.save 55.1, raw.restore 1780.3
-[2026-09-29T03:32:02.253Z] 0089-i1-ledger-session-wasm-lifecycle 0.5 s (parallelism 4): raw.new 1795.4, raw.save 59.3, raw.restore 1964.1
-[2026-09-29T03:32:03.376Z] 0090-i1-ledger-session-wasm-abi.dispatch_only 1.1 s (parallelism 4): abi.encode_args 0.3, abi.dispatch_only.exec 22.2, abi.dispatch_only 22.5
-[2026-09-29T03:32:05.508Z] 0091-i1-ledger-session-wasm-abi.bench_read 2.1 s (parallelism 4): abi.view_build.exec 5.2, abi.snapshot_build.exec 27, abi.view.exec 8.6
-[2026-09-29T03:32:06.886Z] 0092-i2-ledger-session-wasm-probe.dispatch_view 1.3 s (parallelism 4): total 42, web.enter 0.4, payload.parse 1
-[2026-09-29T03:32:08.911Z] 0093-i2-ledger-session-wasm-probe.dispatch_outcome 2.0 s (parallelism 4): total 132.1, web.enter 0.5, payload.parse 1.4
-[2026-09-29T03:32:11.941Z] 0094-i2-ledger-session-wasm-probe.read 2.9 s (parallelism 4): view:total 18.4, view:web.enter 0.2, view:view.enter 0.1
-[2026-09-29T03:32:12.306Z] 0095-i2-ledger-session-wasm-probe.lifecycle 0.4 s (parallelism 4): restore:total 1944.2, restore:web.enter 15.1, restore:restore.enter 0.2
-[2026-09-29T03:32:12.504Z] 0096-i2-ledger-session-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.047, js.performance_now 0.037
-[2026-09-29T03:32:19.252Z] 0097-main-local-trail-rescue-scenarios-native-apply 6.7 s (parallelism 4): apply 52.7
-[2026-09-29T03:32:26.061Z] 0098-i1-trail-rescue-scenarios-native-apply 6.8 s (parallelism 4): apply 53.3
-[2026-09-29T03:32:32.896Z] 0099-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.8 s (parallelism 4): web.dispatch_view 65.5
-[2026-09-29T03:32:39.820Z] 0100-i1-trail-rescue-scenarios-native-web.dispatch_view 6.9 s (parallelism 4): web.dispatch_view 66.9
-[2026-09-29T03:32:47.279Z] 0101-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 7.4 s (parallelism 4): web.dispatch_outcome 128.6
-[2026-09-29T03:32:54.741Z] 0102-i1-trail-rescue-scenarios-native-web.dispatch_outcome 7.5 s (parallelism 4): web.dispatch_outcome 130.8
-[2026-09-29T03:33:03.465Z] 0103-main-local-trail-rescue-scenarios-native-read 8.7 s (parallelism 4): clone 11.4, clone.drop 6.2, save 5.9
-[2026-09-29T03:33:12.157Z] 0104-i1-trail-rescue-scenarios-native-read 8.7 s (parallelism 4): clone 11.6, clone.drop 6.2, save 5.9
-[2026-09-29T03:33:20.330Z] 0105-main-local-trail-rescue-scenarios-native-web.read 8.2 s (parallelism 4): web.save 12, web.snapshot 88.1, web.view 6.8
-[2026-09-29T03:33:28.516Z] 0106-i1-trail-rescue-scenarios-native-web.read 8.2 s (parallelism 4): web.save 12.1, web.snapshot 87.7, web.view 6.7
-[2026-09-29T03:33:29.190Z] 0107-main-local-trail-rescue-scenarios-native-lifecycle 0.7 s (parallelism 4): from_source 3171.9, restore 3284.6, restore.parse 28.2
-[2026-09-29T03:33:29.839Z] 0108-i1-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3184, restore 3264.5, restore.parse 28.1
-[2026-09-29T03:33:36.511Z] 0109-i1-trail-rescue-scenarios-native-bench.dispatch_only 6.7 s (parallelism 4): bench.dispatch_only 53.7
-[2026-09-29T03:33:44.850Z] 0110-i1-trail-rescue-scenarios-native-bench.read 8.3 s (parallelism 4): bench.snapshot_build 43.6, bench.view_build 2.4, web.snapshot 81.2
-[2026-09-29T03:33:51.603Z] 0111-i2-trail-rescue-scenarios-native-probe.dispatch_view 6.7 s (parallelism 4): apply.clone 0.5, apply.rollback 2.7, apply.swap 2.5
-[2026-09-29T03:33:59.296Z] 0112-i2-trail-rescue-scenarios-native-probe.dispatch_outcome 7.6 s (parallelism 4): apply.clone 0.5, apply.rollback 3.1, apply.swap 2.7
-[2026-09-29T03:34:08.918Z] 0113-i2-trail-rescue-scenarios-native-probe.read 9.5 s (parallelism 4): save:exit 0.1, save:save.build 7.3, save:save.drop 2.3
-[2026-09-29T03:34:09.252Z] 0114-i2-trail-rescue-scenarios-native-probe.lifecycle 0.3 s (parallelism 4): new:bind.eval 16.2, new:bind.explain 8.4, new:bind.sort 9
-[2026-09-29T03:34:09.350Z] 0115-i2-trail-rescue-scenarios-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.038, probe.now 0.037
-[2026-09-29T03:34:16.842Z] 0116-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 7.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 82, js.parse_view 28.5
-[2026-09-29T03:34:24.158Z] 0117-i1-trail-rescue-scenarios-wasm-raw.dispatch_view 7.3 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 81, js.parse_view 28.2
-[2026-09-29T03:34:32.947Z] 0118-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.8 s (parallelism 4): raw.dispatch_outcome 155.2, js.parse_outcome 82.4, raw.dispatch_outcome+parse 241.4
-[2026-09-29T03:34:42.596Z] 0119-i1-trail-rescue-scenarios-wasm-raw.dispatch_outcome 9.6 s (parallelism 4): raw.dispatch_outcome 177.5, js.parse_outcome 90, raw.dispatch_outcome+parse 269.7
-[2026-09-29T03:34:50.131Z] 0120-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 7.5 s (parallelism 4): abi.encode_args 0.5, abi.exec 82.2, abi.decode 1.5
-[2026-09-29T03:34:57.375Z] 0121-i1-trail-rescue-scenarios-wasm-abi.dispatch_view 7.2 s (parallelism 4): abi.encode_args 0.5, abi.exec 80.7, abi.decode 1.5
-[2026-09-29T03:35:05.631Z] 0122-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 8.2 s (parallelism 4): abi.encode_args 0.5, abi.exec 157.2, abi.decode 3.8
-[2026-09-29T03:35:13.799Z] 0123-i1-trail-rescue-scenarios-wasm-abi.dispatch_outcome 8.1 s (parallelism 4): abi.encode_args 0.5, abi.exec 149.5, abi.decode 3.7
-[2026-09-29T03:35:24.324Z] 0124-main-local-trail-rescue-scenarios-wasm-read 10.5 s (parallelism 4): raw.view 11.6, js.parse_view 29.6, raw.snapshot 124
-[2026-09-29T03:35:34.866Z] 0125-i1-trail-rescue-scenarios-wasm-read 10.5 s (parallelism 4): raw.view 11.9, js.parse_view 30.3, raw.snapshot 127.4
-[2026-09-29T03:35:43.580Z] 0126-main-local-trail-rescue-scenarios-wasm-abi.read 8.7 s (parallelism 4): abi.view.exec 10.1, abi.view.decode 0.9, abi.snapshot.exec 110.3
-[2026-09-29T03:35:52.429Z] 0127-i1-trail-rescue-scenarios-wasm-abi.read 8.8 s (parallelism 4): abi.view.exec 10.4, abi.view.decode 1, abi.snapshot.exec 111.2
-[2026-09-29T03:35:53.137Z] 0128-main-local-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3220.5, raw.save 46.1, raw.restore 3270.5
-[2026-09-29T03:35:53.907Z] 0129-i1-trail-rescue-scenarios-wasm-lifecycle 0.8 s (parallelism 4): raw.new 3742.4, raw.save 54.3, raw.restore 3799
-[2026-09-29T03:36:00.794Z] 0130-i1-trail-rescue-scenarios-wasm-abi.dispatch_only 6.9 s (parallelism 4): abi.encode_args 0.4, abi.dispatch_only.exec 60.9, abi.dispatch_only 61.4
-[2026-09-29T03:36:09.563Z] 0131-i1-trail-rescue-scenarios-wasm-abi.bench_read 8.7 s (parallelism 4): abi.view_build.exec 2.6, abi.snapshot_build.exec 45.4, abi.view.exec 13.6
-[2026-09-29T03:36:17.291Z] 0132-i2-trail-rescue-scenarios-wasm-probe.dispatch_view 7.6 s (parallelism 4): total 119.1, web.enter 0.6, payload.parse 1.3
-[2026-09-29T03:36:26.449Z] 0133-i2-trail-rescue-scenarios-wasm-probe.dispatch_outcome 9.1 s (parallelism 4): total 262.7, web.enter 0.7, payload.parse 1.6
-[2026-09-29T03:36:37.368Z] 0134-i2-trail-rescue-scenarios-wasm-probe.read 10.8 s (parallelism 4): view:total 41.9, view:web.enter 0.3, view:view.enter 0.1
-[2026-09-29T03:36:37.835Z] 0135-i2-trail-rescue-scenarios-wasm-probe.lifecycle 0.5 s (parallelism 4): restore:total 3526.5, restore:web.enter 14.2, restore:restore.enter 0.3
-[2026-09-29T03:36:38.023Z] 0136-i2-trail-rescue-scenarios-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.057, js.performance_now 0.045
-[2026-09-29T03:36:38.750Z] 0137-i1-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 14.4
-[2026-09-29T03:36:39.472Z] 0138-main-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 14.3
-[2026-09-29T03:36:40.477Z] 0139-i1-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 22
-[2026-09-29T03:36:41.485Z] 0140-main-local-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 21.9
-[2026-09-29T03:36:44.423Z] 0141-i1-glowcap-replay-native-web.dispatch_outcome 2.9 s (parallelism 4): web.dispatch_outcome 69
-[2026-09-29T03:36:47.409Z] 0142-main-local-glowcap-replay-native-web.dispatch_outcome 3.0 s (parallelism 4): web.dispatch_outcome 69.6
-[2026-09-29T03:36:54.317Z] 0143-i1-glowcap-replay-native-read 6.8 s (parallelism 4): clone 7.8, clone.drop 4.2, save 10
-[2026-09-29T03:37:01.307Z] 0144-main-local-glowcap-replay-native-read 6.9 s (parallelism 4): clone 7.8, clone.drop 4.2, save 10
-[2026-09-29T03:37:06.382Z] 0145-i1-glowcap-replay-native-web.read 5.0 s (parallelism 4): web.save 17, web.snapshot 71, web.view 6.9
-[2026-09-29T03:37:11.988Z] 0146-main-local-glowcap-replay-native-web.read 5.6 s (parallelism 4): web.save 18.8, web.snapshot 79.9, web.view 7.6
-[2026-09-29T03:37:13.014Z] 0147-i1-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2809.6, restore 3037.4, restore.parse 36.6
-[2026-09-29T03:37:14.169Z] 0148-main-local-glowcap-replay-native-lifecycle 1.1 s (parallelism 4): from_source 3225.1, restore 3405.9, restore.parse 41.5
-[2026-09-29T03:37:14.880Z] 0149-i1-glowcap-replay-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 14.6
-[2026-09-29T03:37:20.522Z] 0150-i1-glowcap-replay-native-bench.read 5.6 s (parallelism 4): bench.snapshot_build 36.6, bench.view_build 4, web.snapshot 69.3
-[2026-09-29T03:37:21.832Z] 0151-i2-glowcap-replay-native-probe.dispatch_view 1.1 s (parallelism 4): apply.clone 0.4, apply.swap 1.2, apply.validate 0.1
-[2026-09-29T03:37:25.126Z] 0152-i2-glowcap-replay-native-probe.dispatch_outcome 3.1 s (parallelism 4): apply.clone 0.3, apply.swap 1.3, apply.validate 0.1
-[2026-09-29T03:37:30.706Z] 0153-i2-glowcap-replay-native-probe.read 5.2 s (parallelism 4): save:exit 0, save:save.build 9.5, save:save.drop 3.1
-[2026-09-29T03:37:31.263Z] 0154-i2-glowcap-replay-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 27.7, new:bind.explain 3.5, new:bind.sort 3
-[2026-09-29T03:37:31.352Z] 0155-i2-glowcap-replay-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.037, probe.now 0.036
-[2026-09-29T03:37:33.666Z] 0156-i1-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 28.7, js.parse_view 18.8
-[2026-09-29T03:37:35.982Z] 0157-main-local-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.7, js.parse_view 18.2
-[2026-09-29T03:37:42.491Z] 0158-i1-glowcap-replay-wasm-raw.dispatch_outcome 6.5 s (parallelism 4): raw.dispatch_outcome 78.1, js.parse_outcome 68.9, raw.dispatch_outcome+parse 147.7
-[2026-09-29T03:37:49.139Z] 0159-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.6 s (parallelism 4): raw.dispatch_outcome 84.4, js.parse_outcome 74.1, raw.dispatch_outcome+parse 159.3
-[2026-09-29T03:37:50.579Z] 0160-i1-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.9, abi.decode 2.6
-[2026-09-29T03:37:52.123Z] 0161-main-local-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 4): abi.encode_args 0.1, abi.exec 25.8, abi.decode 2.9
-[2026-09-29T03:37:55.561Z] 0162-i1-glowcap-replay-wasm-abi.dispatch_outcome 3.4 s (parallelism 4): abi.encode_args 0.2, abi.exec 63.9, abi.decode 8.6
-[2026-09-29T03:37:59.073Z] 0163-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.4 s (parallelism 4): abi.encode_args 0.2, abi.exec 67.3, abi.decode 8.9
-[2026-09-29T03:38:10.424Z] 0164-i1-glowcap-replay-wasm-read 11.3 s (parallelism 4): raw.view 12.2, js.parse_view 20.4, raw.snapshot 101.4
-[2026-09-29T03:38:21.839Z] 0165-main-local-glowcap-replay-wasm-read 11.3 s (parallelism 4): raw.view 12.2, js.parse_view 20.3, raw.snapshot 101.5
-[2026-09-29T03:38:28.996Z] 0166-i1-glowcap-replay-wasm-abi.read 7.1 s (parallelism 4): abi.view.exec 9.7, abi.view.decode 2.8, abi.snapshot.exec 82.7
-[2026-09-29T03:38:35.717Z] 0167-main-local-glowcap-replay-wasm-abi.read 6.6 s (parallelism 4): abi.view.exec 9.2, abi.view.decode 2.6, abi.snapshot.exec 77.2
-[2026-09-29T03:38:36.775Z] 0168-i1-glowcap-replay-wasm-lifecycle 1.1 s (parallelism 4): raw.new 3253.8, raw.save 64.3, raw.restore 3354.6
-[2026-09-29T03:38:37.811Z] 0169-main-local-glowcap-replay-wasm-lifecycle 1.0 s (parallelism 4): raw.new 2768.3, raw.save 55.3, raw.restore 2769.6
-[2026-09-29T03:38:38.763Z] 0170-i1-glowcap-replay-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 14.8, abi.dispatch_only 14.9
-[2026-09-29T03:38:46.030Z] 0171-i1-glowcap-replay-wasm-abi.bench_read 7.2 s (parallelism 4): abi.view_build.exec 3.9, abi.snapshot_build.exec 32.3, abi.view.exec 10.4
-[2026-09-29T03:38:49.137Z] 0172-i2-glowcap-replay-wasm-probe.dispatch_view 2.8 s (parallelism 4): total 49.2, web.enter 0.2, payload.parse 0.3
-[2026-09-29T03:38:56.967Z] 0173-i2-glowcap-replay-wasm-probe.dispatch_outcome 7.4 s (parallelism 4): total 161.5, web.enter 0.3, payload.parse 0.3
-[2026-09-29T03:39:10.410Z] 0174-i2-glowcap-replay-wasm-probe.read 13.0 s (parallelism 4): view:total 33.8, view:web.enter 0.2, view:view.enter 0.1
-[2026-09-29T03:39:11.300Z] 0175-i2-glowcap-replay-wasm-probe.lifecycle 0.9 s (parallelism 4): restore:total 3537, restore:web.enter 21.8, restore:restore.enter 0.1
-[2026-09-29T03:39:11.506Z] 0176-i2-glowcap-replay-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.062, js.performance_now 0.055
-[2026-09-29T03:39:12.199Z] 0177-i1-glowcap-unbound-native-apply 0.7 s (parallelism 4): apply 13.8
-[2026-09-29T03:39:12.940Z] 0178-main-local-glowcap-unbound-native-apply 0.7 s (parallelism 4): apply 15.4
-[2026-09-29T03:39:13.819Z] 0179-i1-glowcap-unbound-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 19.3
-[2026-09-29T03:39:14.824Z] 0180-main-local-glowcap-unbound-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 22.4
-[2026-09-29T03:39:15.477Z] 0181-i1-glowcap-unbound-native-bench.dispatch_only 0.6 s (parallelism 4): bench.dispatch_only 13.8
-[2026-09-29T03:39:16.758Z] 0182-i2-glowcap-unbound-native-probe.dispatch_view 1.1 s (parallelism 4): apply.clone 0.4, apply.swap 1.4, apply.validate 0.1
-[2026-09-29T03:39:17.942Z] 0183-i1-glowcap-unbound-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.1, abi.exec 20.5, abi.decode 0.5
-[2026-09-29T03:39:19.201Z] 0184-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.2 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.1, abi.decode 0.5
-[2026-09-29T03:39:20.143Z] 0185-i1-glowcap-unbound-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 14.8, abi.dispatch_only 15
-[2026-09-29T03:39:22.637Z] 0186-i2-glowcap-unbound-wasm-probe.dispatch_view 2.2 s (parallelism 4): total 32.5, web.enter 0.2, payload.parse 0.3
-[2026-09-29T03:39:23.698Z] 0187-i1-glowcap-resume-native-lifecycle 1.1 s (parallelism 4): from_source 3365.6, restore 3463, restore.parse 33.3
-[2026-09-29T03:39:24.846Z] 0188-main-local-glowcap-resume-native-lifecycle 1.1 s (parallelism 4): from_source 3738, restore 3780.6, restore.parse 36.8
-[2026-09-29T03:39:25.370Z] 0189-i2-glowcap-resume-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 30.7, new:bind.explain 3.9, new:bind.sort 3.2
-[2026-09-29T03:39:26.537Z] 0190-i1-glowcap-resume-wasm-lifecycle 1.2 s (parallelism 4): raw.new 4551.3, raw.save 64.7, raw.restore 4465.1
-[2026-09-29T03:39:27.449Z] 0191-main-local-glowcap-resume-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2825.4, raw.save 41.7, raw.restore 2804.9
-[2026-09-29T03:39:28.172Z] 0192-i2-glowcap-resume-wasm-probe.lifecycle 0.7 s (parallelism 4): restore:total 2910.6, restore:web.enter 17.4, restore:restore.enter 0.1
-[2026-09-29T03:39:29.023Z] 0193-i1-ledger-session-native-apply 0.8 s (parallelism 4): apply 16.7
-[2026-09-29T03:39:29.875Z] 0194-main-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 16.9
-[2026-09-29T03:39:30.783Z] 0195-i1-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 26.2
-[2026-09-29T03:39:31.681Z] 0196-main-local-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 26.1
-[2026-09-29T03:39:32.800Z] 0197-i1-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 63.5
-[2026-09-29T03:39:33.938Z] 0198-main-local-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 63.2
-[2026-09-29T03:39:35.732Z] 0199-i1-ledger-session-native-read 1.8 s (parallelism 4): clone 1.9, clone.drop 1.1, save 7.1
-[2026-09-29T03:39:37.496Z] 0200-main-local-ledger-session-native-read 1.7 s (parallelism 4): clone 1.9, clone.drop 1.1, save 7.2
-[2026-09-29T03:39:39.040Z] 0201-i1-ledger-session-native-web.read 1.5 s (parallelism 4): web.save 13.9, web.snapshot 56.2, web.view 5.7
-[2026-09-29T03:39:40.592Z] 0202-main-local-ledger-session-native-web.read 1.5 s (parallelism 4): web.save 14, web.snapshot 57.2, web.view 5.7
-[2026-09-29T03:39:40.945Z] 0203-i1-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1550.9, restore 1571.1, restore.parse 29.9
-[2026-09-29T03:39:41.292Z] 0204-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1519.2, restore 1565.4, restore.parse 29.5
-[2026-09-29T03:39:42.138Z] 0205-i1-ledger-session-native-bench.dispatch_only 0.8 s (parallelism 4): bench.dispatch_only 18.2
-[2026-09-29T03:39:43.787Z] 0206-i1-ledger-session-native-bench.read 1.6 s (parallelism 4): bench.snapshot_build 25.8, bench.view_build 4.8, web.snapshot 54.1
-[2026-09-29T03:39:44.732Z] 0207-i2-ledger-session-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.5, apply.rollback 3.8, apply.swap 2.8
-[2026-09-29T03:39:45.953Z] 0208-i2-ledger-session-native-probe.dispatch_outcome 1.2 s (parallelism 4): apply.clone 0.5, apply.rollback 4.1, apply.swap 3
-[2026-09-29T03:39:47.563Z] 0209-i2-ledger-session-native-probe.read 1.5 s (parallelism 4): save:exit 0, save:save.build 6.8, save:save.drop 2.2
-[2026-09-29T03:39:47.741Z] 0210-i2-ledger-session-native-probe.lifecycle 0.2 s (parallelism 4): new:bind.eval 3.8, new:bind.explain 0.4, new:bind.sort 0.2
-[2026-09-29T03:39:47.812Z] 0211-i2-ledger-session-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.037, probe.now 0.036
-[2026-09-29T03:39:48.986Z] 0212-i1-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 31.2, js.parse_view 7.6
-[2026-09-29T03:39:50.149Z] 0213-main-local-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 31.2, js.parse_view 7.5
-[2026-09-29T03:39:51.815Z] 0214-i1-ledger-session-wasm-raw.dispatch_outcome 1.7 s (parallelism 4): raw.dispatch_outcome 68.5, js.parse_outcome 48.9, raw.dispatch_outcome+parse 118
-[2026-09-29T03:39:53.543Z] 0215-main-local-ledger-session-wasm-raw.dispatch_outcome 1.7 s (parallelism 4): raw.dispatch_outcome 70.9, js.parse_outcome 50.1, raw.dispatch_outcome+parse 121.6
-[2026-09-29T03:39:54.663Z] 0216-i1-ledger-session-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.3, abi.exec 29.6, abi.decode 0.7
-[2026-09-29T03:39:55.781Z] 0217-main-local-ledger-session-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.3, abi.exec 30, abi.decode 0.6
-[2026-09-29T03:39:57.159Z] 0218-i1-ledger-session-wasm-abi.dispatch_outcome 1.4 s (parallelism 4): abi.encode_args 0.3, abi.exec 64.6, abi.decode 2.6
-[2026-09-29T03:39:58.544Z] 0219-main-local-ledger-session-wasm-abi.dispatch_outcome 1.4 s (parallelism 4): abi.encode_args 0.3, abi.exec 64.7, abi.decode 2.6
-[2026-09-29T03:40:01.189Z] 0220-i1-ledger-session-wasm-read 2.6 s (parallelism 4): raw.view 8.1, js.parse_view 8.8, raw.snapshot 77.8
-[2026-09-29T03:40:03.845Z] 0221-main-local-ledger-session-wasm-read 2.6 s (parallelism 4): raw.view 8, js.parse_view 8.8, raw.snapshot 76.5
-[2026-09-29T03:40:05.877Z] 0222-i1-ledger-session-wasm-abi.read 2.0 s (parallelism 4): abi.view.exec 7.4, abi.view.decode 0.4, abi.snapshot.exec 67.8
-[2026-09-29T03:40:07.974Z] 0223-main-local-ledger-session-wasm-abi.read 2.1 s (parallelism 4): abi.view.exec 7.9, abi.view.decode 0.4, abi.snapshot.exec 73.9
-[2026-09-29T03:40:08.472Z] 0224-i1-ledger-session-wasm-lifecycle 0.5 s (parallelism 4): raw.new 1799.7, raw.save 58.7, raw.restore 1936.9
-[2026-09-29T03:40:08.952Z] 0225-main-local-ledger-session-wasm-lifecycle 0.5 s (parallelism 4): raw.new 1586.7, raw.save 54.1, raw.restore 1736.2
-[2026-09-29T03:40:10.013Z] 0226-i1-ledger-session-wasm-abi.dispatch_only 1.1 s (parallelism 4): abi.encode_args 0.2, abi.dispatch_only.exec 20.5, abi.dispatch_only 20.9
-[2026-09-29T03:40:12.058Z] 0227-i1-ledger-session-wasm-abi.bench_read 2.0 s (parallelism 4): abi.view_build.exec 4.9, abi.snapshot_build.exec 24.9, abi.view.exec 8
-[2026-09-29T03:40:13.429Z] 0228-i2-ledger-session-wasm-probe.dispatch_view 1.3 s (parallelism 4): total 42.9, web.enter 0.4, payload.parse 1
-[2026-09-29T03:40:15.394Z] 0229-i2-ledger-session-wasm-probe.dispatch_outcome 1.9 s (parallelism 4): total 127.4, web.enter 0.5, payload.parse 1.3
-[2026-09-29T03:40:18.313Z] 0230-i2-ledger-session-wasm-probe.read 2.8 s (parallelism 4): view:total 17.6, view:web.enter 0.2, view:view.enter 0.1
-[2026-09-29T03:40:18.674Z] 0231-i2-ledger-session-wasm-probe.lifecycle 0.4 s (parallelism 4): restore:total 2025.9, restore:web.enter 16.2, restore:restore.enter 0.2
-[2026-09-29T03:40:18.853Z] 0232-i2-ledger-session-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.048, js.performance_now 0.038
-[2026-09-29T03:40:25.523Z] 0233-i1-trail-rescue-scenarios-native-apply 6.7 s (parallelism 4): apply 51.1
-[2026-09-29T03:40:32.729Z] 0234-main-local-trail-rescue-scenarios-native-apply 7.2 s (parallelism 4): apply 54.7
-[2026-09-29T03:40:39.512Z] 0235-i1-trail-rescue-scenarios-native-web.dispatch_view 6.8 s (parallelism 4): web.dispatch_view 64.6
-[2026-09-29T03:40:46.729Z] 0236-main-local-trail-rescue-scenarios-native-web.dispatch_view 7.2 s (parallelism 4): web.dispatch_view 68.6
-[2026-09-29T03:40:54.169Z] 0237-i1-trail-rescue-scenarios-native-web.dispatch_outcome 7.4 s (parallelism 4): web.dispatch_outcome 128.4
-[2026-09-29T03:41:01.625Z] 0238-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 7.4 s (parallelism 4): web.dispatch_outcome 128
-[2026-09-29T03:41:10.228Z] 0239-i1-trail-rescue-scenarios-native-read 8.6 s (parallelism 4): clone 11.1, clone.drop 6.1, save 5.9
-[2026-09-29T03:41:18.772Z] 0240-main-local-trail-rescue-scenarios-native-read 8.5 s (parallelism 4): clone 11.1, clone.drop 6.1, save 5.8
-[2026-09-29T03:41:26.815Z] 0241-i1-trail-rescue-scenarios-native-web.read 8.0 s (parallelism 4): web.save 11.9, web.snapshot 86.1, web.view 6.6
-[2026-09-29T03:41:34.868Z] 0242-main-local-trail-rescue-scenarios-native-web.read 8.0 s (parallelism 4): web.save 11.8, web.snapshot 86.7, web.view 6.7
-[2026-09-29T03:41:35.521Z] 0243-i1-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3107.9, restore 3262.1, restore.parse 27.7
-[2026-09-29T03:41:36.178Z] 0244-main-local-trail-rescue-scenarios-native-lifecycle 0.7 s (parallelism 4): from_source 3185, restore 3272.3, restore.parse 29.5
-[2026-09-29T03:41:42.808Z] 0245-i1-trail-rescue-scenarios-native-bench.dispatch_only 6.6 s (parallelism 4): bench.dispatch_only 52.6
-[2026-09-29T03:41:51.455Z] 0246-i1-trail-rescue-scenarios-native-bench.read 8.6 s (parallelism 4): bench.snapshot_build 43.6, bench.view_build 2.4, web.snapshot 81
-[2026-09-29T03:41:58.783Z] 0247-i2-trail-rescue-scenarios-native-probe.dispatch_view 7.3 s (parallelism 4): apply.clone 0.5, apply.rollback 2.9, apply.swap 2.6
-[2026-09-29T03:42:06.232Z] 0248-i2-trail-rescue-scenarios-native-probe.dispatch_outcome 7.4 s (parallelism 4): apply.clone 0.5, apply.rollback 2.9, apply.swap 2.6
-[2026-09-29T03:42:15.014Z] 0249-i2-trail-rescue-scenarios-native-probe.read 8.7 s (parallelism 4): save:exit 0.1, save:save.build 6.6, save:save.drop 2.1
-[2026-09-29T03:42:15.348Z] 0250-i2-trail-rescue-scenarios-native-probe.lifecycle 0.3 s (parallelism 4): new:bind.eval 15.6, new:bind.explain 7.7, new:bind.sort 8.7
-[2026-09-29T03:42:15.431Z] 0251-i2-trail-rescue-scenarios-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.034, probe.now 0.033
-[2026-09-29T03:42:22.562Z] 0252-i1-trail-rescue-scenarios-wasm-raw.dispatch_view 7.1 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 81.3, js.parse_view 28.4
-[2026-09-29T03:42:29.719Z] 0253-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 7.1 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 80.9, js.parse_view 27.9
-[2026-09-29T03:42:38.680Z] 0254-i1-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.9 s (parallelism 4): raw.dispatch_outcome 158.5, js.parse_outcome 84, raw.dispatch_outcome+parse 245.4
-[2026-09-29T03:42:47.430Z] 0255-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.7 s (parallelism 4): raw.dispatch_outcome 158.1, js.parse_outcome 82.8, raw.dispatch_outcome+parse 243.7
-[2026-09-29T03:42:54.337Z] 0256-i1-trail-rescue-scenarios-wasm-abi.dispatch_view 6.9 s (parallelism 4): abi.encode_args 0.4, abi.exec 78, abi.decode 1.4
-[2026-09-29T03:43:01.131Z] 0257-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.8 s (parallelism 4): abi.encode_args 0.4, abi.exec 75.8, abi.decode 1.3
-[2026-09-29T03:43:09.219Z] 0258-i1-trail-rescue-scenarios-wasm-abi.dispatch_outcome 8.1 s (parallelism 4): abi.encode_args 0.5, abi.exec 148.2, abi.decode 3.7
-[2026-09-29T03:43:16.973Z] 0259-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.7 s (parallelism 4): abi.encode_args 0.5, abi.exec 145, abi.decode 3.6
-[2026-09-29T03:43:27.195Z] 0260-i1-trail-rescue-scenarios-wasm-read 10.2 s (parallelism 4): raw.view 11, js.parse_view 28.5, raw.snapshot 116.4
-[2026-09-29T03:43:37.416Z] 0261-main-local-trail-rescue-scenarios-wasm-read 10.2 s (parallelism 4): raw.view 11.4, js.parse_view 29, raw.snapshot 119.9
-[2026-09-29T03:43:47.162Z] 0262-i1-trail-rescue-scenarios-wasm-abi.read 9.7 s (parallelism 4): abi.view.exec 11.2, abi.view.decode 1, abi.snapshot.exec 119.7
-[2026-09-29T03:43:55.848Z] 0263-main-local-trail-rescue-scenarios-wasm-abi.read 8.7 s (parallelism 4): abi.view.exec 10.4, abi.view.decode 0.9, abi.snapshot.exec 109.8
-[2026-09-29T03:43:56.532Z] 0264-i1-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3224.2, raw.save 47.5, raw.restore 3197.1
-[2026-09-29T03:43:57.220Z] 0265-main-local-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3240.6, raw.save 49.1, raw.restore 3212.9
-[2026-09-29T03:44:04.050Z] 0266-i1-trail-rescue-scenarios-wasm-abi.dispatch_only 6.8 s (parallelism 4): abi.encode_args 0.4, abi.dispatch_only.exec 61.6, abi.dispatch_only 62
-[2026-09-29T03:44:12.893Z] 0267-i1-trail-rescue-scenarios-wasm-abi.bench_read 8.8 s (parallelism 4): abi.view_build.exec 2.7, abi.snapshot_build.exec 46.2, abi.view.exec 13.8
-[2026-09-29T03:44:20.529Z] 0268-i2-trail-rescue-scenarios-wasm-probe.dispatch_view 7.5 s (parallelism 4): total 115.2, web.enter 0.6, payload.parse 1.3
-[2026-09-29T03:44:29.519Z] 0269-i2-trail-rescue-scenarios-wasm-probe.dispatch_outcome 8.9 s (parallelism 4): total 254.7, web.enter 0.8, payload.parse 1.6
-[2026-09-29T03:44:40.296Z] 0270-i2-trail-rescue-scenarios-wasm-probe.read 10.6 s (parallelism 4): view:total 41.5, view:web.enter 0.3, view:view.enter 0.1
-[2026-09-29T03:44:40.766Z] 0271-i2-trail-rescue-scenarios-wasm-probe.lifecycle 0.5 s (parallelism 4): restore:total 3522.8, restore:web.enter 14, restore:restore.enter 0.2
-[2026-09-29T03:44:40.945Z] 0272-i2-trail-rescue-scenarios-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.05, js.performance_now 0.04
-[2026-09-29T03:44:41.699Z] 0273-main-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 15
-[2026-09-29T03:44:42.448Z] 0274-i1-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 15
-[2026-09-29T03:44:43.475Z] 0275-main-local-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 22.7
-[2026-09-29T03:44:44.510Z] 0276-i1-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 22.8
-[2026-09-29T03:44:47.916Z] 0277-main-local-glowcap-replay-native-web.dispatch_outcome 3.4 s (parallelism 4): web.dispatch_outcome 77.6
-[2026-09-29T03:44:50.973Z] 0278-i1-glowcap-replay-native-web.dispatch_outcome 3.0 s (parallelism 4): web.dispatch_outcome 72.2
-[2026-09-29T03:44:57.900Z] 0279-main-local-glowcap-replay-native-read 6.8 s (parallelism 4): clone 8, clone.drop 4.4, save 10.2
-[2026-09-29T03:45:04.835Z] 0280-i1-glowcap-replay-native-read 6.8 s (parallelism 4): clone 8, clone.drop 4.3, save 10.2
-[2026-09-29T03:45:10.149Z] 0281-main-local-glowcap-replay-native-web.read 5.3 s (parallelism 4): web.save 18.1, web.snapshot 76.4, web.view 7.3
-[2026-09-29T03:45:15.395Z] 0282-i1-glowcap-replay-native-web.read 5.2 s (parallelism 4): web.save 18.1, web.snapshot 75.1, web.view 7.2
-[2026-09-29T03:45:16.443Z] 0283-main-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2847.2, restore 3012.2, restore.parse 39.2
-[2026-09-29T03:45:17.487Z] 0284-i1-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2895.5, restore 2972.9, restore.parse 37.6
-[2026-09-29T03:45:18.218Z] 0285-i1-glowcap-replay-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 15.2
-[2026-09-29T03:45:24.107Z] 0286-i1-glowcap-replay-native-bench.read 5.8 s (parallelism 4): bench.snapshot_build 38.7, bench.view_build 4.2, web.snapshot 73.6
-[2026-09-29T03:45:25.469Z] 0287-i2-glowcap-replay-native-probe.dispatch_view 1.1 s (parallelism 4): apply.clone 0.4, apply.swap 1.2, apply.validate 0.1
-[2026-09-29T03:45:28.916Z] 0288-i2-glowcap-replay-native-probe.dispatch_outcome 3.2 s (parallelism 4): apply.clone 0.4, apply.swap 1.3, apply.validate 0.1
-[2026-09-29T03:45:34.707Z] 0289-i2-glowcap-replay-native-probe.read 5.5 s (parallelism 4): save:exit 0, save:save.build 9.9, save:save.drop 3.3
-[2026-09-29T03:45:35.294Z] 0290-i2-glowcap-replay-native-probe.lifecycle 0.6 s (parallelism 4): new:bind.eval 29.9, new:bind.explain 3.7, new:bind.sort 3.1
-[2026-09-29T03:45:35.385Z] 0291-i2-glowcap-replay-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.037, probe.now 0.037
-[2026-09-29T03:45:37.732Z] 0292-main-local-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.7, js.parse_view 18.2
-[2026-09-29T03:45:40.003Z] 0293-i1-glowcap-replay-wasm-raw.dispatch_view 2.2 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.1, js.parse_view 18.2
-[2026-09-29T03:45:46.462Z] 0294-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.4 s (parallelism 4): raw.dispatch_outcome 78.7, js.parse_outcome 69.4, raw.dispatch_outcome+parse 148.6
-[2026-09-29T03:45:52.969Z] 0295-i1-glowcap-replay-wasm-raw.dispatch_outcome 6.4 s (parallelism 4): raw.dispatch_outcome 79, js.parse_outcome 70, raw.dispatch_outcome+parse 149.7
-[2026-09-29T03:45:54.487Z] 0296-main-local-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 4): abi.encode_args 0.1, abi.exec 24.7, abi.decode 2.7
-[2026-09-29T03:45:55.988Z] 0297-i1-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 4): abi.encode_args 0.1, abi.exec 24.3, abi.decode 2.8
-[2026-09-29T03:45:59.436Z] 0298-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.4 s (parallelism 4): abi.encode_args 0.2, abi.exec 65.1, abi.decode 8.6
-[2026-09-29T03:46:02.894Z] 0299-i1-glowcap-replay-wasm-abi.dispatch_outcome 3.4 s (parallelism 4): abi.encode_args 0.2, abi.exec 65.8, abi.decode 8.7
-[2026-09-29T03:46:14.257Z] 0300-main-local-glowcap-replay-wasm-read 11.3 s (parallelism 4): raw.view 12.5, js.parse_view 20.7, raw.snapshot 102.4
-[2026-09-29T03:46:25.743Z] 0301-i1-glowcap-replay-wasm-read 11.4 s (parallelism 4): raw.view 12.6, js.parse_view 20.6, raw.snapshot 103.2
-[2026-09-29T03:46:32.618Z] 0302-main-local-glowcap-replay-wasm-abi.read 6.8 s (parallelism 4): abi.view.exec 9.6, abi.view.decode 2.6, abi.snapshot.exec 80.1
-[2026-09-29T03:46:39.462Z] 0303-i1-glowcap-replay-wasm-abi.read 6.8 s (parallelism 4): abi.view.exec 9.3, abi.view.decode 2.6, abi.snapshot.exec 79.6
-[2026-09-29T03:46:40.482Z] 0304-main-local-glowcap-replay-wasm-lifecycle 1.0 s (parallelism 4): raw.new 3179.9, raw.save 72.9, raw.restore 3315
-[2026-09-29T03:46:41.495Z] 0305-i1-glowcap-replay-wasm-lifecycle 1.0 s (parallelism 4): raw.new 3188.8, raw.save 65.7, raw.restore 3283
-[2026-09-29T03:46:42.471Z] 0306-i1-glowcap-replay-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 14.7, abi.dispatch_only 14.8
-[2026-09-29T03:46:49.359Z] 0307-i1-glowcap-replay-wasm-abi.bench_read 6.8 s (parallelism 4): abi.view_build.exec 3.5, abi.snapshot_build.exec 29.5, abi.view.exec 9.4
-[2026-09-29T03:46:52.463Z] 0308-i2-glowcap-replay-wasm-probe.dispatch_view 2.8 s (parallelism 4): total 49.7, web.enter 0.2, payload.parse 0.3
-[2026-09-29T03:47:00.590Z] 0309-i2-glowcap-replay-wasm-probe.dispatch_outcome 7.7 s (parallelism 4): total 159.9, web.enter 0.3, payload.parse 0.3
-[2026-09-29T03:47:15.111Z] 0310-i2-glowcap-replay-wasm-probe.read 14.0 s (parallelism 4): view:total 36.5, view:web.enter 0.2, view:view.enter 0.1
-[2026-09-29T03:47:15.928Z] 0311-i2-glowcap-replay-wasm-probe.lifecycle 0.8 s (parallelism 4): restore:total 3071.7, restore:web.enter 18.9, restore:restore.enter 0.1
-[2026-09-29T03:47:16.151Z] 0312-i2-glowcap-replay-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.048, js.performance_now 0.038
-[2026-09-29T03:47:16.961Z] 0313-main-local-glowcap-unbound-native-apply 0.8 s (parallelism 4): apply 16.8
-[2026-09-29T03:47:17.654Z] 0314-i1-glowcap-unbound-native-apply 0.7 s (parallelism 4): apply 14
-[2026-09-29T03:47:18.561Z] 0315-main-local-glowcap-unbound-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20
-[2026-09-29T03:47:19.472Z] 0316-i1-glowcap-unbound-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 19.9
-[2026-09-29T03:47:20.145Z] 0317-i1-glowcap-unbound-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 14.1
-[2026-09-29T03:47:21.357Z] 0318-i2-glowcap-unbound-native-probe.dispatch_view 1.0 s (parallelism 4): apply.clone 0.4, apply.swap 1.3, apply.validate 0.1
-[2026-09-29T03:47:22.679Z] 0319-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.2, abi.exec 22, abi.decode 0.6
-[2026-09-29T03:47:24.027Z] 0320-i1-glowcap-unbound-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.2, abi.exec 22.1, abi.decode 0.6
-[2026-09-29T03:47:25.135Z] 0321-i1-glowcap-unbound-wasm-abi.dispatch_only 1.0 s (parallelism 4): abi.encode_args 0.2, abi.dispatch_only.exec 17.6, abi.dispatch_only 17.8
-[2026-09-29T03:47:27.712Z] 0322-i2-glowcap-unbound-wasm-probe.dispatch_view 2.2 s (parallelism 4): total 31.4, web.enter 0.2, payload.parse 0.3
-[2026-09-29T03:47:28.829Z] 0323-main-local-glowcap-resume-native-lifecycle 1.1 s (parallelism 4): from_source 3156.1, restore 3247.1, restore.parse 34
-[2026-09-29T03:47:29.784Z] 0324-i1-glowcap-resume-native-lifecycle 0.9 s (parallelism 4): from_source 2943.9, restore 2973.1, restore.parse 28.9
-[2026-09-29T03:47:30.323Z] 0325-i2-glowcap-resume-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 30.6, new:bind.explain 4, new:bind.sort 3.2
-[2026-09-29T03:47:31.245Z] 0326-main-local-glowcap-resume-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2872.6, raw.save 39.6, raw.restore 2780.5
-[2026-09-29T03:47:32.206Z] 0327-i1-glowcap-resume-wasm-lifecycle 1.0 s (parallelism 4): raw.new 3462.1, raw.save 50.6, raw.restore 3289.3
-[2026-09-29T03:47:32.974Z] 0328-i2-glowcap-resume-wasm-probe.lifecycle 0.8 s (parallelism 4): restore:total 3001, restore:web.enter 17.7, restore:restore.enter 0.1
-[2026-09-29T03:47:33.968Z] 0329-main-local-ledger-session-native-apply 1.0 s (parallelism 4): apply 21
-[2026-09-29T03:47:34.854Z] 0330-i1-ledger-session-native-apply 0.9 s (parallelism 4): apply 17.5
-[2026-09-29T03:47:35.801Z] 0331-main-local-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 27.7
-[2026-09-29T03:47:36.709Z] 0332-i1-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 27.8
-[2026-09-29T03:47:37.857Z] 0333-main-local-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 64.7
-[2026-09-29T03:47:39.054Z] 0334-i1-ledger-session-native-web.dispatch_outcome 1.2 s (parallelism 4): web.dispatch_outcome 65.4
-[2026-09-29T03:47:40.870Z] 0335-main-local-ledger-session-native-read 1.8 s (parallelism 4): clone 1.9, clone.drop 1.1, save 7.3
-[2026-09-29T03:47:42.732Z] 0336-i1-ledger-session-native-read 1.8 s (parallelism 4): clone 1.9, clone.drop 1.1, save 7.4
-[2026-09-29T03:47:44.324Z] 0337-main-local-ledger-session-native-web.read 1.6 s (parallelism 4): web.save 14.4, web.snapshot 58.6, web.view 5.9
-[2026-09-29T03:47:45.890Z] 0338-i1-ledger-session-native-web.read 1.6 s (parallelism 4): web.save 14, web.snapshot 56.5, web.view 5.7
-[2026-09-29T03:47:46.257Z] 0339-main-local-ledger-session-native-lifecycle 0.4 s (parallelism 4): from_source 1590, restore 1631.1, restore.parse 36.3
-[2026-09-29T03:47:46.616Z] 0340-i1-ledger-session-native-lifecycle 0.4 s (parallelism 4): from_source 1570.9, restore 1645.4, restore.parse 37.3
-[2026-09-29T03:47:47.504Z] 0341-i1-ledger-session-native-bench.dispatch_only 0.9 s (parallelism 4): bench.dispatch_only 19.6
-[2026-09-29T03:47:49.227Z] 0342-i1-ledger-session-native-bench.read 1.7 s (parallelism 4): bench.snapshot_build 27.1, bench.view_build 5, web.snapshot 56.7
-[2026-09-29T03:47:50.198Z] 0343-i2-ledger-session-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.5, apply.rollback 3.8, apply.swap 2.8
-[2026-09-29T03:47:51.435Z] 0344-i2-ledger-session-native-probe.dispatch_outcome 1.2 s (parallelism 4): apply.clone 0.5, apply.rollback 4.2, apply.swap 3.1
-[2026-09-29T03:47:53.088Z] 0345-i2-ledger-session-native-probe.read 1.6 s (parallelism 4): save:exit 0, save:save.build 7, save:save.drop 2.2
-[2026-09-29T03:47:53.266Z] 0346-i2-ledger-session-native-probe.lifecycle 0.2 s (parallelism 4): new:bind.eval 3.7, new:bind.explain 0.4, new:bind.sort 0.2
-[2026-09-29T03:47:53.334Z] 0347-i2-ledger-session-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.035, probe.now 0.034
-[2026-09-29T03:47:54.541Z] 0348-main-local-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 32.4, js.parse_view 8
-[2026-09-29T03:47:55.792Z] 0349-i1-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 33.2, js.parse_view 8.2
-[2026-09-29T03:47:57.621Z] 0350-main-local-ledger-session-wasm-raw.dispatch_outcome 1.8 s (parallelism 4): raw.dispatch_outcome 74.6, js.parse_outcome 52.9, raw.dispatch_outcome+parse 127.9
-[2026-09-29T03:47:59.479Z] 0351-i1-ledger-session-wasm-raw.dispatch_outcome 1.8 s (parallelism 4): raw.dispatch_outcome 74.7, js.parse_outcome 53.9, raw.dispatch_outcome+parse 128.9
-[2026-09-29T03:48:00.639Z] 0352-main-local-ledger-session-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.3, abi.exec 30.7, abi.decode 0.7
-[2026-09-29T03:48:01.799Z] 0353-i1-ledger-session-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.3, abi.exec 30.7, abi.decode 0.7
-[2026-09-29T03:48:03.249Z] 0354-main-local-ledger-session-wasm-abi.dispatch_outcome 1.4 s (parallelism 4): abi.encode_args 0.3, abi.exec 68.7, abi.decode 2.6
-[2026-09-29T03:48:04.650Z] 0355-i1-ledger-session-wasm-abi.dispatch_outcome 1.4 s (parallelism 4): abi.encode_args 0.3, abi.exec 65.9, abi.decode 2.5
-[2026-09-29T03:48:07.447Z] 0356-main-local-ledger-session-wasm-read 2.8 s (parallelism 4): raw.view 8.6, js.parse_view 9.3, raw.snapshot 80.2
-[2026-09-29T03:48:10.219Z] 0357-i1-ledger-session-wasm-read 2.8 s (parallelism 4): raw.view 8.1, js.parse_view 8.9, raw.snapshot 77.5
-[2026-09-29T03:48:12.171Z] 0358-main-local-ledger-session-wasm-abi.read 1.9 s (parallelism 4): abi.view.exec 7.4, abi.view.decode 0.4, abi.snapshot.exec 66.8
-[2026-09-29T03:48:14.064Z] 0359-i1-ledger-session-wasm-abi.read 1.9 s (parallelism 4): abi.view.exec 7.2, abi.view.decode 0.4, abi.snapshot.exec 66.2
-[2026-09-29T03:48:14.527Z] 0360-main-local-ledger-session-wasm-lifecycle 0.5 s (parallelism 4): raw.new 1777.6, raw.save 53.3, raw.restore 1850.6
-[2026-09-29T03:48:15.005Z] 0361-i1-ledger-session-wasm-lifecycle 0.5 s (parallelism 4): raw.new 1826, raw.save 56.7, raw.restore 1969.6
-[2026-09-29T03:48:16.025Z] 0362-i1-ledger-session-wasm-abi.dispatch_only 1.0 s (parallelism 4): abi.encode_args 0.2, abi.dispatch_only.exec 20.2, abi.dispatch_only 20.6
-[2026-09-29T03:48:17.939Z] 0363-i1-ledger-session-wasm-abi.bench_read 1.9 s (parallelism 4): abi.view_build.exec 4.8, abi.snapshot_build.exec 24.2, abi.view.exec 7.8
-[2026-09-29T03:48:19.225Z] 0364-i2-ledger-session-wasm-probe.dispatch_view 1.2 s (parallelism 4): total 40.7, web.enter 0.4, payload.parse 0.9
-[2026-09-29T03:48:21.078Z] 0365-i2-ledger-session-wasm-probe.dispatch_outcome 1.8 s (parallelism 4): total 122.1, web.enter 0.4, payload.parse 1.2
-[2026-09-29T03:48:23.877Z] 0366-i2-ledger-session-wasm-probe.read 2.7 s (parallelism 4): view:total 16.7, view:web.enter 0.2, view:view.enter 0.1
-[2026-09-29T03:48:24.200Z] 0367-i2-ledger-session-wasm-probe.lifecycle 0.3 s (parallelism 4): restore:total 1673.6, restore:web.enter 13.4, restore:restore.enter 0.2
-[2026-09-29T03:48:24.360Z] 0368-i2-ledger-session-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.051, js.performance_now 0.04
-[2026-09-29T03:48:30.741Z] 0369-main-local-trail-rescue-scenarios-native-apply 6.4 s (parallelism 4): apply 48
-[2026-09-29T03:48:37.151Z] 0370-i1-trail-rescue-scenarios-native-apply 6.4 s (parallelism 4): apply 49.1
-[2026-09-29T03:48:43.651Z] 0371-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.5 s (parallelism 4): web.dispatch_view 61.1
-[2026-09-29T03:48:50.074Z] 0372-i1-trail-rescue-scenarios-native-web.dispatch_view 6.4 s (parallelism 4): web.dispatch_view 60.5
-[2026-09-29T03:48:57.151Z] 0373-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 7.1 s (parallelism 4): web.dispatch_outcome 123.2
-[2026-09-29T03:49:04.186Z] 0374-i1-trail-rescue-scenarios-native-web.dispatch_outcome 7.0 s (parallelism 4): web.dispatch_outcome 122.4
-[2026-09-29T03:49:12.456Z] 0375-main-local-trail-rescue-scenarios-native-read 8.2 s (parallelism 4): clone 10.8, clone.drop 5.9, save 5.6
-[2026-09-29T03:49:20.586Z] 0376-i1-trail-rescue-scenarios-native-read 8.1 s (parallelism 4): clone 10.8, clone.drop 5.8, save 5.4
-[2026-09-29T03:49:28.599Z] 0377-main-local-trail-rescue-scenarios-native-web.read 8.0 s (parallelism 4): web.save 11.9, web.snapshot 86.8, web.view 6.8
-[2026-09-29T03:49:36.991Z] 0378-i1-trail-rescue-scenarios-native-web.read 8.4 s (parallelism 4): web.save 12.5, web.snapshot 89.7, web.view 7
-[2026-09-29T03:49:37.633Z] 0379-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3139.3, restore 3255.6, restore.parse 21.9
-[2026-09-29T03:49:38.286Z] 0380-i1-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3123.4, restore 3222.3, restore.parse 21.4
-[2026-09-29T03:49:44.978Z] 0381-i1-trail-rescue-scenarios-native-bench.dispatch_only 6.7 s (parallelism 4): bench.dispatch_only 52.4
-[2026-09-29T03:49:53.130Z] 0382-i1-trail-rescue-scenarios-native-bench.read 8.1 s (parallelism 4): bench.snapshot_build 42.2, bench.view_build 2.3, web.snapshot 78.6
-[2026-09-29T03:50:00.159Z] 0383-i2-trail-rescue-scenarios-native-probe.dispatch_view 7.0 s (parallelism 4): apply.clone 0.5, apply.rollback 2.8, apply.swap 2.5
-[2026-09-29T03:50:07.891Z] 0384-i2-trail-rescue-scenarios-native-probe.dispatch_outcome 7.6 s (parallelism 4): apply.clone 0.5, apply.rollback 3, apply.swap 2.7
-[2026-09-29T03:50:15.894Z] 0385-i2-trail-rescue-scenarios-native-probe.read 7.9 s (parallelism 4): save:exit 0, save:save.build 5.8, save:save.drop 1.9
-[2026-09-29T03:50:16.210Z] 0386-i2-trail-rescue-scenarios-native-probe.lifecycle 0.3 s (parallelism 4): new:bind.eval 15.7, new:bind.explain 8, new:bind.sort 8.8
-[2026-09-29T03:50:16.286Z] 0387-i2-trail-rescue-scenarios-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.036, probe.now 0.035
-[2026-09-29T03:50:23.249Z] 0388-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.9 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 75.8, js.parse_view 26.3
-[2026-09-29T03:50:30.139Z] 0389-i1-trail-rescue-scenarios-wasm-raw.dispatch_view 6.9 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 76.2, js.parse_view 26.8
-[2026-09-29T03:50:38.747Z] 0390-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.6 s (parallelism 4): raw.dispatch_outcome 149.6, js.parse_outcome 80, raw.dispatch_outcome+parse 233.7
-[2026-09-29T03:50:47.089Z] 0391-i1-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.3 s (parallelism 4): raw.dispatch_outcome 151.3, js.parse_outcome 81.1, raw.dispatch_outcome+parse 235.1
-[2026-09-29T03:50:53.586Z] 0392-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.5 s (parallelism 4): abi.encode_args 0.4, abi.exec 73.2, abi.decode 1.3
-[2026-09-29T03:51:00.403Z] 0393-i1-trail-rescue-scenarios-wasm-abi.dispatch_view 6.8 s (parallelism 4): abi.encode_args 0.4, abi.exec 74.8, abi.decode 1.3
-[2026-09-29T03:51:08.543Z] 0394-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 8.1 s (parallelism 4): abi.encode_args 0.5, abi.exec 154.5, abi.decode 3.6
-[2026-09-29T03:51:17.015Z] 0395-i1-trail-rescue-scenarios-wasm-abi.dispatch_outcome 8.4 s (parallelism 4): abi.encode_args 0.5, abi.exec 154.8, abi.decode 3.6
-[2026-09-29T03:51:27.676Z] 0396-main-local-trail-rescue-scenarios-wasm-read 10.6 s (parallelism 4): raw.view 11.3, js.parse_view 29.1, raw.snapshot 119
-[2026-09-29T03:51:37.318Z] 0397-i1-trail-rescue-scenarios-wasm-read 9.6 s (parallelism 4): raw.view 10.5, js.parse_view 27.1, raw.snapshot 111.6
-[2026-09-29T03:51:45.747Z] 0398-main-local-trail-rescue-scenarios-wasm-abi.read 8.4 s (parallelism 4): abi.view.exec 9.6, abi.view.decode 0.9, abi.snapshot.exec 102.6
-[2026-09-29T03:51:54.239Z] 0399-i1-trail-rescue-scenarios-wasm-abi.read 8.5 s (parallelism 4): abi.view.exec 9.7, abi.view.decode 0.9, abi.snapshot.exec 104.4
-[2026-09-29T03:51:54.956Z] 0400-main-local-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3583.4, raw.save 51.6, raw.restore 3538.7
-[2026-09-29T03:51:55.697Z] 0401-i1-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3771.9, raw.save 51.2, raw.restore 3768
-[2026-09-29T03:52:02.322Z] 0402-i1-trail-rescue-scenarios-wasm-abi.dispatch_only 6.6 s (parallelism 4): abi.encode_args 0.3, abi.dispatch_only.exec 60.7, abi.dispatch_only 61.1
-[2026-09-29T03:52:11.082Z] 0403-i1-trail-rescue-scenarios-wasm-abi.bench_read 8.7 s (parallelism 4): abi.view_build.exec 2.7, abi.snapshot_build.exec 45.9, abi.view.exec 13.9
-[2026-09-29T03:52:18.852Z] 0404-i2-trail-rescue-scenarios-wasm-probe.dispatch_view 7.7 s (parallelism 4): total 119.3, web.enter 0.6, payload.parse 1.3
-[2026-09-29T03:52:27.670Z] 0405-i2-trail-rescue-scenarios-wasm-probe.dispatch_outcome 8.7 s (parallelism 4): total 251.1, web.enter 0.7, payload.parse 1.6
-[2026-09-29T03:52:38.110Z] 0406-i2-trail-rescue-scenarios-wasm-probe.read 10.3 s (parallelism 4): view:total 40.3, view:web.enter 0.3, view:view.enter 0.1
-[2026-09-29T03:52:38.543Z] 0407-i2-trail-rescue-scenarios-wasm-probe.lifecycle 0.4 s (parallelism 4): restore:total 3288.8, restore:web.enter 13.3, restore:restore.enter 0.2
-[2026-09-29T03:52:38.700Z] 0408-i2-trail-rescue-scenarios-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.048, js.performance_now 0.038
-[2026-09-29T03:52:38.703Z] load during: {"what":"typeperf every 5 s for the whole run","samples":289,"counters":{"total":{"samples":289,"mean":11.3,"p95":14.9,"max":21.1},"processor 10":{"samples":289,"mean":63.8,"p95":99.4,"max":100},"processor 11":{"samples":289,"mean":15.3,"p95":48.9,"max":100},"processor 12":{"samples":289,"mean":21.9,"p95":51.9,"max":71},"processor 13":{"samples":289,"mean":20.8,"p95":99.1,"max":100}},"totalAbove10Percent":233,"totalAbove25Percent":0,"pinnedSumAbove150Percent":15}
-[2026-09-29T03:52:46.068Z] load after: {"totalCpuPercent":[16,0,0],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.812},{"name":"claude","pid":104712,"cpuSeconds":0.625},{"name":"powershell","pid":79708,"cpuSeconds":0.562},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.188},{"name":"ChatGPT","pid":87544,"cpuSeconds":0.172},{"name":"ChatGPT","pid":97696,"cpuSeconds":0.125}]}
-[2026-09-29T03:52:46.113Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\instrumented\results.json and summary.md; 0 failure(s), 0 skipped, 0 correctness finding(s)
+[2026-09-29T08:41:36.023Z] run 2026-09-29T08-41-36-021-instrumented: suite instrumented, 3 repeat(s), engines native,wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\audit\instrumented-rerun
+[2026-09-29T08:41:47.292Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
+[2026-09-29T08:41:47.293Z] load before: {"totalCpuPercent":[18,3,11],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.172},{"name":"powershell","pid":8452,"cpuSeconds":0.625},{"name":"claude","pid":104712,"cpuSeconds":0.406},{"name":"claude","pid":103160,"cpuSeconds":0.234},{"name":"ChatGPT","pid":90500,"cpuSeconds":0.203},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.156}]}
+[2026-09-29T08:41:47.494Z] main-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T08:41:47.517Z] main-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T08:41:47.518Z] i1: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i1\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T08:41:47.541Z] i1: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i1; wasm 0368965f71b7339f9f340f70ec524e391b0b50832c2cf2a80dd74314c8424944; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i1\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T08:41:47.542Z] i2: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i2\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T08:41:47.562Z] i2: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i2; wasm 2ee34de9ffabd2e433b5ff717df687420f1cb8d06255ddcf138a79d99bc29df0; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\i2\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T08:41:47.580Z] 92 jobs x 3 target(s) x 3 repeat(s)
+[2026-09-29T08:41:47.589Z] monitoring load with typeperf every 5 s (total, processor 10, processor 11, processor 12, processor 13)
+[2026-09-29T08:41:49.724Z] 0001-main-local-glowcap-replay-native-apply 2.1 s (parallelism 4): apply 14.6
+[2026-09-29T08:41:51.817Z] 0002-i1-glowcap-replay-native-apply 2.1 s (parallelism 4): apply 13.2
+[2026-09-29T08:41:52.782Z] 0003-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.6
+[2026-09-29T08:41:53.730Z] 0004-i1-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.6
+[2026-09-29T08:41:56.442Z] 0005-main-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 64.5
+[2026-09-29T08:41:59.344Z] 0006-i1-glowcap-replay-native-web.dispatch_outcome 2.9 s (parallelism 4): web.dispatch_outcome 69.7
+[2026-09-29T08:42:05.431Z] 0007-main-local-glowcap-replay-native-read 6.0 s (parallelism 4): clone 7.2, clone.drop 3.9, save 8.8
+[2026-09-29T08:42:11.861Z] 0008-i1-glowcap-replay-native-read 6.3 s (parallelism 4): clone 7.6, clone.drop 4.2, save 9.5
+[2026-09-29T08:42:16.550Z] 0009-main-local-glowcap-replay-native-web.read 4.6 s (parallelism 4): web.save 15.6, web.snapshot 65.9, web.view 6.4
+[2026-09-29T08:42:21.827Z] 0010-i1-glowcap-replay-native-web.read 5.2 s (parallelism 4): web.save 17.9, web.snapshot 74.7, web.view 7.1
+[2026-09-29T08:42:22.818Z] 0011-main-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2661.9, restore 2825.4, restore.parse 28.7
+[2026-09-29T08:42:23.734Z] 0012-i1-glowcap-replay-native-lifecycle 0.9 s (parallelism 4): from_source 2534.7, restore 2728.4, restore.parse 30.4
+[2026-09-29T08:42:24.375Z] 0013-i1-glowcap-replay-native-bench.dispatch_only 0.6 s (parallelism 4): bench.dispatch_only 13.4
+[2026-09-29T08:42:29.498Z] 0014-i1-glowcap-replay-native-bench.read 5.1 s (parallelism 4): bench.snapshot_build 33.1, bench.view_build 3.6, web.snapshot 63.5
+[2026-09-29T08:42:31.875Z] 0015-i2-glowcap-replay-native-probe.dispatch_view 2.2 s (parallelism 4): apply.clone 0.3, apply.swap 1.1, apply.validate 0.1
+[2026-09-29T08:42:34.921Z] 0016-i2-glowcap-replay-native-probe.dispatch_outcome 2.8 s (parallelism 4): apply.clone 0.3, apply.swap 1.2, apply.validate 0.1
+[2026-09-29T08:42:40.088Z] 0017-i2-glowcap-replay-native-probe.read 4.9 s (parallelism 4): save:exit 0, save:save.build 8.9, save:save.drop 2.9
+[2026-09-29T08:42:40.582Z] 0018-i2-glowcap-replay-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 25.6, new:bind.explain 3.2, new:bind.sort 2.7
+[2026-09-29T08:42:40.659Z] 0019-i2-glowcap-replay-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.032, probe.now 0.032
+[2026-09-29T08:42:42.707Z] 0020-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.1, js.parse_view 17
+[2026-09-29T08:42:44.774Z] 0021-i1-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.7, js.parse_view 17.1
+[2026-09-29T08:42:50.832Z] 0022-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.0 s (parallelism 4): raw.dispatch_outcome 73.1, js.parse_outcome 64.3, raw.dispatch_outcome+parse 137.6
+[2026-09-29T08:42:56.792Z] 0023-i1-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 73.6, js.parse_outcome 64.1, raw.dispatch_outcome+parse 137.7
+[2026-09-29T08:42:58.111Z] 0024-main-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.5, abi.decode 2.4
+[2026-09-29T08:42:59.461Z] 0025-i1-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.5, abi.decode 2.5
+[2026-09-29T08:43:02.605Z] 0026-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 58.6, abi.decode 7.5
+[2026-09-29T08:43:05.794Z] 0027-i1-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 59.8, abi.decode 7.7
+[2026-09-29T08:43:15.964Z] 0028-main-local-glowcap-replay-wasm-read 10.1 s (parallelism 4): raw.view 11.1, js.parse_view 18.4, raw.snapshot 92
+[2026-09-29T08:43:26.219Z] 0029-i1-glowcap-replay-wasm-read 10.2 s (parallelism 4): raw.view 11.2, js.parse_view 18.6, raw.snapshot 93.3
+[2026-09-29T08:43:32.626Z] 0030-main-local-glowcap-replay-wasm-abi.read 6.3 s (parallelism 4): abi.view.exec 8.9, abi.view.decode 2.4, abi.snapshot.exec 75.2
+[2026-09-29T08:43:38.733Z] 0031-i1-glowcap-replay-wasm-abi.read 6.0 s (parallelism 4): abi.view.exec 8.4, abi.view.decode 2.3, abi.snapshot.exec 70.3
+[2026-09-29T08:43:39.595Z] 0032-main-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2570.9, raw.save 44.7, raw.restore 2566.7
+[2026-09-29T08:43:40.460Z] 0033-i1-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2426.7, raw.save 49.1, raw.restore 2510.7
+[2026-09-29T08:43:41.310Z] 0034-i1-glowcap-replay-wasm-abi.dispatch_only 0.8 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 13, abi.dispatch_only 13.1
+[2026-09-29T08:43:47.841Z] 0035-i1-glowcap-replay-wasm-abi.bench_read 6.4 s (parallelism 4): abi.view_build.exec 3.5, abi.snapshot_build.exec 29.3, abi.view.exec 9.2
+[2026-09-29T08:43:50.594Z] 0036-i2-glowcap-replay-wasm-probe.dispatch_view 2.5 s (parallelism 4): total 42.6, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:43:57.334Z] 0037-i2-glowcap-replay-wasm-probe.dispatch_outcome 6.4 s (parallelism 4): total 134.8, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:44:09.645Z] 0038-i2-glowcap-replay-wasm-probe.read 11.9 s (parallelism 4): view:total 31.1, view:web.enter 0.1, view:view.enter 0.1
+[2026-09-29T08:44:10.405Z] 0039-i2-glowcap-replay-wasm-probe.lifecycle 0.8 s (parallelism 4): restore:total 2891.4, restore:web.enter 18.9, restore:restore.enter 0.1
+[2026-09-29T08:44:10.575Z] 0040-i2-glowcap-replay-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.047, js.performance_now 0.038
+[2026-09-29T08:44:11.167Z] 0041-main-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 12
+[2026-09-29T08:44:11.781Z] 0042-i1-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 11.9
+[2026-09-29T08:44:12.559Z] 0043-main-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 16.9
+[2026-09-29T08:44:13.355Z] 0044-i1-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 17.2
+[2026-09-29T08:44:13.969Z] 0045-i1-glowcap-unbound-native-bench.dispatch_only 0.6 s (parallelism 4): bench.dispatch_only 12.8
+[2026-09-29T08:44:15.094Z] 0046-i2-glowcap-unbound-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.3, apply.swap 1.1, apply.validate 0.1
+[2026-09-29T08:44:16.136Z] 0047-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.1, abi.decode 0.5
+[2026-09-29T08:44:17.193Z] 0048-i1-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.5, abi.decode 0.5
+[2026-09-29T08:44:17.960Z] 0049-i1-glowcap-unbound-wasm-abi.dispatch_only 0.7 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 11.5, abi.dispatch_only 11.6
+[2026-09-29T08:44:19.907Z] 0050-i2-glowcap-unbound-wasm-probe.dispatch_view 1.7 s (parallelism 4): total 25.8, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:44:20.795Z] 0051-main-local-glowcap-resume-native-lifecycle 0.9 s (parallelism 4): from_source 2723, restore 2773.5, restore.parse 21.1
+[2026-09-29T08:44:21.620Z] 0052-i1-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2597, restore 2657.8, restore.parse 21.5
+[2026-09-29T08:44:22.062Z] 0053-i2-glowcap-resume-native-probe.lifecycle 0.4 s (parallelism 4): new:bind.eval 26.4, new:bind.explain 3.6, new:bind.sort 2.7
+[2026-09-29T08:44:22.847Z] 0054-main-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2566.8, raw.save 32.7, raw.restore 2559
+[2026-09-29T08:44:23.740Z] 0055-i1-glowcap-resume-wasm-lifecycle 0.9 s (parallelism 4): raw.new 3023.4, raw.save 39.6, raw.restore 3017.9
+[2026-09-29T08:44:24.429Z] 0056-i2-glowcap-resume-wasm-probe.lifecycle 0.7 s (parallelism 4): restore:total 3058.5, restore:web.enter 17.8, restore:restore.enter 0.1
+[2026-09-29T08:44:25.196Z] 0057-main-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 14.9
+[2026-09-29T08:44:26.044Z] 0058-i1-ledger-session-native-apply 0.8 s (parallelism 4): apply 17.6
+[2026-09-29T08:44:26.869Z] 0059-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 24.4
+[2026-09-29T08:44:27.735Z] 0060-i1-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 25.3
+[2026-09-29T08:44:28.743Z] 0061-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 57
+[2026-09-29T08:44:29.749Z] 0062-i1-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 57.3
+[2026-09-29T08:44:31.312Z] 0063-main-local-ledger-session-native-read 1.5 s (parallelism 4): clone 1.7, clone.drop 1, save 6.3
+[2026-09-29T08:44:32.940Z] 0064-i1-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 1, save 6.7
+[2026-09-29T08:44:34.499Z] 0065-main-local-ledger-session-native-web.read 1.5 s (parallelism 4): web.save 14.1, web.snapshot 57.6, web.view 5.8
+[2026-09-29T08:44:35.943Z] 0066-i1-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 13, web.snapshot 52.7, web.view 5.3
+[2026-09-29T08:44:36.244Z] 0067-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1314.3, restore 1361.7, restore.parse 23.1
+[2026-09-29T08:44:36.537Z] 0068-i1-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1313.4, restore 1384.4, restore.parse 23.2
+[2026-09-29T08:44:37.319Z] 0069-i1-ledger-session-native-bench.dispatch_only 0.8 s (parallelism 4): bench.dispatch_only 17.2
+[2026-09-29T08:44:38.960Z] 0070-i1-ledger-session-native-bench.read 1.6 s (parallelism 4): bench.snapshot_build 25.8, bench.view_build 4.8, web.snapshot 53.9
+[2026-09-29T08:44:39.851Z] 0071-i2-ledger-session-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.5, apply.rollback 3.6, apply.swap 2.6
+[2026-09-29T08:44:40.926Z] 0072-i2-ledger-session-native-probe.dispatch_outcome 1.0 s (parallelism 4): apply.clone 0.4, apply.rollback 3.7, apply.swap 2.7
+[2026-09-29T08:44:42.382Z] 0073-i2-ledger-session-native-probe.read 1.4 s (parallelism 4): save:exit 0, save:save.build 6.3, save:save.drop 2
+[2026-09-29T08:44:42.542Z] 0074-i2-ledger-session-native-probe.lifecycle 0.2 s (parallelism 4): new:bind.eval 3.5, new:bind.explain 0.5, new:bind.sort 0.2
+[2026-09-29T08:44:42.613Z] 0075-i2-ledger-session-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.034, probe.now 0.033
+[2026-09-29T08:44:43.638Z] 0076-main-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.4, js.parse_view 6.9
+[2026-09-29T08:44:44.700Z] 0077-i1-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.9, js.parse_view 7.2
+[2026-09-29T08:44:46.252Z] 0078-main-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 63.6, js.parse_outcome 45.1, raw.dispatch_outcome+parse 108.7
+[2026-09-29T08:44:47.861Z] 0079-i1-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.4, js.parse_outcome 46.9, raw.dispatch_outcome+parse 114
+[2026-09-29T08:44:48.868Z] 0080-main-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.3, abi.decode 0.6
+[2026-09-29T08:44:49.870Z] 0081-i1-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 26.8, abi.decode 0.6
+[2026-09-29T08:44:51.134Z] 0082-main-local-ledger-session-wasm-abi.dispatch_outcome 1.3 s (parallelism 4): abi.encode_args 0.3, abi.exec 59.1, abi.decode 2.3
+[2026-09-29T08:44:52.389Z] 0083-i1-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 59.2, abi.decode 2.3
+[2026-09-29T08:44:54.828Z] 0084-main-local-ledger-session-wasm-read 2.4 s (parallelism 4): raw.view 7.5, js.parse_view 8.3, raw.snapshot 71.6
+[2026-09-29T08:44:57.280Z] 0085-i1-ledger-session-wasm-read 2.4 s (parallelism 4): raw.view 7.5, js.parse_view 8.4, raw.snapshot 71.9
+[2026-09-29T08:44:59.110Z] 0086-main-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.7, abi.view.decode 0.4, abi.snapshot.exec 60.9
+[2026-09-29T08:45:01.003Z] 0087-i1-ledger-session-wasm-abi.read 1.9 s (parallelism 4): abi.view.exec 7.3, abi.view.decode 0.4, abi.snapshot.exec 66.6
+[2026-09-29T08:45:01.429Z] 0088-main-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1498.2, raw.save 47.5, raw.restore 1581.5
+[2026-09-29T08:45:01.861Z] 0089-i1-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1508.7, raw.save 48.9, raw.restore 1590.6
+[2026-09-29T08:45:02.810Z] 0090-i1-ledger-session-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.2, abi.dispatch_only.exec 18.9, abi.dispatch_only 19.3
+[2026-09-29T08:45:04.700Z] 0091-i1-ledger-session-wasm-abi.bench_read 1.9 s (parallelism 4): abi.view_build.exec 4.6, abi.snapshot_build.exec 22.9, abi.view.exec 7.4
+[2026-09-29T08:45:05.904Z] 0092-i2-ledger-session-wasm-probe.dispatch_view 1.2 s (parallelism 4): total 38.3, web.enter 0.3, payload.parse 0.9
+[2026-09-29T08:45:07.651Z] 0093-i2-ledger-session-wasm-probe.dispatch_outcome 1.7 s (parallelism 4): total 114.9, web.enter 0.4, payload.parse 1.1
+[2026-09-29T08:45:10.350Z] 0094-i2-ledger-session-wasm-probe.read 2.6 s (parallelism 4): view:total 16.6, view:web.enter 0.2, view:view.enter 0.1
+[2026-09-29T08:45:10.693Z] 0095-i2-ledger-session-wasm-probe.lifecycle 0.3 s (parallelism 4): restore:total 1925, restore:web.enter 14.7, restore:restore.enter 0.2
+[2026-09-29T08:45:10.849Z] 0096-i2-ledger-session-wasm-probe.overhead 0.1 s (parallelism 4): probe.mark 0.047, js.performance_now 0.037
+[2026-09-29T08:45:17.092Z] 0097-main-local-trail-rescue-scenarios-native-apply 6.2 s (parallelism 4): apply 47.4
+[2026-09-29T08:45:23.259Z] 0098-i1-trail-rescue-scenarios-native-apply 6.2 s (parallelism 4): apply 47.5
+[2026-09-29T08:45:29.689Z] 0099-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.4 s (parallelism 4): web.dispatch_view 60.4
+[2026-09-29T08:45:36.318Z] 0100-i1-trail-rescue-scenarios-native-web.dispatch_view 6.6 s (parallelism 4): web.dispatch_view 65.2
+[2026-09-29T08:45:43.609Z] 0101-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 7.3 s (parallelism 4): web.dispatch_outcome 123.6
+[2026-09-29T08:45:50.472Z] 0102-i1-trail-rescue-scenarios-native-web.dispatch_outcome 6.9 s (parallelism 4): web.dispatch_outcome 119.8
+[2026-09-29T08:45:58.396Z] 0103-main-local-trail-rescue-scenarios-native-read 7.9 s (parallelism 4): clone 10.5, clone.drop 5.6, save 5.4
+[2026-09-29T08:46:06.297Z] 0104-i1-trail-rescue-scenarios-native-read 7.9 s (parallelism 4): clone 10.4, clone.drop 5.6, save 5.4
+[2026-09-29T08:46:13.662Z] 0105-main-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.9, web.snapshot 80.1, web.view 6.1
+[2026-09-29T08:46:21.043Z] 0106-i1-trail-rescue-scenarios-native-web.read 7.4 s (parallelism 4): web.save 10.9, web.snapshot 79.7, web.view 6.1
+[2026-09-29T08:46:21.661Z] 0107-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3045.3, restore 3135, restore.parse 19.9
+[2026-09-29T08:46:22.256Z] 0108-i1-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2957.6, restore 3055, restore.parse 20.5
+[2026-09-29T08:46:28.341Z] 0109-i1-trail-rescue-scenarios-native-bench.dispatch_only 6.1 s (parallelism 4): bench.dispatch_only 48.2
+[2026-09-29T08:46:35.860Z] 0110-i1-trail-rescue-scenarios-native-bench.read 7.5 s (parallelism 4): bench.snapshot_build 39, bench.view_build 2.1, web.snapshot 73.3
+[2026-09-29T08:46:42.477Z] 0111-i2-trail-rescue-scenarios-native-probe.dispatch_view 6.6 s (parallelism 4): apply.clone 0.5, apply.rollback 2.7, apply.swap 2.4
+[2026-09-29T08:46:49.600Z] 0112-i2-trail-rescue-scenarios-native-probe.dispatch_outcome 7.0 s (parallelism 4): apply.clone 0.5, apply.rollback 2.8, apply.swap 2.4
+[2026-09-29T08:46:57.163Z] 0113-i2-trail-rescue-scenarios-native-probe.read 7.5 s (parallelism 4): save:exit 0, save:save.build 5.6, save:save.drop 1.8
+[2026-09-29T08:46:57.461Z] 0114-i2-trail-rescue-scenarios-native-probe.lifecycle 0.3 s (parallelism 4): new:bind.eval 14.5, new:bind.explain 7.8, new:bind.sort 8.1
+[2026-09-29T08:46:57.531Z] 0115-i2-trail-rescue-scenarios-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.032, probe.now 0.031
+[2026-09-29T08:47:04.105Z] 0116-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 75, js.parse_view 26
+[2026-09-29T08:47:10.660Z] 0117-i1-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 74, js.parse_view 26
+[2026-09-29T08:47:18.745Z] 0118-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.1 s (parallelism 4): raw.dispatch_outcome 143.7, js.parse_outcome 76.3, raw.dispatch_outcome+parse 223.6
+[2026-09-29T08:47:26.661Z] 0119-i1-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 141.3, js.parse_outcome 74.2, raw.dispatch_outcome+parse 217.7
+[2026-09-29T08:47:32.897Z] 0120-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 68.3, abi.decode 1.2
+[2026-09-29T08:47:39.047Z] 0121-i1-trail-rescue-scenarios-wasm-abi.dispatch_view 6.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 69.2, abi.decode 1.2
+[2026-09-29T08:47:46.042Z] 0122-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 129.4, abi.decode 3.2
+[2026-09-29T08:47:53.112Z] 0123-i1-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 132.9, abi.decode 3.3
+[2026-09-29T08:48:02.340Z] 0124-main-local-trail-rescue-scenarios-wasm-read 9.2 s (parallelism 4): raw.view 10.1, js.parse_view 25.6, raw.snapshot 106.8
+[2026-09-29T08:48:11.444Z] 0125-i1-trail-rescue-scenarios-wasm-read 9.1 s (parallelism 4): raw.view 9.8, js.parse_view 25.4, raw.snapshot 106
+[2026-09-29T08:48:19.229Z] 0126-main-local-trail-rescue-scenarios-wasm-abi.read 7.8 s (parallelism 4): abi.view.exec 9, abi.view.decode 0.8, abi.snapshot.exec 97.3
+[2026-09-29T08:48:26.927Z] 0127-i1-trail-rescue-scenarios-wasm-abi.read 7.7 s (parallelism 4): abi.view.exec 9, abi.view.decode 0.9, abi.snapshot.exec 98.7
+[2026-09-29T08:48:27.586Z] 0128-main-local-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3282.9, raw.save 41.5, raw.restore 3290.9
+[2026-09-29T08:48:28.245Z] 0129-i1-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3276, raw.save 41.6, raw.restore 3288.9
+[2026-09-29T08:48:34.265Z] 0130-i1-trail-rescue-scenarios-wasm-abi.dispatch_only 6.0 s (parallelism 4): abi.encode_args 0.3, abi.dispatch_only.exec 53.8, abi.dispatch_only 54.2
+[2026-09-29T08:48:42.552Z] 0131-i1-trail-rescue-scenarios-wasm-abi.bench_read 8.3 s (parallelism 4): abi.view_build.exec 2.5, abi.snapshot_build.exec 43.4, abi.view.exec 12.9
+[2026-09-29T08:48:49.318Z] 0132-i2-trail-rescue-scenarios-wasm-probe.dispatch_view 6.7 s (parallelism 4): total 103.2, web.enter 0.5, payload.parse 1.1
+[2026-09-29T08:48:57.353Z] 0133-i2-trail-rescue-scenarios-wasm-probe.dispatch_outcome 7.9 s (parallelism 4): total 229.1, web.enter 0.7, payload.parse 1.5
+[2026-09-29T08:49:07.079Z] 0134-i2-trail-rescue-scenarios-wasm-probe.read 9.6 s (parallelism 4): view:total 37.9, view:web.enter 0.3, view:view.enter 0.1
+[2026-09-29T08:49:07.492Z] 0135-i2-trail-rescue-scenarios-wasm-probe.lifecycle 0.4 s (parallelism 4): restore:total 3147.1, restore:web.enter 12.6, restore:restore.enter 0.2
+[2026-09-29T08:49:07.654Z] 0136-i2-trail-rescue-scenarios-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.045, js.performance_now 0.036
+[2026-09-29T08:49:08.299Z] 0137-i1-glowcap-replay-native-apply 0.6 s (parallelism 4): apply 13
+[2026-09-29T08:49:08.944Z] 0138-main-local-glowcap-replay-native-apply 0.6 s (parallelism 4): apply 13
+[2026-09-29T08:49:09.879Z] 0139-i1-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.2
+[2026-09-29T08:49:10.784Z] 0140-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 19.9
+[2026-09-29T08:49:13.414Z] 0141-i1-glowcap-replay-native-web.dispatch_outcome 2.6 s (parallelism 4): web.dispatch_outcome 62.5
+[2026-09-29T08:49:16.064Z] 0142-main-local-glowcap-replay-native-web.dispatch_outcome 2.6 s (parallelism 4): web.dispatch_outcome 63
+[2026-09-29T08:49:22.086Z] 0143-i1-glowcap-replay-native-read 5.9 s (parallelism 4): clone 7.1, clone.drop 4, save 8.8
+[2026-09-29T08:49:28.099Z] 0144-main-local-glowcap-replay-native-read 5.9 s (parallelism 4): clone 6.9, clone.drop 3.8, save 8.7
+[2026-09-29T08:49:32.645Z] 0145-i1-glowcap-replay-native-web.read 4.5 s (parallelism 4): web.save 15.6, web.snapshot 64.8, web.view 6.3
+[2026-09-29T08:49:37.501Z] 0146-main-local-glowcap-replay-native-web.read 4.8 s (parallelism 4): web.save 16.3, web.snapshot 69.5, web.view 6.6
+[2026-09-29T08:49:38.432Z] 0147-i1-glowcap-replay-native-lifecycle 0.9 s (parallelism 4): from_source 2584.2, restore 2751.5, restore.parse 28.9
+[2026-09-29T08:49:39.357Z] 0148-main-local-glowcap-replay-native-lifecycle 0.9 s (parallelism 4): from_source 2599.6, restore 2705.2, restore.parse 28.7
+[2026-09-29T08:49:40.098Z] 0149-i1-glowcap-replay-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 15.8
+[2026-09-29T08:49:45.560Z] 0150-i1-glowcap-replay-native-bench.read 5.4 s (parallelism 4): bench.snapshot_build 34.5, bench.view_build 3.8, web.snapshot 65.4
+[2026-09-29T08:49:46.759Z] 0151-i2-glowcap-replay-native-probe.dispatch_view 1.0 s (parallelism 4): apply.clone 0.3, apply.swap 1.1, apply.validate 0.1
+[2026-09-29T08:49:49.759Z] 0152-i2-glowcap-replay-native-probe.dispatch_outcome 2.8 s (parallelism 4): apply.clone 0.3, apply.swap 1.2, apply.validate 0.1
+[2026-09-29T08:49:54.878Z] 0153-i2-glowcap-replay-native-probe.read 4.8 s (parallelism 4): save:exit 0, save:save.build 8.8, save:save.drop 2.9
+[2026-09-29T08:49:55.365Z] 0154-i2-glowcap-replay-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 26.3, new:bind.explain 3.2, new:bind.sort 2.7
+[2026-09-29T08:49:55.442Z] 0155-i2-glowcap-replay-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.033, probe.now 0.032
+[2026-09-29T08:49:57.456Z] 0156-i1-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.3, js.parse_view 16.6
+[2026-09-29T08:49:59.606Z] 0157-main-local-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.2, js.parse_view 17.9
+[2026-09-29T08:50:05.484Z] 0158-i1-glowcap-replay-wasm-raw.dispatch_outcome 5.8 s (parallelism 4): raw.dispatch_outcome 73.1, js.parse_outcome 64.2, raw.dispatch_outcome+parse 137.7
+[2026-09-29T08:50:11.550Z] 0159-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.0 s (parallelism 4): raw.dispatch_outcome 77.5, js.parse_outcome 68, raw.dispatch_outcome+parse 146.1
+[2026-09-29T08:50:12.864Z] 0160-i1-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 20.7, abi.decode 2.4
+[2026-09-29T08:50:14.176Z] 0161-main-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.4, abi.decode 2.4
+[2026-09-29T08:50:17.265Z] 0162-i1-glowcap-replay-wasm-abi.dispatch_outcome 3.0 s (parallelism 4): abi.encode_args 0.2, abi.exec 57.9, abi.decode 7.4
+[2026-09-29T08:50:20.306Z] 0163-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 56.9, abi.decode 7.3
+[2026-09-29T08:50:30.125Z] 0164-i1-glowcap-replay-wasm-read 9.7 s (parallelism 4): raw.view 10.7, js.parse_view 17.8, raw.snapshot 87.4
+[2026-09-29T08:50:40.157Z] 0165-main-local-glowcap-replay-wasm-read 10.0 s (parallelism 4): raw.view 10.9, js.parse_view 18.1, raw.snapshot 88.8
+[2026-09-29T08:50:46.020Z] 0166-i1-glowcap-replay-wasm-abi.read 5.8 s (parallelism 4): abi.view.exec 8.2, abi.view.decode 2.2, abi.snapshot.exec 68.3
+[2026-09-29T08:50:52.117Z] 0167-main-local-glowcap-replay-wasm-abi.read 6.0 s (parallelism 4): abi.view.exec 8.4, abi.view.decode 2.2, abi.snapshot.exec 70.5
+[2026-09-29T08:50:52.994Z] 0168-i1-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2550.9, raw.save 45.8, raw.restore 2666.6
+[2026-09-29T08:50:53.856Z] 0169-main-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2537.7, raw.save 46.6, raw.restore 2642.3
+[2026-09-29T08:50:54.677Z] 0170-i1-glowcap-replay-wasm-abi.dispatch_only 0.8 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 13.1, abi.dispatch_only 13.2
+[2026-09-29T08:51:00.859Z] 0171-i1-glowcap-replay-wasm-abi.bench_read 6.1 s (parallelism 4): abi.view_build.exec 3.3, abi.snapshot_build.exec 27.7, abi.view.exec 8.9
+[2026-09-29T08:51:03.630Z] 0172-i2-glowcap-replay-wasm-probe.dispatch_view 2.5 s (parallelism 4): total 43.2, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:51:10.421Z] 0173-i2-glowcap-replay-wasm-probe.dispatch_outcome 6.4 s (parallelism 4): total 137.1, web.enter 0.2, payload.parse 0.3
+[2026-09-29T08:51:22.219Z] 0174-i2-glowcap-replay-wasm-probe.read 11.4 s (parallelism 4): view:total 29.8, view:web.enter 0.1, view:view.enter 0
+[2026-09-29T08:51:22.933Z] 0175-i2-glowcap-replay-wasm-probe.lifecycle 0.7 s (parallelism 4): restore:total 2708.8, restore:web.enter 17.1, restore:restore.enter 0.1
+[2026-09-29T08:51:23.106Z] 0176-i2-glowcap-replay-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.045, js.performance_now 0.036
+[2026-09-29T08:51:23.722Z] 0177-i1-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 12.5
+[2026-09-29T08:51:24.309Z] 0178-main-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 11.9
+[2026-09-29T08:51:25.094Z] 0179-i1-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 16.8
+[2026-09-29T08:51:25.853Z] 0180-main-local-glowcap-unbound-native-web.dispatch_view 0.7 s (parallelism 4): web.dispatch_view 16.7
+[2026-09-29T08:51:26.428Z] 0181-i1-glowcap-unbound-native-bench.dispatch_only 0.6 s (parallelism 4): bench.dispatch_only 12.1
+[2026-09-29T08:51:27.531Z] 0182-i2-glowcap-unbound-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.3, apply.swap 1.1, apply.validate 0.1
+[2026-09-29T08:51:28.568Z] 0183-i1-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.1, abi.decode 0.5
+[2026-09-29T08:51:29.608Z] 0184-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 16.9, abi.decode 0.5
+[2026-09-29T08:51:30.369Z] 0185-i1-glowcap-unbound-wasm-abi.dispatch_only 0.7 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 11.5, abi.dispatch_only 11.6
+[2026-09-29T08:51:32.337Z] 0186-i2-glowcap-unbound-wasm-probe.dispatch_view 1.7 s (parallelism 4): total 25.9, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:51:33.154Z] 0187-i1-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2552.3, restore 2604.2, restore.parse 19.1
+[2026-09-29T08:51:33.967Z] 0188-main-local-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2522.3, restore 2568.5, restore.parse 17.2
+[2026-09-29T08:51:34.413Z] 0189-i2-glowcap-resume-native-probe.lifecycle 0.4 s (parallelism 4): new:bind.eval 26.5, new:bind.explain 3.4, new:bind.sort 2.8
+[2026-09-29T08:51:35.249Z] 0190-i1-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2681.5, raw.save 41.2, raw.restore 2701.6
+[2026-09-29T08:51:36.039Z] 0191-main-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2426.8, raw.save 34.7, raw.restore 2492.8
+[2026-09-29T08:51:36.687Z] 0192-i2-glowcap-resume-wasm-probe.lifecycle 0.6 s (parallelism 4): restore:total 2559.1, restore:web.enter 15, restore:restore.enter 0.1
+[2026-09-29T08:51:37.442Z] 0193-i1-ledger-session-native-apply 0.7 s (parallelism 4): apply 14.9
+[2026-09-29T08:51:38.182Z] 0194-main-local-ledger-session-native-apply 0.7 s (parallelism 4): apply 14.6
+[2026-09-29T08:51:38.975Z] 0195-i1-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 23.2
+[2026-09-29T08:51:39.753Z] 0196-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 22.7
+[2026-09-29T08:51:40.746Z] 0197-i1-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56
+[2026-09-29T08:51:41.742Z] 0198-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.5
+[2026-09-29T08:51:43.316Z] 0199-i1-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 1, save 6.4
+[2026-09-29T08:51:44.994Z] 0200-main-local-ledger-session-native-read 1.7 s (parallelism 4): clone 1.8, clone.drop 1, save 6.9
+[2026-09-29T08:51:46.362Z] 0201-i1-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.4, web.snapshot 50.2, web.view 5.1
+[2026-09-29T08:51:47.759Z] 0202-main-local-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.7, web.snapshot 51.4, web.view 5.1
+[2026-09-29T08:51:48.068Z] 0203-i1-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1437.6, restore 1487.7, restore.parse 24.7
+[2026-09-29T08:51:48.390Z] 0204-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1476.4, restore 1523.1, restore.parse 25
+[2026-09-29T08:51:49.143Z] 0205-i1-ledger-session-native-bench.dispatch_only 0.7 s (parallelism 4): bench.dispatch_only 16.4
+[2026-09-29T08:51:50.604Z] 0206-i1-ledger-session-native-bench.read 1.4 s (parallelism 4): bench.snapshot_build 23.3, bench.view_build 4.3, web.snapshot 49
+[2026-09-29T08:51:51.422Z] 0207-i2-ledger-session-native-probe.dispatch_view 0.8 s (parallelism 4): apply.clone 0.4, apply.rollback 3.4, apply.swap 2.5
+[2026-09-29T08:51:52.559Z] 0208-i2-ledger-session-native-probe.dispatch_outcome 1.1 s (parallelism 4): apply.clone 0.5, apply.rollback 4.1, apply.swap 2.9
+[2026-09-29T08:51:53.984Z] 0209-i2-ledger-session-native-probe.read 1.4 s (parallelism 4): save:exit 0, save:save.build 6.3, save:save.drop 2
+[2026-09-29T08:51:54.160Z] 0210-i2-ledger-session-native-probe.lifecycle 0.2 s (parallelism 4): new:bind.eval 3.3, new:bind.explain 0.5, new:bind.sort 0.2
+[2026-09-29T08:51:54.225Z] 0211-i2-ledger-session-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.033, probe.now 0.032
+[2026-09-29T08:51:55.264Z] 0212-i1-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.3, js.parse_view 6.8
+[2026-09-29T08:51:56.302Z] 0213-main-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.4, js.parse_view 6.8
+[2026-09-29T08:51:57.842Z] 0214-i1-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 62.7, js.parse_outcome 44.3, raw.dispatch_outcome+parse 107.2
+[2026-09-29T08:51:59.390Z] 0215-main-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 63.9, js.parse_outcome 44.4, raw.dispatch_outcome+parse 108.2
+[2026-09-29T08:52:00.400Z] 0216-i1-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.6, abi.decode 0.6
+[2026-09-29T08:52:01.407Z] 0217-main-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.2, abi.decode 0.6
+[2026-09-29T08:52:02.640Z] 0218-i1-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 58.8, abi.decode 2.3
+[2026-09-29T08:52:03.903Z] 0219-main-local-ledger-session-wasm-abi.dispatch_outcome 1.3 s (parallelism 4): abi.encode_args 0.3, abi.exec 59.3, abi.decode 2.4
+[2026-09-29T08:52:06.252Z] 0220-i1-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.3, js.parse_view 8.1, raw.snapshot 68.5
+[2026-09-29T08:52:08.615Z] 0221-main-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.1, js.parse_view 7.9, raw.snapshot 68.3
+[2026-09-29T08:52:10.390Z] 0222-i1-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.7, abi.view.decode 0.4, abi.snapshot.exec 60.5
+[2026-09-29T08:52:12.205Z] 0223-main-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.7, abi.view.decode 0.4, abi.snapshot.exec 61.7
+[2026-09-29T08:52:12.632Z] 0224-i1-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1534.9, raw.save 46, raw.restore 1578.3
+[2026-09-29T08:52:13.085Z] 0225-main-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1517.4, raw.save 51.7, raw.restore 1646.4
+[2026-09-29T08:52:14.058Z] 0226-i1-ledger-session-wasm-abi.dispatch_only 1.0 s (parallelism 4): abi.encode_args 0.2, abi.dispatch_only.exec 18.2, abi.dispatch_only 18.7
+[2026-09-29T08:52:15.845Z] 0227-i1-ledger-session-wasm-abi.bench_read 1.8 s (parallelism 4): abi.view_build.exec 4.4, abi.snapshot_build.exec 22.3, abi.view.exec 7.1
+[2026-09-29T08:52:17.066Z] 0228-i2-ledger-session-wasm-probe.dispatch_view 1.2 s (parallelism 4): total 37.9, web.enter 0.3, payload.parse 0.9
+[2026-09-29T08:52:18.831Z] 0229-i2-ledger-session-wasm-probe.dispatch_outcome 1.7 s (parallelism 4): total 116.1, web.enter 0.4, payload.parse 1.2
+[2026-09-29T08:52:21.454Z] 0230-i2-ledger-session-wasm-probe.read 2.5 s (parallelism 4): view:total 16.1, view:web.enter 0.2, view:view.enter 0
+[2026-09-29T08:52:21.778Z] 0231-i2-ledger-session-wasm-probe.lifecycle 0.3 s (parallelism 4): restore:total 1604.7, restore:web.enter 12.4, restore:restore.enter 0.2
+[2026-09-29T08:52:21.933Z] 0232-i2-ledger-session-wasm-probe.overhead 0.1 s (parallelism 4): probe.mark 0.046, js.performance_now 0.036
+[2026-09-29T08:52:27.976Z] 0233-i1-trail-rescue-scenarios-native-apply 6.0 s (parallelism 4): apply 46.4
+[2026-09-29T08:52:34.081Z] 0234-main-local-trail-rescue-scenarios-native-apply 6.1 s (parallelism 4): apply 47
+[2026-09-29T08:52:40.287Z] 0235-i1-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 59.2
+[2026-09-29T08:52:46.437Z] 0236-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.1 s (parallelism 4): web.dispatch_view 58.7
+[2026-09-29T08:52:53.195Z] 0237-i1-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 118
+[2026-09-29T08:52:59.922Z] 0238-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 116.4
+[2026-09-29T08:53:07.712Z] 0239-i1-trail-rescue-scenarios-native-read 7.8 s (parallelism 4): clone 10.4, clone.drop 5.6, save 5.3
+[2026-09-29T08:53:15.455Z] 0240-main-local-trail-rescue-scenarios-native-read 7.7 s (parallelism 4): clone 10.3, clone.drop 5.5, save 5.3
+[2026-09-29T08:53:22.849Z] 0241-i1-trail-rescue-scenarios-native-web.read 7.4 s (parallelism 4): web.save 10.9, web.snapshot 79.6, web.view 6.1
+[2026-09-29T08:53:30.201Z] 0242-main-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.7, web.snapshot 78.9, web.view 6
+[2026-09-29T08:53:30.822Z] 0243-i1-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3119.6, restore 3216, restore.parse 20.4
+[2026-09-29T08:53:31.403Z] 0244-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2821.6, restore 2966.1, restore.parse 20.4
+[2026-09-29T08:53:38.089Z] 0245-i1-trail-rescue-scenarios-native-bench.dispatch_only 6.7 s (parallelism 4): bench.dispatch_only 52
+[2026-09-29T08:53:45.821Z] 0246-i1-trail-rescue-scenarios-native-bench.read 7.7 s (parallelism 4): bench.snapshot_build 41.2, bench.view_build 2.2, web.snapshot 75.8
+[2026-09-29T08:53:52.071Z] 0247-i2-trail-rescue-scenarios-native-probe.dispatch_view 6.2 s (parallelism 4): apply.clone 0.5, apply.rollback 2.5, apply.swap 2.3
+[2026-09-29T08:53:58.922Z] 0248-i2-trail-rescue-scenarios-native-probe.dispatch_outcome 6.8 s (parallelism 4): apply.clone 0.5, apply.rollback 2.7, apply.swap 2.4
+[2026-09-29T08:54:06.242Z] 0249-i2-trail-rescue-scenarios-native-probe.read 7.2 s (parallelism 4): save:exit 0, save:save.build 5.5, save:save.drop 1.7
+[2026-09-29T08:54:06.536Z] 0250-i2-trail-rescue-scenarios-native-probe.lifecycle 0.3 s (parallelism 4): new:bind.eval 14.6, new:bind.explain 8.4, new:bind.sort 8.2
+[2026-09-29T08:54:06.606Z] 0251-i2-trail-rescue-scenarios-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.033, probe.now 0.033
+[2026-09-29T08:54:13.102Z] 0252-i1-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 74, js.parse_view 26
+[2026-09-29T08:54:19.464Z] 0253-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 71, js.parse_view 25.2
+[2026-09-29T08:54:27.193Z] 0254-i1-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.7 s (parallelism 4): raw.dispatch_outcome 139.8, js.parse_outcome 74.4, raw.dispatch_outcome+parse 217.2
+[2026-09-29T08:54:35.160Z] 0255-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.0 s (parallelism 4): raw.dispatch_outcome 145.8, js.parse_outcome 76.7, raw.dispatch_outcome+parse 224.4
+[2026-09-29T08:54:41.174Z] 0256-i1-trail-rescue-scenarios-wasm-abi.dispatch_view 6.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 67.1, abi.decode 1.2
+[2026-09-29T08:54:47.262Z] 0257-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 68.2, abi.decode 1.2
+[2026-09-29T08:54:54.249Z] 0258-i1-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 129.8, abi.decode 3.2
+[2026-09-29T08:55:01.195Z] 0259-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 6.9 s (parallelism 4): abi.encode_args 0.4, abi.exec 129.6, abi.decode 3.1
+[2026-09-29T08:55:10.283Z] 0260-i1-trail-rescue-scenarios-wasm-read 9.1 s (parallelism 4): raw.view 9.7, js.parse_view 25, raw.snapshot 103.5
+[2026-09-29T08:55:19.245Z] 0261-main-local-trail-rescue-scenarios-wasm-read 8.9 s (parallelism 4): raw.view 10.4, js.parse_view 25.1, raw.snapshot 105.5
+[2026-09-29T08:55:27.323Z] 0262-i1-trail-rescue-scenarios-wasm-abi.read 8.1 s (parallelism 4): abi.view.exec 9.6, abi.view.decode 0.9, abi.snapshot.exec 100.6
+[2026-09-29T08:55:35.228Z] 0263-main-local-trail-rescue-scenarios-wasm-abi.read 7.9 s (parallelism 4): abi.view.exec 9.5, abi.view.decode 0.9, abi.snapshot.exec 99.1
+[2026-09-29T08:55:35.892Z] 0264-i1-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3283.4, raw.save 40.1, raw.restore 3261.5
+[2026-09-29T08:55:36.511Z] 0265-main-local-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2874.3, raw.save 36.5, raw.restore 2782.4
+[2026-09-29T08:55:42.795Z] 0266-i1-trail-rescue-scenarios-wasm-abi.dispatch_only 6.3 s (parallelism 4): abi.encode_args 0.3, abi.dispatch_only.exec 56.8, abi.dispatch_only 57.2
+[2026-09-29T08:55:50.702Z] 0267-i1-trail-rescue-scenarios-wasm-abi.bench_read 7.9 s (parallelism 4): abi.view_build.exec 2.4, abi.snapshot_build.exec 40.2, abi.view.exec 12.1
+[2026-09-29T08:55:57.518Z] 0268-i2-trail-rescue-scenarios-wasm-probe.dispatch_view 6.7 s (parallelism 4): total 102.1, web.enter 0.5, payload.parse 1.1
+[2026-09-29T08:56:05.555Z] 0269-i2-trail-rescue-scenarios-wasm-probe.dispatch_outcome 7.9 s (parallelism 4): total 229, web.enter 0.7, payload.parse 1.5
+[2026-09-29T08:56:15.198Z] 0270-i2-trail-rescue-scenarios-wasm-probe.read 9.5 s (parallelism 4): view:total 37.2, view:web.enter 0.2, view:view.enter 0.1
+[2026-09-29T08:56:15.605Z] 0271-i2-trail-rescue-scenarios-wasm-probe.lifecycle 0.4 s (parallelism 4): restore:total 3017.7, restore:web.enter 12, restore:restore.enter 0.2
+[2026-09-29T08:56:15.762Z] 0272-i2-trail-rescue-scenarios-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.048, js.performance_now 0.039
+[2026-09-29T08:56:16.435Z] 0273-main-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 13
+[2026-09-29T08:56:17.089Z] 0274-i1-glowcap-replay-native-apply 0.6 s (parallelism 4): apply 13.1
+[2026-09-29T08:56:18.012Z] 0275-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.1
+[2026-09-29T08:56:18.930Z] 0276-i1-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.1
+[2026-09-29T08:56:21.601Z] 0277-main-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 63.3
+[2026-09-29T08:56:24.326Z] 0278-i1-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 64.4
+[2026-09-29T08:56:30.474Z] 0279-main-local-glowcap-replay-native-read 6.0 s (parallelism 4): clone 6.9, clone.drop 3.8, save 8.7
+[2026-09-29T08:56:36.462Z] 0280-i1-glowcap-replay-native-read 5.9 s (parallelism 4): clone 7, clone.drop 3.9, save 8.7
+[2026-09-29T08:56:41.042Z] 0281-main-local-glowcap-replay-native-web.read 4.5 s (parallelism 4): web.save 15.5, web.snapshot 65.4, web.view 6.4
+[2026-09-29T08:56:46.046Z] 0282-i1-glowcap-replay-native-web.read 5.0 s (parallelism 4): web.save 17, web.snapshot 71.2, web.view 6.8
+[2026-09-29T08:56:46.950Z] 0283-main-local-glowcap-replay-native-lifecycle 0.9 s (parallelism 4): from_source 2468.5, restore 2611.3, restore.parse 25.4
+[2026-09-29T08:56:47.880Z] 0284-i1-glowcap-replay-native-lifecycle 0.9 s (parallelism 4): from_source 2576.6, restore 2671.1, restore.parse 27.5
+[2026-09-29T08:56:48.535Z] 0285-i1-glowcap-replay-native-bench.dispatch_only 0.6 s (parallelism 4): bench.dispatch_only 13.3
+[2026-09-29T08:56:53.985Z] 0286-i1-glowcap-replay-native-bench.read 5.4 s (parallelism 4): bench.snapshot_build 36.2, bench.view_build 4, web.snapshot 68.9
+[2026-09-29T08:56:55.164Z] 0287-i2-glowcap-replay-native-probe.dispatch_view 1.0 s (parallelism 4): apply.clone 0.3, apply.swap 1.1, apply.validate 0.1
+[2026-09-29T08:56:58.183Z] 0288-i2-glowcap-replay-native-probe.dispatch_outcome 2.8 s (parallelism 4): apply.clone 0.3, apply.swap 1.2, apply.validate 0.1
+[2026-09-29T08:57:03.383Z] 0289-i2-glowcap-replay-native-probe.read 4.9 s (parallelism 4): save:exit 0, save:save.build 8.9, save:save.drop 3
+[2026-09-29T08:57:03.878Z] 0290-i2-glowcap-replay-native-probe.lifecycle 0.5 s (parallelism 4): new:bind.eval 26, new:bind.explain 3.3, new:bind.sort 2.7
+[2026-09-29T08:57:03.953Z] 0291-i2-glowcap-replay-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.033, probe.now 0.032
+[2026-09-29T08:57:05.982Z] 0292-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.3, js.parse_view 16.1
+[2026-09-29T08:57:07.977Z] 0293-i1-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24, js.parse_view 16
+[2026-09-29T08:57:13.648Z] 0294-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.6 s (parallelism 4): raw.dispatch_outcome 68.8, js.parse_outcome 61.2, raw.dispatch_outcome+parse 130.3
+[2026-09-29T08:57:19.391Z] 0295-i1-glowcap-replay-wasm-raw.dispatch_outcome 5.7 s (parallelism 4): raw.dispatch_outcome 70.2, js.parse_outcome 61.5, raw.dispatch_outcome+parse 132.1
+[2026-09-29T08:57:20.720Z] 0296-main-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.7, abi.decode 2.5
+[2026-09-29T08:57:22.050Z] 0297-i1-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.7, abi.decode 2.5
+[2026-09-29T08:57:25.160Z] 0298-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 57.5, abi.decode 7.3
+[2026-09-29T08:57:28.283Z] 0299-i1-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 60.4, abi.decode 7.7
+[2026-09-29T08:57:38.570Z] 0300-main-local-glowcap-replay-wasm-read 10.2 s (parallelism 4): raw.view 11.4, js.parse_view 18.7, raw.snapshot 94.1
+[2026-09-29T08:57:48.593Z] 0301-i1-glowcap-replay-wasm-read 9.9 s (parallelism 4): raw.view 11, js.parse_view 18.2, raw.snapshot 90
+[2026-09-29T08:57:54.779Z] 0302-main-local-glowcap-replay-wasm-abi.read 6.1 s (parallelism 4): abi.view.exec 8.7, abi.view.decode 2.4, abi.snapshot.exec 73.6
+[2026-09-29T08:58:00.756Z] 0303-i1-glowcap-replay-wasm-abi.read 5.9 s (parallelism 4): abi.view.exec 8.2, abi.view.decode 2.2, abi.snapshot.exec 70.2
+[2026-09-29T08:58:01.604Z] 0304-main-local-glowcap-replay-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2504.5, raw.save 45.1, raw.restore 2547.4
+[2026-09-29T08:58:02.488Z] 0305-i1-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2500.6, raw.save 48.7, raw.restore 2563.7
+[2026-09-29T08:58:03.343Z] 0306-i1-glowcap-replay-wasm-abi.dispatch_only 0.8 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 12.9, abi.dispatch_only 13
+[2026-09-29T08:58:09.751Z] 0307-i1-glowcap-replay-wasm-abi.bench_read 6.3 s (parallelism 4): abi.view_build.exec 3.5, abi.snapshot_build.exec 30.4, abi.view.exec 9.2
+[2026-09-29T08:58:12.505Z] 0308-i2-glowcap-replay-wasm-probe.dispatch_view 2.5 s (parallelism 4): total 43.6, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:58:19.328Z] 0309-i2-glowcap-replay-wasm-probe.dispatch_outcome 6.5 s (parallelism 4): total 137.8, web.enter 0.2, payload.parse 0.3
+[2026-09-29T08:58:31.097Z] 0310-i2-glowcap-replay-wasm-probe.read 11.3 s (parallelism 4): view:total 29.7, view:web.enter 0.1, view:view.enter 0.1
+[2026-09-29T08:58:31.817Z] 0311-i2-glowcap-replay-wasm-probe.lifecycle 0.7 s (parallelism 4): restore:total 2934.2, restore:web.enter 19.5, restore:restore.enter 0.1
+[2026-09-29T08:58:31.990Z] 0312-i2-glowcap-replay-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.048, js.performance_now 0.038
+[2026-09-29T08:58:32.654Z] 0313-main-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 13.6
+[2026-09-29T08:58:33.263Z] 0314-i1-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 12.2
+[2026-09-29T08:58:34.036Z] 0315-main-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 17
+[2026-09-29T08:58:34.834Z] 0316-i1-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 17
+[2026-09-29T08:58:35.417Z] 0317-i1-glowcap-unbound-native-bench.dispatch_only 0.6 s (parallelism 4): bench.dispatch_only 12.3
+[2026-09-29T08:58:36.471Z] 0318-i2-glowcap-unbound-native-probe.dispatch_view 0.9 s (parallelism 4): apply.clone 0.3, apply.swap 1.1, apply.validate 0.1
+[2026-09-29T08:58:37.533Z] 0319-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.7, abi.decode 0.5
+[2026-09-29T08:58:38.603Z] 0320-i1-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 18.1, abi.decode 0.5
+[2026-09-29T08:58:39.359Z] 0321-i1-glowcap-unbound-wasm-abi.dispatch_only 0.7 s (parallelism 4): abi.encode_args 0.1, abi.dispatch_only.exec 12, abi.dispatch_only 12.1
+[2026-09-29T08:58:41.352Z] 0322-i2-glowcap-unbound-wasm-probe.dispatch_view 1.7 s (parallelism 4): total 26.5, web.enter 0.2, payload.parse 0.2
+[2026-09-29T08:58:42.169Z] 0323-main-local-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2504.7, restore 2629.8, restore.parse 17.4
+[2026-09-29T08:58:42.992Z] 0324-i1-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2519.3, restore 2607.2, restore.parse 18.9
+[2026-09-29T08:58:43.431Z] 0325-i2-glowcap-resume-native-probe.lifecycle 0.4 s (parallelism 4): new:bind.eval 25.8, new:bind.explain 3.4, new:bind.sort 2.7
+[2026-09-29T08:58:44.236Z] 0326-main-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2568.3, raw.save 33.4, raw.restore 2555.5
+[2026-09-29T08:58:45.035Z] 0327-i1-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2574.3, raw.save 33.5, raw.restore 2552.2
+[2026-09-29T08:58:45.683Z] 0328-i2-glowcap-resume-wasm-probe.lifecycle 0.6 s (parallelism 4): restore:total 2760.6, restore:web.enter 16.2, restore:restore.enter 0.1
+[2026-09-29T08:58:46.447Z] 0329-main-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 14.7
+[2026-09-29T08:58:47.187Z] 0330-i1-ledger-session-native-apply 0.7 s (parallelism 4): apply 14.7
+[2026-09-29T08:58:47.972Z] 0331-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 23.1
+[2026-09-29T08:58:48.818Z] 0332-i1-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 24.8
+[2026-09-29T08:58:49.817Z] 0333-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.9
+[2026-09-29T08:58:50.840Z] 0334-i1-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 57.3
+[2026-09-29T08:58:52.442Z] 0335-main-local-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 1, save 6.5
+[2026-09-29T08:58:54.071Z] 0336-i1-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 1, save 6.7
+[2026-09-29T08:58:55.478Z] 0337-main-local-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.6, web.snapshot 51, web.view 5.1
+[2026-09-29T08:58:56.886Z] 0338-i1-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.6, web.snapshot 51.2, web.view 5.1
+[2026-09-29T08:58:57.186Z] 0339-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1371, restore 1382.1, restore.parse 22.6
+[2026-09-29T08:58:57.475Z] 0340-i1-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1296.4, restore 1367.4, restore.parse 22.5
+[2026-09-29T08:58:58.241Z] 0341-i1-ledger-session-native-bench.dispatch_only 0.8 s (parallelism 4): bench.dispatch_only 16.2
+[2026-09-29T08:58:59.735Z] 0342-i1-ledger-session-native-bench.read 1.5 s (parallelism 4): bench.snapshot_build 23.7, bench.view_build 4.3, web.snapshot 49.5
+[2026-09-29T08:59:00.569Z] 0343-i2-ledger-session-native-probe.dispatch_view 0.8 s (parallelism 4): apply.clone 0.4, apply.rollback 3.5, apply.swap 2.5
+[2026-09-29T08:59:01.633Z] 0344-i2-ledger-session-native-probe.dispatch_outcome 1.0 s (parallelism 4): apply.clone 0.4, apply.rollback 3.7, apply.swap 2.7
+[2026-09-29T08:59:03.090Z] 0345-i2-ledger-session-native-probe.read 1.4 s (parallelism 4): save:exit 0, save:save.build 6.3, save:save.drop 2
+[2026-09-29T08:59:03.271Z] 0346-i2-ledger-session-native-probe.lifecycle 0.2 s (parallelism 4): new:bind.eval 3.5, new:bind.explain 0.4, new:bind.sort 0.2
+[2026-09-29T08:59:03.373Z] 0347-i2-ledger-session-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.033, probe.now 0.032
+[2026-09-29T08:59:04.456Z] 0348-main-local-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.3, js.parse_view 7.1
+[2026-09-29T08:59:05.540Z] 0349-i1-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.2, js.parse_view 7.1
+[2026-09-29T08:59:07.119Z] 0350-main-local-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 65.8, js.parse_outcome 46.5, raw.dispatch_outcome+parse 112.8
+[2026-09-29T08:59:08.640Z] 0351-i1-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 62.9, js.parse_outcome 44.5, raw.dispatch_outcome+parse 107.3
+[2026-09-29T08:59:09.656Z] 0352-main-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.3, abi.decode 0.6
+[2026-09-29T08:59:10.658Z] 0353-i1-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.4, abi.decode 0.6
+[2026-09-29T08:59:11.922Z] 0354-main-local-ledger-session-wasm-abi.dispatch_outcome 1.3 s (parallelism 4): abi.encode_args 0.3, abi.exec 59.2, abi.decode 2.3
+[2026-09-29T08:59:13.160Z] 0355-i1-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 58.5, abi.decode 2.3
+[2026-09-29T08:59:15.489Z] 0356-main-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.3, js.parse_view 8.1, raw.snapshot 69.6
+[2026-09-29T08:59:17.832Z] 0357-i1-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.2, js.parse_view 8, raw.snapshot 70.9
+[2026-09-29T08:59:19.637Z] 0358-main-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.8, abi.view.decode 0.4, abi.snapshot.exec 62.7
+[2026-09-29T08:59:21.497Z] 0359-i1-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.9, abi.view.decode 0.4, abi.snapshot.exec 63.4
+[2026-09-29T08:59:21.917Z] 0360-main-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1392.6, raw.save 46, raw.restore 1494.7
+[2026-09-29T08:59:22.348Z] 0361-i1-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1529.7, raw.save 48.1, raw.restore 1648.1
+[2026-09-29T08:59:23.276Z] 0362-i1-ledger-session-wasm-abi.dispatch_only 0.9 s (parallelism 4): abi.encode_args 0.2, abi.dispatch_only.exec 18.2, abi.dispatch_only 18.6
+[2026-09-29T08:59:25.065Z] 0363-i1-ledger-session-wasm-abi.bench_read 1.8 s (parallelism 4): abi.view_build.exec 4.5, abi.snapshot_build.exec 22.5, abi.view.exec 7.3
+[2026-09-29T08:59:26.311Z] 0364-i2-ledger-session-wasm-probe.dispatch_view 1.2 s (parallelism 4): total 39.4, web.enter 0.4, payload.parse 1
+[2026-09-29T08:59:28.047Z] 0365-i2-ledger-session-wasm-probe.dispatch_outcome 1.7 s (parallelism 4): total 114.3, web.enter 0.4, payload.parse 1.1
+[2026-09-29T08:59:30.730Z] 0366-i2-ledger-session-wasm-probe.read 2.6 s (parallelism 4): view:total 16.4, view:web.enter 0.2, view:view.enter 0.1
+[2026-09-29T08:59:31.049Z] 0367-i2-ledger-session-wasm-probe.lifecycle 0.3 s (parallelism 4): restore:total 1695.6, restore:web.enter 13, restore:restore.enter 0.2
+[2026-09-29T08:59:31.205Z] 0368-i2-ledger-session-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.044, js.performance_now 0.039
+[2026-09-29T08:59:37.469Z] 0369-main-local-trail-rescue-scenarios-native-apply 6.3 s (parallelism 4): apply 47.9
+[2026-09-29T08:59:43.614Z] 0370-i1-trail-rescue-scenarios-native-apply 6.1 s (parallelism 4): apply 47.4
+[2026-09-29T08:59:49.782Z] 0371-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 58.4
+[2026-09-29T08:59:56.101Z] 0372-i1-trail-rescue-scenarios-native-web.dispatch_view 6.3 s (parallelism 4): web.dispatch_view 59.3
+[2026-09-29T09:00:02.872Z] 0373-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.8 s (parallelism 4): web.dispatch_outcome 118.3
+[2026-09-29T09:00:09.672Z] 0374-i1-trail-rescue-scenarios-native-web.dispatch_outcome 6.8 s (parallelism 4): web.dispatch_outcome 118.7
+[2026-09-29T09:00:17.435Z] 0375-main-local-trail-rescue-scenarios-native-read 7.7 s (parallelism 4): clone 10.2, clone.drop 5.5, save 5.3
+[2026-09-29T09:00:25.571Z] 0376-i1-trail-rescue-scenarios-native-read 8.1 s (parallelism 4): clone 10.5, clone.drop 5.6, save 5.4
+[2026-09-29T09:00:32.872Z] 0377-main-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.6, web.snapshot 79, web.view 6.1
+[2026-09-29T09:00:40.160Z] 0378-i1-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.8, web.snapshot 78.8, web.view 6
+[2026-09-29T09:00:40.759Z] 0379-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2922.3, restore 3020.9, restore.parse 23.6
+[2026-09-29T09:00:41.358Z] 0380-i1-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2996.7, restore 3101.9, restore.parse 19.1
+[2026-09-29T09:00:47.780Z] 0381-i1-trail-rescue-scenarios-native-bench.dispatch_only 6.4 s (parallelism 4): bench.dispatch_only 50.7
+[2026-09-29T09:00:55.410Z] 0382-i1-trail-rescue-scenarios-native-bench.read 7.6 s (parallelism 4): bench.snapshot_build 40.1, bench.view_build 2.2, web.snapshot 74.6
+[2026-09-29T09:01:01.565Z] 0383-i2-trail-rescue-scenarios-native-probe.dispatch_view 6.1 s (parallelism 4): apply.clone 0.5, apply.rollback 2.5, apply.swap 2.3
+[2026-09-29T09:01:08.267Z] 0384-i2-trail-rescue-scenarios-native-probe.dispatch_outcome 6.6 s (parallelism 4): apply.clone 0.5, apply.rollback 2.6, apply.swap 2.4
+[2026-09-29T09:01:15.647Z] 0385-i2-trail-rescue-scenarios-native-probe.read 7.3 s (parallelism 4): save:exit 0, save:save.build 5.6, save:save.drop 1.8
+[2026-09-29T09:01:15.946Z] 0386-i2-trail-rescue-scenarios-native-probe.lifecycle 0.3 s (parallelism 4): new:bind.eval 14.8, new:bind.explain 8.9, new:bind.sort 8.2
+[2026-09-29T09:01:16.014Z] 0387-i2-trail-rescue-scenarios-native-probe.overhead 0.1 s (parallelism 4): probe.mark 0.032, probe.now 0.032
+[2026-09-29T09:01:22.588Z] 0388-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.6, js.parse_view 25.4
+[2026-09-29T09:01:29.207Z] 0389-i1-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 71.9, js.parse_view 25.5
+[2026-09-29T09:01:37.142Z] 0390-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 140.1, js.parse_outcome 74.7, raw.dispatch_outcome+parse 217.6
+[2026-09-29T09:01:44.989Z] 0391-i1-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.8 s (parallelism 4): raw.dispatch_outcome 143.1, js.parse_outcome 75.5, raw.dispatch_outcome+parse 221.2
+[2026-09-29T09:01:51.297Z] 0392-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.3 s (parallelism 4): abi.encode_args 0.4, abi.exec 70, abi.decode 1.2
+[2026-09-29T09:01:57.340Z] 0393-i1-trail-rescue-scenarios-wasm-abi.dispatch_view 6.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 67.2, abi.decode 1.2
+[2026-09-29T09:02:04.369Z] 0394-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 131.1, abi.decode 3.1
+[2026-09-29T09:02:11.451Z] 0395-i1-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 130.1, abi.decode 3.2
+[2026-09-29T09:02:20.649Z] 0396-main-local-trail-rescue-scenarios-wasm-read 9.2 s (parallelism 4): raw.view 10.4, js.parse_view 25.9, raw.snapshot 108.3
+[2026-09-29T09:02:29.733Z] 0397-i1-trail-rescue-scenarios-wasm-read 9.1 s (parallelism 4): raw.view 9.9, js.parse_view 26, raw.snapshot 105
+[2026-09-29T09:02:37.327Z] 0398-main-local-trail-rescue-scenarios-wasm-abi.read 7.6 s (parallelism 4): abi.view.exec 8.8, abi.view.decode 0.8, abi.snapshot.exec 95.4
+[2026-09-29T09:02:45.012Z] 0399-i1-trail-rescue-scenarios-wasm-abi.read 7.7 s (parallelism 4): abi.view.exec 8.9, abi.view.decode 0.8, abi.snapshot.exec 96.5
+[2026-09-29T09:02:45.629Z] 0400-main-local-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2723.3, raw.save 35.6, raw.restore 2757.5
+[2026-09-29T09:02:46.240Z] 0401-i1-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2961.6, raw.save 37.2, raw.restore 2970.7
+[2026-09-29T09:02:52.675Z] 0402-i1-trail-rescue-scenarios-wasm-abi.dispatch_only 6.4 s (parallelism 4): abi.encode_args 0.3, abi.dispatch_only.exec 56.9, abi.dispatch_only 57.1
+[2026-09-29T09:03:00.781Z] 0403-i1-trail-rescue-scenarios-wasm-abi.bench_read 8.1 s (parallelism 4): abi.view_build.exec 2.4, abi.snapshot_build.exec 41.2, abi.view.exec 12.3
+[2026-09-29T09:03:07.547Z] 0404-i2-trail-rescue-scenarios-wasm-probe.dispatch_view 6.7 s (parallelism 4): total 102.4, web.enter 0.5, payload.parse 1.2
+[2026-09-29T09:03:15.566Z] 0405-i2-trail-rescue-scenarios-wasm-probe.dispatch_outcome 7.9 s (parallelism 4): total 226.7, web.enter 0.7, payload.parse 1.5
+[2026-09-29T09:03:25.182Z] 0406-i2-trail-rescue-scenarios-wasm-probe.read 9.5 s (parallelism 4): view:total 36.9, view:web.enter 0.3, view:view.enter 0.1
+[2026-09-29T09:03:25.593Z] 0407-i2-trail-rescue-scenarios-wasm-probe.lifecycle 0.4 s (parallelism 4): restore:total 3128.9, restore:web.enter 12.6, restore:restore.enter 0.2
+[2026-09-29T09:03:25.759Z] 0408-i2-trail-rescue-scenarios-wasm-probe.overhead 0.2 s (parallelism 4): probe.mark 0.044, js.performance_now 0.035
+[2026-09-29T09:03:25.762Z] load during: {"what":"typeperf every 5 s for the whole run","samples":259,"counters":{"total":{"samples":259,"mean":9.1,"p95":11.1,"max":12.8},"processor 10":{"samples":259,"mean":75.9,"p95":99.1,"max":99.7},"processor 11":{"samples":259,"mean":24.4,"p95":52.2,"max":76.6},"processor 12":{"samples":259,"mean":20.1,"p95":44.5,"max":68.2},"processor 13":{"samples":259,"mean":3.4,"p95":12.8,"max":29.8}},"totalAbove10Percent":44,"totalAbove25Percent":0,"pinnedSumAbove150Percent":8}
+[2026-09-29T09:03:33.207Z] load after: {"totalCpuPercent":[14,17,0],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.906},{"name":"claude","pid":104712,"cpuSeconds":0.859},{"name":"powershell","pid":94012,"cpuSeconds":0.688},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.234},{"name":"ChatGPT","pid":87544,"cpuSeconds":0.172},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.172}]}
+[2026-09-29T09:03:33.254Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\audit\instrumented-rerun\results.json and summary.md; 0 failure(s), 0 skipped, 0 correctness finding(s)

@@ -1,6 +1,6 @@
-# Caveat performance baseline: 2026-09-29T06-21-17-307-baseline
+# Caveat performance baseline: 2026-09-29T09-11-55-973-baseline
 
-Written by `experiments/performance-0.1/run.mjs` from results.json in this directory. Command: `node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF --out=C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\method\alone-2`
+Written by `experiments/performance-0.1/run.mjs` from results.json in this directory. Command: `node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/prPERF --monitor-interval=1 --out=C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/audit/method/alone-2`
 
 ## Method
 
@@ -14,7 +14,7 @@ Written by `experiments/performance-0.1/run.mjs` from results.json in this direc
 
 | Target | Kind | Revision | Reactive WebAssembly sha256 | Glue sha256 | Kit session.mjs sha256 | Native benchmark |
 | --- | --- | --- | --- | --- | --- | --- |
-| main-local | tree | v0.1.0-rc.4-5-gdbfd2e3-dirty (dbfd2e3), tracked changes | `e35944503272` (2052856 B, reused) | `9066c9a19dcb` | `b171d128027a` | - |
+| main-local | tree | v0.1.0-rc.4-7-gd9c9358-dirty (d9c9358), tracked changes | `e35944503272` (2052856 B, reused) | `9066c9a19dcb` | `b171d128027a` | - |
 
 ## Environment
 
@@ -26,9 +26,9 @@ Written by `experiments/performance-0.1/run.mjs` from results.json in this direc
 - Node v24.11.1, V8 13.6.233.10-node.28, npm 11.12.1
 - Rust: rustc 1.98.1 (48a229cea 2026-09-01) (LLVM version: 22.1.8); cargo 1.98.1 (797e8a9bc 2026-08-05); 1.98.1-x86_64-pc-windows-msvc (overridden by 'C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\rust-toolchain.toml')
 - wasm-bindgen 0.2.104; wasm-opt not installed (the build does not use it)
-- Load before: total CPU 0/9/5%; busiest over the window: claude 1.016s, powershell 0.641s, claude 0.406s, ChatGPT 0.266s, ChatGPT 0.188s, Reallusion Hub 0.172s
-- Load after: total CPU 0/0/12%; busiest over the window: claude 1.391s, powershell 0.672s, claude 0.375s, ChatGPT 0.172s, IntelGraphicsSoftware 0.109s, ChatGPT 0.078s
-- Load during: typeperf every 5 s for the whole run, 0 samples: total mean 0% p95 null% max null%; processor 10 mean 0% p95 null% max null%; processor 11 mean 0% p95 null% max null%; processor 12 mean 0% p95 null% max null%; processor 13 mean 0% p95 null% max null%; total above 10% in 0 and above 25% in 0 samples; pinned processors summing above 150% in 0
+- Load before: total CPU 5/5/1%; busiest over the window: claude 0.953s, powershell 0.562s, claude 0.344s, ChatGPT 0.172s, IntelGraphicsSoftware 0.109s, claude 0.109s
+- Load after: total CPU 6/2/0%; busiest over the window: claude 1.406s, powershell 0.656s, claude 0.469s, ChatGPT 0.203s, IntelGraphicsSoftware 0.141s, ChatGPT 0.094s
+- Load during: typeperf every 1 s for the whole run, 3 samples: total mean 10.6% p95 10.6% max 11.8%; processor 10 mean 70% p95 62.7% max 90.7%; processor 11 mean 35% p95 23.9% max 59.8%; processor 12 mean 29.8% p95 27.5% max 36.3%; processor 13 mean 7.1% p95 7.5% max 10.2%; processor 10 MHz mean 4001.9 MHz p95 3959.9 MHz max 4105.2 MHz; processor 11 MHz mean 4108 MHz p95 4111.5 MHz max 4159.6 MHz; processor 12 MHz mean 3769.1 MHz p95 3791.4 MHz max 3881.1 MHz; processor 13 MHz mean 4423 MHz p95 4429.4 MHz max 4444.6 MHz; total above 10% in 2 and above 25% in 0 samples; pinned processors summing above 150% in 1
 
 ## Published reference
 
@@ -49,8 +49,8 @@ Medians over runs of each run's median on the steady idle ticks (events 1300–9
 
 | Piece | main-local |
 | --- | --- |
-| Published method: adapter dispatch + view | 46.1 |
-| Adapter dispatch (stringify, WebAssembly dispatch_view, JSON.parse) | 43.5 |
+| Published method: adapter dispatch + view | 43.7 |
+| Adapter dispatch (stringify, WebAssembly dispatch_view, JSON.parse) | 45.5 |
 | Adapter view() (JavaScript reshaping only) | 2.3 |
 | JSON.stringify(payload) | - |
 | wasm-bindgen dispatch_view call, returning the view text | - |
@@ -81,17 +81,17 @@ The Glowcap replay program and the exact event stream behind the published 51.6 
 
 | Engine | Mode | Operation | main-local |
 | --- | --- | --- | --- |
-| wasm | published-method | adapter.dispatch+view | 46.3 · p95 57.9 |
-| wasm | adapter | adapter.dispatch | 43.6 · p95 49.8 |
-| wasm | adapter | adapter.view | 2.3 · p95 3.6 |
-| wasm | adapter | adapter.dispatch+view | 45.9 · p95 52.8 |
+| wasm | published-method | adapter.dispatch+view | 44.0 · p95 58.2 |
+| wasm | adapter | adapter.dispatch | 45.5 · p95 52.7 |
+| wasm | adapter | adapter.view | 2.3 · p95 3.5 |
+| wasm | adapter | adapter.dispatch+view | 47.8 · p95 55.7 |
 
 Segment medians (events observations 0–2, decay 3–602, transition 603–1299, steady 1300–9999):
 
 | Engine | Mode | Operation | Target | observations | decay | transition | steady |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| wasm | published-method | adapter.dispatch+view | main-local | 167.1 | 50.7 | 47.8 | 46.1 |
-| wasm | adapter | adapter.dispatch | main-local | 166.3 | 45.8 | 42.6 | 43.5 |
-| wasm | adapter | adapter.view | main-local | 33.4 | 2.6 | 2.3 | 2.3 |
-| wasm | adapter | adapter.dispatch+view | main-local | 223.6 | 48.6 | 45.1 | 45.8 |
+| wasm | published-method | adapter.dispatch+view | main-local | 180.8 | 55.0 | 48.0 | 43.7 |
+| wasm | adapter | adapter.dispatch | main-local | 164.7 | 47.0 | 44.0 | 45.5 |
+| wasm | adapter | adapter.view | main-local | 46.0 | 2.8 | 2.4 | 2.3 |
+| wasm | adapter | adapter.dispatch+view | main-local | 189.8 | 49.9 | 46.6 | 47.8 |
 

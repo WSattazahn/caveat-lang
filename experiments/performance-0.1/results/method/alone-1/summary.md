@@ -1,6 +1,6 @@
-# Caveat performance baseline: 2026-09-29T06-20-31-026-baseline
+# Caveat performance baseline: 2026-09-29T09-11-08-942-baseline
 
-Written by `experiments/performance-0.1/run.mjs` from results.json in this directory. Command: `node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF --out=C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\method\alone-1`
+Written by `experiments/performance-0.1/run.mjs` from results.json in this directory. Command: `node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/prPERF --monitor-interval=1 --out=C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/audit/method/alone-1`
 
 ## Method
 
@@ -14,7 +14,7 @@ Written by `experiments/performance-0.1/run.mjs` from results.json in this direc
 
 | Target | Kind | Revision | Reactive WebAssembly sha256 | Glue sha256 | Kit session.mjs sha256 | Native benchmark |
 | --- | --- | --- | --- | --- | --- | --- |
-| main-local | tree | v0.1.0-rc.4-5-gdbfd2e3-dirty (dbfd2e3), tracked changes | `e35944503272` (2052856 B, reused) | `9066c9a19dcb` | `b171d128027a` | - |
+| main-local | tree | v0.1.0-rc.4-7-gd9c9358-dirty (d9c9358), tracked changes | `e35944503272` (2052856 B, reused) | `9066c9a19dcb` | `b171d128027a` | - |
 
 ## Environment
 
@@ -26,9 +26,9 @@ Written by `experiments/performance-0.1/run.mjs` from results.json in this direc
 - Node v24.11.1, V8 13.6.233.10-node.28, npm 11.12.1
 - Rust: rustc 1.98.1 (48a229cea 2026-09-01) (LLVM version: 22.1.8); cargo 1.98.1 (797e8a9bc 2026-08-05); 1.98.1-x86_64-pc-windows-msvc (overridden by 'C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\rust-toolchain.toml')
 - wasm-bindgen 0.2.104; wasm-opt not installed (the build does not use it)
-- Load before: total CPU 5/0/1%; busiest over the window: claude 1.25s, powershell 0.578s, claude 0.531s, ChatGPT 0.266s, IntelGraphicsSoftware 0.125s, claude 0.109s
-- Load after: total CPU 0/1/7%; busiest over the window: claude 1.359s, powershell 0.656s, claude 0.484s, ChatGPT 0.188s, claude 0.141s, IntelGraphicsSoftware 0.125s
-- Load during: typeperf every 5 s for the whole run, 0 samples: total mean 0% p95 null% max null%; processor 10 mean 0% p95 null% max null%; processor 11 mean 0% p95 null% max null%; processor 12 mean 0% p95 null% max null%; processor 13 mean 0% p95 null% max null%; total above 10% in 0 and above 25% in 0 samples; pinned processors summing above 150% in 0
+- Load before: total CPU 5/0/0%; busiest over the window: claude 1.359s, powershell 0.641s, claude 0.453s, ChatGPT 0.172s, ChatGPT 0.125s, IntelGraphicsSoftware 0.125s
+- Load after: total CPU 2/5/4%; busiest over the window: claude 1.672s, powershell 1.188s, powershell 1s, claude 0.328s, ChatGPT 0.234s, IntelGraphicsSoftware 0.141s
+- Load during: typeperf every 1 s for the whole run, 3 samples: total mean 9.5% p95 8.6% max 12.3%; processor 10 mean 17.6% p95 14.1% max 25.2%; processor 11 mean 15.5% p95 14.3% max 18.1%; processor 12 mean 16.1% p95 12.6% max 23.7%; processor 13 mean 98.4% p95 98.4% max 100%; processor 10 MHz mean 4187.2 MHz p95 4122.6 MHz max 4341.3 MHz; processor 11 MHz mean 3989 MHz p95 4003.5 MHz max 4122.1 MHz; processor 12 MHz mean 4193.2 MHz p95 4234 MHz max 4246.1 MHz; processor 13 MHz mean 3783.6 MHz p95 3760.1 MHz max 3847.7 MHz; total above 10% in 1 and above 25% in 0 samples; pinned processors summing above 150% in 1
 
 ## Published reference
 
@@ -49,8 +49,8 @@ Medians over runs of each run's median on the steady idle ticks (events 1300–9
 
 | Piece | main-local |
 | --- | --- |
-| Published method: adapter dispatch + view | 46.9 |
-| Adapter dispatch (stringify, WebAssembly dispatch_view, JSON.parse) | 43.5 |
+| Published method: adapter dispatch + view | 47.2 |
+| Adapter dispatch (stringify, WebAssembly dispatch_view, JSON.parse) | 43.7 |
 | Adapter view() (JavaScript reshaping only) | 2.2 |
 | JSON.stringify(payload) | - |
 | wasm-bindgen dispatch_view call, returning the view text | - |
@@ -81,17 +81,17 @@ The Glowcap replay program and the exact event stream behind the published 51.6 
 
 | Engine | Mode | Operation | main-local |
 | --- | --- | --- | --- |
-| wasm | published-method | adapter.dispatch+view | 47.0 · p95 56.4 |
-| wasm | adapter | adapter.dispatch | 43.6 · p95 48.9 |
+| wasm | published-method | adapter.dispatch+view | 47.4 · p95 60.5 |
+| wasm | adapter | adapter.dispatch | 43.7 · p95 50.8 |
 | wasm | adapter | adapter.view | 2.2 · p95 3.4 |
-| wasm | adapter | adapter.dispatch+view | 45.9 · p95 51.7 |
+| wasm | adapter | adapter.dispatch+view | 46.0 · p95 53.8 |
 
 Segment medians (events observations 0–2, decay 3–602, transition 603–1299, steady 1300–9999):
 
 | Engine | Mode | Operation | Target | observations | decay | transition | steady |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| wasm | published-method | adapter.dispatch+view | main-local | 163.5 | 51.5 | 46.9 | 46.9 |
-| wasm | adapter | adapter.dispatch | main-local | 151.9 | 46.2 | 43.5 | 43.5 |
-| wasm | adapter | adapter.view | main-local | 31.8 | 2.7 | 2.3 | 2.2 |
-| wasm | adapter | adapter.dispatch+view | main-local | 181.4 | 49.1 | 45.9 | 45.8 |
+| wasm | published-method | adapter.dispatch+view | main-local | 177.9 | 53.8 | 48.3 | 47.2 |
+| wasm | adapter | adapter.dispatch | main-local | 173.0 | 45.9 | 43.5 | 43.7 |
+| wasm | adapter | adapter.view | main-local | 29.9 | 2.5 | 2.3 | 2.2 |
+| wasm | adapter | adapter.dispatch+view | main-local | 207.8 | 48.5 | 45.8 | 46.0 |
 
