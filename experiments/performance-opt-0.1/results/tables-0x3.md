@@ -1,6 +1,8 @@
 Run 2026-09-29T20-00-02-459-view-path; targets opt (d5938cc, reactive WebAssembly 0a19e4b85886), main (768275b, reactive WebAssembly e35944503272); mask 0x3, priority high; total CPU over the kept timed jobs mean 5.4%, highest repeat p95 10.7%, max 12.4%; 9 attempt(s) discarded by the job guard and run again.
 
-### Headline: the paths side by side (DIRECT, µs) and the saving (paired by repeat, µs)
+### Headline, accepted events: the paths side by side (DIRECT, µs) and the saving (paired by repeat, µs)
+
+Refused events are not in this table, nor in any saving, ratio or range about the accepted events: they are in "Refused events" below.
 
 | Event | existing: kit `dispatch()` + `view()` | new: kit `dispatchView()` | existing: raw `dispatch_view` + `JSON.parse` | new: raw `dispatch_view_outcome` + `JSON.parse` | saving: kit `dispatch()` + `view()` − `dispatchView()` | old ÷ new | gap: `dispatchView()` − raw `dispatch_view` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -11,10 +13,8 @@ Run 2026-09-29T20-00-02-459-view-path; targets opt (d5938cc, reactive WebAssembl
 | Trail Rescue reopen | 258.8 [256.2–259.3] · p95 297.1 | 132.4 [132.3–132.6] · p95 153.7 | 128.6 [127.3–129.5] · p95 151.1 | 131.3 [130.1–131.9] · p95 153.3 | 126.2 [123.9–126.9] | 1.95× [1.94–1.96] | +3.8 [+3.1 to +5.0] |
 | Trail Rescue qualify | 238.7 [238.5–239.7] · p95 290.2 | 111.9 [111.0–112.7] · p95 149.9 | 107.3 [107.2–107.5] · p95 143.4 | 110.4 [110.2–111.4] · p95 148.0 | 127.7 [125.8–127.8] | 2.14× [2.12–2.15] | +4.4 [+3.8 to +5.4] |
 | Ledger evidence | 101.4 [101.2–102.4] · p95 122.7 | 30.6 [30.5–30.7] · p95 38.0 | 30.2 [30.0–30.4] · p95 37.0 | 29.8 [29.8–30.1] · p95 36.6 | 70.7 [70.7–71.8] | 3.32× [3.30–3.35] | +0.5 [+0.1 to +0.6] |
-| Trail Rescue refused | 32.0 [31.6–32.2] · p95 43.8 | 7.4 [7.3–7.4] · p95 11.3 | throws: the call 6.0 [5.9–6.1] · p95 10.6 | 6.5 [6.4–6.6] · p95 9.8 | 24.6 [24.3–24.8] | 4.33× [4.32–4.35] | - |
-| Ledger refused | 18.5 [18.5–18.5] · p95 23.0 | 6.0 [6.0–6.1] · p95 7.2 | throws: the call 5.6 [5.6–5.6] · p95 7.0 | 5.5 [5.5–5.6] · p95 6.9 | 12.5 [12.4–12.5] | 3.08× [3.03–3.08] | - |
 
-### Per event, on each path (DIRECT, µs)
+### Per accepted event, on each path (DIRECT, µs)
 
 | Event | samples per run | existing: kit `dispatch()` + `view()` | new: kit `dispatchView()` | existing: raw `dispatch_view` + `JSON.parse` | new: raw `dispatch_view_outcome` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- |
@@ -26,7 +26,7 @@ Run 2026-09-29T20-00-02-459-view-path; targets opt (d5938cc, reactive WebAssembl
 | Trail Rescue qualify | 360/360/360 | 238.7 [238.5–239.7] · p95 290.2 | 111.9 [111.0–112.7] · p95 149.9 | 107.3 [107.2–107.5] · p95 143.4 | 110.4 [110.2–111.4] · p95 148.0 |
 | Ledger evidence | 4500/4500/4500 | 101.4 [101.2–102.4] · p95 122.7 | 30.6 [30.5–30.7] · p95 38.0 | 30.2 [30.0–30.4] · p95 37.0 | 29.8 [29.8–30.1] · p95 36.6 |
 
-### The saving (paired by repeat, µs)
+### The saving, accepted events (paired by repeat, µs)
 
 | Event | kit `dispatch()` + `view()` − `dispatchView()` | share of the old path | old ÷ new | `dispatchView()` − raw `dispatch_view` + `JSON.parse` | `dispatchView()` − raw `dispatch_view_outcome` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- |
@@ -39,6 +39,8 @@ Run 2026-09-29T20-00-02-459-view-path; targets opt (d5938cc, reactive WebAssembl
 | Ledger evidence | 70.7 [70.7–71.8] | 69.9% [69.7–70.1] | 3.32× [3.30–3.35] | +0.5 [+0.1 to +0.6] | +0.7 [+0.6 to +0.8] |
 
 ### Refused events (DIRECT, µs; savings paired by repeat)
+
+Not headline figures. A refusal leaves the view as it was, so a host that already holds the view need not call `view()` after one: against kit `dispatch()` alone, `dispatchView()` saves only 1.2–1.5 µs, and its saving of 12.5–24.6 µs against kit `dispatch()` + `view()` assumes the host would also have called `view()`. Raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so those two paths are not equivalent contracts; its cell is the throwing call alone.
 
 | Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

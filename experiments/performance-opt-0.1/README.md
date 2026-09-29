@@ -50,10 +50,12 @@ name `smoke`; the baseline's suites behave as before.
 - `report.mjs` renders the tables from a `view-path` run and a size report:
   each path's DIRECT per-event figures for the owner's event classes (Glowcap
   idle and state-changing ticks; Trail Rescue evidence, commit, reopen and
-  qualify; ledger evidence; refusals), the saving paired by repeat, the
-  wrapper's pieces, the existing paths on main against the branch, the load
-  per repeat and per timed job with every attempt the job guard discarded,
-  the sessions given with `--replicate` side by side, and the sizes.
+  qualify; ledger evidence) with the saving paired by repeat, then the
+  refusals in their own table, after the accepted events and out of the
+  headline; the wrapper's pieces, the existing paths on main against the
+  branch, the load per repeat and per timed job with every attempt the job
+  guard discarded, the sessions given with `--replicate` side by side
+  (accepted and refused events apart), and the sizes.
 
 ## Running it
 

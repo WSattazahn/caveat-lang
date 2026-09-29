@@ -1,5 +1,26 @@
 # Performance Optimization 0.1: the view path, measured
 
+**For accepted events where a host wants the resulting view,
+`dispatchView()` removes 82–144 µs per event from the existing kit
+`dispatch()` + `view()` path in the primary session on processors 10–13
+(71–144 µs across all three sessions), while landing within −0.1 to +1.4 µs
+of the raw runtime `dispatch_view` + `JSON.parse` path on Glowcap and the
+ledger and 1.8–6.5 µs (2–5%) above it on Trail Rescue** (the gaps across all
+three sessions; every figure MEASURED, paired by repeat; section 3).
+
+This removes the snapshot reporting overhead that
+[Performance Baseline 0.1](../performance-0.1/RESULTS.md) identified as the
+largest measured cost a host wanting the view does not use: `dispatchView()`
+returns the outcome with the view and never builds the snapshot. Only that
+one host path is faster. Rule execution, bindings and provenance are
+untouched, and the existing paths are unchanged within measurement noise:
+kit `dispatch()` + `view()` and raw `dispatch_view` + `JSON.parse` differ
+between main and the branch by −0.8% to +1.3% in all three sessions. The
+size cost is small: the reactive WebAssembly the kit bundles grows by 4,378
+bytes (+0.21%) and the kit tarball by 2,606 bytes (section 5). Refused events
+are not headline figures; they are reported apart, after the accepted events
+(section 3.1).
+
 What `session.dispatchView()` costs against the two paths a host that wants
 the view had before, on the same machine, builds and events, in the
 [Performance Baseline 0.1](../performance-0.1/RESULTS.md) harness and
@@ -24,12 +45,15 @@ ended, and run again in its place if it overlapped a burst of background load
 (section 2); 32 such attempts were discarded across the three sessions, and no
 figure here comes from one.
 
-## Headline
+## Headline: accepted events
 
-Per event class, the existing kit path (`dispatch()` then `view()`), the new
-kit path (`dispatchView()`), the web pages' raw path (`dispatch_view` then
-`JSON.parse`) and the new export's raw path (`dispatch_view_outcome` then
-`JSON.parse`), and the saving. Primary session, processors 10–13, 5 repeats.
+Per accepted event class, the existing kit path (`dispatch()` then `view()`),
+the new kit path (`dispatchView()`), the web pages' raw path (`dispatch_view`
+then `JSON.parse`) and the new export's raw path (`dispatch_view_outcome`
+then `JSON.parse`), and the saving. Primary session, processors 10–13, 5
+repeats. Refused events are not in this table, nor in any saving, ratio or
+range in this section: they have their own table in section 3.1, after the
+accepted events' results.
 
 | Event | existing: kit `dispatch()` + `view()` | new: kit `dispatchView()` | existing: raw `dispatch_view` + `JSON.parse` | new: raw `dispatch_view_outcome` + `JSON.parse` | saving: kit `dispatch()` + `view()` − `dispatchView()` | old ÷ new | gap: `dispatchView()` − raw `dispatch_view` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -40,8 +64,6 @@ kit path (`dispatchView()`), the web pages' raw path (`dispatch_view` then
 | Trail Rescue reopen | 293.4 [291.5–300.5] · p95 342.2 | 152.6 [150.0–156.4] · p95 180.7 | 150.1 [147.0–151.3] · p95 178.8 | 151.6 [148.1–153.5] · p95 179.6 | 141.8 [140.8–147.3] | 1.94× [1.92–1.96] | +3.0 [-0.7 to +6.3] |
 | Trail Rescue qualify | 270.3 [267.9–280.8] · p95 329.6 | 129.4 [126.5–133.0] · p95 172.3 | 126.7 [123.8–128.4] · p95 168.5 | 128.0 [125.9–131.0] · p95 174.1 | 143.6 [140.8–150.1] | 2.12× [2.09–2.16] | +2.8 [-1.7 to +6.3] |
 | Ledger evidence | 118.4 [117.9–121.4] · p95 142.7 | 36.2 [35.0–36.8] · p95 44.2 | 35.2 [34.7–36.4] · p95 43.1 | 34.6 [34.1–35.2] · p95 42.0 | 82.1 [81.5–85.4] | 3.28× [3.21–3.44] | +0.7 [-0.2 to +1.8] |
-| Trail Rescue refused | 36.2 [35.8–37.8] · p95 48.6 | 8.3 [8.1–8.6] · p95 12.7 | throws: the call 6.9 [6.7–7.0] · p95 12.2 | 7.4 [7.3–7.4] · p95 11.5 | 28.0 [27.5–29.2] | 4.42× [4.31–4.46] | - |
-| Ledger refused | 21.5 [21.4–22.2] · p95 26.4 | 7.0 [6.9–7.3] · p95 8.4 | throws: the call 6.5 [6.4–6.7] · p95 8.0 | 6.4 [6.3–6.6] · p95 8.0 | 14.5 [14.2–15.2] | 3.07× [2.94–3.17] | - |
 
 - **The saving is 82–144 µs per accepted event** on processors 10–13
   (MEASURED, paired by repeat): the old path takes 1.94× (Trail Rescue
@@ -62,13 +84,8 @@ kit path (`dispatchView()`), the web pages' raw path (`dispatch_view` then
   on Trail Rescue it differs by −0.4 to +2.7 µs (+0.8 to +2.7 µs on
   processors 0–1, where the ranges are tightest), most on reopen and qualify;
   and 1.0–5.3 µs on Trail Rescue is not attributed.
-- **A refused event** costs 8.3 µs (Trail Rescue) and 7.0 µs (ledger) through
-  `dispatchView()`, against 36.2 and 21.5 µs for `dispatch()` + `view()`, and
-  10.0 and 8.4 µs for `dispatch()` alone. A refusal leaves the view as it was,
-  so a host that already holds it saves 1.4–1.7 µs against `dispatch()`
-  alone, and 14–28 µs against `dispatch()` + `view()`.
-- **The existing paths are unchanged.** Paired by repeat, main against the
-  branch, kit `dispatch()` + `view()` and raw `dispatch_view` + `JSON.parse`
+- **The existing paths are unchanged within measurement noise.** Paired by
+  repeat, main against the branch, kit `dispatch()` + `view()` and raw `dispatch_view` + `JSON.parse`
   differ by −0.8% to +1.3% (medians) in all three sessions, within their
   run ranges (section 3). Every mode on both builds ended every workload in
   the same saved state (section 6).
@@ -190,7 +207,7 @@ rerun
 
 ### 3.1 Processors 10–13, primary session
 
-Per event, on each path (DIRECT, µs):
+Per accepted event, on each path (DIRECT, µs):
 
 | Event | samples per run | existing: kit `dispatch()` + `view()` | new: kit `dispatchView()` | existing: raw `dispatch_view` + `JSON.parse` | new: raw `dispatch_view_outcome` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- |
@@ -202,7 +219,8 @@ Per event, on each path (DIRECT, µs):
 | Trail Rescue qualify | 360/360/360/360/360 | 270.3 [267.9–280.8] · p95 329.6 | 129.4 [126.5–133.0] · p95 172.3 | 126.7 [123.8–128.4] · p95 168.5 | 128.0 [125.9–131.0] · p95 174.1 |
 | Ledger evidence | 4500/4500/4500/4500/4500 | 118.4 [117.9–121.4] · p95 142.7 | 36.2 [35.0–36.8] · p95 44.2 | 35.2 [34.7–36.4] · p95 43.1 | 34.6 [34.1–35.2] · p95 42.0 |
 
-The saving and the gap to the raw paths (MEASURED, paired by repeat, µs):
+The saving and the gap to the raw paths, accepted events (MEASURED, paired
+by repeat, µs):
 
 | Event | kit `dispatch()` + `view()` − `dispatchView()` | share of the old path | old ÷ new | `dispatchView()` − raw `dispatch_view` + `JSON.parse` | `dispatchView()` − raw `dispatch_view_outcome` + `JSON.parse` |
 | --- | --- | --- | --- | --- | --- |
@@ -214,8 +232,20 @@ The saving and the gap to the raw paths (MEASURED, paired by repeat, µs):
 | Trail Rescue qualify | 143.6 [140.8–150.1] | 52.8% [52.1–53.6] | 2.12× [2.09–2.16] | +2.8 [-1.7 to +6.3] | +1.9 [-4.3 to +3.1] |
 | Ledger evidence | 82.1 [81.5–85.4] | 69.5% [68.9–70.9] | 3.28× [3.21–3.44] | +0.7 [-0.2 to +1.8] | +1.3 [-0.2 to +2.7] |
 
-Refused events (DIRECT, µs; savings paired by repeat). A refusal leaves the
-view as it was, so both savings are shown:
+Refused events (DIRECT, µs; savings paired by repeat), apart from the
+accepted events and not headline figures: no saving, ratio or range above
+includes them. A refused event costs 8.3 µs (Trail Rescue) and 7.0 µs
+(ledger) through `dispatchView()`. A refusal leaves the view as it was, so a
+host that already holds the view need not call `view()` after one, and both
+savings are shown:
+
+- Against kit `dispatch()` alone, `dispatchView()` saves only 1.4–1.7 µs
+  (1.2–1.6 µs in the other two sessions, section 3.2).
+- The 14–28 µs saving against kit `dispatch()` + `view()` assumes the host
+  would also have called `view()`.
+- Raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the
+  structured refusal, so those paths are not equivalent contracts. Its column
+  times the throwing call alone, and there is no gap to it.
 
 | Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -237,9 +267,10 @@ the change paired by repeat):
 
 ### 3.2 Every session
 
-In each session: the saving (kit `dispatch()` + `view()` − `dispatchView()`),
-the gap (`dispatchView()` − raw `dispatch_view` + `JSON.parse`), both
-MEASURED and paired by repeat, and `dispatchView()` itself (DIRECT median), µs:
+In each session, for the accepted events: the saving (kit `dispatch()` +
+`view()` − `dispatchView()`), the gap (`dispatchView()` − raw `dispatch_view` +
+`JSON.parse`), both MEASURED and paired by repeat, and `dispatchView()` itself
+(DIRECT median), µs:
 
 | Event | 0x3C00: saving | 0x3C00: gap to raw | 0x3C00: `dispatchView()` | 0x3C00-replicate: saving | 0x3C00-replicate: gap to raw | 0x3C00-replicate: `dispatchView()` | 0x3: saving | 0x3: gap to raw | 0x3: `dispatchView()` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -250,15 +281,26 @@ MEASURED and paired by repeat, and `dispatchView()` itself (DIRECT median), µs:
 | Trail Rescue reopen | 141.8 [140.8–147.3] | +3.0 [-0.7 to +6.3] | 152.6 [150.0–156.4] | 142.4 [135.9–143.9] | +5.0 [+2.3 to +9.4] | 154.5 [149.7–155.4] | 126.2 [123.9–126.9] | +3.8 [+3.1 to +5.0] | 132.4 [132.3–132.6] |
 | Trail Rescue qualify | 143.6 [140.8–150.1] | +2.8 [-1.7 to +6.3] | 129.4 [126.5–133.0] | 140.9 [134.1–144.9] | +6.5 [+1.6 to +11.5] | 131.7 [126.5–133.8] | 127.7 [125.8–127.8] | +4.4 [+3.8 to +5.4] | 111.9 [111.0–112.7] |
 | Ledger evidence | 82.1 [81.5–85.4] | +0.7 [-0.2 to +1.8] | 36.2 [35.0–36.8] | 81.3 [79.2–82.7] | +0.1 [-1.1 to +1.0] | 35.6 [34.9–35.9] | 70.7 [70.7–71.8] | +0.5 [+0.1 to +0.6] | 30.6 [30.5–30.7] |
-| Trail Rescue refused | 28.0 [27.5–29.2] | - | 8.3 [8.1–8.6] | 28.4 [27.6–28.5] | - | 8.4 [8.3–8.6] | 24.6 [24.3–24.8] | - | 7.4 [7.3–7.4] |
-| Ledger refused | 14.5 [14.2–15.2] | - | 7.0 [6.9–7.3] | 14.2 [14.0–14.4] | - | 7.0 [6.8–7.1] | 12.5 [12.4–12.5] | - | 6.0 [6.0–6.1] |
+
+Refused events in each session, apart and not headline figures: the saving
+against kit `dispatch()` + `view()` (which assumes the host would also have
+called `view()`) and against kit `dispatch()` alone, both paired by repeat,
+and `dispatchView()` (DIRECT median), µs. Raw `dispatch_view` throws on a
+refusal, where `dispatchView()` returns the structured refusal, so there is
+no gap to it:
+
+| Event | 0x3C00: saving against `dispatch()` + `view()` | 0x3C00: saving against `dispatch()` alone | 0x3C00: `dispatchView()` | 0x3C00-replicate: saving against `dispatch()` + `view()` | 0x3C00-replicate: saving against `dispatch()` alone | 0x3C00-replicate: `dispatchView()` | 0x3: saving against `dispatch()` + `view()` | 0x3: saving against `dispatch()` alone | 0x3: `dispatchView()` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Trail Rescue refused | 28.0 [27.5–29.2] | +1.7 [+1.5 to +1.8] | 8.3 [8.1–8.6] | 28.4 [27.6–28.5] | +1.6 [+1.5 to +1.8] | 8.4 [8.3–8.6] | 24.6 [24.3–24.8] | +1.5 [+1.5 to +1.6] | 7.4 [7.3–7.4] |
+| Ledger refused | 14.5 [14.2–15.2] | +1.4 [+1.0 to +1.7] | 7.0 [6.9–7.3] | 14.2 [14.0–14.4] | +1.3 [+1.2 to +1.4] | 7.0 [6.8–7.1] | 12.5 [12.4–12.5] | +1.2 [+1.1 to +1.3] | 6.0 [6.0–6.1] |
 
 - 0x3C00: run 2026-09-29T19-48-35-164-view-path, mask 0x3C00, 5 repeats, total CPU over the kept timed jobs mean 5.5%, highest repeat p95 8.7%, max 10.7%; 14 attempt(s) discarded by the job guard and run again
 - 0x3C00-replicate: run 2026-09-29T20-06-57-466-view-path, mask 0x3C00, 5 repeats, total CPU over the kept timed jobs mean 5.4%, highest repeat p95 8.6%, max 10.4%; 9 attempt(s) discarded by the job guard and run again
 - 0x3: run 2026-09-29T20-00-02-459-view-path, mask 0x3, 3 repeats, total CPU over the kept timed jobs mean 5.4%, highest repeat p95 10.7%, max 12.4%; 9 attempt(s) discarded by the job guard and run again
 
 The replicate and the processors 0–1 session in full, as the primary's
-headline:
+headline (accepted events), each followed by its refused events (as in
+section 3.1, not headline figures):
 
 Replicate, processors 10–13 (Run 2026-09-29T20-06-57-466-view-path; targets opt (d5938cc, reactive WebAssembly 0a19e4b85886), main (768275b, reactive WebAssembly e35944503272); mask 0x3C00, priority high; total CPU over the kept timed jobs mean 5.4%, highest repeat p95 8.6%, max 10.4%; 9 attempt(s) discarded by the job guard and run again):
 
@@ -271,8 +313,13 @@ Replicate, processors 10–13 (Run 2026-09-29T20-06-57-466-view-path; targets op
 | Trail Rescue reopen | 295.6 [290.9–298.6] · p95 341.2 | 154.5 [149.7–155.4] · p95 182.6 | 147.8 [145.6–149.5] · p95 174.6 | 149.6 [147.8–151.3] · p95 175.7 | 142.4 [135.9–143.9] | 1.92× [1.88–1.95] | +5.0 [+2.3 to +9.4] |
 | Trail Rescue qualify | 271.8 [267.9–273.0] · p95 324.2 | 131.7 [126.5–133.8] · p95 181.1 | 124.5 [122.3–125.9] · p95 167.7 | 126.4 [124.7–128.4] · p95 172.1 | 140.9 [134.1–144.9] | 2.07× [2.00–2.14] | +6.5 [+1.6 to +11.5] |
 | Ledger evidence | 116.6 [115.1–118.3] · p95 139.5 | 35.6 [34.9–35.9] · p95 43.7 | 35.5 [34.7–36.2] · p95 43.2 | 34.9 [34.5–36.6] · p95 43.3 | 81.3 [79.2–82.7] | 3.28× [3.21–3.33] | +0.1 [-1.1 to +1.0] |
-| Trail Rescue refused | 36.7 [35.9–37.1] · p95 48.9 | 8.4 [8.3–8.6] · p95 12.6 | throws: the call 6.8 [6.6–7.0] · p95 12.1 | 7.3 [7.1–7.3] · p95 11.2 | 28.4 [27.6–28.5] | 4.33× [4.31–4.42] | - |
-| Ledger refused | 21.2 [21.0–21.4] · p95 25.8 | 7.0 [6.8–7.1] · p95 8.4 | throws: the call 6.6 [6.4–6.7] · p95 8.1 | 6.5 [6.5–6.9] · p95 8.2 | 14.2 [14.0–14.4] | 3.03× [3.00–3.09] | - |
+
+Replicate, refused events:
+
+| Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Trail Rescue refused | 1320/1320/1320/1320/1320 | 36.7 [35.9–37.1] · p95 48.9 | 10.0 [9.9–10.2] · p95 14.8 | 8.4 [8.3–8.6] · p95 12.6 | 6.8 [6.6–7.0] · p95 12.1 | 7.3 [7.1–7.3] · p95 11.2 | 28.4 [27.6–28.5] | +1.6 [+1.5 to +1.8] |
+| Ledger refused | 1500/1500/1500/1500/1500 | 21.2 [21.0–21.4] · p95 25.8 | 8.3 [8.2–8.3] · p95 10.4 | 7.0 [6.8–7.1] · p95 8.4 | 6.6 [6.4–6.7] · p95 8.1 | 6.5 [6.5–6.9] · p95 8.2 | 14.2 [14.0–14.4] | +1.3 [+1.2 to +1.4] |
 
 Processors 0–1 (Run 2026-09-29T20-00-02-459-view-path; targets opt (d5938cc, reactive WebAssembly 0a19e4b85886), main (768275b, reactive WebAssembly e35944503272); mask 0x3, priority high; total CPU over the kept timed jobs mean 5.4%, highest repeat p95 10.7%, max 12.4%; 9 attempt(s) discarded by the job guard and run again):
 
@@ -285,14 +332,20 @@ Processors 0–1 (Run 2026-09-29T20-00-02-459-view-path; targets opt (d5938cc, r
 | Trail Rescue reopen | 258.8 [256.2–259.3] · p95 297.1 | 132.4 [132.3–132.6] · p95 153.7 | 128.6 [127.3–129.5] · p95 151.1 | 131.3 [130.1–131.9] · p95 153.3 | 126.2 [123.9–126.9] | 1.95× [1.94–1.96] | +3.8 [+3.1 to +5.0] |
 | Trail Rescue qualify | 238.7 [238.5–239.7] · p95 290.2 | 111.9 [111.0–112.7] · p95 149.9 | 107.3 [107.2–107.5] · p95 143.4 | 110.4 [110.2–111.4] · p95 148.0 | 127.7 [125.8–127.8] | 2.14× [2.12–2.15] | +4.4 [+3.8 to +5.4] |
 | Ledger evidence | 101.4 [101.2–102.4] · p95 122.7 | 30.6 [30.5–30.7] · p95 38.0 | 30.2 [30.0–30.4] · p95 37.0 | 29.8 [29.8–30.1] · p95 36.6 | 70.7 [70.7–71.8] | 3.32× [3.30–3.35] | +0.5 [+0.1 to +0.6] |
-| Trail Rescue refused | 32.0 [31.6–32.2] · p95 43.8 | 7.4 [7.3–7.4] · p95 11.3 | throws: the call 6.0 [5.9–6.1] · p95 10.6 | 6.5 [6.4–6.6] · p95 9.8 | 24.6 [24.3–24.8] | 4.33× [4.32–4.35] | - |
-| Ledger refused | 18.5 [18.5–18.5] · p95 23.0 | 6.0 [6.0–6.1] · p95 7.2 | throws: the call 5.6 [5.6–5.6] · p95 7.0 | 5.5 [5.5–5.6] · p95 6.9 | 12.5 [12.4–12.5] | 3.08× [3.03–3.08] | - |
+
+Processors 0–1, refused events:
+
+| Event | samples per run | existing: kit `dispatch()` + `view()` | existing: kit `dispatch()` alone | new: kit `dispatchView()` | existing: raw `dispatch_view` (throws) | new: raw `dispatch_view_outcome` + `JSON.parse` | kit `dispatch()` + `view()` − `dispatchView()` | kit `dispatch()` alone − `dispatchView()` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Trail Rescue refused | 1320/1320/1320 | 32.0 [31.6–32.2] · p95 43.8 | 8.9 [8.8–9.0] · p95 12.8 | 7.4 [7.3–7.4] · p95 11.3 | 6.0 [5.9–6.1] · p95 10.6 | 6.5 [6.4–6.6] · p95 9.8 | 24.6 [24.3–24.8] | +1.5 [+1.5 to +1.6] |
+| Ledger refused | 1500/1500/1500 | 18.5 [18.5–18.5] · p95 23.0 | 7.2 [7.2–7.3] · p95 9.8 | 6.0 [6.0–6.1] · p95 7.2 | 5.6 [5.6–5.6] · p95 7.0 | 5.5 [5.5–5.6] · p95 6.9 | 12.5 [12.4–12.5] | +1.2 [+1.1 to +1.3] |
 
 - On processors 0–1 every path takes 0.81–0.89× the time it takes on 10–13
   (the baseline measured 0.72–0.78×, its section 7): processors 0 and 1 ran at
   5.10–5.20 GHz under the benchmark, against a median of 4.49 GHz for
   processor 10 in the primary session and 4.52 GHz in the replicate. The
-  ratios old ÷ new agree across the three sessions within 0.13.
+  ratios old ÷ new of the accepted events agree across the three sessions
+  within 0.13.
 - Inside the mask `0x3C00` Windows placed most jobs on processor 10 (69 of the
   88 jobs whose processor the monitor identified in the primary session, 66 of
   85 in the replicate), the rest on 13 (17 and 19; median 4.32 and 4.39 GHz)
@@ -369,8 +422,9 @@ differences paired by repeat:
   0–1, where both calls ran on one processor at 5.1–5.2 GHz and the ranges are
   tightest; the most on reopen (+2.4 [+1.7 to +2.7]) and qualify (+2.7
   [+2.4 to +3.3]) there. That is inside the runtime, not the wrapper (section
-  8, item 4). On refusals the new export is 0.8–1.2 µs faster than the legacy
-  `dispatch_view`, which throws.
+  8, item 4). On refusals the new export's call costs 0.8–1.2 µs less than
+  the legacy `dispatch_view`, which throws where the new export returns the
+  refusal: not an equivalent contract.
 - **Not attributed**: on Trail Rescue's accepted events `dispatchView()` is
   +2.4 to +3.5 µs above its four pieces timed one by one in the primary
   session, +3.7 to +5.3 µs in the replicate and +1.0 to +2.4 µs on processors
@@ -564,8 +618,9 @@ Earlier sessions were discarded or superseded and are not used anywhere
 
 Recorded, not acted on: this work changed nothing but the harness.
 
-1. **The next cost on the view path is the view's JSON round trip.** On a
-   Glowcap idle tick, `dispatchView()` takes 38.9 µs, of which the
+1. **The next candidate on the view path is the view's JSON round trip**
+   (a candidate only, not in this work's scope). On a Glowcap idle tick,
+   `dispatchView()` takes 38.9 µs, of which the
    `dispatch_view_outcome` call is 23.2 µs and `JSON.parse` of the outcome
    15.2 µs (its pieces, primary session); the call builds and serializes the
    whole view, a median of 4,458 bytes (about 4.4 KiB) on these ticks. Yet on
@@ -589,8 +644,9 @@ Recorded, not acted on: this work changed nothing but the harness.
    outcome is serialized as a struct with a flattened enum around the view
    (`runtime/src/reactive_outcome.rs`), where `dispatch_view` serializes the
    view alone; whether that is the cost is not measured.
-5. **A refusal through the new export is about 1 µs cheaper than through the
-   legacy `dispatch_view`**, which throws.
+5. **A refusal through the new export's call is about 1 µs cheaper than
+   through the legacy `dispatch_view`**, which throws where the new export
+   returns the refusal, so the two are not equivalent contracts.
 6. **Core placement inside a mask moves absolute figures by up to about 7%**
    (processor 13 at 4.1–4.5 GHz against 10 at 4.0–4.6 GHz, median 4.49, here),
    and the whole machine's clock by more between sessions (section 3.2):

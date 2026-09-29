@@ -109,28 +109,27 @@ const loadText = (load) => `total CPU over the kept timed jobs mean ${f(load.kep
 const load = option('load') === 'no' ? null : await loadOf(run);
 lines.push(`Run ${results.runId}; targets ${results.targets.map((t) => `${t.label} (${t.git?.revision?.slice(0, 7) ?? '?'}, reactive WebAssembly ${t.runtimeFiles?.['caveat_runtime_bg.wasm']?.sha256?.slice(0, 12) ?? '?'})`).join(', ')}; mask ${results.environment.pinning.affinityMask}, priority ${results.environment.pinning.priority}${load ? `; ${loadText(load)}` : ''}.`, '');
 
-// The headline: the paths side by side and the measured saving, per event
-// class. A refusal throws on the raw dispatch_view path, so its cell there is
-// the call alone.
-lines.push('### Headline: the paths side by side (DIRECT, µs) and the saving (paired by repeat, µs)', '');
+// The headline: accepted events only, the paths side by side and the measured
+// saving, per event class. Refused events are not headline figures: they have
+// their own table after the accepted events' results, because the saving there
+// depends on whether the host would have called view() at all, and the raw
+// dispatch_view path throws on them instead of returning the refusal.
+lines.push('### Headline, accepted events: the paths side by side (DIRECT, µs) and the saving (paired by repeat, µs)', '');
+lines.push('Refused events are not in this table, nor in any saving, ratio or range about the accepted events: they are in "Refused events" below.', '');
 table(['Event', 'existing: kit `dispatch()` + `view()`', 'new: kit `dispatchView()`', 'existing: raw `dispatch_view` + `JSON.parse`', 'new: raw `dispatch_view_outcome` + `JSON.parse`',
   'saving: kit `dispatch()` + `view()` − `dispatchView()`', 'old ÷ new', 'gap: `dispatchView()` − raw `dispatch_view` + `JSON.parse`'],
-  [...KINDS, ...REFUSED].map(([workload, group, name]) => {
-    const refused = REFUSED.some(([w, g]) => w === workload && g === group);
-    return [name, cell(target, workload, KIT, group), cell(target, workload, VIEW, group),
-      refused ? `throws: the call ${cell(target, workload, ['raw.dispatch_view', 'raw.dispatch_view'], group)}` : cell(target, workload, RAW, group),
-      cell(target, workload, RAW_OUTCOME, group),
-      range(paired(target, workload, KIT, VIEW, group, (a, b) => a - b)),
-      range(paired(target, workload, KIT, VIEW, group, (a, b) => a / b), 2, '×'),
-      refused ? '-' : signedRange(paired(target, workload, VIEW, RAW, group, (a, b) => a - b))];
-  }));
+  KINDS.map(([workload, group, name]) => [name, cell(target, workload, KIT, group), cell(target, workload, VIEW, group),
+    cell(target, workload, RAW, group), cell(target, workload, RAW_OUTCOME, group),
+    range(paired(target, workload, KIT, VIEW, group, (a, b) => a - b)),
+    range(paired(target, workload, KIT, VIEW, group, (a, b) => a / b), 2, '×'),
+    signedRange(paired(target, workload, VIEW, RAW, group, (a, b) => a - b))]));
 
-lines.push('### Per event, on each path (DIRECT, µs)', '');
+lines.push('### Per accepted event, on each path (DIRECT, µs)', '');
 table(['Event', 'samples per run', `existing: ${KIT[2]}`, `new: ${VIEW[2]}`, `existing: ${RAW[2]}`, `new: ${RAW_OUTCOME[2]}`],
   KINDS.map(([workload, group, name]) => [name, counts(workload, group),
     cell(target, workload, KIT, group), cell(target, workload, VIEW, group), cell(target, workload, RAW, group), cell(target, workload, RAW_OUTCOME, group)]));
 
-lines.push('### The saving (paired by repeat, µs)', '');
+lines.push('### The saving, accepted events (paired by repeat, µs)', '');
 table(['Event', 'kit `dispatch()` + `view()` − `dispatchView()`', 'share of the old path', 'old ÷ new', '`dispatchView()` − raw `dispatch_view` + `JSON.parse`', '`dispatchView()` − raw `dispatch_view_outcome` + `JSON.parse`'],
   KINDS.map(([workload, group, name]) => [name,
     range(paired(target, workload, KIT, VIEW, group, (a, b) => a - b)),
@@ -139,9 +138,16 @@ table(['Event', 'kit `dispatch()` + `view()` − `dispatchView()`', 'share of th
     signedRange(paired(target, workload, VIEW, RAW, group, (a, b) => a - b)),
     signedRange(paired(target, workload, VIEW, RAW_OUTCOME, group, (a, b) => a - b))]));
 
+// Refused events, after the accepted events' results and out of the headline.
 // A refusal leaves the view as it was, so a host that already holds it need
-// not call view() after one: both savings are shown.
+// not call view() after one: both savings are shown, and the note beside the
+// table gives the range of each over the refused classes (the lowest and
+// highest of the medians in the table). The raw dispatch_view path throws on
+// a refusal, so its cell is the throwing call alone.
+const refusedSaving = (from) => REFUSED.map(([workload, group]) => paired(target, workload, from, VIEW, group, (a, b) => a - b)?.median).filter(Number.isFinite);
+const refusedRange = (values) => (values.length ? `${f(Math.min(...values))}–${f(Math.max(...values))} µs` : '-');
 lines.push('### Refused events (DIRECT, µs; savings paired by repeat)', '');
+lines.push(`Not headline figures. A refusal leaves the view as it was, so a host that already holds the view need not call \`view()\` after one: against kit \`dispatch()\` alone, \`dispatchView()\` saves only ${refusedRange(refusedSaving(KIT_DISPATCH))}, and its saving of ${refusedRange(refusedSaving(KIT))} against kit \`dispatch()\` + \`view()\` assumes the host would also have called \`view()\`. Raw \`dispatch_view\` throws on a refusal, where \`dispatchView()\` returns the structured refusal, so those two paths are not equivalent contracts; its cell is the throwing call alone.`, '');
 table(['Event', 'samples per run', `existing: ${KIT[2]}`, `existing: ${KIT_DISPATCH[2]}`, `new: ${VIEW[2]}`, 'existing: raw `dispatch_view` (throws)', `new: ${RAW_OUTCOME[2]}`,
   'kit `dispatch()` + `view()` − `dispatchView()`', 'kit `dispatch()` alone − `dispatchView()`'],
   REFUSED.map(([workload, group, name]) => [name, counts(workload, group),
@@ -251,10 +257,18 @@ if (replicates.length) {
     return stats?.median ? `${f(stats.median.median)} [${f(stats.median.min)}–${f(stats.median.max)}]` : '-';
   };
   const signedIn = (session, workload, a, b, group) => signedRange(pairedIn(session, workload, a, b, group));
-  lines.push('### Every session: the saving, kit `dispatch()` + `view()` − `dispatchView()`, and the gap to the raw path, `dispatchView()` − raw `dispatch_view` + `JSON.parse` (both paired by repeat, µs); `dispatchView()` (DIRECT median, µs)', '');
+  lines.push('### Every session, accepted events: the saving, kit `dispatch()` + `view()` − `dispatchView()`, and the gap to the raw path, `dispatchView()` − raw `dispatch_view` + `JSON.parse` (both paired by repeat, µs); `dispatchView()` (DIRECT median, µs)', '');
   table(['Event', ...sessions.flatMap((s) => [`${s.name}: saving`, `${s.name}: gap to raw`, `${s.name}: \`dispatchView()\``])],
-    [...KINDS, ...REFUSED].map(([workload, group, name]) => [name, ...sessions.flatMap((s) => [range(pairedIn(s, workload, KIT, VIEW, group)),
-      REFUSED.some(([w, g]) => w === workload && g === group) ? '-' : signedIn(s, workload, VIEW, RAW, group), medianIn(s, workload, VIEW, group)])]));
+    KINDS.map(([workload, group, name]) => [name, ...sessions.flatMap((s) => [range(pairedIn(s, workload, KIT, VIEW, group)),
+      signedIn(s, workload, VIEW, RAW, group), medianIn(s, workload, VIEW, group)])]));
+  // Refused events apart, as in each session's own tables: both savings (a
+  // refusal leaves the view as it was), and no gap to the raw path, which
+  // throws on a refusal.
+  lines.push('### Every session, refused events (not headline figures): the saving against kit `dispatch()` + `view()` and against kit `dispatch()` alone (both paired by repeat, µs); `dispatchView()` (DIRECT median, µs)', '');
+  lines.push('The saving against `dispatch()` + `view()` assumes the host would also have called `view()`; raw `dispatch_view` throws on a refusal, where `dispatchView()` returns the structured refusal, so there is no gap to it.', '');
+  table(['Event', ...sessions.flatMap((s) => [`${s.name}: saving against \`dispatch()\` + \`view()\``, `${s.name}: saving against \`dispatch()\` alone`, `${s.name}: \`dispatchView()\``])],
+    REFUSED.map(([workload, group, name]) => [name, ...sessions.flatMap((s) => [range(pairedIn(s, workload, KIT, VIEW, group)),
+      signedIn(s, workload, KIT_DISPATCH, VIEW, group), medianIn(s, workload, VIEW, group)])]));
   for (const [index, [, directory]] of replicates.entries()) sessions[index].load = await loadOf(path.resolve(directory));
   lines.push(...sessions.map((s) => `- ${s.name}: run ${s.results.runId}, mask ${s.results.environment.pinning.affinityMask}, ${s.results.suite.repeats} repeats, ${loadText(s.load)}`), '');
 }
