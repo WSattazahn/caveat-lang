@@ -243,9 +243,13 @@ for C003. A rule on an event written with `$NAME` or `$index`, such as
 In each member's copy, E comes to a number: the check works it out from the
 member's `$index`, numbers, defines, and calls to functions, the prelude's
 and the program's. The copy runs when P names the entity that P gives that
-number. In a chain of `or`, the copy runs when any disjunct holds, so each
-disjunct that compares P with such an E is checked on its own. A copy is
-reported when all of these hold:
+number. Each such comparison in the guard is checked on its own: each
+top-level conjunct that is one, and each disjunct that is one in a chain of
+`or` that C003 counts. A chain holds when any of its disjuncts does, so each
+disjunct is a way the copy runs. In
+`(from == $index or to == $index) and via == $index`, and with its conjuncts
+in the other order, the comparisons of `from`, `to` and `via` are each
+checked. A copy is reported for a comparison when all of these hold:
 
 - P numbers some top-level member of KIND otherwise than its `$index`;
 - the entity the copy runs for is not the member itself;
@@ -261,11 +265,13 @@ number in P, as `$index + 1` does for each member when one entity that a
 block declares comes before them all.
 
 The warning is at the rule where it is written in the block, once for each
-member whose copy is reported, and in a chain of `or` once for each disjunct
-reported: with `from == $index or to == $index`, a member's copy can be
-reported for `from` and again for `to`. The message names the entity the
-copy runs for, and the member whose `$index` the number is: the member
-itself, where E comes to the member's `$index`, and otherwise another
+comparison reported in each member's copy. With
+`from == $index or to == $index`, or with `from == $index and to == $index`,
+a member's copy can be reported for `from` and again for `to`. In one
+copy, two comparisons of the same P with the same number, as in
+`to == $index or to == $index`, are reported once. The message names the
+entity the copy runs for, and the member whose `$index` the number is: the
+member itself, where E comes to the member's `$index`, and otherwise another
 member, with the number. It names the entities of KIND that P counts before
 that member and `$index` does not, and lists each, as related, where its
 block declares it. When every entity of KIND that a `for` block declares
@@ -289,7 +295,11 @@ It does not check:
 - `$index` reached some other way: through a state, as in
   `target == $p_slot` after `state $p_slot = $index;`, or in a comparison
   that is neither a top-level conjunct nor a disjunct of a chain of `or` that
-  C003 counts as routing, which C003 reports instead;
+  C003 counts. C003 reports such a rule, as it does
+  `target == $index or $p_n > 5`, unless another conjunct selects the member
+  or the rule is on the member's own event. Then nothing reports it: in
+  `to == to.$p and (from == $index or $p_n > 5)`, `from == $index` is not
+  checked, even where `from` numbers the members otherwise than `$index`;
 - an E that reads a state, another parameter or the graph, such as
   `$index + $p_offset` after `state $p_offset = 0;`. Which entity its copy
   runs for can change as the program runs, so the check works out no number
@@ -401,3 +411,25 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
   `$index`. Dropping `routed by P` from a block with a rule guarded by
   `P == $index or Q == $index` is no longer reported
   ([routed repetition](caveat-routed-repetition-0.1.md) section 8).
+- 2026-09-29: C004 checks every comparison of P with an E that reads
+  `$index`: each top-level conjunct that is one, and each disjunct that is
+  one in a chain of `or` that C003 counts, in whatever order they are
+  written. Before the 2026-09-28 entry, it checked only the first top-level
+  conjunct that was one. So
+  `via == $index + 1 and from == $index` was checked for `via` alone, and
+  the same guard with its conjuncts swapped got other warnings. With the
+  2026-09-28 entry, it checked the first top-level conjunct that selected by
+  `$index`, and that could be a chain of `or`. So a chain written before a
+  comparison hid it, and a C004 reported before was lost. With north
+  declared in a block before east and south,
+  `(from == $index + 1 or to == $index + 1) and to == $index` got C004 for
+  east and for south on `to` before, and then nothing, while each copy still
+  ran when `to` named another plot. Every C004 reported before either entry
+  is reported now. The same comparison twice in one copy, as in
+  `to == $index or to == $index`, which the 2026-09-28 entry reported twice,
+  is reported once. Of the repository's 106 `.cav` files, the 80 that load
+  report exactly what they did before either entry, 7 C001 and 4 C003
+  warnings: none declares an entity in a `for` block, so none gets C004.
+  Before the Rain gets no C004 and checks clean. A program whose guard
+  compares with `$index` in more than one conjunct may now get more C004
+  warnings, and fail with `--strict`.

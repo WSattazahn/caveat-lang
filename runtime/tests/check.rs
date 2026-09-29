@@ -1450,11 +1450,16 @@ fn every_selection_by_index_that_c003_reads_is_checked() {
         report.diagnostics[0].message
     );
     // A comparison in a disjunction that does not select is C003's to report,
-    // and a selection by name is not reported.
+    // unless another conjunct selects the member: then neither check reports
+    // it. A selection by name is not reported.
     for (rule, code) in [
         (
             "on read when target == $index or $p_n > 5 set $p_n = 1;",
             Some("C003"),
+        ),
+        (
+            "on move when to == to.$p and (from == $index or $p_n > 5) set $p_n = 1;",
+            None,
         ),
         ("on read when target == target.$p set $p_n = 1;", None),
         ("on read when target == target.east set $p_n = 1;", None),
@@ -1528,6 +1533,161 @@ fn each_disjunct_that_selects_by_index_is_checked() {
         };
         assert_eq!(moved("north", "south"), (1.0, 0.0), "{rule}");
         assert_eq!(moved("south", "east"), (0.0, 1.0), "{rule}");
+    }
+}
+
+/// A plot block with this rule, after a zone block that declares north before
+/// both top-level plots, so that `from`, `via` and `to` number east 2 and
+/// south 3.
+fn relays(rule: &str) -> String {
+    program(&[
+        ZONE,
+        ZONE_BARE,
+        EAST,
+        SOUTH,
+        "state seen = 0;\n",
+        "event move from kind plot, to kind plot;\n",
+        "event relay from kind plot, via kind plot, to kind plot;\n",
+        &format!("for plot as $p {{\n    state $p_n = 0;\n    {rule}\n}};\n"),
+    ])
+}
+
+/// Each C004 at the rule, in order, as `MEMBER: P names ENTITY`: the member
+/// whose copy it reports, the parameter, and the entity the copy runs for.
+fn shifted_at_rule(source: &str) -> Vec<String> {
+    let report = check(source);
+    let line = line_of(source, "on ");
+    assert_eq!(
+        codes(&report),
+        vec![("C004", line); report.diagnostics.len()],
+        "{source}"
+    );
+    report
+        .diagnostics
+        .iter()
+        .map(|diagnostic| {
+            // "the rule on `EVENT` for `MEMBER` runs when `P` names `ENTITY`, ..."
+            let quoted = diagnostic.message.split('`').collect::<Vec<_>>();
+            format!("{}: {} names {}", quoted[3], quoted[5], quoted[7])
+        })
+        .collect()
+}
+
+#[test]
+fn every_conjunct_that_selects_by_index_is_checked_not_only_the_first() {
+    for (rule, reported) in [
+        // A chain of `or` first, whose comparisons do not shift, does not hide
+        // a later conjunct that does.
+        (
+            "on move when (from == $index + 1 or from == from.east) and to == $index set $p_n = $p_n + 1;",
+            vec!["east: to names north", "south: to names east"],
+        ),
+        (
+            "on move when (from == $index + 1 or to == $index + 1) and to == $index set $p_n = $p_n + 1;",
+            vec!["east: to names north", "south: to names east"],
+        ),
+        (
+            "on relay when (from == from.east or to == $index + 1) and via == $index set $p_n = $p_n + 1;",
+            vec!["east: via names north", "south: via names east"],
+        ),
+        // Nor does one whose number reads a state, and is not worked out.
+        (
+            "on move when (from == $index + seen or to == to.east) and to == $index set $p_n = $p_n + 1;",
+            vec!["east: to names north", "south: to names east"],
+        ),
+        // A conjunct first that does not shift does not hide a later one, a
+        // comparison or a chain of `or`.
+        (
+            "on relay when via == $index + 1 and from == $index set $p_n = $p_n + 1;",
+            vec!["east: from names north", "south: from names east"],
+        ),
+        (
+            "on relay when via == $index + 1 and (from == $index or to == $index) set $p_n = $p_n + 1;",
+            vec![
+                "east: from names north",
+                "east: to names north",
+                "south: from names east",
+                "south: to names east",
+            ],
+        ),
+        // Two conjuncts that shift are both reported.
+        (
+            "on move when from == $index and to == $index set $p_n = $p_n + 1;",
+            vec![
+                "east: from names north",
+                "east: to names north",
+                "south: from names east",
+                "south: to names east",
+            ],
+        ),
+    ] {
+        assert_eq!(shifted_at_rule(&relays(rule)), reported, "{rule}");
+    }
+    // What the later conjunct does: east's copy runs on a move to north, and
+    // on a relay from north.
+    let counted = |rule: &str, event: &str, parameters: &str| {
+        let mut session = ReactiveSession::from_source(&relays(rule)).expect("loads");
+        let values = session
+            .dispatch_json(event, parameters)
+            .expect("the event is accepted")
+            .values;
+        (values["east_n"], values["south_n"])
+    };
+    assert_eq!(
+        counted(
+            "on move when (from == $index + 1 or from == from.east) and to == $index set $p_n = $p_n + 1;",
+            "move",
+            r#"{"from":"east","to":"north"}"#
+        ),
+        (1.0, 0.0)
+    );
+    assert_eq!(
+        counted(
+            "on relay when via == $index + 1 and (from == $index or to == $index) set $p_n = $p_n + 1;",
+            "relay",
+            r#"{"from":"north","via":"east","to":"south"}"#
+        ),
+        (1.0, 0.0)
+    );
+}
+
+#[test]
+fn the_order_of_the_conjuncts_does_not_change_what_is_reported() {
+    // South's copy compares `from` with 1, the `$index` of east, which `from`
+    // gives north. `$index + 1` comes to each plot's own number.
+    let (either, via) = (
+        "(from == $index - 1 or from == $index + 1)",
+        "via == $index",
+    );
+    for guard in [format!("{either} and {via}"), format!("{via} and {either}")] {
+        let mut reported = shifted_at_rule(&relays(&format!(
+            "on relay when {guard} set $p_n = $p_n + 1;"
+        )));
+        reported.sort();
+        assert_eq!(
+            reported,
+            [
+                "east: via names north",
+                "south: from names north",
+                "south: via names east"
+            ],
+            "{guard}"
+        );
+    }
+}
+
+#[test]
+fn the_same_comparison_twice_is_reported_once() {
+    for rule in [
+        "on move when to == $index or to == $index set $p_n = 1;",
+        "on move when to == $index and $index == to set $p_n = 1;",
+        "on move when (to == $index or to == $index + 0) and to == round($index) set $p_n = 1;",
+    ] {
+        assert_eq!(
+            shifted_at_rule(&relays(rule)),
+            ["east: to names north", "south: to names east"],
+            "{rule}"
+        );
     }
 }
 

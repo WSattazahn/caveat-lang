@@ -676,25 +676,20 @@ fn member_rules(
                         .iter()
                         .all(|(disjunct, _)| compared(disjunct, &routes).is_some())
                 };
-                // The first top-level conjunct that selects by `$index`: a
-                // comparison, or a chain of `or` that selects the member, with
-                // each of its disjuncts that compares with `$index`.
+                // Each comparison with `$index` in a top-level conjunct that
+                // selects by it, in the guard's order: the conjunct itself, or
+                // each disjunct of a chain of `or` that selects the member.
                 let selections = alternatives
                     .iter()
-                    .find_map(|disjuncts| {
-                        let found = match disjuncts.as_slice() {
-                            [(_, compares)] => {
-                                compared_by(compares, &parameters).into_iter().collect()
-                            }
-                            _ if selects(disjuncts) => disjuncts
-                                .iter()
-                                .filter_map(|(_, compares)| compared_by(compares, &parameters))
-                                .collect(),
-                            _ => Vec::new(),
-                        };
-                        (!found.is_empty()).then_some(found)
+                    .flat_map(|disjuncts| match disjuncts.as_slice() {
+                        [(_, compares)] => compared_by(compares, &parameters).into_iter().collect(),
+                        _ if selects(disjuncts) => disjuncts
+                            .iter()
+                            .filter_map(|(_, compares)| compared_by(compares, &parameters))
+                            .collect(),
+                        _ => Vec::new(),
                     })
-                    .unwrap_or_default();
+                    .collect::<Vec<_>>();
                 // The number E comes to in the member's copy: `$index` is the
                 // member's, and a name written with a binding is the copy's.
                 let position = index + 1;
@@ -707,6 +702,9 @@ fn member_rules(
                         .replace(&index_marker, &position.to_string());
                     defined(&name, (&program_defines, &functions), &known)
                 };
+                // Each parameter and number already checked in this copy: the
+                // same comparison twice is reported once.
+                let mut checked = Vec::new();
                 for (parameter, value) in selections {
                     let numbering = numberings
                         .entry((event.as_str(), parameter.name.as_str()))
@@ -714,6 +712,10 @@ fn member_rules(
                     if let Some((numbering, number)) = numbering.as_ref().and_then(|numbering| {
                         Some((numbering, constant(value, &functions, &in_copy)?))
                     }) {
+                        if checked.contains(&(parameter.name.as_str(), number)) {
+                            continue;
+                        }
+                        checked.push((parameter.name.as_str(), number));
                         found.extend(shifted_member_index(
                             block,
                             (position, member),
