@@ -142,16 +142,16 @@ The saving against `dispatch()` + `view()` assumes the host would also have call
 
 ### Size (bytes)
 
-|  | base 768275b | branch | change |
+|  | base 334d1b7 | branch | change |
 | --- | --- | --- | --- |
-| reactive WebAssembly (`pkg-reactive`, bundled in the kit) | 2,052,856 | 2,057,234 | +4378 |
-|   gzip -9 | 578,371 | 579,623 | +1252 |
+| reactive WebAssembly (`pkg-reactive`, bundled in the kit) | 2,056,842 | 2,061,220 | +4378 |
+|   gzip -9 | 579,679 | 580,944 | +1265 |
 |   its JavaScript glue | 14,575 | 15,854 | +1279 |
-| full WebAssembly (`pkg`, the web pages) | 2,307,079 | 2,311,521 | +4442 |
-|   gzip -9 | 653,470 | 654,388 | +918 |
+| full WebAssembly (`pkg`, the web pages) | 2,311,065 | 2,315,507 | +4442 |
+|   gzip -9 | 654,934 | 655,769 | +835 |
 |   its JavaScript glue | 33,840 | 35,119 | +1279 |
 | kit `lib/session.mjs` | 10,461 | 12,008 | +1547 |
-| kit tarball (`npm pack`) | 718,097 | 720,703 | +2606 |
-|   unpacked | 2,502,572 | 2,514,416 | +11844 |
+| kit tarball (`npm pack`) | 720,626 | 723,689 | +3063 |
+|   unpacked | 2,512,071 | 2,523,915 | +11844 |
 |   files in it | 59 | 59 | 0 |
 

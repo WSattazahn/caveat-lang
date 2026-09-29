@@ -1,15 +1,15 @@
 {
  "schema": "caveat-performance-opt-size/0.1",
- "command": "node experiments/performance-opt-0.1/size.mjs --base=../prOPT-main,../prOPT-main/dist --branch=.,dist --out=experiments/performance-opt-0.1/results/size.json",
+ "command": "node experiments/performance-opt-0.1/size.mjs --base=../main-334,../main-334/dist --branch=.,dist --out=experiments/performance-opt-0.1/results/size.json",
  "base": {
   "label": "base",
   "checkout": {
-   "revision": "768275b6f057ed18b8687c6dedb2d451fc7fc00f",
+   "revision": "334d1b77285ff96d0f04bb23d6630d50e7425d4f",
    "changedFiles": 0
   },
   "dist": {
    "buildInfo": {
-    "revision": "768275b6f057ed18b8687c6dedb2d451fc7fc00f",
+    "revision": "334d1b77285ff96d0f04bb23d6630d50e7425d4f",
     "clean": true,
     "compiled": true,
     "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
@@ -20,9 +20,9 @@
   "builds": {
    "pkg-reactive": {
     "wasm": {
-     "bytes": 2052856,
-     "gzipBytes": 578371,
-     "sha256": "e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde"
+     "bytes": 2056842,
+     "gzipBytes": 579679,
+     "sha256": "85a8ab5c79485310540e71c09ffa8d30ca723a5cd9b846016f7b9e3f21c08f08"
     },
     "glue": {
      "bytes": 14575,
@@ -32,9 +32,9 @@
    },
    "pkg": {
     "wasm": {
-     "bytes": 2307079,
-     "gzipBytes": 653470,
-     "sha256": "ed4a45e69c92d5916bdf683ff282c6f3ba7c79c8eee3b5d2e1f448cfa0411344"
+     "bytes": 2311065,
+     "gzipBytes": 654934,
+     "sha256": "3d90694e432f508d12ddcebf148e82e2628baea8ea4267d75a561a84d5a56b72"
     },
     "glue": {
      "bytes": 33840,
@@ -50,21 +50,21 @@
   },
   "tarball": {
    "filename": "caveat-lang-0.1.0-rc.5.tgz",
-   "bytes": 718097,
-   "sha256": "1eb764bd6c60aa978c2a22413f99c598b42a9b01d674d407a2d6204fcff14693",
-   "unpackedBytes": 2502572,
+   "bytes": 720626,
+   "sha256": "49ac9e298a1e1c0cb1c3cf7171e8eb3989bf31aa41c90b4c86e9951f430e18c8",
+   "unpackedBytes": 2512071,
    "entries": 59
   }
  },
  "branch": {
   "label": "branch",
   "checkout": {
-   "revision": "a459995cbed8292826f3fa08f0ab85fe627ec938",
-   "changedFiles": 3
+   "revision": "36534eef1e4bf665ef4b2343140b7af9da48c667",
+   "changedFiles": 0
   },
   "dist": {
    "buildInfo": {
-    "revision": "a459995cbed8292826f3fa08f0ab85fe627ec938",
+    "revision": "36534eef1e4bf665ef4b2343140b7af9da48c667",
     "clean": true,
     "compiled": true,
     "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
@@ -75,9 +75,9 @@
   "builds": {
    "pkg-reactive": {
     "wasm": {
-     "bytes": 2057234,
-     "gzipBytes": 579623,
-     "sha256": "0a19e4b858862e3cfe6c35a7b8261f8aca912a90c86faed6bb46c8f06de71cdb"
+     "bytes": 2061220,
+     "gzipBytes": 580944,
+     "sha256": "acbf1df4e2c31ed4a807fdfe5e56fa1b9b0f6c7f1a788c771f5af4ac63ae2276"
     },
     "glue": {
      "bytes": 15854,
@@ -87,9 +87,9 @@
    },
    "pkg": {
     "wasm": {
-     "bytes": 2311521,
-     "gzipBytes": 654388,
-     "sha256": "2cea450ab278ad375c83c67a245561e39c6d8e2071056b42539bb70c3ddf36bb"
+     "bytes": 2315507,
+     "gzipBytes": 655769,
+     "sha256": "997bdf5ea83b6e64336fa45b45d7a5c168fee6a5eb489ea08a98afa16e8f1232"
     },
     "glue": {
      "bytes": 35119,
@@ -105,21 +105,21 @@
   },
   "tarball": {
    "filename": "caveat-lang-0.1.0-rc.5.tgz",
-   "bytes": 720703,
-   "sha256": "658d638cefcb19b7bf18528eb3e2cec6cfcd0e6b9def2ef61583f841d55ffd92",
-   "unpackedBytes": 2514416,
+   "bytes": 723689,
+   "sha256": "cc6b44e7c06d074930e1506fac6af4f9ba1c6614179cec17eeec1d99f1d91399",
+   "unpackedBytes": 2523915,
    "entries": 59
   }
  },
  "delta": {
   "pkg-reactive wasm bytes": 4378,
-  "pkg-reactive wasm gzip bytes": 1252,
+  "pkg-reactive wasm gzip bytes": 1265,
   "pkg-reactive glue bytes": 1279,
   "pkg wasm bytes": 4442,
-  "pkg wasm gzip bytes": 918,
+  "pkg wasm gzip bytes": 835,
   "pkg glue bytes": 1279,
   "kit session.mjs bytes": 1547,
-  "kit tarball bytes": 2606,
+  "kit tarball bytes": 3063,
   "kit unpacked bytes": 11844
  }
 }

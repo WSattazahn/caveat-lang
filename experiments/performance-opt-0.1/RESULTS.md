@@ -16,10 +16,10 @@ one host path is faster. Rule execution, bindings and provenance are
 untouched, and the existing paths are unchanged within measurement noise:
 kit `dispatch()` + `view()` and raw `dispatch_view` + `JSON.parse` differ
 between main and the branch by −0.8% to +1.3% in all three sessions. The
-size cost is small: the reactive WebAssembly the kit bundles grows by 4,378
-bytes (+0.21%) and the kit tarball by 2,606 bytes (section 5). Refused events
-are not headline figures; they are reported apart, after all the accepted
-events' results (section 3.3).
+size cost is small: against main 334d1b7, the reactive WebAssembly the kit
+bundles grows by 4,378 bytes (+0.21%) and the kit tarball by 3,063 bytes
+(section 5). Refused events are not headline figures; they are reported
+apart, after all the accepted events' results (section 3.3).
 
 What `session.dispatchView()` costs against the two paths a host that wants
 the view had before, on the same machine, builds and events, in the
@@ -89,10 +89,11 @@ accepted events' results.
   differ by −0.8% to +1.3% (medians) in all three sessions, within their
   run ranges (section 3). Every mode on both builds ended every workload in
   the same saved state (section 6).
-- **Size:** the reactive WebAssembly the kit bundles grows by 4,378 bytes
-  (+0.21%; +1,252 gzipped), its glue by 1,279 bytes, the kit's
-  `lib/session.mjs` by 1,547 bytes and the kit tarball by 2,606 bytes, with
-  the same 59 files (section 5).
+- **Size**, against main 334d1b7 with this branch merged into it: the
+  reactive WebAssembly the kit bundles grows by 4,378 bytes (+0.21%; +1,265
+  gzipped), its glue by 1,279 bytes, the kit's `lib/session.mjs` by 1,547
+  bytes and the kit tarball by 3,063 bytes, with the same 59 files
+  (section 5).
 
 ## Contents
 
@@ -118,8 +119,9 @@ rerun
 | main (the base) | 768275b, clean | `e35944503272…`, 2,052,856 | `9066c9a19dcb…`, 14,575 | `b171d128027a…`, 10,461 |
 | branch `perf/kit-dispatch-view` | a459995 | `0a19e4b85886…`, 2,057,234 | `3dcc4fd6ba4e…`, 15,854 | `f40dad99c758…`, 12,008 |
 
-- Each tree was built twice: with `npm run build` (for the size table and
-  the correctness checks) and by the harness (`runtime/target/perf-baseline/pkg-reactive`).
+- Each tree was built twice: with `npm run build` (for the correctness
+  checks, and the first size comparison; section 5 gives the current one's
+  builds) and by the harness (`runtime/target/perf-baseline/pkg-reactive`).
   In each tree the two `pkg-reactive` builds are byte-identical, WebAssembly
   and glue. main's WebAssembly is the same bytes the baseline measured as
   `main-local` (`e35944503272…`). The branch was built from a clean checkout
@@ -453,24 +455,30 @@ differences paired by repeat:
 ## 5. Size
 
 `size.mjs`: each tree's `npm run build` output, and the kit staged and packed
-as `scripts/test-kit-package.mjs` stages it (`results/size.json`). The
-branch's checkout, at a459995, then held the first measurement's three
-uncommitted harness files under `experiments/`, which the kit does not pack
-(`size.json` counts them as `changedFiles`). This commit changes nothing the
-size report reads, so `size.json` is unchanged.
+as `scripts/test-kit-package.mjs` stages it (`results/size.json`). The base
+is main at 334d1b7. The branch is 36534ee: this branch at e668fff merged into
+334d1b7, the tree a merge would give (2ef4117). Both checkouts were clean.
+Later commits on this branch change only files under `experiments/`, which
+neither build reads and the kit does not pack.
 
-|  | base 768275b | branch | change |
+|  | base 334d1b7 | branch | change |
 | --- | --- | --- | --- |
-| reactive WebAssembly (`pkg-reactive`, bundled in the kit) | 2,052,856 | 2,057,234 | +4378 |
-|   gzip -9 | 578,371 | 579,623 | +1252 |
+| reactive WebAssembly (`pkg-reactive`, bundled in the kit) | 2,056,842 | 2,061,220 | +4378 |
+|   gzip -9 | 579,679 | 580,944 | +1265 |
 |   its JavaScript glue | 14,575 | 15,854 | +1279 |
-| full WebAssembly (`pkg`, the web pages) | 2,307,079 | 2,311,521 | +4442 |
-|   gzip -9 | 653,470 | 654,388 | +918 |
+| full WebAssembly (`pkg`, the web pages) | 2,311,065 | 2,315,507 | +4442 |
+|   gzip -9 | 654,934 | 655,769 | +835 |
 |   its JavaScript glue | 33,840 | 35,119 | +1279 |
 | kit `lib/session.mjs` | 10,461 | 12,008 | +1547 |
-| kit tarball (`npm pack`) | 718,097 | 720,703 | +2606 |
-|   unpacked | 2,502,572 | 2,514,416 | +11844 |
+| kit tarball (`npm pack`) | 720,626 | 723,689 | +3063 |
+|   unpacked | 2,512,071 | 2,523,915 | +11844 |
 |   files in it | 59 | 59 | 0 |
+
+The first comparison, main 768275b against the branch at a459995, gave the
+same uncompressed changes: +4,378 and +4,442 bytes of WebAssembly, +1,279 of
+glue each, +1,547 for `lib/session.mjs` and +11,844 unpacked. Only the
+compressed figures differ, because compression depends on the bytes around
+each change: +1,252 and +918 gzipped, and +2,606 for the tarball.
 
 ## 6. Correctness evidence
 
@@ -695,8 +703,9 @@ node experiments/performance-0.1/run.mjs --suite=view-path --engines=wasm --buil
   --target=opt=tree:. --target=main=tree:PATH/TO/main-768275b --out=DIR
 node experiments/performance-0.1/analyze.mjs DIR          # classes.json
 node experiments/performance-opt-0.1/load.mjs DIR         # the keep rules, per job and per repeat
-# Size, then the tables
-node experiments/performance-opt-0.1/size.mjs --base=PATH/TO/main-768275b,PATH/TO/main-768275b/dist \
+# Size, run from a checkout of this branch merged into main 334d1b7, each built with
+# npm run build, then the tables
+node experiments/performance-opt-0.1/size.mjs --base=PATH/TO/main-334d1b7,PATH/TO/main-334d1b7/dist \
   --branch=.,dist --out=experiments/performance-opt-0.1/results/size.json
 node experiments/performance-opt-0.1/report.mjs --run=experiments/performance-opt-0.1/results/view-path-0x3C00 \
   --size=experiments/performance-opt-0.1/results/size.json \

@@ -69,8 +69,9 @@ node experiments/performance-0.1/run.mjs --suite=view-path --engines=wasm --keep
 # Per event class (writes classes.json next to results.json), then the keep rule
 node experiments/performance-0.1/analyze.mjs DIR
 node experiments/performance-opt-0.1/load.mjs DIR
-# Size: each checkout with its `npm run build` output
-node experiments/performance-opt-0.1/size.mjs --base=PATH/TO/checkout-at-768275b,PATH/TO/its/dist \
+# Size: each checkout with its `npm run build` output (RESULTS.md: main 334d1b7,
+# and this branch merged into it)
+node experiments/performance-opt-0.1/size.mjs --base=PATH/TO/base-checkout,PATH/TO/its/dist \
   --branch=.,dist --out=experiments/performance-opt-0.1/results/size.json
 # RESULTS.md's tables
 node experiments/performance-opt-0.1/report.mjs --run=DIR \
