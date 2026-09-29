@@ -5,6 +5,8 @@
 // - statement spans as runtime/src/link.rs statement_spans finds them, and
 //   statements as link.rs statements_of reads them, a last statement without
 //   its `;` included, which is how runtime/src/repeat.rs reads them;
+// - `entity` and `event` declarations as repeat.rs entity_of and
+//   event_declaration read them, with comments blanked and quoted text kept;
 // - `$` substitution in `for` blocks as runtime/src/repeat.rs substitute does,
 //   with `$Q` in a routed rule whose code or quoted text names a member by Q
 //   (spec/caveat-routed-repetition-0.1.md section 10), and the events a
@@ -27,6 +29,29 @@ export const isWhitespace = ch => oneSpace.test(ch);
 // The words of a text, split at whitespace, as Rust's split_whitespace splits
 // them: none empty.
 const wordsOf = text => text.split(spaceRun).filter(Boolean);
+// The words of a text as runtime/src/reactive.rs syntax_word_spans splits
+// them: at whitespace outside quoted text, so quoted text, whitespace and
+// all, is part of one word. A `"` anywhere in a word opens or closes quoted
+// text, and in quoted text a backslash takes the next character.
+function syntaxWordsOf(text) {
+  const words = [];
+  let word = '';
+  let quoted = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (!quoted && isWhitespace(ch)) {
+      if (word) words.push(word);
+      word = '';
+      continue;
+    }
+    word += ch;
+    if (escaped) escaped = false;
+    else if (quoted && ch === '\\') escaped = true;
+    else if (ch === '"') quoted = !quoted;
+  }
+  if (word) words.push(word);
+  return words;
+}
 // A statement without the `;` that ends it (repeat.rs without_terminator).
 const withoutTerminator = code => (code.endsWith(';') ? code.slice(0, -1) : code);
 
@@ -98,6 +123,17 @@ export function codeOf(text, classes, [start, end]) {
   return out;
 }
 
+// A declaration statement as repeat.rs entity_of and event_declaration read
+// it: without the `;` that ends it, then with its comments blanked out and its
+// quoted text kept, as link.rs blank_comments blanks them.
+function declarationOf(statement) {
+  const text = withoutTerminator(statement);
+  const classes = classify(text);
+  let out = '';
+  for (let index = 0; index < text.length; index++) out += classes[index] === 'comment' ? ' ' : text[index];
+  return out;
+}
+
 // A `for` block's header, up to the `{` that opens its body: its KIND, its
 // binding with and without the `$`, and P or nothing.
 const blockHeader = new RegExp(String.raw`^${space}*for${space}+([A-Za-z_]\w*)${space}+as${space}+(\$([A-Za-z_]\w*))`
@@ -152,11 +188,13 @@ function substitute(text, bindings) {
 
 // The members of each kind, in declaration order: every top-level
 // `entity NAME kind KIND at PLACE` statement, a last one without its `;` too
-// (repeat.rs entity_kinds).
+// (repeat.rs entity_kinds). Each is read as repeat.rs entity_of reads it: the
+// statement as declarationOf gives it, quoted text kept, split at whitespace,
+// quoted text or not, into six words.
 function entityKinds(text, classes = classify(text)) {
   const kinds = new Map();
   for (const span of statementsOf(text, classes)) {
-    const words = wordsOf(withoutTerminator(codeOf(text, classes, span)));
+    const words = wordsOf(declarationOf(text.slice(...span)));
     if (words.length !== 6 || words[0] !== 'entity' || words[2] !== 'kind' || words[4] !== 'at') continue;
     if (!kinds.has(words[3])) kinds.set(words[3], []);
     kinds.get(words[3]).push(words[1]);
@@ -175,10 +213,14 @@ function entityKinds(text, classes = classify(text)) {
 // statements that neither binds, declares none.
 export function eventKinds(text, classes = classify(text)) {
   const events = new Map();
-  // As repeat.rs event_declaration reads a statement: its words, the first
-  // `event`, then the name, then the parameters, split at commas.
-  const declare = code => {
-    const [first, name, ...rest] = wordsOf(withoutTerminator(code));
+  // As repeat.rs event_declaration reads a statement: the statement as
+  // declarationOf gives it, quoted text kept, split into words as
+  // syntaxWordsOf splits it, the first `event`, then the name. The other
+  // words, joined with spaces and split at each comma, quoted or not, are the
+  // parameters, each split at whitespace, quoted text or not. A `kind`
+  // parameter is three words, NAME kind KIND.
+  const declare = statement => {
+    const [first, name, ...rest] = syntaxWordsOf(declarationOf(statement));
     if (first !== 'event' || name === undefined || events.has(name)) return;
     events.set(name, rest.join(' ').split(',')
       .map(wordsOf)
@@ -190,7 +232,7 @@ export function eventKinds(text, classes = classify(text)) {
     const code = codeOf(text, classes, span);
     const header = blockHeader.exec(code);
     if (!header) {
-      declare(code);
+      declare(text.slice(...span));
       continue;
     }
     const body = text.slice(span[0] + code.indexOf('{') + 1, span[0] + code.lastIndexOf('}'));
@@ -204,7 +246,7 @@ export function eventKinds(text, classes = classify(text)) {
     const copies = (members.get(header[1]) ?? []).map((member, position) => declarations.map(declaration =>
       substitute(declaration, new Map([[header[3], member], ['index', String(position + 1)]]))));
     if (copies.length === 0 || copies.flat().includes(null)) continue;
-    for (const copy of copies.flat()) declare(codeOf(copy, classify(copy), [0, copy.length]));
+    for (const copy of copies.flat()) declare(copy);
   }
   return events;
 }
