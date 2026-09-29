@@ -1692,6 +1692,50 @@ fn the_same_comparison_twice_is_reported_once() {
 }
 
 #[test]
+fn a_chain_of_selections_is_checked_where_c003_does_not_need_it() {
+    // C003 reports none of these: another conjunct selects the member by
+    // name, the rule is on the member's own event, or C003 is allowed. C004
+    // still checks each comparison with `$index` in the chain. Before the
+    // chain was read, each of them checked clean.
+    for rule in [
+        "on move when to == to.$p and (from == $index or to == $index) set $p_n = $p_n + 1;",
+        "define $p_moved = from == $index or to == $index;\n    on move when to == to.$p and $p_moved set $p_n = $p_n + 1;",
+        "event $p_move from kind plot, to kind plot;\n    on $p_move when from == $index or to == $index set $p_n = $p_n + 1;",
+        "# caveat check: allow unrouted-member-rule\n    on move when from == $index or to == $index set $p_n = $p_n + 1;",
+    ] {
+        let source = relays(rule);
+        assert_eq!(
+            shifted_at_rule(&source),
+            [
+                "east: from names north",
+                "east: to names north",
+                "south: from names east",
+                "south: to names east",
+            ],
+            "{rule}"
+        );
+        assert!(check(&source).suppressed.is_empty(), "{rule}");
+    }
+    // What they describe: a move from south to east does not count for
+    // east, whose copy compares with north.
+    let moved = |rule: &str, event: &str, from: &str, to: &str| {
+        let mut session = ReactiveSession::from_source(&relays(rule)).expect("loads");
+        let values = session
+            .dispatch_json(event, &format!(r#"{{"from":"{from}","to":"{to}"}}"#))
+            .expect("the move is accepted")
+            .values;
+        (values["east_n"], values["south_n"])
+    };
+    let by_name =
+        "on move when to == to.$p and (from == $index or to == $index) set $p_n = $p_n + 1;";
+    assert_eq!(moved(by_name, "move", "south", "east"), (0.0, 0.0));
+    assert_eq!(moved(by_name, "move", "north", "east"), (1.0, 0.0));
+    let own = "event $p_move from kind plot, to kind plot;\n    on $p_move when from == $index or to == $index set $p_n = $p_n + 1;";
+    assert_eq!(moved(own, "east_move", "south", "east"), (0.0, 0.0));
+    assert_eq!(moved(own, "east_move", "north", "south"), (1.0, 0.0));
+}
+
+#[test]
 fn a_shifted_member_index_is_allowed_by_code_or_by_name() {
     for comment in [
         "# caveat check: allow shifted-member-index",

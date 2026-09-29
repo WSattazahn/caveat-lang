@@ -229,23 +229,26 @@ A rule is checked when all of these hold:
 - a top-level conjunct of its `when` guard is `P == E` or `E == P`, where P
   is such a parameter and E reads `$index`, itself or through a define, such
   as `$index`, `$index + 1`, `round($index)`, or `$p_slot` after
-  `define $p_slot = $index;`. Or the conjunct is a chain of `or` that C003
-  counts as routing, and one of its disjuncts is such a comparison, as in
-  `from == $index or to == $index`.
+  `define $p_slot = $index;`. Or the conjunct is a chain of `or` every
+  disjunct of which is a selection, as C003 defines it, and one of its
+  disjuncts is such a comparison, as in `from == $index or to == $index`.
 
 The conjuncts and their disjuncts are read as C003 reads them, defines
 included, so `define $p_here = target == $index;` followed by
 `on read when $p_here` is checked. A define E reads through is one outside a
 block, or one written in a block over the same KIND, whatever its binding, as
 for C003. A rule on an event written with `$NAME` or `$index`, such as
-`on $p_read`, is checked too: its copy still compares P with `$index`.
+`on $p_read`, is checked too: its copy still compares P with `$index`. So is
+a rule whose guard has another conjunct that selects the member, as in
+`to == to.$p and (from == $index or to == $index)`. C003 does not need the
+chain of `or` there, and C004 still checks each of its comparisons.
 
 In each member's copy, E comes to a number: the check works it out from the
 member's `$index`, numbers, defines, and calls to functions, the prelude's
 and the program's. The copy runs when P names the entity that P gives that
 number. Each such comparison in the guard is checked on its own: each
 top-level conjunct that is one, and each disjunct that is one in a chain of
-`or` that C003 counts. A chain holds when any of its disjuncts does, so each
+`or` of selections. A chain holds when any of its disjuncts does, so each
 disjunct is a way the copy runs. In
 `(from == $index or to == $index) and via == $index`, and with its conjuncts
 in the other order, the comparisons of `from`, `to` and `via` are each
@@ -294,8 +297,8 @@ It does not check:
   or `target == target.east`;
 - `$index` reached some other way: through a state, as in
   `target == $p_slot` after `state $p_slot = $index;`, or in a comparison
-  that is neither a top-level conjunct nor a disjunct of a chain of `or` that
-  C003 counts. C003 reports such a rule, as it does
+  that is neither a top-level conjunct nor a disjunct of a chain of `or` of
+  selections. C003 reports such a rule, as it does
   `target == $index or $p_n > 5`, unless another conjunct selects the member
   or the rule is on the member's own event. Then nothing reports it: in
   `to == to.$p and (from == $index or $p_n > 5)`, `from == $index` is not
@@ -407,20 +410,27 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
   rule guarded by `P == $index or Q == $index` is no longer reported
   ([routed repetition](caveat-routed-repetition-0.1.md) section 8). C004
   checks every comparison of P with an E that reads `$index`: each top-level
-  conjunct that is one, and each disjunct that is one in a chain of `or` that
-  C003 counts, in whatever order they are written. Before, it checked only
-  the first top-level conjunct that was one. With north declared in a block
-  before east and south, `via == $index + 1 and from == $index` got no C004,
-  while the same guard with its conjuncts swapped got C004 for east and for
-  south on `from`. Both now get those two. Every C004 reported before is
-  reported now, and the same P compared with the same number twice in one
-  copy is reported once. Of the repository's 106 `.cav` files, the 80 that
-  load report exactly what they did before, 7 C001 and 4 C003 warnings: none
-  selects a member under `or`, and none declares an entity in a `for` block.
-  A program that warned before may now check clean. A chain of `or` that got
-  C003, and one allowed on purpose, may now get C004 instead, where a
-  disjunct selects by a shifted `$index`: with north declared as above,
-  `from == $index or to == $index` got C003 for east and for south, and now
-  gets C004 for each on `from` and on `to`. A guard that compares with
-  `$index` in more than one conjunct may get more C004 warnings. Either may
-  now fail with `--strict`.
+  conjunct that is one, and each disjunct that is one in a chain of `or` of
+  selections, in whatever order they are written. It checks such a chain
+  even where C003 does not need it, because another conjunct selects the
+  member or the rule is on the member's own event. Before, it checked only
+  the first top-level conjunct that was one, and no chain of `or`. Every C004
+  reported before is reported now, and the same P compared with the same
+  number twice in one copy is reported once. Of the repository's 106 `.cav`
+  files, the 80 that load report exactly what they did before, 7 C001 and 4
+  C003 warnings: none selects a member under `or`, and none declares an
+  entity in a `for` block. A program that warned before may now check clean.
+  A program that checked clean before may now warn, and fail with `--strict`,
+  where a comparison that C004 did not read selects by a shifted `$index`.
+  With north declared in a block before east and south, each of these rules
+  got no C004 before, and now gets it for east and for south.
+  `via == $index + 1 and from == $index` gets it on `from`; with its
+  conjuncts swapped, it already did. `from == $index or to == $index` gets it
+  on `from` and on `to`. It got C003 instead, or nothing where it was allowed
+  on purpose. `to == to.$p and (from == $index or to == $index)` gets it on
+  `from` and on `to`. It got nothing: C003 found its selection in
+  `to == to.$p`. `from == $index or to == $index` on the member's own event,
+  such as `on $p_move`, gets it on `from` and on `to`. It got nothing: C003
+  does not check a rule on the member's own event. A rule that got C004
+  before may get more: `from == $index and to == $index` got it on `from`,
+  and now gets it on `to` as well.
