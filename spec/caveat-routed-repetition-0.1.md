@@ -719,8 +719,11 @@ K may be KIND, as in Before the Rain, or another kind. `$Q` composes as
 that is not routed, and not in a declaration, a `define`, a `bind`, a `cue`,
 a `proc` body or a rule on an event written with `$NAME` or `$index`. There a
 `$` word that no binding of the block's own begins is refused, as before
-(section 7). To share steps, a routed rule passes the
-members' symbols to a procedure, as in `call recant(ev_$w, ev_$shown)`.
+(section 7). A rule's text runs from its `on` to its `;`, comments inside it
+included. A comment on the line above a rule, or after its `;`, is not part of
+the rule, and a `$Q` there is refused as not bound. A routed rule may pass the
+members' symbols to a procedure, as in `call recant(ev_$w, ev_$shown)`, at the
+cost described below.
 
 The pass reads each `$` word of a routed rule in order, comments blanked and
 quoted text included. The longest of `$NAME` and `$index` that begins the
@@ -787,7 +790,12 @@ A rule that uses `$Q` is written W×|K| times, for a block of W members. Each
 copy spends a step of the event's work whether its route holds or not, as
 every rule on the event does. In Before the Rain, the rules on `confront` went
 from 86 to 135, and an accepted `confront` took 10 to 14 µs longer, 7 to 10
-percent, in three runs of the WebAssembly runtime under Node.
+percent, in three runs of the WebAssembly runtime under Node. A copy of a rule
+whose effect is a `call` costs more when its route stops it: it still walks
+every step of the procedure ([procedures](caveat-reactive-0.7.md)), which the
+count below does not include. Such a program can load and then have every
+event refused as `limit/work_limit`. Evidence and other symbol arguments also
+specialize the procedure once for each pair of members, at most 1024.
 
 The pass counts that work when the program loads. For each event that a rule
 using `$Q` is on, it counts the block's rules on the event: W×|K| for each
@@ -848,9 +856,10 @@ that selection is a separate question.
   `kind` parameter of its event begins too, longer, or as long and not P,
   such as `$shown_n` in a block bound `$s` and routed by `about`. It read as
   the member's name followed by `hown_n`. No program in the repository has
-  one. Of the programs that did not load, a `$` word that a parameter of the
-  rule's event begins is refused with a message that says why, where it was
-  refused as not bound. Event declarations are read without the block's
+  one. Of the programs that did not load, a `$` word in a routed rule that a
+  `kind` parameter of its event begins is refused with a message that says
+  why, where it was refused as not bound. Elsewhere, and for other parameters,
+  the message is the one before. Event declarations are read without the block's
   rules, so a program that does not load may report another error first.
   Nothing changes in the runtime, snapshots or saves. In 3,000 random
   histories of 30 events, Before the Rain rewritten this way left the same

@@ -261,11 +261,18 @@ A rule about the trace alone belongs in a block routed by `trace`, as the
 first block is. A rule must still name its own member, by `$w` or `$index`,
 and it names a member by one other parameter at most.
 
-To share steps, pass the members' symbols to a procedure, as in
-`call recant(ev_$w, ev_$trace)`: each copy calls it for its own pair. A
-procedure written for each witness instead, and called from the trace block,
-costs a line per witness, and it widens lineage: the trace shown enters the
-witness's records even when no one recants.
+A `call` in such a rule costs more than a step. Every copy that its route
+stops still walks the procedure's steps, and the loader's count does not
+include them, so a program can load and then have every event refused at the
+work limit. Evidence arguments also make a copy of the procedure for each
+pair, at most 1024. Keep procedures in these rules short, or write the steps
+in the rule. A procedure written for each witness instead, and called from the
+trace block, costs a line per witness, and it widens lineage: the trace shown
+enters the witness's records even when no one recants.
+
+A comment is part of a rule only between its `on` and its `;`. A `$trace` in
+a comment on the line above the rule, or after its `;`, is refused as not
+bound.
 
 The two members can be of one kind. In
 [Before the Rain](../game/before_the_rain.cav), `confront` names an exhibit

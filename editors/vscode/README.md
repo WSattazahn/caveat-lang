@@ -65,7 +65,8 @@ The package lands in `test-results/vscode/`.
   a dot, which are always properties.
 - Repetition: in a `for KIND as $NAME { … }` body, routed by P or not, every
   substituted `$NAME` and `$index`, and, in a routed rule, `$Q` for a `kind`
-  parameter Q of its event, in code, quoted text and comments alike. A `$` outside a
+  parameter Q of its event, in code, quoted text and comments inside the rule
+  (between its `on` and its `;`) alike. A `$` outside a
   `for` body is marked invalid, since the runtime refuses it.
 
 ## How it is tested

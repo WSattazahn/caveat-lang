@@ -336,6 +336,7 @@ what keeps the expansion checkable and the generated program ordinary.
   routed by, such as `$shown_n` in a block bound `$s` and routed by `about`.
   It read as the member's name followed by `hown_n`. No program in the
   repository has one. In a plain block, such a word reads as before. Of the
-  programs that did not load, a `$` word in an `on` rule that a parameter of
-  its event begins is refused with a message that says why, where it was
-  refused as not bound.
+  programs that did not load, a `$` word in a routed rule that a `kind`
+  parameter of its event begins is refused with a message that says why,
+  where it was refused as not bound. Elsewhere, and for other parameters, the
+  message is the one before.
