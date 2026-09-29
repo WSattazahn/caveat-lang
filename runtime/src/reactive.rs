@@ -54,7 +54,8 @@ pub use check::{check_source, CheckReport, Diagnostic, Related, CHECK_SCHEMA};
 use identifiers::{Identifiers, MAX_IDENTIFIER_LIMIT};
 use outcome::DispatchFailure;
 pub use outcome::{
-    DispatchFatal, DispatchOutcome, DispatchResult, RejectionCode, RejectionOrigin, DISPATCH_SCHEMA,
+    DispatchFatal, DispatchOutcome, DispatchResult, DispatchViewOutcome, DispatchViewResult,
+    RejectionCode, RejectionOrigin, DISPATCH_SCHEMA,
 };
 
 /// Compile the standard library through the same parser and function checker
@@ -2880,15 +2881,35 @@ impl ReactiveSession {
         event: &str,
         payload_json: &str,
     ) -> Result<DispatchOutcome, DispatchFatal> {
-        let result =
-            self.resolve_payload(event, payload_json)
-                .and_then(|(payload, new_identifiers)| {
-                    self.apply_classified(event, &payload, new_identifiers)
-                });
-        match result {
+        match self.dispatch_classified(event, payload_json) {
             Ok(()) => Ok(DispatchOutcome::accepted(self.snapshot())),
             Err(failure) => failure.outcome(),
         }
+    }
+
+    /// `dispatch_outcome_json` with the view after an accepted event in place
+    /// of the snapshot, which is not built. The same transaction; a refusal
+    /// or fatal error is exactly the one `dispatch_outcome_json` returns.
+    pub fn dispatch_view_outcome_json(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<DispatchViewOutcome<'_>, DispatchFatal> {
+        match self.dispatch_classified(event, payload_json) {
+            Ok(()) => Ok(DispatchViewOutcome::accepted(self.view())),
+            Err(failure) => failure.view_outcome(),
+        }
+    }
+
+    /// The transaction both outcome entry points run: resolve the payload,
+    /// then apply the event. A failure leaves the session as it was.
+    fn dispatch_classified(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<(), DispatchFailure> {
+        let (payload, new_identifiers) = self.resolve_payload(event, payload_json)?;
+        self.apply_classified(event, &payload, new_identifiers)
     }
 
     /// Parse a JSON payload and turn each typed parameter's name into its

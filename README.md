@@ -68,7 +68,9 @@ The reactive runtime also offers [structured dispatch outcomes](spec/caveat-disp
 `dispatch_outcome` distinguishes an authored policy rejection from invalid input,
 state-bound failure and execution-budget exhaustion. Unclassified errors remain
 fatal. Existing dispatch methods retain their behavior; new integrations can use
-the explicit outcome contract when testing why an event was refused.
+the explicit outcome contract when testing why an event was refused. A host that
+redraws from the view uses `dispatch_view_outcome` (`session.dispatchView` in the
+developer kit): the same outcome, with the view in place of the snapshot.
 
 ## What only Caveat does
 

@@ -39,6 +39,11 @@ function dispatch(session, event, payload = '{}') {
 
 function rejected(session, event, payload, origin, code) {
   const before = checkpoint(session);
+  // The view path refuses the same event with the same text and changes
+  // nothing, so the refusal below runs on the same session.
+  const viewed = session.dispatch_view_outcome(event, payload);
+  assert.deepEqual(checkpoint(session), before, `${event} ${payload} changes nothing on the view path`);
+  assert.equal(viewed, session.dispatch_outcome(event, payload), `${event} ${payload} is the same refusal on the view path`);
   const result = dispatch(session, event, payload);
   assert.equal(result.outcome, 'rejected');
   assert.equal(result.origin, origin);
@@ -139,6 +144,7 @@ try {
     const { default: init, WebReactiveSession } = await import(new URL(modulePath, root));
     await init({ module_or_path: wasm });
     assert.equal(typeof WebReactiveSession.prototype.dispatch_outcome, 'function', 'Rebuild the WASM bridge');
+    assert.equal(typeof WebReactiveSession.prototype.dispatch_view_outcome, 'function', 'Rebuild the WASM bridge');
     const check = (name, run) => {
       run();
       result.checks.push(`${variant}: ${name}`);
@@ -167,6 +173,26 @@ try {
           }
         }
       });
+    });
+
+    // Dispatch 0.1, the view path: an accepted event returns the view the
+    // session then shows, byte for byte, and the paths leave the same session.
+    check('an accepted view outcome is the view after the same transaction', () => {
+      for (const [source, events] of [
+        [acceptedSource, [['idle', '{}'], ['read', '{"value":0.5}'], ['idle', '{}']]],
+        [policySources[0][1], [['advance', '{"dt":0.1}'], ['read', '{}'], ['advance', '{"dt":1}'], ['advance', '{"dt":1}'], ['advance', '{"dt":0.5}']]],
+      ]) {
+        withSessions(source, 2, (outcome, viewed) => {
+          for (const [event, payload] of events) {
+            const wire = viewed.dispatch_view_outcome(event, payload);
+            assert.equal(wire, `{"schema":"${schema}","outcome":"accepted","view":${viewed.view()}}`);
+            assert.equal(dispatch(outcome, event, payload).outcome, 'accepted');
+            assert.equal(viewed.save(), outcome.save());
+            assert.equal(viewed.snapshot(), outcome.snapshot());
+            assert.equal(viewed.view(), outcome.view());
+          }
+        });
+      }
     });
 
     check('release clock-only bindings follow the fractional timetable', () => {
@@ -522,6 +548,11 @@ try {
           });
           // Discard the session after a fatal. No read or retry assumes that a
           // thrown WASM exception left it usable.
+        });
+        withSessions(source, 2, (session, viewed) => {
+          let expected;
+          assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => { expected = thrown; return true; });
+          assert.throws(() => viewed.dispatch_view_outcome('run', '{}'), thrown => thrown === expected, 'the same fatal report on the view path');
         });
       });
     }

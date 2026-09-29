@@ -63,9 +63,11 @@ export function payloadText(payload) {
   return JSON.stringify(payload);
 }
 
-function validOutcome(outcome) {
+// accepted names what an accepted outcome carries: dispatch() the snapshot,
+// dispatchView() the view.
+function validOutcome(outcome, accepted = 'snapshot') {
   if (!outcome || outcome.schema !== DISPATCH_SCHEMA) return false;
-  if (outcome.outcome === 'accepted') return isPlainObject(outcome.snapshot);
+  if (outcome.outcome === 'accepted') return isPlainObject(outcome[accepted]);
   if (outcome.outcome === 'rejected') {
     return ORIGINS.includes(outcome.origin) && typeof outcome.code === 'string' && typeof outcome.message === 'string';
   }
@@ -133,6 +135,31 @@ export class CaveatSession {
     return outcome;
   }
 
+  // The same transaction, payload handling and failures as dispatch(), with the
+  // view in place of the snapshot: {outcome: "accepted", view}, where view is
+  // what view() returns after the event, or the rejected outcome dispatch()
+  // returns. The runtime does not build the snapshot. A runtime build that
+  // predates it throws CaveatError("load") and the session is untouched.
+  dispatchView(event, payload = {}) {
+    this.#usable();
+    if (typeof this.#inner.dispatch_view_outcome !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no dispatch_view_outcome; it predates dispatchView');
+    }
+    if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
+    const text = payloadText(payload);
+    let raw;
+    try { raw = this.#inner.dispatch_view_outcome(event, text); } catch (error) { throw this.#fail(error); }
+    let outcome;
+    try { outcome = JSON.parse(raw); } catch { throw this.#fail(new CaveatError('fatal', 'dispatchView returned text that is not JSON')); }
+    if (!validOutcome(outcome, 'view')) {
+      // Not a fatal report either: keep what arrived for diagnostics only.
+      const error = new CaveatError('fatal', `unrecognised dispatch outcome: ${String(raw).slice(0, 200)}`);
+      error.received = outcome;
+      throw this.#fail(error);
+    }
+    return outcome;
+  }
+
   snapshotText() { return this.#json(() => this.#inner.snapshot(), 'snapshot').text; }
   snapshot() { return this.#json(() => this.#inner.snapshot(), 'snapshot').value; }
   viewText() { return this.#json(() => this.#inner.view(), 'view').text; }
@@ -169,7 +196,7 @@ function lifecycleOf(SessionClass) {
 // SessionClass is the runtime's WebReactiveSession, or a stand-in with the same
 // methods: new SessionClass(source), SessionClass.restore(source, saved),
 // dispatch_outcome, snapshot, view, save and free, and optionally
-// SessionClass.check(source).
+// dispatch_view_outcome (for dispatchView) and SessionClass.check(source).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);
   const refuse = () => new CaveatError('fatal', 'this runtime instance trapped; load a fresh one');

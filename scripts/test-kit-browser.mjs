@@ -1,7 +1,7 @@
 // Runs the developer kit's session library and scenario runner inside a real
-// browser: load the WebAssembly runtime from URLs, dispatch, refuse bad input
-// without changing state, save and restore, read elapsed(), and run scenario
-// files with fetch. Run after `npm run build`.
+// browser: load the WebAssembly runtime from URLs, dispatch, and dispatch for a
+// view, refuse bad input without changing state, save and restore, read
+// elapsed(), and run scenario files with fetch. Run after `npm run build`.
 //
 //   node scripts/test-kit-browser.mjs      PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //
@@ -48,6 +48,14 @@ try {
   const malformed = session.dispatch('read', { value: 'x' });
   results.malformedKeepsState = malformed.code === 'payload_invalid' && session.save() === before;
   try { session.dispatch('read', { value: NaN }); results.payloadRefused = false; } catch (error) { results.payloadRefused = error.kind === 'payload'; }
+  // dispatchView: the same events, the view in place of the snapshot.
+  const viewed = runtime.open(source);
+  const shown = viewed.dispatchView('read', { value: 17 });
+  results.dispatchViewAccepted = shown.outcome === 'accepted' && !Object.hasOwn(shown, 'snapshot')
+    && JSON.stringify(shown.view) === JSON.stringify(viewed.view()) && JSON.stringify(shown.view) === JSON.stringify(session.view())
+    && viewed.save() === before;
+  results.dispatchViewRefusal = JSON.stringify(viewed.dispatchView('read', { value: 41 })) === JSON.stringify(refused) && viewed.save() === before;
+  viewed.close();
   const resumed = runtime.restore(source, session.save());
   results.restoreMatches = JSON.stringify(resumed.snapshot()) === JSON.stringify(session.snapshot());
   results.resumedAgrees = JSON.stringify(resumed.dispatch('read', { value: 25 })) === JSON.stringify(session.dispatch('read', { value: 25 }));
@@ -143,7 +151,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'restoreMatches', 'resumedAgrees', 'elapsed', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }

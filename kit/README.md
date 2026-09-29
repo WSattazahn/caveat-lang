@@ -183,13 +183,21 @@ resumed.close();
 In the repository, import from `./kit/lib/node.mjs` instead; its default runtime
 is the build in `dist/pkg-reactive`.
 
+A host that redraws from the view after every event can call
+`session.dispatchView(event, payload)` instead of `dispatch` and then `view`.
+It runs the same event and returns `{outcome: "accepted", view}`, where `view`
+is what `session.view()` then returns, or the same rejected outcome as
+`dispatch`. The runtime does not build the snapshot for it. Its payload checks
+and failures are `dispatch`'s, and after the same events either way the session
+is the same.
+
 Rejections are values, following the
 [dispatch outcome contract](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/spec/caveat-dispatch-0.1.md). Everything else
 throws a `CaveatError` with a `kind`:
 
 | `kind` | Meaning |
 | --- | --- |
-| `load` | The source did not load; the message is the runtime's diagnostic. |
+| `load` | The source did not load; the message is the runtime's diagnostic. `dispatchView` also throws it on a runtime build that predates it, and the session is untouched. |
 | `restore` | The save does not restore with this source. |
 | `payload` | The payload cannot be sent unchanged as JSON (a non-finite number, `undefined`, a hole in an array, a class instance). The session is untouched. |
 | `fatal` | An unclassified runtime error, an unrecognised outcome, runtime text that is not JSON, or a trap. The session refuses every later call and is never touched again. |
@@ -224,6 +232,10 @@ These commands run from a repository checkout, after `npm run build`.
   `$includes`, and `before` defined only after the first `send`;
 - the session library: typed outcomes, payload refusal, fatal and trapped
   sessions, and a runtime that predates `dispatch_outcome`;
+- `dispatchView` against `dispatch` and `view`, event by event: the same
+  outcome, view, save and snapshot for every refusal code, fatal outcomes,
+  every tracked program on a seeded random stream, and the Glowcap, agent
+  ledger and Trail Rescue streams;
 - injected runtime faults: a rejection that changes state, a restore that
   loses history, a resumed session that diverges or disagrees, grounds outside
   lineage, fatal reports, unrecognised outcomes and traps. Each is caught and
