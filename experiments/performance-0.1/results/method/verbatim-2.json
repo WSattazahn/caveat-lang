@@ -1,0 +1,449 @@
+{
+ "schema": "caveat-performance-verbatim/0.1",
+ "command": "node experiments/glowcap/harness.mjs --bench",
+ "startedAt": "2026-09-29T09:11:27.102Z",
+ "machine": {
+  "platform": "win32",
+  "arch": "x64",
+  "release": "10.0.26200",
+  "cpuModel": "Intel(R) Core(TM) Ultra 9 275HX",
+  "logicalProcessors": 24,
+  "totalMemoryBytes": 68112736256,
+  "windows": {
+   "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+   "cores": 24,
+   "logicalProcessors": 24,
+   "maxClockMHz": 2700,
+   "os": "Microsoft Windows 11 Home",
+   "osVersion": "10.0.26200",
+   "osBuild": "26200",
+   "ramBytes": 68112736256,
+   "powerScheme": "Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)",
+   "batteryStatus": 2,
+   "cpuSets": "0:0:1:2:0,1:1:1:2:0,2:2:0:1:0,3:3:0:1:0,4:4:0:1:0,5:5:0:1:0,6:6:0:1:0,7:7:0:1:0,8:8:0:1:0,9:9:0:1:0,10:10:1:2:0,11:11:1:2:0,12:12:1:2:0,13:13:1:3:0,14:14:0:1:0,15:15:0:1:0,16:16:0:1:0,17:17:0:1:0,18:18:0:1:0,19:19:0:1:0,20:20:0:1:0,21:21:0:1:0,22:22:1:2:0,23:23:1:0:0"
+  },
+  "performanceCores": [
+   0,
+   1,
+   10,
+   11,
+   12,
+   13,
+   22,
+   23
+  ],
+  "cpuSetList": [
+   {
+    "logicalProcessor": 0,
+    "core": 0,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 1,
+    "core": 1,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 2,
+    "core": 2,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 3,
+    "core": 3,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 4,
+    "core": 4,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 5,
+    "core": 5,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 6,
+    "core": 6,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 7,
+    "core": 7,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 8,
+    "core": 8,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 9,
+    "core": 9,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 10,
+    "core": 10,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 11,
+    "core": 11,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 12,
+    "core": 12,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 13,
+    "core": 13,
+    "efficiencyClass": 1,
+    "schedulingClass": 3,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 14,
+    "core": 14,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 15,
+    "core": 15,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 16,
+    "core": 16,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 17,
+    "core": 17,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 18,
+    "core": 18,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 19,
+    "core": 19,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 20,
+    "core": 20,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 21,
+    "core": 21,
+    "efficiencyClass": 0,
+    "schedulingClass": 1,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 22,
+    "core": 22,
+    "efficiencyClass": 1,
+    "schedulingClass": 2,
+    "lastLevelCache": 0
+   },
+   {
+    "logicalProcessor": 23,
+    "core": 23,
+    "efficiencyClass": 1,
+    "schedulingClass": 0,
+    "lastLevelCache": 0
+   }
+  ]
+ },
+ "pinning": {
+  "affinity": "0x3C00",
+  "affinitySet": null,
+  "priority": "high",
+  "how": "cmd /c start /b /wait"
+ },
+ "loadBefore": {
+  "totalCpuPercent": [
+   7,
+   5,
+   0
+  ],
+  "busiestProcesses": [
+   {
+    "name": "claude",
+    "pid": 95512,
+    "cpuSeconds": 1.5
+   },
+   {
+    "name": "powershell",
+    "pid": 13040,
+    "cpuSeconds": 0.656
+   },
+   {
+    "name": "claude",
+    "pid": 104712,
+    "cpuSeconds": 0.5
+   },
+   {
+    "name": "ChatGPT",
+    "pid": 8524,
+    "cpuSeconds": 0.234
+   },
+   {
+    "name": "IntelGraphicsSoftware",
+    "pid": 14784,
+    "cpuSeconds": 0.141
+   },
+   {
+    "name": "bash",
+    "pid": 86220,
+    "cpuSeconds": 0.094
+   }
+  ]
+ },
+ "trees": [
+  {
+   "label": "main",
+   "directory": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF",
+   "revision": "d9c935898e65ecb5881ed69eb6af1293fe2eeed4",
+   "files": {
+    "experiments/glowcap/harness.mjs": "66d37e5b212764a2862b890d1b4a1e3d47ac81ceeaefac346928d152fbe970ae",
+    "experiments/glowcap/caveat5/adapter.mjs": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
+    "experiments/glowcap/caveat5/glowcap.cav": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e",
+    "dist/pkg-reactive/caveat_runtime_bg.wasm": "e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde",
+    "dist/pkg-reactive/caveat_runtime.js": "9066c9a19dcba3f0ae7d8c8e15d4de1d10bb06c09ea9ab1fd9e7026d2e55bcb8",
+    "dist/pkg/caveat_runtime_bg.wasm": "ed4a45e69c92d5916bdf683ff282c6f3ba7c79c8eee3b5d2e1f448cfa0411344",
+    "dist/pkg/caveat_runtime.js": "066f035632eee8929ede2601dcee0d0137390bfcabdccf2004c9d71c1433e766"
+   },
+   "buildInfo": {
+    "revision": "dbfd2e36e75b8f3443e2889f6a6bf8171f7c8857",
+    "clean": false,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+   }
+  }
+ ],
+ "runs": [
+  {
+   "tree": "main",
+   "affinity": "0x3C00",
+   "repeat": 0,
+   "seconds": 16.023,
+   "startedAtMs": 1790673094498,
+   "endedAtMs": 1790673110521,
+   "status": 0,
+   "lines": {
+    "ts": {
+     "median": 2.2,
+     "p95": 4.5,
+     "max": 1036
+    },
+    "caveat": {
+     "median": 108.7,
+     "p95": 127.6,
+     "max": 4373.8
+    },
+    "caveat2": {
+     "median": 147.2,
+     "p95": 166.8,
+     "max": 756.8
+    },
+    "caveat3": {
+     "median": 34.2,
+     "p95": 41,
+     "max": 4178.7
+    },
+    "caveat4": {
+     "median": 162.2,
+     "p95": 178.6,
+     "max": 1028.8
+    },
+    "caveat5": {
+     "median": 45.3,
+     "p95": 51,
+     "max": 383.8
+    }
+   },
+   "stdout": "ts     dispatch+view µs  median 2.2  p95 4.5  max 1036.0\ncaveat dispatch+view µs  median 108.7  p95 127.6  max 4373.8\ncaveat2 dispatch+view µs  median 147.2  p95 166.8  max 756.8\ncaveat3 dispatch+view µs  median 34.2  p95 41.0  max 4178.7\ncaveat4 dispatch+view µs  median 162.2  p95 178.6  max 1028.8\ncaveat5 dispatch+view µs  median 45.3  p95 51.0  max 383.8\nts     shipped 11586 bytes (3470 gzipped)\ncaveat shipped 2349886 bytes (661966 gzipped)\ncaveat2 shipped 2354425 bytes (662834 gzipped)\ncaveat3 shipped 2078769 bytes (586052 gzipped)\ncaveat4 shipped 2082734 bytes (586846 gzipped)\ncaveat5 shipped 2080132 bytes (586479 gzipped)\n",
+   "stderr": "",
+   "cores": {
+    "samples": 15,
+    "cores": {
+     "10": {
+      "busyPercent": 12.7,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "11": {
+      "busyPercent": 12.2,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "12": {
+      "busyPercent": 10.2,
+      "mhzWhileBusy": null,
+      "busySamples": 0
+     },
+     "13": {
+      "busyPercent": 99.4,
+      "mhzWhileBusy": 3791.8,
+      "busySamples": 15
+     }
+    }
+   }
+  }
+ ],
+ "runsJsonl": [],
+ "loadDuring": {
+  "what": "typeperf every 1 s for the whole run",
+  "samples": 15,
+  "counters": {
+   "total": {
+    "samples": 15,
+    "mean": 8,
+    "p95": 9.6,
+    "max": 10.2
+   },
+   "processor 10": {
+    "samples": 15,
+    "mean": 12.7,
+    "p95": 17.6,
+    "max": 22.6
+   },
+   "processor 11": {
+    "samples": 15,
+    "mean": 12.2,
+    "p95": 17.7,
+    "max": 19.2
+   },
+   "processor 12": {
+    "samples": 15,
+    "mean": 10.2,
+    "p95": 14.8,
+    "max": 26.9
+   },
+   "processor 13": {
+    "samples": 15,
+    "mean": 99.4,
+    "p95": 100,
+    "max": 100
+   },
+   "processor 10 MHz": {
+    "samples": 15,
+    "mean": 4191.5,
+    "p95": 4323,
+    "max": 4370.6
+   },
+   "processor 11 MHz": {
+    "samples": 15,
+    "mean": 4068.5,
+    "p95": 4280.9,
+    "max": 4339.5
+   },
+   "processor 12 MHz": {
+    "samples": 15,
+    "mean": 3974,
+    "p95": 4091.5,
+    "max": 4206.4
+   },
+   "processor 13 MHz": {
+    "samples": 15,
+    "mean": 3791.8,
+    "p95": 3832.5,
+    "max": 3845.4
+   }
+  },
+  "totalAbove10Percent": 1,
+  "totalAbove25Percent": 0,
+  "pinnedSumAbove150Percent": 1
+ },
+ "loadAfter": {
+  "totalCpuPercent": [
+   9,
+   1,
+   0
+  ],
+  "busiestProcesses": [
+   {
+    "name": "claude",
+    "pid": 95512,
+    "cpuSeconds": 1.359
+   },
+   {
+    "name": "powershell",
+    "pid": 47520,
+    "cpuSeconds": 1.016
+   },
+   {
+    "name": "powershell",
+    "pid": 81984,
+    "cpuSeconds": 0.672
+   },
+   {
+    "name": "claude",
+    "pid": 104712,
+    "cpuSeconds": 0.438
+   },
+   {
+    "name": "Reallusion Hub",
+    "pid": 70736,
+    "cpuSeconds": 0.188
+   },
+   {
+    "name": "ChatGPT",
+    "pid": 8524,
+    "cpuSeconds": 0.172
+   }
+  ]
+ },
+ "finishedAt": "2026-09-29T09:11:55.863Z"
+}

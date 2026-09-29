@@ -1,0 +1,150 @@
+{
+  "schema": "caveat-performance-inputs/0.1",
+  "published": {
+    "dispatchPlusView": {
+      "medianUs": 51.6,
+      "p95Us": 59.1,
+      "maxUs": 646.7,
+      "command": "node experiments/glowcap/harness.mjs --bench",
+      "method": "experiments/glowcap/harness.mjs bench(): 3 rounds of 10,000 events on a fresh createPolicy() each, no warm-up; each sample is process.hrtime.bigint() around policy.dispatch(event); policy.view(); the 30,000 samples pooled; quantile samples[floor(p*(n-1))]",
+      "evidence": "experiments/glowcap/evidence/round6-replay.json timing.dispatchAndShippedOutput",
+      "repositoryRevision": "e6ace96ebc25b80a249b879270b96730ac310eed",
+      "runtimeRevision": "8d8596acce8bebe3cdf2fe17e4d02f93eddc18ff",
+      "reactiveWasmSha256": "d897787f414a5020d5d99f387d9da6c874a3512580a1f4db96221fec223fcd97",
+      "citedIn": ["experiments/glowcap/RESULTS.md:472", "README.md:108", "web/about.html:174"]
+    },
+    "resume": {
+      "medianMs": 3.2416,
+      "samplesMs": [7.154, 3.2416, 3.1401],
+      "saveBytes": 2045,
+      "command": "node experiments/glowcap/resume-bench.mjs",
+      "method": "experiments/glowcap/resume-bench.mjs: absorb, 9,600 ticks of dt 0.0625, save; timed JSON.parse(save) + createPolicy(saved) + view(); 3 runs, median sorted[1]",
+      "evidence": "experiments/glowcap/evidence/round6-replay.json timing.resume (caveat5)",
+      "citedIn": ["experiments/glowcap/RESULTS.md:473"]
+    }
+  },
+  "workloads": [
+    {
+      "id": "glowcap-replay",
+      "role": "primary",
+      "description": "The Glowcap replay program and the exact event stream behind the published 51.6 us figure (experiments/glowcap/harness.mjs bench(), runtime/examples/profile_dispatch.rs): absorb cave glowcap, absorb pool duskcap, taste ruin glowcap, then 9,997 ticks of dt 0.05.",
+      "program": { "path": "experiments/glowcap/caveat5/glowcap.cav", "sha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e" },
+      "adapter": { "path": "experiments/glowcap/caveat5/adapter.mjs", "sha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406", "events": "glowcap" },
+      "episodes": {
+        "generate": {
+          "prefix": [
+            ["absorb", { "target": "cave", "sort": "glowcap" }],
+            ["absorb", { "target": "pool", "sort": "duskcap" }],
+            ["taste", { "target": "ruin", "sort": "glowcap" }]
+          ],
+          "fill": ["tick", { "dt": 0.05 }],
+          "length": 10000
+        }
+      },
+      "streamSha256": "4089c5d81e6f4df8789e98c473b373888661d8760b391861f73f63021369b519",
+      "segments": [
+        { "name": "observations", "from": 0, "to": 3, "why": "the three observation events" },
+        { "name": "decay", "from": 3, "to": 603, "why": "glow (30 s) and heavy (20 s) still counting down at 0.05 s a tick" },
+        { "name": "transition", "from": 603, "to": 1300, "why": "idle ticks, the cave and pool regrowth (45 s after eating) and the ruin taste's fade (60 s)" },
+        { "name": "steady", "from": 1300, "to": 10000, "why": "idle ticks: nothing decays, regrows or fades; 87% of the stream and so the pooled median" }
+      ]
+    },
+    {
+      "id": "glowcap-resume",
+      "role": "save and restore",
+      "description": "The published resume measurement's stream (experiments/glowcap/resume-bench.mjs): absorb cave glowcap, then 9,600 ticks of dt 0.0625 (ten minutes of play), then save and restore.",
+      "program": { "path": "experiments/glowcap/caveat5/glowcap.cav", "sha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e" },
+      "adapter": { "path": "experiments/glowcap/caveat5/adapter.mjs", "sha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406", "events": "glowcap" },
+      "episodes": {
+        "generate": {
+          "prefix": [["absorb", { "target": "cave", "sort": "glowcap" }]],
+          "fill": ["tick", { "dt": 0.0625 }],
+          "length": 9601
+        }
+      },
+      "streamSha256": "0407c19120d435254fcf48cdf191f093642c9afdc4be6d8b81771800fe4a4081"
+    },
+    {
+      "id": "glowcap-unbound",
+      "role": "binding evaluation (synthetic)",
+      "description": "The Glowcap replay program with its 39 one-line bind statements removed, on the replay's full stream: the same rules, states and transaction with no bindings to evaluate, so apply here against apply on glowcap-replay isolates binding evaluation.",
+      "program": { "path": "experiments/glowcap/caveat5/glowcap.cav", "sha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e", "withoutBindings": true, "generatedSha256": "ffa078c4cb752a50ea2d790243925ed21a78115c212c65df2ad15598899e1af3" },
+      "episodes": {
+        "generate": {
+          "prefix": [
+            ["absorb", { "target": "cave", "sort": "glowcap" }],
+            ["absorb", { "target": "pool", "sort": "duskcap" }],
+            ["taste", { "target": "ruin", "sort": "glowcap" }]
+          ],
+          "fill": ["tick", { "dt": 0.05 }],
+          "length": 10000
+        }
+      },
+      "streamSha256": "4089c5d81e6f4df8789e98c473b373888661d8760b391861f73f63021369b519",
+      "segments": [
+        { "name": "observations", "from": 0, "to": 3, "why": "as glowcap-replay" },
+        { "name": "decay", "from": 3, "to": 603, "why": "as glowcap-replay" },
+        { "name": "transition", "from": 603, "to": 1300, "why": "as glowcap-replay" },
+        { "name": "steady", "from": 1300, "to": 10000, "why": "as glowcap-replay" }
+      ]
+    },
+    {
+      "id": "glowcap-scaled-16",
+      "role": "size scaling (synthetic)",
+      "description": "Glowcap with 12 more mushrooms declared after grove (16 in all): symbols, edges, tick rules and bindings grow with the mushroom count; the replay's first 2,000 events.",
+      "program": { "path": "experiments/glowcap/caveat5/glowcap.cav", "sha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e", "addMushrooms": 12, "generatedSha256": "468147924b4a5ecbe65bc2d87ad93920fa2596ab2d19d45c0ffaa270734daa85" },
+      "episodes": {
+        "generate": {
+          "prefix": [
+            ["absorb", { "target": "cave", "sort": "glowcap" }],
+            ["absorb", { "target": "pool", "sort": "duskcap" }],
+            ["taste", { "target": "ruin", "sort": "glowcap" }]
+          ],
+          "fill": ["tick", { "dt": 0.05 }],
+          "length": 2000
+        }
+      },
+      "streamSha256": "f93d60a5f44d28755f994a54d4267ad350157dc4fb1616c74bf335036dd2fc7f"
+    },
+    {
+      "id": "glowcap-scaled-64",
+      "role": "size scaling (synthetic)",
+      "description": "Glowcap with 60 more mushrooms declared after grove (64 in all); the replay's first 2,000 events.",
+      "program": { "path": "experiments/glowcap/caveat5/glowcap.cav", "sha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e", "addMushrooms": 60, "generatedSha256": "29f4f9803de2e7c99118d458bcf6186564860c2107bcf1dee02c82e83a68778c" },
+      "episodes": {
+        "generate": {
+          "prefix": [
+            ["absorb", { "target": "cave", "sort": "glowcap" }],
+            ["absorb", { "target": "pool", "sort": "duskcap" }],
+            ["taste", { "target": "ruin", "sort": "glowcap" }]
+          ],
+          "fill": ["tick", { "dt": 0.05 }],
+          "length": 2000
+        }
+      },
+      "streamSha256": "f93d60a5f44d28755f994a54d4267ad350157dc4fb1616c74bf335036dd2fc7f"
+    },
+    {
+      "id": "ledger-session",
+      "role": "refusals",
+      "description": "The agent ledger replaying the real 2026-09-24 session log: 20 events, five of them refused by policy. Played 100 times from a fresh session.",
+      "program": { "path": "experiments/agent-ledger/ledger.cav", "sha256": "2206ac79f23cbfae52060df4c124dd8400c82379b5ec53a9d70c8f478ad8a5c2" },
+      "episodes": {
+        "jsonl": { "path": "experiments/agent-ledger/session-2026-09-24.jsonl", "sha256": "8e60f66b2343e3c768946d779b7417c44b54755a75bcad84f622f48aabe4b939" },
+        "repeat": 100
+      },
+      "streamSha256": "ef2143311f86a49e8dd15ab8c68b2a6e279f49ddf838049a73ad311c4044ca05"
+    },
+    {
+      "id": "trail-rescue-scenarios",
+      "role": "second program shape",
+      "description": "Trail Rescue: the runtime events of the 24 registered scenarios as web/trail-rescue-policy.js sends them (lib/record-trail-rescue.mjs), each scenario from a fresh session. Played 20 times.",
+      "program": { "path": "game/trail_rescue.cav", "sha256": "9744ae625637b109c7e2a29fe4ad39216f8d75df0166252eba8d5243fd7c591b" },
+      "episodes": {
+        "json": { "path": "experiments/performance-0.1/inputs/trail-rescue-episodes.json", "sha256": "45220c50722354a1444e5e5df02e09e791ec7f9347e6f207728a117c3e00d74b" },
+        "repeat": 20
+      },
+      "streamSha256": "496602507c963c90e9bc8042f112fbd90715ddfc3fb5c1976a53b32a7f48ea75"
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+[2026-09-29T07:42:49.638Z] run 2026-09-29T07-42-49-636-baseline: suite baseline, 3 repeat(s), engines native,wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\cores\run
+[2026-09-29T07:42:57.671Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning set 0x3,0xC00,0x3000,0xC00000,0x3C00, priority high
+[2026-09-29T07:42:57.672Z] load before: {"totalCpuPercent":[6,0,3],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.438},{"name":"powershell","pid":72712,"cpuSeconds":0.625},{"name":"claude","pid":104712,"cpuSeconds":0.547},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.203},{"name":"claude","pid":103160,"cpuSeconds":0.188},{"name":"ChatGPT","pid":87544,"cpuSeconds":0.125}]}
+[2026-09-29T07:42:57.911Z] main-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T07:42:57.917Z] main-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T07:42:57.920Z] hist-e6ace96: runtime C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\scout\hist-e6ace96\pkg-reactive; wasm d897787f414a5020d5d99f387d9da6c874a3512580a1f4db96221fec223fcd97; native -
+[2026-09-29T07:42:57.928Z] 9 jobs x 10 target(s) x 3 repeat(s)
+[2026-09-29T07:42:57.936Z] monitoring load with typeperf every 1 s (total, processor 0, processor 1, processor 10, processor 11, processor 12, processor 13, processor 22, processor 23, processor 0 MHz, processor 1 MHz, processor 10 MHz, processor 11 MHz, processor 12 MHz, processor 13 MHz, processor 22 MHz, processor 23 MHz)
+[2026-09-29T07:42:58.724Z] 0001-main-local@0x3-glowcap-replay-native-web.dispatch_view 0.8 s (parallelism 2): web.dispatch_view 16
+[2026-09-29T07:42:59.650Z] 0002-main-local@0xC00-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 2): web.dispatch_view 20.3
+[2026-09-29T07:43:00.692Z] 0003-main-local@0x3000-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 2): web.dispatch_view 22.5
+[2026-09-29T07:43:01.770Z] 0004-main-local@0xC00000-glowcap-replay-native-web.dispatch_view 1.1 s (parallelism 2): web.dispatch_view 23.7
+[2026-09-29T07:43:02.748Z] 0005-main-local@0x3C00-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 21.6
+[2026-09-29T07:43:04.117Z] 0006-main-local@0x3-glowcap-replay-wasm-published-method 1.3 s (parallelism 2): adapter.dispatch+view 34.3
+[2026-09-29T07:43:05.967Z] 0007-main-local@0xC00-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 47.9
+[2026-09-29T07:43:07.806Z] 0008-main-local@0x3000-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 47.2
+[2026-09-29T07:43:09.807Z] 0009-main-local@0xC00000-glowcap-replay-wasm-published-method 2.0 s (parallelism 2): adapter.dispatch+view 53.6
+[2026-09-29T07:43:11.545Z] 0010-main-local@0x3C00-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 48
+[2026-09-29T07:43:12.881Z] 0011-hist-e6ace96@0x3-glowcap-replay-wasm-published-method 1.3 s (parallelism 2): adapter.dispatch+view 33.3
+[2026-09-29T07:43:14.686Z] 0012-hist-e6ace96@0xC00-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 47.1
+[2026-09-29T07:43:16.422Z] 0013-hist-e6ace96@0x3000-glowcap-replay-wasm-published-method 1.7 s (parallelism 2): adapter.dispatch+view 46
+[2026-09-29T07:43:18.293Z] 0014-hist-e6ace96@0xC00000-glowcap-replay-wasm-published-method 1.9 s (parallelism 2): adapter.dispatch+view 50.5
+[2026-09-29T07:43:19.963Z] 0015-hist-e6ace96@0x3C00-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 45.9
+[2026-09-29T07:43:21.655Z] 0016-main-local@0x3-glowcap-replay-wasm-raw.dispatch_view 1.6 s (parallelism 2): js.stringify_payload 0.2, raw.dispatch_view 19.1, js.parse_view 12.8
+[2026-09-29T07:43:23.826Z] 0017-main-local@0xC00-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 25.2, js.parse_view 16.6
+[2026-09-29T07:43:26.143Z] 0018-main-local@0x3000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 27.4, js.parse_view 18.2
+[2026-09-29T07:43:28.557Z] 0019-main-local@0xC00000-glowcap-replay-wasm-raw.dispatch_view 2.4 s (parallelism 2): js.stringify_payload 0.4, raw.dispatch_view 30, js.parse_view 19.6
+[2026-09-29T07:43:30.691Z] 0020-main-local@0x3C00-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.7, js.parse_view 17.5
+[2026-09-29T07:43:32.359Z] 0021-hist-e6ace96@0x3-glowcap-replay-wasm-raw.dispatch_view 1.6 s (parallelism 2): js.stringify_payload 0.2, raw.dispatch_view 18.3, js.parse_view 12.5
+[2026-09-29T07:43:34.373Z] 0022-hist-e6ace96@0xC00-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 23.6, js.parse_view 16.1
+[2026-09-29T07:43:36.471Z] 0023-hist-e6ace96@0x3000-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 25.2, js.parse_view 17
+[2026-09-29T07:43:38.817Z] 0024-hist-e6ace96@0xC00000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 28.2, js.parse_view 18.8
+[2026-09-29T07:43:40.892Z] 0025-hist-e6ace96@0x3C00-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.6, js.parse_view 17.2
+[2026-09-29T07:43:42.033Z] 0026-main-local@0x3-glowcap-replay-wasm-abi.dispatch_view 1.1 s (parallelism 2): abi.encode_args 0.1, abi.exec 16.4, abi.decode 1.9
+[2026-09-29T07:43:43.418Z] 0027-main-local@0xC00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 21.2, abi.decode 2.4
+[2026-09-29T07:43:44.851Z] 0028-main-local@0x3000-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 22.4, abi.decode 2.5
+[2026-09-29T07:43:46.428Z] 0029-main-local@0xC00000-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 2): abi.encode_args 0.1, abi.exec 25.2, abi.decode 2.8
+[2026-09-29T07:43:47.795Z] 0030-main-local@0x3C00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 23, abi.decode 2.5
+[2026-09-29T07:43:48.876Z] 0031-hist-e6ace96@0x3-glowcap-replay-wasm-abi.dispatch_view 1.0 s (parallelism 2): abi.encode_args 0.1, abi.exec 15.7, abi.decode 1.9
+[2026-09-29T07:43:50.197Z] 0032-hist-e6ace96@0xC00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 20.6, abi.decode 2.4
+[2026-09-29T07:43:51.600Z] 0033-hist-e6ace96@0x3000-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 21.6, abi.decode 2.5
+[2026-09-29T07:43:53.075Z] 0034-hist-e6ace96@0xC00000-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 23.5, abi.decode 2.7
+[2026-09-29T07:43:54.391Z] 0035-hist-e6ace96@0x3C00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.7, abi.decode 2.5
+[2026-09-29T07:44:00.092Z] 0036-main-local@0x3-glowcap-replay-wasm-kit 5.6 s (parallelism 2): kit.dispatch 106, kit.view 22.2, kit.dispatch+view 128.5
+[2026-09-29T07:44:07.342Z] 0037-main-local@0xC00-glowcap-replay-wasm-kit 7.2 s (parallelism 2): kit.dispatch 136.1, kit.view 28.5, kit.dispatch+view 165
+[2026-09-29T07:44:14.892Z] 0038-main-local@0x3000-glowcap-replay-wasm-kit 7.5 s (parallelism 2): kit.dispatch 145.1, kit.view 30.4, kit.dispatch+view 175.9
+[2026-09-29T07:44:23.162Z] 0039-main-local@0xC00000-glowcap-replay-wasm-kit 8.2 s (parallelism 2): kit.dispatch 158.7, kit.view 33, kit.dispatch+view 192.1
+[2026-09-29T07:44:30.588Z] 0040-main-local@0x3C00-glowcap-replay-wasm-kit 7.4 s (parallelism 4): kit.dispatch 144.3, kit.view 30, kit.dispatch+view 174.5
+[2026-09-29T07:44:35.710Z] 0041-main-local@0x3-trail-rescue-scenarios-native-web.dispatch_view 5.1 s (parallelism 2): web.dispatch_view 47.4
+[2026-09-29T07:44:41.936Z] 0042-main-local@0xC00-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 2): web.dispatch_view 59
+[2026-09-29T07:44:48.705Z] 0043-main-local@0x3000-trail-rescue-scenarios-native-web.dispatch_view 6.8 s (parallelism 2): web.dispatch_view 64.1
+[2026-09-29T07:44:55.886Z] 0044-main-local@0xC00000-trail-rescue-scenarios-native-web.dispatch_view 7.2 s (parallelism 2): web.dispatch_view 68
+[2026-09-29T07:45:02.485Z] 0045-main-local@0x3C00-trail-rescue-scenarios-native-web.dispatch_view 6.6 s (parallelism 4): web.dispatch_view 63.1
+[2026-09-29T07:45:07.809Z] 0046-main-local@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view 5.3 s (parallelism 2): js.stringify_payload 0.5, raw.dispatch_view 59.9, js.parse_view 21
+[2026-09-29T07:45:14.534Z] 0047-main-local@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view 6.7 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 75, js.parse_view 26.4
+[2026-09-29T07:45:21.465Z] 0048-main-local@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view 6.9 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 77.9, js.parse_view 27.1
+[2026-09-29T07:45:28.891Z] 0049-main-local@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view 7.4 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 82.8, js.parse_view 29.3
+[2026-09-29T07:45:35.764Z] 0050-main-local@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view 6.9 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 77.5, js.parse_view 27
+[2026-09-29T07:45:35.914Z] 0051-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:45:35.916Z] 0051-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view 0.1 s (parallelism 2): 
+[2026-09-29T07:45:36.068Z] 0052-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:45:36.072Z] 0052-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view 0.1 s (parallelism 2): 
+[2026-09-29T07:45:36.240Z] 0053-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:45:36.243Z] 0053-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:45:36.418Z] 0054-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:45:36.420Z] 0054-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:45:36.575Z] 0055-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:45:36.577Z] 0055-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 4): 
+[2026-09-29T07:45:41.759Z] 0056-main-local@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view 5.2 s (parallelism 2): abi.encode_args 0.3, abi.exec 58.1, abi.decode 1
+[2026-09-29T07:45:48.152Z] 0057-main-local@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view 6.4 s (parallelism 2): abi.encode_args 0.4, abi.exec 71.2, abi.decode 1.3
+[2026-09-29T07:45:54.728Z] 0058-main-local@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view 6.6 s (parallelism 2): abi.encode_args 0.4, abi.exec 72.7, abi.decode 1.3
+[2026-09-29T07:46:01.757Z] 0059-main-local@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view 7.0 s (parallelism 2): abi.encode_args 0.4, abi.exec 78.1, abi.decode 1.4
+[2026-09-29T07:46:08.326Z] 0060-main-local@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view 6.5 s (parallelism 4): abi.encode_args 0.4, abi.exec 74.1, abi.decode 1.3
+[2026-09-29T07:46:08.482Z] 0061-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:46:08.484Z] 0061-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:46:08.648Z] 0062-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:46:08.651Z] 0062-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:46:08.818Z] 0063-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:46:08.821Z] 0063-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:46:08.992Z] 0064-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:46:08.995Z] 0064-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:46:09.145Z] 0065-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:46:09.147Z] 0065-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T07:46:15.937Z] 0066-main-local@0x3-trail-rescue-scenarios-wasm-kit 6.8 s (parallelism 2): kit.dispatch 182.7, kit.view 27.7, kit.dispatch+view 213.6
+[2026-09-29T07:46:24.274Z] 0067-main-local@0xC00-trail-rescue-scenarios-wasm-kit 8.3 s (parallelism 2): kit.dispatch 221.7, kit.view 34.4, kit.dispatch+view 258.6
+[2026-09-29T07:46:33.127Z] 0068-main-local@0x3000-trail-rescue-scenarios-wasm-kit 8.8 s (parallelism 2): kit.dispatch 238.8, kit.view 36.4, kit.dispatch+view 278.7
+[2026-09-29T07:46:42.520Z] 0069-main-local@0xC00000-trail-rescue-scenarios-wasm-kit 9.4 s (parallelism 2): kit.dispatch 250.2, kit.view 38.8, kit.dispatch+view 292.3
+[2026-09-29T07:46:51.242Z] 0070-main-local@0x3C00-trail-rescue-scenarios-wasm-kit 8.7 s (parallelism 4): kit.dispatch 233.3, kit.view 36.5, kit.dispatch+view 273.4
+[2026-09-29T07:46:52.290Z] 0071-main-local@0xC00-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 2): web.dispatch_view 22.9
+[2026-09-29T07:46:53.256Z] 0072-main-local@0x3000-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 2): web.dispatch_view 21.4
+[2026-09-29T07:46:54.312Z] 0073-main-local@0xC00000-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 2): web.dispatch_view 23.4
+[2026-09-29T07:46:55.262Z] 0074-main-local@0x3C00-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 21.2
+[2026-09-29T07:46:56.028Z] 0075-main-local@0x3-glowcap-replay-native-web.dispatch_view 0.8 s (parallelism 2): web.dispatch_view 16.2
+[2026-09-29T07:46:57.734Z] 0076-main-local@0xC00-glowcap-replay-wasm-published-method 1.7 s (parallelism 2): adapter.dispatch+view 45.3
+[2026-09-29T07:46:59.552Z] 0077-main-local@0x3000-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 47.4
+[2026-09-29T07:47:01.466Z] 0078-main-local@0xC00000-glowcap-replay-wasm-published-method 1.9 s (parallelism 2): adapter.dispatch+view 51.2
+[2026-09-29T07:47:03.156Z] 0079-main-local@0x3C00-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.4
+[2026-09-29T07:47:04.506Z] 0080-hist-e6ace96@0x3-glowcap-replay-wasm-published-method 1.3 s (parallelism 2): adapter.dispatch+view 33.3
+[2026-09-29T07:47:06.126Z] 0081-hist-e6ace96@0xC00-glowcap-replay-wasm-published-method 1.6 s (parallelism 2): adapter.dispatch+view 42.3
+[2026-09-29T07:47:07.814Z] 0082-hist-e6ace96@0x3000-glowcap-replay-wasm-published-method 1.7 s (parallelism 2): adapter.dispatch+view 44.8
+[2026-09-29T07:47:09.672Z] 0083-hist-e6ace96@0xC00000-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 48.4
+[2026-09-29T07:47:11.339Z] 0084-hist-e6ace96@0x3C00-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 45.9
+[2026-09-29T07:47:12.662Z] 0085-main-local@0x3-glowcap-replay-wasm-published-method 1.3 s (parallelism 2): adapter.dispatch+view 33.7
+[2026-09-29T07:47:14.770Z] 0086-main-local@0xC00-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 24.7, js.parse_view 16.3
+[2026-09-29T07:47:17.091Z] 0087-main-local@0x3000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 29.1, js.parse_view 19
+[2026-09-29T07:47:19.385Z] 0088-main-local@0xC00000-glowcap-replay-wasm-raw.dispatch_view 2.2 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 28.2, js.parse_view 18.5
+[2026-09-29T07:47:21.453Z] 0089-main-local@0x3C00-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26, js.parse_view 17.1
+[2026-09-29T07:47:23.113Z] 0090-hist-e6ace96@0x3-glowcap-replay-wasm-raw.dispatch_view 1.6 s (parallelism 2): js.stringify_payload 0.2, raw.dispatch_view 18.4, js.parse_view 12.4
+[2026-09-29T07:47:25.155Z] 0091-hist-e6ace96@0xC00-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 23.6, js.parse_view 16
+[2026-09-29T07:47:27.486Z] 0092-hist-e6ace96@0x3000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 28, js.parse_view 18.8
+[2026-09-29T07:47:29.815Z] 0093-hist-e6ace96@0xC00000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 27.8, js.parse_view 18.7
+[2026-09-29T07:47:31.810Z] 0094-hist-e6ace96@0x3C00-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24, js.parse_view 16.2
+[2026-09-29T07:47:33.473Z] 0095-main-local@0x3-glowcap-replay-wasm-raw.dispatch_view 1.6 s (parallelism 2): js.stringify_payload 0.2, raw.dispatch_view 19.1, js.parse_view 12.6
+[2026-09-29T07:47:34.845Z] 0096-main-local@0xC00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 21.4, abi.decode 2.4
+[2026-09-29T07:47:36.360Z] 0097-main-local@0x3000-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 2): abi.encode_args 0.1, abi.exec 24.7, abi.decode 2.7
+[2026-09-29T07:47:37.901Z] 0098-main-local@0xC00000-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 2): abi.encode_args 0.1, abi.exec 24.5, abi.decode 2.8
+[2026-09-29T07:47:39.213Z] 0099-main-local@0x3C00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.3, abi.decode 2.4
+[2026-09-29T07:47:40.314Z] 0100-hist-e6ace96@0x3-glowcap-replay-wasm-abi.dispatch_view 1.0 s (parallelism 2): abi.encode_args 0.1, abi.exec 15.6, abi.decode 1.9
+[2026-09-29T07:47:41.634Z] 0101-hist-e6ace96@0xC00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 20.9, abi.decode 2.5
+[2026-09-29T07:47:43.094Z] 0102-hist-e6ace96@0x3000-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 23.7, abi.decode 2.7
+[2026-09-29T07:47:44.556Z] 0103-hist-e6ace96@0xC00000-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 23.4, abi.decode 2.7
+[2026-09-29T07:47:45.828Z] 0104-hist-e6ace96@0x3C00-glowcap-replay-wasm-abi.dispatch_view 1.2 s (parallelism 4): abi.encode_args 0.1, abi.exec 20.9, abi.decode 2.4
+[2026-09-29T07:47:46.958Z] 0105-main-local@0x3-glowcap-replay-wasm-abi.dispatch_view 1.1 s (parallelism 2): abi.encode_args 0.1, abi.exec 16.2, abi.decode 1.9
+[2026-09-29T07:47:54.136Z] 0106-main-local@0xC00-glowcap-replay-wasm-kit 7.1 s (parallelism 2): kit.dispatch 137.8, kit.view 28.7, kit.dispatch+view 166.9
+[2026-09-29T07:48:02.150Z] 0107-main-local@0x3000-glowcap-replay-wasm-kit 8.0 s (parallelism 2): kit.dispatch 154.5, kit.view 32.2, kit.dispatch+view 186.9
+[2026-09-29T07:48:10.358Z] 0108-main-local@0xC00000-glowcap-replay-wasm-kit 8.1 s (parallelism 2): kit.dispatch 158.9, kit.view 33.4, kit.dispatch+view 192.5
+[2026-09-29T07:48:17.428Z] 0109-main-local@0x3C00-glowcap-replay-wasm-kit 7.0 s (parallelism 4): kit.dispatch 135.7, kit.view 28.1, kit.dispatch+view 163.9
+[2026-09-29T07:48:23.319Z] 0110-main-local@0x3-glowcap-replay-wasm-kit 5.8 s (parallelism 2): kit.dispatch 109.8, kit.view 22.8, kit.dispatch+view 133
+[2026-09-29T07:48:29.835Z] 0111-main-local@0xC00-trail-rescue-scenarios-native-web.dispatch_view 6.5 s (parallelism 2): web.dispatch_view 61
+[2026-09-29T07:48:37.140Z] 0112-main-local@0x3000-trail-rescue-scenarios-native-web.dispatch_view 7.3 s (parallelism 2): web.dispatch_view 71.2
+[2026-09-29T07:48:44.172Z] 0113-main-local@0xC00000-trail-rescue-scenarios-native-web.dispatch_view 7.0 s (parallelism 2): web.dispatch_view 67
+[2026-09-29T07:48:50.315Z] 0114-main-local@0x3C00-trail-rescue-scenarios-native-web.dispatch_view 6.1 s (parallelism 4): web.dispatch_view 59.4
+[2026-09-29T07:48:55.505Z] 0115-main-local@0x3-trail-rescue-scenarios-native-web.dispatch_view 5.2 s (parallelism 2): web.dispatch_view 48.2
+[2026-09-29T07:49:01.976Z] 0116-main-local@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 2): js.stringify_payload 0.5, raw.dispatch_view 72, js.parse_view 25.2
+[2026-09-29T07:49:09.295Z] 0117-main-local@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view 7.3 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 81.7, js.parse_view 28.5
+[2026-09-29T07:49:16.546Z] 0118-main-local@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view 7.2 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 80.9, js.parse_view 28.3
+[2026-09-29T07:49:23.053Z] 0119-main-local@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 73.2, js.parse_view 25.4
+[2026-09-29T07:49:23.208Z] 0120-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:23.210Z] 0120-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:23.375Z] 0121-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:23.378Z] 0121-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:23.539Z] 0122-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:23.541Z] 0122-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:23.705Z] 0123-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:23.709Z] 0123-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:23.856Z] 0124-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:23.859Z] 0124-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T07:49:29.143Z] 0125-main-local@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view 5.3 s (parallelism 2): js.stringify_payload 0.5, raw.dispatch_view 60.1, js.parse_view 20.7
+[2026-09-29T07:49:35.538Z] 0126-main-local@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view 6.4 s (parallelism 2): abi.encode_args 0.4, abi.exec 71, abi.decode 1.2
+[2026-09-29T07:49:42.846Z] 0127-main-local@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view 7.3 s (parallelism 2): abi.encode_args 0.4, abi.exec 81.9, abi.decode 1.4
+[2026-09-29T07:49:49.911Z] 0128-main-local@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view 7.0 s (parallelism 2): abi.encode_args 0.5, abi.exec 77.8, abi.decode 1.4
+[2026-09-29T07:49:56.190Z] 0129-main-local@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view 6.3 s (parallelism 4): abi.encode_args 0.4, abi.exec 70.9, abi.decode 1.2
+[2026-09-29T07:49:56.345Z] 0130-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:56.348Z] 0130-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:56.502Z] 0131-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:56.504Z] 0131-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:56.675Z] 0132-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:56.677Z] 0132-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:56.841Z] 0133-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:56.844Z] 0133-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:49:56.992Z] 0134-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:49:56.995Z] 0134-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T07:50:02.111Z] 0135-main-local@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view 5.1 s (parallelism 2): abi.encode_args 0.3, abi.exec 57.3, abi.decode 1
+[2026-09-29T07:50:10.480Z] 0136-main-local@0xC00-trail-rescue-scenarios-wasm-kit 8.4 s (parallelism 2): kit.dispatch 222.4, kit.view 34.3, kit.dispatch+view 258.7
+[2026-09-29T07:50:19.990Z] 0137-main-local@0x3000-trail-rescue-scenarios-wasm-kit 9.5 s (parallelism 2): kit.dispatch 254.5, kit.view 39.1, kit.dispatch+view 297.3
+[2026-09-29T07:50:29.369Z] 0138-main-local@0xC00000-trail-rescue-scenarios-wasm-kit 9.4 s (parallelism 2): kit.dispatch 249.4, kit.view 38.9, kit.dispatch+view 290.9
+[2026-09-29T07:50:37.951Z] 0139-main-local@0x3C00-trail-rescue-scenarios-wasm-kit 8.6 s (parallelism 4): kit.dispatch 230.9, kit.view 36.1, kit.dispatch+view 269.4
+[2026-09-29T07:50:44.835Z] 0140-main-local@0x3-trail-rescue-scenarios-wasm-kit 6.9 s (parallelism 2): kit.dispatch 182.4, kit.view 27.5, kit.dispatch+view 213.4
+[2026-09-29T07:50:45.884Z] 0141-main-local@0x3000-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 2): web.dispatch_view 23.2
+[2026-09-29T07:50:46.938Z] 0142-main-local@0xC00000-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 2): web.dispatch_view 23.6
+[2026-09-29T07:50:47.858Z] 0143-main-local@0x3C00-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.3
+[2026-09-29T07:50:48.611Z] 0144-main-local@0x3-glowcap-replay-native-web.dispatch_view 0.7 s (parallelism 2): web.dispatch_view 15.9
+[2026-09-29T07:50:49.550Z] 0145-main-local@0xC00-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 2): web.dispatch_view 20.2
+[2026-09-29T07:50:51.443Z] 0146-main-local@0x3000-glowcap-replay-wasm-published-method 1.9 s (parallelism 2): adapter.dispatch+view 50.6
+[2026-09-29T07:50:53.313Z] 0147-main-local@0xC00000-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 50.7
+[2026-09-29T07:50:55.003Z] 0148-main-local@0x3C00-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46
+[2026-09-29T07:50:56.335Z] 0149-hist-e6ace96@0x3-glowcap-replay-wasm-published-method 1.3 s (parallelism 2): adapter.dispatch+view 33.2
+[2026-09-29T07:50:57.951Z] 0150-hist-e6ace96@0xC00-glowcap-replay-wasm-published-method 1.6 s (parallelism 2): adapter.dispatch+view 42.2
+[2026-09-29T07:50:59.772Z] 0151-hist-e6ace96@0x3000-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 48.4
+[2026-09-29T07:51:01.592Z] 0152-hist-e6ace96@0xC00000-glowcap-replay-wasm-published-method 1.8 s (parallelism 2): adapter.dispatch+view 48.9
+[2026-09-29T07:51:03.187Z] 0153-hist-e6ace96@0x3C00-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 44
+[2026-09-29T07:51:04.573Z] 0154-main-local@0x3-glowcap-replay-wasm-published-method 1.4 s (parallelism 2): adapter.dispatch+view 34.2
+[2026-09-29T07:51:06.255Z] 0155-main-local@0xC00-glowcap-replay-wasm-published-method 1.7 s (parallelism 2): adapter.dispatch+view 44.4
+[2026-09-29T07:51:08.592Z] 0156-main-local@0x3000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 28.3, js.parse_view 18.8
+[2026-09-29T07:51:10.959Z] 0157-main-local@0xC00000-glowcap-replay-wasm-raw.dispatch_view 2.3 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 28.3, js.parse_view 19.3
+[2026-09-29T07:51:13.105Z] 0158-main-local@0x3C00-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.5, js.parse_view 18
+[2026-09-29T07:51:14.718Z] 0159-hist-e6ace96@0x3-glowcap-replay-wasm-raw.dispatch_view 1.6 s (parallelism 2): js.stringify_payload 0.2, raw.dispatch_view 18, js.parse_view 12.3
+[2026-09-29T07:51:16.766Z] 0160-hist-e6ace96@0xC00-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 24.2, js.parse_view 16.4
+[2026-09-29T07:51:19.028Z] 0161-hist-e6ace96@0x3000-glowcap-replay-wasm-raw.dispatch_view 2.2 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 27, js.parse_view 18.3
+[2026-09-29T07:51:21.257Z] 0162-hist-e6ace96@0xC00000-glowcap-replay-wasm-raw.dispatch_view 2.2 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 26.8, js.parse_view 18.4
+[2026-09-29T07:51:23.305Z] 0163-hist-e6ace96@0x3C00-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.1, js.parse_view 17
+[2026-09-29T07:51:24.983Z] 0164-main-local@0x3-glowcap-replay-wasm-raw.dispatch_view 1.6 s (parallelism 2): js.stringify_payload 0.2, raw.dispatch_view 19, js.parse_view 12.8
+[2026-09-29T07:51:27.165Z] 0165-main-local@0xC00-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 2): js.stringify_payload 0.3, raw.dispatch_view 27.2, js.parse_view 17.7
+[2026-09-29T07:51:28.605Z] 0166-main-local@0x3000-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 22.6, abi.decode 2.5
+[2026-09-29T07:51:30.143Z] 0167-main-local@0xC00000-glowcap-replay-wasm-abi.dispatch_view 1.5 s (parallelism 2): abi.encode_args 0.1, abi.exec 24.7, abi.decode 2.8
+[2026-09-29T07:51:31.514Z] 0168-main-local@0x3C00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.9, abi.decode 2.5
+[2026-09-29T07:51:32.580Z] 0169-hist-e6ace96@0x3-glowcap-replay-wasm-abi.dispatch_view 1.0 s (parallelism 2): abi.encode_args 0.1, abi.exec 15.6, abi.decode 1.9
+[2026-09-29T07:51:33.980Z] 0170-hist-e6ace96@0xC00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 22.2, abi.decode 2.6
+[2026-09-29T07:51:35.370Z] 0171-hist-e6ace96@0x3000-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 2): abi.encode_args 0.1, abi.exec 21.3, abi.decode 2.5
+[2026-09-29T07:51:36.857Z] 0172-hist-e6ace96@0xC00000-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 23.9, abi.decode 2.7
+[2026-09-29T07:51:38.196Z] 0173-hist-e6ace96@0x3C00-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.5, abi.decode 2.5
+[2026-09-29T07:51:39.326Z] 0174-main-local@0x3-glowcap-replay-wasm-abi.dispatch_view 1.1 s (parallelism 2): abi.encode_args 0.1, abi.exec 16.4, abi.decode 1.9
+[2026-09-29T07:51:40.788Z] 0175-main-local@0xC00-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 2): abi.encode_args 0.1, abi.exec 23, abi.decode 2.5
+[2026-09-29T07:51:48.223Z] 0176-main-local@0x3000-glowcap-replay-wasm-kit 7.4 s (parallelism 2): kit.dispatch 142.4, kit.view 29.5, kit.dispatch+view 172.1
+[2026-09-29T07:51:56.367Z] 0177-main-local@0xC00000-glowcap-replay-wasm-kit 8.1 s (parallelism 2): kit.dispatch 156, kit.view 32.4, kit.dispatch+view 188.8
+[2026-09-29T07:52:03.776Z] 0178-main-local@0x3C00-glowcap-replay-wasm-kit 7.4 s (parallelism 4): kit.dispatch 143.7, kit.view 29.6, kit.dispatch+view 173.7
+[2026-09-29T07:52:09.522Z] 0179-main-local@0x3-glowcap-replay-wasm-kit 5.7 s (parallelism 2): kit.dispatch 107.3, kit.view 22.5, kit.dispatch+view 130.2
+[2026-09-29T07:52:16.790Z] 0180-main-local@0xC00-glowcap-replay-wasm-kit 7.2 s (parallelism 2): kit.dispatch 139, kit.view 28.9, kit.dispatch+view 167.9
+[2026-09-29T07:52:23.438Z] 0181-main-local@0x3000-trail-rescue-scenarios-native-web.dispatch_view 6.6 s (parallelism 2): web.dispatch_view 63.7
+[2026-09-29T07:52:30.604Z] 0182-main-local@0xC00000-trail-rescue-scenarios-native-web.dispatch_view 7.2 s (parallelism 2): web.dispatch_view 68.8
+[2026-09-29T07:52:37.211Z] 0183-main-local@0x3C00-trail-rescue-scenarios-native-web.dispatch_view 6.6 s (parallelism 4): web.dispatch_view 63.7
+[2026-09-29T07:52:42.481Z] 0184-main-local@0x3-trail-rescue-scenarios-native-web.dispatch_view 5.3 s (parallelism 2): web.dispatch_view 50.4
+[2026-09-29T07:52:48.804Z] 0185-main-local@0xC00-trail-rescue-scenarios-native-web.dispatch_view 6.3 s (parallelism 2): web.dispatch_view 60.8
+[2026-09-29T07:52:55.711Z] 0186-main-local@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view 6.9 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 77.8, js.parse_view 27.5
+[2026-09-29T07:53:03.361Z] 0187-main-local@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view 7.6 s (parallelism 2): js.stringify_payload 0.7, raw.dispatch_view 84.9, js.parse_view 29.7
+[2026-09-29T07:53:10.185Z] 0188-main-local@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view 6.8 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 76.2, js.parse_view 26.6
+[2026-09-29T07:53:10.338Z] 0189-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:10.341Z] 0189-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:10.506Z] 0190-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:10.509Z] 0190-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:10.666Z] 0191-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:10.668Z] 0191-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:10.830Z] 0192-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:10.833Z] 0192-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:10.989Z] 0193-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:10.991Z] 0193-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 4): 
+[2026-09-29T07:53:16.302Z] 0194-main-local@0x3-trail-rescue-scenarios-wasm-raw.dispatch_view 5.3 s (parallelism 2): js.stringify_payload 0.5, raw.dispatch_view 59.4, js.parse_view 20.6
+[2026-09-29T07:53:22.931Z] 0195-main-local@0xC00-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 2): js.stringify_payload 0.6, raw.dispatch_view 74, js.parse_view 25.8
+[2026-09-29T07:53:29.505Z] 0196-main-local@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view 6.6 s (parallelism 2): abi.encode_args 0.4, abi.exec 72.9, abi.decode 1.3
+[2026-09-29T07:53:36.649Z] 0197-main-local@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view 7.1 s (parallelism 2): abi.encode_args 0.4, abi.exec 79.9, abi.decode 1.4
+[2026-09-29T07:53:43.271Z] 0198-main-local@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view 6.6 s (parallelism 4): abi.encode_args 0.4, abi.exec 75, abi.decode 1.3
+[2026-09-29T07:53:43.425Z] 0199-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:43.429Z] 0199-hist-e6ace96@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:43.584Z] 0200-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:43.587Z] 0200-hist-e6ace96@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:43.749Z] 0201-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:43.751Z] 0201-hist-e6ace96@0x3000-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:43.931Z] 0202-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:43.934Z] 0202-hist-e6ace96@0xC00000-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 2): 
+[2026-09-29T07:53:44.099Z] 0203-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T07:53:44.101Z] 0203-hist-e6ace96@0x3C00-trail-rescue-scenarios-wasm-abi.dispatch_view 0.2 s (parallelism 4): 
+[2026-09-29T07:53:49.243Z] 0204-main-local@0x3-trail-rescue-scenarios-wasm-abi.dispatch_view 5.1 s (parallelism 2): abi.encode_args 0.4, abi.exec 57.4, abi.decode 1
+[2026-09-29T07:53:55.763Z] 0205-main-local@0xC00-trail-rescue-scenarios-wasm-abi.dispatch_view 6.5 s (parallelism 2): abi.encode_args 0.4, abi.exec 71.1, abi.decode 1.2
+[2026-09-29T07:54:04.613Z] 0206-main-local@0x3000-trail-rescue-scenarios-wasm-kit 8.8 s (parallelism 2): kit.dispatch 231.7, kit.view 35.5, kit.dispatch+view 271.4
+[2026-09-29T07:54:13.912Z] 0207-main-local@0xC00000-trail-rescue-scenarios-wasm-kit 9.3 s (parallelism 2): kit.dispatch 245.7, kit.view 38, kit.dispatch+view 287.7
+[2026-09-29T07:54:22.583Z] 0208-main-local@0x3C00-trail-rescue-scenarios-wasm-kit 8.7 s (parallelism 4): kit.dispatch 231.1, kit.view 35.4, kit.dispatch+view 270.2
+[2026-09-29T07:54:29.413Z] 0209-main-local@0x3-trail-rescue-scenarios-wasm-kit 6.8 s (parallelism 2): kit.dispatch 182, kit.view 27.6, kit.dispatch+view 213.1
+[2026-09-29T07:54:37.996Z] 0210-main-local@0xC00-trail-rescue-scenarios-wasm-kit 8.6 s (parallelism 2): kit.dispatch 230.6, kit.view 35.5, kit.dispatch+view 267.7
+[2026-09-29T07:54:38.036Z] load during: {"what":"typeperf every 1 s for the whole run","samples":694,"counters":{"total":{"samples":694,"mean":9.3,"p95":13.6,"max":20.3},"processor 0":{"samples":694,"mean":15.7,"p95":59.6,"max":100},"processor 1":{"samples":694,"mean":23.9,"p95":70.6,"max":100},"processor 10":{"samples":694,"mean":25,"p95":89.1,"max":100},"processor 11":{"samples":694,"mean":19.1,"p95":62.6,"max":100},"processor 12":{"samples":694,"mean":18.6,"p95":100,"max":100},"processor 13":{"samples":694,"mean":39.8,"p95":100,"max":100},"processor 22":{"samples":694,"mean":10.8,"p95":41.2,"max":100},"processor 23":{"samples":694,"mean":45.2,"p95":100,"max":100},"processor 0 MHz":{"samples":694,"mean":4146.2,"p95":5064.8,"max":5154.1},"processor 1 MHz":{"samples":694,"mean":4539,"p95":5092.9,"max":5155.2},"processor 10 MHz":{"samples":694,"mean":4025.7,"p95":4430.6,"max":4748.5},"processor 11 MHz":{"samples":694,"mean":3927,"p95":4272.9,"max":4579.7},"processor 12 MHz":{"samples":694,"mean":3950.8,"p95":4347.8,"max":4721.6},"processor 13 MHz":{"samples":694,"mean":3914.2,"p95":4728.2,"max":5074.8},"processor 22 MHz":{"samples":694,"mean":3338.9,"p95":4454.1,"max":4711.4},"processor 23 MHz":{"samples":694,"mean":4377.6,"p95":4820.2,"max":5009.1}},"totalAbove10Percent":233,"totalAbove25Percent":0,"pinnedSumAbove150Percent":689}
+[2026-09-29T07:54:45.582Z] load after: {"totalCpuPercent":[5,0,1],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":2.297},{"name":"powershell","pid":65328,"cpuSeconds":0.766},{"name":"claude","pid":104712,"cpuSeconds":0.719},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.328},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.219},{"name":"claude","pid":103160,"cpuSeconds":0.219}]}
+[2026-09-29T07:54:45.598Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\cores\run\results.json and summary.md; 0 failure(s), 30 skipped, 0 correctness finding(s)
