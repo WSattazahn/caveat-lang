@@ -1,8 +1,10 @@
 // The runtime's own rules, restated for checking the grammar against them:
 // - character classes (code, string, comment) from spec/caveat-text-0.1.md;
-// - statement spans as runtime/src/link.rs statement_spans finds them;
+// - statement spans as runtime/src/link.rs statement_spans finds them, and
+//   statements as link.rs statements_of reads them, a last statement without
+//   its `;` included, which is how runtime/src/repeat.rs reads them;
 // - `$` substitution in `for` blocks as runtime/src/repeat.rs substitute does,
-//   with `$Q` in a routed rule whose code names a member by Q
+//   with `$Q` in a routed rule whose code or quoted text names a member by Q
 //   (spec/caveat-routed-repetition-0.1.md section 10), and the events a
 //   routed block reads, a `for` block's own once expanded, as repeat.rs
 //   Part::events reads them.
@@ -57,6 +59,20 @@ export function statementSpans(text, classes = classify(text)) {
   return spans;
 }
 
+// The statement spans, and what follows the last of them, from its first
+// character that is not whitespace, a comment or a `;`, to the end of the
+// text, when there is one: a last statement without its `;`, which the loader
+// reads too (link.rs statements_of and tail).
+export function statementsOf(text, classes = classify(text)) {
+  const spans = statementSpans(text, classes);
+  for (let index = spans.at(-1)?.[1] ?? 0; index < text.length; index++) {
+    if (classes[index] === 'comment' || text[index] === ';' || /\s/.test(text[index])) continue;
+    spans.push([index, text.length]);
+    break;
+  }
+  return spans;
+}
+
 // A statement's code characters, with strings and comments blanked out.
 export function codeOf(text, classes, [start, end]) {
   let out = '';
@@ -68,13 +84,13 @@ export function codeOf(text, classes, [start, end]) {
 // binding with and without the `$`, and P or nothing.
 const blockHeader = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))(?:\s+routed\s+by\s+([A-Za-z_]\w*))?\s*\{/;
 
-// Every `for KIND as $NAME { ... }` statement, routed by P or not: its range
-// up to the closing brace, where the binding is, P or null, and the body
-// between the braces. Like repeat.rs, the body ends at the last `}` of the
-// statement.
+// Every `for KIND as $NAME { ... }` statement, routed by P or not, a last one
+// without its `;` too, as repeat.rs expand finds them: its range up to the
+// closing brace, where the binding is, P or null, and the body between the
+// braces. Like repeat.rs, the body ends at the last `}` of the statement.
 export function forBlocks(text, classes = classify(text)) {
   const blocks = [];
-  for (const span of statementSpans(text, classes)) {
+  for (const span of statementsOf(text, classes)) {
     const code = codeOf(text, classes, span);
     const header = blockHeader.exec(code);
     if (!header) continue;
@@ -116,10 +132,11 @@ function substitute(text, bindings) {
 }
 
 // The members of each kind, in declaration order: every top-level
-// `entity NAME kind KIND at PLACE` statement (repeat.rs entity_kinds).
+// `entity NAME kind KIND at PLACE` statement, a last one without its `;` too
+// (repeat.rs entity_kinds).
 function entityKinds(text, classes = classify(text)) {
   const kinds = new Map();
-  for (const span of statementSpans(text, classes)) {
+  for (const span of statementsOf(text, classes)) {
     const words = codeOf(text, classes, span).replace(/;\s*$/, '').trim().split(/\s+/);
     if (words.length !== 6 || words[0] !== 'entity' || words[2] !== 'kind' || words[4] !== 'at') continue;
     if (!kinds.has(words[3])) kinds.set(words[3], []);
@@ -131,10 +148,12 @@ function entityKinds(text, classes = classify(text)) {
 // Each `event` statement's name and its `kind` parameters, as [name, kind]
 // pairs, the first declaration of a name only: the top-level ones, and those
 // a `for` block declares once expanded, in the order the part declares them
-// (repeat.rs Part::events). A block's copies are its statements other than
-// its `on` rules, each member's with `$NAME` and `$index` substituted. A
-// block of a kind with no member, with a nested `for`, or with a `$` word in
-// those statements that neither binds, declares none.
+// (repeat.rs Part::events). The part and a block's body are read as
+// statementsOf reads them, so a last statement without its `;` counts, a
+// last block too. A block's copies are its statements other than its `on`
+// rules, each member's with `$NAME` and `$index` substituted. A block of a
+// kind with no member, with a nested `for`, or with a `$` word in those
+// statements that neither binds, declares none.
 export function eventKinds(text, classes = classify(text)) {
   const events = new Map();
   const declare = code => {
@@ -146,7 +165,7 @@ export function eventKinds(text, classes = classify(text)) {
       .map(([name, , kind]) => [name, kind]));
   };
   const members = entityKinds(text, classes);
-  for (const span of statementSpans(text, classes)) {
+  for (const span of statementsOf(text, classes)) {
     const code = codeOf(text, classes, span);
     const header = blockHeader.exec(code);
     if (!header) {
@@ -155,7 +174,7 @@ export function eventKinds(text, classes = classify(text)) {
     }
     const body = text.slice(span[0] + code.indexOf('{') + 1, span[0] + code.lastIndexOf('}'));
     const bodyClasses = classify(body);
-    const statements = statementSpans(body, bodyClasses).map(statement => ({
+    const statements = statementsOf(body, bodyClasses).map(statement => ({
       text: body.slice(...statement),
       first: /^\s*(\S+)/.exec(codeOf(body, bodyClasses, statement))?.[1],
     }));
@@ -170,19 +189,20 @@ export function eventKinds(text, classes = classify(text)) {
 }
 
 // In a routed block, each routed rule's range in the text, and the `kind`
-// parameter Q its code names a member by, or null: an `on EVENT` statement of
-// the body, EVENT written without `$`, whose event declares `P kind KIND`.
-// Q is read as repeat.rs parameter_rules reads it, from the rule with its
-// comments blanked and its quoted text kept: the longest `kind` parameter of
-// the event that begins a `$` word neither `$NAME` nor `$index` begins, when
-// it is not P and the rule names a member by no other.
+// parameter Q its code or quoted text names a member by, or null: an `on
+// EVENT` statement of the body, EVENT written without `$`, whose event
+// declares `P kind KIND`. Q is read as repeat.rs parameter_rules reads it,
+// from the rule with its comments blanked and its quoted text kept: the
+// longest `kind` parameter of the event that begins a `$` word neither
+// `$NAME` nor `$index` begins, when it is not P and the rule names a member
+// by no other.
 function routedRules(text, block) {
   if (!block.route) return [];
   const events = eventKinds(text);
   const body = text.slice(block.bodyStart, block.bodyEnd);
   const classes = classify(body);
   const rules = [];
-  for (const [start, end] of statementSpans(body, classes)) {
+  for (const [start, end] of statementsOf(body, classes)) {
     const event = /^\s*on\s+(\S+)/.exec(codeOf(body, classes, [start, end]))?.[1];
     const parameters = events.get(event) ?? [];
     if (!parameters.some(([name, kind]) => name === block.route && kind === block.kind)) continue;
@@ -206,8 +226,8 @@ function routedRules(text, block) {
 // Each `$` in a block body, comments and quoted text included: where it is,
 // and how long the substituted part is (the `$` plus the longest bound name
 // that prefixes the identifier run; 0 where the runtime refuses the name).
-// The names bound are the block's own and, in a routed rule whose code names
-// a member by Q, Q, in its comments too (section 10).
+// The names bound are the block's own and, in a routed rule whose code or
+// quoted text names a member by Q, Q, in its comments too (section 10).
 export function substitutions(text, block) {
   const rules = routedRules(text, block);
   const found = [];
