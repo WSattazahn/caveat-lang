@@ -74,14 +74,14 @@ The primary baseline (2026-09-29T05-29-28-544-baseline; total CPU during the run
 
 ## Results per build and operation (questions a–h)
 
-All events of each workload, pooled per run; median over the 3 runs [lowest–highest run] · median p95. DIRECT. Native rows exist only for the trees; the published package and the historical runtime are WebAssembly only.
+All events of each workload, pooled per run; median over the 3 runs [lowest–highest run] · median p95. DIRECT. Native rows exist only for the trees; the published package and the historical runtime are WebAssembly only. The bench row is timed in the throwaway i1 build: DIRECT there, but adding its benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), so it is attribution evidence, not a production-path cost.
 
 ### glowcap-replay
 
-| Question | Engine, mode / operation | main-local (i1 for the bench row) | rc4-local | rc4-published | hist-e6ace96 |
+| Question | Engine, mode / operation | main-local (i1 build for the bench row: attribution only) | rc4-local | rc4-published | hist-e6ace96 |
 | --- | --- | --- | --- | --- | --- |
 | (a) transaction only, numeric parameters | native apply / apply | 13.1 [13.0–13.8] · p95 16.1 | 13.1 [13.1–13.8] · p95 16.0 | - | - |
-| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 13.4 [13.3–15.8] · p95 16.1 | - | - | - |
+| (a/b) payload + transaction, no reporting (i1: attribution only) | native bench.dispatch_only / bench.dispatch_only | 13.4 [13.3–15.8] · p95 16.1 | - | - | - |
 | (b) + view built, not serialized | native dispatch_view_json / dispatch_view_json | 15.9 [15.8–16.8] · p95 18.4 | 15.8 [15.7–16.7] · p95 18.1 | - | - |
 | (b) + full snapshot built (legacy dispatch_json) | native dispatch_json / dispatch_json | 36.6 [36.3–38.6] · p95 40.7 | 36.8 [36.6–39.0] · p95 40.2 | - | - |
 | (b) + outcome with snapshot built (dispatch_outcome_json) | native dispatch_outcome_json / dispatch_outcome_json | 38.5 [36.7–39.3] · p95 41.9 | 36.5 [36.3–39.4] · p95 40.1 | - | - |
@@ -107,10 +107,10 @@ All events of each workload, pooled per run; median over the 3 runs [lowest–hi
 
 ### trail-rescue-scenarios
 
-| Question | Engine, mode / operation | main-local (i1 for the bench row) | rc4-local | rc4-published | hist-e6ace96 |
+| Question | Engine, mode / operation | main-local (i1 build for the bench row: attribution only) | rc4-local | rc4-published | hist-e6ace96 |
 | --- | --- | --- | --- | --- | --- |
 | (a) transaction only, numeric parameters | native apply / apply | 46.7 [46.1–47.3] · p95 121.8 | 47.4 [46.6–50.6] · p95 121.6 | - | - |
-| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 50.7 [48.2–52.0] · p95 129.4 | - | - | - |
+| (a/b) payload + transaction, no reporting (i1: attribution only) | native bench.dispatch_only / bench.dispatch_only | 50.7 [48.2–52.0] · p95 129.4 | - | - | - |
 | (b) + view built, not serialized | native dispatch_view_json / dispatch_view_json | 52.9 [49.7–53.5] · p95 130.8 | 51.4 [49.8–51.5] · p95 127.5 | - | - |
 | (b) + full snapshot built (legacy dispatch_json) | native dispatch_json / dispatch_json | 82.0 [79.6–82.1] · p95 158.9 | 81.9 [80.9–82.5] · p95 157.7 | - | - |
 | (b) + outcome with snapshot built (dispatch_outcome_json) | native dispatch_outcome_json / dispatch_outcome_json | 83.3 [81.4–85.6] · p95 159.8 | 87.1 [80.9–90.1] · p95 168.8 | - | - |
@@ -134,10 +134,10 @@ All events of each workload, pooled per run; median over the 3 runs [lowest–hi
 
 ### ledger-session
 
-| Question | Engine, mode / operation | main-local (i1 for the bench row) | rc4-local | rc4-published | hist-e6ace96 |
+| Question | Engine, mode / operation | main-local (i1 build for the bench row: attribution only) | rc4-local | rc4-published | hist-e6ace96 |
 | --- | --- | --- | --- | --- | --- |
 | (a) transaction only, numeric parameters | native apply / apply | 16.2 [14.9–16.7] · p95 23.5 | 14.7 [14.6–14.9] · p95 21.5 | - | - |
-| (a/b) payload + transaction, no reporting (i1) | native bench.dispatch_only / bench.dispatch_only | 16.4 [16.2–17.2] · p95 22.7 | - | - | - |
+| (a/b) payload + transaction, no reporting (i1: attribution only) | native bench.dispatch_only / bench.dispatch_only | 16.4 [16.2–17.2] · p95 22.7 | - | - | - |
 | (b) + view built, not serialized | native dispatch_view_json / dispatch_view_json | 20.4 [20.0–22.0] · p95 28.2 | 20.2 [20.1–22.0] · p95 28.0 | - | - |
 | (b) + full snapshot built (legacy dispatch_json) | native dispatch_json / dispatch_json | 35.4 [35.2–35.9] · p95 43.8 | 35.4 [35.2–38.5] · p95 44.1 | - | - |
 | (b) + outcome with snapshot built (dispatch_outcome_json) | native dispatch_outcome_json / dispatch_outcome_json | 35.3 [35.2–35.6] · p95 44.1 | 35.4 [35.2–35.5] · p95 44.4 | - | - |
@@ -311,15 +311,15 @@ The same main-local build measured in the instrumented session (2026-09-29T08-41
 
 ## (4) Core runtime work: the event without view or snapshot
 
-The instrumented session: the ordinary main-local build and the i1 build side by side, interleaved.
+The instrumented session: the ordinary main-local build and the i1 build side by side, interleaved. Rows labelled "i1: attribution only" are timed in, or computed from, the throwaway i1 build. i1 directly times the isolated operation in the instrumented build, but because adding the benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), its absolute timings are attribution evidence (proportions and ordering), not production-path costs.
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | transaction, numeric parameters (native apply) | DIRECT | 13.0 [13.0–14.6] · p95 14.7 | 16.8 [16.1–18.3] · p95 19.7 | 90.3 [89.0–90.9] · p95 132.2 | 42.4 [42.4–42.7] · p95 61.4 | 109.2 [108.1–109.7] · p95 133.8 | 18.2 [18.1–18.4] · p95 21.6 |
-| payload parse + names + transaction (native, i1 bench_dispatch_only) | DIRECT | 13.3 [13.3–15.7] · p95 14.7 | 16.4 [16.2–19.1] · p95 17.7 | 98.7 [93.0–101.0] · p95 142.4 | 46.7 [44.3–47.5] · p95 66.4 | 114.0 [108.5–114.9] · p95 143.9 | 19.3 [19.3–19.7] · p95 23.0 |
-| payload parse + names + transaction (wasm execution, i1 bench_dispatch_only) | DIRECT | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
-| payload parse + name resolution (native) | INFERRED [4] | 0.20 [0.10–2.70] ±1.30 | 0.10 [0.10–3.00] ±1.55 | 9.10 [2.00–12.1] ±5.05 | 4.40 [0.80–4.80] ±2.20 | 5.70 [-1.60–6.50] ±4.10 | 1.10 [-1.80–1.10] ±1.85 |
-| WebAssembly execution over native, the same work | INFERRED [5] | -0.50 [-2.60–-0.40] ±1.35 | 2.00 [-3.50–2.50] ±3.00 | 5.00 [3.60–6.10] ±6.75 | 4.60 [4.30–5.50] ±3.25 | 7.10 [6.50–7.40] ±6.10 | 2.10 [2.00–2.10] ±0.45 |
+| payload parse + names + transaction (native, i1 bench_dispatch_only) | DIRECT, i1: attribution only | 13.3 [13.3–15.7] · p95 14.7 | 16.4 [16.2–19.1] · p95 17.7 | 98.7 [93.0–101.0] · p95 142.4 | 46.7 [44.3–47.5] · p95 66.4 | 114.0 [108.5–114.9] · p95 143.9 | 19.3 [19.3–19.7] · p95 23.0 |
+| payload parse + names + transaction (wasm execution, i1 bench_dispatch_only) | DIRECT, i1: attribution only | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
+| payload parse + name resolution (native) | INFERRED [4], i1: attribution only | 0.20 [0.10–2.70] ±1.30 | 0.10 [0.10–3.00] ±1.55 | 9.10 [2.00–12.1] ±5.05 | 4.40 [0.80–4.80] ±2.20 | 5.70 [-1.60–6.50] ±4.10 | 1.10 [-1.80–1.10] ±1.85 |
+| WebAssembly execution over native, the same work | INFERRED [5], i1: attribution only | -0.50 [-2.60–-0.40] ±1.35 | 2.00 [-3.50–2.50] ±3.00 | 5.00 [3.60–6.10] ±6.75 | 4.60 [4.30–5.50] ±3.25 | 7.10 [6.50–7.40] ±6.10 | 2.10 [2.00–2.10] ±0.45 |
 
 - payload parse + names + transaction (native, i1 bench_dispatch_only): throwaway i1 build
 - payload parse + names + transaction (wasm execution, i1 bench_dispatch_only): throwaway i1 build
@@ -328,16 +328,16 @@ The instrumented session: the ordinary main-local build and the i1 build side by
 
 ## (5) Snapshot and reporting work
 
-The instrumented session.
+The instrumented session. Rows labelled "i1: attribution only" are timed in, or computed from, the throwaway i1 build. i1 directly times the isolated operation in the instrumented build, but because adding the benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), its absolute timings are attribution evidence (proportions and ordering), not production-path costs.
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | snapshot() built (native, not serialized, not dropped) | DIRECT | 24.5 [24.5–24.6] · p95 26.4 | 21.5 [21.4–21.5] · p95 24.2 | 30.4 [30.2–31.0] · p95 33.8 | 30.5 [30.4–31.3] · p95 35.0 | 31.5 [31.3–32.3] · p95 34.4 | 17.5 [17.0–18.5] · p95 21.1 |
 | snapshot compact JSON (native serde_json) | DIRECT | 14.7 [14.6–14.8] · p95 16.0 | 13.3 [13.1–13.4] · p95 14.8 | 19.1 [19.1–19.5] · p95 21.7 | 18.8 [18.7–19.2] · p95 21.1 | 19.5 [19.4–19.8] · p95 21.3 | 13.3 [13.1–14.2] · p95 16.8 |
 | snapshot drop (native) | DIRECT | 10.6 [10.5–10.7] · p95 11.4 | 9.30 [9.10–9.40] · p95 10.3 | 11.9 [11.8–12.1] · p95 13.5 | 12.3 [12.2–12.5] · p95 14.4 | 13.0 [12.9–13.2] · p95 14.3 | 7.00 [6.80–7.50] · p95 8.00 |
-| snapshot built + dropped (wasm, i1) | DIRECT | 29.3 [27.8–30.7] · p95 35.4 | 25.7 [24.8–29.3] · p95 33.3 | 44.2 [42.9–46.2] · p95 53.6 | 42.2 [41.2–44.6] · p95 51.7 | 44.8 [43.9–47.4] · p95 53.9 | 22.7 [22.4–23.1] · p95 28.1 |
-| dispatch_outcome over dispatch-only (native): snapshot + outcome + JSON | INFERRED [5] | 51.2 [46.9–56.5] ±4.80 | 46.1 [41.8–51.2] ±4.80 | 64.0 [61.0–71.0] ±5.00 | 66.4 [65.4–70.3] ±2.45 | 69.9 [68.5–76.7] ±4.10 | 39.6 [38.9–40.4] ±0.95 |
-| dispatch_outcome over dispatch-only (wasm execution) | INFERRED [6] | 46.6 [44.9–47.6] ±1.35 | 41.7 [39.8–49.5] ±7.80 | 71.3 [68.8–77.7] ±4.45 | 71.8 [71.0–76.8] ±3.10 | 70.6 [69.2–77.5] ±4.15 | 40.2 [40.1–40.4] ±0.65 |
+| snapshot built + dropped (wasm, i1) | DIRECT, i1: attribution only | 29.3 [27.8–30.7] · p95 35.4 | 25.7 [24.8–29.3] · p95 33.3 | 44.2 [42.9–46.2] · p95 53.6 | 42.2 [41.2–44.6] · p95 51.7 | 44.8 [43.9–47.4] · p95 53.9 | 22.7 [22.4–23.1] · p95 28.1 |
+| dispatch_outcome over dispatch-only (native): snapshot + outcome + JSON | INFERRED [5], i1: attribution only | 51.2 [46.9–56.5] ±4.80 | 46.1 [41.8–51.2] ±4.80 | 64.0 [61.0–71.0] ±5.00 | 66.4 [65.4–70.3] ±2.45 | 69.9 [68.5–76.7] ±4.10 | 39.6 [38.9–40.4] ±0.95 |
+| dispatch_outcome over dispatch-only (wasm execution) | INFERRED [6], i1: attribution only | 46.6 [44.9–47.6] ±1.35 | 41.7 [39.8–49.5] ±7.80 | 71.3 [68.8–77.7] ±4.45 | 71.8 [71.0–76.8] ±3.10 | 70.6 [69.2–77.5] ±4.15 | 40.2 [40.1–40.4] ±0.65 |
 | JS JSON.parse of the outcome | DIRECT | 64.7 [61.3–68.2] · p95 74.9 | 59.7 [56.6–61.3] · p95 70.8 | 79.9 [78.0–80.6] · p95 94.7 | 78.3 [76.6–79.8] · p95 92.4 | 80.0 [78.2–81.1] · p95 93.5 | 46.7 [46.3–49.0] · p95 58.1 |
 
 - snapshot built + dropped (wasm, i1): throwaway i1 build
@@ -346,16 +346,16 @@ The instrumented session.
 
 ## (6) View construction
 
-The instrumented session.
+The instrumented session. Rows labelled "i1: attribution only" are timed in, or computed from, the throwaway i1 build. i1 directly times the isolated operation in the instrumented build, but because adding the benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), its absolute timings are attribution evidence (proportions and ordering), not production-path costs.
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | view() built (native, not serialized, not dropped) | DIRECT | 2.40 [2.40–2.50] · p95 2.70 | 1.90 [1.90–1.90] · p95 2.10 | 1.10 [1.10–1.10] · p95 1.70 | 1.60 [1.50–1.60] · p95 2.40 | 1.70 [1.60–1.70] · p95 2.40 | 3.00 [2.90–3.20] · p95 3.90 |
 | view compact JSON (native serde_json) | DIRECT | 4.60 [4.60–4.70] · p95 5.20 | 4.30 [4.20–4.30] · p95 4.80 | 7.00 [6.90–7.20] · p95 9.80 | 6.90 [6.90–7.10] · p95 8.10 | 7.20 [7.20–7.40] · p95 8.50 | 2.30 [2.30–2.50] · p95 3.00 |
-| view built + dropped (native, i1) | DIRECT | 3.90 [3.70–4.00] · p95 4.40 | 3.00 [2.90–3.10] · p95 3.30 | 2.10 [2.10–2.10] · p95 2.80 | 3.10 [3.10–3.10] · p95 4.40 | 2.90 [2.80–2.90] · p95 4.30 | 4.30 [4.30–4.70] · p95 5.70 |
-| view built + dropped (wasm, i1) | DIRECT | 3.50 [3.30–3.50] · p95 4.20 | 2.70 [2.70–3.10] · p95 3.40 | 2.30 [2.30–2.40] · p95 3.20 | 3.10 [3.10–3.30] · p95 4.70 | 3.10 [3.10–3.20] · p95 4.50 | 4.60 [4.50–4.60] · p95 5.90 |
-| view exported: built + JSON + dropped (wasm) | DIRECT | 9.20 [9.00–9.20] · p95 11.0 | 8.10 [7.90–9.30] · p95 11.1 | 13.0 [12.7–13.4] · p95 16.1 | 13.4 [13.2–14.2] · p95 17.2 | 14.2 [14.0–15.1] · p95 18.0 | 7.30 [7.10–7.40] · p95 9.60 |
-| view JSON inside wasm | INFERRED [6] | 5.70 [5.70–5.70] ±0.20 | 5.40 [5.20–6.20] ±0.90 | 10.7 [10.4–11.0] ±0.40 | 10.3 [10.1–10.9] ±0.60 | 11.1 [10.9–11.9] ±0.60 | 2.70 [2.60–2.80] ±0.20 |
+| view built + dropped (native, i1) | DIRECT, i1: attribution only | 3.90 [3.70–4.00] · p95 4.40 | 3.00 [2.90–3.10] · p95 3.30 | 2.10 [2.10–2.10] · p95 2.80 | 3.10 [3.10–3.10] · p95 4.40 | 2.90 [2.80–2.90] · p95 4.30 | 4.30 [4.30–4.70] · p95 5.70 |
+| view built + dropped (wasm, i1) | DIRECT, i1: attribution only | 3.50 [3.30–3.50] · p95 4.20 | 2.70 [2.70–3.10] · p95 3.40 | 2.30 [2.30–2.40] · p95 3.20 | 3.10 [3.10–3.30] · p95 4.70 | 3.10 [3.10–3.20] · p95 4.50 | 4.60 [4.50–4.60] · p95 5.90 |
+| view exported: built + JSON + dropped (wasm, i1) | DIRECT, i1: attribution only | 9.20 [9.00–9.20] · p95 11.0 | 8.10 [7.90–9.30] · p95 11.1 | 13.0 [12.7–13.4] · p95 16.1 | 13.4 [13.2–14.2] · p95 17.2 | 14.2 [14.0–15.1] · p95 18.0 | 7.30 [7.10–7.40] · p95 9.60 |
+| view JSON inside wasm | INFERRED [6], i1: attribution only | 5.70 [5.70–5.70] ±0.20 | 5.40 [5.20–6.20] ±0.90 | 10.7 [10.4–11.0] ±0.40 | 10.3 [10.1–10.9] ±0.60 | 11.1 [10.9–11.9] ±0.60 | 2.70 [2.60–2.80] ±0.20 |
 | JS JSON.parse of the view | DIRECT | 17.0 [16.1–17.9] · p95 19.5 | 16.8 [16.6–18.1] · p95 21.1 | 26.4 [26.2–26.8] · p95 32.5 | 26.3 [26.1–26.9] · p95 32.2 | 27.2 [27.0–28.0] · p95 33.2 | 6.90 [6.80–7.10] · p95 9.90 |
 
 - view built + dropped (native, i1): throwaway i1 build
@@ -414,13 +414,13 @@ kit.dispatch − raw.dispatch_outcome+parse in each repeat of the primary baseli
 
 ## Attribution on the dispatch_view path (web pages, adapter): language execution, view building, serialization and bridge
 
-Each part timed on its own (i1 throwaway build for the first two; the ordinary build for the rest) in the instrumented run. They are disjoint pieces of one dispatch_view call, but timed in separate calls, so their medians are not added; the whole is shown as its own DIRECT measurement.
+Each part timed on its own in the instrumented run: the first three in, or computed from, the throwaway i1 build (labelled "i1: attribution only"), the rest in the ordinary build. They are disjoint pieces of one dispatch_view call, but timed in separate calls, so their medians are not added; the whole is shown as its own DIRECT measurement. i1 directly times the isolated operation in the instrumented build, but because adding the benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), its absolute timings are attribution evidence (proportions and ordering), not production-path costs. The production attribution of this call is the i2 shares converted against the ordinary DIRECT path (INFERRED).
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| language execution: payload parse, names, transaction, rules, change detection, bindings, commit (wasm, i1 bench_dispatch_only) | DIRECT | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
-| view building: name map, sort, records, assembly, drop (wasm, i1 bench_view_build) | DIRECT | 3.50 [3.30–3.50] · p95 4.20 | 2.70 [2.70–3.10] · p95 3.40 | 2.30 [2.30–2.40] · p95 3.20 | 3.10 [3.10–3.30] · p95 4.70 | 3.10 [3.10–3.20] · p95 4.50 | 4.60 [4.50–4.60] · p95 5.90 |
-| view serialization inside wasm (serde_json) | INFERRED [3] | 5.70 [5.70–5.70] ±0.20 | 5.40 [5.20–6.20] ±0.90 | 10.7 [10.4–11.0] ±0.40 | 10.3 [10.1–10.9] ±0.60 | 11.1 [10.9–11.9] ±0.60 | 2.70 [2.60–2.80] ±0.20 |
+| language execution: payload parse, names, transaction, rules, change detection, bindings, commit (wasm, i1 bench_dispatch_only) | DIRECT, i1: attribution only | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
+| view building: name map, sort, records, assembly, drop (wasm, i1 bench_view_build) | DIRECT, i1: attribution only | 3.50 [3.30–3.50] · p95 4.20 | 2.70 [2.70–3.10] · p95 3.40 | 2.30 [2.30–2.40] · p95 3.20 | 3.10 [3.10–3.30] · p95 4.70 | 3.10 [3.10–3.20] · p95 4.50 | 4.60 [4.50–4.60] · p95 5.90 |
+| view serialization inside wasm (serde_json) | INFERRED [3], i1: attribution only | 5.70 [5.70–5.70] ±0.20 | 5.40 [5.20–6.20] ±0.90 | 10.7 [10.4–11.0] ±0.40 | 10.3 [10.1–10.9] ±0.60 | 11.1 [10.9–11.9] ±0.60 | 2.70 [2.60–2.80] ±0.20 |
 | bridge: argument copy | DIRECT | 0.10 [0.10–0.10] · p95 0.20 | 0.20 [0.20–0.30] · p95 0.40 | 0.60 [0.60–0.60] · p95 1.20 | 0.40 [0.30–0.40] · p95 0.70 | 0.30 [0.30–0.30] · p95 0.60 | 0.30 [0.30–0.30] · p95 0.60 |
 | bridge: result decode to a JS string | DIRECT | 2.40 [2.40–2.50] · p95 3.20 | 2.50 [2.30–2.60] · p95 3.80 | 2.00 [1.90–2.00] · p95 4.60 | 1.20 [1.20–1.20] · p95 3.10 | 1.20 [1.20–1.30] · p95 3.90 | 0.60 [0.60–0.60] · p95 1.80 |
 | bridge: result free | DIRECT | 0.10 [0.10–0.10] · p95 0.10 | 0.10 [0.10–0.10] · p95 0.20 | 0.20 [0.20–0.20] · p95 0.40 | 0.20 [0.20–0.20] · p95 0.30 | 0.10 [0.10–0.20] · p95 0.30 | 0.10 [0.10–0.10] · p95 0.30 |
@@ -432,12 +432,12 @@ Each part timed on its own (i1 throwaway build for the first two; the ordinary b
 
 ## Attribution on the kit path: language execution, snapshot reporting, serialization and bridge
 
-As above, for the `dispatch_outcome` call the kit's `session.dispatch()` makes, all from the instrumented run; the kit's own JavaScript and its extra `view()` call are in section (8).
+As above, for the `dispatch_outcome` call the kit's `session.dispatch()` makes, all from the instrumented run; the kit's own JavaScript and its extra `view()` call are in section (8). The first two rows are from the i1 build: attribution evidence, not production-path costs; the production attribution is the i2 shares converted against the ordinary DIRECT path (INFERRED).
 
 | Quantity (µs) | Label | Glowcap idle tick | Glowcap state-changing tick | Trail Rescue evidence | Trail Rescue commit | Trail Rescue reopen | ledger evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| language execution (wasm, i1 bench_dispatch_only) | DIRECT | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
-| snapshot + outcome built, serialized and dropped inside wasm | INFERRED [2] | 46.6 [44.9–47.6] ±1.35 | 41.7 [39.8–49.5] ±7.80 | 71.3 [68.8–77.7] ±4.45 | 71.8 [71.0–76.8] ±3.10 | 70.6 [69.2–77.5] ±4.15 | 40.2 [40.1–40.4] ±0.65 |
+| language execution (wasm, i1 bench_dispatch_only) | DIRECT, i1: attribution only | 12.9 [12.8–13.1] · p95 16.3 | 18.4 [15.6–18.7] · p95 24.5 | 103.7 [99.1–104.6] · p95 151.0 | 51.8 [48.9–52.2] · p95 76.0 | 121.4 [115.6–121.4] · p95 155.5 | 21.4 [21.3–21.8] · p95 27.0 |
+| snapshot + outcome built, serialized and dropped inside wasm | INFERRED [2], i1: attribution only | 46.6 [44.9–47.6] ±1.35 | 41.7 [39.8–49.5] ±7.80 | 71.3 [68.8–77.7] ±4.45 | 71.8 [71.0–76.8] ±3.10 | 70.6 [69.2–77.5] ±4.15 | 40.2 [40.1–40.4] ±0.65 |
 | bridge: outcome decode to a JS string | DIRECT | 7.30 [7.30–7.60] · p95 10.3 | 6.70 [6.60–6.90] · p95 10.0 | 3.90 [3.90–3.90] · p95 7.80 | 3.20 [3.20–3.20] · p95 8.20 | 3.30 [3.30–3.30] · p95 10.7 | 2.50 [2.50–2.50] · p95 9.10 |
 | JS: JSON.parse of the outcome | DIRECT | 64.7 [61.3–68.2] · p95 74.9 | 59.7 [56.6–61.3] · p95 70.8 | 79.9 [78.0–80.6] · p95 94.7 | 78.3 [76.6–79.8] · p95 92.4 | 80.0 [78.2–81.1] · p95 93.5 | 46.7 [46.3–49.0] · p95 58.1 |
 | whole: raw dispatch_outcome + JSON.parse | DIRECT | 138.0 [130.5–146.5] · p95 162.3 | 131.9 [124.6–135.6] · p95 170.6 | 268.9 [260.1–273.8] · p95 334.7 | 214.4 [209.2–217.3] · p95 267.8 | 284.9 [279.4–285.7] · p95 346.4 | 113.5 [113.1–119.5] · p95 144.5 |
@@ -839,7 +839,7 @@ Each instrumented build against the ordinary build on the same events, in the sa
 | ledger-session: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | median | 8.90 | 7.80 | 1.20 [0.90–1.30] ±0.25 | 15.4% |
 | ledger-session: refused | i2 wasm probe.dispatch_outcome / total | raw.dispatch_outcome / raw.dispatch_outcome+parse | mean | 9.30 | 8.03 | 1.40 [1.01–1.47] ±0.29 | 17.4% |
 
-Largest absolute overhead in the table above, by build and engine: i1 native 7.03%; i1 wasm 7.19%; i2 native 10.9%; i2 wasm 23.9%.
+Largest absolute overhead in the table above, by build and engine: i1 native 7.03%; i1 wasm 7.19%; i2 native 10.9%; i2 wasm 23.9%. Because each instrumented build measurably changes ordinary-path timing, absolute timings from i1 are attribution evidence, not production-path costs, and i2 numbers are shares, converted to µs only as INFERRED against the ordinary build.
 
 The cost of one mark (batches of 100):
 

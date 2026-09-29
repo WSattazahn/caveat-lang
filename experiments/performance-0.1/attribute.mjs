@@ -21,6 +21,15 @@
 // INFERRED as its share of the instrumented call times the ordinary DIRECT
 // median of the same path and class. Medians do not add, so an INFERRED
 // remainder is not a measurement of that region.
+//
+// The i1 build. A row timed in the throwaway i1 build (its benchmark-only
+// entry points, or its own copy of an ordinary path), or computed from such
+// rows, is DIRECT or INFERRED for that instrumented build only. Adding the
+// entry points changes ordinary-path timing by up to about 7% (the safeguard
+// section), so these rows are labelled "i1: attribution only" and carry a
+// `use` field in attribution.json: attribution evidence (proportions and
+// ordering), not production-path costs. The production attribution is the
+// i2 shares converted against the ordinary build's DIRECT paths (INFERRED).
 import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -171,6 +180,13 @@ const CONTROL = 'rc4-local';
 const PUBLISHED = 'rc4-published';
 const HIST = 'hist-e6ace96';
 
+// i1 rows: attribution evidence, not production-path costs (see the header).
+const I1_TAG = 'i1: attribution only';
+const I1_USE = 'attribution evidence, not a production-path cost: timed in (or computed from) the instrumented i1 build, whose added benchmark entry points change ordinary-path timing by up to about 7% (safeguard)';
+const I1_WHY = 'i1 directly times the isolated operation in the instrumented build, but because adding the benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), its absolute timings are attribution evidence (proportions and ordering), not production-path costs.';
+const I1_INTRO = `Rows labelled "${I1_TAG}" are timed in, or computed from, the throwaway i1 build. ${I1_WHY}`;
+const i1Label = (stats) => ({ ...stats, label: `${stats.label} (${I1_TAG})` });
+
 // ---- 1. Control: rc4-local against main-local ------------------------------
 
 {
@@ -276,11 +292,11 @@ if (replicates.length) {
 // ---- 1b. Every build, the questions (a)-(h) ------------------------------------
 
 {
-  const sec = section('builds', 'Results per build and operation (questions a–h)', 'All events of each workload, pooled per run; median over the 3 runs [lowest–highest run] · median p95. DIRECT. Native rows exist only for the trees; the published package and the historical runtime are WebAssembly only.');
+  const sec = section('builds', 'Results per build and operation (questions a–h)', 'All events of each workload, pooled per run; median over the 3 runs [lowest–highest run] · median p95. DIRECT. Native rows exist only for the trees; the published package and the historical runtime are WebAssembly only. The bench row is timed in the throwaway i1 build: DIRECT there, but adding its benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), so it is attribution evidence, not a production-path cost.');
   const TARGETS = [LOCAL, CONTROL, PUBLISHED, HIST];
   const specs = [
     ['(a) transaction only, numeric parameters', 'native', 'apply', 'apply'],
-    ['(a/b) payload + transaction, no reporting (i1)', 'native', 'bench.dispatch_only', 'bench.dispatch_only', 'inst'],
+    [`(a/b) payload + transaction, no reporting (${I1_TAG})`, 'native', 'bench.dispatch_only', 'bench.dispatch_only', 'inst'],
     ['(b) + view built, not serialized', 'native', 'dispatch_view_json', 'dispatch_view_json'],
     ['(b) + full snapshot built (legacy dispatch_json)', 'native', 'dispatch_json', 'dispatch_json'],
     ['(b) + outcome with snapshot built (dispatch_outcome_json)', 'native', 'dispatch_outcome_json', 'dispatch_outcome_json'],
@@ -315,14 +331,14 @@ if (replicates.length) {
       const cells = TARGETS.map((t) => {
         if (!targets.includes(t) && !(from === 'inst' && t === LOCAL)) return '-';
         const d = direct(runs(report, from === 'inst' ? 'i1' : t, w, e, m, op));
-        if (d) keep(sec, { workload: w, name, target: from === 'inst' ? 'i1' : t, engine: e, mode: m, op, stats: d });
+        if (d) keep(sec, { workload: w, name, target: from === 'inst' ? 'i1' : t, engine: e, mode: m, op, stats: from === 'inst' ? i1Label(d) : d, ...(from === 'inst' ? { use: I1_USE } : {}) });
         const accepted = d && everyEvent && d.nPerRun[0] > 100 && d.nPerRun[0] < everyEvent;
         return `${directCell(d)}${accepted ? ` · accepted events only, n ${d.nPerRun[0]}/run` : ''}`;
       });
       if (cells.every((cell) => cell === '-')) continue;
       rows.push([name, `${e} ${m} / ${op}`, ...cells]);
     }
-    md.push(`### ${w}`, '', table(['Question', 'Engine, mode / operation', `${LOCAL}${' (i1 for the bench row)'}`, CONTROL, PUBLISHED, HIST], rows));
+    md.push(`### ${w}`, '', table(['Question', 'Engine, mode / operation', `${LOCAL} (i1 build for the bench row: attribution only)`, CONTROL, PUBLISHED, HIST], rows));
   }
 }
 
@@ -499,16 +515,20 @@ function componentValue(spec, workload, group, report, classes) {
 
 // One table per component: a row per quantity, a column per event kind.
 // DIRECT cells are "median [runs] · p95"; INFERRED cells are "difference
-// [runs] ± bound", with each formula listed under the table.
+// [runs] ± bound", with each formula listed under the table. A row timed in
+// or computed from the i1 build is labelled as attribution only.
+const usesI1 = (spec) => (spec.direct ? spec.direct[0] === 'i1' : (spec.terms ?? []).some(([, t]) => t === 'i1'));
 function componentSection(key, title, intro, specs, report, classes) {
   const sec = section(key, title, intro);
   const rows = [];
   const notes = [];
   specs.forEach((spec, index) => {
-    const label = spec.direct ? 'DIRECT' : `INFERRED [${index + 1}]`;
+    const i1 = usesI1(spec);
+    const label = `${spec.direct ? 'DIRECT' : `INFERRED [${index + 1}]`}${i1 ? `, ${I1_TAG}` : ''}`;
     const cells = WORKLOAD_GROUPS.map(([workload, group, name]) => {
       const value = componentValue(spec, workload, group, report, classes);
-      if (value) keep(sec, { quantity: spec.name, eventKind: name, workload, group, source: spec.direct ?? null, ...(spec.direct ? { stats: value } : value) });
+      const labelled = value && i1 ? i1Label(value) : value;
+      if (value) keep(sec, { quantity: spec.name, eventKind: name, workload, group, source: spec.direct ?? null, ...(spec.direct ? { stats: labelled } : labelled), ...(i1 ? { use: I1_USE } : {}) });
       return spec.direct ? directCell(value) : inferredCell(value);
     });
     rows.push([spec.name, label, ...cells]);
@@ -520,7 +540,7 @@ function componentSection(key, title, intro, specs, report, classes) {
 }
 
 // (4) core runtime work: the transaction with no reporting.
-componentSection('core', '(4) Core runtime work: the event without view or snapshot', 'The instrumented session: the ordinary main-local build and the i1 build side by side, interleaved.', [
+componentSection('core', '(4) Core runtime work: the event without view or snapshot', `The instrumented session: the ordinary main-local build and the i1 build side by side, interleaved. ${I1_INTRO}`, [
   { name: 'transaction, numeric parameters (native apply)', direct: [LOCAL, 'native', 'apply', 'apply'] },
   { name: 'payload parse + names + transaction (native, i1 bench_dispatch_only)', direct: ['i1', 'native', 'bench.dispatch_only', 'bench.dispatch_only'], note: 'throwaway i1 build' },
   { name: 'payload parse + names + transaction (wasm execution, i1 bench_dispatch_only)', direct: ['i1', 'wasm', 'abi.dispatch_only', 'abi.dispatch_only.exec'], note: 'throwaway i1 build' },
@@ -529,7 +549,7 @@ componentSection('core', '(4) Core runtime work: the event without view or snaps
 ], inst, instClasses);
 
 // (5) snapshot and reporting work.
-componentSection('snapshot', '(5) Snapshot and reporting work', 'The instrumented session.', [
+componentSection('snapshot', '(5) Snapshot and reporting work', `The instrumented session. ${I1_INTRO}`, [
   { name: 'snapshot() built (native, not serialized, not dropped)', direct: [LOCAL, 'native', 'read', 'snapshot'] },
   { name: 'snapshot compact JSON (native serde_json)', direct: [LOCAL, 'native', 'read', 'snapshot.serialize'] },
   { name: 'snapshot drop (native)', direct: [LOCAL, 'native', 'read', 'snapshot.drop'] },
@@ -540,12 +560,12 @@ componentSection('snapshot', '(5) Snapshot and reporting work', 'The instrumente
 ], inst, instClasses);
 
 // (6) view construction.
-componentSection('view', '(6) View construction', 'The instrumented session.', [
+componentSection('view', '(6) View construction', `The instrumented session. ${I1_INTRO}`, [
   { name: 'view() built (native, not serialized, not dropped)', direct: [LOCAL, 'native', 'read', 'view'] },
   { name: 'view compact JSON (native serde_json)', direct: [LOCAL, 'native', 'read', 'view.serialize'] },
   { name: 'view built + dropped (native, i1)', direct: ['i1', 'native', 'bench.read', 'bench.view_build'], note: 'throwaway i1 build' },
   { name: 'view built + dropped (wasm, i1)', direct: ['i1', 'wasm', 'abi.bench_read', 'abi.view_build.exec'], note: 'throwaway i1 build' },
-  { name: 'view exported: built + JSON + dropped (wasm)', direct: ['i1', 'wasm', 'abi.bench_read', 'abi.view.exec'] },
+  { name: 'view exported: built + JSON + dropped (wasm, i1)', direct: ['i1', 'wasm', 'abi.bench_read', 'abi.view.exec'] },
   { name: 'view JSON inside wasm', formula: 'i1 abi.view.exec − i1 abi.view_build.exec (same step, same state)', terms: [[1, 'i1', 'wasm', 'abi.bench_read', 'abi.view.exec'], [-1, 'i1', 'wasm', 'abi.bench_read', 'abi.view_build.exec']] },
   { name: 'JS JSON.parse of the view', direct: [LOCAL, 'wasm', 'raw.dispatch_view', 'js.parse_view'] },
 ], inst, instClasses);
@@ -591,11 +611,13 @@ componentSection('kit', '(8) The kit session path against dispatch_view', 'The p
 // ---- the attribution the owner asked for -----------------------------------------
 // Absolute parts from the instrumented run (i1 and the ordinary main-local
 // build, interleaved), each timed on its own; they are separate
-// measurements, so their sum is not a measurement of the whole. The i2
-// shares below them are the same split made inside one call, where the
-// parts are disjoint and add up exactly (for means).
+// measurements, so their sum is not a measurement of the whole. The i1 parts
+// are attribution evidence only (see the header). The i2 shares below them
+// are the same split made inside one call, where the parts are disjoint and
+// add up exactly (for means); converted against the ordinary DIRECT paths,
+// they are the production attribution (INFERRED).
 
-componentSection('attribution-view', 'Attribution on the dispatch_view path (web pages, adapter): language execution, view building, serialization and bridge', 'Each part timed on its own (i1 throwaway build for the first two; the ordinary build for the rest) in the instrumented run. They are disjoint pieces of one dispatch_view call, but timed in separate calls, so their medians are not added; the whole is shown as its own DIRECT measurement.', [
+componentSection('attribution-view', 'Attribution on the dispatch_view path (web pages, adapter): language execution, view building, serialization and bridge', `Each part timed on its own in the instrumented run: the first three in, or computed from, the throwaway i1 build (labelled "${I1_TAG}"), the rest in the ordinary build. They are disjoint pieces of one dispatch_view call, but timed in separate calls, so their medians are not added; the whole is shown as its own DIRECT measurement. ${I1_WHY} The production attribution of this call is the i2 shares converted against the ordinary DIRECT path (INFERRED).`, [
   { name: 'language execution: payload parse, names, transaction, rules, change detection, bindings, commit (wasm, i1 bench_dispatch_only)', direct: ['i1', 'wasm', 'abi.dispatch_only', 'abi.dispatch_only.exec'] },
   { name: 'view building: name map, sort, records, assembly, drop (wasm, i1 bench_view_build)', direct: ['i1', 'wasm', 'abi.bench_read', 'abi.view_build.exec'] },
   { name: 'view serialization inside wasm (serde_json)', formula: 'i1 abi.view.exec − i1 abi.view_build.exec, the same step', terms: [[1, 'i1', 'wasm', 'abi.bench_read', 'abi.view.exec'], [-1, 'i1', 'wasm', 'abi.bench_read', 'abi.view_build.exec']] },
@@ -607,7 +629,7 @@ componentSection('attribution-view', 'Attribution on the dispatch_view path (web
   { name: 'whole, wasm execution only', direct: [LOCAL, 'wasm', 'abi.dispatch_view', 'abi.exec'] },
 ], inst, instClasses);
 
-componentSection('attribution-kit', 'Attribution on the kit path: language execution, snapshot reporting, serialization and bridge', 'As above, for the `dispatch_outcome` call the kit\'s `session.dispatch()` makes, all from the instrumented run; the kit\'s own JavaScript and its extra `view()` call are in section (8).', [
+componentSection('attribution-kit', 'Attribution on the kit path: language execution, snapshot reporting, serialization and bridge', 'As above, for the `dispatch_outcome` call the kit\'s `session.dispatch()` makes, all from the instrumented run; the kit\'s own JavaScript and its extra `view()` call are in section (8). The first two rows are from the i1 build: attribution evidence, not production-path costs; the production attribution is the i2 shares converted against the ordinary DIRECT path (INFERRED).', [
   { name: 'language execution (wasm, i1 bench_dispatch_only)', direct: ['i1', 'wasm', 'abi.dispatch_only', 'abi.dispatch_only.exec'] },
   { name: 'snapshot + outcome built, serialized and dropped inside wasm', formula: 'i1 abi.dispatch_outcome exec − i1 abi.dispatch_only exec', terms: [[1, 'i1', 'wasm', 'abi.dispatch_outcome', 'abi.exec'], [-1, 'i1', 'wasm', 'abi.dispatch_only', 'abi.dispatch_only.exec']] },
   { name: 'bridge: outcome decode to a JS string', direct: [LOCAL, 'wasm', 'abi.dispatch_outcome', 'abi.decode'] },
@@ -782,7 +804,7 @@ componentSection('attribution-kit', 'Attribution on the kit path: language execu
   }
   md.push(table(['Workload: events', 'Instrumented', 'Ordinary (main-local)', 'Statistic', 'instrumented µs', 'ordinary µs', 'overhead (INFERRED)', 'overhead %'], rows));
   keep(sec, { largestAbsoluteOverheadPercent: worst });
-  md.push(`Largest absolute overhead in the table above, by build and engine: ${Object.entries(worst).map(([key, value]) => `${key} ${f(value)}%`).join('; ')}.`, '');
+  md.push(`Largest absolute overhead in the table above, by build and engine: ${Object.entries(worst).map(([key, value]) => `${key} ${f(value)}%`).join('; ')}. Because each instrumented build measurably changes ordinary-path timing, absolute timings from i1 are attribution evidence, not production-path costs, and i2 numbers are shares, converted to µs only as INFERRED against the ordinary build.`, '');
   const overhead = [];
   for (const e of ['native', 'wasm']) {
     for (const op of ['probe.mark', 'probe.now', 'js.performance_now']) {

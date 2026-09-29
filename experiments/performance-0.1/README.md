@@ -292,6 +292,13 @@ functions live only in the copy's own harness. RESULTS.md describes the three
 copies used for the 0.1 baseline (i1: benchmark-only entry points; i2:
 timestamp marks; i3: timers around the copy-on-write copies and a
 provenance-copy counter) and compares each against the ordinary build.
+i1 directly times the isolated operations in the instrumented build, but
+adding its entry points changes ordinary-path timing by up to about 7%, so
+its absolute timings are attribution evidence (proportions and ordering),
+not production-path costs: `attribute.mjs` labels every row timed in or
+computed from i1 "i1: attribution only". i2 is quoted only as shares, or
+converted to µs as INFERRED against the ordinary build. Production costs come
+from the ordinary build's DIRECT paths.
 
 ## Output
 
