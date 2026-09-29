@@ -1,0 +1,1367 @@
+{
+ "schema": "caveat-performance-results/0.1",
+ "runId": "2026-09-29T09-11-08-942-baseline",
+ "startedAt": "2026-09-29T09:11:08.945Z",
+ "finishedAt": "2026-09-29T09:11:26.911Z",
+ "command": "node experiments/performance-0.1/run.mjs --suite=baseline --repeats=1 --build=never --engines=wasm --workloads=glowcap-replay --modes=published-method,adapter --target=main-local=tree:C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/prPERF --monitor-interval=1 --out=C:/Users/walte/AppData/Local/Temp/claude/C--Dev-GPT-SandBox-Web/3bc468a2-40f8-4895-bd0a-fb452fae7549/scratchpad/audit/method/alone-1",
+ "suite": {
+  "name": "baseline",
+  "rounds": 3,
+  "warmup": 1,
+  "publishedRounds": 3,
+  "lifecycleSamples": 30,
+  "lifecycleWarmup": 3,
+  "resumeRuns": 3,
+  "microSamples": 2000,
+  "maxEvents": null,
+  "repeatCap": null,
+  "repeats": 1,
+  "engines": [
+   "wasm"
+  ]
+ },
+ "environment": {
+  "machine": {
+   "platform": "win32",
+   "arch": "x64",
+   "release": "10.0.26200",
+   "cpuModel": "Intel(R) Core(TM) Ultra 9 275HX",
+   "logicalProcessors": 24,
+   "totalMemoryBytes": 68112736256,
+   "windows": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+    "cores": 24,
+    "logicalProcessors": 24,
+    "maxClockMHz": 2700,
+    "os": "Microsoft Windows 11 Home",
+    "osVersion": "10.0.26200",
+    "osBuild": "26200",
+    "ramBytes": 68112736256,
+    "powerScheme": "Power Scheme GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c  (High performance)",
+    "batteryStatus": 2,
+    "cpuSets": "0:0:1:1:0,1:1:1:1:0,2:2:0:0:0,3:3:0:0:0,4:4:0:0:0,5:5:0:0:0,6:6:0:0:0,7:7:0:0:0,8:8:0:0:0,9:9:0:0:0,10:10:1:1:0,11:11:1:1:0,12:12:1:1:0,13:13:1:2:0,14:14:0:0:0,15:15:0:0:0,16:16:0:0:0,17:17:0:0:0,18:18:0:0:0,19:19:0:0:0,20:20:0:0:0,21:21:0:0:0,22:22:1:1:0,23:23:1:2:0"
+   },
+   "performanceCores": [
+    0,
+    1,
+    10,
+    11,
+    12,
+    13,
+    22,
+    23
+   ],
+   "cpuSetList": [
+    {
+     "logicalProcessor": 0,
+     "core": 0,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 1,
+     "core": 1,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 2,
+     "core": 2,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 3,
+     "core": 3,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 4,
+     "core": 4,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 5,
+     "core": 5,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 6,
+     "core": 6,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 7,
+     "core": 7,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 8,
+     "core": 8,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 9,
+     "core": 9,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 10,
+     "core": 10,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 11,
+     "core": 11,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 12,
+     "core": 12,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 13,
+     "core": 13,
+     "efficiencyClass": 1,
+     "schedulingClass": 2,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 14,
+     "core": 14,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 15,
+     "core": 15,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 16,
+     "core": 16,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 17,
+     "core": 17,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 18,
+     "core": 18,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 19,
+     "core": 19,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 20,
+     "core": 20,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 21,
+     "core": 21,
+     "efficiencyClass": 0,
+     "schedulingClass": 0,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 22,
+     "core": 22,
+     "efficiencyClass": 1,
+     "schedulingClass": 1,
+     "lastLevelCache": 0
+    },
+    {
+     "logicalProcessor": 23,
+     "core": 23,
+     "efficiencyClass": 1,
+     "schedulingClass": 2,
+     "lastLevelCache": 0
+    }
+   ]
+  },
+  "pinning": {
+   "affinityMask": "0x3C00",
+   "logicalProcessors": [
+    10,
+    11,
+    12,
+    13
+   ],
+   "affinitySet": null,
+   "priority": "high",
+   "how": "cmd /c start /b /wait /<priority> /affinity <mask>"
+  },
+  "toolchain": {
+   "node": "v24.11.1",
+   "v8": "13.6.233.10-node.28",
+   "npm": "11.12.1",
+   "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-pc-windows-msvc\nrelease: 1.98.1\nLLVM version: 22.1.8",
+   "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+   "rustupToolchain": "1.98.1-x86_64-pc-windows-msvc (overridden by 'C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\rust-toolchain.toml')",
+   "wasmBindgen": "wasm-bindgen 0.2.104",
+   "wasmOpt": null
+  },
+  "harness": {
+   "revision": "d9c935898e65ecb5881ed69eb6af1293fe2eeed4"
+  },
+  "loadBefore": {
+   "totalCpuPercent": [
+    5,
+    0,
+    0
+   ],
+   "busiestProcesses": [
+    {
+     "name": "claude",
+     "pid": 95512,
+     "cpuSeconds": 1.359
+    },
+    {
+     "name": "powershell",
+     "pid": 107268,
+     "cpuSeconds": 0.641
+    },
+    {
+     "name": "claude",
+     "pid": 104712,
+     "cpuSeconds": 0.453
+    },
+    {
+     "name": "ChatGPT",
+     "pid": 8524,
+     "cpuSeconds": 0.172
+    },
+    {
+     "name": "ChatGPT",
+     "pid": 87544,
+     "cpuSeconds": 0.125
+    },
+    {
+     "name": "IntelGraphicsSoftware",
+     "pid": 14784,
+     "cpuSeconds": 0.125
+    }
+   ]
+  },
+  "loadDuring": {
+   "what": "typeperf every 1 s for the whole run",
+   "samples": 3,
+   "counters": {
+    "total": {
+     "samples": 3,
+     "mean": 9.5,
+     "p95": 8.6,
+     "max": 12.3
+    },
+    "processor 10": {
+     "samples": 3,
+     "mean": 17.6,
+     "p95": 14.1,
+     "max": 25.2
+    },
+    "processor 11": {
+     "samples": 3,
+     "mean": 15.5,
+     "p95": 14.3,
+     "max": 18.1
+    },
+    "processor 12": {
+     "samples": 3,
+     "mean": 16.1,
+     "p95": 12.6,
+     "max": 23.7
+    },
+    "processor 13": {
+     "samples": 3,
+     "mean": 98.4,
+     "p95": 98.4,
+     "max": 100
+    },
+    "processor 10 MHz": {
+     "samples": 3,
+     "mean": 4187.2,
+     "p95": 4122.6,
+     "max": 4341.3
+    },
+    "processor 11 MHz": {
+     "samples": 3,
+     "mean": 3989,
+     "p95": 4003.5,
+     "max": 4122.1
+    },
+    "processor 12 MHz": {
+     "samples": 3,
+     "mean": 4193.2,
+     "p95": 4234,
+     "max": 4246.1
+    },
+    "processor 13 MHz": {
+     "samples": 3,
+     "mean": 3783.6,
+     "p95": 3760.1,
+     "max": 3847.7
+    }
+   },
+   "totalAbove10Percent": 1,
+   "totalAbove25Percent": 0,
+   "pinnedSumAbove150Percent": 1
+  },
+  "loadAfter": {
+   "totalCpuPercent": [
+    2,
+    5,
+    4
+   ],
+   "busiestProcesses": [
+    {
+     "name": "claude",
+     "pid": 95512,
+     "cpuSeconds": 1.672
+    },
+    {
+     "name": "powershell",
+     "pid": 47520,
+     "cpuSeconds": 1.188
+    },
+    {
+     "name": "powershell",
+     "pid": 67100,
+     "cpuSeconds": 1
+    },
+    {
+     "name": "claude",
+     "pid": 104712,
+     "cpuSeconds": 0.328
+    },
+    {
+     "name": "ChatGPT",
+     "pid": 8524,
+     "cpuSeconds": 0.234
+    },
+    {
+     "name": "IntelGraphicsSoftware",
+     "pid": 14784,
+     "cpuSeconds": 0.141
+    }
+   ]
+  }
+ },
+ "published": {
+  "dispatchPlusView": {
+   "medianUs": 51.6,
+   "p95Us": 59.1,
+   "maxUs": 646.7,
+   "command": "node experiments/glowcap/harness.mjs --bench",
+   "method": "experiments/glowcap/harness.mjs bench(): 3 rounds of 10,000 events on a fresh createPolicy() each, no warm-up; each sample is process.hrtime.bigint() around policy.dispatch(event); policy.view(); the 30,000 samples pooled; quantile samples[floor(p*(n-1))]",
+   "evidence": "experiments/glowcap/evidence/round6-replay.json timing.dispatchAndShippedOutput",
+   "repositoryRevision": "e6ace96ebc25b80a249b879270b96730ac310eed",
+   "runtimeRevision": "8d8596acce8bebe3cdf2fe17e4d02f93eddc18ff",
+   "reactiveWasmSha256": "d897787f414a5020d5d99f387d9da6c874a3512580a1f4db96221fec223fcd97",
+   "citedIn": [
+    "experiments/glowcap/RESULTS.md:472",
+    "README.md:108",
+    "web/about.html:174"
+   ]
+  },
+  "resume": {
+   "medianMs": 3.2416,
+   "samplesMs": [
+    7.154,
+    3.2416,
+    3.1401
+   ],
+   "saveBytes": 2045,
+   "command": "node experiments/glowcap/resume-bench.mjs",
+   "method": "experiments/glowcap/resume-bench.mjs: absorb, 9,600 ticks of dt 0.0625, save; timed JSON.parse(save) + createPolicy(saved) + view(); 3 runs, median sorted[1]",
+   "evidence": "experiments/glowcap/evidence/round6-replay.json timing.resume (caveat5)",
+   "citedIn": [
+    "experiments/glowcap/RESULTS.md:473"
+   ]
+  }
+ },
+ "targets": [
+  {
+   "label": "main-local",
+   "baseLabel": "main-local",
+   "affinityMask": "0x3C00",
+   "kind": "tree",
+   "directory": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF",
+   "git": {
+    "revision": "d9c935898e65ecb5881ed69eb6af1293fe2eeed4",
+    "describe": "v0.1.0-rc.4-7-gd9c9358-dirty",
+    "branch": "perf/baseline-0.1",
+    "trackedClean": false,
+    "runtimeTreeSha": "ffb681c9e385391c12b3f855cd5858b07d3b7825",
+    "kitLibTreeSha": "c6a4fa04a1dfc54afe981af15da91a4fd78cb784"
+   },
+   "packageInfo": null,
+   "runtimeDir": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\runtime\\target\\perf-baseline\\pkg-reactive",
+   "runtimeFiles": {
+    "caveat_runtime_bg.wasm": {
+     "sha256": "e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde",
+     "bytes": 2052856
+    },
+    "caveat_runtime.js": {
+     "sha256": "9066c9a19dcba3f0ae7d8c8e15d4de1d10bb06c09ea9ab1fd9e7026d2e55bcb8",
+     "bytes": 14575
+    }
+   },
+   "kitLib": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\kit\\lib",
+   "kitFiles": {
+    "session.mjs": {
+     "sha256": "b171d128027aebf24416aefabfc26bdc7cddc1f10f410e1dc67cd96d3abd4b7d",
+     "bytes": 10461
+    },
+    "node.mjs": {
+     "sha256": "5cd3fcee4caa1564657cb7956fc6d8ee3f2bb1f549d34a777c90cd16cd1898d3",
+     "bytes": 2230
+    }
+   },
+   "adapterFile": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\experiments\\glowcap\\caveat5\\adapter.mjs",
+   "build": {
+    "wasm": "reused"
+   },
+   "native": null
+  }
+ ],
+ "workloads": [
+  {
+   "id": "glowcap-replay",
+   "description": "The Glowcap replay program and the exact event stream behind the published 51.6 us figure (experiments/glowcap/harness.mjs bench(), runtime/examples/profile_dispatch.rs): absorb cave glowcap, absorb pool duskcap, taste ruin glowcap, then 9,997 ticks of dt 0.05.",
+   "program": {
+    "path": "experiments/glowcap/caveat5/glowcap.cav",
+    "fileSha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e",
+    "sha256": "6b5acb2b87d26d6cc8a7e51eb1d036d693c902c31a1f573d3346afb62f03948e",
+    "addMushrooms": 0
+   },
+   "streamSha256": "4089c5d81e6f4df8789e98c473b373888661d8760b391861f73f63021369b519",
+   "episodes": 1,
+   "eventsPerEpisode": [
+    10000
+   ],
+   "repeats": 1,
+   "eventsPerPass": 10000,
+   "truncatedTo": null,
+   "segments": [
+    {
+     "name": "observations",
+     "from": 0,
+     "to": 3,
+     "why": "the three observation events"
+    },
+    {
+     "name": "decay",
+     "from": 3,
+     "to": 603,
+     "why": "glow (30 s) and heavy (20 s) still counting down at 0.05 s a tick"
+    },
+    {
+     "name": "transition",
+     "from": 603,
+     "to": 1300,
+     "why": "idle ticks, the cave and pool regrowth (45 s after eating) and the ruin taste's fade (60 s)"
+    },
+    {
+     "name": "steady",
+     "from": 1300,
+     "to": 10000,
+     "why": "idle ticks: nothing decays, regrows or fades; 87% of the stream and so the pooled median"
+    }
+   ],
+   "adapter": {
+    "path": "experiments/glowcap/caveat5/adapter.mjs",
+    "sha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
+    "events": "glowcap"
+   }
+  }
+ ],
+ "consistency": {
+  "inconsistent": [],
+  "betweenTargets": {
+   "glowcap-replay adapter-save-json": [
+    {
+     "sha256": "bcc2ec60c6f54cd9465a3feed06ed6917c00d52554839bed28f8964e63490307",
+     "targets": [
+      "main-local"
+     ]
+    }
+   ]
+  },
+  "byWorkload": {
+   "glowcap-replay adapter-save-json": {
+    "bcc2ec60c6f54cd9465a3feed06ed6917c00d52554839bed28f8964e63490307": [
+     "main-local/wasm/published-method#0",
+     "main-local/wasm/adapter#0"
+    ]
+   }
+  }
+ },
+ "failures": [],
+ "skipped": [],
+ "correctness": [],
+ "results": {
+  "main-local": {
+   "glowcap-replay": {
+    "wasm": {
+     "published-method": {
+      "runs": [
+       {
+        "repeat": 0,
+        "seconds": 1.709,
+        "affinityMask": "0x3C00",
+        "startedAtMs": 1790673077122,
+        "endedAtMs": 1790673078831,
+        "process": {
+         "pid": 102408,
+         "node": "v24.11.1",
+         "v8": "13.6.233.10-node.28",
+         "execArgv": [
+          "--expose-gc"
+         ],
+         "availableParallelism": 4
+        },
+        "method": {
+         "warmupPasses": 0,
+         "rounds": 3,
+         "repeats": 1,
+         "lifecycleSamples": 30,
+         "lifecycleWarmup": 3,
+         "timer": "process.hrtime.bigint()",
+         "timerOverhead": {
+          "what": "two process.hrtime.bigint() calls",
+          "minUs": 0,
+          "medianUs": 0.1
+         },
+         "gcBetweenRounds": false
+        },
+        "notes": [],
+        "extra": {
+         "adapter": {
+          "file": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\experiments\\glowcap\\caveat5\\adapter.mjs",
+          "originalSha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
+          "rewrittenSha256": "e5855d946ea9563f65148ddc9fdb9dd7a05280c581a044114aa3dcc6ec19b9c4",
+          "rewritten": [
+           "'../../../dist/pkg-reactive/caveat_runtime.js'",
+           "new URL('../../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url)",
+           "new URL('./glowcap.cav', import.meta.url)"
+          ]
+         }
+        },
+        "ops": {
+         "adapter.dispatch+view": {
+          "pooled": {
+           "n": 30000,
+           "median": 47.4,
+           "p95": 60.5,
+           "p99": 91.7,
+           "p25": 45.7,
+           "p75": 49.8,
+           "iqr": 4.1,
+           "min": 33.5,
+           "max": 4752.3,
+           "mean": 50.2
+          },
+          "rounds": [
+           {
+            "n": 10000,
+            "median": 47.9,
+            "p95": 72.9,
+            "p99": 105.2,
+            "p25": 46.2,
+            "p75": 50.5,
+            "iqr": 4.3,
+            "min": 34.3,
+            "max": 4752.3,
+            "mean": 52.601
+           },
+           {
+            "n": 10000,
+            "median": 46.6,
+            "p95": 55.1,
+            "p99": 78.3,
+            "p25": 45.2,
+            "p75": 48.6,
+            "iqr": 3.4,
+            "min": 33.7,
+            "max": 712.2,
+            "mean": 48.288
+           },
+           {
+            "n": 10000,
+            "median": 47.8,
+            "p95": 57.2,
+            "p99": 74.6,
+            "p25": 46,
+            "p75": 50.3,
+            "iqr": 4.3,
+            "min": 33.5,
+            "max": 980.7,
+            "mean": 49.711
+           }
+          ],
+          "segments": {
+           "observations": {
+            "n": 9,
+            "median": 177.9,
+            "p95": 712.2,
+            "p99": 712.2,
+            "p25": 162.8,
+            "p75": 623.3,
+            "iqr": 460.5,
+            "min": 126.5,
+            "max": 4752.3,
+            "mean": 815.411
+           },
+           "decay": {
+            "n": 1800,
+            "median": 53.8,
+            "p95": 97.4,
+            "p99": 225.2,
+            "p25": 46.5,
+            "p75": 65,
+            "iqr": 18.5,
+            "min": 35.1,
+            "max": 2759,
+            "mean": 64.355
+           },
+           "transition": {
+            "n": 2091,
+            "median": 48.3,
+            "p95": 58.7,
+            "p99": 100.4,
+            "p25": 46.4,
+            "p75": 51,
+            "iqr": 4.6,
+            "min": 39.5,
+            "max": 640,
+            "mean": 51.022
+           },
+           "steady": {
+            "n": 26100,
+            "median": 47.2,
+            "p95": 56.8,
+            "p99": 80.7,
+            "p25": 45.7,
+            "p75": 49.3,
+            "iqr": 3.6,
+            "min": 33.5,
+            "max": 500.2,
+            "mean": 48.894
+           }
+          }
+         }
+        },
+        "finals": {
+         "kind": "adapter-save-json",
+         "sha256": "bcc2ec60c6f54cd9465a3feed06ed6917c00d52554839bed28f8964e63490307",
+         "count": 1
+        },
+        "cores": {
+         "samples": 1,
+         "cores": {
+          "10": {
+           "busyPercent": 14.1,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "11": {
+           "busyPercent": 14.1,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "12": {
+           "busyPercent": 12.6,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "13": {
+           "busyPercent": 98.4,
+           "mhzWhileBusy": 3743.1,
+           "busySamples": 1
+          }
+         }
+        }
+       }
+      ],
+      "acrossRuns": {
+       "adapter.dispatch+view": {
+        "median": {
+         "runs": 1,
+         "median": 47.4,
+         "min": 47.4,
+         "max": 47.4,
+         "rangePercent": 0
+        },
+        "p95": {
+         "runs": 1,
+         "median": 60.5,
+         "min": 60.5,
+         "max": 60.5,
+         "rangePercent": 0
+        },
+        "iqr": {
+         "runs": 1,
+         "median": 4.1,
+         "min": 4.1,
+         "max": 4.1,
+         "rangePercent": 0
+        },
+        "max": {
+         "runs": 1,
+         "median": 4752.3,
+         "min": 4752.3,
+         "max": 4752.3,
+         "rangePercent": 0
+        },
+        "n": 30000,
+        "segments": {
+         "observations": {
+          "runs": 1,
+          "median": 177.9,
+          "min": 177.9,
+          "max": 177.9,
+          "rangePercent": 0
+         },
+         "decay": {
+          "runs": 1,
+          "median": 53.8,
+          "min": 53.8,
+          "max": 53.8,
+          "rangePercent": 0
+         },
+         "transition": {
+          "runs": 1,
+          "median": 48.3,
+          "min": 48.3,
+          "max": 48.3,
+          "rangePercent": 0
+         },
+         "steady": {
+          "runs": 1,
+          "median": 47.2,
+          "min": 47.2,
+          "max": 47.2,
+          "rangePercent": 0
+         }
+        }
+       }
+      }
+     },
+     "adapter": {
+      "runs": [
+       {
+        "repeat": 0,
+        "seconds": 2.187,
+        "affinityMask": "0x3C00",
+        "startedAtMs": 1790673078851,
+        "endedAtMs": 1790673081038,
+        "process": {
+         "pid": 83552,
+         "node": "v24.11.1",
+         "v8": "13.6.233.10-node.28",
+         "execArgv": [
+          "--expose-gc"
+         ],
+         "availableParallelism": 4
+        },
+        "method": {
+         "warmupPasses": 1,
+         "rounds": 3,
+         "repeats": 1,
+         "lifecycleSamples": 30,
+         "lifecycleWarmup": 3,
+         "timer": "process.hrtime.bigint()",
+         "timerOverhead": {
+          "what": "two process.hrtime.bigint() calls",
+          "minUs": 0,
+          "medianUs": 0.1
+         },
+         "gcBetweenRounds": true
+        },
+        "notes": [],
+        "extra": {
+         "adapter": {
+          "file": "C:\\Users\\walte\\AppData\\Local\\Temp\\claude\\C--Dev-GPT-SandBox-Web\\3bc468a2-40f8-4895-bd0a-fb452fae7549\\scratchpad\\prPERF\\experiments\\glowcap\\caveat5\\adapter.mjs",
+          "originalSha256": "d8490fd781864f0e725f053fdce0987c04f61387e0e3feef4bd115ab56801406",
+          "rewrittenSha256": "809cb6f41ffe02b3c22e59966d633ad34551d494973a18875a013d946c3a799c",
+          "rewritten": [
+           "'../../../dist/pkg-reactive/caveat_runtime.js'",
+           "new URL('../../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url)",
+           "new URL('./glowcap.cav', import.meta.url)"
+          ]
+         }
+        },
+        "ops": {
+         "adapter.dispatch": {
+          "pooled": {
+           "n": 30000,
+           "median": 43.7,
+           "p95": 50.8,
+           "p99": 83.6,
+           "p25": 42.5,
+           "p75": 45.2,
+           "iqr": 2.7,
+           "min": 31.2,
+           "max": 1514.3,
+           "mean": 45.337
+          },
+          "rounds": [
+           {
+            "n": 10000,
+            "median": 43.7,
+            "p95": 51,
+            "p99": 88.8,
+            "p25": 42.5,
+            "p75": 45.1,
+            "iqr": 2.6,
+            "min": 36.4,
+            "max": 1514.3,
+            "mean": 45.822
+           },
+           {
+            "n": 10000,
+            "median": 43.5,
+            "p95": 51.4,
+            "p99": 81.5,
+            "p25": 42.3,
+            "p75": 44.9,
+            "iqr": 2.6,
+            "min": 31.2,
+            "max": 329.9,
+            "mean": 44.797
+           },
+           {
+            "n": 10000,
+            "median": 44,
+            "p95": 50.1,
+            "p99": 79.2,
+            "p25": 42.8,
+            "p75": 45.4,
+            "iqr": 2.6,
+            "min": 35,
+            "max": 311.8,
+            "mean": 45.392
+           }
+          ],
+          "segments": {
+           "observations": {
+            "n": 9,
+            "median": 173,
+            "p95": 201.5,
+            "p99": 201.5,
+            "p25": 161.7,
+            "p75": 196.3,
+            "iqr": 34.6,
+            "min": 129.4,
+            "max": 238,
+            "mean": 178.567
+           },
+           "decay": {
+            "n": 1800,
+            "median": 45.9,
+            "p95": 65.1,
+            "p99": 123.7,
+            "p25": 43.5,
+            "p75": 48.5,
+            "iqr": 5,
+            "min": 33.7,
+            "max": 1514.3,
+            "mean": 51.703
+           },
+           "transition": {
+            "n": 2091,
+            "median": 43.5,
+            "p95": 50.3,
+            "p99": 105.1,
+            "p25": 41.9,
+            "p75": 45.2,
+            "iqr": 3.3,
+            "min": 35,
+            "max": 267.5,
+            "mean": 45.178
+           },
+           "steady": {
+            "n": 26100,
+            "median": 43.7,
+            "p95": 49.9,
+            "p99": 70.5,
+            "p25": 42.5,
+            "p75": 45,
+            "iqr": 2.5,
+            "min": 31.2,
+            "max": 306.5,
+            "mean": 44.865
+           }
+          }
+         },
+         "adapter.view": {
+          "pooled": {
+           "n": 30000,
+           "median": 2.2,
+           "p95": 3.4,
+           "p99": 5.3,
+           "p25": 2.1,
+           "p75": 2.4,
+           "iqr": 0.3,
+           "min": 1.5,
+           "max": 805.1,
+           "mean": 2.489
+          },
+          "rounds": [
+           {
+            "n": 10000,
+            "median": 2.2,
+            "p95": 3.4,
+            "p99": 5.8,
+            "p25": 2.1,
+            "p75": 2.4,
+            "iqr": 0.3,
+            "min": 1.7,
+            "max": 805.1,
+            "mean": 2.602
+           },
+           {
+            "n": 10000,
+            "median": 2.2,
+            "p95": 3.2,
+            "p99": 5,
+            "p25": 2.1,
+            "p75": 2.4,
+            "iqr": 0.3,
+            "min": 1.5,
+            "max": 65.9,
+            "mean": 2.408
+           },
+           {
+            "n": 10000,
+            "median": 2.3,
+            "p95": 3.5,
+            "p99": 5,
+            "p25": 2.1,
+            "p75": 2.5,
+            "iqr": 0.4,
+            "min": 1.7,
+            "max": 94,
+            "mean": 2.458
+           }
+          ],
+          "segments": {
+           "observations": {
+            "n": 9,
+            "median": 29.9,
+            "p95": 68,
+            "p99": 68,
+            "p25": 7,
+            "p75": 42.5,
+            "iqr": 35.5,
+            "min": 6.3,
+            "max": 94,
+            "mean": 34.233
+           },
+           "decay": {
+            "n": 1800,
+            "median": 2.5,
+            "p95": 5,
+            "p99": 15.3,
+            "p25": 2.3,
+            "p75": 3.1,
+            "iqr": 0.8,
+            "min": 1.8,
+            "max": 805.1,
+            "mean": 3.89
+           },
+           "transition": {
+            "n": 2091,
+            "median": 2.3,
+            "p95": 3.3,
+            "p99": 5.3,
+            "p25": 2.1,
+            "p75": 2.5,
+            "iqr": 0.4,
+            "min": 1.7,
+            "max": 266,
+            "mean": 2.603
+           },
+           "steady": {
+            "n": 26100,
+            "median": 2.2,
+            "p95": 3.2,
+            "p99": 4.8,
+            "p25": 2.1,
+            "p75": 2.4,
+            "iqr": 0.3,
+            "min": 1.5,
+            "max": 174.9,
+            "mean": 2.373
+           }
+          }
+         },
+         "adapter.dispatch+view": {
+          "pooled": {
+           "n": 30000,
+           "median": 46,
+           "p95": 53.8,
+           "p99": 89.2,
+           "p25": 44.7,
+           "p75": 47.6,
+           "iqr": 2.9,
+           "min": 33,
+           "max": 1524.9,
+           "mean": 47.827
+          },
+          "rounds": [
+           {
+            "n": 10000,
+            "median": 46,
+            "p95": 54,
+            "p99": 93.7,
+            "p25": 44.7,
+            "p75": 47.6,
+            "iqr": 2.9,
+            "min": 38.5,
+            "max": 1524.9,
+            "mean": 48.424
+           },
+           {
+            "n": 10000,
+            "median": 45.8,
+            "p95": 54.4,
+            "p99": 88.9,
+            "p25": 44.5,
+            "p75": 47.3,
+            "iqr": 2.8,
+            "min": 33,
+            "max": 337.6,
+            "mean": 47.205
+           },
+           {
+            "n": 10000,
+            "median": 46.4,
+            "p95": 53.2,
+            "p99": 81.7,
+            "p25": 45,
+            "p75": 48,
+            "iqr": 3,
+            "min": 37.1,
+            "max": 316.8,
+            "mean": 47.85
+           }
+          ],
+          "segments": {
+           "observations": {
+            "n": 9,
+            "median": 207.8,
+            "p95": 262,
+            "p99": 262,
+            "p25": 177.5,
+            "p75": 234.4,
+            "iqr": 56.9,
+            "min": 157.8,
+            "max": 306,
+            "mean": 212.8
+           },
+           "decay": {
+            "n": 1800,
+            "median": 48.5,
+            "p95": 72.6,
+            "p99": 139.7,
+            "p25": 46,
+            "p75": 51.7,
+            "iqr": 5.7,
+            "min": 35.8,
+            "max": 1524.9,
+            "mean": 55.593
+           },
+           "transition": {
+            "n": 2091,
+            "median": 45.8,
+            "p95": 53.3,
+            "p99": 108,
+            "p25": 44.2,
+            "p75": 47.7,
+            "iqr": 3.5,
+            "min": 37.1,
+            "max": 311.4,
+            "mean": 47.781
+           },
+           "steady": {
+            "n": 26100,
+            "median": 46,
+            "p95": 52.7,
+            "p99": 76.9,
+            "p25": 44.7,
+            "p75": 47.4,
+            "iqr": 2.7,
+            "min": 33,
+            "max": 321.6,
+            "mean": 47.238
+           }
+          }
+         }
+        },
+        "finals": {
+         "kind": "adapter-save-json",
+         "sha256": "bcc2ec60c6f54cd9465a3feed06ed6917c00d52554839bed28f8964e63490307",
+         "count": 1
+        },
+        "cores": {
+         "samples": 2,
+         "cores": {
+          "10": {
+           "busyPercent": 19.4,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "11": {
+           "busyPercent": 16.2,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "12": {
+           "busyPercent": 17.8,
+           "mhzWhileBusy": null,
+           "busySamples": 0
+          },
+          "13": {
+           "busyPercent": 98.4,
+           "mhzWhileBusy": 3803.9,
+           "busySamples": 2
+          }
+         }
+        }
+       }
+      ],
+      "acrossRuns": {
+       "adapter.dispatch": {
+        "median": {
+         "runs": 1,
+         "median": 43.7,
+         "min": 43.7,
+         "max": 43.7,
+         "rangePercent": 0
+        },
+        "p95": {
+         "runs": 1,
+         "median": 50.8,
+         "min": 50.8,
+         "max": 50.8,
+         "rangePercent": 0
+        },
+        "iqr": {
+         "runs": 1,
+         "median": 2.7,
+         "min": 2.7,
+         "max": 2.7,
+         "rangePercent": 0
+        },
+        "max": {
+         "runs": 1,
+         "median": 1514.3,
+         "min": 1514.3,
+         "max": 1514.3,
+         "rangePercent": 0
+        },
+        "n": 30000,
+        "segments": {
+         "observations": {
+          "runs": 1,
+          "median": 173,
+          "min": 173,
+          "max": 173,
+          "rangePercent": 0
+         },
+         "decay": {
+          "runs": 1,
+          "median": 45.9,
+          "min": 45.9,
+          "max": 45.9,
+          "rangePercent": 0
+         },
+         "transition": {
+          "runs": 1,
+          "median": 43.5,
+          "min": 43.5,
+          "max": 43.5,
+          "rangePercent": 0
+         },
+         "steady": {
+          "runs": 1,
+          "median": 43.7,
+          "min": 43.7,
+          "max": 43.7,
+          "rangePercent": 0
+         }
+        }
+       },
+       "adapter.view": {
+        "median": {
+         "runs": 1,
+         "median": 2.2,
+         "min": 2.2,
+         "max": 2.2,
+         "rangePercent": 0
+        },
+        "p95": {
+         "runs": 1,
+         "median": 3.4,
+         "min": 3.4,
+         "max": 3.4,
+         "rangePercent": 0
+        },
+        "iqr": {
+         "runs": 1,
+         "median": 0.3,
+         "min": 0.3,
+         "max": 0.3,
+         "rangePercent": 0
+        },
+        "max": {
+         "runs": 1,
+         "median": 805.1,
+         "min": 805.1,
+         "max": 805.1,
+         "rangePercent": 0
+        },
+        "n": 30000,
+        "segments": {
+         "observations": {
+          "runs": 1,
+          "median": 29.9,
+          "min": 29.9,
+          "max": 29.9,
+          "rangePercent": 0
+         },
+         "decay": {
+          "runs": 1,
+          "median": 2.5,
+          "min": 2.5,
+          "max": 2.5,
+          "rangePercent": 0
+         },
+         "transition": {
+          "runs": 1,
+          "median": 2.3,
+          "min": 2.3,
+          "max": 2.3,
+          "rangePercent": 0
+         },
+         "steady": {
+          "runs": 1,
+          "median": 2.2,
+          "min": 2.2,
+          "max": 2.2,
+          "rangePercent": 0
+         }
+        }
+       },
+       "adapter.dispatch+view": {
+        "median": {
+         "runs": 1,
+         "median": 46,
+         "min": 46,
+         "max": 46,
+         "rangePercent": 0
+        },
+        "p95": {
+         "runs": 1,
+         "median": 53.8,
+         "min": 53.8,
+         "max": 53.8,
+         "rangePercent": 0
+        },
+        "iqr": {
+         "runs": 1,
+         "median": 2.9,
+         "min": 2.9,
+         "max": 2.9,
+         "rangePercent": 0
+        },
+        "max": {
+         "runs": 1,
+         "median": 1524.9,
+         "min": 1524.9,
+         "max": 1524.9,
+         "rangePercent": 0
+        },
+        "n": 30000,
+        "segments": {
+         "observations": {
+          "runs": 1,
+          "median": 207.8,
+          "min": 207.8,
+          "max": 207.8,
+          "rangePercent": 0
+         },
+         "decay": {
+          "runs": 1,
+          "median": 48.5,
+          "min": 48.5,
+          "max": 48.5,
+          "rangePercent": 0
+         },
+         "transition": {
+          "runs": 1,
+          "median": 45.8,
+          "min": 45.8,
+          "max": 45.8,
+          "rangePercent": 0
+         },
+         "steady": {
+          "runs": 1,
+          "median": 46,
+          "min": 46,
+          "max": 46,
+          "rangePercent": 0
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

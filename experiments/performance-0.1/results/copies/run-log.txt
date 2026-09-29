@@ -1,0 +1,120 @@
+[2026-09-29T08:08:32.441Z] run 2026-09-29T08-08-32-439-copies: suite copies, 3 repeat(s), engines native,wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\copies
+[2026-09-29T08:08:40.388Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
+[2026-09-29T08:08:40.389Z] load before: {"totalCpuPercent":[9,5,13],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.312},{"name":"powershell","pid":90568,"cpuSeconds":0.688},{"name":"claude","pid":104712,"cpuSeconds":0.484},{"name":"claude","pid":103160,"cpuSeconds":0.281},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.203},{"name":"OneDrive.Sync.Service","pid":47012,"cpuSeconds":0.078}]}
+[2026-09-29T08:08:40.617Z] main-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T08:08:40.624Z] main-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T08:08:40.625Z] i3: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\i3\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T08:08:40.630Z] i3: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\i3; wasm d704e1f57e1ce1576eceb246bda9e5d305e6d57e539393db4b14f1a609be5aec; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\i3\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T08:08:40.638Z] 24 jobs x 2 target(s) x 3 repeat(s)
+[2026-09-29T08:08:40.648Z] monitoring load with typeperf every 5 s (total, processor 10, processor 11, processor 12, processor 13, processor 10 MHz, processor 11 MHz, processor 12 MHz, processor 13 MHz)
+[2026-09-29T08:08:41.740Z] 0001-main-local-glowcap-replay-native-web.dispatch_view 1.1 s (parallelism 4): web.dispatch_view 22.7
+[2026-09-29T08:08:42.778Z] 0002-i3-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 22.2
+[2026-09-29T08:08:45.527Z] 0003-main-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 64.7
+[2026-09-29T08:08:48.411Z] 0004-i3-glowcap-replay-native-web.dispatch_outcome 2.9 s (parallelism 4): web.dispatch_outcome 68.5
+[2026-09-29T08:08:49.604Z] 0005-i3-glowcap-replay-native-copy.dispatch_view 1.1 s (parallelism 4): copy.cow 1.099, copy.cow.commitments 0, copy.cow.graph 0
+[2026-09-29T08:08:52.926Z] 0006-i3-glowcap-replay-native-copy.dispatch_outcome 3.2 s (parallelism 4): copy.cow 1.292, copy.cow.commitments 0, copy.cow.graph 0
+[2026-09-29T08:08:54.988Z] 0007-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.6, js.parse_view 16.8
+[2026-09-29T08:08:57.076Z] 0008-i3-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26, js.parse_view 16.6
+[2026-09-29T08:09:03.065Z] 0009-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 70.5, js.parse_outcome 62.6, raw.dispatch_outcome+parse 133.6
+[2026-09-29T08:09:09.147Z] 0010-i3-glowcap-replay-wasm-raw.dispatch_outcome 6.0 s (parallelism 4): raw.dispatch_outcome 76.4, js.parse_outcome 65.1, raw.dispatch_outcome+parse 141.6
+[2026-09-29T08:09:11.429Z] 0011-i3-glowcap-replay-wasm-copy.dispatch_view 2.2 s (parallelism 4): total 42, call 25.5, copy.cow 0.8
+[2026-09-29T08:09:17.668Z] 0012-i3-glowcap-replay-wasm-copy.dispatch_outcome 6.1 s (parallelism 4): total 137.1, call 74.2, copy.cow 1
+[2026-09-29T08:09:18.463Z] 0013-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 22.7
+[2026-09-29T08:09:19.288Z] 0014-i3-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 24.7
+[2026-09-29T08:09:20.312Z] 0015-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.9
+[2026-09-29T08:09:21.332Z] 0016-i3-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 59.5
+[2026-09-29T08:09:22.182Z] 0017-i3-ledger-session-native-copy.dispatch_view 0.8 s (parallelism 4): copy.cow 2.737, copy.cow.commitments 0, copy.cow.graph 1.796
+[2026-09-29T08:09:23.259Z] 0018-i3-ledger-session-native-copy.dispatch_outcome 1.1 s (parallelism 4): copy.cow 3.227, copy.cow.commitments 0, copy.cow.graph 1.932
+[2026-09-29T08:09:24.422Z] 0019-main-local-ledger-session-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 31.9, js.parse_view 8.2
+[2026-09-29T08:09:25.542Z] 0020-i3-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 30.1, js.parse_view 7.2
+[2026-09-29T08:09:27.138Z] 0021-main-local-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 65.8, js.parse_outcome 46.1, raw.dispatch_outcome+parse 112.1
+[2026-09-29T08:09:28.734Z] 0022-i3-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 68.1, js.parse_outcome 46.1, raw.dispatch_outcome+parse 114.4
+[2026-09-29T08:09:30.007Z] 0023-i3-ledger-session-wasm-copy.dispatch_view 1.2 s (parallelism 4): total 46, call 34.1, copy.cow 3.6
+[2026-09-29T08:09:31.698Z] 0024-i3-ledger-session-wasm-copy.dispatch_outcome 1.7 s (parallelism 4): total 113.6, call 67.5, copy.cow 2.6
+[2026-09-29T08:09:38.011Z] 0025-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.3 s (parallelism 4): web.dispatch_view 60.7
+[2026-09-29T08:09:44.253Z] 0026-i3-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 63.2
+[2026-09-29T08:09:50.985Z] 0027-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 118
+[2026-09-29T08:09:57.787Z] 0028-i3-trail-rescue-scenarios-native-web.dispatch_outcome 6.8 s (parallelism 4): web.dispatch_outcome 126.2
+[2026-09-29T08:10:04.002Z] 0029-i3-trail-rescue-scenarios-native-copy.dispatch_view 6.2 s (parallelism 4): copy.cow 1.543, copy.cow.commitments 0, copy.cow.graph 0.731
+[2026-09-29T08:10:10.957Z] 0030-i3-trail-rescue-scenarios-native-copy.dispatch_outcome 6.9 s (parallelism 4): copy.cow 1.606, copy.cow.commitments 0, copy.cow.graph 0.8
+[2026-09-29T08:10:17.374Z] 0031-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.4 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.3, js.parse_view 25
+[2026-09-29T08:10:23.655Z] 0032-i3-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.4, js.parse_view 25.8
+[2026-09-29T08:10:31.647Z] 0033-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.0 s (parallelism 4): raw.dispatch_outcome 145.3, js.parse_outcome 77.9, raw.dispatch_outcome+parse 225.6
+[2026-09-29T08:10:39.303Z] 0034-i3-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.6 s (parallelism 4): raw.dispatch_outcome 144, js.parse_outcome 77.3, raw.dispatch_outcome+parse 222.8
+[2026-09-29T08:10:45.979Z] 0035-i3-trail-rescue-scenarios-wasm-copy.dispatch_view 6.6 s (parallelism 4): total 123.9, call 76, copy.cow 1.7
+[2026-09-29T08:10:53.875Z] 0036-i3-trail-rescue-scenarios-wasm-copy.dispatch_outcome 7.9 s (parallelism 4): total 227.5, call 149, copy.cow 1.6
+[2026-09-29T08:10:54.890Z] 0037-i3-glowcap-replay-native-web.dispatch_view 1.0 s (parallelism 4): web.dispatch_view 21.6
+[2026-09-29T08:10:55.831Z] 0038-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.2
+[2026-09-29T08:10:58.680Z] 0039-i3-glowcap-replay-native-web.dispatch_outcome 2.8 s (parallelism 4): web.dispatch_outcome 67.7
+[2026-09-29T08:11:01.356Z] 0040-main-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 63.9
+[2026-09-29T08:11:02.525Z] 0041-i3-glowcap-replay-native-copy.dispatch_view 1.0 s (parallelism 4): copy.cow 1.088, copy.cow.commitments 0, copy.cow.graph 0
+[2026-09-29T08:11:05.535Z] 0042-i3-glowcap-replay-native-copy.dispatch_outcome 2.9 s (parallelism 4): copy.cow 1.169, copy.cow.commitments 0, copy.cow.graph 0
+[2026-09-29T08:11:07.559Z] 0043-i3-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.7, js.parse_view 16
+[2026-09-29T08:11:09.583Z] 0044-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.5, js.parse_view 16.1
+[2026-09-29T08:11:15.440Z] 0045-i3-glowcap-replay-wasm-raw.dispatch_outcome 5.8 s (parallelism 4): raw.dispatch_outcome 73.7, js.parse_outcome 63.8, raw.dispatch_outcome+parse 137.5
+[2026-09-29T08:11:21.396Z] 0046-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 75.6, js.parse_outcome 65.7, raw.dispatch_outcome+parse 141.6
+[2026-09-29T08:11:23.644Z] 0047-i3-glowcap-replay-wasm-copy.dispatch_view 2.1 s (parallelism 4): total 41.6, call 25.3, copy.cow 0.9
+[2026-09-29T08:11:29.816Z] 0048-i3-glowcap-replay-wasm-copy.dispatch_outcome 6.0 s (parallelism 4): total 137.4, call 74.3, copy.cow 0.9
+[2026-09-29T08:11:30.685Z] 0049-i3-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 26.5
+[2026-09-29T08:11:31.494Z] 0050-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 23.3
+[2026-09-29T08:11:32.525Z] 0051-i3-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 59.9
+[2026-09-29T08:11:33.619Z] 0052-main-local-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 62.6
+[2026-09-29T08:11:34.455Z] 0053-i3-ledger-session-native-copy.dispatch_view 0.8 s (parallelism 4): copy.cow 2.807, copy.cow.commitments 0, copy.cow.graph 1.826
+[2026-09-29T08:11:35.522Z] 0054-i3-ledger-session-native-copy.dispatch_outcome 1.0 s (parallelism 4): copy.cow 3.236, copy.cow.commitments 0, copy.cow.graph 1.932
+[2026-09-29T08:11:36.589Z] 0055-i3-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 30, js.parse_view 7.2
+[2026-09-29T08:11:37.676Z] 0056-main-local-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.9, js.parse_view 6.9
+[2026-09-29T08:11:39.227Z] 0057-i3-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 66.1, js.parse_outcome 44.8, raw.dispatch_outcome+parse 111
+[2026-09-29T08:11:40.797Z] 0058-main-local-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 64, js.parse_outcome 45.2, raw.dispatch_outcome+parse 108.9
+[2026-09-29T08:11:41.939Z] 0059-i3-ledger-session-wasm-copy.dispatch_view 1.1 s (parallelism 4): total 39.7, call 30.1, copy.cow 3.1
+[2026-09-29T08:11:43.596Z] 0060-i3-ledger-session-wasm-copy.dispatch_outcome 1.6 s (parallelism 4): total 116.8, call 68.1, copy.cow 2.7
+[2026-09-29T08:11:49.796Z] 0061-i3-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 62
+[2026-09-29T08:11:56.053Z] 0062-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 58.8
+[2026-09-29T08:12:02.798Z] 0063-i3-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 126.5
+[2026-09-29T08:12:10.039Z] 0064-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 7.2 s (parallelism 4): web.dispatch_outcome 128.7
+[2026-09-29T08:12:16.221Z] 0065-i3-trail-rescue-scenarios-native-copy.dispatch_view 6.1 s (parallelism 4): copy.cow 1.525, copy.cow.commitments 0, copy.cow.graph 0.726
+[2026-09-29T08:12:23.033Z] 0066-i3-trail-rescue-scenarios-native-copy.dispatch_outcome 6.8 s (parallelism 4): copy.cow 1.557, copy.cow.commitments 0, copy.cow.graph 0.773
+[2026-09-29T08:12:29.691Z] 0067-i3-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 79.6, js.parse_view 27.1
+[2026-09-29T08:12:36.410Z] 0068-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.7 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 72.6, js.parse_view 25.9
+[2026-09-29T08:12:43.816Z] 0069-i3-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.4 s (parallelism 4): raw.dispatch_outcome 138.3, js.parse_outcome 75.1, raw.dispatch_outcome+parse 216.1
+[2026-09-29T08:12:51.697Z] 0070-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 140.4, js.parse_outcome 75.4, raw.dispatch_outcome+parse 218.3
+[2026-09-29T08:12:58.278Z] 0071-i3-trail-rescue-scenarios-wasm-copy.dispatch_view 6.5 s (parallelism 4): total 121.5, call 74.4, copy.cow 1.6
+[2026-09-29T08:13:05.985Z] 0072-i3-trail-rescue-scenarios-wasm-copy.dispatch_outcome 7.7 s (parallelism 4): total 222.1, call 144.6, copy.cow 1.5
+[2026-09-29T08:13:06.901Z] 0073-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20
+[2026-09-29T08:13:08.029Z] 0074-i3-glowcap-replay-native-web.dispatch_view 1.1 s (parallelism 4): web.dispatch_view 24.7
+[2026-09-29T08:13:10.696Z] 0075-main-local-glowcap-replay-native-web.dispatch_outcome 2.6 s (parallelism 4): web.dispatch_outcome 63.5
+[2026-09-29T08:13:13.539Z] 0076-i3-glowcap-replay-native-web.dispatch_outcome 2.8 s (parallelism 4): web.dispatch_outcome 67.5
+[2026-09-29T08:13:14.717Z] 0077-i3-glowcap-replay-native-copy.dispatch_view 1.0 s (parallelism 4): copy.cow 1.08, copy.cow.commitments 0, copy.cow.graph 0
+[2026-09-29T08:13:17.676Z] 0078-i3-glowcap-replay-native-copy.dispatch_outcome 2.8 s (parallelism 4): copy.cow 1.143, copy.cow.commitments 0, copy.cow.graph 0
+[2026-09-29T08:13:19.666Z] 0079-main-local-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.3, js.parse_view 16
+[2026-09-29T08:13:21.715Z] 0080-i3-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.8, js.parse_view 16.1
+[2026-09-29T08:13:27.540Z] 0081-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.8 s (parallelism 4): raw.dispatch_outcome 71.8, js.parse_outcome 62.3, raw.dispatch_outcome+parse 134.3
+[2026-09-29T08:13:33.408Z] 0082-i3-glowcap-replay-wasm-raw.dispatch_outcome 5.8 s (parallelism 4): raw.dispatch_outcome 73.4, js.parse_outcome 61.9, raw.dispatch_outcome+parse 135.3
+[2026-09-29T08:13:35.643Z] 0083-i3-glowcap-replay-wasm-copy.dispatch_view 2.1 s (parallelism 4): total 41.3, call 25, copy.cow 0.8
+[2026-09-29T08:13:41.739Z] 0084-i3-glowcap-replay-wasm-copy.dispatch_outcome 6.0 s (parallelism 4): total 134.4, call 71.8, copy.cow 1
+[2026-09-29T08:13:42.518Z] 0085-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 22.5
+[2026-09-29T08:13:43.335Z] 0086-i3-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 24.6
+[2026-09-29T08:13:44.339Z] 0087-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 57.5
+[2026-09-29T08:13:45.363Z] 0088-i3-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 60
+[2026-09-29T08:13:46.198Z] 0089-i3-ledger-session-native-copy.dispatch_view 0.8 s (parallelism 4): copy.cow 2.76, copy.cow.commitments 0, copy.cow.graph 1.807
+[2026-09-29T08:13:47.346Z] 0090-i3-ledger-session-native-copy.dispatch_outcome 1.1 s (parallelism 4): copy.cow 3.54, copy.cow.commitments 0, copy.cow.graph 2.098
+[2026-09-29T08:13:48.382Z] 0091-main-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.5, js.parse_view 6.8
+[2026-09-29T08:13:49.439Z] 0092-i3-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.1, js.parse_view 6.8
+[2026-09-29T08:13:50.963Z] 0093-main-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 62.9, js.parse_outcome 44.3, raw.dispatch_outcome+parse 107.6
+[2026-09-29T08:13:52.536Z] 0094-i3-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 67.4, js.parse_outcome 45.8, raw.dispatch_outcome+parse 113.3
+[2026-09-29T08:13:53.670Z] 0095-i3-ledger-session-wasm-copy.dispatch_view 1.1 s (parallelism 4): total 40.7, call 30.3, copy.cow 3.2
+[2026-09-29T08:13:55.287Z] 0096-i3-ledger-session-wasm-copy.dispatch_outcome 1.6 s (parallelism 4): total 112.4, call 66.7, copy.cow 2.6
+[2026-09-29T08:14:01.523Z] 0097-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 59.4
+[2026-09-29T08:14:07.732Z] 0098-i3-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 61.4
+[2026-09-29T08:14:14.423Z] 0099-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 116
+[2026-09-29T08:14:21.142Z] 0100-i3-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 125.7
+[2026-09-29T08:14:27.316Z] 0101-i3-trail-rescue-scenarios-native-copy.dispatch_view 6.1 s (parallelism 4): copy.cow 1.527, copy.cow.commitments 0, copy.cow.graph 0.726
+[2026-09-29T08:14:34.133Z] 0102-i3-trail-rescue-scenarios-native-copy.dispatch_outcome 6.8 s (parallelism 4): copy.cow 1.551, copy.cow.commitments 0, copy.cow.graph 0.775
+[2026-09-29T08:14:40.670Z] 0103-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 71.6, js.parse_view 25.3
+[2026-09-29T08:14:46.969Z] 0104-i3-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.8, js.parse_view 25.6
+[2026-09-29T08:14:55.073Z] 0105-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.1 s (parallelism 4): raw.dispatch_outcome 145.2, js.parse_outcome 77.6, raw.dispatch_outcome+parse 225.9
+[2026-09-29T08:15:02.538Z] 0106-i3-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.5 s (parallelism 4): raw.dispatch_outcome 143.8, js.parse_outcome 75.1, raw.dispatch_outcome+parse 220.5
+[2026-09-29T08:15:09.096Z] 0107-i3-trail-rescue-scenarios-wasm-copy.dispatch_view 6.5 s (parallelism 4): total 121.1, call 74.1, copy.cow 1.6
+[2026-09-29T08:15:16.736Z] 0108-i3-trail-rescue-scenarios-wasm-copy.dispatch_outcome 7.6 s (parallelism 4): total 220.7, call 143.3, copy.cow 1.5
+[2026-09-29T08:15:16.740Z] load during: {"what":"typeperf every 5 s for the whole run","samples":79,"counters":{"total":{"samples":79,"mean":8.9,"p95":11,"max":18},"processor 10":{"samples":79,"mean":82,"p95":99.1,"max":99.4},"processor 11":{"samples":79,"mean":18.3,"p95":38.8,"max":53.9},"processor 12":{"samples":79,"mean":19.3,"p95":39.7,"max":78.1},"processor 13":{"samples":79,"mean":2.8,"p95":8.2,"max":14.5},"processor 10 MHz":{"samples":79,"mean":4168.2,"p95":4298,"max":4326.8},"processor 11 MHz":{"samples":79,"mean":3962.6,"p95":4155.7,"max":4243.5},"processor 12 MHz":{"samples":79,"mean":3880.9,"p95":4042.9,"max":4096.7},"processor 13 MHz":{"samples":79,"mean":3275.1,"p95":4323.3,"max":4501}},"totalAbove10Percent":8,"totalAbove25Percent":0,"pinnedSumAbove150Percent":3}
+[2026-09-29T08:15:24.154Z] load after: {"totalCpuPercent":[9,0,0],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.969},{"name":"claude","pid":104712,"cpuSeconds":0.75},{"name":"powershell","pid":91532,"cpuSeconds":0.594},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.312},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.219},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.203}]}
+[2026-09-29T08:15:24.168Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m2\copies\results.json and summary.md; 0 failure(s), 0 skipped, 0 correctness finding(s)

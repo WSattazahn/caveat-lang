@@ -1,0 +1,95 @@
+[2026-09-29T05:20:51.059Z] run 2026-09-29T05-20-51-056-baseline: suite baseline, 3 repeat(s), engines wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\quiet-kit
+[2026-09-29T05:20:59.041Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
+[2026-09-29T05:20:59.042Z] load before: {"totalCpuPercent":[8,21,6],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.266},{"name":"powershell","pid":101292,"cpuSeconds":0.734},{"name":"claude","pid":104712,"cpuSeconds":0.438},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.188},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.141},{"name":"ChatGPT","pid":87544,"cpuSeconds":0.141}]}
+[2026-09-29T05:20:59.050Z] rc4-published: package C:\Users\walte\caveat-rc4\package-files\package; wasm 698a0d0fe99b0c2adc72e5dbaf546d402b4c6c0eb899961dfa6261575ae3b748; native -
+[2026-09-29T05:20:59.253Z] main-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T05:20:59.259Z] main-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native -
+[2026-09-29T05:20:59.268Z] 14 jobs x 2 target(s) x 3 repeat(s)
+[2026-09-29T05:20:59.277Z] monitoring load with typeperf every 5 s (total, processor 10, processor 11, processor 12, processor 13)
+[2026-09-29T05:21:00.993Z] 0001-rc4-published-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.3
+[2026-09-29T05:21:02.642Z] 0002-main-local-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 44.5
+[2026-09-29T05:21:04.824Z] 0003-rc4-published-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 42.5, adapter.view 2.2, adapter.dispatch+view 44.9
+[2026-09-29T05:21:07.004Z] 0004-main-local-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 42.3, adapter.view 2.2, adapter.dispatch+view 44.6
+[2026-09-29T05:21:09.112Z] 0005-rc4-published-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.6, js.parse_view 16.7
+[2026-09-29T05:21:11.198Z] 0006-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.3, js.parse_view 16.8
+[2026-09-29T05:21:17.224Z] 0007-rc4-published-glowcap-replay-wasm-raw.dispatch_outcome 6.0 s (parallelism 4): raw.dispatch_outcome 75, js.parse_outcome 65.8, raw.dispatch_outcome+parse 141.3
+[2026-09-29T05:21:23.159Z] 0008-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 72.9, js.parse_outcome 64.4, raw.dispatch_outcome+parse 137.7
+[2026-09-29T05:21:30.513Z] 0009-rc4-published-glowcap-replay-wasm-kit 7.3 s (parallelism 4): kit.dispatch 140.4, kit.view 29.1, kit.dispatch+view 169.6
+[2026-09-29T05:21:37.837Z] 0010-main-local-glowcap-replay-wasm-kit 7.3 s (parallelism 4): kit.dispatch 141.8, kit.view 29.4, kit.dispatch+view 171.4
+[2026-09-29T05:21:54.495Z] 0011-rc4-published-glowcap-replay-wasm-kit.read 16.6 s (parallelism 4): kit.view 30.9, kit.snapshot 169.3, kit.save 40.4
+[2026-09-29T05:22:11.467Z] 0012-main-local-glowcap-replay-wasm-kit.read 16.9 s (parallelism 4): kit.view 31.1, kit.snapshot 170.6, kit.save 40.8
+[2026-09-29T05:22:12.534Z] 0013-rc4-published-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.8, js.parse_view 7.1
+[2026-09-29T05:22:13.639Z] 0014-main-local-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.1, js.parse_view 7
+[2026-09-29T05:22:15.239Z] 0015-rc4-published-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.5, js.parse_outcome 46.9, raw.dispatch_outcome+parse 113.4
+[2026-09-29T05:22:16.855Z] 0016-main-local-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.8, js.parse_outcome 47.3, raw.dispatch_outcome+parse 114.3
+[2026-09-29T05:22:18.594Z] 0017-rc4-published-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 116.8, kit.view 15.2, kit.dispatch+view 131.4
+[2026-09-29T05:22:20.334Z] 0018-main-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 116.9, kit.view 15.3, kit.dispatch+view 131.6
+[2026-09-29T05:22:23.354Z] 0019-rc4-published-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16.2, kit.snapshot 117.8, kit.save 31.3
+[2026-09-29T05:22:26.381Z] 0020-main-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16.4, kit.snapshot 119.6, kit.save 31.3
+[2026-09-29T05:22:32.978Z] 0021-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 73.9, js.parse_view 26
+[2026-09-29T05:22:39.641Z] 0022-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 73.9, js.parse_view 26
+[2026-09-29T05:22:48.396Z] 0023-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.7 s (parallelism 4): raw.dispatch_outcome 160, js.parse_outcome 84.2, raw.dispatch_outcome+parse 247.5
+[2026-09-29T05:22:57.351Z] 0024-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.9 s (parallelism 4): raw.dispatch_outcome 166.7, js.parse_outcome 88.9, raw.dispatch_outcome+parse 257
+[2026-09-29T05:23:06.093Z] 0025-rc4-published-trail-rescue-scenarios-wasm-kit 8.7 s (parallelism 4): kit.dispatch 230.2, kit.view 35.4, kit.dispatch+view 268.3
+[2026-09-29T05:23:14.639Z] 0026-main-local-trail-rescue-scenarios-wasm-kit 8.5 s (parallelism 4): kit.dispatch 230.1, kit.view 35.7, kit.dispatch+view 269.2
+[2026-09-29T05:23:25.733Z] 0027-rc4-published-trail-rescue-scenarios-wasm-kit.read 11.1 s (parallelism 4): kit.view 35.9, kit.snapshot 185.6, kit.save 28.1
+[2026-09-29T05:23:36.815Z] 0028-main-local-trail-rescue-scenarios-wasm-kit.read 11.1 s (parallelism 4): kit.view 35.8, kit.snapshot 186.6, kit.save 27.9
+[2026-09-29T05:23:38.490Z] 0029-main-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 45.3
+[2026-09-29T05:23:40.130Z] 0030-rc4-published-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 44.3
+[2026-09-29T05:23:42.300Z] 0031-main-local-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 41.9, adapter.view 2.2, adapter.dispatch+view 44.2
+[2026-09-29T05:23:44.484Z] 0032-rc4-published-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 42.6, adapter.view 2.2, adapter.dispatch+view 45
+[2026-09-29T05:23:46.509Z] 0033-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.8, js.parse_view 16.2
+[2026-09-29T05:23:48.569Z] 0034-rc4-published-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.5, js.parse_view 16.5
+[2026-09-29T05:23:54.710Z] 0035-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.1 s (parallelism 4): raw.dispatch_outcome 74.8, js.parse_outcome 65.7, raw.dispatch_outcome+parse 140.9
+[2026-09-29T05:24:00.731Z] 0036-rc4-published-glowcap-replay-wasm-raw.dispatch_outcome 6.0 s (parallelism 4): raw.dispatch_outcome 74.6, js.parse_outcome 65.1, raw.dispatch_outcome+parse 140.1
+[2026-09-29T05:24:08.114Z] 0037-main-local-glowcap-replay-wasm-kit 7.3 s (parallelism 4): kit.dispatch 143.5, kit.view 29.9, kit.dispatch+view 173.7
+[2026-09-29T05:24:15.484Z] 0038-rc4-published-glowcap-replay-wasm-kit 7.3 s (parallelism 4): kit.dispatch 143.6, kit.view 29.6, kit.dispatch+view 173.5
+[2026-09-29T05:24:32.516Z] 0039-main-local-glowcap-replay-wasm-kit.read 17.0 s (parallelism 4): kit.view 32, kit.snapshot 175, kit.save 42
+[2026-09-29T05:24:49.670Z] 0040-rc4-published-glowcap-replay-wasm-kit.read 17.1 s (parallelism 4): kit.view 32.1, kit.snapshot 176.6, kit.save 42.2
+[2026-09-29T05:24:50.769Z] 0041-main-local-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 30.3, js.parse_view 7.2
+[2026-09-29T05:24:51.880Z] 0042-rc4-published-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 30.5, js.parse_view 7.4
+[2026-09-29T05:24:53.504Z] 0043-main-local-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 68.3, js.parse_outcome 48.6, raw.dispatch_outcome+parse 117.4
+[2026-09-29T05:24:55.102Z] 0044-rc4-published-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 67.4, js.parse_outcome 47.8, raw.dispatch_outcome+parse 115.8
+[2026-09-29T05:24:56.869Z] 0045-main-local-ledger-session-wasm-kit 1.8 s (parallelism 4): kit.dispatch 118.3, kit.view 15.5, kit.dispatch+view 133.5
+[2026-09-29T05:24:58.603Z] 0046-rc4-published-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 115.2, kit.view 14.9, kit.dispatch+view 129.7
+[2026-09-29T05:25:01.706Z] 0047-main-local-ledger-session-wasm-kit.read 3.1 s (parallelism 4): kit.view 16.9, kit.snapshot 123.1, kit.save 32.4
+[2026-09-29T05:25:04.802Z] 0048-rc4-published-ledger-session-wasm-kit.read 3.1 s (parallelism 4): kit.view 17.1, kit.snapshot 123.7, kit.save 32.7
+[2026-09-29T05:25:11.582Z] 0049-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.8 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 75, js.parse_view 26.8
+[2026-09-29T05:25:18.389Z] 0050-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_view 6.8 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 76.5, js.parse_view 26.9
+[2026-09-29T05:25:26.602Z] 0051-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.2 s (parallelism 4): raw.dispatch_outcome 145.6, js.parse_outcome 78.8, raw.dispatch_outcome+parse 226.1
+[2026-09-29T05:25:34.712Z] 0052-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.1 s (parallelism 4): raw.dispatch_outcome 145, js.parse_outcome 78.9, raw.dispatch_outcome+parse 226.6
+[2026-09-29T05:25:43.285Z] 0053-main-local-trail-rescue-scenarios-wasm-kit 8.6 s (parallelism 4): kit.dispatch 228.5, kit.view 35.3, kit.dispatch+view 267.3
+[2026-09-29T05:25:51.888Z] 0054-rc4-published-trail-rescue-scenarios-wasm-kit 8.6 s (parallelism 4): kit.dispatch 230.4, kit.view 35.6, kit.dispatch+view 269.6
+[2026-09-29T05:26:03.107Z] 0055-main-local-trail-rescue-scenarios-wasm-kit.read 11.2 s (parallelism 4): kit.view 36.2, kit.snapshot 189, kit.save 28.7
+[2026-09-29T05:26:14.358Z] 0056-rc4-published-trail-rescue-scenarios-wasm-kit.read 11.2 s (parallelism 4): kit.view 36.8, kit.snapshot 191.9, kit.save 28.7
+[2026-09-29T05:26:16.043Z] 0057-rc4-published-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.1
+[2026-09-29T05:26:17.745Z] 0058-main-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.5
+[2026-09-29T05:26:19.946Z] 0059-rc4-published-glowcap-replay-wasm-adapter 2.2 s (parallelism 4): adapter.dispatch 43.6, adapter.view 2.3, adapter.dispatch+view 46
+[2026-09-29T05:26:22.147Z] 0060-main-local-glowcap-replay-wasm-adapter 2.2 s (parallelism 4): adapter.dispatch 43.5, adapter.view 2.3, adapter.dispatch+view 45.9
+[2026-09-29T05:26:24.243Z] 0061-rc4-published-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26, js.parse_view 17.1
+[2026-09-29T05:26:26.360Z] 0062-main-local-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.2, js.parse_view 17
+[2026-09-29T05:26:32.344Z] 0063-rc4-published-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 73.2, js.parse_outcome 65.9, raw.dispatch_outcome+parse 139.6
+[2026-09-29T05:26:38.342Z] 0064-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 73.2, js.parse_outcome 66.1, raw.dispatch_outcome+parse 139.7
+[2026-09-29T05:26:45.614Z] 0065-rc4-published-glowcap-replay-wasm-kit 7.2 s (parallelism 4): kit.dispatch 141.4, kit.view 29.5, kit.dispatch+view 171
+[2026-09-29T05:26:52.943Z] 0066-main-local-glowcap-replay-wasm-kit 7.3 s (parallelism 4): kit.dispatch 141.7, kit.view 29.6, kit.dispatch+view 171.6
+[2026-09-29T05:27:10.106Z] 0067-rc4-published-glowcap-replay-wasm-kit.read 17.1 s (parallelism 4): kit.view 32.5, kit.snapshot 176.2, kit.save 42.9
+[2026-09-29T05:27:27.191Z] 0068-main-local-glowcap-replay-wasm-kit.read 17.0 s (parallelism 4): kit.view 32.1, kit.snapshot 176.1, kit.save 42.1
+[2026-09-29T05:27:28.281Z] 0069-rc4-published-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 30.4, js.parse_view 7.2
+[2026-09-29T05:27:29.372Z] 0070-main-local-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.9, js.parse_view 7.3
+[2026-09-29T05:27:30.955Z] 0071-rc4-published-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.9, js.parse_outcome 47.7, raw.dispatch_outcome+parse 115.1
+[2026-09-29T05:27:32.536Z] 0072-main-local-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.4, js.parse_outcome 47.4, raw.dispatch_outcome+parse 114.4
+[2026-09-29T05:27:34.281Z] 0073-rc4-published-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 118, kit.view 15.2, kit.dispatch+view 132.9
+[2026-09-29T05:27:36.044Z] 0074-main-local-ledger-session-wasm-kit 1.8 s (parallelism 4): kit.dispatch 117.4, kit.view 15.2, kit.dispatch+view 132.3
+[2026-09-29T05:27:39.094Z] 0075-rc4-published-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16.7, kit.snapshot 122.1, kit.save 32.2
+[2026-09-29T05:27:42.145Z] 0076-main-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16.5, kit.snapshot 121.4, kit.save 32
+[2026-09-29T05:27:48.810Z] 0077-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 75.6, js.parse_view 26.7
+[2026-09-29T05:27:55.571Z] 0078-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.7 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 75.2, js.parse_view 26.8
+[2026-09-29T05:28:03.745Z] 0079-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.2 s (parallelism 4): raw.dispatch_outcome 145.3, js.parse_outcome 78.5, raw.dispatch_outcome+parse 226.5
+[2026-09-29T05:28:11.872Z] 0080-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.1 s (parallelism 4): raw.dispatch_outcome 145.7, js.parse_outcome 78.5, raw.dispatch_outcome+parse 227.3
+[2026-09-29T05:28:20.428Z] 0081-rc4-published-trail-rescue-scenarios-wasm-kit 8.5 s (parallelism 4): kit.dispatch 227.1, kit.view 35, kit.dispatch+view 265.7
+[2026-09-29T05:28:28.971Z] 0082-main-local-trail-rescue-scenarios-wasm-kit 8.5 s (parallelism 4): kit.dispatch 229.8, kit.view 35.3, kit.dispatch+view 268.3
+[2026-09-29T05:28:40.029Z] 0083-rc4-published-trail-rescue-scenarios-wasm-kit.read 11.0 s (parallelism 4): kit.view 35.6, kit.snapshot 186.2, kit.save 28.2
+[2026-09-29T05:28:51.153Z] 0084-main-local-trail-rescue-scenarios-wasm-kit.read 11.1 s (parallelism 4): kit.view 35.7, kit.snapshot 186.2, kit.save 28.2
+[2026-09-29T05:28:51.156Z] load during: {"what":"typeperf every 5 s for the whole run","samples":94,"counters":{"total":{"samples":94,"mean":8.7,"p95":10.7,"max":13.1},"processor 10":{"samples":94,"mean":30.8,"p95":89.1,"max":100},"processor 11":{"samples":94,"mean":18.1,"p95":38.8,"max":59.1},"processor 12":{"samples":94,"mean":15.4,"p95":35.9,"max":56.4},"processor 13":{"samples":94,"mean":63.7,"p95":100,"max":100}},"totalAbove10Percent":10,"totalAbove25Percent":0,"pinnedSumAbove150Percent":3}
+[2026-09-29T05:28:56.673Z] load after: {"totalCpuPercent":[5,8,0],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":0.844},{"name":"powershell","pid":41940,"cpuSeconds":0.641},{"name":"claude","pid":104712,"cpuSeconds":0.344},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.281},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.125},{"name":"ChatGPT","pid":87544,"cpuSeconds":0.062}]}
+[2026-09-29T05:28:56.681Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\quiet-kit\results.json and summary.md; 0 failure(s), 0 skipped, 0 correctness finding(s)
