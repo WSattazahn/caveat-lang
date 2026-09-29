@@ -48,7 +48,9 @@ node experiments/performance-0.1/run.mjs --target=main-local=tree:. --build=neve
   --modes=published-method,web.dispatch_view --affinity-set=0x3,0xC00,0x3000,0xC00000,0x3C00 --monitor-interval=1 --out=DIR
 
 # RESULTS.md's tables and derived numbers from the raw results (reads .json or .json.gz);
-# --replicate (repeatable) adds other sessions, --method a paired in-process/alone test
+# --replicate (repeatable) adds other sessions, --method a paired in-process/alone test;
+# repeated FILE options are read in the order given (it sets their row order): RESULTS.md
+# section 16 has the exact argument list and order that reproduce the committed tables
 node experiments/performance-0.1/attribute.mjs --baseline=DIR --instrumented=DIR --verbatim=FILE \
   [--replicate=DIR ...] [--method=DIR] [--cores=DIR --cores-verbatim=FILE ...] [--copies=DIR] \
   [--allocbench=FILE] --out=DIR
@@ -296,7 +298,10 @@ i1 directly times the isolated operations in the instrumented build, but
 adding its entry points changes ordinary-path timing by up to about 7%, so
 its absolute timings are attribution evidence (proportions and ordering),
 not production-path costs: `attribute.mjs` labels every row timed in or
-computed from i1 "i1: attribution only". i2 is quoted only as shares, or
+computed from i1 "i1: attribution only". i3's copy timers change
+ordinary-path timing too (−2% to +8% in WebAssembly and 3–11% natively on
+accepted events), so its copy timings are likewise attribution evidence and
+the report ranks copying by i3's shares. i2 is quoted only as shares, or
 converted to µs as INFERRED against the ordinary build. Production costs come
 from the ordinary build's DIRECT paths.
 

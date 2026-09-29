@@ -150,9 +150,10 @@ raw JSON.
 **DIRECT and INFERRED.** A DIRECT number is a statistic of samples timed around
 exactly that operation. A DIRECT timing in an instrumented build holds for
 that build only: where adding the instrumentation measurably changes
-ordinary-path timing, as i1's entry points do by up to about 7%, its absolute
-timings are attribution evidence (proportions and ordering), not
-production-path costs (section 12). An INFERRED number is derived from DIRECT ones and
+ordinary-path timing, as i1's entry points do by up to about 7% and i3's
+copy timers by −2% to +11% on accepted events, its absolute timings are
+attribution evidence (proportions and ordering), not production-path costs
+(section 12). An INFERRED number is derived from DIRECT ones and
 always states its formula (the per-run operands are in `attribution.json`):
 
 - a *paired difference* of DIRECT medians, paired by repeat (the operands'
@@ -236,7 +237,11 @@ the added functions live only in the copies' own harness):
   read per copy would cost more than most copies. A provenance copy made
   while a shared structure is being copied is counted apart and not timed,
   so the two times never overlap. `WebReactiveSession::probe_take` returns
-  the counters. Reactive wasm sha256 `d704e1f5…`.
+  the counters. Reactive wasm sha256 `d704e1f5…`. The timers change
+  ordinary-path timing by −2% to +8% in WebAssembly and 3–11% natively on
+  accepted events (section 12), so i3's absolute copy timings are
+  attribution evidence (proportions and ordering), not production-path
+  costs; the ranking (section 13) uses its shares of its own call.
 
 The patches are `perf-scratch/m/i1-runtime.patch` (sha256 `119325a7…`),
 `perf-scratch/m/i2-runtime.patch` (`2b03423e…`) and
@@ -1595,7 +1600,7 @@ and parsing it, and never as production costs. The production attribution
 is the i2 shares converted against the ordinary DIRECT paths (INFERRED,
 below); no headline number and no answer in section 17 uses an i1 timing.
 
-**i2 is quoted as shares only.** Its marks cost 0.03 µs natively and
+**i2 is quoted as shares, or as INFERRED conversions of them.** Its marks cost 0.03 µs natively and
 0.05 µs in WebAssembly each, about 20–25 per call. Measured like for like, on accepted events its
 totals are −1.7% to +4.7% against the ordinary build natively and −5.8% to
 +9.3% in WebAssembly. On refused events they run 5–11% above it natively and
@@ -1978,7 +1983,7 @@ evaluation and view or snapshot building alike. "Commit" is replacing the
 session with its copy, which drops the old one; on a refusal it is dropping
 the copy (rollback). i3, below, times those copies on their own.
 
-The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the `Arc::make_mut` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means).
+The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the `Arc::make_mut` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means). i3 times the copies directly in the instrumented build, but its timers change ordinary-path timing (the safeguard table at the end of this section), so, like i1's, its timings are attribution evidence (proportions and ordering), not production-path costs; the shares are what the ranking uses.
 
 #### wasm dispatch_view (the call, every event)
 
@@ -2155,23 +2160,27 @@ i3 against the ordinary build (same session, same events):
 | ledger refused | i3 wasm copy.dispatch_outcome / call | raw.dispatch_outcome / raw.dispatch_outcome | median | 7.30 | 7.10 | 0.20 [0.00–0.40] ±0.40 | 2.82% |
 | ledger refused | i3 wasm copy.dispatch_outcome / call | raw.dispatch_outcome / raw.dispatch_outcome | mean | 7.59 | 7.35 | 0.26 [0.01–0.40] ±0.43 | 3.59% |
 
-**What copying costs.** Structure copies (an `Arc::make_mut` that copied a
-shared map, vector or graph) are 2 per Glowcap tick and 4–9 per Trail Rescue
-decision, and cost 0.6–0.9 µs of a Glowcap tick and 1.8–3.2 µs of a Trail
-Rescue decision in WebAssembly: 1.5–4.0% of the i3 dispatch_view call, and
-3.9 µs (11.5%) of a ledger observation, whose graph copy alone is 2.0 µs
-(DIRECT in i3; one clock read per copy subtracted, 0.5–3.7 µs, INFERRED). The
-largest single copy is the epistemic graph's (0.8–2.0 µs, on every
-observation and decision). Provenance is copied 58–321 times per
-dispatch_view call and 128–538 times per dispatch_outcome call (the
-snapshot copies the explanations again); natively those copies take
-1.1–8.7 µs of a dispatch_view call as timed (4.0–11.7%), 0.6–6.0 µs with one
-clock read per copy subtracted (INFERRED), and 2.1–13.5 µs of a
-dispatch_outcome call. In WebAssembly they are counted, not timed. i3's
-totals run −2% to +8% against the ordinary build in WebAssembly on accepted
-events and 3–11% above it natively, where the provenance timers sit (the
-table above). The transaction's own copy of the session, and dropping the old
-one, is a further 0.9–4.6 µs (i2, INFERRED). **Copying is real but small
+**What copying costs.** i3's totals run −2% to +8% against the ordinary
+build in WebAssembly on accepted events and 3–11% above it natively, where
+the provenance timers sit (the table above). So i3's timings below are
+DIRECT in the instrumented build only and, like i1's, attribution evidence
+(proportions and ordering), not production-path costs: what they support is
+the share of the same i3 call. Structure copies (an `Arc::make_mut` that
+copied a shared map, vector or graph) are 2 per Glowcap tick and 4–9 per
+Trail Rescue decision, and take 0.6–0.9 µs of a Glowcap tick and 1.8–3.2 µs
+of a Trail Rescue decision in WebAssembly in i3: 1.5–4.0% of the i3
+dispatch_view call, and 3.9 µs (11.5%) of a ledger observation, whose graph
+copy alone is 2.0 µs (DIRECT in i3; one clock read per copy subtracted,
+0.5–3.7 µs, INFERRED; i3: attribution only). The largest single copy is the
+epistemic graph's (0.8–2.0 µs in i3, on every observation and decision).
+Provenance is copied 58–321 times per dispatch_view call and 128–538 times
+per dispatch_outcome call (the snapshot copies the explanations again);
+natively those copies take 1.1–8.7 µs of an i3 dispatch_view call as timed
+(4.0–11.7%), 0.6–6.0 µs with one clock read per copy subtracted (INFERRED),
+and 2.1–13.5 µs of an i3 dispatch_outcome call (i3: attribution only). In
+WebAssembly they are counted, not timed. The transaction's own copy of the
+session, and dropping the old one, is a further 0.9–4.6 µs (i2, INFERRED).
+**Copying is real but small
 against rules, bindings and the view's JSON round trip on every event kind**;
 on the ledger, whose events are cheap, the structure copies and the session
 copy are each about a tenth of the call.
@@ -2240,8 +2249,10 @@ adds up):
    only; section 11). Ideas: finer stale groups, reusing explanations whose
    citations did not change.
 5. **Provenance copies** (4–12% of a call natively, on every kind of event;
-   i3). 58–321 copies per dispatch_view call; 0.6–6.0 µs natively once the
-   timers' own reads are subtracted (INFERRED). Spread over rules, bindings and
+   i3). 58–321 copies per dispatch_view call; 0.6–6.0 µs natively in the i3
+   build once the timers' own reads are subtracted (INFERRED; i3 timings are
+   attribution evidence, since i3 shifts ordinary paths by −2% to +11% on
+   accepted events). Spread over rules, bindings and
    view building. Ideas: share provenance sets behind `Arc` so a copy is a
    reference count, or pass them by reference where a value is only read.
 6. **View building** (2–11%). ≈2.3–3.0 µs an event in WebAssembly, ≈4.2 on
@@ -2254,9 +2265,11 @@ adds up):
    a symbol is added; keep relation records between events.
 7. **Structure copies, the session copy and the dropped old session**
    (small, except on the ledger). Structure copies 0.6–3.9 µs in WebAssembly
-   (i3); the session copy and dropping the old session ≈0.9–4.6 µs (i2,
+   in the i3 build (attribution evidence, since i3 shifts ordinary paths by
+   −2% to +11% on accepted events; the shares below are what this item rests
+   on); the session copy and dropping the old session ≈0.9–4.6 µs (i2,
    INFERRED). On the ledger each is about a tenth of the call; elsewhere each
-   is 1.5–4%. On a refused event, natively, rolling back (dropping the
+   is 1.5–4% (i3 and i2 shares). On a refused event, natively, rolling back (dropping the
    transaction's copy) is 53–65% of the dispatch_view call (i2 shares, native
    overhead 9–11%; the WebAssembly shares of refusals are not used). Ideas:
    none needed for accepted events.
@@ -2367,12 +2380,23 @@ node experiments/performance-0.1/verbatim.mjs --tree=main=. --tree=e6ace96=PATH/
 node experiments/performance-0.1/clocks.mjs --out=FILE3
 ```
 
-The tables above are `attribute.mjs --baseline=results/baseline-primary
---replicate=results/kit-quiet --instrumented=results/instrumented
---method=results/method --verbatim=results/verbatim-…` (four files)
-`--cores=results/cores --cores-verbatim=results/cores/verbatim-pinned.json
---cores-verbatim=results/cores/verbatim-unpinned.json --copies=results/copies
---allocbench=results/allocator/allocbench.json`. The instrumented copies,
+The tables above are, from the repository root:
+
+```sh
+R=experiments/performance-0.1/results
+node experiments/performance-0.1/attribute.mjs --baseline=$R/baseline-primary \
+  --replicate=$R/kit-quiet --instrumented=$R/instrumented --method=$R/method \
+  --verbatim=$R/verbatim-1-unpinned.json --verbatim=$R/verbatim-1-pinned.json \
+  --verbatim=$R/verbatim-2-unpinned.json --verbatim=$R/verbatim-2-pinned.json \
+  --cores=$R/cores --cores-verbatim=$R/cores/verbatim-pinned.json \
+  --cores-verbatim=$R/cores/verbatim-unpinned.json --copies=$R/copies \
+  --allocbench=$R/allocator/allocbench.json --out=DIR
+```
+
+Repeated `--verbatim` and `--cores-verbatim` files are read in the order
+given, which sets the order of their rows, so this order (not the shell's
+alphabetical glob order) is the one that reproduces the committed
+`tables.md` and `attribution.json` byte for byte. The instrumented copies,
 their harness modes and the allocator crate are not in this repository (the
 owner's rule); section 2 describes exactly what they add.
 

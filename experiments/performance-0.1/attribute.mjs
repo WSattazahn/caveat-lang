@@ -7,7 +7,9 @@
 //
 // DIRs are results directories holding results.json and classes.json
 // (analyze.mjs). Writes attribution.json (every derived number with its
-// formula and paired inputs) and tables.md.
+// formula and paired inputs) and tables.md. Repeated FILE options are read
+// in the order given, which sets the order of their rows: RESULTS.md
+// section 16 lists the exact order that reproduces the committed files.
 //
 // Labels: DIRECT is a statistic of samples timed around exactly that
 // operation. INFERRED is a difference of DIRECT medians. A paired difference
@@ -30,6 +32,13 @@
 // `use` field in attribution.json: attribution evidence (proportions and
 // ordering), not production-path costs. The production attribution is the
 // i2 shares converted against the ordinary build's DIRECT paths (INFERRED).
+//
+// The i3 build. Its copy timers change ordinary-path timing too (its
+// safeguard table, at the end of the copies section), so its timings, and
+// anything computed from them, are likewise for that build only: the copies
+// section says so and its timing rows carry the same kind of `use` field.
+// Its shares of its own call are what the report ranks; its counts are not
+// timings and need no such label.
 import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -186,6 +195,9 @@ const I1_USE = 'attribution evidence, not a production-path cost: timed in (or c
 const I1_WHY = 'i1 directly times the isolated operation in the instrumented build, but because adding the benchmark entry points changes ordinary-path timing by up to about 7% (safeguard), its absolute timings are attribution evidence (proportions and ordering), not production-path costs.';
 const I1_INTRO = `Rows labelled "${I1_TAG}" are timed in, or computed from, the throwaway i1 build. ${I1_WHY}`;
 const i1Label = (stats) => ({ ...stats, label: `${stats.label} (${I1_TAG})` });
+// i3 timing rows: the same rule (see the header).
+const I3_USE = 'attribution evidence, not a production-path cost: timed in (or computed from) the instrumented i3 build, whose copy timers change ordinary-path timing (the safeguard rows of this section)';
+const I3_WHY = 'i3 times the copies directly in the instrumented build, but its timers change ordinary-path timing (the safeguard table at the end of this section), so, like i1\'s, its timings are attribution evidence (proportions and ordering), not production-path costs; the shares are what the ranking uses.';
 
 // ---- 1. Control: rc4-local against main-local ------------------------------
 
@@ -1157,7 +1169,7 @@ if (copiesDir) {
   const rdtsc = allocbench ? spreadOf(allocbench.runs.filter((run) => run.summaries.rdtsc_read).map((run) => run.summaries.rdtsc_read.median / 1000)) : null;
   const jsNow = direct(runs(inst, 'i2', 'glowcap-replay', 'wasm', 'probe.overhead', 'js.performance_now'));
   const clockRead = { native: rdtsc?.median ?? null, wasm: jsNow?.median?.median ?? null };
-  const sec = section('copies', 'State and provenance copying per event (i3)', `The i3 session (${copies.runId}; total CPU mean ${copies.environment.loadDuring?.counters.total.mean}%, p95 ${copies.environment.loadDuring?.counters.total.p95}%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the \`Arc::make_mut\` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means).`);
+  const sec = section('copies', 'State and provenance copying per event (i3)', `The i3 session (${copies.runId}; total CPU mean ${copies.environment.loadDuring?.counters.total.mean}%, p95 ${copies.environment.loadDuring?.counters.total.p95}%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the \`Arc::make_mut\` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means). ${I3_WHY}`);
   const GROUPS = [...WORKLOAD_GROUPS, ['trail-rescue-scenarios', 'class: refused', 'Trail Rescue refused'], ['ledger-session', 'class: refused', 'ledger refused']];
   const COPY_GROUPS = ['states', 'graph', 'symbols', 'journal', 'commitments', 'qualifications', 'other'];
   const meanOf = (w, e, m, op, group) => spreadOf((groupRuns(copyClasses, 'i3', w, e, m, op, group) ?? []).filter(Boolean).map((s) => s.mean));
@@ -1173,7 +1185,7 @@ if (copiesDir) {
       const cells = GROUPS.map(([w, group, eventKind]) => {
         const v = meanOf(w, e, m, op, group);
         if (!v) return '-';
-        keep(sec, { path: title, quantity: name, op, eventKind, mean: v, ...(kind === 'time' ? { sharePercent: shareOf(w, e, m, op, group, totalOp) } : {}) });
+        keep(sec, { path: title, quantity: name, op, eventKind, mean: v, ...(kind === 'time' ? { sharePercent: shareOf(w, e, m, op, group, totalOp) } : {}), ...(kind === 'count' ? {} : { use: I3_USE }) });
         if (kind === 'time') {
           const s = shareOf(w, e, m, op, group, totalOp);
           return `${f(v.median)} [${f(v.min)}–${f(v.max)}] (${f(s?.median)}%)`;
@@ -1195,7 +1207,7 @@ if (copiesDir) {
         const count = meanOf(w, e, m, countOp, group);
         if (!time || !count) return '-';
         const value = time.median - count.median * read;
-        keep(sec, { path: title, quantity: name, eventKind, label: 'INFERRED', formula: `mean(${timeOp}) − mean(${countOp}) × ${read} µs`, value });
+        keep(sec, { path: title, quantity: name, eventKind, label: 'INFERRED', formula: `mean(${timeOp}) − mean(${countOp}) × ${read} µs`, value, use: I3_USE });
         return f(Math.max(value, 0));
       });
       rows.push([name, ...cells]);

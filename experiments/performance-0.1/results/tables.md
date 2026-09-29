@@ -1353,7 +1353,7 @@ The published command itself (`node experiments/glowcap/harness.mjs --bench`, ca
 
 ## State and provenance copying per event (i3)
 
-The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the `Arc::make_mut` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means).
+The i3 session (2026-09-29T08-08-32-439-copies; total CPU mean 8.9%, p95 11%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the `Arc::make_mut` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means). i3 times the copies directly in the instrumented build, but its timers change ordinary-path timing (the safeguard table at the end of this section), so, like i1's, its timings are attribution evidence (proportions and ordering), not production-path costs; the shares are what the ranking uses.
 
 ### wasm dispatch_view (the call, every event)
 
