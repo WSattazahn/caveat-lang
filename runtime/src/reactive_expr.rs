@@ -649,6 +649,19 @@ impl Expr {
         }
     }
 
+    /// The operands of a chain of `or`, left to right; the expression itself
+    /// if it is not one.
+    pub fn disjuncts(&self) -> Vec<&Expr> {
+        match &self.node {
+            Node::Binary(Binary::Or, left, right) => {
+                let mut all = left.disjuncts();
+                all.extend(right.disjuncts());
+                all
+            }
+            _ => vec![self],
+        }
+    }
+
     /// The two sides of `A == B`, if this expression is one.
     pub fn equality(&self) -> Option<(&Expr, &Expr)> {
         match &self.node {
