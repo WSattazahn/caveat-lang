@@ -70,7 +70,7 @@ function targetsSection(report) {
 function methodSection(report) {
   const { suite } = report;
   const lines = ['## Method', ''];
-  if (suite.name === 'smoke') lines.push('**Smoke run: short streams and one round, to show the harness runs end to end. These numbers are not measurements.**', '');
+  if (suite.smoke || suite.name === 'smoke') lines.push('**Smoke run: short streams and one round, to show the harness runs end to end. These numbers are not measurements.**', '');
   lines.push(
     `- Suite \`${suite.name}\`: ${suite.repeats} repeat(s) of every mode, each in a fresh process; within a repeat every target runs a mode back to back, the first target rotating.`,
     `- Per-event modes: ${suite.warmup} untimed warm-up pass(es), then ${suite.rounds} timed pass(es), each episode on a freshly opened session. \`published-method\` runs ${suite.publishedRounds} round(s) with no warm-up, as the published harness did.`,

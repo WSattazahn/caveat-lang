@@ -1,0 +1,67 @@
+{
+  "schema": "caveat-legacy-identity/0.1",
+  "seed": 20260929,
+  "eventsPerProgram": 120,
+  "base": {
+    "buildInfo": {
+      "revision": "768275b6f057ed18b8687c6dedb2d451fc7fc00f",
+      "clean": true,
+      "compiled": true,
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "host": "x86_64-pc-windows-msvc",
+      "wasmBindgen": "0.2.104"
+    }
+  },
+  "variants": {
+    "pkg-reactive": {
+      "base": {
+        "wasmSha256": "e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde",
+        "wasmBytes": 2052856
+      },
+      "branch": {
+        "wasmSha256": "0a19e4b858862e3cfe6c35a7b8261f8aca912a90c86faed6bb46c8f06de71cdb",
+        "wasmBytes": 2057234
+      },
+      "programs": 80,
+      "events": 19760,
+      "calls": 59280,
+      "reads": 177429,
+      "fatal": 137,
+      "thrown": {
+        "dispatch_outcome": 137,
+        "dispatch_view": 6639,
+        "dispatch": 6639
+      },
+      "workloads": {
+        "glowcap-replay": 10000,
+        "ledger-session": 20,
+        "trail-rescue-scenarios": 140
+      }
+    },
+    "pkg": {
+      "base": {
+        "wasmSha256": "ed4a45e69c92d5916bdf683ff282c6f3ba7c79c8eee3b5d2e1f448cfa0411344",
+        "wasmBytes": 2307079
+      },
+      "branch": {
+        "wasmSha256": "2cea450ab278ad375c83c67a245561e39c6d8e2071056b42539bb70c3ddf36bb",
+        "wasmBytes": 2311521
+      },
+      "programs": 80,
+      "events": 19760,
+      "calls": 59280,
+      "reads": 177429,
+      "fatal": 137,
+      "thrown": {
+        "dispatch_outcome": 137,
+        "dispatch_view": 6639,
+        "dispatch": 6639
+      },
+      "workloads": {
+        "glowcap-replay": 10000,
+        "ledger-session": 20,
+        "trail-rescue-scenarios": 140
+      }
+    }
+  }
+}

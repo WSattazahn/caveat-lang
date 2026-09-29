@@ -52,6 +52,23 @@ impl WebReactiveSession {
         }
     }
 
+    /// `dispatch_outcome` with the view after an accepted event, as `view`
+    /// returns it, in place of the snapshot, which is not built. A refusal is
+    /// the same returned value and a fatal error the same thrown report. See
+    /// Dispatch 0.1.
+    pub fn dispatch_view_outcome(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<String, String> {
+        match self.inner.dispatch_view_outcome_json(event, payload_json) {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
     /// The per-event view, as compact JSON. See spec/caveat-view-0.1.md.
     pub fn view(&self) -> String {
         serde_json::to_string(&self.inner.view()).expect("finite reactive view")

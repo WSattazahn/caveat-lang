@@ -13,6 +13,7 @@ import { coresDuring, parseCpuSets, performanceCores } from './lib/environment.m
 import { maskLabel, maskOf, maskProcessors, parseMask, parseMaskSet } from './lib/pinning.mjs';
 import { ADAPTER_LOCATIONS, rewriteAdapter } from './lib/adapter.mjs';
 import { SUITES } from './lib/suites.mjs';
+import { JOB_GUARD, covering, judge, settled, toSamples } from './lib/guard.mjs';
 import { CLASS_ORDER, CLASS_RULES, changedParts, classify, glowcapCategory, signature } from './lib/classes.mjs';
 
 test('quantiles follow the published rule: samples[floor(p * (n - 1))]', () => {
@@ -143,6 +144,40 @@ test('the busy processors of a job and their clock come from the samples taken w
   assert.equal(coresDuring(null, stopped, 0, 1), null);
 });
 
+test('the job guard reads samples by position, covers a job from start to end and judges its load', () => {
+  const counters = ['total', 'processor 10', 'processor 11', 'processor 10 MHz', 'processor 11 MHz', 'process System', 'process MsMpEng'];
+  const at = (seconds) => new Date(2026, 8, 29, 0, 0, seconds).toLocaleString('en-US', { hour12: false }).replace(',', '');
+  const base = new Date(2026, 8, 29, 0, 0, 0).getTime();
+  // 24 logical processors; the benchmark keeps processor 10 busy.
+  const row = (seconds, total, system, defender = '0') => [at(seconds), String(total), '100', '10', '4200', '800', String(system), defender];
+  const samples = toSamples([row(1, 7, 5), row(2, 7, 5, '-1'), row(3, 7, 5), row(4, 16.5, 110), row(5, 7, 5), ['cut off']], counters);
+  assert.equal(samples.length, 5, 'an incomplete row is dropped');
+  assert.equal(samples[1].processes.MsMpEng, null, 'a process with no instance reads -1: missing, not zero');
+  assert.equal(samples[1].since, samples[0].at, 'a sample covers the time since the one before it');
+  const glitch = toSamples([row(1, '-1', 5), row(2, 7, 5)], counters);
+  assert.equal(glitch[0].total, null, 'a failed total reading is missing');
+  assert.equal(judge(glitch, { processors: [10, 11], logicalProcessors: 24 }).meanTotal, 7);
+  assert.equal(settled([...glitch, ...glitch]), false, 'a missing total does not show quiet');
+  const quiet = covering(samples, base + 1500, base + 2800);
+  assert.equal(quiet.samples.length, 2);
+  assert.ok(quiet.covered);
+  const verdict = judge(quiet.samples, { processors: [10, 11], logicalProcessors: 24, covered: quiet.covered });
+  assert.ok(verdict.kept, verdict.reasons.join('; '));
+  assert.equal(verdict.maxOutsideCores, 0.58);
+  const tick = covering(samples, base + 2500, base + 4200);
+  const busy = judge(tick.samples, { processors: [10, 11], logicalProcessors: 24, covered: tick.covered });
+  assert.equal(busy.kept, false);
+  assert.deepEqual(busy.reasons, ['System at 110% of a core > 30%', '2.9 cores busy outside the pinned processors > 2']);
+  assert.equal(judge([], { logicalProcessors: 24 }).kept, false, 'no samples, no verdict');
+  assert.equal(covering(samples, base + 4500, base + 9000).covered, false, 'the end is not covered yet');
+  // The replicate's first job: two samples, 14.7% and 17.4% total.
+  const burst = toSamples([row(1, 14.7, 20, '15'), row(2, 17.4, 20, '15')], counters);
+  assert.deepEqual(judge(burst, { processors: [10, 11], logicalProcessors: 24 }).reasons.slice(0, 1), ['mean total CPU 16% > 12%']);
+  assert.equal(settled(samples.slice(0, 3)), true);
+  assert.equal(settled(samples.slice(2, 5)), false);
+  assert.equal(JOB_GUARD.attempts, 5);
+});
+
 test('the adapter rewrite finds each published location exactly once', async () => {
   const text = await readFile(path.join(repositoryRoot, 'experiments/glowcap/caveat5/adapter.mjs'), 'utf8');
   const rewritten = rewriteAdapter(text, { glueUrl: 'file:///r/glue.js', wasmUrl: 'file:///r/runtime.wasm', programUrl: 'file:///p/glowcap.cav' });
@@ -185,4 +220,20 @@ test('only volatile fields and clock states leave an event idle', () => {
 test('every suite names only workloads the manifest has', async () => {
   const ids = new Set((await loadManifest()).workloads.map((workload) => workload.id));
   for (const suite of Object.values(SUITES)) for (const job of suite.jobs) assert.ok(ids.has(job.workload), job.workload);
+});
+
+// A smoke suite (one repeat, any power plan) truncates its streams; any other
+// suite is a measurement: full streams, with the baseline's passes.
+test('smoke suites are marked and short; the others measure as the baseline does', () => {
+  for (const [name, suite] of Object.entries(SUITES)) {
+    assert.equal(Boolean(suite.smoke), name.endsWith('smoke'), name);
+    if (suite.smoke) {
+      assert.ok(suite.maxEvents > 0, name);
+      continue;
+    }
+    assert.equal(suite.maxEvents, null, name);
+    assert.equal(suite.repeatCap, null, name);
+    for (const key of ['rounds', 'warmup', 'publishedRounds']) assert.equal(suite[key], SUITES.baseline[key], `${name}: ${key}`);
+  }
+  assert.deepEqual(SUITES['view-path-smoke'].jobs, SUITES['view-path'].jobs);
 });

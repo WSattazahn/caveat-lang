@@ -17,10 +17,23 @@ const outcome = JSON.parse(session.dispatch_outcome("absorb", "{}"));
 // WebReactiveSession; returns JSON for accepted/rejected, throws on fatal.
 ```
 
-Both use the same payload resolver, rules and atomic transaction as the legacy
-API. They do not replay events, pre-execute a second interpreter, or classify
-failure messages by matching text. Normal input classification happens in the
-core before rules run; evaluation classification happens at the failing effect.
+For a host that redraws from the view, the view path returns the same outcome
+with the view in place of the snapshot (see [The view path](#the-view-path)):
+
+```rust
+let outcome = session.dispatch_view_outcome_json("absorb", "{}");
+// Result<DispatchViewOutcome, DispatchFatal>
+```
+
+```js
+const outcome = JSON.parse(session.dispatch_view_outcome("absorb", "{}"));
+```
+
+All of them use the same payload resolver, rules and atomic transaction as the
+legacy API. They do not replay events, pre-execute a second interpreter, or
+classify failure messages by matching text. Normal input classification happens
+in the core before rules run; evaluation classification happens at the failing
+effect.
 
 ## Wire outcomes
 
@@ -52,6 +65,33 @@ output failure. A host must fail the operation and discard the session after
 a fatal outcome or exception. It must not call snapshot/save to try to prove
 that a trapped session is still usable. Panics are not caught and converted
 into ordinary rejections by the interpreter.
+
+## The view path
+
+`dispatch_view_outcome` (natively `dispatch_view_outcome_json`; in the
+developer kit `session.dispatchView(event, payload)`) is `dispatch_outcome`
+with one difference: an accepted result carries the view after the event
+([View 0.1](caveat-view-0.1.md)), exactly as `view()` then returns it, in
+place of the snapshot, which it does not build:
+
+```json
+{"schema":"caveat-dispatch/0.1","outcome":"accepted","view":{}}
+```
+
+The empty view above is an abbreviated placeholder. A refusal is the same
+returned value as `dispatch_outcome`'s, byte for byte, and a fatal error the
+same thrown report: both entry points run one transaction and take refusals
+and fatal errors from one classification. Every rule of this contract applies
+to it unchanged, atomicity included. After the same events, a session driven
+through either entry point has the same save, snapshot and view.
+
+It is an additional entry point. `dispatch_outcome`, `dispatch`, the legacy
+`dispatch_view`, which still throws on a refusal, and their outputs are
+unchanged, and so is the kit's `dispatch()`. The schema is unchanged too: an
+accepted outcome carries `snapshot` from `dispatch_outcome` and `view` from
+`dispatch_view_outcome`, so each caller receives the shape it asked for. A
+consumer that validates outcomes must require the field of the entry point it
+called.
 
 The schema, outcome, origin and code are machine-readable contract fields.
 `message` is human text and is not stable, except that a `policy/reject` message
@@ -194,3 +234,15 @@ from an outcome schema match; the save contract governs restoration.
   Its origin is `evaluation`, as for a state's range: the explanation was
   evaluated and did not hold. It is not `policy`, because no clause of the
   program refuses the event, so a bare expected rejection does not match it.
+- 2026-09-29: `dispatch_view_outcome`, natively
+  `dispatch_view_outcome_json` and in the developer kit
+  `session.dispatchView`, is the outcome contract for a host that redraws
+  from the view ([The view path](#the-view-path)). Before it, such a host
+  had two ways, each with a cost: the kit's `dispatch()` builds, serializes
+  and parses the full snapshot and the host then asks for the view, and the
+  legacy `dispatch_view` throws on a classified refusal instead of returning
+  it. [Performance Baseline 0.1](../experiments/performance-0.1/RESULTS.md)
+  found that snapshot the largest measured cost a host wanting the view does
+  not use. An accepted outcome now carries the view, and the snapshot is not
+  built; refusals and fatal errors are `dispatch_outcome`'s. No existing entry
+  point, output or code changes.

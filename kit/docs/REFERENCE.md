@@ -148,9 +148,12 @@ nothing it did is kept:
 Anything else is **fatal**, for example `require(false, …)`, arithmetic that
 fails, or `latest` of an empty history. A fatal outcome never counts as a
 rejection, and the session must be discarded
-([dispatch](reference/spec/caveat-dispatch-0.1.md)). In a scenario, a bare
-`"rejected": true` matches any `policy` refusal. Name the code to tell the
-program's own `reject` from `not_permitted`.
+([dispatch](reference/spec/caveat-dispatch-0.1.md)). From code,
+`session.dispatch(event, payload)` returns an accepted event's snapshot, and
+`session.dispatchView(event, payload)` (from 0.1.0-rc.5, not released) the
+same outcome with the view in place of the snapshot, which it does not build.
+In a scenario, a bare `"rejected": true` matches any `policy` refusal. Name
+the code to tell the program's own `reject` from `not_permitted`.
 
 ## Common mistakes
 
