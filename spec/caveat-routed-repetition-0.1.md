@@ -723,10 +723,17 @@ that is not routed, and not in a declaration, a `define`, a `bind`, a `cue`,
 a `proc` body or a rule on an event written with `$NAME` or `$index`. There a
 `$` word that no binding of the block's own begins is refused, as before
 (section 7). A rule's text runs from its `on` to its `;`, comments inside it
-included. A comment on the line above a rule, or after its `;`, is not part of
-the rule, and a `$Q` there is refused as not bound. A routed rule may pass the
-members' symbols to a procedure, as in `call recant(ev_$w, ev_$shown)`, at the
-cost described below.
+included, and each copy is that text with its bindings replaced. A comment
+binds nothing and is not checked: the rule's code says whether it names a
+member by Q, and a word in a comment inside the rule is bound by the longest
+of `$NAME`, `$index` and, when the code names a member by it, `$Q` that
+begins it. So a `$Q` in a comment names Q's member only in a rule whose code
+names a member by that Q. Anywhere else it is read as any `$` word in a block
+is, bound by `$NAME` or `$index` if one begins it and otherwise refused as not
+bound, in a comment on the line above a rule or after its `;` too, which is
+not part of the rule. A routed rule may pass the members' symbols to a
+procedure, as in `call recant(ev_$w, ev_$shown)`, at the cost described
+below.
 
 The pass reads each `$` word of a routed rule in order, comments blanked and
 quoted text included. The longest of `$NAME` and `$index` that begins the
@@ -859,10 +866,19 @@ that selection is a separate question.
   `kind` parameter of its event begins too, longer, or as long and not P,
   such as `$shown_n` in a block bound `$s` and routed by `about`. It read as
   the member's name followed by `hown_n`. No program in the repository has
-  one. Of the programs that did not load, a `$` word in a routed rule that a
-  `kind` parameter of its event begins is refused with a message that says
-  why, where it was refused as not bound. Elsewhere, and for other parameters,
-  the message is the one before. Event declarations are read without the block's
+  one. Of the programs that did not load, where a `$` word that no binding of
+  the block's own begins, outside the comments of an `on` rule on an event
+  written without `$`, is begun by a parameter of the event and names no
+  member as section 10 allows, it is refused with a message that says why,
+  where it was refused as not bound (section 7):
+  - in a routed rule, whatever the parameter's form;
+  - in a plain block, or in a rule that is not routed, when the parameter is
+    a `kind` parameter.
+
+  Any other `$` word that no binding begins is refused as not bound, as
+  before: one that an `in`, numeric or `id` parameter begins outside a routed
+  rule, one in a declaration, and a `$Q` in a comment of a rule whose code
+  names no member by Q. Event declarations are read without the block's
   rules, so a program that does not load may report another error first.
   Nothing changes in the runtime, snapshots or saves. In 3,000 random
   histories of 30 events, Before the Rain rewritten this way left the same

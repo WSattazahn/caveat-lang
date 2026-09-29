@@ -336,7 +336,16 @@ what keeps the expansion checkable and the generated program ordinary.
   routed by, such as `$shown_n` in a block bound `$s` and routed by `about`.
   It read as the member's name followed by `hown_n`. No program in the
   repository has one. In a plain block, such a word reads as before. Of the
-  programs that did not load, a `$` word in a routed rule that a `kind`
-  parameter of its event begins is refused with a message that says why,
-  where it was refused as not bound. Elsewhere, and for other parameters, the
-  message is the one before.
+  programs that did not load, where a `$` word that no binding of the block's
+  own begins, outside the comments of an `on` rule on an event written
+  without `$`, is begun by a parameter of the event and names no member as
+  section 10 allows, it is refused with a message that says why, where it was
+  refused as not bound (routed Repetition 0.1 section 7):
+  - in a routed rule, whatever the parameter's form;
+  - in a plain block, or in a rule that is not routed, when the parameter is
+    a `kind` parameter.
+
+  Any other `$` word that no binding begins is refused as not bound, as
+  before: one that an `in`, numeric or `id` parameter begins outside a routed
+  rule, one in a declaration, and a `$Q` in a comment of a rule whose code
+  names no member by Q.

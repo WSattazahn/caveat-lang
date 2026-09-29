@@ -2327,6 +2327,58 @@ fn a_parameter_names_a_member_only_in_a_routed_rule() {
 }
 
 #[test]
+fn a_parameter_of_another_form_has_its_own_message_only_in_a_routed_rule() {
+    // In a routed rule, a word that any parameter of the event begins and no
+    // binding does is refused with a message of its own. Outside one, only a
+    // `kind` parameter's word is; an `in`, numeric or `id` parameter's word
+    // is refused as not bound, as before.
+    let tagged = |header: &str, body: &str| {
+        repeat::expand(&format!(
+            "{EXHIBITS}event tag about kind exhibit, badge id, score min 0 max 9;\nevent rest mood in calm tense;\n{header} {{{body}}};\n"
+        ))
+        .unwrap_err()
+    };
+    let other_form = |word: &str, declared: &str| {
+        format!("`{word}` in `on tag` in `{EXHIBIT_BLOCK}`: `tag` declares `{declared}`, and a `$` names a member only by a `kind` parameter")
+    };
+    assert_eq!(
+        tagged(
+            EXHIBIT_BLOCK,
+            "\n    on tag when $badge_n == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        other_form("$badge_n", "badge id")
+    );
+    assert_eq!(
+        tagged(
+            EXHIBIT_BLOCK,
+            "\n    on tag when $score_n == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        other_form("$score_n", "score min 0 max 9")
+    );
+    let not_bound =
+        |word: &str| format!("{word} is not bound in this for block; $ is not a literal");
+    for (header, body, word) in [
+        (
+            "for exhibit as $w",
+            "\n    on tag when about == $index and $badge_n == 0 reject \"x\";\n",
+            "$badge_n",
+        ),
+        (
+            "for exhibit as $w",
+            "\n    on confront when about == $index and $recants_n == 0 reject \"x\";\n",
+            "$recants_n",
+        ),
+        (
+            EXHIBIT_BLOCK,
+            "\n    on tag when $w_n == 0 reject \"x\";\n    on rest when $mood_n == 0 and $w_n == 0 reject \"y\";\n",
+            "$mood_n",
+        ),
+    ] {
+        assert_eq!(tagged(header, body), not_bound(word), "{body}");
+    }
+}
+
+#[test]
 fn q_is_not_bound_outside_a_routed_rule() {
     for statement in [
         "state $shown_n = 0;",
@@ -2449,4 +2501,40 @@ for exhibit as $e routed by target {{
     );
     let expanded = repeat::expand(&source).unwrap();
     assert!(expanded.contains("on nudge_x_a when target == 2 set x_b_m = 1;"));
+}
+
+#[test]
+fn the_editor_reference_cases_read_as_the_runtime_reads_them() {
+    // The editor's tests check their reference reading of `$` words against
+    // these programs (editors/vscode/test/reference.test.mjs). Each is
+    // refused as the file says, or expands to a text holding what it says,
+    // and loads.
+    let file: Value =
+        serde_json::from_str(&read("../editors/vscode/test/fixtures/substitutions.json")).unwrap();
+    let cases = file["cases"].as_array().unwrap();
+    assert!(cases.len() >= 5);
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let mut source = case["source"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|line| line.as_str().unwrap())
+            .collect::<Vec<_>>()
+            .join("\n");
+        source.push('\n');
+        match (case["expands_to"].as_str(), case["refused"].as_str()) {
+            (Some(line), None) => {
+                let expanded =
+                    repeat::expand(&source).unwrap_or_else(|error| panic!("{name}: {error}"));
+                assert!(expanded.contains(line), "{name}:\n{expanded}");
+                ReactiveSession::from_source(&source)
+                    .unwrap_or_else(|error| panic!("{name}: {error}"));
+            }
+            (None, Some(message)) => {
+                assert_eq!(repeat::expand(&source).unwrap_err(), message, "{name}");
+            }
+            _ => panic!("{name}: a case says `expands_to` or `refused`"),
+        }
+    }
 }
