@@ -244,8 +244,9 @@ into a preallocated ring.
 
 **Sessions.** Every timed session on 2026-09-29 (UTC), in order. Discarded
 and superseded sessions are listed for completeness. No number in this file
-comes from them. Their files are under
-[`results/excluded/`](results/excluded/README.md), with the load of each.
+comes from them. Their raw files are not committed;
+[`results/excluded/README.md`](results/excluded/README.md) lists each one with
+its recorded load and why.
 
 | Session | What | When (UTC) | Total CPU during it (24 logical processors) | Used |
 | --- | --- | --- | --- | --- |
@@ -449,7 +450,7 @@ runs: their load averaged 27% and 57% total CPU. Under it, the 21 main
 operations compared for replication (13 on main-local, 8 on the published
 bytes) ran between 1% faster and 46% slower than in the primary baseline.
 In the two runs together, 38 of the 42 comparisons ran 5–46% slower, with
-wide run ranges. The raw files are in `results/excluded/`.
+wide run ranges. Their raw files are not committed.
 
 The pinned published command itself agreed within 1% across three quiet
 sessions. On main it gave 45.2 µs on processors 10–13 in the core-placement
@@ -2297,7 +2298,7 @@ In [`results/`](results/) (large JSON gzipped; `summarize.mjs` and
 | `copies/` | the i3 session (main-local and i3) |
 | `allocator/allocbench.json` | the synthetic allocator check, every call |
 | `rerun/` | the rerun window (08:40–09:26 UTC): `load.csv` (typeperf total CPU every second), `log.txt` (the reruns in order and every quiet-gate sample), `processes.txt` (the busiest processes every 30 s) |
-| `excluded/` | the discarded and superseded runs, used nowhere; [`excluded/README.md`](results/excluded/README.md) gives each one's reason and recorded load |
+| `excluded/` | an index of the discarded and superseded runs, whose raw files are not committed; [`excluded/README.md`](results/excluded/README.md) gives each one's reason and recorded load |
 | `attribution.json`, `tables.md` | every table and derived number above, with formulas and per-run operands |
 
 The per-event samples (about 40 MB per session, gzipped) are not committed;
