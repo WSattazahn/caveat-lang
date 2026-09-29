@@ -23,6 +23,15 @@ const JOBS = [
   { workload: 'trail-rescue-scenarios', native: GLOWCAP_NATIVE, wasm: DECISION_WASM },
 ];
 
+// Performance Optimization 0.1 (experiments/performance-opt-0.1): the kit's
+// dispatchView against the two paths a host wanting the view had, kit
+// dispatch() + view() and the raw dispatch_view + JSON.parse, and the raw
+// dispatch_view_outcome it is built on, on the workloads whose event classes
+// the owner named. A target without the new entry points skips those modes.
+const VIEW_PATH_MODES = ['raw.dispatch_view', 'raw.dispatch_view_outcome', 'kit', 'kit.dispatchView'];
+const VIEW_PATH_JOBS = ['glowcap-replay', 'ledger-session', 'trail-rescue-scenarios']
+  .map((workload) => ({ workload, native: [], wasm: VIEW_PATH_MODES }));
+
 export const SUITES = {
   // The measurement. `published-method` always runs 3 rounds with no
   // warm-up, as the published harness did; every other per-event mode runs
@@ -40,8 +49,10 @@ export const SUITES = {
     jobs: JOBS,
   },
   // Every job end to end on a short stream, to prove the harness runs.
-  // Its numbers are not measurements.
+  // Its numbers are not measurements. A smoke suite runs one repeat by
+  // default and on any power plan.
   smoke: {
+    smoke: true,
     rounds: 1,
     warmup: 0,
     publishedRounds: 1,
@@ -52,5 +63,32 @@ export const SUITES = {
     maxEvents: 300,
     repeatCap: 2,
     jobs: JOBS,
+  },
+  // The baseline's per-event method (one warm-up pass, 3 timed passes) on
+  // the view-path modes only.
+  'view-path': {
+    rounds: 3,
+    warmup: 1,
+    publishedRounds: 3,
+    lifecycleSamples: 30,
+    lifecycleWarmup: 3,
+    resumeRuns: 3,
+    microSamples: 2000,
+    maxEvents: null,
+    repeatCap: null,
+    jobs: VIEW_PATH_JOBS,
+  },
+  'view-path-smoke': {
+    smoke: true,
+    rounds: 1,
+    warmup: 0,
+    publishedRounds: 1,
+    lifecycleSamples: 3,
+    lifecycleWarmup: 1,
+    resumeRuns: 1,
+    microSamples: 50,
+    maxEvents: 300,
+    repeatCap: 2,
+    jobs: VIEW_PATH_JOBS,
   },
 };

@@ -259,6 +259,30 @@ const modes = {
     });
   },
 
+  // The structured view path (Performance Optimization 0.1), timed as
+  // raw.dispatch_view is: payload encoding, the call, and JSON.parse of its
+  // text. A refusal is a returned outcome here, so every event has all four.
+  async 'raw.dispatch_view_outcome'() {
+    const { Session } = await loadRaw(['dispatch_view_outcome', 'save']);
+    return drive({
+      ...rawDriver(Session),
+      ops: ['js.stringify_payload', 'raw.dispatch_view_outcome', 'js.parse_view_outcome', 'raw.dispatch_view_outcome+parse'],
+      step(session, { event, payload }, slots) {
+        const t0 = now();
+        const text = JSON.stringify(payload);
+        const t1 = now();
+        const outcome = session.dispatch_view_outcome(event, text);
+        const t2 = now();
+        JSON.parse(outcome);
+        const t3 = now();
+        slots[0] = us(t0, t1);
+        slots[1] = us(t1, t2);
+        slots[2] = us(t2, t3);
+        slots[3] = us(t0, t3);
+      },
+    });
+  },
+
   async 'raw.dispatch_outcome'() {
     const { Session } = await loadRaw(['dispatch_outcome', 'save']);
     return drive({
@@ -371,6 +395,29 @@ const modes = {
         slots[0] = us(t0, t1);
         slots[1] = us(t1, t2);
         slots[2] = us(t0, t2);
+      },
+    });
+  },
+
+  // The kit's view path (Performance Optimization 0.1): one call gives the
+  // outcome with the view, and the snapshot is never built. The session ends
+  // each episode in the same save as `kit` (run.mjs checks every mode's).
+  async 'kit.dispatchView'() {
+    const { runtime } = await loadKit();
+    const probe = runtime.open(plan.program);
+    const present = typeof probe.dispatchView === 'function';
+    probe.close();
+    if (!present) throw new Missing('this kit has no session.dispatchView');
+    return drive({
+      ops: ['kit.dispatchView'],
+      open: () => runtime.open(plan.program),
+      close: (session) => session.close(),
+      finish: (session) => session.save(),
+      finalsKind: 'save-text',
+      step(session, { event, payload }, slots) {
+        const t0 = now();
+        session.dispatchView(event, payload);
+        slots[0] = us(t0, now());
       },
     });
   },

@@ -11,10 +11,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
-import { loadManifest, loadWorkload } from '../../experiments/performance-0.1/lib/workloads.mjs';
 import { real, repo } from './helpers.mjs';
+import { STREAMS, loadStreams } from './workload-streams.mjs';
 
 const EVENTS = Number(process.env.DISPATCH_VIEW_EVENTS ?? 120);
 const SEED = Number(process.env.DISPATCH_VIEW_SEED ?? 20260929);
@@ -148,14 +150,12 @@ test('dispatchView agrees with dispatch() and view() on every tracked program, e
 });
 
 test('dispatchView agrees with dispatch() and view() on the Glowcap, ledger and Trail Rescue streams', async () => {
-  const manifest = await loadManifest();
   const totals = {};
-  for (const id of ['glowcap-replay', 'glowcap-scaled-16', 'ledger-session', 'trail-rescue-scenarios']) {
-    const workload = await loadWorkload(manifest, id);
+  for (const { id, source, episodes, skipped } of await loadStreams()) {
+    if (skipped) { console.log(`dispatch-view workloads: skipped ${id}: ${skipped}`); continue; }
     const total = { episodes: 0, events: 0, accepted: 0, rejected: 0, fatal: 0, codes: {} };
-    for (const [number, episode] of workload.episodes.entries()) {
-      const steps = episode.map(([event, payload]) => [event, JSON.parse(payload)]);
-      add(total, play(`${id} episode ${number + 1}`, workload.program.source, steps, steps.length));
+    for (const [number, steps] of episodes.entries()) {
+      add(total, play(`${id} episode ${number + 1}`, source, steps, steps.length));
       total.episodes += 1;
     }
     assert.equal(total.fatal, 0, id);
@@ -164,4 +164,66 @@ test('dispatchView agrees with dispatch() and view() on the Glowcap, ledger and 
   console.log(`dispatch-view workloads: ${JSON.stringify(totals)}`);
   assert.ok(totals['ledger-session'].rejected > 0, 'the ledger refuses by policy');
   assert.ok(totals['trail-rescue-scenarios'].rejected > 0, 'Trail Rescue refuses');
+});
+
+const MANIFEST = 'experiments/performance-0.1/inputs/workloads.json';
+const sha256 = data => createHash('sha256').update(data).digest('hex');
+
+// While a stream's files are the ones the baseline recorded, the stream is the
+// baseline's own: its program has the sha256 the baseline generated, and its
+// events, encoded as the baseline encodes them, the stream's recorded sha256.
+// A stream whose files changed since is not compared (see the next test).
+test('the recorded streams are the baseline\'s while their files are unchanged', async () => {
+  const manifest = JSON.parse(await readFile(path.join(repo, MANIFEST), 'utf8'));
+  const compared = [];
+  for (const stream of await loadStreams()) {
+    const spec = manifest.workloads.find(workload => workload.id === stream.id);
+    const files = [spec.program, spec.episodes.jsonl, spec.episodes.json].filter(Boolean);
+    const hashes = await Promise.all(files.map(async file => sha256(await readFile(path.join(repo, file.path)))));
+    if (files.some((file, index) => hashes[index] !== file.sha256)) {
+      console.log(`dispatch-view workloads: ${stream.id} changed since the baseline; not compared with it`);
+      continue;
+    }
+    assert.equal(stream.skipped, null, stream.id);
+    assert.equal(sha256(stream.source), spec.program.generatedSha256 ?? spec.program.sha256, `${stream.id}: the program`);
+    const encoded = stream.episodes.map(episode => episode.map(([event, payload]) => [event, JSON.stringify(payload)]));
+    assert.equal(sha256(JSON.stringify(encoded)), spec.streamSha256, `${stream.id}: the events`);
+    compared.push(stream.id);
+  }
+  console.log(`dispatch-view workloads: the same as the baseline's: ${compared.join(', ') || 'none'}`);
+});
+
+// The streams come from the frozen baseline's inputs, but the programs and the
+// ledger's log are read as they are now: an edit to any of them changes its
+// sha256 from the one the baseline recorded, and must not fail this test.
+test('the recorded streams load after their programs and logs are edited', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'caveat-streams-'));
+  try {
+    const manifest = JSON.parse(await readFile(path.join(repo, MANIFEST), 'utf8'));
+    const workloads = manifest.workloads.filter(workload => STREAMS.includes(workload.id));
+    const copy = async (relative, edit = text => text) => {
+      await mkdir(path.dirname(path.join(root, relative)), { recursive: true });
+      await writeFile(path.join(root, relative), edit(await readFile(path.join(repo, relative), 'utf8')));
+    };
+    const edited = new Set();
+    await copy(MANIFEST);
+    for (const { program, episodes } of workloads) {
+      if (!edited.has(program.path)) await copy(program.path, text => `${text}\n// edited after the baseline\n`);
+      edited.add(program.path);
+      if (episodes.jsonl) await copy(episodes.jsonl.path, text => `${text}\n`);
+      if (episodes.json) await copy(episodes.json.path);
+    }
+    const now = await loadStreams();
+    const later = await loadStreams(root);
+    assert.deepEqual(later.map(stream => stream.id), STREAMS);
+    for (const [index, stream] of later.entries()) {
+      assert.equal(stream.skipped, null, stream.id);
+      assert.match(stream.source, /\/\/ edited after the baseline\n$/, stream.id);
+      assert.deepEqual(stream.episodes, now[index].episodes, `${stream.id}: the same events`);
+    }
+    // The first events of each still open and play on both paths.
+    for (const { id, source, episodes } of later) play(`${id} (edited)`, source, episodes[0], Math.min(20, episodes[0].length));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

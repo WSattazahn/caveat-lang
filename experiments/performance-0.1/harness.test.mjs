@@ -186,3 +186,19 @@ test('every suite names only workloads the manifest has', async () => {
   const ids = new Set((await loadManifest()).workloads.map((workload) => workload.id));
   for (const suite of Object.values(SUITES)) for (const job of suite.jobs) assert.ok(ids.has(job.workload), job.workload);
 });
+
+// A smoke suite (one repeat, any power plan) truncates its streams; any other
+// suite is a measurement: full streams, with the baseline's passes.
+test('smoke suites are marked and short; the others measure as the baseline does', () => {
+  for (const [name, suite] of Object.entries(SUITES)) {
+    assert.equal(Boolean(suite.smoke), name.endsWith('smoke'), name);
+    if (suite.smoke) {
+      assert.ok(suite.maxEvents > 0, name);
+      continue;
+    }
+    assert.equal(suite.maxEvents, null, name);
+    assert.equal(suite.repeatCap, null, name);
+    for (const key of ['rounds', 'warmup', 'publishedRounds']) assert.equal(suite[key], SUITES.baseline[key], `${name}: ${key}`);
+  }
+  assert.deepEqual(SUITES['view-path-smoke'].jobs, SUITES['view-path'].jobs);
+});

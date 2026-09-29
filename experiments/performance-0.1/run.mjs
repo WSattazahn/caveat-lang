@@ -1,7 +1,7 @@
 // Measurement-only performance baseline for the reactive runtime.
 //
 //   node experiments/performance-0.1/run.mjs --target=LABEL=KIND:DIR [--target=...]
-//        [--suite=baseline|smoke] [--repeats=N] [--engines=native,wasm]
+//        [--suite=baseline|smoke|view-path|view-path-smoke] [--repeats=N] [--engines=native,wasm]
 //        [--workloads=ID,...] [--modes=MODE,...] [--affinity=0xMASK|none]
 //        [--affinity-set=0xMASK,0xMASK,...] [--monitor-interval=SECONDS]
 //        [--priority=high|abovenormal|normal] [--build=auto|always|never]
@@ -39,7 +39,7 @@ if (!suite) throw new Error(`unknown suite ${suiteName}; one of ${Object.keys(SU
 const targets = option('target').map(parseTarget);
 if (!targets.length) throw new Error('give at least one --target=LABEL=tree:DIR|package:DIR|runtime:DIR');
 if (new Set(targets.map((target) => target.label)).size !== targets.length) throw new Error('target labels must be unique');
-const repeats = Number(single('repeats', suiteName === 'smoke' ? '1' : '3'));
+const repeats = Number(single('repeats', suite.smoke ? '1' : '3'));
 const engines = list('engines') ?? ['native', 'wasm'];
 const onlyWorkloads = list('workloads');
 const onlyModes = list('modes');
@@ -94,7 +94,7 @@ await log(`load before: ${JSON.stringify(environment.loadBefore)}`);
 // A measurement needs mains power and the High performance plan; a smoke run
 // or --allow-any-power skips the check.
 const HIGH_PERFORMANCE = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c';
-if (process.platform === 'win32' && suiteName !== 'smoke' && !argv.includes('--allow-any-power')) {
+if (process.platform === 'win32' && !suite.smoke && !argv.includes('--allow-any-power')) {
   const windows = environment.machine.windows ?? {};
   const onMains = windows.batteryStatus === null || windows.batteryStatus === undefined || windows.batteryStatus === 2;
   if (!onMains || !String(windows.powerScheme ?? '').includes(HIGH_PERFORMANCE)) {
@@ -167,7 +167,7 @@ function planFor(target, workload, engine, mode, jobWork) {
 
 const needs = { native: (target) => target.native, wasm: (target) => target.runtimeDir };
 const adapterModes = new Set(['published-method', 'adapter', 'adapter-resume']);
-const kitModes = new Set(['kit', 'kit.read']);
+const kitModes = new Set(['kit', 'kit.read', 'kit.dispatchView']);
 const results = {};
 const failures = [];
 const skipped = [];
