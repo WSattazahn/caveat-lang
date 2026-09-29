@@ -41,10 +41,20 @@ node experiments/performance-0.1/analyze.mjs RESULTS_DIR
 # The published command itself, in trees built with `npm run build`, interleaved
 node experiments/performance-0.1/verbatim.mjs --tree=main=. --tree=rc4=PATH/TO/rc4 --repeats=3 --out=verbatim.json
 
+# The same, and any run.mjs job, under each of several processor masks in turn
+# (the masks rotate with the targets; a run.mjs target becomes LABEL@MASK)
+node experiments/performance-0.1/verbatim.mjs --tree=main=. --affinity-set=0x3,0xC00,0x3000,0xC00000,0x3C00 --priority=high --out=cores.json
+node experiments/performance-0.1/run.mjs --target=main-local=tree:. --build=never --workloads=glowcap-replay \
+  --modes=published-method,web.dispatch_view --affinity-set=0x3,0xC00,0x3000,0xC00000,0x3C00 --monitor-interval=1 --out=DIR
+
 # RESULTS.md's tables and derived numbers from the raw results (reads .json or .json.gz);
 # --replicate (repeatable) adds other sessions, --method a paired in-process/alone test
 node experiments/performance-0.1/attribute.mjs --baseline=DIR --instrumented=DIR --verbatim=FILE \
-  [--replicate=DIR ...] [--method=DIR] --out=DIR
+  [--replicate=DIR ...] [--method=DIR] [--cores=DIR --cores-verbatim=FILE ...] [--copies=DIR] \
+  [--allocbench=FILE] --out=DIR
+
+# The clock each performance core reaches under a pinned single-threaded busy loop
+node experiments/performance-0.1/clocks.mjs --out=clocks.json
 
 # The harness's own tests (statistics, inputs and hashes, the adapter rewrite, event classes)
 node --test experiments/performance-0.1/harness.test.mjs
@@ -68,7 +78,7 @@ ignores. Nothing tracked changes, so a read-only checkout of a tag works.
   arguments, target directory and `--remap-path-prefix` flags of
   `scripts/build-web.mjs`, bound into `runtime/target/perf-baseline/pkg-reactive/`.
   On this machine a local build of `v0.1.0-rc.4` and of main b2f424c are
-  byte-identical (`e3594503…`). **A Windows build is not byte-identical to the
+  byte-identical (`e35944503272…`). **A Windows build is not byte-identical to the
   published Linux build:** the published `698a0d0f…` is 513 bytes larger,
   because it holds Linux panic-location paths. Measure the `package` target
   for the published bytes, and the `tree` targets to compare like for like.
@@ -101,9 +111,21 @@ checkout's adapter is used. Its hash is recorded in both cases.
   `GetSystemCpuSetInformation`, leaving logical processors 0 and 1 alone. On
   the Core Ultra 9 275HX that is processors 10–13, `0x3C00`. Override it with
   `--affinity=0xMASK|none` and `--priority=high|abovenormal|normal`.
-  Each child records what it actually got. Node records
+  **The performance cores are not interchangeable.** On this laptop the same
+  bytes take about a quarter less time on processors 0–1 than on 10–13, and
+  6–12% more on 22–23 (RESULTS.md, section 7), so an absolute figure
+  holds only for the mask it was measured on, and two runs compare only if
+  they ran on the same mask. `--affinity-set=0xA,0xB,...` runs every job
+  under each mask in turn, as the target `LABEL@MASK`, the masks rotating
+  with the targets. Each child records what it actually got. Node records
   `os.availableParallelism()`, which honours the mask. The native benchmark
-  records `GetProcessAffinityMask` and its priority class.
+  records `GetProcessAffinityMask`, its priority class and, once per timed
+  event outside the timed region, the processor it is on
+  (`GetCurrentProcessorNumber`, `extra.processorsSeen`). `results.json`
+  records every logical processor's CPU set (core, efficiency class,
+  scheduling class, cache) in `environment.machine.cpuSetList`, and each run
+  the mask it ran under and, from the monitor, which of the monitored
+  processors it kept busy and at what clock (`cores`).
 - **Warm-up.** Each per-event mode plays every episode once untimed, then
   `rounds` times timed, each episode on a freshly opened session. Opening and
   closing sessions are not timed. Node runs with `--expose-gc` and collects
@@ -111,7 +133,8 @@ checkout's adapter is used. Its hash is recorded in both cases.
   published loop verbatim, with 3 rounds, no warm-up and no forced collection.
 - **Quiet machine.** Before and after the run, `run.log` and `summary.md`
   record total CPU use and the busiest processes, and for the whole run
-  `typeperf` samples total CPU use and each pinned processor's every 5 s
+  `typeperf` samples total CPU use and each pinned processor's use and actual
+  clock (MHz) every 5 s (`--monitor-interval=N` changes it)
   (`load.csv`, summarized as `environment.loadDuring`; `--no-monitor` turns
   it off). The harness does not stop anything: close heavy programs first.
 - **Power.** On Windows a measurement (any suite but `smoke`) stops before
@@ -244,11 +267,12 @@ Where the task's questions land:
 | (d) `snapshot()` alone | native `read` `snapshot`, `snapshot.serialize(_pretty)`; WebAssembly `abi.read` `abi.snapshot.exec`, `read` `raw.snapshot` |
 | (e) event + view, the published 51.6 µs | `published-method`, decomposed by `adapter`, `raw.dispatch_view`, `abi.dispatch_view`; see the summary's "piece by piece" table |
 | (f) save, (g) restore | `lifecycle` on `glowcap-resume` (and on every workload), `adapter-resume` |
-| (h) native against WebAssembly | `web.*` natively against `abi.*` (execution) and `raw.*` (with the bridge), same exported function |
+| (h) native against WebAssembly | `web.*` natively against `abi.*` (execution) and `raw.*` (with the bridge), same exported function. The runtime sets no `#[global_allocator]`: natively that is the system allocator (on Windows the process heap), in WebAssembly Rust's bundled dlmalloc, so a ratio compares that pairing, not code generation alone |
 | snapshot after an accepted dispatch | `dispatch_outcome_json` / `web.dispatch_outcome` / `kit.dispatch` against `dispatch_view_json` / `web.dispatch_view` |
 | JSON and bridge overhead | `abi.encode_args`, `abi.decode`, `abi.free`, `js.parse_*`, `micro` |
 | NodeId→name map, symbol sort, commitment and relation records | grow with symbols and edges: compare `view` across `glowcap-replay`, `-scaled-16`, `-scaled-64`; exact attribution needs instrumentation |
-| provenance and state cloning per event | `clone` (upper bound) against `apply`; exact attribution needs instrumentation |
+| provenance and state cloning per event | `clone` (upper bound) against `apply`; the copies themselves need instrumentation (RESULTS.md, i3) |
+| core placement | `--affinity-set` for `run.mjs` and `verbatim.mjs`; `attribute.mjs --cores` |
 
 ## Throwaway instrumentation
 
@@ -260,9 +284,10 @@ into its name map, its symbol sort and its record building. Timing those pieces 
 outside this repository. It is never committed, and every report that uses it
 says exactly what was instrumented. Such a copy is an ordinary `tree` target,
 so this harness measures it unchanged; the modes that call the copy's added
-functions live only in the copy's own harness. RESULTS.md describes the two
+functions live only in the copy's own harness. RESULTS.md describes the three
 copies used for the 0.1 baseline (i1: benchmark-only entry points; i2:
-timestamp marks) and compares each against the ordinary build.
+timestamp marks; i3: timers around the copy-on-write copies and a
+provenance-copy counter) and compares each against the ordinary build.
 
 ## Output
 

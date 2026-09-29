@@ -6,9 +6,13 @@
 // the command, optionally pinned, and records what it printed.
 //
 //   node experiments/performance-0.1/verbatim.mjs --tree=LABEL=DIR [--tree=...]
-//        [--repeats=3] [--affinity=0x3C00|none] [--priority=high|normal] --out=FILE
+//        [--repeats=3] [--affinity=0x3C00|none | --affinity-set=0x3,0xC00,...]
+//        [--priority=high|normal] [--monitor-interval=1] [--monitor-processors=N,...] --out=FILE
 //
 // Trees run interleaved (every tree once per repeat, the first rotating).
+// With --affinity-set every tree runs once under each mask per repeat, the
+// (tree, mask) pairs rotating together; each run records its mask and, from
+// typeperf, which of the monitored processors it kept busy and their clock.
 // The harness's --bench does not write runs.jsonl, but its hash is checked
 // before and after every run; in a git checkout a change is reverted with
 // `git checkout -- experiments/glowcap/runs.jsonl` and reported.
@@ -17,7 +21,8 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { sha256 } from './lib/workloads.mjs';
-import { load, machine } from './lib/environment.mjs';
+import { coresDuring, load, machine, startMonitor, summarizeMonitor } from './lib/environment.mjs';
+import { maskLabel, maskProcessors, parseMask, parseMaskSet, runPinned } from './lib/pinning.mjs';
 
 const argv = process.argv.slice(2);
 const option = (name) => argv.filter((arg) => arg.startsWith(`--${name}=`)).map((arg) => arg.slice(name.length + 3));
@@ -29,6 +34,8 @@ const trees = option('tree').map((text) => {
 if (!trees.length) throw new Error('give --tree=LABEL=DIR');
 const repeats = Number(single('repeats', '3'));
 const affinityOption = single('affinity', 'none');
+const affinitySet = parseMaskSet(single('affinity-set'));
+const masks = affinitySet ?? [parseMask(affinityOption)];
 const priority = single('priority', 'normal');
 const out = path.resolve(single('out') ?? 'verbatim.json');
 const scratch = path.dirname(out);
@@ -47,15 +54,9 @@ for (const tree of trees) {
   tree.buildInfo = existsSync(path.join(tree.directory, 'dist', 'build-info.json')) ? JSON.parse(await readFile(path.join(tree.directory, 'dist', 'build-info.json'), 'utf8')) : null;
 }
 
-function runBench(tree) {
+function runBench(tree, mask) {
   const args = ['experiments/glowcap/harness.mjs', '--bench'];
-  const options = { cwd: tree.directory, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, timeout: 30 * 60 * 1000 };
-  if (process.platform === 'win32' && (affinityOption !== 'none' || priority !== 'normal')) {
-    const flags = [priority === 'normal' ? '' : `/${priority}`, affinityOption === 'none' ? '' : `/affinity ${BigInt(affinityOption).toString(16).toUpperCase()}`].filter(Boolean).join(' ');
-    const line = `start "" /b /wait ${flags} "${process.execPath}" ${args.map((arg) => `"${arg}"`).join(' ')}`;
-    return spawnSync('cmd.exe', ['/d', '/s', '/c', line], { ...options, windowsVerbatimArguments: true });
-  }
-  return spawnSync(process.execPath, args, options);
+  return runPinned(process.execPath, args, { affinity: mask, priority, cwd: tree.directory, maxBuffer: 16 * 1024 * 1024, timeout: 30 * 60 * 1000 });
 }
 
 // "caveat5 dispatch+view µs  median 51.6  p95 59.1  max 646.7"
@@ -72,18 +73,28 @@ const record = {
   command: 'node experiments/glowcap/harness.mjs --bench',
   startedAt: new Date().toISOString(),
   machine: await machine(scratch),
-  pinning: { affinity: affinityOption, priority, how: affinityOption === 'none' && priority === 'normal' ? 'none: as published' : 'cmd /c start /b /wait' },
+  pinning: {
+    affinity: affinitySet ? null : affinityOption,
+    affinitySet: affinitySet ? affinitySet.map(maskLabel) : null,
+    priority,
+    how: !affinitySet && affinityOption === 'none' && priority === 'normal' ? 'none: as published' : 'cmd /c start /b /wait',
+  },
   loadBefore: await load(scratch),
   trees: trees.map(({ label, directory, files, revision, buildInfo }) => ({ label, directory, revision, files, buildInfo })),
   runs: [],
   runsJsonl: [],
 };
+// Unpinned, name the processors to watch (--monitor-processors=0,1,10,...) to
+// see where the scheduler put the run.
+const monitored = [...new Set([...masks.flatMap((mask) => maskProcessors(mask) ?? []), ...(single('monitor-processors')?.split(',').filter(Boolean).map(Number) ?? [])])].sort((a, b) => a - b);
+const monitor = monitored.length && !argv.includes('--no-monitor') ? startMonitor(monitored, Number(single('monitor-interval', '1'))) : null;
+const pairs = trees.flatMap((tree) => masks.map((mask) => ({ tree, mask })));
 for (let repeat = 0; repeat < repeats; repeat++) {
-  const rotation = trees.map((_, index) => trees[(index + repeat) % trees.length]);
-  for (const tree of rotation) {
+  const rotation = pairs.map((_, index) => pairs[(index + repeat) % pairs.length]);
+  for (const { tree, mask } of rotation) {
     const before = await hashOf(runsFile(tree));
     const started = Date.now();
-    const child = runBench(tree);
+    const child = runBench(tree, mask);
     const seconds = (Date.now() - started) / 1000;
     const after = await hashOf(runsFile(tree));
     if (before !== after) {
@@ -91,9 +102,14 @@ for (let repeat = 0; repeat < repeats; repeat++) {
       record.runsJsonl.push({ tree: tree.label, repeat, before, after, reverted: restored.status === 0, afterRevert: await hashOf(runsFile(tree)) });
     }
     const lines = parseBench(child.stdout ?? '');
-    record.runs.push({ tree: tree.label, repeat, seconds, status: child.status, lines, stdout: child.stdout, stderr: child.stderr?.slice(0, 4000) });
-    console.log(`${tree.label} #${repeat}: ${seconds.toFixed(1)} s, caveat5 ${JSON.stringify(lines.caveat5 ?? null)}${child.status ? `, exit ${child.status}` : ''}`);
+    record.runs.push({ tree: tree.label, affinity: maskLabel(mask), repeat, seconds, startedAtMs: started, endedAtMs: started + seconds * 1000, status: child.status, lines, stdout: child.stdout, stderr: child.stderr?.slice(0, 4000) });
+    console.log(`${tree.label} ${maskLabel(mask)} #${repeat}: ${seconds.toFixed(1)} s, caveat5 ${JSON.stringify(lines.caveat5 ?? null)}${child.status ? `, exit ${child.status}` : ''}`);
   }
+}
+if (monitor) {
+  const stopped = monitor.stop();
+  record.loadDuring = summarizeMonitor(monitor, stopped);
+  for (const run of record.runs) run.cores = coresDuring(monitor, stopped, run.startedAtMs, run.endedAtMs);
 }
 record.loadAfter = await load(scratch);
 record.finishedAt = new Date().toISOString();

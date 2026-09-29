@@ -2,7 +2,8 @@
 // raw results so every figure there can be traced to a measurement.
 //
 //   node experiments/performance-0.1/attribute.mjs --baseline=DIR --instrumented=DIR
-//        --verbatim=FILE [--verbatim=FILE] --out=DIR
+//        --verbatim=FILE [--verbatim=FILE] [--replicate=DIR ...] [--method=DIR]
+//        [--cores=DIR --cores-verbatim=FILE ...] [--copies=DIR] [--allocbench=FILE] --out=DIR
 //
 // DIRs are results directories holding results.json and classes.json
 // (analyze.mjs). Writes attribution.json (every derived number with its
@@ -12,9 +13,14 @@
 // operation. INFERRED is a difference of DIRECT medians. A paired difference
 // is taken run by run (the same repeat, whose processes ran back to back in
 // one interleaved block), then summarized as the median of the per-run
-// differences with their lowest and highest; ± is a conservative bound, half
-// the sum of the operands' run-to-run ranges. Medians do not add, so an
-// INFERRED remainder is not a measurement of that region.
+// differences with their lowest and highest; ± is a within-session bound,
+// half the sum of the operands' run-to-run ranges. It does not cover
+// session-to-session variation or core placement (RESULTS.md, sections 5
+// and 7). A ratio is INFERRED the same way: per-run quotients of DIRECT
+// medians, median [lowest–highest]. An i2 region converted to µs is
+// INFERRED as its share of the instrumented call times the ordinary DIRECT
+// median of the same path and class. Medians do not add, so an INFERRED
+// remainder is not a measurement of that region.
 import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -110,6 +116,17 @@ function inferred(terms, { stat = 'median', formula }) {
   };
 }
 
+// An INFERRED ratio of two DIRECT statistics, paired by repeat.
+function ratioInferred(numerator, denominator, { stat = 'median', formula }) {
+  if (!numerator || !denominator) return null;
+  const per = [];
+  for (let r = 0; r < Math.max(numerator.length, denominator.length); r++) {
+    if (numerator[r] && denominator[r] && denominator[r][stat]) per.push(numerator[r][stat] / denominator[r][stat]);
+  }
+  if (!per.length) return null;
+  return { label: 'INFERRED', kind: 'ratio', formula, stat, perRun: per.map((value) => Number(value.toFixed(4))), value: spreadOf(per) };
+}
+
 // ---- formatting --------------------------------------------------------------
 
 const f = (value) => {
@@ -129,6 +146,7 @@ function directCell(d, { p95 = true, n = false } = {}) {
 }
 function inferredCell(i) {
   if (!i?.value) return '-';
+  if (i.kind === 'ratio') return `${i.value.median.toFixed(2)}× [${i.value.min.toFixed(2)}–${i.value.max.toFixed(2)}]`;
   return `${f(i.value.median)} [${f(i.value.min)}–${f(i.value.max)}] ±${f(i.plusMinus)}`;
 }
 const table = (header, rows) => [
@@ -264,9 +282,10 @@ if (replicates.length) {
     ['(b) + view built, not serialized', 'native', 'dispatch_view_json', 'dispatch_view_json'],
     ['(b) + full snapshot built (legacy dispatch_json)', 'native', 'dispatch_json', 'dispatch_json'],
     ['(b) + outcome with snapshot built (dispatch_outcome_json)', 'native', 'dispatch_outcome_json', 'dispatch_outcome_json'],
-    ['(c) view() alone', 'native', 'read', 'view'],
+    ['(c) view() built, not dropped (native)', 'native', 'read', 'view'],
     ['(c) view JSON', 'native', 'read', 'view.serialize'],
-    ['(d) snapshot() alone', 'native', 'read', 'snapshot'],
+    ['(d) snapshot() built, not dropped (native)', 'native', 'read', 'snapshot'],
+    ['(d) dropping that snapshot (native)', 'native', 'read', 'snapshot.drop'],
     ['(d) snapshot JSON', 'native', 'read', 'snapshot.serialize'],
     ['session clone (upper bound on the transaction copy)', 'native', 'read', 'clone'],
     ['(e) exported dispatch_view', 'native', 'web.dispatch_view', 'web.dispatch_view'],
@@ -285,6 +304,9 @@ if (replicates.length) {
   ];
   for (const w of ['glowcap-replay', 'trail-rescue-scenarios', 'ledger-session']) {
     const rows = [];
+    // Every event of the workload (the transaction runs on each); a per-event
+    // operation with fewer samples timed only the accepted events.
+    const everyEvent = direct(runs(base, LOCAL, w, 'native', 'apply', 'apply'))?.nPerRun?.[0];
     for (const [name, e, m, op, from] of specs) {
       const report = from === 'inst' ? inst : base;
       const targets = from === 'inst' ? ['i1'] : TARGETS;
@@ -292,7 +314,8 @@ if (replicates.length) {
         if (!targets.includes(t) && !(from === 'inst' && t === LOCAL)) return '-';
         const d = direct(runs(report, from === 'inst' ? 'i1' : t, w, e, m, op));
         if (d) keep(sec, { workload: w, name, target: from === 'inst' ? 'i1' : t, engine: e, mode: m, op, stats: d });
-        return directCell(d);
+        const accepted = d && everyEvent && d.nPerRun[0] > 100 && d.nPerRun[0] < everyEvent;
+        return `${directCell(d)}${accepted ? ` · accepted events only, n ${d.nPerRun[0]}/run` : ''}`;
       });
       if (cells.every((cell) => cell === '-')) continue;
       rows.push([name, `${e} ${m} / ${op}`, ...cells]);
@@ -324,7 +347,8 @@ if (replicates.length) {
     rows.push(['`published-method` (caveat5 alone, fresh process, pinned 0x3C00 high)', t, `\`${base.targets.find((x) => x.label === t)?.runtimeFiles?.['caveat_runtime_bg.wasm']?.sha256.slice(0, 8)}\``,
       `${f(d.median.median)} [${f(d.median.min)}–${f(d.median.max)}]`, `${f(d.p95.median)} [${f(d.p95.min)}–${f(d.p95.max)}]`, '', '']);
   }
-  md.push(table(['Method', 'Runtime', 'Reactive wasm', 'caveat5 median µs [runs]', 'p95 µs [runs]', 'per-run medians', 'ts per-run medians'], rows));
+  md.push(table(['Method', 'Runtime', 'Reactive wasm', 'caveat5 median µs [runs]', 'p95 µs [runs]', 'per-run medians', 'ts per-run medians'], rows),
+    'Every pinned row above ran on logical processors 10–13 (`0x3C00`); the unpinned rows ran wherever Windows put them. The core-placement subsection below gives the same command on each performance-core pair.', '');
 
   // The published method's samples by event kind.
   const cats = ['category: idle tick', 'category: state-changing tick', 'category: observation (commit)', 'category: observation (reopen)', 'category: observation (evidence)', 'all'];
@@ -350,6 +374,7 @@ if (methodDir) {
   const { readdir } = await import('node:fs/promises');
   const names = await readdir(methodDir);
   const pairs = [];
+  const unpaired = names.filter((n) => /^alone-\d+$/.test(n) && !names.includes(`verbatim-${/\d+/.exec(n)[0]}.json`));
   for (const name of names.filter((n) => /^verbatim-\d+\.json$/.test(n)).sort()) {
     const index = /\d+/.exec(name)[0];
     if (!names.includes(`alone-${index}`)) continue;
@@ -364,6 +389,12 @@ if (methodDir) {
   const d = spreadOf(pairs.map((row) => row.difference));
   md.push(table(['Pair', 'in-process (verbatim) µs', 'alone (published-method) µs', 'in-process − alone µs'], pairs.map((row) => [row.pair, f(row.inProcess), f(row.alone), f(row.difference)])),
     d ? `Median difference ${f(d.median)} µs [${f(d.min)}–${f(d.max)}] (INFERRED, paired).` : '', '');
+  for (const name of unpaired) {
+    const alone = await readJson(path.join(methodDir, name, 'results.json'));
+    const run = alone.results['main-local']?.['glowcap-replay']?.wasm?.['published-method']?.runs?.[0]?.ops?.['adapter.dispatch+view']?.pooled;
+    keep(sec, { unpaired: name, startedAt: alone.startedAt, alone: run?.median ?? null });
+    md.push(`\`${name}\` (${alone.startedAt.slice(11, 16)} UTC, published-method ${f(run?.median)} µs) has no published-command half: no \`verbatim-${/\d+/.exec(name)[0]}.json\` was written for it, so it is kept only as a record and is not used.`, '');
+  }
 }
 
 // ---- 3. Event kinds on each path --------------------------------------------------
@@ -389,21 +420,24 @@ const PATHS = [
 function kindTable(key, title, intro, workload, groups, target = LOCAL, report = base, classes = baseClasses) {
   const sec = section(key, title, intro);
   const rows = [];
+  const counts = groups.map((group) => {
+    const d = direct(groupRuns(classes, target, workload, 'native', 'apply', 'apply', group)) ?? direct(groupRuns(classes, target, workload, 'wasm', 'kit', 'kit.dispatch', group))
+      ?? direct(groupRuns(classes, target, workload, 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', group));
+    return d ? d.nPerRun[0] : null;
+  });
   for (const [e, m, op, name] of PATHS) {
-    const cells = groups.map((group) => {
+    const cells = groups.map((group, index) => {
       const d = direct(groupRuns(classes, target, workload, e, m, op, group));
       if (d) keep(sec, { path: name, engine: e, mode: m, op, group, stats: d });
-      return directCell(d);
+      // A refused event throws on the dispatch_view path, so its "all" holds
+      // the accepted events only.
+      const fewer = d && counts[index] && d.nPerRun[0] < counts[index];
+      return `${directCell(d)}${fewer ? ` · accepted only, n ${d.nPerRun[0]}/run` : ''}`;
     });
     if (cells.every((cell) => cell === '-')) continue;
     rows.push([name, ...cells]);
   }
-  const counts = groups.map((group) => {
-    const d = direct(groupRuns(classes, target, workload, 'native', 'apply', 'apply', group)) ?? direct(groupRuns(classes, target, workload, 'wasm', 'kit', 'kit.dispatch', group))
-      ?? direct(groupRuns(classes, target, workload, 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', group));
-    return d ? `n ${d.nPerRun[0]}/run` : '';
-  });
-  md.push(table(['Path (µs: median [lowest–highest run] · p95)', ...groups.map((group, index) => `${group.replace(/^(category|class|signature): /, '')} (${counts[index]})`)], rows));
+  md.push(table(['Path (µs: median [lowest–highest run] · p95)', ...groups.map((group, index) => `${group.replace(/^(category|class|signature): /, '')} (${counts[index] ? `n ${counts[index]}/run` : ''})`)], rows));
 }
 
 kindTable('glowcap-kinds', 'Glowcap replay by event kind, every path (main-local)',
@@ -447,6 +481,8 @@ const WORKLOAD_GROUPS = [
 ];
 
 function componentValue(spec, workload, group, report, classes) {
+  const pick = (t, e, m, op) => (group === 'all' ? runs(report, t, workload, e, m, op) : groupRuns(classes, t, workload, e, m, op, group));
+  if (spec.ratio) return ratioInferred(pick(...spec.ratio[0]), pick(...spec.ratio[1]), { formula: spec.formula });
   if (spec.direct) {
     const [t, e, m, op] = spec.direct;
     return direct(group === 'all' ? runs(report, t, workload, e, m, op) : groupRuns(classes, t, workload, e, m, op, group));
@@ -533,7 +569,22 @@ componentSection('kit', '(8) The kit session path against dispatch_view', 'The p
   { name: 'raw dispatch_view + JSON.parse', direct: [LOCAL, 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse'] },
   { name: 'kit path over dispatch_view', formula: 'kit.dispatch+view − raw.dispatch_view+parse', terms: [[1, LOCAL, 'wasm', 'kit', 'kit.dispatch+view'], [-1, LOCAL, 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse']] },
   { name: 'kit JS layer over the raw outcome call', formula: 'kit.dispatch − raw.dispatch_outcome+parse', terms: [[1, LOCAL, 'wasm', 'kit', 'kit.dispatch'], [-1, LOCAL, 'wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome+parse']] },
+  { name: 'kit path ÷ dispatch_view path', formula: 'kit.dispatch+view ÷ raw.dispatch_view+parse, per run', ratio: [[LOCAL, 'wasm', 'kit', 'kit.dispatch+view'], [LOCAL, 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse']] },
 ], base, baseClasses);
+
+// The kit's own JavaScript, run by run: the per-run differences behind the
+// INFERRED row above, which are too spread to resolve it.
+{
+  const sec = section('kit-js', 'The kit\'s JavaScript layer, run by run', 'kit.dispatch − raw.dispatch_outcome+parse in each repeat of the primary baseline (paired: the two processes ran back to back). µs.');
+  const rows = [];
+  for (const [w, group, name] of WORKLOAD_GROUPS) {
+    const value = inferred([{ sign: 1, name: 'kit.dispatch', runs: groupRuns(baseClasses, LOCAL, w, 'wasm', 'kit', 'kit.dispatch', group) }, { sign: -1, name: 'raw.dispatch_outcome+parse', runs: groupRuns(baseClasses, LOCAL, w, 'wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome+parse', group) }], { formula: 'kit.dispatch − raw.dispatch_outcome+parse' });
+    if (!value) continue;
+    keep(sec, { eventKind: name, ...value });
+    rows.push([name, value.perRun.map((v) => f(v)).join(', '), `${f(value.value.min)} to ${f(value.value.max)}`]);
+  }
+  md.push(table(['Event kind', 'per-run differences', 'range'], rows));
+}
 
 // ---- the attribution the owner asked for -----------------------------------------
 // Absolute parts from the instrumented run (i1 and the ordinary main-local
@@ -590,9 +641,11 @@ componentSection('attribution-kit', 'Attribution on the kit path: language execu
       if (d) keep(sec, { workload: w, engine: e, mode: m, op, stats: d });
       return directCell(d);
     });
-    rows.push([`${e} ${m} / ${op}`, ...cells]);
+    const growth = ratioInferred(groupRuns(baseClasses, LOCAL, 'glowcap-scaled-64', e, m, op, 'category: idle tick'), groupRuns(baseClasses, LOCAL, 'glowcap-replay', e, m, op, 'category: idle tick'), { formula: 'median(64 mushrooms) ÷ median(4), per run' });
+    if (growth) keep(sec, { growth: `${e} ${m} / ${op}`, ...growth });
+    rows.push([`${e} ${m} / ${op}`, ...cells, inferredCell(growth)]);
   }
-  md.push(table(['Operation', '4 mushrooms (replay)', '16', '64'], rows));
+  md.push(table(['Operation', '4 mushrooms (replay)', '16', '64', '64 ÷ 4 (INFERRED, paired by run)'], rows));
 }
 
 // ---- growth within a session: the ledger by position -------------------------------
@@ -646,7 +699,7 @@ componentSection('attribution-kit', 'Attribution on the kit path: language execu
       }
     }
   }
-  md.push(table(['Session', 'Workload', 'Operation', 'native µs (DIRECT)', 'wasm µs (DIRECT)', 'ratio', 'difference (INFERRED)'], rows), 'Load and restore rows use the WebAssembly glue calls (`raw.new`, `raw.restore`), which add the source and save copies into memory.', '');
+  md.push(table(['Session', 'Workload', 'Operation', 'native µs (DIRECT)', 'wasm µs (DIRECT)', 'ratio', 'difference (INFERRED)'], rows), 'Load and restore rows use the WebAssembly glue calls (`raw.new`, `raw.restore`), which add the source and save copies into memory. The runtime sets no `#[global_allocator]`, so "native" here is the Windows system heap and "wasm" is Rust\'s bundled dlmalloc: these ratios compare that pairing, not code generation alone.', '');
 }
 
 // ---- save and restore ---------------------------------------------------------------
@@ -680,38 +733,54 @@ componentSection('attribution-kit', 'Attribution on the kit path: language execu
 // ---- instrumentation safeguard ----------------------------------------------------
 
 {
-  const sec = section('safeguard', 'Instrumentation safeguard', 'Each instrumented build against the ordinary build on the same events, in the same interleaved run: all events of the Glowcap replay (it has no refusals), and the accepted classes of the decision workloads (the ordinary `raw.*+parse` operations have no sample for a refused event, while a probe total does, so their pooled "all" would not compare like with like). i1 adds functions and changes none; i2 adds marks inside the runtime, so its totals include the marks\' own cost.');
+  const sec = section('safeguard', 'Instrumentation safeguard', 'Each instrumented build against the ordinary build on the same events, in the same interleaved run, per event class: all events of the Glowcap replay (it has no refusals) and its idle and state-changing ticks, and each accepted and the refused class of the decision workloads. Every comparison is like for like: the WebAssembly dispatch_view probe total (the call and `JSON.parse`, no payload stringify) is compared by mean with the ordinary call\'s mean plus its `JSON.parse` mean (means add; medians do not), and by median with `raw.dispatch_view+parse`, which also includes the payload `JSON.stringify` (0.3–1.0 µs), so that median row understates the overhead by about that much; a refused event throws, so its probe total is the call alone and is compared with the ordinary call alone. i1 adds functions and changes none; i2 adds marks inside the runtime, so its totals include the marks\' own cost.');
   const rows = [];
-  const GROUPS = { 'glowcap-replay': ['all'], 'trail-rescue-scenarios': ['class: evidence', 'class: commit', 'class: reopen'], 'ledger-session': ['class: evidence'] };
+  const GROUPS = { 'glowcap-replay': ['all', 'category: idle tick', 'category: state-changing tick'], 'trail-rescue-scenarios': ['class: evidence', 'class: commit', 'class: reopen', 'class: refused'], 'ledger-session': ['class: evidence', 'class: refused'] };
+  // [instrumented target, engine, mode, op, reference terms, which classes, statistics]
   const pairs = [
-    ['i1', 'native', 'web.dispatch_view', 'web.dispatch_view', 'native', 'web.dispatch_view', 'web.dispatch_view'],
-    ['i1', 'native', 'web.dispatch_outcome', 'web.dispatch_outcome', 'native', 'web.dispatch_outcome', 'web.dispatch_outcome'],
-    ['i1', 'native', 'apply', 'apply', 'native', 'apply', 'apply'],
-    ['i1', 'native', 'read', 'view', 'native', 'read', 'view'],
-    ['i1', 'wasm', 'abi.dispatch_view', 'abi.exec', 'wasm', 'abi.dispatch_view', 'abi.exec'],
-    ['i1', 'wasm', 'abi.dispatch_outcome', 'abi.exec', 'wasm', 'abi.dispatch_outcome', 'abi.exec'],
-    ['i1', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse'],
-    ['i2', 'native', 'probe.dispatch_view', 'total', 'native', 'web.dispatch_view', 'web.dispatch_view'],
-    ['i2', 'native', 'probe.dispatch_outcome', 'total', 'native', 'web.dispatch_outcome', 'web.dispatch_outcome'],
-    ['i2', 'wasm', 'probe.dispatch_view', 'total', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse'],
-    ['i2', 'wasm', 'probe.dispatch_outcome', 'total', 'wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome+parse'],
+    ['i1', 'native', 'web.dispatch_view', 'web.dispatch_view', [['native', 'web.dispatch_view', 'web.dispatch_view']], 'any', ['median', 'mean']],
+    ['i1', 'native', 'web.dispatch_outcome', 'web.dispatch_outcome', [['native', 'web.dispatch_outcome', 'web.dispatch_outcome']], 'any', ['median', 'mean']],
+    ['i1', 'native', 'apply', 'apply', [['native', 'apply', 'apply']], 'any', ['median', 'mean']],
+    ['i1', 'native', 'read', 'view', [['native', 'read', 'view']], 'any', ['median', 'mean']],
+    ['i1', 'wasm', 'abi.dispatch_view', 'abi.exec', [['wasm', 'abi.dispatch_view', 'abi.exec']], 'any', ['median', 'mean']],
+    ['i1', 'wasm', 'abi.dispatch_outcome', 'abi.exec', [['wasm', 'abi.dispatch_outcome', 'abi.exec']], 'any', ['median', 'mean']],
+    ['i1', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', [['wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse']], 'accepted', ['median', 'mean']],
+    ['i1', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view', [['wasm', 'raw.dispatch_view', 'raw.dispatch_view']], 'refused', ['median', 'mean']],
+    ['i2', 'native', 'probe.dispatch_view', 'total', [['native', 'web.dispatch_view', 'web.dispatch_view']], 'any', ['median', 'mean']],
+    ['i2', 'native', 'probe.dispatch_outcome', 'total', [['native', 'web.dispatch_outcome', 'web.dispatch_outcome']], 'any', ['median', 'mean']],
+    ['i2', 'wasm', 'probe.dispatch_view', 'total', [['wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse']], 'accepted', ['median']],
+    ['i2', 'wasm', 'probe.dispatch_view', 'total', [['wasm', 'raw.dispatch_view', 'raw.dispatch_view'], ['wasm', 'raw.dispatch_view', 'js.parse_view']], 'accepted', ['mean']],
+    ['i2', 'wasm', 'probe.dispatch_view', 'total', [['wasm', 'raw.dispatch_view', 'raw.dispatch_view']], 'refused', ['median', 'mean']],
+    ['i2', 'wasm', 'probe.dispatch_outcome', 'total', [['wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome+parse']], 'any', ['median', 'mean']],
   ];
+  const worst = {};
   for (const [w, groups] of Object.entries(GROUPS)) {
     for (const group of groups) {
-      for (const [t, e, m, op, e0, m0, op0] of pairs) {
-        for (const stat of ['median', 'mean']) {
+      const refused = group === 'class: refused';
+      for (const [t, e, m, op, refs, which, stats] of pairs) {
+        if ((which === 'accepted' && refused) || (which === 'refused' && !refused)) continue;
+        for (const stat of stats) {
           const a = groupRuns(instClasses, t, w, e, m, op, group);
-          const b = groupRuns(instClasses, LOCAL, w, e0, m0, op0, group);
-          const value = inferred([{ sign: 1, name: `${t} ${m} ${op}`, runs: a }, { sign: -1, name: `${LOCAL} ${m0} ${op0}`, runs: b }], { stat, formula: `${t} − ${LOCAL} (${stat})` });
+          const terms = refs.map(([e0, m0, op0]) => ({ sign: -1, name: `${LOCAL} ${m0} ${op0}`, runs: groupRuns(instClasses, LOCAL, w, e0, m0, op0, group) }));
+          if (!a || terms.some((term) => !term.runs)) continue;
+          const value = inferred([{ sign: 1, name: `${t} ${m} ${op}`, runs: a }, ...terms], { stat, formula: `${t} − ${LOCAL} (${stat})` });
           if (!value) continue;
-          const ref = spreadOf(b.filter(Boolean).map((s) => s[stat]));
-          keep(sec, { workload: w, group, target: t, engine: e, op: `${m} ${op}`, reference: `${m0} ${op0}`, stat, overhead: value, referenceValue: ref });
-          rows.push([`${w}: ${group.replace('class: ', '')}`, `${t} ${e} ${m} / ${op}`, `${m0} / ${op0}`, stat, f(spreadOf(a.filter(Boolean).map((s) => s[stat])).median), f(ref.median), inferredCell(value), `${f((value.value.median / ref.median) * 100)}%`]);
+          const perRunRef = [];
+          for (let r = 0; r < a.length; r++) if (terms.every((term) => term.runs[r])) perRunRef.push(terms.reduce((sum, term) => sum + term.runs[r][stat], 0));
+          const ref = spreadOf(perRunRef);
+          const percent = (value.value.median / ref.median) * 100;
+          const reference = refs.map(([, m0, op0]) => `${m0} / ${op0}`).join(' + ');
+          keep(sec, { workload: w, group, target: t, engine: e, op: `${m} ${op}`, reference, stat, overhead: value, referenceValue: ref, overheadPercent: percent });
+          const key = `${t} ${e}`;
+          worst[key] = Math.max(worst[key] ?? 0, Math.abs(percent));
+          rows.push([`${w}: ${group.replace(/^(class|category): /, '')}`, `${t} ${e} ${m} / ${op}`, reference, stat, f(spreadOf(a.filter(Boolean).map((s) => s[stat])).median), f(ref.median), inferredCell(value), `${f(percent)}%`]);
         }
       }
     }
   }
   md.push(table(['Workload: events', 'Instrumented', 'Ordinary (main-local)', 'Statistic', 'instrumented µs', 'ordinary µs', 'overhead (INFERRED)', 'overhead %'], rows));
+  keep(sec, { largestAbsoluteOverheadPercent: worst });
+  md.push(`Largest absolute overhead in the table above, by build and engine: ${Object.entries(worst).map(([key, value]) => `${key} ${f(value)}%`).join('; ')}.`, '');
   const overhead = [];
   for (const e of ['native', 'wasm']) {
     for (const op of ['probe.mark', 'probe.now', 'js.performance_now']) {
@@ -721,6 +790,90 @@ componentSection('attribution-kit', 'Attribution on the kit path: language execu
   }
   md.push('The cost of one mark (batches of 100):', '', table(['Engine', 'Operation', 'µs per call: median [runs] · p95'], overhead));
 }
+
+// ---- i2 shares as microseconds (INFERRED) ------------------------------------
+// A region's share of the i2 call (per run, of its mean total) times the
+// ordinary build's DIRECT median of the same path and class in the same
+// session, paired by repeat. The uncertainty is the measured i2 overhead of
+// that path and class (safeguard, means, like for like): ± spreads it over
+// the regions in proportion; "worst" puts all of it in this region.
+
+const I2_SAFEGUARD = out.sections.safeguard.rows.filter((row) => row.target === 'i2' && row.stat === 'mean');
+function i2Overhead(e, m, w, group) {
+  const row = I2_SAFEGUARD.find((x) => x.engine === e && x.op === `${m} total` && x.workload === w && x.group === group);
+  return row ? row.overheadPercent / 100 : null;
+}
+const CONVERT = [
+  ['language execution', ['payload.parse', 'payload.resolve', 'apply.validate', 'apply.clone', 'run.clock', 'run.prologue', 'run.rules', 'run.changes', 'bind.stale', 'bind.none', 'bind.eval', 'bind.sort', 'bind.explain', 'bind.write', 'apply.swap', 'apply.rollback']],
+  ['  rules', ['run.prologue', 'run.rules']],
+  ['  binding evaluation', ['bind.stale', 'bind.none', 'bind.eval', 'bind.sort', 'bind.explain', 'bind.write']],
+  ['  session copy + old session dropped (or rolled back)', ['apply.clone', 'apply.swap', 'apply.rollback']],
+  ['view building', ['view.enter', 'view.names', 'view.sort', 'view.commitments', 'view.relations', 'view.build']],
+  ['  NodeId→name map', ['view.enter', 'view.names']],
+  ['  symbol sort', ['view.sort']],
+  ['  commitment records', ['view.commitments']],
+  ['  relation records', ['view.relations']],
+  ['snapshot + outcome building', ['snap.enter', 'snap.names', 'snap.sort', 'snap.symbols', 'snap.shown', 'snap.values', 'snap.records', 'snap.static', 'snap.relations', 'snap.build', 'outcome.built']],
+  ['serialization (serde_json) + drop of what was serialized', ['web.serialize', 'web.drop']],
+  ['bridge in and out', ['web.enter', 'exit']],
+  ['JS JSON.parse', ['js.parse']],
+  ['serialization + bridge + JSON.parse', ['web.serialize', 'web.drop', 'web.enter', 'exit', 'js.parse']],
+];
+const CONVERT_PATHS = [
+  ['wasm', 'probe.dispatch_view', ['wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse'], 'wasm dispatch_view + JSON.parse (the web pages\' path; reference raw.dispatch_view+parse)'],
+  ['native', 'probe.dispatch_view', ['native', 'web.dispatch_view', 'web.dispatch_view'], 'native dispatch_view (reference web.dispatch_view)'],
+  ['wasm', 'probe.dispatch_outcome', ['wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome+parse'], 'wasm dispatch_outcome + JSON.parse (the kit\'s call; reference raw.dispatch_outcome+parse)'],
+  ['native', 'probe.dispatch_outcome', ['native', 'web.dispatch_outcome', 'web.dispatch_outcome'], 'native dispatch_outcome (reference web.dispatch_outcome)'],
+];
+function i2Share(w, e, m, group, labels) {
+  const total = groupRuns(instClasses, 'i2', w, e, m, 'total', group);
+  if (!total) return null;
+  return total.map((tot, r) => {
+    if (!tot) return null;
+    let sum = 0;
+    for (const label of labels) {
+      const region = groupRuns(instClasses, 'i2', w, e, m, label, group)?.[r];
+      if (region) sum += (region.mean * region.n) / tot.n;
+    }
+    return sum / tot.mean;
+  });
+}
+// The ordinary operation an i2 call is converted against: the same exported
+// call; a refused dispatch_view throws, so its reference is the call alone.
+function i2Reference(e, m, group) {
+  if (e === 'wasm' && m === 'probe.dispatch_view') return group === 'class: refused' ? ['wasm', 'raw.dispatch_view', 'raw.dispatch_view'] : ['wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse'];
+  if (e === 'wasm') return ['wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome+parse'];
+  return m === 'probe.dispatch_view' ? ['native', 'web.dispatch_view', 'web.dispatch_view'] : ['native', 'web.dispatch_outcome', 'web.dispatch_outcome'];
+}
+const convertedCell = (x) => (x?.share ? `${f(x.share.median * 100)}% (≈${f(x.value.median)})` : '-');
+
+function i2Inferred(w, e, m, group, labels, [e0, m0, op0]) {
+  const shares = i2Share(w, e, m, group, labels);
+  const reference = groupRuns(instClasses, LOCAL, w, e0, m0, op0, group);
+  if (!shares || !reference) return null;
+  const per = [];
+  const shareRuns = [];
+  for (let r = 0; r < shares.length; r++) {
+    if (shares[r] === null || !reference[r]) continue;
+    per.push(shares[r] * reference[r].median);
+    shareRuns.push(shares[r]);
+  }
+  if (!per.length) return null;
+  const value = spreadOf(per);
+  const overhead = i2Overhead(e, m, w, group);
+  const referenceMedian = spreadOf(reference.filter(Boolean).map((s) => s.median)).median;
+  return {
+    label: 'INFERRED',
+    formula: `i2 share of the call × ${LOCAL} ${m0} / ${op0} DIRECT median (same session, class, repeat)`,
+    share: spreadOf(shareRuns),
+    value,
+    perRun: per.map((v) => Number(v.toFixed(3))),
+    overheadFraction: overhead,
+    plusMinus: overhead === null ? null : Math.abs(overhead) * value.median,
+    worstCase: overhead === null ? null : Math.abs(overhead) * referenceMedian,
+  };
+}
+const i2Cell = (x) => (x ? `${f(x.value.median)} [${f(x.value.min)}–${f(x.value.max)}] ±${f(x.plusMinus)} (share ${f(x.share.median * 100)}%)` : '-');
 
 // ---- i2 proportions ------------------------------------------------------------------
 
@@ -750,11 +903,11 @@ const REGION_GROUPS = [
 ];
 
 {
-  const sec = section('proportions', 'Where the time goes inside one call (i2 marks: proportions only)', 'Mean time per event of each disjoint region between consecutive marks, as a share of the instrumented call\'s mean total. The regions of a call add up exactly to its total, so these shares add to 100%. Means, not medians, because only means add; the marks read a 100 ns clock and cost about the mark cost above each, so the absolute values are not production costs.');
+  const sec = section('proportions', 'Where the time goes inside one call (i2 marks: proportions only)', 'Each cell: the mean time per event of one disjoint region between consecutive marks as a share of the instrumented call\'s mean total (median over runs), and in parentheses that share converted to µs (INFERRED: share × the ordinary build\'s DIRECT median of the same call and event class in the instrumented session, paired by repeat; the refused dispatch_view reference is the call alone, since it throws). The regions of a call add up exactly to its total, so the shares add to 100%; means, not medians, because only means add. The i2 marks cost about 0.04–0.05 µs each and read a 100 ns clock, so the instrumented totals are not production costs; the last row gives the measured overhead of each path and class (safeguard).');
   for (const [w, groups] of [['glowcap-replay', ['category: idle tick', 'category: state-changing tick']], ['trail-rescue-scenarios', ['class: evidence', 'class: commit', 'class: reopen', 'class: refused']], ['ledger-session', ['class: evidence', 'class: refused']]]) {
     for (const [e, m] of [['native', 'probe.dispatch_view'], ['wasm', 'probe.dispatch_view'], ['native', 'probe.dispatch_outcome'], ['wasm', 'probe.dispatch_outcome']]) {
       const rows = [];
-      const header = ['Region', ...groups.map((group) => group.replace(/^(category|class): /, ''))];
+      const header = ['Region: share (≈ µs, INFERRED)', ...groups.map((group) => group.replace(/^(category|class): /, ''))];
       const totals = groups.map((group) => groupRuns(instClasses, 'i2', w, e, m, 'total', group));
       if (totals.every((t) => !t)) continue;
       const share = (group, index, labels) => {
@@ -774,11 +927,21 @@ const REGION_GROUPS = [
       for (const [name, labels] of REGION_GROUPS) {
         const cells = groups.map((group, index) => share(group, index, labels));
         if (cells.every((cell) => !cell || !cell.us || cell.us.median < 0.005)) continue;
-        keep(sec, { workload: w, engine: e, mode: m, region: name, labels, byGroup: Object.fromEntries(groups.map((group, index) => [group, cells[index]])) });
-        rows.push([name, ...cells.map((cell) => (cell?.us ? `${f(cell.share.median)}% (${f(cell.us.median)} µs)` : '-'))]);
+        const converted = groups.map((group) => i2Inferred(w, e, m, group, labels, i2Reference(e, m, group)));
+        keep(sec, { workload: w, engine: e, mode: m, region: name, labels, byGroup: Object.fromEntries(groups.map((group, index) => [group, { ...cells[index], inferred: converted[index] }])) });
+        rows.push([name, ...converted.map(convertedCell)]);
       }
       const totalCells = totals.map((t) => { const s = spreadOf((t ?? []).filter(Boolean).map((x) => x.mean)); return s ? `mean ${f(s.median)} µs` : '-'; });
-      rows.push(['**instrumented total**', ...totalCells]);
+      rows.push(['instrumented total (i2, DIRECT)', ...totalCells]);
+      rows.push(['ordinary reference (DIRECT median)', ...groups.map((group) => {
+        const reference = groupRuns(instClasses, LOCAL, w, ...i2Reference(e, m, group), group);
+        const s = reference ? spreadOf(reference.filter(Boolean).map((x) => x.median)) : null;
+        return s ? `${f(s.median)} µs` : '-';
+      })]);
+      rows.push(['i2 overhead (means, like for like)', ...groups.map((group) => {
+        const o = i2Overhead(e, m, w, group);
+        return o === null ? '-' : `${f(o * 100)}%`;
+      })]);
       md.push(`### ${w}, ${e} ${m.replace('probe.', '')}`, '', table(header, rows));
     }
   }
@@ -797,7 +960,7 @@ const REGION_GROUPS = [
     ['bridge in and out (JS call, argument copy, return, decode, free)', ['web.enter', 'exit']],
     ['JS JSON.parse', ['js.parse']],
   ];
-  const sec = section('buckets', 'The three buckets inside one call (i2 marks: proportions only)', 'The region shares above, summed into language execution, view or snapshot building, and serialization + bridge + JS parse. Shares of the instrumented call\'s mean total, which these rows (without the "of which" lines) add up to exactly. Proportions only: the i2 totals carry the marks\' cost.');
+  const sec = section('buckets', 'The three buckets inside one call (i2 marks: proportions only)', 'The region shares above, summed into language execution, view or snapshot building, and serialization + bridge + JS parse: shares of the instrumented call\'s mean total, which these rows (without the "of which" lines) add up to exactly, and in parentheses the share converted to µs as above (INFERRED). The i2 totals carry the marks\' cost; the converted values carry the overhead of each path and class as their uncertainty (section 12).');
   for (const [e, m] of [['wasm', 'probe.dispatch_view'], ['wasm', 'probe.dispatch_outcome'], ['native', 'probe.dispatch_view'], ['native', 'probe.dispatch_outcome']]) {
     const rows = [];
     for (const [name, labels] of BUCKETS) {
@@ -816,15 +979,257 @@ const REGION_GROUPS = [
         return { us: spreadOf(perRun), share: spreadOf(perRun.map((value, r) => (value / total[r].mean) * 100)) };
       });
       if (cells.every((cell) => !cell?.us || cell.us.median < 0.005)) continue;
-      keep(sec, { engine: e, mode: m, bucket: name, labels, byKind: Object.fromEntries(WORKLOAD_GROUPS.map(([, , kind], index) => [kind, cells[index]])) });
-      rows.push([name, ...cells.map((cell) => (cell?.us ? `${f(cell.share.median)}% (${f(cell.us.median)})` : '-'))]);
+      const converted = WORKLOAD_GROUPS.map(([w, group]) => i2Inferred(w, e, m, group, labels, i2Reference(e, m, group)));
+      keep(sec, { engine: e, mode: m, bucket: name, labels, byKind: Object.fromEntries(WORKLOAD_GROUPS.map(([, , kind], index) => [kind, { ...cells[index], inferred: converted[index] }])) });
+      rows.push([name, ...converted.map(convertedCell)]);
     }
-    rows.push(['instrumented mean total, µs', ...WORKLOAD_GROUPS.map(([w, group]) => {
+    rows.push(['instrumented mean total (i2, DIRECT), µs', ...WORKLOAD_GROUPS.map(([w, group]) => {
       const s = spreadOf((groupRuns(instClasses, 'i2', w, e, m, 'total', group) ?? []).filter(Boolean).map((x) => x.mean));
       return s ? f(s.median) : '-';
     })]);
-    md.push(`### ${e} ${m.replace('probe.', '')}`, '', table(['Bucket: share (mean µs)', ...WORKLOAD_GROUPS.map(([, , name]) => name)], rows));
+    md.push(`### ${e} ${m.replace('probe.', '')}`, '', table(['Bucket: share (≈ µs, INFERRED)', ...WORKLOAD_GROUPS.map(([, , name]) => name)], rows));
   }
+}
+
+{
+  const sec = section('i2-inferred', 'i2 shares converted to microseconds (INFERRED)', 'Each cell: the region\'s share of the i2 call (median over runs, in brackets its range) times the ordinary build\'s DIRECT median of the same path and event class in the instrumented session, paired by repeat: µs median [lowest–highest run] ± the i2 overhead of that path and class spread in proportion. The last row gives the overhead and the worst case, all of it in one region. The wasm dispatch_view reference includes the payload stringify (0.3–1.0 µs) that the i2 call does not.');
+  for (const [e, m, ref, title] of CONVERT_PATHS) {
+    const rows = [];
+    for (const [name, labels] of CONVERT) {
+      const cells = WORKLOAD_GROUPS.map(([w, group, kind]) => {
+        const x = i2Inferred(w, e, m, group, labels, ref);
+        if (x && x.value.median >= 0.005) keep(sec, { path: title, quantity: name.trim(), eventKind: kind, ...x });
+        return x && x.value.median >= 0.005 ? i2Cell(x) : '-';
+      });
+      if (cells.every((cell) => cell === '-')) continue;
+      rows.push([name, ...cells]);
+    }
+    rows.push(['i2 overhead (mean, like for like); worst case µs', ...WORKLOAD_GROUPS.map(([w, group]) => {
+      const o = i2Overhead(e, m, w, group);
+      const reference = groupRuns(instClasses, LOCAL, w, ...ref, group);
+      const median = reference ? spreadOf(reference.filter(Boolean).map((s) => s.median)).median : null;
+      return o === null ? '-' : `${f(o * 100)}%; ±${f(Math.abs(o) * median)}`;
+    })]);
+    md.push(`### ${title}`, '', table(['Quantity (µs, INFERRED)', ...WORKLOAD_GROUPS.map(([, , name]) => name)], rows));
+  }
+}
+
+// ---- core placement ------------------------------------------------------------
+// A run of run.mjs --affinity-set (targets LABEL@MASK) and verbatim.mjs
+// --affinity-set, in one quiet session.
+const coresDir = option('cores')[0] ? path.resolve(option('cores')[0]) : null;
+if (coresDir) {
+  const cores = await readJson(path.join(coresDir, 'results.json'));
+  const coreClasses = await readJson(path.join(coresDir, 'classes.json'));
+  const coreVerbatim = await Promise.all(option('cores-verbatim').map(readJson));
+  const masks = cores.environment.pinning.affinitySet.map((entry) => entry.mask);
+  const HOME = '0x3C00';
+  const cpuSets = cores.environment.machine.cpuSetList ?? [];
+  const sec = section('cores', 'Core placement: the same bytes on each performance-core pair', `One quiet session (${cores.runId}; total CPU mean ${cores.environment.loadDuring?.counters.total.mean}%, p95 ${cores.environment.loadDuring?.counters.total.p95}%): every job ran once under each mask per repeat, the masks rotating with the targets, 3 repeats, High priority. Each cell: DIRECT median over the 3 runs [lowest–highest run]; the ratio to the same job on ${HOME} (the mask of every other table) is INFERRED, per run, paired by repeat.`);
+  // Which processors each mask held, their CPU-set classes, and the clock the
+  // busy processor ran at during the jobs (typeperf Actual Frequency, 1 s).
+  const identity = [];
+  for (const mask of masks) {
+    const processors = cores.environment.pinning.affinitySet.find((entry) => entry.mask === mask).logicalProcessors;
+    const sets = processors.map((lp) => cpuSets.find((set) => set.logicalProcessor === lp));
+    const jobs = [];
+    for (const byWorkload of Object.values(cores.results)) for (const byEngine of Object.values(byWorkload)) for (const byMode of Object.values(byEngine)) for (const mode of Object.values(byMode)) for (const run of mode.runs) if (run.affinityMask === mask && run.cores?.cores) jobs.push(run);
+    const busy = {};
+    const clocks = [];
+    for (const run of jobs) {
+      for (const [lp, stats] of Object.entries(run.cores.cores)) {
+        if (!processors.includes(Number(lp))) continue;
+        (busy[lp] ??= []).push(stats.busyPercent ?? 0);
+        if (stats.mhzWhileBusy) clocks.push(stats.mhzWhileBusy);
+      }
+    }
+    const seen = {};
+    for (const run of jobs) for (const [lp, count] of Object.entries(run.extra?.processorsSeen ?? {})) seen[lp] = (seen[lp] ?? 0) + count;
+    const mean = (list) => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : null);
+    const row = { mask, processors, efficiencyClass: sets.map((s) => s?.efficiencyClass), schedulingClass: sets.map((s) => s?.schedulingClass), meanBusyPercent: Object.fromEntries(Object.entries(busy).map(([lp, list]) => [lp, Number(mean(list).toFixed(1))])), clockWhileBusyMHz: spreadOf(clocks), nativeEventsByProcessor: seen };
+    keep(sec, { kind: 'identity', ...row });
+    identity.push([mask, processors.join(', '), row.efficiencyClass.join(', '), row.schedulingClass.join(', '), Object.entries(row.meanBusyPercent).map(([lp, v]) => `${lp}: ${f(v)}%`).join(', '), row.clockWhileBusyMHz ? `${f(row.clockWhileBusyMHz.median)} [${f(row.clockWhileBusyMHz.min)}–${f(row.clockWhileBusyMHz.max)}]` : '-', Object.entries(seen).map(([lp, count]) => `${lp}: ${count}`).join(', ') || '-']);
+  }
+  md.push('Which processors each mask held (CPU-set classes read when the run started; Windows changes the scheduling class), how busy each of them was on average over the jobs that ran under the mask, the clock of the mask\'s processors while more than half busy (typeperf `Actual Frequency`, 1 s samples: the median and the range of those samples), and on which processor the native benchmark found itself at each timed event (`GetCurrentProcessorNumber`, outside the timed region; events summed over the native jobs):', '',
+    table(['Mask', 'Logical processors', 'Efficiency class', 'Scheduling class', 'Mean busy, per processor', 'Clock while busy, MHz: median [range]', 'Native events by processor'], identity));
+
+  const SPECS = [
+    ['main-local', 'glowcap-replay', 'wasm', 'published-method', 'adapter.dispatch+view', 'all', 'Glowcap published method (adapter dispatch + view)'],
+    ['hist-e6ace96', 'glowcap-replay', 'wasm', 'published-method', 'adapter.dispatch+view', 'all', 'the same, historical runtime e6ace96'],
+    ['main-local', 'glowcap-replay', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', 'category: idle tick', 'Glowcap idle tick: dispatch_view + JSON.parse'],
+    ['main-local', 'glowcap-replay', 'wasm', 'abi.dispatch_view', 'abi.exec', 'category: idle tick', 'Glowcap idle tick: wasm execution only'],
+    ['main-local', 'glowcap-replay', 'native', 'web.dispatch_view', 'web.dispatch_view', 'category: idle tick', 'Glowcap idle tick: native dispatch_view'],
+    ['main-local', 'glowcap-replay', 'wasm', 'kit', 'kit.dispatch+view', 'category: idle tick', 'Glowcap idle tick: kit dispatch + view'],
+    ['main-local', 'glowcap-replay', 'wasm', 'raw.dispatch_view', 'js.parse_view', 'category: idle tick', 'Glowcap idle tick: JSON.parse of the view alone'],
+    ['main-local', 'trail-rescue-scenarios', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', 'class: evidence', 'Trail Rescue evidence: dispatch_view + JSON.parse'],
+    ['main-local', 'trail-rescue-scenarios', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', 'class: commit', 'Trail Rescue commit: dispatch_view + JSON.parse'],
+    ['main-local', 'trail-rescue-scenarios', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view+parse', 'class: reopen', 'Trail Rescue reopen: dispatch_view + JSON.parse'],
+    ['main-local', 'trail-rescue-scenarios', 'wasm', 'abi.dispatch_view', 'abi.exec', 'class: commit', 'Trail Rescue commit: wasm execution only'],
+    ['main-local', 'trail-rescue-scenarios', 'native', 'web.dispatch_view', 'web.dispatch_view', 'class: commit', 'Trail Rescue commit: native dispatch_view'],
+    ['main-local', 'trail-rescue-scenarios', 'wasm', 'kit', 'kit.dispatch+view', 'class: commit', 'Trail Rescue commit: kit dispatch + view'],
+  ];
+  const cell = (t, w, e, m, op, group, mask) => (group === 'all' ? runs(cores, `${t}@${mask}`, w, e, m, op) : groupRuns(coreClasses, `${t}@${mask}`, w, e, m, op, group));
+  const rows = [];
+  const ratioRows = [];
+  for (const [t, w, e, m, op, group, name] of SPECS) {
+    const home = cell(t, w, e, m, op, group, HOME);
+    const cells = masks.map((mask) => {
+      const d = direct(cell(t, w, e, m, op, group, mask));
+      if (d) keep(sec, { kind: 'direct', path: name, target: t, workload: w, engine: e, mode: m, op, group, mask, stats: d });
+      return directCell(d, { p95: false });
+    });
+    const ratios = masks.map((mask) => {
+      const x = ratioInferred(cell(t, w, e, m, op, group, mask), home, { formula: `median on ${mask} ÷ median on ${HOME}, per run` });
+      if (x) keep(sec, { kind: 'ratio to home', path: name, mask, ...x });
+      return inferredCell(x);
+    });
+    if (cells.every((c) => c === '-')) continue;
+    rows.push([name, ...cells]);
+    ratioRows.push([name, ...ratios]);
+  }
+  md.push('DIRECT, µs: median over runs [lowest–highest run]:', '', table(['Path', ...masks.map((mask) => `${mask} (${cores.environment.pinning.affinitySet.find((x) => x.mask === mask).logicalProcessors.join(',')})`)], rows));
+  md.push(`The same, as a ratio to ${HOME} (INFERRED, per run, paired by repeat):`, '', table(['Path', ...masks], ratioRows));
+  // WebAssembly over native on each pair: does the ratio survive?
+  const wn = [];
+  for (const [w, group, name] of [['glowcap-replay', 'category: idle tick', 'Glowcap idle tick'], ['trail-rescue-scenarios', 'class: commit', 'Trail Rescue commit'], ['trail-rescue-scenarios', 'class: evidence', 'Trail Rescue evidence']]) {
+    wn.push([name, ...masks.map((mask) => {
+      const x = ratioInferred(groupRuns(coreClasses, `main-local@${mask}`, w, 'wasm', 'abi.dispatch_view', 'abi.exec', group), groupRuns(coreClasses, `main-local@${mask}`, w, 'native', 'web.dispatch_view', 'web.dispatch_view', group), { formula: 'wasm abi.exec ÷ native web.dispatch_view, per run' });
+      if (x) keep(sec, { kind: 'wasm over native', eventKind: name, mask, ...x });
+      return inferredCell(x);
+    })]);
+  }
+  md.push('WebAssembly execution over native, the same exported dispatch_view, on each pair (INFERRED ratio, per run):', '', table(['Event kind', ...masks], wn));
+  // The published command itself on each pair, and unpinned.
+  const vrows = [];
+  for (const record of coreVerbatim) {
+    const groupsSeen = new Map();
+    for (const run of record.runs) {
+      const key = `${run.tree} ${run.affinity ?? 'none'}`;
+      if (!groupsSeen.has(key)) groupsSeen.set(key, []);
+      groupsSeen.get(key).push(run);
+    }
+    for (const [key, list] of groupsSeen) {
+      const [tree, mask] = key.split(' ');
+      const medians = list.map((run) => run.lines.caveat5?.median).filter(Number.isFinite);
+      const med = spreadOf(medians);
+      const clocks = list.flatMap((run) => Object.values(run.cores?.cores ?? {}).map((c) => c.mhzWhileBusy).filter(Boolean));
+      const where = list.map((run) => Object.entries(run.cores?.cores ?? {}).filter(([, c]) => (c.busyPercent ?? 0) > 25).map(([lp, c]) => `${lp} (${f(c.busyPercent)}%)`).join(' ') || '-');
+      keep(sec, { kind: 'published command', tree, mask, pinning: record.pinning, medians, clocks, where, runs: list.map((run) => ({ repeat: run.repeat, lines: run.lines, cores: run.cores })) });
+      vrows.push([tree, mask === 'none' ? 'unpinned, normal priority (as published)' : `${mask}, High`, med ? `${f(med.median)} [${f(med.min)}–${f(med.max)}]` : '-', medians.map((v) => f(v)).join(', '), clocks.length ? f(spreadOf(clocks).median) : '-', where.join('; ')]);
+    }
+  }
+  md.push('The published command itself (`node experiments/glowcap/harness.mjs --bench`, caveat5 after five other implementations in one process), on each pair and unpinned:', '', table(['Tree', 'Pinning', 'caveat5 median µs [runs]', 'per-run medians', 'clock while busy, MHz', 'processors more than 25% busy during each run'], vrows));
+}
+
+// ---- copies: state and provenance copying per event (i3) --------------------------
+const copiesDir = option('copies')[0] ? path.resolve(option('copies')[0]) : null;
+if (copiesDir) {
+  const copies = await readJson(path.join(copiesDir, 'results.json'));
+  const copyClasses = await readJson(path.join(copiesDir, 'classes.json'));
+  // The cost of one clock read: natively the time-stamp counter (the
+  // allocator check measured it, batches of 1,000), in WebAssembly the
+  // host's performance.now() (the i2 session's js.performance_now).
+  const allocbench = option('allocbench')[0] ? await readJson(path.resolve(option('allocbench')[0])) : null;
+  const rdtsc = allocbench ? spreadOf(allocbench.runs.filter((run) => run.summaries.rdtsc_read).map((run) => run.summaries.rdtsc_read.median / 1000)) : null;
+  const jsNow = direct(runs(inst, 'i2', 'glowcap-replay', 'wasm', 'probe.overhead', 'js.performance_now'));
+  const clockRead = { native: rdtsc?.median ?? null, wasm: jsNow?.median?.median ?? null };
+  const sec = section('copies', 'State and provenance copying per event (i3)', `The i3 session (${copies.runId}; total CPU mean ${copies.environment.loadDuring?.counters.total.mean}%, p95 ${copies.environment.loadDuring?.counters.total.p95}%): the i3 copy and the ordinary build, interleaved, 3 repeats, pinned to 0x3C00 at High priority. Per event, means (they add; a median of a mostly-zero quantity says little): the time inside the \`Arc::make_mut\` calls that copied a shared structure (DIRECT in i3, the timers around only those calls), how many there were, and the provenance copies (count and names copied; natively also their time, outside structure copies). Shares are of the i3 call's own mean total (the same call, so exact for means).`);
+  const GROUPS = [...WORKLOAD_GROUPS, ['trail-rescue-scenarios', 'class: refused', 'Trail Rescue refused'], ['ledger-session', 'class: refused', 'ledger refused']];
+  const COPY_GROUPS = ['states', 'graph', 'symbols', 'journal', 'commitments', 'qualifications', 'other'];
+  const meanOf = (w, e, m, op, group) => spreadOf((groupRuns(copyClasses, 'i3', w, e, m, op, group) ?? []).filter(Boolean).map((s) => s.mean));
+  const shareOf = (w, e, m, op, group, totalOp) => {
+    const a = groupRuns(copyClasses, 'i3', w, e, m, op, group);
+    const b = groupRuns(copyClasses, 'i3', w, e, m, totalOp, group);
+    if (!a || !b) return null;
+    return spreadOf(a.map((s, r) => (s && b[r] ? (s.mean / b[r].mean) * 100 : NaN)));
+  };
+  for (const [e, m, totalOp, title] of [['wasm', 'copy.dispatch_view', 'call', 'wasm dispatch_view (the call, every event)'], ['native', 'copy.dispatch_view', 'total', 'native dispatch_view'], ['wasm', 'copy.dispatch_outcome', 'call', 'wasm dispatch_outcome (the call, every event)'], ['native', 'copy.dispatch_outcome', 'total', 'native dispatch_outcome']]) {
+    const rows = [];
+    const add = (name, op, kind) => {
+      const cells = GROUPS.map(([w, group, eventKind]) => {
+        const v = meanOf(w, e, m, op, group);
+        if (!v) return '-';
+        keep(sec, { path: title, quantity: name, op, eventKind, mean: v, ...(kind === 'time' ? { sharePercent: shareOf(w, e, m, op, group, totalOp) } : {}) });
+        if (kind === 'time') {
+          const s = shareOf(w, e, m, op, group, totalOp);
+          return `${f(v.median)} [${f(v.min)}–${f(v.max)}] (${f(s?.median)}%)`;
+        }
+        return `${f(v.median)}`;
+      });
+      if (cells.every((c) => c === '-' || c.startsWith('0.00 '))) return;
+      rows.push([name, ...cells]);
+    };
+    add('the i3 call (mean µs)', totalOp, 'total');
+    add('structure copies (make_mut that copied): time, µs (share of the call)', 'copy.cow', 'time');
+    add('  how many per event', 'count.cow', 'count');
+    // Less one clock read per timed copy: an estimate of the timers' own
+    // share of the timed regions (INFERRED, means).
+    const lessReads = (name, timeOp, countOp, read) => {
+      if (!read) return;
+      const cells = GROUPS.map(([w, group, eventKind]) => {
+        const time = meanOf(w, e, m, timeOp, group);
+        const count = meanOf(w, e, m, countOp, group);
+        if (!time || !count) return '-';
+        const value = time.median - count.median * read;
+        keep(sec, { path: title, quantity: name, eventKind, label: 'INFERRED', formula: `mean(${timeOp}) − mean(${countOp}) × ${read} µs`, value });
+        return f(Math.max(value, 0));
+      });
+      rows.push([name, ...cells]);
+    };
+    lessReads(`  the same less one clock read per copy (INFERRED: time − count × ${(clockRead[e] * 1000).toFixed(1)} ns)`, 'copy.cow', 'count.cow', clockRead[e]);
+    for (const group of COPY_GROUPS) {
+      add(`  ${group}: time, µs (share)`, `copy.cow.${group}`, 'time');
+      add(`  ${group}: copies per event`, `count.cow.${group}`, 'count');
+    }
+    if (e === 'native') {
+      add('provenance copies outside structure copies: time, µs (share)', 'copy.provenance', 'time');
+      lessReads(`  the same less one clock read per copy (INFERRED: time − count × ${(clockRead.native * 1000).toFixed(1)} ns)`, 'copy.provenance', 'count.provenance', clockRead.native);
+    }
+    add('provenance copies per event', 'count.provenance', 'count');
+    add('  names copied per event', 'count.provenance_names', 'count');
+    add('provenance copied inside structure copies, per event', 'count.provenance_in_cow', 'count');
+    md.push(`### ${title}`, '', table(['Quantity (means per event)', ...GROUPS.map(([, , name]) => name)], rows));
+  }
+  // Safeguard: i3 against the ordinary build, same session.
+  const rows = [];
+  for (const [w, group, eventKind] of GROUPS) {
+    for (const [e, m, op, e0, m0, op0] of [['native', 'copy.dispatch_view', 'total', 'native', 'web.dispatch_view', 'web.dispatch_view'], ['native', 'copy.dispatch_outcome', 'total', 'native', 'web.dispatch_outcome', 'web.dispatch_outcome'], ['wasm', 'copy.dispatch_view', 'call', 'wasm', 'raw.dispatch_view', 'raw.dispatch_view'], ['wasm', 'copy.dispatch_outcome', 'call', 'wasm', 'raw.dispatch_outcome', 'raw.dispatch_outcome']]) {
+      for (const stat of ['median', 'mean']) {
+        const a = groupRuns(copyClasses, 'i3', w, e, m, op, group);
+        const b = groupRuns(copyClasses, LOCAL, w, e0, m0, op0, group);
+        const value = inferred([{ sign: 1, name: `i3 ${m} ${op}`, runs: a }, { sign: -1, name: `${LOCAL} ${m0} ${op0}`, runs: b }], { stat, formula: `i3 − ${LOCAL} (${stat})` });
+        if (!value) continue;
+        const ref = spreadOf(b.filter(Boolean).map((s) => s[stat]));
+        const percent = (value.value.median / ref.median) * 100;
+        keep(sec, { kind: 'safeguard', eventKind, engine: e, op: `${m} ${op}`, reference: `${m0} ${op0}`, stat, overhead: value, referenceValue: ref, overheadPercent: percent });
+        rows.push([eventKind, `i3 ${e} ${m} / ${op}`, `${m0} / ${op0}`, stat, f(spreadOf(a.filter(Boolean).map((s) => s[stat])).median), f(ref.median), inferredCell(value), `${f(percent)}%`]);
+      }
+    }
+  }
+  md.push(`One clock read, as subtracted above: natively ${(clockRead.native * 1000).toFixed(1)} ns (\`rdtsc\`, the allocator check's batches of 1,000), in WebAssembly ${(clockRead.wasm * 1000).toFixed(0)} ns (\`performance.now()\` from JavaScript, the i2 session; a call from WebAssembly through the import costs at least that). Timing a copy puts about one read inside the timed region; the rest of the timers' cost falls outside it but inside the call (the safeguard below).`, '');
+  md.push('i3 against the ordinary build (same session, same events):', '', table(['Event kind', 'Instrumented', 'Ordinary (main-local)', 'Statistic', 'i3 µs', 'ordinary µs', 'overhead (INFERRED)', 'overhead %'], rows));
+}
+
+// ---- the allocator, synthetically ------------------------------------------------
+if (option('allocbench')[0]) {
+  const bench = await readJson(path.resolve(option('allocbench')[0]));
+  const sec = section('allocator', 'The allocator behind the native-against-WebAssembly ratios (synthetic)', 'The same Rust code (a throwaway crate with no dependencies, the runtime\'s release profile and toolchain) natively, with the Windows system heap, and as `wasm32-unknown-unknown` in Node, with Rust\'s bundled dlmalloc; pinned to 0x3C00 at High priority, 3 repeats alternating which engine goes first. Each call times a loop; the unit is ns per loop iteration. DIRECT (synthetic): median over the 3 runs of each run\'s median of 200 timed calls (after 20 untimed) [lowest–highest run]; the ratio is per run, paired by repeat.');
+  const WHAT = {
+    map_copy: 'copy a 64-entry map of names to (number, provenance names) and drop the copy',
+    map_walk: 'walk the same map, reading every string (no allocation)',
+    alloc_ring: 'allocate a 96–143 byte buffer, freeing the one 64 allocations older',
+    touch_ring: 'the same writes into a preallocated ring (no allocation)',
+  };
+  const rows = [];
+  for (const [name, what] of Object.entries(WHAT)) {
+    const per = (engine) => { const list = []; for (const run of bench.runs) if (run.engine === engine) list[run.repeat] = run.summaries[name]; return list; };
+    const native = per('native');
+    const wasm = per('wasm');
+    const ratio = ratioInferred(wasm, native, { formula: `wasm ÷ native, ${name}, per repeat` });
+    keep(sec, { name, what, native: direct(native), wasm: direct(wasm), ratio });
+    rows.push([`\`${name}\`: ${what}`, directCell(direct(native), { p95: false }), directCell(direct(wasm), { p95: false }), inferredCell(ratio)]);
+  }
+  md.push(table(['Loop', 'native ns (system heap)', 'wasm ns (dlmalloc)', 'wasm ÷ native (INFERRED)'], rows));
 }
 
 await mkdir(outDir, { recursive: true });

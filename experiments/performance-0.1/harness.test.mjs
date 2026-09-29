@@ -9,7 +9,8 @@ import test from 'node:test';
 import { quantile, spread, summarize, summarizeRounds, toMicroseconds } from './lib/stats.mjs';
 import { glowcapAdapterEvent, loadManifest, loadWorkload, removeBindings, repositoryRoot, scaleGlowcap } from './lib/workloads.mjs';
 import { parseTarget } from './lib/targets.mjs';
-import { performanceCores } from './lib/environment.mjs';
+import { coresDuring, parseCpuSets, performanceCores } from './lib/environment.mjs';
+import { maskLabel, maskOf, maskProcessors, parseMask, parseMaskSet } from './lib/pinning.mjs';
 import { ADAPTER_LOCATIONS, rewriteAdapter } from './lib/adapter.mjs';
 import { SUITES } from './lib/suites.mjs';
 import { CLASS_ORDER, CLASS_RULES, changedParts, classify, glowcapCategory, signature } from './lib/classes.mjs';
@@ -104,7 +105,42 @@ test('targets parse as LABEL=KIND:DIR', () => {
 
 test('performance cores are the highest efficiency class', () => {
   assert.deepEqual(performanceCores('0:0:1,1:1:1,2:2:0,10:10:1'), [0, 1, 10]);
+  assert.deepEqual(performanceCores('0:0:1:2:0,1:1:1:2:0,2:2:0:1:0,13:13:1:3:0'), [0, 1, 13], 'with scheduling class and cache');
   assert.equal(performanceCores(null), null);
+});
+
+test('CPU sets parse into one record per logical processor, old and new text', () => {
+  assert.deepEqual(parseCpuSets('13:13:1:3:0'), [{ logicalProcessor: 13, core: 13, efficiencyClass: 1, schedulingClass: 3, lastLevelCache: 0 }]);
+  assert.deepEqual(parseCpuSets('2:2:0'), [{ logicalProcessor: 2, core: 2, efficiencyClass: 0, schedulingClass: null, lastLevelCache: null }]);
+  assert.equal(parseCpuSets(null), null);
+});
+
+test('masks parse, print and expand to logical processors', () => {
+  assert.equal(parseMask('0x3C00'), 0x3C00n);
+  assert.equal(parseMask('3C00'), 0x3C00n);
+  assert.equal(parseMask('none'), null);
+  assert.equal(maskLabel(0xC00000n), '0xC00000');
+  assert.equal(maskLabel(null), 'none');
+  assert.deepEqual(maskProcessors(0x3C00n), [10, 11, 12, 13]);
+  assert.equal(maskOf([10, 11, 12, 13]), 0x3C00n);
+  assert.deepEqual(parseMaskSet('0x3,0xC00000').map(maskLabel), ['0x3', '0xC00000']);
+  assert.throws(() => parseMaskSet('0x3,0x3'), /repeats/);
+  assert.throws(() => parseMaskSet('0x3,none'), /needs masks/);
+  assert.equal(parseMaskSet(null), null);
+});
+
+test('the busy processors of a job and their clock come from the samples taken while it ran', () => {
+  const monitor = { processors: [0, 1], counters: ['total', 'processor 0', 'processor 1', 'processor 0 MHz', 'processor 1 MHz'] };
+  const at = (seconds) => new Date(2026, 8, 29, 0, 0, seconds).toLocaleString('en-US', { hour12: false }).replace(',', '');
+  const rows = [[at(0), '5', '90', '3', '5100', '800'], [at(1), '5', '95', '1', '5150', '900'], [at(9), '5', '0', '0', '800', '800']];
+  const stopped = { rows };
+  const from = new Date(2026, 8, 29, 0, 0, 0).getTime();
+  const result = coresDuring(monitor, stopped, from, from + 2000);
+  assert.equal(result.samples, 2);
+  assert.equal(result.cores[0].busyPercent, 92.5);
+  assert.equal(result.cores[0].mhzWhileBusy, 5125);
+  assert.equal(result.cores[1].mhzWhileBusy, null, 'never more than half busy');
+  assert.equal(coresDuring(null, stopped, 0, 1), null);
 });
 
 test('the adapter rewrite finds each published location exactly once', async () => {

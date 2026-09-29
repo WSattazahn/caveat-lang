@@ -3,6 +3,7 @@
 //   node experiments/performance-0.1/run.mjs --target=LABEL=KIND:DIR [--target=...]
 //        [--suite=baseline|smoke] [--repeats=N] [--engines=native,wasm]
 //        [--workloads=ID,...] [--modes=MODE,...] [--affinity=0xMASK|none]
+//        [--affinity-set=0xMASK,0xMASK,...] [--monitor-interval=SECONDS]
 //        [--priority=high|abovenormal|normal] [--build=auto|always|never]
 //        [--out=DIR] [--keep-samples] [--keep-work]
 //
@@ -10,8 +11,10 @@
 // package: WebAssembly and kit) or runtime (a WebAssembly directory). Every
 // mode runs in its own process, pinned and prioritized; each repeat runs every
 // target back to back for one mode before the next mode, rotating which target
-// goes first, so drift over a run affects every target alike. Writes
-// results.json (summaries), summary.md and run.log to --out. See README.md.
+// goes first, so drift over a run affects every target alike. With
+// --affinity-set every target runs once under each mask, as the target
+// LABEL@MASK, and the masks rotate with the targets. Writes results.json
+// (summaries), summary.md and run.log to --out. See README.md.
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile, appendFile } from 'node:fs/promises';
@@ -20,7 +23,8 @@ import path from 'node:path';
 import { summarizeRounds, spread, toMicroseconds } from './lib/stats.mjs';
 import { harnessDirectory, loadManifest, loadWorkload, repositoryRoot, sha256 } from './lib/workloads.mjs';
 import { parseTarget, prepareTarget } from './lib/targets.mjs';
-import { machine, load, startMonitor, summarizeMonitor, toolchain } from './lib/environment.mjs';
+import { coresDuring, machine, load, startMonitor, summarizeMonitor, toolchain } from './lib/environment.mjs';
+import { maskLabel, maskOf, maskProcessors, parseMask, parseMaskSet, runPinned } from './lib/pinning.mjs';
 import { SUITES } from './lib/suites.mjs';
 import { renderSummary } from './lib/report.mjs';
 
@@ -60,18 +64,24 @@ const startedAt = new Date().toISOString();
 await log(`run ${runId}: suite ${suiteName}, ${repeats} repeat(s), engines ${engines.join(',')}, out ${out}`);
 const environment = { machine: await machine(work) };
 const affinityOption = single('affinity', 'auto');
+const affinitySet = parseMaskSet(single('affinity-set'));
 let affinity = null;
 if (affinityOption === 'auto') {
   // Four performance cores, leaving logical processors 0 and 1 (where the
-  // system tends to service interrupts) alone.
+  // system tends to service interrupts) alone. The performance cores are not
+  // interchangeable on every part (RESULTS.md, core placement): record the
+  // mask with every result and compare only like with like.
   const cores = (environment.machine.performanceCores ?? []).filter((core) => core >= 2).slice(0, 4);
-  if (cores.length) affinity = cores.reduce((mask, core) => mask | (1n << BigInt(core)), 0n);
-} else if (affinityOption !== 'none') {
-  affinity = BigInt(affinityOption);
+  if (cores.length) affinity = maskOf(cores);
+} else {
+  affinity = parseMask(affinityOption);
 }
+const masks = affinitySet ?? [affinity];
+const monitored = [...new Set(masks.flatMap((mask) => maskProcessors(mask) ?? []))].sort((a, b) => a - b);
 environment.pinning = {
-  affinityMask: affinity === null ? null : `0x${affinity.toString(16).toUpperCase()}`,
-  logicalProcessors: affinity === null ? null : [...affinity.toString(2)].reverse().flatMap((bit, index) => (bit === '1' ? [index] : [])),
+  affinityMask: affinitySet ? null : maskLabel(affinity) === 'none' ? null : maskLabel(affinity),
+  logicalProcessors: affinitySet ? null : maskProcessors(affinity),
+  affinitySet: affinitySet ? affinitySet.map((mask) => ({ mask: maskLabel(mask), logicalProcessors: maskProcessors(mask) })) : null,
   priority,
   how: process.platform === 'win32' ? 'cmd /c start /b /wait /<priority> /affinity <mask>' : (affinity === null ? 'none' : 'taskset'),
 };
@@ -79,7 +89,7 @@ const firstTree = targets.find((target) => target.kind === 'tree')?.directory ??
 environment.toolchain = toolchain(firstTree);
 environment.harness = { revision: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8' }).stdout.trim() };
 environment.loadBefore = await load(work);
-await log(`machine ${environment.machine.cpuModel}; pinning ${environment.pinning.affinityMask ?? 'none'} (${environment.pinning.logicalProcessors?.join(',') ?? '-'}), priority ${priority}`);
+await log(`machine ${environment.machine.cpuModel}; pinning ${affinitySet ? `set ${affinitySet.map(maskLabel).join(',')}` : `${environment.pinning.affinityMask ?? 'none'} (${environment.pinning.logicalProcessors?.join(',') ?? '-'})`}, priority ${priority}`);
 await log(`load before: ${JSON.stringify(environment.loadBefore)}`);
 // A measurement needs mains power and the High performance plan; a smoke run
 // or --allow-any-power skips the check.
@@ -93,12 +103,17 @@ if (process.platform === 'win32' && suiteName !== 'smoke' && !argv.includes('--a
   }
 }
 
-const prepared = [];
+const built = [];
 for (const target of targets) {
-  prepared.push(await prepareTarget(target, { build, engines, log: (message) => log(message) }));
-  const last = prepared.at(-1);
+  built.push(await prepareTarget(target, { build, engines, log: (message) => log(message) }));
+  const last = built.at(-1);
   await log(`${last.label}: ${last.kind} ${last.directory}; wasm ${last.runtimeFiles?.['caveat_runtime_bg.wasm']?.sha256 ?? '-'}; native ${last.native?.binary ?? '-'}`);
 }
+// One entry per (target, mask): with --affinity-set a target runs under each
+// mask as LABEL@MASK.
+const prepared = affinitySet
+  ? built.flatMap((target) => affinitySet.map((mask) => ({ ...target, label: `${target.label}@${maskLabel(mask)}`, baseLabel: target.label, affinity: mask })))
+  : built.map((target) => ({ ...target, baseLabel: target.label, affinity }));
 
 // ---- plans ------------------------------------------------------------------
 
@@ -149,17 +164,6 @@ function planFor(target, workload, engine, mode, jobWork) {
 
 // ---- running ------------------------------------------------------------------
 
-const quote = (value) => `"${value}"`;
-function runPinned(command, args) {
-  const options = { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 60 * 60 * 1000 };
-  if (process.platform === 'win32' && (affinity !== null || priority !== 'normal')) {
-    const flags = [priority === 'normal' ? '' : `/${priority}`, affinity === null ? '' : `/affinity ${affinity.toString(16).toUpperCase()}`].filter(Boolean).join(' ');
-    const line = `start "" /b /wait ${flags} ${[command, ...args].map(quote).join(' ')}`;
-    return spawnSync('cmd.exe', ['/d', '/s', '/c', line], { ...options, windowsVerbatimArguments: true });
-  }
-  if (process.platform === 'linux' && affinity !== null) return spawnSync('taskset', [`0x${affinity.toString(16)}`, command, ...args], options);
-  return spawnSync(command, args, options);
-}
 
 const needs = { native: (target) => target.native, wasm: (target) => target.runtimeDir };
 const adapterModes = new Set(['published-method', 'adapter', 'adapter-resume']);
@@ -172,7 +176,8 @@ const finalsSeen = [];
 let counter = 0;
 
 // Load during the timed jobs (builds are over by now).
-const monitor = argv.includes('--no-monitor') ? null : startMonitor(environment.pinning.logicalProcessors ?? [], 5);
+const monitor = argv.includes('--no-monitor') ? null : startMonitor(monitored, Number(single('monitor-interval', '5')));
+const timedJobs = [];
 if (monitor) await log(`monitoring load with typeperf every ${monitor.seconds} s (${monitor.counters.join(', ')})`);
 
 for (let repeat = 0; repeat < repeats; repeat++) {
@@ -194,7 +199,7 @@ for (let repeat = 0; repeat < repeats; repeat++) {
       const args = job.engine === 'native' ? [planFile, rawFile]
         : ['--expose-gc', path.join(harnessDirectory, 'wasm-bench.mjs'), `--plan=${planFile}`, `--out=${rawFile}`];
       const started = Date.now();
-      const child = runPinned(command, args);
+      const child = runPinned(command, args, { affinity: target.affinity, priority });
       const seconds = (Date.now() - started) / 1000;
       if (!existsSync(rawFile)) {
         const detail = `${child.error?.message ?? ''}\n${child.stdout ?? ''}\n${child.stderr ?? ''}`.trim();
@@ -203,7 +208,8 @@ for (let repeat = 0; repeat < repeats; repeat++) {
         continue;
       }
       const raw = JSON.parse(await readFile(rawFile, 'utf8'));
-      const summary = { repeat, seconds, process: raw.process, method: raw.method, notes: raw.notes, extra: raw.extra, ops: {} };
+      const summary = { repeat, seconds, affinityMask: maskLabel(target.affinity), startedAtMs: started, endedAtMs: started + seconds * 1000, process: raw.process, method: raw.method, notes: raw.notes, extra: raw.extra, ops: {} };
+      timedJobs.push(summary);
       const segments = perEventModes(job.mode) ? workload.segments : [];
       for (const [op, { unit, rounds }] of Object.entries(raw.ops)) {
         summary.ops[op] = summarizeRounds(rounds.map((values) => toMicroseconds(values, unit)), segments);
@@ -234,6 +240,8 @@ if (monitor) {
   const stopped = monitor.stop();
   await writeFile(path.join(out, 'load.csv'), `${stopped.csv}\n`);
   environment.loadDuring = summarizeMonitor(monitor, stopped);
+  // The processors each job kept busy, and their clock while busy.
+  for (const job of timedJobs) job.cores = coresDuring(monitor, stopped, job.startedAtMs, job.endedAtMs);
   await log(`load during: ${JSON.stringify(environment.loadDuring)}`);
 }
 
@@ -299,6 +307,8 @@ const report = {
   published: manifest.published,
   targets: prepared.map((target) => ({
     label: target.label,
+    baseLabel: target.baseLabel,
+    affinityMask: maskLabel(target.affinity),
     kind: target.kind,
     directory: target.directory,
     git: target.git,

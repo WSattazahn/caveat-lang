@@ -50,6 +50,23 @@ struct Measured {
     extra: Map<String, Value>,
 }
 
+/// The logical processor this thread is on, sampled once per event outside
+/// the timed region: which of the pinned processors the run actually used.
+#[cfg(windows)]
+fn current_processor() -> Option<u32> {
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetCurrentProcessorNumber() -> u32;
+    }
+    // SAFETY: takes no arguments and has no preconditions.
+    Some(unsafe { GetCurrentProcessorNumber() })
+}
+
+#[cfg(not(windows))]
+fn current_processor() -> Option<u32> {
+    None
+}
+
 fn nanos(start: Instant) -> Option<u64> {
     Some(start.elapsed().as_nanos() as u64)
 }
@@ -103,6 +120,7 @@ fn drive<S>(
     let mut rounds = Vec::with_capacity(plan.rounds);
     let mut finals = Vec::new();
     let mut slots = vec![None; ops.len()];
+    let mut processors: BTreeMap<u32, u64> = BTreeMap::new();
     for pass in 0..passes {
         let mut samples: Pass = ops.iter().map(|_| Vec::with_capacity(per_pass)).collect();
         for repeat in 0..plan.repeats {
@@ -114,6 +132,11 @@ fn drive<S>(
                     for (op, slot) in slots.iter().enumerate() {
                         samples[op].push(*slot);
                     }
+                    if pass >= plan.warmup {
+                        if let Some(processor) = current_processor() {
+                            *processors.entry(processor).or_default() += 1;
+                        }
+                    }
                 }
                 if pass + 1 == passes && repeat + 1 == plan.repeats {
                     finals.push(finish(&session));
@@ -124,13 +147,21 @@ fn drive<S>(
             rounds.push(samples);
         }
     }
+    let mut extra = Map::new();
+    if !processors.is_empty() {
+        let seen: Map<String, Value> = processors
+            .into_iter()
+            .map(|(processor, events)| (processor.to_string(), json!(events)))
+            .collect();
+        extra.insert("processorsSeen".into(), Value::Object(seen));
+    }
     Measured {
         ops,
         rounds,
         finals,
         finals_kind: "save-text",
         notes: Vec::new(),
-        extra: Map::new(),
+        extra,
     }
 }
 

@@ -19,7 +19,8 @@ function segmentCell(stats, segment) {
 
 function duringLine(during) {
   if (!during) return 'not monitored';
-  const counters = Object.entries(during.counters).map(([name, stats]) => `${name} mean ${stats.mean}% p95 ${stats.p95}% max ${stats.max}%`).join('; ');
+  const unit = (name) => (name.endsWith('MHz') ? ' MHz' : '%');
+  const counters = Object.entries(during.counters).map(([name, stats]) => `${name} mean ${stats.mean}${unit(name)} p95 ${stats.p95}${unit(name)} max ${stats.max}${unit(name)}`).join('; ');
   return `${during.what}, ${during.samples} samples: ${counters}; total above 10% in ${during.totalAbove10Percent} and above 25% in ${during.totalAbove25Percent} samples${during.pinnedSumAbove150Percent === null ? '' : `; pinned processors summing above 150% in ${during.pinnedSumAbove150Percent}`}`;
 }
 
@@ -41,7 +42,9 @@ function environmentSection(report) {
     `- Memory: ${fixed((windows.ramBytes ?? machine.totalMemoryBytes) / 2 ** 30)} GiB`,
     `- OS: ${windows.os ?? machine.platform} ${windows.osVersion ?? machine.release} (build ${windows.osBuild ?? '?'})`,
     `- Power: ${windows.powerScheme ?? 'n/a'}; battery status ${windows.batteryStatus ?? 'n/a'} (2 = on mains power)`,
-    `- Pinning: affinity ${pinning.affinityMask ?? 'none'} (logical processors ${pinning.logicalProcessors?.join(', ') ?? '-'}), priority ${pinning.priority}, via ${pinning.how}`,
+    pinning.affinitySet
+      ? `- Pinning: every target under each of the masks ${pinning.affinitySet.map((entry) => `${entry.mask} (${entry.logicalProcessors.join(', ')})`).join(', ')} in turn, as LABEL@MASK; priority ${pinning.priority}, via ${pinning.how}`
+      : `- Pinning: affinity ${pinning.affinityMask ?? 'none'} (logical processors ${pinning.logicalProcessors?.join(', ') ?? '-'}), priority ${pinning.priority}, via ${pinning.how}`,
     `- Node ${toolchain.node}, V8 ${toolchain.v8}, npm ${toolchain.npm ?? '?'}`,
     `- Rust: ${toolchain.rustc?.split('\n')[0] ?? '?'} (${toolchain.rustc?.split('\n').find((line) => line.startsWith('LLVM')) ?? ''}); ${toolchain.cargo ?? '?'}; ${toolchain.rustupToolchain ?? ''}`,
     `- ${toolchain.wasmBindgen ?? 'wasm-bindgen ?'}; wasm-opt ${toolchain.wasmOpt ?? 'not installed (the build does not use it)'}`,

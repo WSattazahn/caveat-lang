@@ -9,9 +9,10 @@ function output(command, args, cwd, shell = false) {
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
-// Windows: CPU, cores and each logical processor's efficiency class (P-cores
-// have the higher class on hybrid Intel parts), memory, OS build, power plan
-// and whether the machine is on mains power.
+// Windows: CPU, cores and each logical processor's CPU set (logical
+// processor, core, efficiency class, scheduling class, last-level cache; P-cores
+// have the higher efficiency class on hybrid Intel parts), memory, OS build,
+// power plan and whether the machine is on mains power.
 const WINDOWS_MACHINE = String.raw`
 $ErrorActionPreference = 'Stop'
 Add-Type -TypeDefinition @"
@@ -31,7 +32,7 @@ public static class CaveatPerfCpuSets {
       while (offset < needed) {
         int size = Marshal.ReadInt32(buffer, offset);
         if (Marshal.ReadInt32(buffer, offset + 4) == 0) {
-          parts.Add(Marshal.ReadByte(buffer, offset + 14) + ":" + Marshal.ReadByte(buffer, offset + 15) + ":" + Marshal.ReadByte(buffer, offset + 18));
+          parts.Add(Marshal.ReadByte(buffer, offset + 14) + ":" + Marshal.ReadByte(buffer, offset + 15) + ":" + Marshal.ReadByte(buffer, offset + 18) + ":" + Marshal.ReadByte(buffer, offset + 20) + ":" + Marshal.ReadByte(buffer, offset + 16));
         }
         offset += size;
       }
@@ -75,13 +76,24 @@ async function powershell(script, scratch, name) {
   try { return text ? JSON.parse(text) : null; } catch { return { unparsed: text }; }
 }
 
-// cpuSets "logical:core:efficiency,..." to the logical processors of the
-// highest efficiency class (the performance cores on a hybrid part).
+// cpuSets "logical:core:efficiency[:scheduling:cache],..." to the logical
+// processors of the highest efficiency class (the performance cores on a
+// hybrid part).
 export function performanceCores(cpuSets) {
   if (!cpuSets) return null;
   const sets = cpuSets.split(',').map((entry) => entry.split(':').map(Number));
   const best = Math.max(...sets.map(([, , efficiency]) => efficiency));
   return sets.filter(([, , efficiency]) => efficiency === best).map(([logical]) => logical);
+}
+
+// The same text, one record per logical processor. Older records have only
+// the first three fields.
+export function parseCpuSets(cpuSets) {
+  if (!cpuSets) return null;
+  return cpuSets.split(',').map((entry) => {
+    const [logicalProcessor, core, efficiencyClass, schedulingClass, lastLevelCache] = entry.split(':').map(Number);
+    return { logicalProcessor, core, efficiencyClass, schedulingClass: schedulingClass ?? null, lastLevelCache: lastLevelCache ?? null };
+  });
 }
 
 export async function machine(scratch) {
@@ -96,6 +108,7 @@ export async function machine(scratch) {
   if (process.platform === 'win32') {
     info.windows = await powershell(WINDOWS_MACHINE, scratch, 'machine');
     info.performanceCores = performanceCores(info.windows?.cpuSets);
+    info.cpuSetList = parseCpuSets(info.windows?.cpuSets);
   }
   return info;
 }
@@ -105,20 +118,26 @@ export async function load(scratch) {
   return { loadavg: os.loadavg() };
 }
 
-// Windows: samples total CPU use, and each pinned logical processor's, every
-// `seconds` for the whole run with typeperf (one sample line per interval,
-// read from its output). The benchmark itself keeps about one pinned
-// processor busy, so the pinned processors' sum above 100% and the total
-// above one processor's share (100 / logical processors) is other load.
+// Windows: samples total CPU use, and each pinned logical processor's use and
+// actual clock (MHz), every `seconds` for the whole run with typeperf (one
+// sample line per interval, read from its output). The benchmark itself
+// keeps about one pinned processor busy, so the pinned processors' sum above
+// 100% and the total above one processor's share (100 / logical processors)
+// is other load; the busy pinned processor is the one the benchmark ran on.
 export function startMonitor(processors = [], seconds = 5) {
   if (process.platform !== 'win32') return null;
-  const counters = ['\\Processor(_Total)\\% Processor Time', ...processors.map((index) => `\\Processor(${index})\\% Processor Time`)];
+  const counters = [
+    '\\Processor(_Total)\\% Processor Time',
+    ...processors.map((index) => `\\Processor(${index})\\% Processor Time`),
+    ...processors.map((index) => `\\Processor Information(0,${index})\\Actual Frequency`),
+  ];
   const child = spawn('typeperf', [...counters, '-si', String(seconds)], { stdio: ['ignore', 'pipe', 'ignore'] });
   let text = '';
   child.stdout.on('data', (chunk) => { text += chunk; });
   return {
     seconds,
-    counters: ['total', ...processors.map((index) => `processor ${index}`)],
+    processors,
+    counters: ['total', ...processors.map((index) => `processor ${index}`), ...processors.map((index) => `processor ${index} MHz`)],
     stop() {
       child.kill();
       const rows = text.split(/\r?\n/).filter((line) => /^"\d/.test(line))
@@ -138,15 +157,38 @@ export function summarizeMonitor(monitor, stopped) {
     return [name, { samples: values.length, mean: Number(mean.toFixed(1)), p95: values[Math.floor(0.95 * (values.length - 1))] ?? null, max: values.at(-1) ?? null }];
   });
   const totals = stopped.rows.map((row) => Number(row[1])).filter(Number.isFinite);
-  const pinned = stopped.rows.map((row) => row.slice(2).map(Number).reduce((sum, value) => sum + value, 0));
+  const busyColumns = (monitor.processors ?? []).length;
+  const pinned = stopped.rows.map((row) => row.slice(2, 2 + busyColumns).map(Number).reduce((sum, value) => sum + value, 0));
   return {
     what: `typeperf every ${monitor.seconds} s for the whole run`,
     samples: totals.length,
     counters: Object.fromEntries(columns.map(([name, stats]) => [name, { ...stats, p95: stats.p95 === null ? null : Number(stats.p95.toFixed(1)), max: stats.max === null ? null : Number(stats.max.toFixed(1)) }])),
     totalAbove10Percent: totals.filter((value) => value > 10).length,
     totalAbove25Percent: totals.filter((value) => value > 25).length,
-    pinnedSumAbove150Percent: monitor.counters.length > 1 ? pinned.filter((value) => value > 150).length : null,
+    pinnedSumAbove150Percent: busyColumns > 0 ? pinned.filter((value) => value > 150).length : null,
   };
+}
+
+// Which monitored processors a job ran on, from the samples taken while it
+// ran (typeperf stamps local time): each processor's mean use and its mean
+// actual clock over the samples where it was more than half busy.
+export function coresDuring(monitor, stopped, fromMs, toMs) {
+  if (!monitor || !stopped || !(monitor.processors ?? []).length) return null;
+  const count = monitor.processors.length;
+  const rows = stopped.rows.filter((row) => {
+    const at = new Date(row[0]).getTime();
+    return Number.isFinite(at) && at >= fromMs && at <= toMs;
+  });
+  if (!rows.length) return { samples: 0 };
+  const mean = (values) => (values.length ? Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)) : null);
+  const cores = {};
+  monitor.processors.forEach((processor, index) => {
+    const busy = rows.map((row) => Number(row[2 + index]));
+    const clock = rows.map((row) => Number(row[2 + count + index]));
+    const hot = clock.filter((value, at) => busy[at] > 50 && Number.isFinite(value));
+    cores[processor] = { busyPercent: mean(busy.filter(Number.isFinite)), mhzWhileBusy: mean(hot), busySamples: hot.length };
+  });
+  return { samples: rows.length, cores };
 }
 
 // Toolchain as a given tree selects it (rust-toolchain.toml pins rustc).
