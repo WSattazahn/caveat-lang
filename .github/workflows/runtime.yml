@@ -89,6 +89,8 @@ jobs:
         run: npm run test:glowcap
       - name: Trail Rescue registered scenarios, invariants and restore
         run: npm run test:trail-rescue
+      - name: Before the Rain scenarios, with a member named by its parameter
+        run: npm run test:before-the-rain
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
       - name: Converted Trail Rescue and Glowcap scenarios

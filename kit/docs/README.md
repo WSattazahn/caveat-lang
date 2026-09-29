@@ -45,7 +45,9 @@ Features added alongside the profiles:
   for each entity of a kind, `for KIND as $x { … };`.
 - [Routed repetition](reference/spec/caveat-routed-repetition-0.1.md): a
   repetition block whose rules each run only for the member the event names,
-  `for KIND as $x routed by P { … };`. Routing assistance, not isolation.
+  `for KIND as $x routed by P { … };`. Routing assistance, not isolation. A
+  routed rule names a second member by its parameter,
+  `withdraw ev_$w because ev_$shown`.
 - [Procedure symbols](reference/spec/caveat-procedure-symbols-0.1.md):
   procedures that take evidence, other symbols and histories as parameters.
 - [Typed parameters](reference/spec/caveat-typed-parameters-0.1.md): event

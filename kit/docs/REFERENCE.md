@@ -98,6 +98,7 @@ end of the line; `--` is not a comment.
 | `bind TARGET.PROPERTY = EXPRESSION [when CONDITION] [because CITATION, …];` | A displayed value. The last binding whose condition holds wins. |
 | `clock EVENT every STEP;` | The event whose one parameter, `dt`, advances `elapsed()` ([elapsed](reference/spec/caveat-elapsed-0.1.md)). |
 | `renewable EVIDENCE limit N;` | Evidence whose name can move to up to N distinct occurrences ([renewal](reference/spec/caveat-renewal-0.1.md)). |
+| `for KIND as $NAME [routed by P] { … };` | The body once for each entity of KIND: `$NAME` is its name, `$index` its position. Routed, a rule on an event that names a KIND by P runs only for that member, and `$Q` names the member another `kind` parameter Q names ([routed repetition](reference/spec/caveat-routed-repetition-0.1.md)). |
 
 ### Rules
 

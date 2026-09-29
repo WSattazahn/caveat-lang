@@ -64,7 +64,8 @@ The package lands in `test-results/vscode/`.
   expression tokenizer reads them (`2`, `2.`, `.5`, `1e-3`), and names after
   a dot, which are always properties.
 - Repetition: in a `for KIND as $NAME { … }` body, routed by P or not, every
-  substituted `$NAME` and `$index`, in code, quoted text and comments alike. A `$` outside a
+  substituted `$NAME` and `$index`, and, in a routed rule, `$Q` for a `kind`
+  parameter Q of its event, in code, quoted text and comments alike. A `$` outside a
   `for` body is marked invalid, since the runtime refuses it.
 
 ## How it is tested

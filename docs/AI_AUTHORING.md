@@ -201,6 +201,96 @@ one refuses the whole event. When a change adds another instrument, it adds
 declarations and a call, not another copy of the rules. See
 [procedure symbols](../spec/caveat-procedure-symbols-0.1.md).
 
+## Name a second member by its parameter
+
+A [`for` block](../spec/caveat-repetition-0.1.md) writes its rules once for
+each entity of a kind, and `routed by P` runs each member's copy of a rule
+only on an event whose parameter P names that member. A rule in such a block
+can also name the member that another `kind` parameter of its event names,
+by that parameter's name:
+
+```caveat
+place yard kind farm;
+entity ann kind witness at yard;
+entity bob kind witness at yard;
+entity prints kind trace at yard;
+entity can kind trace at yard;
+claim guilty;
+event ask witness kind witness, says min 0 max 3;
+event examine trace kind trace, says min 0 max 3;
+event confront witness kind witness, trace kind trace, recants in no yes;
+
+for trace as $t routed by trace {
+    evidence ev_$t from "the $t";
+    state $t_says = 0 min 0 max 3;
+    on examine reveal ev_$t opposes guilty;
+    on examine set $t_says = qualified(says, ev_$t);
+    on confront when $t_says == 0 reject "That trace shows nothing yet.";
+};
+
+for witness as $w routed by witness {
+    evidence ev_$w from "$w's account";
+    state $w_says = 0 min 0 max 3;
+    on ask reveal ev_$w supports guilty;
+    on ask set $w_says = qualified(says, ev_$w);
+    on confront when not observed(ev_$w) reject "They have not given an account yet.";
+    on confront when withdrawn(ev_$w) reject "They have already taken it back.";
+    on confront when $w_says == $trace_says reject "That trace agrees with them.";
+    on confront when recants == recants.yes withdraw ev_$w because ev_$trace;
+};
+```
+
+`$trace` is the trace the event names. Each witness's copy of a rule that
+uses it is written once for each trace, with `trace == N` after the
+witness's own route, so `confront bob can yes` runs only the copies for bob
+and the can, and withdraws `ev_bob` because of `ev_can`. The withdrawal, the
+grounds and the journal entry are those of the rule written by hand for that
+pair.
+
+The copies cost work. A rule that uses `$trace` is written W×T times, for W
+witnesses and T traces, and each copy spends a step of the event's work
+whether it runs or not. One event does at most 4096 steps, and the loader
+refuses a block that writes more rules than that on one event.
+
+`$trace` covers every trace, so refuse what does not apply first. Here the
+trace block comes before the witness block and refuses a trace that shows
+nothing. Without it, `withdraw … because ev_$trace` could name evidence that
+was never observed, and that fails the event.
+
+A rule about the trace alone belongs in a block routed by `trace`, as the
+first block is. A rule must still name its own member, by `$w` or `$index`,
+and it names a member by one other parameter at most.
+
+To share steps, pass the members' symbols to a procedure, as in
+`call recant(ev_$w, ev_$trace)`: each copy calls it for its own pair. A
+procedure written for each witness instead, and called from the trace block,
+costs a line per witness, and it widens lineage: the trace shown enters the
+witness's records even when no one recants.
+
+The two members can be of one kind. In
+[Before the Rain](../game/before_the_rain.cav), `confront` names an exhibit
+by `about` and the exhibit shown by `shown`:
+
+```caveat
+for exhibit as $s routed by shown {
+    on confront when $index <= 3 reject "Show them a trace.";
+    on confront when $s_points == 0 reject "That trace shows nothing yet.";
+};
+
+for exhibit as $w routed by about {
+    on confront when $w_points == $shown_points reject "That trace agrees with them.";
+    on confront when recants == recants.yes withdraw ev_$w because ev_$shown;
+};
+```
+
+`$shown` covers every exhibit, the three accounts too, and "Show them a
+trace." refuses those before a recant can name one.
+
+This is not a way to write a rule about either of two members, such as a
+hold on the exhibits named by `first` and `second`. Such a rule selects its
+own member by hand, in a plain block. See
+[routed repetition](../spec/caveat-routed-repetition-0.1.md) section 10.
+
 ## Read the session clock
 
 ```caveat

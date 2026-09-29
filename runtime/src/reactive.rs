@@ -24,7 +24,7 @@ const MAX_PROCEDURES: usize = 128;
 const MAX_PROCEDURE_PARAMETERS: usize = 32;
 const MAX_PROCEDURE_STEPS: usize = 4096;
 const MAX_PROCEDURE_DEPTH: usize = 64;
-const MAX_EVENT_STEPS: usize = 4096;
+pub(crate) const MAX_EVENT_STEPS: usize = 4096;
 const MAX_RENEWAL_LIMIT: usize = 1024;
 const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this

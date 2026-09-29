@@ -1,7 +1,9 @@
 // The runtime's own rules, restated for checking the grammar against them:
 // - character classes (code, string, comment) from spec/caveat-text-0.1.md;
 // - statement spans as runtime/src/link.rs statement_spans finds them;
-// - `$` substitution in `for` blocks as runtime/src/repeat.rs substitute does.
+// - `$` substitution in `for` blocks as runtime/src/repeat.rs substitute does,
+//   with `$Q` in a routed rule (spec/caveat-routed-repetition-0.1.md
+//   section 10).
 
 const identifierStart = ch => /[A-Za-z_]/.test(ch);
 const identifierChar = ch => /[A-Za-z0-9_]/.test(ch);
@@ -61,19 +63,21 @@ export function codeOf(text, classes, [start, end]) {
 }
 
 // Every `for KIND as $NAME { ... }` statement, routed by P or not: its range
-// up to the closing brace, where the binding is, and the body between the
-// braces. Like repeat.rs, the body ends at the last `}` of the statement.
+// up to the closing brace, where the binding is, P or null, and the body
+// between the braces. Like repeat.rs, the body ends at the last `}` of the
+// statement.
 export function forBlocks(text, classes = classify(text)) {
   const blocks = [];
   for (const span of statementSpans(text, classes)) {
     const code = codeOf(text, classes, span);
-    const header = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))(?:\s+routed\s+by\s+[A-Za-z_]\w*)?\s*\{/.exec(code);
+    const header = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))(?:\s+routed\s+by\s+([A-Za-z_]\w*))?\s*\{/.exec(code);
     if (!header) continue;
     const open = span[0] + code.indexOf('{');
     const close = span[0] + code.lastIndexOf('}');
     blocks.push({
       kind: header[1],
       binding: header[3],
+      route: header[4] ?? null,
       bindingAt: span[0] + header.index + header[0].lastIndexOf(header[2]),
       start: span[0],
       end: close + 1,
@@ -84,10 +88,54 @@ export function forBlocks(text, classes = classify(text)) {
   return blocks;
 }
 
+// Each top-level `event` statement's name and its `kind` parameters, as
+// [name, kind] pairs, the first declaration of a name only.
+export function eventKinds(text, classes = classify(text)) {
+  const events = new Map();
+  for (const span of statementSpans(text, classes)) {
+    const code = codeOf(text, classes, span).trim().replace(/;$/, '');
+    const declared = /^event\s+([A-Za-z_]\w*)([\s\S]*)$/.exec(code);
+    if (!declared || events.has(declared[1])) continue;
+    events.set(declared[1], declared[2].split(',')
+      .map(parameter => parameter.trim().split(/\s+/))
+      .filter(words => words.length === 3 && words[1] === 'kind')
+      .map(([name, , kind]) => [name, kind]));
+  }
+  return events;
+}
+
+// In a routed block, each routed rule's range in the text, with the `kind`
+// parameters of its event other than P: an `on EVENT` statement of the body,
+// EVENT written without `$`, whose event declares `P kind KIND`.
+function routedRules(text, block) {
+  if (!block.route) return [];
+  const events = eventKinds(text);
+  const body = text.slice(block.bodyStart, block.bodyEnd);
+  const classes = classify(body);
+  const rules = [];
+  for (const [start, end] of statementSpans(body, classes)) {
+    const event = /^\s*on\s+(\S+)/.exec(codeOf(body, classes, [start, end]))?.[1];
+    const parameters = events.get(event) ?? [];
+    if (!parameters.some(([name, kind]) => name === block.route && kind === block.kind)) continue;
+    rules.push({
+      start: block.bodyStart + start,
+      end: block.bodyStart + end,
+      parameters: parameters.map(([name]) => name).filter(name => name !== block.route),
+    });
+  }
+  return rules;
+}
+
+const longestPrefix = (word, names) => names.filter(name => word.startsWith(name)).sort((a, b) => b.length - a.length)[0];
+
 // Each `$` in a block body, comments and quoted text included: where it is,
 // and how long the substituted part is (the `$` plus the longest bound name
 // that prefixes the identifier run; 0 where the runtime refuses the name).
+// The block's own bindings come first; in a routed rule, a word neither
+// begins is bound by the longest `kind` parameter of its event, other than
+// P, that begins it (section 10).
 export function substitutions(text, block) {
+  const rules = routedRules(text, block);
   const found = [];
   for (let index = block.bodyStart; index < block.bodyEnd; index++) {
     if (text[index] !== '$') continue;
@@ -97,7 +145,8 @@ export function substitutions(text, block) {
       while (end < text.length && identifierChar(text[end])) end += 1;
     }
     const word = text.slice(index + 1, end);
-    const bound = [block.binding, 'index'].filter(name => word.startsWith(name)).sort((a, b) => b.length - a.length)[0];
+    const rule = rules.find(({ start, end: ruleEnd }) => index >= start && index < ruleEnd);
+    const bound = longestPrefix(word, [block.binding, 'index']) ?? longestPrefix(word, rule?.parameters ?? []);
     found.push({ index, length: bound ? bound.length + 1 : 0, word });
   }
   return found;
