@@ -393,43 +393,34 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
   through `$index + 1`. No program in the repository declares an entity in a
   `for` block, so none of them warns. A program that checked clean before may
   now warn, and fail with `--strict`.
-- 2026-09-28: C003 counts a chain of `or` every disjunct of which is a
-  selection as routing, and C004 checks each of its disjuncts that selects
-  by `$index`. Before, a comparison under `or` never counted. A rule that
-  selects its member by either of two parameters of the kind, such as
+- 2026-09-29: C003 counts a chain of `or` every disjunct of which is a
+  selection as routing. Before, a comparison under `or` never counted. A rule
+  that selects its member by either of two parameters of the kind, such as
   `(first == $index or second == $index)` on a hold that presents two
   exhibits, was reported for every member, and the allow comment the
   suggestion offered, for a rule that should run for every member, did not
   fit it. In Before the Rain, a game written in Caveat outside this
   repository, C003 reported each of the 5 rules on `hold` in its exhibit
   block for each of its 7 exhibits, 35 warnings, and nothing else. It now
-  checks clean. A chain of `or` with any disjunct that is not a selection is
-  still reported. Of the repository's 106 `.cav` files, the 80 that load
-  report exactly what they did before: none selects a member under `or`. A
-  program that warned before may now check clean. One that allowed such a
-  rule on purpose may now get C004, where a disjunct selects by a shifted
-  `$index`. Dropping `routed by P` from a block with a rule guarded by
-  `P == $index or Q == $index` is no longer reported
-  ([routed repetition](caveat-routed-repetition-0.1.md) section 8).
-- 2026-09-29: C004 checks every comparison of P with an E that reads
-  `$index`: each top-level conjunct that is one, and each disjunct that is
-  one in a chain of `or` that C003 counts, in whatever order they are
-  written. Before the 2026-09-28 entry, it checked only the first top-level
-  conjunct that was one. So
-  `via == $index + 1 and from == $index` was checked for `via` alone, and
-  the same guard with its conjuncts swapped got other warnings. With the
-  2026-09-28 entry, it checked the first top-level conjunct that selected by
-  `$index`, and that could be a chain of `or`. So a chain written before a
-  comparison hid it, and a C004 reported before was lost. With north
-  declared in a block before east and south,
-  `(from == $index + 1 or to == $index + 1) and to == $index` got C004 for
-  east and for south on `to` before, and then nothing, while each copy still
-  ran when `to` named another plot. Every C004 reported before either entry
-  is reported now. The same comparison twice in one copy, as in
-  `to == $index or to == $index`, which the 2026-09-28 entry reported twice,
-  is reported once. Of the repository's 106 `.cav` files, the 80 that load
-  report exactly what they did before either entry, 7 C001 and 4 C003
-  warnings: none declares an entity in a `for` block, so none gets C004.
-  Before the Rain gets no C004 and checks clean. A program whose guard
-  compares with `$index` in more than one conjunct may now get more C004
-  warnings, and fail with `--strict`.
+  checks clean, with no C004. A chain of `or` with any disjunct that is not a
+  selection is still reported. Dropping `routed by P` from a block with a
+  rule guarded by `P == $index or Q == $index` is no longer reported
+  ([routed repetition](caveat-routed-repetition-0.1.md) section 8). C004
+  checks every comparison of P with an E that reads `$index`: each top-level
+  conjunct that is one, and each disjunct that is one in a chain of `or` that
+  C003 counts, in whatever order they are written. Before, it checked only
+  the first top-level conjunct that was one. With north declared in a block
+  before east and south, `via == $index + 1 and from == $index` got no C004,
+  while the same guard with its conjuncts swapped got C004 for east and for
+  south on `from`. Both now get those two. Every C004 reported before is
+  reported now, and the same P compared with the same number twice in one
+  copy is reported once. Of the repository's 106 `.cav` files, the 80 that
+  load report exactly what they did before, 7 C001 and 4 C003 warnings: none
+  selects a member under `or`, and none declares an entity in a `for` block.
+  A program that warned before may now check clean. A chain of `or` that got
+  C003, and one allowed on purpose, may now get C004 instead, where a
+  disjunct selects by a shifted `$index`: with north declared as above,
+  `from == $index or to == $index` got C003 for east and for south, and now
+  gets C004 for each on `from` and on `to`. A guard that compares with
+  `$index` in more than one conjunct may get more C004 warnings. Either may
+  now fail with `--strict`.
