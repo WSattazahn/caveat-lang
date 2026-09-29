@@ -1,0 +1,304 @@
+{
+ "runId": "2026-09-29T18-34-05-618-view-path",
+ "rule": "a repeat is kept when its mean total CPU is at most 12% and no 1-s sample is above 20%; a session is used only when every repeat is kept",
+ "monitor": "typeperf every 1 s for the whole run",
+ "wholeRun": {
+  "samples": 402,
+  "mean": 7.19,
+  "median": 6.947007,
+  "p95": 11.13854,
+  "max": 15.673688,
+  "above20": 0
+ },
+ "loadBefore": {
+  "totalCpuPercent": [
+   5,
+   3,
+   3
+  ],
+  "busiestProcesses": [
+   {
+    "name": "powershell",
+    "pid": 87916,
+    "cpuSeconds": 0.391
+   },
+   {
+    "name": "claude",
+    "pid": 95512,
+    "cpuSeconds": 0.375
+   },
+   {
+    "name": "claude",
+    "pid": 104712,
+    "cpuSeconds": 0.172
+   },
+   {
+    "name": "Reallusion Hub",
+    "pid": 70736,
+    "cpuSeconds": 0.141
+   },
+   {
+    "name": "claude",
+    "pid": 103160,
+    "cpuSeconds": 0.094
+   },
+   {
+    "name": "claude",
+    "pid": 111184,
+    "cpuSeconds": 0.062
+   }
+  ]
+ },
+ "loadAfter": {
+  "totalCpuPercent": [
+   12,
+   0,
+   15
+  ],
+  "busiestProcesses": [
+   {
+    "name": "powershell",
+    "pid": 96496,
+    "cpuSeconds": 0.422
+   },
+   {
+    "name": "claude",
+    "pid": 95512,
+    "cpuSeconds": 0.328
+   },
+   {
+    "name": "claude",
+    "pid": 104712,
+    "cpuSeconds": 0.203
+   },
+   {
+    "name": "Reallusion Hub",
+    "pid": 70736,
+    "cpuSeconds": 0.125
+   },
+   {
+    "name": "claude",
+    "pid": 103160,
+    "cpuSeconds": 0.125
+   },
+   {
+    "name": "RemoteDesktopCompanion",
+    "pid": 92360,
+    "cpuSeconds": 0.031
+   }
+  ]
+ },
+ "repeats": [
+  {
+   "repeat": 1,
+   "from": "2026-09-29T18:34:15.066Z",
+   "to": "2026-09-29T18:35:37.241Z",
+   "seconds": 82.2,
+   "jobs": 30,
+   "total": {
+    "samples": 81,
+    "mean": 7.28,
+    "median": 7.039181,
+    "p95": 10.704258,
+    "max": 12.593742,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 24,
+     "mean": 7.37,
+     "median": 7.201713,
+     "p95": 9.026067,
+     "max": 11.201059,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 9.24,
+     "median": 9.227228,
+     "p95": 11.778189,
+     "max": 12.593742,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 49,
+     "mean": 6.91,
+     "median": 6.578518,
+     "p95": 10.182822,
+     "max": 10.704258,
+     "above20": 0
+    }
+   },
+   "kept": true
+  },
+  {
+   "repeat": 2,
+   "from": "2026-09-29T18:35:37.247Z",
+   "to": "2026-09-29T18:36:58.291Z",
+   "seconds": 81,
+   "jobs": 30,
+   "total": {
+    "samples": 80,
+    "mean": 7.03,
+    "median": 7.109995,
+    "p95": 9.7279,
+    "max": 12.38772,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 24,
+     "mean": 6.99,
+     "median": 6.458917,
+     "p95": 9.320127,
+     "max": 9.7279,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 9,
+     "mean": 8.38,
+     "median": 8.493861,
+     "p95": 8.918058,
+     "max": 10.603029,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 47,
+     "mean": 6.79,
+     "median": 6.806089,
+     "p95": 9.302418,
+     "max": 12.38772,
+     "above20": 0
+    }
+   },
+   "kept": true
+  },
+  {
+   "repeat": 3,
+   "from": "2026-09-29T18:36:58.314Z",
+   "to": "2026-09-29T18:38:19.225Z",
+   "seconds": 80.9,
+   "jobs": 30,
+   "total": {
+    "samples": 81,
+    "mean": 7.47,
+    "median": 6.969828,
+    "p95": 12.360869,
+    "max": 15.673688,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 25,
+     "mean": 7.13,
+     "median": 6.969828,
+     "p95": 10.722164,
+     "max": 12.090342,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 9.82,
+     "median": 9.036481,
+     "p95": 12.360869,
+     "max": 15.044515,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 48,
+     "mean": 7.26,
+     "median": 6.81422,
+     "p95": 10.929043,
+     "max": 15.673688,
+     "above20": 0
+    }
+   },
+   "kept": true
+  },
+  {
+   "repeat": 4,
+   "from": "2026-09-29T18:38:19.230Z",
+   "to": "2026-09-29T18:39:39.862Z",
+   "seconds": 80.6,
+   "jobs": 30,
+   "total": {
+    "samples": 80,
+    "mean": 7.19,
+    "median": 6.945129,
+    "p95": 11.13854,
+    "max": 13.302666,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 24,
+     "mean": 7.24,
+     "median": 7.1487,
+     "p95": 9.44913,
+     "max": 10.932851,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 9.14,
+     "median": 8.622121,
+     "p95": 11.450465,
+     "max": 11.821202,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 48,
+     "mean": 6.84,
+     "median": 6.518321,
+     "p95": 10.357584,
+     "max": 13.302666,
+     "above20": 0
+    }
+   },
+   "kept": true
+  },
+  {
+   "repeat": 5,
+   "from": "2026-09-29T18:39:39.885Z",
+   "to": "2026-09-29T18:41:00.166Z",
+   "seconds": 80.3,
+   "jobs": 30,
+   "total": {
+    "samples": 80,
+    "mean": 6.99,
+    "median": 6.753647,
+    "p95": 11.123185,
+    "max": 15.069691,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 24,
+     "mean": 6.64,
+     "median": 6.649733,
+     "p95": 9.257092,
+     "max": 12.328458,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 9.08,
+     "median": 8.944115,
+     "p95": 12.382134,
+     "max": 12.849369,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 48,
+     "mean": 6.82,
+     "median": 6.625739,
+     "p95": 9.462763,
+     "max": 15.069691,
+     "above20": 0
+    }
+   },
+   "kept": true
+  }
+ ],
+ "kept": true
+}

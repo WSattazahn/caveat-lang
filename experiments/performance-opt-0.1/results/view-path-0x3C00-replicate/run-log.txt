@@ -1,0 +1,207 @@
+[2026-09-29T18:47:25.869Z] run 2026-09-29T18-47-25-866-view-path: suite view-path, 5 repeat(s), engines wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-measure\runs\R1-3C00
+[2026-09-29T18:47:33.418Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
+[2026-09-29T18:47:33.419Z] load before: {"totalCpuPercent":[8,9,6],"busiestProcesses":[{"name":"claude","pid":104712,"cpuSeconds":0.875},{"name":"claude","pid":84460,"cpuSeconds":0.609},{"name":"powershell","pid":114396,"cpuSeconds":0.562},{"name":"claude","pid":95512,"cpuSeconds":0.484},{"name":"uihost","pid":107008,"cpuSeconds":0.125},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.109}]}
+[2026-09-29T18:47:33.662Z] opt: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T18:47:33.669Z] opt: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT; wasm 0a19e4b858862e3cfe6c35a7b8261f8aca912a90c86faed6bb46c8f06de71cdb; native -
+[2026-09-29T18:47:33.901Z] main: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-main\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T18:47:33.908Z] main: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-main; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native -
+[2026-09-29T18:47:33.915Z] 15 jobs x 2 target(s) x 5 repeat(s)
+[2026-09-29T18:47:33.921Z] monitoring load with typeperf every 1 s (total, processor 10, processor 11, processor 12, processor 13, processor 10 MHz, processor 11 MHz, processor 12 MHz, processor 13 MHz)
+[2026-09-29T18:47:36.053Z] 0001-opt-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.7, js.parse_view 18
+[2026-09-29T18:47:37.992Z] 0002-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.7, js.parse_view 15.5
+[2026-09-29T18:47:39.961Z] 0003-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 23.6, js.parse_view_outcome 15.6
+[2026-09-29T18:47:40.058Z] 0004-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:47:40.061Z] 0004-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:47:46.860Z] 0005-opt-glowcap-replay-wasm-kit 6.8 s (parallelism 4): kit.dispatch 128.1, kit.view 26.6, kit.dispatch+view 154.9
+[2026-09-29T18:47:53.706Z] 0006-main-glowcap-replay-wasm-kit 6.8 s (parallelism 4): kit.dispatch 132.6, kit.view 27.6, kit.dispatch+view 160.3
+[2026-09-29T18:47:55.634Z] 0007-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 40.2
+[2026-09-29T18:47:55.789Z] 0008-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:47:55.792Z] 0008-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:47:58.441Z] 0009-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.6 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 24.3, js.parse_view_outcome 15.6
+[2026-09-29T18:47:58.538Z] 0010-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:47:58.541Z] 0010-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:47:59.528Z] 0011-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.3, js.parse_view 6.6
+[2026-09-29T18:48:00.529Z] 0012-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.7, js.parse_view 6.7
+[2026-09-29T18:48:01.532Z] 0013-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 26.4, js.parse_view_outcome 6.5
+[2026-09-29T18:48:01.619Z] 0014-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:48:01.622Z] 0014-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:48:03.206Z] 0015-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 105.3, kit.view 13.6, kit.dispatch+view 118.7
+[2026-09-29T18:48:04.814Z] 0016-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 105.1, kit.view 13.8, kit.dispatch+view 118.4
+[2026-09-29T18:48:05.813Z] 0017-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 34.1
+[2026-09-29T18:48:05.952Z] 0018-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:48:05.955Z] 0018-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:48:06.995Z] 0019-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 26.9, js.parse_view_outcome 6.2
+[2026-09-29T18:48:07.084Z] 0020-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:48:07.087Z] 0020-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:48:13.397Z] 0021-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 70.8, js.parse_view 24.3
+[2026-09-29T18:48:19.653Z] 0022-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 70, js.parse_view 24.1
+[2026-09-29T18:48:25.997Z] 0023-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 69.7, js.parse_view_outcome 23.6
+[2026-09-29T18:48:26.087Z] 0024-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:48:26.090Z] 0024-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:48:34.105Z] 0025-opt-trail-rescue-scenarios-wasm-kit 8.0 s (parallelism 4): kit.dispatch 210.5, kit.view 32.5, kit.dispatch+view 246.2
+[2026-09-29T18:48:41.949Z] 0026-main-trail-rescue-scenarios-wasm-kit 7.8 s (parallelism 4): kit.dispatch 208.5, kit.view 31.6, kit.dispatch+view 243.6
+[2026-09-29T18:48:48.220Z] 0027-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.3 s (parallelism 4): kit.dispatchView 95.9
+[2026-09-29T18:48:48.385Z] 0028-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:48:48.388Z] 0028-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:48:54.866Z] 0029-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.5 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 69.2, js.parse_view_outcome 21.9
+[2026-09-29T18:48:54.954Z] 0030-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:48:54.956Z] 0030-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:48:56.860Z] 0031-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.4, js.parse_view 15.5
+[2026-09-29T18:48:58.738Z] 0032-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.2, js.parse_view 15.3
+[2026-09-29T18:48:58.834Z] 0033-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:48:58.837Z] 0033-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:49:00.746Z] 0034-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 23.5, js.parse_view_outcome 15.3
+[2026-09-29T18:49:07.373Z] 0035-main-glowcap-replay-wasm-kit 6.6 s (parallelism 4): kit.dispatch 126.4, kit.view 26.4, kit.dispatch+view 153
+[2026-09-29T18:49:13.838Z] 0036-opt-glowcap-replay-wasm-kit 6.4 s (parallelism 4): kit.dispatch 125.6, kit.view 26.3, kit.dispatch+view 152.1
+[2026-09-29T18:49:13.992Z] 0037-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:49:13.994Z] 0037-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:49:15.853Z] 0038-opt-glowcap-replay-wasm-kit.dispatchView 1.8 s (parallelism 4): kit.dispatchView 38.9
+[2026-09-29T18:49:15.950Z] 0039-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:49:15.952Z] 0039-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:49:18.639Z] 0040-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.6 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 25.5, js.parse_view_outcome 16.5
+[2026-09-29T18:49:19.632Z] 0041-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.3, js.parse_view 6.6
+[2026-09-29T18:49:20.635Z] 0042-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.6, js.parse_view 6.7
+[2026-09-29T18:49:20.722Z] 0043-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:49:20.724Z] 0043-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:49:21.692Z] 0044-opt-ledger-session-wasm-raw.dispatch_view_outcome 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 26.6, js.parse_view_outcome 6.3
+[2026-09-29T18:49:23.258Z] 0045-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 105.2, kit.view 13.7, kit.dispatch+view 118.6
+[2026-09-29T18:49:24.819Z] 0046-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 105.1, kit.view 13.5, kit.dispatch+view 118.3
+[2026-09-29T18:49:24.957Z] 0047-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:49:24.960Z] 0047-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:49:25.937Z] 0048-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 34.1
+[2026-09-29T18:49:26.020Z] 0049-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:49:26.023Z] 0049-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:49:27.039Z] 0050-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 27.1, js.parse_view_outcome 6.1
+[2026-09-29T18:49:33.111Z] 0051-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 68, js.parse_view 24.1
+[2026-09-29T18:49:39.121Z] 0052-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.0 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.6, js.parse_view 23.5
+[2026-09-29T18:49:39.213Z] 0053-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:49:39.216Z] 0053-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:49:45.445Z] 0054-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 66.9, js.parse_view_outcome 22.9
+[2026-09-29T18:49:53.101Z] 0055-main-trail-rescue-scenarios-wasm-kit 7.6 s (parallelism 4): kit.dispatch 205.9, kit.view 31.4, kit.dispatch+view 240.8
+[2026-09-29T18:50:00.900Z] 0056-opt-trail-rescue-scenarios-wasm-kit 7.8 s (parallelism 4): kit.dispatch 209, kit.view 32, kit.dispatch+view 244.3
+[2026-09-29T18:50:01.058Z] 0057-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:50:01.061Z] 0057-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:50:07.282Z] 0058-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.2 s (parallelism 4): kit.dispatchView 95
+[2026-09-29T18:50:07.371Z] 0059-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:50:07.373Z] 0059-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:50:13.839Z] 0060-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.4 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 69.4, js.parse_view_outcome 21.6
+[2026-09-29T18:50:15.701Z] 0061-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.2, js.parse_view 15.2
+[2026-09-29T18:50:17.560Z] 0062-main-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.1, js.parse_view 14.9
+[2026-09-29T18:50:19.543Z] 0063-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 25.2, js.parse_view_outcome 16.4
+[2026-09-29T18:50:19.639Z] 0064-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:50:19.642Z] 0064-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:50:26.100Z] 0065-opt-glowcap-replay-wasm-kit 6.4 s (parallelism 4): kit.dispatch 124.9, kit.view 26, kit.dispatch+view 151.2
+[2026-09-29T18:50:32.751Z] 0066-main-glowcap-replay-wasm-kit 6.6 s (parallelism 4): kit.dispatch 128.4, kit.view 26.7, kit.dispatch+view 155.3
+[2026-09-29T18:50:34.636Z] 0067-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 39.2
+[2026-09-29T18:50:34.790Z] 0068-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:50:34.793Z] 0068-main-glowcap-replay-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:50:37.320Z] 0069-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.5 s (parallelism 4): kit.payloadText 0.4, raw.dispatch_view_outcome 23.6, js.parse_view_outcome 15.4
+[2026-09-29T18:50:37.416Z] 0070-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:50:37.419Z] 0070-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:50:38.385Z] 0071-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.1, js.parse_view 6.6
+[2026-09-29T18:50:39.355Z] 0072-main-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.5, js.parse_view 6.4
+[2026-09-29T18:50:40.315Z] 0073-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 26.2, js.parse_view_outcome 6.3
+[2026-09-29T18:50:40.403Z] 0074-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:50:40.406Z] 0074-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:50:41.952Z] 0075-opt-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 103.9, kit.view 13.5, kit.dispatch+view 116.9
+[2026-09-29T18:50:43.514Z] 0076-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 104.1, kit.view 13.6, kit.dispatch+view 117.4
+[2026-09-29T18:50:44.473Z] 0077-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 33.7
+[2026-09-29T18:50:44.610Z] 0078-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:50:44.612Z] 0078-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:50:45.632Z] 0079-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 25.7, js.parse_view_outcome 6.1
+[2026-09-29T18:50:45.716Z] 0080-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:50:45.718Z] 0080-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:50:51.792Z] 0081-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 66.9, js.parse_view 23.5
+[2026-09-29T18:50:57.911Z] 0082-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 68.9, js.parse_view 23.7
+[2026-09-29T18:51:04.125Z] 0083-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 68.9, js.parse_view_outcome 23.1
+[2026-09-29T18:51:04.219Z] 0084-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:51:04.221Z] 0084-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:51:11.860Z] 0085-opt-trail-rescue-scenarios-wasm-kit 7.6 s (parallelism 4): kit.dispatch 204.5, kit.view 31.7, kit.dispatch+view 239.7
+[2026-09-29T18:51:19.523Z] 0086-main-trail-rescue-scenarios-wasm-kit 7.6 s (parallelism 4): kit.dispatch 204.8, kit.view 31.2, kit.dispatch+view 239.5
+[2026-09-29T18:51:26.009Z] 0087-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.5 s (parallelism 4): kit.dispatchView 98.9
+[2026-09-29T18:51:26.162Z] 0088-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:51:26.165Z] 0088-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:51:32.580Z] 0089-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.4 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 68.8, js.parse_view_outcome 21.5
+[2026-09-29T18:51:32.670Z] 0090-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:51:32.673Z] 0090-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:51:34.526Z] 0091-main-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23, js.parse_view 15.1
+[2026-09-29T18:51:36.405Z] 0092-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 24, js.parse_view 15.6
+[2026-09-29T18:51:36.502Z] 0093-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:51:36.504Z] 0093-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:51:38.360Z] 0094-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 22.9, js.parse_view_outcome 14.9
+[2026-09-29T18:51:44.965Z] 0095-main-glowcap-replay-wasm-kit 6.6 s (parallelism 4): kit.dispatch 126.4, kit.view 26.4, kit.dispatch+view 153
+[2026-09-29T18:51:51.601Z] 0096-opt-glowcap-replay-wasm-kit 6.6 s (parallelism 4): kit.dispatch 128.5, kit.view 26.9, kit.dispatch+view 155.6
+[2026-09-29T18:51:51.754Z] 0097-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:51:51.757Z] 0097-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:51:53.631Z] 0098-opt-glowcap-replay-wasm-kit.dispatchView 1.9 s (parallelism 4): kit.dispatchView 39.4
+[2026-09-29T18:51:53.726Z] 0099-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:51:53.728Z] 0099-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:51:56.305Z] 0100-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.5 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 23.4, js.parse_view_outcome 15.1
+[2026-09-29T18:51:57.266Z] 0101-main-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.9, js.parse_view 6.5
+[2026-09-29T18:51:58.245Z] 0102-opt-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.7, js.parse_view 6.5
+[2026-09-29T18:51:58.331Z] 0103-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:51:58.333Z] 0103-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:51:59.289Z] 0104-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 26, js.parse_view_outcome 6.2
+[2026-09-29T18:52:00.846Z] 0105-main-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 104.2, kit.view 13.6, kit.dispatch+view 117.5
+[2026-09-29T18:52:02.381Z] 0106-opt-ledger-session-wasm-kit 1.5 s (parallelism 4): kit.dispatch 103.1, kit.view 13.4, kit.dispatch+view 116.2
+[2026-09-29T18:52:02.518Z] 0107-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:52:02.521Z] 0107-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:52:03.489Z] 0108-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 33.4
+[2026-09-29T18:52:03.577Z] 0109-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:52:03.580Z] 0109-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:52:04.598Z] 0110-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 0.9, raw.dispatch_view_outcome 25.7, js.parse_view_outcome 5.9
+[2026-09-29T18:52:10.609Z] 0111-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.0 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.7, js.parse_view 23.9
+[2026-09-29T18:52:16.700Z] 0112-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 6.1 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.3, js.parse_view 23.7
+[2026-09-29T18:52:16.793Z] 0113-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:52:16.796Z] 0113-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:52:23.068Z] 0114-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 68.7, js.parse_view_outcome 23.1
+[2026-09-29T18:52:30.833Z] 0115-main-trail-rescue-scenarios-wasm-kit 7.7 s (parallelism 4): kit.dispatch 207.7, kit.view 31.9, kit.dispatch+view 242.6
+[2026-09-29T18:52:38.647Z] 0116-opt-trail-rescue-scenarios-wasm-kit 7.8 s (parallelism 4): kit.dispatch 207.1, kit.view 31.6, kit.dispatch+view 241.2
+[2026-09-29T18:52:38.807Z] 0117-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:52:38.810Z] 0117-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:52:45.159Z] 0118-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.3 s (parallelism 4): kit.dispatchView 96.1
+[2026-09-29T18:52:45.247Z] 0119-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:52:45.250Z] 0119-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:52:51.550Z] 0120-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.3 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 67.6, js.parse_view_outcome 21.6
+[2026-09-29T18:52:53.418Z] 0121-opt-glowcap-replay-wasm-raw.dispatch_view 1.8 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.5, js.parse_view 15.3
+[2026-09-29T18:52:55.321Z] 0122-main-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 24.7, js.parse_view 16
+[2026-09-29T18:52:57.192Z] 0123-opt-glowcap-replay-wasm-raw.dispatch_view_outcome 1.8 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view_outcome 23.7, js.parse_view_outcome 15.1
+[2026-09-29T18:52:57.311Z] 0124-main-glowcap-replay-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:52:57.314Z] 0124-main-glowcap-replay-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:53:04.056Z] 0125-opt-glowcap-replay-wasm-kit 6.7 s (parallelism 4): kit.dispatch 132.7, kit.view 27.5, kit.dispatch+view 160.4
+[2026-09-29T18:53:10.560Z] 0126-main-glowcap-replay-wasm-kit 6.5 s (parallelism 4): kit.dispatch 125.6, kit.view 26.2, kit.dispatch+view 151.9
+[2026-09-29T18:53:12.425Z] 0127-opt-glowcap-replay-wasm-kit.dispatchView 1.8 s (parallelism 4): kit.dispatchView 38.6
+[2026-09-29T18:53:12.574Z] 0128-main-glowcap-replay-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:53:12.577Z] 0128-main-glowcap-replay-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:53:15.085Z] 0129-opt-glowcap-replay-wasm-kit.dispatchView.pieces 2.4 s (parallelism 4): kit.payloadText 0.5, raw.dispatch_view_outcome 23.4, js.parse_view_outcome 15.1
+[2026-09-29T18:53:15.182Z] 0130-main-glowcap-replay-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:53:15.184Z] 0130-main-glowcap-replay-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:53:16.137Z] 0131-opt-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.5, js.parse_view 6.3
+[2026-09-29T18:53:17.087Z] 0132-main-ledger-session-wasm-raw.dispatch_view 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.8, js.parse_view 6.4
+[2026-09-29T18:53:18.044Z] 0133-opt-ledger-session-wasm-raw.dispatch_view_outcome 0.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view_outcome 26.1, js.parse_view_outcome 6.5
+[2026-09-29T18:53:18.131Z] 0134-main-ledger-session-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:53:18.134Z] 0134-main-ledger-session-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:53:19.697Z] 0135-opt-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 105.6, kit.view 13.9, kit.dispatch+view 118.9
+[2026-09-29T18:53:21.279Z] 0136-main-ledger-session-wasm-kit 1.6 s (parallelism 4): kit.dispatch 106.4, kit.view 13.8, kit.dispatch+view 119.6
+[2026-09-29T18:53:22.254Z] 0137-opt-ledger-session-wasm-kit.dispatchView 1.0 s (parallelism 4): kit.dispatchView 33.8
+[2026-09-29T18:53:22.391Z] 0138-main-ledger-session-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:53:22.394Z] 0138-main-ledger-session-wasm-kit.dispatchView 0.1 s (parallelism 4): 
+[2026-09-29T18:53:23.420Z] 0139-opt-ledger-session-wasm-kit.dispatchView.pieces 1.0 s (parallelism 4): kit.payloadText 1, raw.dispatch_view_outcome 26.4, js.parse_view_outcome 6.3
+[2026-09-29T18:53:23.506Z] 0140-main-ledger-session-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:53:23.509Z] 0140-main-ledger-session-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:53:29.438Z] 0141-opt-trail-rescue-scenarios-wasm-raw.dispatch_view 5.9 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 65.6, js.parse_view 23.2
+[2026-09-29T18:53:35.420Z] 0142-main-trail-rescue-scenarios-wasm-raw.dispatch_view 6.0 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 67.4, js.parse_view 23.5
+[2026-09-29T18:53:41.685Z] 0143-opt-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 6.2 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view_outcome 66.6, js.parse_view_outcome 23
+[2026-09-29T18:53:41.775Z] 0144-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:53:41.778Z] 0144-main-trail-rescue-scenarios-wasm-raw.dispatch_view_outcome 0.1 s (parallelism 4): 
+[2026-09-29T18:53:49.427Z] 0145-opt-trail-rescue-scenarios-wasm-kit 7.6 s (parallelism 4): kit.dispatch 206.3, kit.view 31.8, kit.dispatch+view 241.4
+[2026-09-29T18:53:57.098Z] 0146-main-trail-rescue-scenarios-wasm-kit 7.7 s (parallelism 4): kit.dispatch 204.6, kit.view 31.4, kit.dispatch+view 239.1
+[2026-09-29T18:54:03.627Z] 0147-opt-trail-rescue-scenarios-wasm-kit.dispatchView 6.5 s (parallelism 4): kit.dispatchView 99.6
+[2026-09-29T18:54:03.785Z] 0148-main-trail-rescue-scenarios-wasm-kit.dispatchView: skipped: this kit has no session.dispatchView
+[2026-09-29T18:54:03.788Z] 0148-main-trail-rescue-scenarios-wasm-kit.dispatchView 0.2 s (parallelism 4): 
+[2026-09-29T18:54:10.121Z] 0149-opt-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 6.3 s (parallelism 4): kit.payloadText 1.3, raw.dispatch_view_outcome 67, js.parse_view_outcome 21.5
+[2026-09-29T18:54:10.211Z] 0150-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces: skipped: this runtime has no dispatch_view_outcome
+[2026-09-29T18:54:10.214Z] 0150-main-trail-rescue-scenarios-wasm-kit.dispatchView.pieces 0.1 s (parallelism 4): 
+[2026-09-29T18:54:10.230Z] load during: {"what":"typeperf every 1 s for the whole run","samples":393,"counters":{"total":{"samples":393,"mean":7.1,"p95":10.9,"max":17.4},"processor 10":{"samples":393,"mean":78.6,"p95":100,"max":100},"processor 11":{"samples":393,"mean":21.7,"p95":61.2,"max":100},"processor 12":{"samples":393,"mean":21.6,"p95":66,"max":100},"processor 13":{"samples":393,"mean":6.2,"p95":23.7,"max":65.8},"processor 10 MHz":{"samples":393,"mean":4385.7,"p95":4507.1,"max":4653.1},"processor 11 MHz":{"samples":393,"mean":4236,"p95":4560.2,"max":5114.6},"processor 12 MHz":{"samples":393,"mean":4205.6,"p95":4523.5,"max":4918.4},"processor 13 MHz":{"samples":393,"mean":3654.1,"p95":4693.2,"max":4803.7}},"totalAbove10Percent":32,"totalAbove25Percent":0,"pinnedSumAbove150Percent":56}
+[2026-09-29T18:54:16.658Z] load after: {"totalCpuPercent":[0,16,21],"busiestProcesses":[{"name":"powershell","pid":104296,"cpuSeconds":0.469},{"name":"claude","pid":95512,"cpuSeconds":0.453},{"name":"claude","pid":104712,"cpuSeconds":0.156},{"name":"claude","pid":103160,"cpuSeconds":0.141},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.125},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.062}]}
+[2026-09-29T18:54:16.673Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prOPT-measure\runs\R1-3C00\results.json and summary.md; 0 failure(s), 45 skipped, 0 correctness finding(s)

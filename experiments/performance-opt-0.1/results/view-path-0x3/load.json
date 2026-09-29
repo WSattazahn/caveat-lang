@@ -1,0 +1,220 @@
+{
+ "runId": "2026-09-29T18-42-33-481-view-path",
+ "rule": "a repeat is kept when its mean total CPU is at most 12% and no 1-s sample is above 20%; a session is used only when every repeat is kept",
+ "monitor": "typeperf every 1 s for the whole run",
+ "wholeRun": {
+  "samples": 203,
+  "mean": 6.99,
+  "median": 6.876259,
+  "p95": 9.298476,
+  "max": 13.181943,
+  "above20": 0
+ },
+ "loadBefore": {
+  "totalCpuPercent": [
+   10,
+   0,
+   0
+  ],
+  "busiestProcesses": [
+   {
+    "name": "powershell",
+    "pid": 106316,
+    "cpuSeconds": 0.422
+   },
+   {
+    "name": "claude",
+    "pid": 95512,
+    "cpuSeconds": 0.344
+   },
+   {
+    "name": "claude",
+    "pid": 104712,
+    "cpuSeconds": 0.094
+   },
+   {
+    "name": "Reallusion Hub",
+    "pid": 70736,
+    "cpuSeconds": 0.078
+   },
+   {
+    "name": "claude",
+    "pid": 103160,
+    "cpuSeconds": 0.078
+   },
+   {
+    "name": "uihost",
+    "pid": 107008,
+    "cpuSeconds": 0.047
+   }
+  ]
+ },
+ "loadAfter": {
+  "totalCpuPercent": [
+   4,
+   0,
+   8
+  ],
+  "busiestProcesses": [
+   {
+    "name": "powershell",
+    "pid": 106876,
+    "cpuSeconds": 0.469
+   },
+   {
+    "name": "claude",
+    "pid": 95512,
+    "cpuSeconds": 0.344
+   },
+   {
+    "name": "claude",
+    "pid": 104712,
+    "cpuSeconds": 0.125
+   },
+   {
+    "name": "claude",
+    "pid": 103160,
+    "cpuSeconds": 0.094
+   },
+   {
+    "name": "IntelGraphicsSoftware",
+    "pid": 14784,
+    "cpuSeconds": 0.062
+   },
+   {
+    "name": "Reallusion Hub",
+    "pid": 70736,
+    "cpuSeconds": 0.047
+   }
+  ]
+ },
+ "repeats": [
+  {
+   "repeat": 1,
+   "from": "2026-09-29T18:42:41.479Z",
+   "to": "2026-09-29T18:43:49.914Z",
+   "seconds": 68.4,
+   "jobs": 30,
+   "total": {
+    "samples": 67,
+    "mean": 6.99,
+    "median": 6.776017,
+    "p95": 9.776146,
+    "max": 11.261902,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 19,
+     "mean": 7.18,
+     "median": 6.977369,
+     "p95": 10.194094,
+     "max": 10.201903,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 7.69,
+     "median": 7.252865,
+     "p95": 8.884543,
+     "max": 9.776146,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 40,
+     "mean": 6.76,
+     "median": 6.508588,
+     "p95": 9.324282,
+     "max": 11.261902,
+     "above20": 0
+    }
+   },
+   "kept": true
+  },
+  {
+   "repeat": 2,
+   "from": "2026-09-29T18:43:49.919Z",
+   "to": "2026-09-29T18:44:58.330Z",
+   "seconds": 68.4,
+   "jobs": 30,
+   "total": {
+    "samples": 68,
+    "mean": 7.07,
+    "median": 6.998825,
+    "p95": 9.244602,
+    "max": 13.181943,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 20,
+     "mean": 7.57,
+     "median": 7.784508,
+     "p95": 9.03029,
+     "max": 9.251937,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 8.76,
+     "median": 8.274404,
+     "p95": 10.429479,
+     "max": 13.181943,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 40,
+     "mean": 6.48,
+     "median": 6.506013,
+     "p95": 8.847558,
+     "max": 10.584231,
+     "above20": 0
+    }
+   },
+   "kept": true
+  },
+  {
+   "repeat": 3,
+   "from": "2026-09-29T18:44:58.352Z",
+   "to": "2026-09-29T18:46:06.763Z",
+   "seconds": 68.4,
+   "jobs": 30,
+   "total": {
+    "samples": 68,
+    "mean": 6.91,
+    "median": 6.865322,
+    "p95": 8.953985,
+    "max": 13.180969,
+    "above20": 0
+   },
+   "workloads": {
+    "glowcap-replay": {
+     "samples": 20,
+     "mean": 7.27,
+     "median": 6.873352,
+     "p95": 11.254398,
+     "max": 13.180969,
+     "above20": 0
+    },
+    "ledger-session": {
+     "samples": 8,
+     "mean": 7.46,
+     "median": 7.152958,
+     "p95": 8.299927,
+     "max": 8.545996,
+     "above20": 0
+    },
+    "trail-rescue-scenarios": {
+     "samples": 40,
+     "mean": 6.61,
+     "median": 6.367935,
+     "p95": 8.953985,
+     "max": 9.298476,
+     "above20": 0
+    }
+   },
+   "kept": true
+  }
+ ],
+ "kept": true
+}

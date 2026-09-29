@@ -27,8 +27,9 @@ const JOBS = [
 // dispatchView against the two paths a host wanting the view had, kit
 // dispatch() + view() and the raw dispatch_view + JSON.parse, and the raw
 // dispatch_view_outcome it is built on, on the workloads whose event classes
-// the owner named. A target without the new entry points skips those modes.
-const VIEW_PATH_MODES = ['raw.dispatch_view', 'raw.dispatch_view_outcome', 'kit', 'kit.dispatchView'];
+// the owner named, and dispatchView's pieces timed one by one. A target
+// without the new entry points skips those modes.
+const VIEW_PATH_MODES = ['raw.dispatch_view', 'raw.dispatch_view_outcome', 'kit', 'kit.dispatchView', 'kit.dispatchView.pieces'];
 const VIEW_PATH_JOBS = ['glowcap-replay', 'ledger-session', 'trail-rescue-scenarios']
   .map((workload) => ({ workload, native: [], wasm: VIEW_PATH_MODES }));
 

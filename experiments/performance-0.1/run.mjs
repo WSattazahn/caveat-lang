@@ -167,7 +167,7 @@ function planFor(target, workload, engine, mode, jobWork) {
 
 const needs = { native: (target) => target.native, wasm: (target) => target.runtimeDir };
 const adapterModes = new Set(['published-method', 'adapter', 'adapter-resume']);
-const kitModes = new Set(['kit', 'kit.read', 'kit.dispatchView']);
+const kitModes = new Set(['kit', 'kit.read', 'kit.dispatchView', 'kit.dispatchView.pieces']);
 const results = {};
 const failures = [];
 const skipped = [];
