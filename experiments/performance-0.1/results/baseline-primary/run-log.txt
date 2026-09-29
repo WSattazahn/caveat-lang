@@ -1,0 +1,887 @@
+[2026-09-29T05:29:28.547Z] run 2026-09-29T05-29-28-544-baseline: suite baseline, 3 repeat(s), engines native,wasm, out C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\baseline3
+[2026-09-29T05:29:37.469Z] machine Intel(R) Core(TM) Ultra 9 275HX; pinning 0x3C00 (10,11,12,13), priority high
+[2026-09-29T05:29:37.470Z] load before: {"totalCpuPercent":[7,5,0],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.375},{"name":"powershell","pid":101696,"cpuSeconds":0.625},{"name":"claude","pid":104712,"cpuSeconds":0.609},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.25},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.141},{"name":"Reallusion Hub","pid":70736,"cpuSeconds":0.078}]}
+[2026-09-29T05:29:37.479Z] rc4-published: package C:\Users\walte\caveat-rc4\package-files\package; wasm 698a0d0fe99b0c2adc72e5dbaf546d402b4c6c0eb899961dfa6261575ae3b748; native -
+[2026-09-29T05:29:37.709Z] rc4-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF-rc4\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T05:29:37.715Z] rc4-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF-rc4; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF-rc4\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T05:29:37.927Z] main-local: reusing the WebAssembly in C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\pkg-reactive
+[2026-09-29T05:29:37.932Z] main-local: tree C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF; wasm e35944503272d9764ef475414755f12a1945d10fe5c1c964524847519699acde; native C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\prPERF\runtime\target\perf-baseline\native\target\release\perf_baseline.exe
+[2026-09-29T05:29:37.936Z] hist-e6ace96: runtime C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\scout\hist-e6ace96\pkg-reactive; wasm d897787f414a5020d5d99f387d9da6c874a3512580a1f4db96221fec223fcd97; native -
+[2026-09-29T05:29:37.953Z] 94 jobs x 4 target(s) x 3 repeat(s)
+[2026-09-29T05:29:37.984Z] monitoring load with typeperf every 5 s (total, processor 10, processor 11, processor 12, processor 13)
+[2026-09-29T05:29:38.678Z] 0001-rc4-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 13.8
+[2026-09-29T05:29:39.364Z] 0002-main-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 13.8
+[2026-09-29T05:29:40.160Z] 0003-rc4-local-glowcap-replay-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 16.7
+[2026-09-29T05:29:40.958Z] 0004-main-local-glowcap-replay-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 16.8
+[2026-09-29T05:29:43.031Z] 0005-rc4-local-glowcap-replay-native-dispatch_json 2.1 s (parallelism 4): dispatch_json 39
+[2026-09-29T05:29:45.097Z] 0006-main-local-glowcap-replay-native-dispatch_json 2.0 s (parallelism 4): dispatch_json 38.6
+[2026-09-29T05:29:47.267Z] 0007-rc4-local-glowcap-replay-native-dispatch_outcome_json 2.1 s (parallelism 4): dispatch_outcome_json 39.4
+[2026-09-29T05:29:49.386Z] 0008-main-local-glowcap-replay-native-dispatch_outcome_json 2.1 s (parallelism 4): dispatch_outcome_json 39.3
+[2026-09-29T05:29:50.342Z] 0009-rc4-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 21.3
+[2026-09-29T05:29:51.300Z] 0010-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 21.3
+[2026-09-29T05:29:54.147Z] 0011-rc4-local-glowcap-replay-native-web.dispatch_outcome 2.8 s (parallelism 4): web.dispatch_outcome 68.2
+[2026-09-29T05:29:57.109Z] 0012-main-local-glowcap-replay-native-web.dispatch_outcome 2.9 s (parallelism 4): web.dispatch_outcome 70.2
+[2026-09-29T05:30:00.832Z] 0013-rc4-local-glowcap-replay-native-web.dispatch 3.7 s (parallelism 4): web.dispatch 89.3
+[2026-09-29T05:30:04.479Z] 0014-main-local-glowcap-replay-native-web.dispatch 3.6 s (parallelism 4): web.dispatch 86.7
+[2026-09-29T05:30:11.030Z] 0015-rc4-local-glowcap-replay-native-read 6.4 s (parallelism 4): clone 7.6, clone.drop 4.2, save 9.6
+[2026-09-29T05:30:17.700Z] 0016-main-local-glowcap-replay-native-read 6.5 s (parallelism 4): clone 7.6, clone.drop 4.1, save 10
+[2026-09-29T05:30:22.643Z] 0017-rc4-local-glowcap-replay-native-web.read 4.9 s (parallelism 4): web.save 16.6, web.snapshot 70.4, web.view 6.8
+[2026-09-29T05:30:27.740Z] 0018-main-local-glowcap-replay-native-web.read 5.0 s (parallelism 4): web.save 17.3, web.snapshot 72.3, web.view 6.9
+[2026-09-29T05:30:28.713Z] 0019-rc4-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2668.7, restore 2799.4, restore.parse 26.3
+[2026-09-29T05:30:29.689Z] 0020-main-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2710.9, restore 2830.8, restore.parse 24.9
+[2026-09-29T05:30:31.381Z] 0021-rc4-published-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 47
+[2026-09-29T05:30:33.060Z] 0022-rc4-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.6
+[2026-09-29T05:30:34.756Z] 0023-main-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.7
+[2026-09-29T05:30:36.404Z] 0024-hist-e6ace96-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 45.1
+[2026-09-29T05:30:38.608Z] 0025-rc4-published-glowcap-replay-wasm-adapter 2.2 s (parallelism 4): adapter.dispatch 44, adapter.view 2.3, adapter.dispatch+view 46.3
+[2026-09-29T05:30:40.814Z] 0026-rc4-local-glowcap-replay-wasm-adapter 2.2 s (parallelism 4): adapter.dispatch 43.9, adapter.view 2.3, adapter.dispatch+view 46.3
+[2026-09-29T05:30:43.010Z] 0027-main-local-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 43.7, adapter.view 2.2, adapter.dispatch+view 46
+[2026-09-29T05:30:45.132Z] 0028-hist-e6ace96-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 42.2, adapter.view 2.2, adapter.dispatch+view 44.4
+[2026-09-29T05:30:47.236Z] 0029-rc4-published-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.2, js.parse_view 17.2
+[2026-09-29T05:30:49.349Z] 0030-rc4-local-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.1, js.parse_view 17.2
+[2026-09-29T05:30:51.577Z] 0031-main-local-glowcap-replay-wasm-raw.dispatch_view 2.2 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.9, js.parse_view 17.9
+[2026-09-29T05:30:53.610Z] 0032-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25, js.parse_view 17.1
+[2026-09-29T05:30:59.728Z] 0033-rc4-published-glowcap-replay-wasm-raw.dispatch_outcome 6.1 s (parallelism 4): raw.dispatch_outcome 75.1, js.parse_outcome 67, raw.dispatch_outcome+parse 142.5
+[2026-09-29T05:31:05.720Z] 0034-rc4-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 73.4, js.parse_outcome 65.2, raw.dispatch_outcome+parse 139
+[2026-09-29T05:31:11.730Z] 0035-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.0 s (parallelism 4): raw.dispatch_outcome 73.8, js.parse_outcome 64.7, raw.dispatch_outcome+parse 139.1
+[2026-09-29T05:31:11.845Z] 0036-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:31:11.849Z] 0036-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:31:16.431Z] 0037-rc4-published-glowcap-replay-wasm-raw.dispatch 4.6 s (parallelism 4): raw.dispatch 105.5
+[2026-09-29T05:31:20.843Z] 0038-rc4-local-glowcap-replay-wasm-raw.dispatch 4.4 s (parallelism 4): raw.dispatch 101.4
+[2026-09-29T05:31:25.296Z] 0039-main-local-glowcap-replay-wasm-raw.dispatch 4.4 s (parallelism 4): raw.dispatch 102.6
+[2026-09-29T05:31:29.785Z] 0040-hist-e6ace96-glowcap-replay-wasm-raw.dispatch 4.5 s (parallelism 4): raw.dispatch 103.9
+[2026-09-29T05:31:31.168Z] 0041-rc4-published-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.6, abi.decode 2.6
+[2026-09-29T05:31:32.542Z] 0042-rc4-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.7, abi.decode 2.5
+[2026-09-29T05:31:33.912Z] 0043-main-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.6, abi.decode 2.5
+[2026-09-29T05:31:35.221Z] 0044-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.3, abi.decode 2.5
+[2026-09-29T05:31:38.418Z] 0045-rc4-published-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 61.3, abi.decode 7.9
+[2026-09-29T05:31:41.678Z] 0046-rc4-local-glowcap-replay-wasm-abi.dispatch_outcome 3.2 s (parallelism 4): abi.encode_args 0.2, abi.exec 63.1, abi.decode 8
+[2026-09-29T05:31:44.854Z] 0047-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 60.9, abi.decode 7.7
+[2026-09-29T05:31:44.968Z] 0048-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:31:44.971Z] 0048-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:31:55.371Z] 0049-rc4-published-glowcap-replay-wasm-read 10.3 s (parallelism 4): raw.view 11.3, js.parse_view 18.9, raw.snapshot 93.4
+[2026-09-29T05:32:06.250Z] 0050-rc4-local-glowcap-replay-wasm-read 10.8 s (parallelism 4): raw.view 12.3, js.parse_view 19.9, raw.snapshot 100.8
+[2026-09-29T05:32:16.507Z] 0051-main-local-glowcap-replay-wasm-read 10.2 s (parallelism 4): raw.view 11.4, js.parse_view 18.1, raw.snapshot 90.5
+[2026-09-29T05:32:26.497Z] 0052-hist-e6ace96-glowcap-replay-wasm-read 9.9 s (parallelism 4): raw.view 10.3, js.parse_view 18, raw.snapshot 93
+[2026-09-29T05:32:32.449Z] 0053-rc4-published-glowcap-replay-wasm-abi.read 5.9 s (parallelism 4): abi.view.exec 8.2, abi.view.decode 2.3, abi.snapshot.exec 70.2
+[2026-09-29T05:32:38.343Z] 0054-rc4-local-glowcap-replay-wasm-abi.read 5.8 s (parallelism 4): abi.view.exec 8.2, abi.view.decode 2.2, abi.snapshot.exec 68.4
+[2026-09-29T05:32:44.349Z] 0055-main-local-glowcap-replay-wasm-abi.read 5.9 s (parallelism 4): abi.view.exec 8.5, abi.view.decode 2.3, abi.snapshot.exec 68.8
+[2026-09-29T05:32:50.257Z] 0056-hist-e6ace96-glowcap-replay-wasm-abi.read 5.8 s (parallelism 4): abi.view.exec 7.4, abi.view.decode 2.2, abi.snapshot.exec 71.1
+[2026-09-29T05:32:57.364Z] 0057-rc4-published-glowcap-replay-wasm-kit 7.1 s (parallelism 4): kit.dispatch 135.2, kit.view 28.2, kit.dispatch+view 163.5
+[2026-09-29T05:33:04.417Z] 0058-rc4-local-glowcap-replay-wasm-kit 7.0 s (parallelism 4): kit.dispatch 135.6, kit.view 28.3, kit.dispatch+view 164
+[2026-09-29T05:33:11.571Z] 0059-main-local-glowcap-replay-wasm-kit 7.1 s (parallelism 4): kit.dispatch 135.4, kit.view 28.3, kit.dispatch+view 163.9
+[2026-09-29T05:33:28.418Z] 0060-rc4-published-glowcap-replay-wasm-kit.read 16.8 s (parallelism 4): kit.view 30.8, kit.snapshot 170.5, kit.save 40.7
+[2026-09-29T05:33:45.386Z] 0061-rc4-local-glowcap-replay-wasm-kit.read 16.9 s (parallelism 4): kit.view 31.2, kit.snapshot 172.1, kit.save 41.1
+[2026-09-29T05:34:02.283Z] 0062-main-local-glowcap-replay-wasm-kit.read 16.8 s (parallelism 4): kit.view 30.8, kit.snapshot 168.2, kit.save 40.4
+[2026-09-29T05:34:03.166Z] 0063-rc4-published-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2781.3, raw.save 48.9, raw.restore 2829.7
+[2026-09-29T05:34:04.046Z] 0064-rc4-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2441, raw.save 46.1, raw.restore 2567.1
+[2026-09-29T05:34:04.937Z] 0065-main-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2495.8, raw.save 47.3, raw.restore 2590.2
+[2026-09-29T05:34:05.581Z] 0066-hist-e6ace96-glowcap-replay-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2376.4, raw.save 42.5, raw.restore 2454.4
+[2026-09-29T05:34:06.709Z] 0067-rc4-published-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.075, js.stringify_payload.last 0.082
+[2026-09-29T05:34:07.810Z] 0068-rc4-local-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.089, js.stringify_payload.last 0.072
+[2026-09-29T05:34:08.977Z] 0069-main-local-glowcap-replay-wasm-micro 1.2 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.097, js.stringify_payload.last 0.07
+[2026-09-29T05:34:09.902Z] 0070-hist-e6ace96-glowcap-replay-wasm-micro 0.9 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.095, js.stringify_payload.last 0.079
+[2026-09-29T05:34:10.736Z] 0071-rc4-local-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2547.7, restore 2647.8, restore.parse 18.4
+[2026-09-29T05:34:11.555Z] 0072-main-local-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2567.8, restore 2630.8, restore.parse 18.8
+[2026-09-29T05:34:12.383Z] 0073-rc4-published-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2842.5, raw.save 37.1, raw.restore 2848.7
+[2026-09-29T05:34:13.224Z] 0074-rc4-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2905, raw.save 36.3, raw.restore 2857.3
+[2026-09-29T05:34:14.017Z] 0075-main-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2498.7, raw.save 32.4, raw.restore 2491
+[2026-09-29T05:34:14.626Z] 0076-hist-e6ace96-glowcap-resume-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2733.3, raw.save 34.8, raw.restore 2733
+[2026-09-29T05:34:15.858Z] 0077-rc4-published-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 14.1, adapter.resume.createPolicy 3632.5, adapter.resume.view 47.9
+[2026-09-29T05:34:17.114Z] 0078-rc4-local-glowcap-resume-wasm-adapter-resume 1.3 s (parallelism 4): adapter.resume.parse 14.5, adapter.resume.createPolicy 3352.3, adapter.resume.view 42.1
+[2026-09-29T05:34:18.382Z] 0079-main-local-glowcap-resume-wasm-adapter-resume 1.3 s (parallelism 4): adapter.resume.parse 14.6, adapter.resume.createPolicy 3680.9, adapter.resume.view 55.3
+[2026-09-29T05:34:19.584Z] 0080-hist-e6ace96-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 15.5, adapter.resume.createPolicy 3195.1, adapter.resume.view 45.4
+[2026-09-29T05:34:20.180Z] 0081-rc4-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 12
+[2026-09-29T05:34:20.764Z] 0082-main-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 11.8
+[2026-09-29T05:34:21.464Z] 0083-rc4-local-glowcap-unbound-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 14.5
+[2026-09-29T05:34:22.161Z] 0084-main-local-glowcap-unbound-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 14.5
+[2026-09-29T05:34:22.948Z] 0085-rc4-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 17.1
+[2026-09-29T05:34:23.719Z] 0086-main-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 16.8
+[2026-09-29T05:34:28.303Z] 0087-rc4-local-glowcap-unbound-native-read 4.5 s (parallelism 4): clone 0.3, clone.drop 0.3, save 8.7
+[2026-09-29T05:34:33.232Z] 0088-main-local-glowcap-unbound-native-read 4.8 s (parallelism 4): clone 0.3, clone.drop 0.3, save 9
+[2026-09-29T05:34:34.318Z] 0089-rc4-published-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.2, abi.decode 0.5
+[2026-09-29T05:34:35.379Z] 0090-rc4-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.2, abi.decode 0.5
+[2026-09-29T05:34:36.439Z] 0091-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.4, abi.decode 0.5
+[2026-09-29T05:34:37.553Z] 0092-hist-e6ace96-glowcap-unbound-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 19.2, abi.decode 0.5
+[2026-09-29T05:34:39.102Z] 0093-rc4-published-glowcap-unbound-wasm-raw.dispatch_view 1.5 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 22.6, js.parse_view 7.2
+[2026-09-29T05:34:40.568Z] 0094-rc4-local-glowcap-unbound-wasm-raw.dispatch_view 1.4 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 21.5, js.parse_view 6.9
+[2026-09-29T05:34:41.906Z] 0095-main-local-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 18.6, js.parse_view 5.9
+[2026-09-29T05:34:43.249Z] 0096-hist-e6ace96-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 19, js.parse_view 6.2
+[2026-09-29T05:34:43.719Z] 0097-rc4-local-glowcap-scaled-16-native-apply 0.5 s (parallelism 4): apply 37.3
+[2026-09-29T05:34:44.182Z] 0098-main-local-glowcap-scaled-16-native-apply 0.5 s (parallelism 4): apply 36.1
+[2026-09-29T05:34:44.698Z] 0099-rc4-local-glowcap-scaled-16-native-web.dispatch_view 0.5 s (parallelism 4): web.dispatch_view 46.5
+[2026-09-29T05:34:45.190Z] 0100-main-local-glowcap-scaled-16-native-web.dispatch_view 0.5 s (parallelism 4): web.dispatch_view 46.3
+[2026-09-29T05:34:46.493Z] 0101-rc4-local-glowcap-scaled-16-native-web.dispatch_outcome 1.3 s (parallelism 4): web.dispatch_outcome 144.3
+[2026-09-29T05:34:47.818Z] 0102-main-local-glowcap-scaled-16-native-web.dispatch_outcome 1.3 s (parallelism 4): web.dispatch_outcome 144.4
+[2026-09-29T05:34:50.451Z] 0103-rc4-local-glowcap-scaled-16-native-read 2.6 s (parallelism 4): clone 17.5, clone.drop 9.7, save 9.4
+[2026-09-29T05:34:53.114Z] 0104-main-local-glowcap-scaled-16-native-read 2.6 s (parallelism 4): clone 17.7, clone.drop 10, save 9.5
+[2026-09-29T05:34:55.225Z] 0105-rc4-local-glowcap-scaled-16-native-lifecycle 2.1 s (parallelism 4): from_source 10650.3, restore 10895.7, restore.parse 35.6
+[2026-09-29T05:34:57.328Z] 0106-main-local-glowcap-scaled-16-native-lifecycle 2.1 s (parallelism 4): from_source 10599.6, restore 10877.8, restore.parse 36.4
+[2026-09-29T05:34:58.470Z] 0107-rc4-published-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 62.6, js.parse_view 41.2
+[2026-09-29T05:34:59.577Z] 0108-rc4-local-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 58.6, js.parse_view 38.5
+[2026-09-29T05:35:00.704Z] 0109-main-local-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 64.5, js.parse_view 41.9
+[2026-09-29T05:35:01.765Z] 0110-hist-e6ace96-glowcap-scaled-16-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 55.5, js.parse_view 36.8
+[2026-09-29T05:35:02.536Z] 0111-rc4-published-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 49.6, abi.decode 5.5
+[2026-09-29T05:35:03.317Z] 0112-rc4-local-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 50.3, abi.decode 5.5
+[2026-09-29T05:35:04.075Z] 0113-main-local-glowcap-scaled-16-wasm-abi.dispatch_view 0.7 s (parallelism 4): abi.encode_args 0.2, abi.exec 49.5, abi.decode 5.4
+[2026-09-29T05:35:04.835Z] 0114-hist-e6ace96-glowcap-scaled-16-wasm-abi.dispatch_view 0.7 s (parallelism 4): abi.encode_args 0.2, abi.exec 51, abi.decode 5.7
+[2026-09-29T05:35:10.056Z] 0115-rc4-published-glowcap-scaled-16-wasm-read 5.2 s (parallelism 4): raw.view 24.4, js.parse_view 39.8, raw.snapshot 265.9
+[2026-09-29T05:35:15.252Z] 0116-rc4-local-glowcap-scaled-16-wasm-read 5.2 s (parallelism 4): raw.view 23.8, js.parse_view 39, raw.snapshot 266.5
+[2026-09-29T05:35:20.448Z] 0117-main-local-glowcap-scaled-16-wasm-read 5.2 s (parallelism 4): raw.view 23.6, js.parse_view 39.6, raw.snapshot 263.6
+[2026-09-29T05:35:25.582Z] 0118-hist-e6ace96-glowcap-scaled-16-wasm-read 5.1 s (parallelism 4): raw.view 22.8, js.parse_view 39, raw.snapshot 264.3
+[2026-09-29T05:35:29.222Z] 0119-rc4-published-glowcap-scaled-16-wasm-kit 3.6 s (parallelism 4): kit.dispatch 350.3, kit.view 67.3, kit.dispatch+view 418.2
+[2026-09-29T05:35:32.775Z] 0120-rc4-local-glowcap-scaled-16-wasm-kit 3.5 s (parallelism 4): kit.dispatch 328.5, kit.view 64.4, kit.dispatch+view 393.1
+[2026-09-29T05:35:36.362Z] 0121-main-local-glowcap-scaled-16-wasm-kit 3.6 s (parallelism 4): kit.dispatch 328, kit.view 64.1, kit.dispatch+view 392.7
+[2026-09-29T05:35:38.144Z] 0122-rc4-published-glowcap-scaled-16-wasm-lifecycle 1.8 s (parallelism 4): raw.new 9929.5, raw.save 61.4, raw.restore 9932
+[2026-09-29T05:35:39.951Z] 0123-rc4-local-glowcap-scaled-16-wasm-lifecycle 1.8 s (parallelism 4): raw.new 10164.7, raw.save 62.3, raw.restore 10012.5
+[2026-09-29T05:35:41.724Z] 0124-main-local-glowcap-scaled-16-wasm-lifecycle 1.8 s (parallelism 4): raw.new 9823.8, raw.save 58.8, raw.restore 9955
+[2026-09-29T05:35:42.750Z] 0125-hist-e6ace96-glowcap-scaled-16-wasm-lifecycle 1.0 s (parallelism 4): raw.new 9668.2, raw.save 58.3, raw.restore 9465.7
+[2026-09-29T05:35:44.025Z] 0126-rc4-local-glowcap-scaled-64-native-apply 1.3 s (parallelism 4): apply 88.7
+[2026-09-29T05:35:45.308Z] 0127-main-local-glowcap-scaled-64-native-apply 1.3 s (parallelism 4): apply 90.3
+[2026-09-29T05:35:46.881Z] 0128-rc4-local-glowcap-scaled-64-native-web.dispatch_view 1.6 s (parallelism 4): web.dispatch_view 138.4
+[2026-09-29T05:35:48.448Z] 0129-main-local-glowcap-scaled-64-native-web.dispatch_view 1.6 s (parallelism 4): web.dispatch_view 137.8
+[2026-09-29T05:35:52.692Z] 0130-rc4-local-glowcap-scaled-64-native-web.dispatch_outcome 4.2 s (parallelism 4): web.dispatch_outcome 453.2
+[2026-09-29T05:35:56.932Z] 0131-main-local-glowcap-scaled-64-native-web.dispatch_outcome 4.2 s (parallelism 4): web.dispatch_outcome 456.5
+[2026-09-29T05:36:04.818Z] 0132-rc4-local-glowcap-scaled-64-native-read 7.9 s (parallelism 4): clone 58.5, clone.drop 31.9, save 13.1
+[2026-09-29T05:36:12.828Z] 0133-main-local-glowcap-scaled-64-native-read 8.0 s (parallelism 4): clone 59.4, clone.drop 32.8, save 13.3
+[2026-09-29T05:36:27.864Z] 0134-rc4-local-glowcap-scaled-64-native-lifecycle 15.0 s (parallelism 4): from_source 82709.2, restore 84868.2, restore.parse 36.3
+[2026-09-29T05:36:42.886Z] 0135-main-local-glowcap-scaled-64-native-lifecycle 15.0 s (parallelism 4): from_source 83410.7, restore 84435.3, restore.parse 38.2
+[2026-09-29T05:36:45.988Z] 0136-rc4-published-glowcap-scaled-64-wasm-raw.dispatch_view 3.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 184.6, js.parse_view 120.1
+[2026-09-29T05:36:49.084Z] 0137-rc4-local-glowcap-scaled-64-wasm-raw.dispatch_view 3.1 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 180.2, js.parse_view 116.2
+[2026-09-29T05:36:52.167Z] 0138-main-local-glowcap-scaled-64-wasm-raw.dispatch_view 3.1 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 179.6, js.parse_view 117
+[2026-09-29T05:36:55.218Z] 0139-hist-e6ace96-glowcap-scaled-64-wasm-raw.dispatch_view 3.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 176.5, js.parse_view 116.5
+[2026-09-29T05:36:57.298Z] 0140-rc4-published-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 156.4, abi.decode 17.5
+[2026-09-29T05:36:59.607Z] 0141-rc4-local-glowcap-scaled-64-wasm-abi.dispatch_view 2.3 s (parallelism 4): abi.encode_args 0.3, abi.exec 188.5, abi.decode 21
+[2026-09-29T05:37:01.694Z] 0142-main-local-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 157.3, abi.decode 17.6
+[2026-09-29T05:37:03.734Z] 0143-hist-e6ace96-glowcap-scaled-64-wasm-abi.dispatch_view 2.0 s (parallelism 4): abi.encode_args 0.2, abi.exec 155.6, abi.decode 17.7
+[2026-09-29T05:37:19.929Z] 0144-rc4-published-glowcap-scaled-64-wasm-read 16.2 s (parallelism 4): raw.view 85.7, js.parse_view 120.8, raw.snapshot 823.2
+[2026-09-29T05:37:36.013Z] 0145-rc4-local-glowcap-scaled-64-wasm-read 16.1 s (parallelism 4): raw.view 86.3, js.parse_view 119.9, raw.snapshot 815.9
+[2026-09-29T05:37:52.090Z] 0146-main-local-glowcap-scaled-64-wasm-read 16.1 s (parallelism 4): raw.view 85.9, js.parse_view 122.1, raw.snapshot 814.7
+[2026-09-29T05:38:08.346Z] 0147-hist-e6ace96-glowcap-scaled-64-wasm-read 16.2 s (parallelism 4): raw.view 83.7, js.parse_view 120.5, raw.snapshot 830.1
+[2026-09-29T05:38:21.261Z] 0148-rc4-published-glowcap-scaled-64-wasm-kit 12.9 s (parallelism 4): kit.dispatch 1241.4, kit.view 220.5, kit.dispatch+view 1466.6
+[2026-09-29T05:38:34.570Z] 0149-rc4-local-glowcap-scaled-64-wasm-kit 13.3 s (parallelism 4): kit.dispatch 1291.5, kit.view 230.7, kit.dispatch+view 1530.7
+[2026-09-29T05:38:47.613Z] 0150-main-local-glowcap-scaled-64-wasm-kit 13.0 s (parallelism 4): kit.dispatch 1309.3, kit.view 233.5, kit.dispatch+view 1571.6
+[2026-09-29T05:38:58.772Z] 0151-rc4-published-glowcap-scaled-64-wasm-lifecycle 11.2 s (parallelism 4): raw.new 78299.2, raw.save 93.6, raw.restore 78214
+[2026-09-29T05:39:10.479Z] 0152-rc4-local-glowcap-scaled-64-wasm-lifecycle 11.7 s (parallelism 4): raw.new 82552.1, raw.save 98.5, raw.restore 80364.3
+[2026-09-29T05:39:21.992Z] 0153-main-local-glowcap-scaled-64-wasm-lifecycle 11.5 s (parallelism 4): raw.new 80804.1, raw.save 95.1, raw.restore 80059.1
+[2026-09-29T05:39:28.112Z] 0154-hist-e6ace96-glowcap-scaled-64-wasm-lifecycle 6.1 s (parallelism 4): raw.new 79457.2, raw.save 98.4, raw.restore 80033.6
+[2026-09-29T05:39:28.873Z] 0155-rc4-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 14.6
+[2026-09-29T05:39:29.653Z] 0156-main-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 14.9
+[2026-09-29T05:39:30.441Z] 0157-rc4-local-ledger-session-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 20.2
+[2026-09-29T05:39:31.202Z] 0158-main-local-ledger-session-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 20
+[2026-09-29T05:39:32.191Z] 0159-rc4-local-ledger-session-native-dispatch_json 1.0 s (parallelism 4): dispatch_json 38.5
+[2026-09-29T05:39:33.095Z] 0160-main-local-ledger-session-native-dispatch_json 0.9 s (parallelism 4): dispatch_json 35.9
+[2026-09-29T05:39:34.002Z] 0161-rc4-local-ledger-session-native-dispatch_outcome_json 0.9 s (parallelism 4): dispatch_outcome_json 35.5
+[2026-09-29T05:39:34.914Z] 0162-main-local-ledger-session-native-dispatch_outcome_json 0.9 s (parallelism 4): dispatch_outcome_json 35.6
+[2026-09-29T05:39:35.755Z] 0163-rc4-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 25
+[2026-09-29T05:39:36.540Z] 0164-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 23.1
+[2026-09-29T05:39:37.575Z] 0165-rc4-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.7
+[2026-09-29T05:39:38.589Z] 0166-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.6
+[2026-09-29T05:39:39.663Z] 0167-rc4-local-ledger-session-native-web.dispatch 1.1 s (parallelism 4): web.dispatch 69.8
+[2026-09-29T05:39:40.771Z] 0168-main-local-ledger-session-native-web.dispatch 1.1 s (parallelism 4): web.dispatch 71
+[2026-09-29T05:39:42.392Z] 0169-rc4-local-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 1, save 6.3
+[2026-09-29T05:39:43.953Z] 0170-main-local-ledger-session-native-read 1.5 s (parallelism 4): clone 1.7, clone.drop 1, save 6.5
+[2026-09-29T05:39:45.316Z] 0171-rc4-local-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.4, web.snapshot 50.6, web.view 5.1
+[2026-09-29T05:39:46.700Z] 0172-main-local-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.4, web.snapshot 50.8, web.view 5.1
+[2026-09-29T05:39:47.020Z] 0173-rc4-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1318, restore 1377.4, restore.parse 23.1
+[2026-09-29T05:39:47.306Z] 0174-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1286.9, restore 1328, restore.parse 22.7
+[2026-09-29T05:39:48.382Z] 0175-rc4-published-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.6, js.parse_view 7.1
+[2026-09-29T05:39:49.428Z] 0176-rc4-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.5, js.parse_view 6.9
+[2026-09-29T05:39:50.488Z] 0177-main-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 29.1, js.parse_view 6.9
+[2026-09-29T05:39:51.492Z] 0178-hist-e6ace96-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.7, js.parse_view 7.2
+[2026-09-29T05:39:53.097Z] 0179-rc4-published-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.1, js.parse_outcome 47.2, raw.dispatch_outcome+parse 114.2
+[2026-09-29T05:39:54.652Z] 0180-rc4-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 65.5, js.parse_outcome 44.1, raw.dispatch_outcome+parse 109.5
+[2026-09-29T05:39:56.171Z] 0181-main-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 63.3, js.parse_outcome 44.6, raw.dispatch_outcome+parse 108.4
+[2026-09-29T05:39:56.277Z] 0182-hist-e6ace96-ledger-session-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:39:56.279Z] 0182-hist-e6ace96-ledger-session-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:39:57.618Z] 0183-rc4-published-ledger-session-wasm-raw.dispatch 1.3 s (parallelism 4): raw.dispatch 80.8
+[2026-09-29T05:39:59.021Z] 0184-rc4-local-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 82.4
+[2026-09-29T05:40:00.442Z] 0185-main-local-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 84.1
+[2026-09-29T05:40:01.815Z] 0186-hist-e6ace96-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 88.1
+[2026-09-29T05:40:02.849Z] 0187-rc4-published-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.9, abi.decode 0.6
+[2026-09-29T05:40:03.845Z] 0188-rc4-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.1, abi.decode 0.6
+[2026-09-29T05:40:04.866Z] 0189-main-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.6, abi.decode 0.6
+[2026-09-29T05:40:05.802Z] 0190-hist-e6ace96-ledger-session-wasm-abi.dispatch_view 0.9 s (parallelism 4): abi.encode_args 0.2, abi.exec 26, abi.decode 0.6
+[2026-09-29T05:40:07.071Z] 0191-rc4-published-ledger-session-wasm-abi.dispatch_outcome 1.3 s (parallelism 4): abi.encode_args 0.3, abi.exec 60.5, abi.decode 2.3
+[2026-09-29T05:40:08.343Z] 0192-rc4-local-ledger-session-wasm-abi.dispatch_outcome 1.3 s (parallelism 4): abi.encode_args 0.3, abi.exec 60.8, abi.decode 2.4
+[2026-09-29T05:40:09.575Z] 0193-main-local-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 58.6, abi.decode 2.3
+[2026-09-29T05:40:09.676Z] 0194-hist-e6ace96-ledger-session-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:40:09.679Z] 0194-hist-e6ace96-ledger-session-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:40:12.020Z] 0195-rc4-published-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.1, js.parse_view 7.9, raw.snapshot 68.3
+[2026-09-29T05:40:14.364Z] 0196-rc4-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.1, js.parse_view 7.9, raw.snapshot 68.7
+[2026-09-29T05:40:16.712Z] 0197-main-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.3, js.parse_view 8.1, raw.snapshot 69.9
+[2026-09-29T05:40:18.949Z] 0198-hist-e6ace96-ledger-session-wasm-read 2.2 s (parallelism 4): raw.view 6.5, js.parse_view 7.8, raw.snapshot 66.3
+[2026-09-29T05:40:20.736Z] 0199-rc4-published-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.7, abi.view.decode 0.4, abi.snapshot.exec 61.3
+[2026-09-29T05:40:22.544Z] 0200-rc4-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.8, abi.view.decode 0.4, abi.snapshot.exec 61.3
+[2026-09-29T05:40:24.332Z] 0201-main-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.7, abi.view.decode 0.4, abi.snapshot.exec 61.1
+[2026-09-29T05:40:26.036Z] 0202-hist-e6ace96-ledger-session-wasm-abi.read 1.7 s (parallelism 4): abi.view.exec 6.1, abi.view.decode 0.3, abi.snapshot.exec 59.4
+[2026-09-29T05:40:27.742Z] 0203-rc4-published-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 111.2, kit.view 14.5, kit.dispatch+view 125.4
+[2026-09-29T05:40:29.469Z] 0204-rc4-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 112.1, kit.view 14.6, kit.dispatch+view 126.1
+[2026-09-29T05:40:31.170Z] 0205-main-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 110.1, kit.view 14.2, kit.dispatch+view 124
+[2026-09-29T05:40:34.142Z] 0206-rc4-published-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 15.9, kit.snapshot 115.4, kit.save 30.6
+[2026-09-29T05:40:37.145Z] 0207-rc4-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 15.9, kit.snapshot 116.4, kit.save 30.4
+[2026-09-29T05:40:40.188Z] 0208-main-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16.4, kit.snapshot 118.9, kit.save 31.4
+[2026-09-29T05:40:40.626Z] 0209-rc4-published-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1575.8, raw.save 49.3, raw.restore 1709.4
+[2026-09-29T05:40:41.054Z] 0210-rc4-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1442.7, raw.save 48.5, raw.restore 1581.2
+[2026-09-29T05:40:41.493Z] 0211-main-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1605.4, raw.save 49.3, raw.restore 1722.6
+[2026-09-29T05:40:41.791Z] 0212-hist-e6ace96-ledger-session-wasm-lifecycle 0.3 s (parallelism 4): raw.new 1504.5, raw.save 51.5, raw.restore 1595.4
+[2026-09-29T05:40:42.314Z] 0213-rc4-published-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.098, js.stringify_payload.last 0.061
+[2026-09-29T05:40:42.844Z] 0214-rc4-local-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.101, js.stringify_payload.last 0.061
+[2026-09-29T05:40:43.355Z] 0215-main-local-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.102, js.stringify_payload.last 0.061
+[2026-09-29T05:40:43.815Z] 0216-hist-e6ace96-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.096, js.stringify_payload.last 0.058
+[2026-09-29T05:40:49.972Z] 0217-rc4-local-trail-rescue-scenarios-native-apply 6.1 s (parallelism 4): apply 47.4
+[2026-09-29T05:40:56.132Z] 0218-main-local-trail-rescue-scenarios-native-apply 6.2 s (parallelism 4): apply 47.3
+[2026-09-29T05:41:02.339Z] 0219-rc4-local-trail-rescue-scenarios-native-dispatch_view_json 6.2 s (parallelism 4): dispatch_view_json 51.5
+[2026-09-29T05:41:08.720Z] 0220-main-local-trail-rescue-scenarios-native-dispatch_view_json 6.4 s (parallelism 4): dispatch_view_json 52.9
+[2026-09-29T05:41:15.233Z] 0221-rc4-local-trail-rescue-scenarios-native-dispatch_json 6.5 s (parallelism 4): dispatch_json 81.9
+[2026-09-29T05:41:21.782Z] 0222-main-local-trail-rescue-scenarios-native-dispatch_json 6.5 s (parallelism 4): dispatch_json 82.1
+[2026-09-29T05:41:28.587Z] 0223-rc4-local-trail-rescue-scenarios-native-dispatch_outcome_json 6.8 s (parallelism 4): dispatch_outcome_json 87.1
+[2026-09-29T05:41:35.197Z] 0224-main-local-trail-rescue-scenarios-native-dispatch_outcome_json 6.6 s (parallelism 4): dispatch_outcome_json 83.3
+[2026-09-29T05:41:41.561Z] 0225-rc4-local-trail-rescue-scenarios-native-web.dispatch_view 6.4 s (parallelism 4): web.dispatch_view 60.5
+[2026-09-29T05:41:47.856Z] 0226-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.3 s (parallelism 4): web.dispatch_view 59.4
+[2026-09-29T05:41:54.653Z] 0227-rc4-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.8 s (parallelism 4): web.dispatch_outcome 118.2
+[2026-09-29T05:42:01.391Z] 0228-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 117.2
+[2026-09-29T05:42:08.350Z] 0229-rc4-local-trail-rescue-scenarios-native-web.dispatch 7.0 s (parallelism 4): web.dispatch 137.7
+[2026-09-29T05:42:15.314Z] 0230-main-local-trail-rescue-scenarios-native-web.dispatch 7.0 s (parallelism 4): web.dispatch 139.1
+[2026-09-29T05:42:23.783Z] 0231-rc4-local-trail-rescue-scenarios-native-read 8.4 s (parallelism 4): clone 11, clone.drop 6, save 5.9
+[2026-09-29T05:42:31.601Z] 0232-main-local-trail-rescue-scenarios-native-read 7.8 s (parallelism 4): clone 10.3, clone.drop 5.6, save 5.3
+[2026-09-29T05:42:38.970Z] 0233-rc4-local-trail-rescue-scenarios-native-web.read 7.4 s (parallelism 4): web.save 11, web.snapshot 79.4, web.view 6.1
+[2026-09-29T05:42:46.313Z] 0234-main-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.8, web.snapshot 79.8, web.view 6.1
+[2026-09-29T05:42:46.902Z] 0235-rc4-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2865.3, restore 2965.8, restore.parse 17.6
+[2026-09-29T05:42:47.498Z] 0236-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2967.7, restore 3034, restore.parse 19.2
+[2026-09-29T05:42:53.905Z] 0237-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_view 6.4 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.2, js.parse_view 25.1
+[2026-09-29T05:43:00.292Z] 0238-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.4 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.1, js.parse_view 25.4
+[2026-09-29T05:43:06.891Z] 0239-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 75, js.parse_view 25.9
+[2026-09-29T05:43:07.063Z] 0240-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:43:07.066Z] 0240-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 4): 
+[2026-09-29T05:43:14.952Z] 0241-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 142.8, js.parse_outcome 76.5, raw.dispatch_outcome+parse 222.4
+[2026-09-29T05:43:22.945Z] 0242-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 8.0 s (parallelism 4): raw.dispatch_outcome 144.4, js.parse_outcome 76.6, raw.dispatch_outcome+parse 224.2
+[2026-09-29T05:43:30.835Z] 0243-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 142.2, js.parse_outcome 75.9, raw.dispatch_outcome+parse 220.5
+[2026-09-29T05:43:30.941Z] 0244-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:43:30.944Z] 0244-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:43:38.105Z] 0245-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch 7.2 s (parallelism 4): raw.dispatch 169.9
+[2026-09-29T05:43:45.195Z] 0246-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch 7.1 s (parallelism 4): raw.dispatch 167.6
+[2026-09-29T05:43:52.231Z] 0247-main-local-trail-rescue-scenarios-wasm-raw.dispatch 7.0 s (parallelism 4): raw.dispatch 166.3
+[2026-09-29T05:43:52.385Z] 0248-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:43:52.388Z] 0248-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch 0.2 s (parallelism 4): 
+[2026-09-29T05:43:58.642Z] 0249-rc4-published-trail-rescue-scenarios-wasm-abi.dispatch_view 6.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 71, abi.decode 1.2
+[2026-09-29T05:44:04.896Z] 0250-rc4-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 71.1, abi.decode 1.2
+[2026-09-29T05:44:11.130Z] 0251-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 70, abi.decode 1.2
+[2026-09-29T05:44:11.282Z] 0252-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:44:11.284Z] 0252-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T05:44:18.482Z] 0253-rc4-published-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 133.2, abi.decode 3.2
+[2026-09-29T05:44:25.569Z] 0254-rc4-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 131.9, abi.decode 3.2
+[2026-09-29T05:44:32.721Z] 0255-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 135.1, abi.decode 3.2
+[2026-09-29T05:44:32.825Z] 0256-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:44:32.828Z] 0256-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:44:42.132Z] 0257-rc4-published-trail-rescue-scenarios-wasm-read 9.3 s (parallelism 4): raw.view 10.2, js.parse_view 26.4, raw.snapshot 109
+[2026-09-29T05:44:51.581Z] 0258-rc4-local-trail-rescue-scenarios-wasm-read 9.4 s (parallelism 4): raw.view 10, js.parse_view 26.1, raw.snapshot 107
+[2026-09-29T05:45:00.801Z] 0259-main-local-trail-rescue-scenarios-wasm-read 9.2 s (parallelism 4): raw.view 10.1, js.parse_view 25.8, raw.snapshot 106.6
+[2026-09-29T05:45:00.953Z] 0260-hist-e6ace96-trail-rescue-scenarios-wasm-read: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:45:00.956Z] 0260-hist-e6ace96-trail-rescue-scenarios-wasm-read 0.1 s (parallelism 4): 
+[2026-09-29T05:45:08.713Z] 0261-rc4-published-trail-rescue-scenarios-wasm-abi.read 7.7 s (parallelism 4): abi.view.exec 9.1, abi.view.decode 0.8, abi.snapshot.exec 97.8
+[2026-09-29T05:45:16.509Z] 0262-rc4-local-trail-rescue-scenarios-wasm-abi.read 7.8 s (parallelism 4): abi.view.exec 9.1, abi.view.decode 0.9, abi.snapshot.exec 98.9
+[2026-09-29T05:45:24.357Z] 0263-main-local-trail-rescue-scenarios-wasm-abi.read 7.8 s (parallelism 4): abi.view.exec 9.2, abi.view.decode 0.9, abi.snapshot.exec 99.2
+[2026-09-29T05:45:24.510Z] 0264-hist-e6ace96-trail-rescue-scenarios-wasm-abi.read: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:45:24.513Z] 0264-hist-e6ace96-trail-rescue-scenarios-wasm-abi.read 0.2 s (parallelism 4): 
+[2026-09-29T05:45:33.013Z] 0265-rc4-published-trail-rescue-scenarios-wasm-kit 8.5 s (parallelism 4): kit.dispatch 223.4, kit.view 34.4, kit.dispatch+view 261.2
+[2026-09-29T05:45:41.382Z] 0266-rc4-local-trail-rescue-scenarios-wasm-kit 8.4 s (parallelism 4): kit.dispatch 220.3, kit.view 33.5, kit.dispatch+view 257.2
+[2026-09-29T05:45:49.830Z] 0267-main-local-trail-rescue-scenarios-wasm-kit 8.4 s (parallelism 4): kit.dispatch 223, kit.view 34.2, kit.dispatch+view 260.3
+[2026-09-29T05:46:00.586Z] 0268-rc4-published-trail-rescue-scenarios-wasm-kit.read 10.7 s (parallelism 4): kit.view 34.7, kit.snapshot 180.4, kit.save 27.2
+[2026-09-29T05:46:11.394Z] 0269-rc4-local-trail-rescue-scenarios-wasm-kit.read 10.8 s (parallelism 4): kit.view 34.6, kit.snapshot 179.4, kit.save 27.2
+[2026-09-29T05:46:22.015Z] 0270-main-local-trail-rescue-scenarios-wasm-kit.read 10.6 s (parallelism 4): kit.view 34.4, kit.snapshot 179.8, kit.save 26.8
+[2026-09-29T05:46:22.633Z] 0271-rc4-published-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2955, raw.save 36.6, raw.restore 2970.1
+[2026-09-29T05:46:23.349Z] 0272-rc4-local-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3524.9, raw.save 44.9, raw.restore 3514
+[2026-09-29T05:46:23.967Z] 0273-main-local-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2985.2, raw.save 36.6, raw.restore 2988.1
+[2026-09-29T05:46:24.116Z] 0274-hist-e6ace96-trail-rescue-scenarios-wasm-lifecycle: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:46:24.118Z] 0274-hist-e6ace96-trail-rescue-scenarios-wasm-lifecycle 0.1 s (parallelism 4): 
+[2026-09-29T05:46:24.875Z] 0275-rc4-published-trail-rescue-scenarios-wasm-micro 0.7 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.112, js.stringify_payload.last 0.033
+[2026-09-29T05:46:25.629Z] 0276-rc4-local-trail-rescue-scenarios-wasm-micro 0.7 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.111, js.stringify_payload.last 0.036
+[2026-09-29T05:46:26.380Z] 0277-main-local-trail-rescue-scenarios-wasm-micro 0.7 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.13, js.stringify_payload.last 0.042
+[2026-09-29T05:46:26.520Z] 0278-hist-e6ace96-trail-rescue-scenarios-wasm-micro: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:46:26.523Z] 0278-hist-e6ace96-trail-rescue-scenarios-wasm-micro 0.1 s (parallelism 4): 
+[2026-09-29T05:46:27.174Z] 0279-rc4-local-glowcap-replay-native-apply 0.6 s (parallelism 4): apply 13.1
+[2026-09-29T05:46:27.844Z] 0280-main-local-glowcap-replay-native-apply 0.7 s (parallelism 4): apply 13
+[2026-09-29T05:46:28.594Z] 0281-rc4-local-glowcap-replay-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 15.7
+[2026-09-29T05:46:29.352Z] 0282-main-local-glowcap-replay-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 15.8
+[2026-09-29T05:46:31.319Z] 0283-rc4-local-glowcap-replay-native-dispatch_json 1.9 s (parallelism 4): dispatch_json 36.8
+[2026-09-29T05:46:33.282Z] 0284-main-local-glowcap-replay-native-dispatch_json 1.9 s (parallelism 4): dispatch_json 36.6
+[2026-09-29T05:46:35.248Z] 0285-rc4-local-glowcap-replay-native-dispatch_outcome_json 1.9 s (parallelism 4): dispatch_outcome_json 36.5
+[2026-09-29T05:46:37.232Z] 0286-main-local-glowcap-replay-native-dispatch_outcome_json 2.0 s (parallelism 4): dispatch_outcome_json 36.7
+[2026-09-29T05:46:38.143Z] 0287-rc4-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20
+[2026-09-29T05:46:39.051Z] 0288-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20
+[2026-09-29T05:46:41.727Z] 0289-rc4-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 63.6
+[2026-09-29T05:46:44.449Z] 0290-main-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 64.7
+[2026-09-29T05:46:47.778Z] 0291-rc4-local-glowcap-replay-native-web.dispatch 3.3 s (parallelism 4): web.dispatch 79.9
+[2026-09-29T05:46:51.189Z] 0292-main-local-glowcap-replay-native-web.dispatch 3.4 s (parallelism 4): web.dispatch 81.6
+[2026-09-29T05:46:57.263Z] 0293-rc4-local-glowcap-replay-native-read 6.0 s (parallelism 4): clone 7, clone.drop 3.8, save 8.9
+[2026-09-29T05:47:03.716Z] 0294-main-local-glowcap-replay-native-read 6.3 s (parallelism 4): clone 7.6, clone.drop 4.1, save 9.6
+[2026-09-29T05:47:08.583Z] 0295-rc4-local-glowcap-replay-native-web.read 4.8 s (parallelism 4): web.save 16.5, web.snapshot 70.4, web.view 6.8
+[2026-09-29T05:47:13.530Z] 0296-main-local-glowcap-replay-native-web.read 4.9 s (parallelism 4): web.save 16.8, web.snapshot 70.7, web.view 6.8
+[2026-09-29T05:47:14.489Z] 0297-rc4-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2632.1, restore 2737.1, restore.parse 25.9
+[2026-09-29T05:47:15.463Z] 0298-main-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2711, restore 2824.2, restore.parse 26.4
+[2026-09-29T05:47:17.134Z] 0299-rc4-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46
+[2026-09-29T05:47:18.837Z] 0300-main-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 47.2
+[2026-09-29T05:47:20.469Z] 0301-hist-e6ace96-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 44.8
+[2026-09-29T05:47:22.164Z] 0302-rc4-published-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.8
+[2026-09-29T05:47:24.362Z] 0303-rc4-local-glowcap-replay-wasm-adapter 2.2 s (parallelism 4): adapter.dispatch 43.3, adapter.view 2.2, adapter.dispatch+view 45.6
+[2026-09-29T05:47:26.562Z] 0304-main-local-glowcap-replay-wasm-adapter 2.2 s (parallelism 4): adapter.dispatch 43.7, adapter.view 2.3, adapter.dispatch+view 46.1
+[2026-09-29T05:47:28.710Z] 0305-hist-e6ace96-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 42.5, adapter.view 2.2, adapter.dispatch+view 44.8
+[2026-09-29T05:47:30.903Z] 0306-rc4-published-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 43.6, adapter.view 2.3, adapter.dispatch+view 45.9
+[2026-09-29T05:47:33.001Z] 0307-rc4-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.2, js.parse_view 17.2
+[2026-09-29T05:47:35.107Z] 0308-main-local-glowcap-replay-wasm-raw.dispatch_view 2.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.4, js.parse_view 17.1
+[2026-09-29T05:47:37.132Z] 0309-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25, js.parse_view 16.9
+[2026-09-29T05:47:39.228Z] 0310-rc4-published-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.3, js.parse_view 17.1
+[2026-09-29T05:47:45.193Z] 0311-rc4-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 73.9, js.parse_outcome 64.4, raw.dispatch_outcome+parse 138.8
+[2026-09-29T05:47:51.159Z] 0312-main-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 72.6, js.parse_outcome 64.7, raw.dispatch_outcome+parse 137.8
+[2026-09-29T05:47:51.277Z] 0313-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:47:51.280Z] 0313-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:47:57.205Z] 0314-rc4-published-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 72.1, js.parse_outcome 64.1, raw.dispatch_outcome+parse 136.8
+[2026-09-29T05:48:01.588Z] 0315-rc4-local-glowcap-replay-wasm-raw.dispatch 4.4 s (parallelism 4): raw.dispatch 101
+[2026-09-29T05:48:05.966Z] 0316-main-local-glowcap-replay-wasm-raw.dispatch 4.4 s (parallelism 4): raw.dispatch 100.3
+[2026-09-29T05:48:10.290Z] 0317-hist-e6ace96-glowcap-replay-wasm-raw.dispatch 4.3 s (parallelism 4): raw.dispatch 99.8
+[2026-09-29T05:48:14.694Z] 0318-rc4-published-glowcap-replay-wasm-raw.dispatch 4.4 s (parallelism 4): raw.dispatch 101.5
+[2026-09-29T05:48:16.041Z] 0319-rc4-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.5, abi.decode 2.5
+[2026-09-29T05:48:17.402Z] 0320-main-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.6, abi.decode 2.5
+[2026-09-29T05:48:18.714Z] 0321-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.7, abi.decode 2.5
+[2026-09-29T05:48:20.083Z] 0322-rc4-published-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 22.8, abi.decode 2.5
+[2026-09-29T05:48:23.254Z] 0323-rc4-local-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 60.7, abi.decode 7.8
+[2026-09-29T05:48:26.452Z] 0324-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 61.4, abi.decode 7.8
+[2026-09-29T05:48:26.565Z] 0325-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:48:26.567Z] 0325-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:48:29.765Z] 0326-rc4-published-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 61.6, abi.decode 7.7
+[2026-09-29T05:48:40.199Z] 0327-rc4-local-glowcap-replay-wasm-read 10.4 s (parallelism 4): raw.view 11.5, js.parse_view 18.7, raw.snapshot 95
+[2026-09-29T05:48:50.566Z] 0328-main-local-glowcap-replay-wasm-read 10.3 s (parallelism 4): raw.view 11.4, js.parse_view 18.6, raw.snapshot 95
+[2026-09-29T05:49:00.851Z] 0329-hist-e6ace96-glowcap-replay-wasm-read 10.2 s (parallelism 4): raw.view 10.8, js.parse_view 18.4, raw.snapshot 95
+[2026-09-29T05:49:11.445Z] 0330-rc4-published-glowcap-replay-wasm-read 10.5 s (parallelism 4): raw.view 12, js.parse_view 19.2, raw.snapshot 97.6
+[2026-09-29T05:49:17.655Z] 0331-rc4-local-glowcap-replay-wasm-abi.read 6.1 s (parallelism 4): abi.view.exec 8.7, abi.view.decode 2.4, abi.snapshot.exec 74
+[2026-09-29T05:49:23.842Z] 0332-main-local-glowcap-replay-wasm-abi.read 6.1 s (parallelism 4): abi.view.exec 8.7, abi.view.decode 2.4, abi.snapshot.exec 73.1
+[2026-09-29T05:49:30.003Z] 0333-hist-e6ace96-glowcap-replay-wasm-abi.read 6.1 s (parallelism 4): abi.view.exec 7.9, abi.view.decode 2.3, abi.snapshot.exec 75.4
+[2026-09-29T05:49:36.204Z] 0334-rc4-published-glowcap-replay-wasm-abi.read 6.1 s (parallelism 4): abi.view.exec 8.6, abi.view.decode 2.4, abi.snapshot.exec 73.3
+[2026-09-29T05:49:43.505Z] 0335-rc4-local-glowcap-replay-wasm-kit 7.2 s (parallelism 4): kit.dispatch 141.9, kit.view 29.6, kit.dispatch+view 171.7
+[2026-09-29T05:49:50.997Z] 0336-main-local-glowcap-replay-wasm-kit 7.4 s (parallelism 4): kit.dispatch 145.1, kit.view 30.2, kit.dispatch+view 175.6
+[2026-09-29T05:49:58.301Z] 0337-rc4-published-glowcap-replay-wasm-kit 7.3 s (parallelism 4): kit.dispatch 141.6, kit.view 29.4, kit.dispatch+view 171.2
+[2026-09-29T05:50:15.338Z] 0338-rc4-local-glowcap-replay-wasm-kit.read 17.0 s (parallelism 4): kit.view 32.5, kit.snapshot 176.2, kit.save 42.1
+[2026-09-29T05:50:32.477Z] 0339-main-local-glowcap-replay-wasm-kit.read 17.1 s (parallelism 4): kit.view 32.5, kit.snapshot 176.9, kit.save 42.9
+[2026-09-29T05:50:49.623Z] 0340-rc4-published-glowcap-replay-wasm-kit.read 17.1 s (parallelism 4): kit.view 32.6, kit.snapshot 176.7, kit.save 42.8
+[2026-09-29T05:50:50.491Z] 0341-rc4-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2539.8, raw.save 45.9, raw.restore 2651.4
+[2026-09-29T05:50:51.366Z] 0342-main-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2576.3, raw.save 47.7, raw.restore 2687.9
+[2026-09-29T05:50:52.015Z] 0343-hist-e6ace96-glowcap-replay-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2515.5, raw.save 46, raw.restore 2623.3
+[2026-09-29T05:50:52.918Z] 0344-rc4-published-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2641.6, raw.save 48.6, raw.restore 2730.7
+[2026-09-29T05:50:54.141Z] 0345-rc4-local-glowcap-replay-wasm-micro 1.2 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.075, js.stringify_payload.last 0.088
+[2026-09-29T05:50:55.282Z] 0346-main-local-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.092, js.stringify_payload.last 0.085
+[2026-09-29T05:50:56.149Z] 0347-hist-e6ace96-glowcap-replay-wasm-micro 0.9 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.079, js.stringify_payload.last 0.084
+[2026-09-29T05:50:57.264Z] 0348-rc4-published-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.086, js.stringify_payload.last 0.083
+[2026-09-29T05:50:58.136Z] 0349-rc4-local-glowcap-resume-native-lifecycle 0.9 s (parallelism 4): from_source 2682.9, restore 2800.3, restore.parse 19
+[2026-09-29T05:50:59.014Z] 0350-main-local-glowcap-resume-native-lifecycle 0.9 s (parallelism 4): from_source 2778.1, restore 2792.4, restore.parse 19.8
+[2026-09-29T05:50:59.856Z] 0351-rc4-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2672, raw.save 33.2, raw.restore 2656.9
+[2026-09-29T05:51:00.669Z] 0352-main-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2595.1, raw.save 34.3, raw.restore 2581.2
+[2026-09-29T05:51:01.256Z] 0353-hist-e6ace96-glowcap-resume-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2494.8, raw.save 32.8, raw.restore 2459.7
+[2026-09-29T05:51:02.062Z] 0354-rc4-published-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2636, raw.save 34.1, raw.restore 2600.1
+[2026-09-29T05:51:03.296Z] 0355-rc4-local-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 15, adapter.resume.createPolicy 3475.2, adapter.resume.view 43.4
+[2026-09-29T05:51:04.526Z] 0356-main-local-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 13.9, adapter.resume.createPolicy 3433.2, adapter.resume.view 40.1
+[2026-09-29T05:51:05.710Z] 0357-hist-e6ace96-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 14.9, adapter.resume.createPolicy 3253.5, adapter.resume.view 54.9
+[2026-09-29T05:51:06.961Z] 0358-rc4-published-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 13.7, adapter.resume.createPolicy 3146.8, adapter.resume.view 42.5
+[2026-09-29T05:51:07.585Z] 0359-rc4-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 12.6
+[2026-09-29T05:51:08.211Z] 0360-main-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 12.8
+[2026-09-29T05:51:08.957Z] 0361-rc4-local-glowcap-unbound-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 15.7
+[2026-09-29T05:51:09.694Z] 0362-main-local-glowcap-unbound-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 15.5
+[2026-09-29T05:51:10.530Z] 0363-rc4-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 18.3
+[2026-09-29T05:51:11.350Z] 0364-main-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 18
+[2026-09-29T05:51:16.205Z] 0365-rc4-local-glowcap-unbound-native-read 4.8 s (parallelism 4): clone 0.3, clone.drop 0.3, save 9.2
+[2026-09-29T05:51:21.091Z] 0366-main-local-glowcap-unbound-native-read 4.8 s (parallelism 4): clone 0.3, clone.drop 0.3, save 9.4
+[2026-09-29T05:51:22.180Z] 0367-rc4-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 18.5, abi.decode 0.5
+[2026-09-29T05:51:23.304Z] 0368-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.1 s (parallelism 4): abi.encode_args 0.1, abi.exec 18.7, abi.decode 0.5
+[2026-09-29T05:51:24.345Z] 0369-hist-e6ace96-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.5, abi.decode 0.5
+[2026-09-29T05:51:25.447Z] 0370-rc4-published-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 18.8, abi.decode 0.5
+[2026-09-29T05:51:26.820Z] 0371-rc4-local-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 19.8, js.parse_view 6.3
+[2026-09-29T05:51:28.188Z] 0372-main-local-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 19.7, js.parse_view 6.3
+[2026-09-29T05:51:29.511Z] 0373-hist-e6ace96-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 18.9, js.parse_view 6.2
+[2026-09-29T05:51:30.871Z] 0374-rc4-published-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 19.5, js.parse_view 6.3
+[2026-09-29T05:51:31.267Z] 0375-rc4-local-glowcap-scaled-16-native-apply 0.4 s (parallelism 4): apply 30.2
+[2026-09-29T05:51:31.661Z] 0376-main-local-glowcap-scaled-16-native-apply 0.4 s (parallelism 4): apply 30.1
+[2026-09-29T05:51:32.127Z] 0377-rc4-local-glowcap-scaled-16-native-web.dispatch_view 0.5 s (parallelism 4): web.dispatch_view 43.4
+[2026-09-29T05:51:32.643Z] 0378-main-local-glowcap-scaled-16-native-web.dispatch_view 0.5 s (parallelism 4): web.dispatch_view 47
+[2026-09-29T05:51:34.000Z] 0379-rc4-local-glowcap-scaled-16-native-web.dispatch_outcome 1.4 s (parallelism 4): web.dispatch_outcome 150.7
+[2026-09-29T05:51:35.396Z] 0380-main-local-glowcap-scaled-16-native-web.dispatch_outcome 1.4 s (parallelism 4): web.dispatch_outcome 152.6
+[2026-09-29T05:51:38.139Z] 0381-rc4-local-glowcap-scaled-16-native-read 2.7 s (parallelism 4): clone 18.4, clone.drop 10.3, save 9.9
+[2026-09-29T05:51:40.937Z] 0382-main-local-glowcap-scaled-16-native-read 2.8 s (parallelism 4): clone 18.4, clone.drop 10.4, save 10.3
+[2026-09-29T05:51:43.180Z] 0383-rc4-local-glowcap-scaled-16-native-lifecycle 2.2 s (parallelism 4): from_source 11255.3, restore 11622.7, restore.parse 36.7
+[2026-09-29T05:51:45.427Z] 0384-main-local-glowcap-scaled-16-native-lifecycle 2.2 s (parallelism 4): from_source 11238.3, restore 11519.1, restore.parse 37.7
+[2026-09-29T05:51:46.532Z] 0385-rc4-local-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 59.5, js.parse_view 39.6
+[2026-09-29T05:51:47.629Z] 0386-main-local-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 59.4, js.parse_view 38.4
+[2026-09-29T05:51:48.727Z] 0387-hist-e6ace96-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 57.7, js.parse_view 38.3
+[2026-09-29T05:51:49.827Z] 0388-rc4-published-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 59.4, js.parse_view 38.6
+[2026-09-29T05:51:50.598Z] 0389-rc4-local-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 52, abi.decode 5.7
+[2026-09-29T05:51:51.375Z] 0390-main-local-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 52.6, abi.decode 5.7
+[2026-09-29T05:51:52.131Z] 0391-hist-e6ace96-glowcap-scaled-16-wasm-abi.dispatch_view 0.7 s (parallelism 4): abi.encode_args 0.2, abi.exec 49.9, abi.decode 5.7
+[2026-09-29T05:51:52.915Z] 0392-rc4-published-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 52.3, abi.decode 5.7
+[2026-09-29T05:51:58.239Z] 0393-rc4-local-glowcap-scaled-16-wasm-read 5.3 s (parallelism 4): raw.view 24.8, js.parse_view 40.7, raw.snapshot 273.2
+[2026-09-29T05:52:03.591Z] 0394-main-local-glowcap-scaled-16-wasm-read 5.3 s (parallelism 4): raw.view 24.7, js.parse_view 41.3, raw.snapshot 273.7
+[2026-09-29T05:52:08.776Z] 0395-hist-e6ace96-glowcap-scaled-16-wasm-read 5.2 s (parallelism 4): raw.view 22.8, js.parse_view 39.5, raw.snapshot 262.9
+[2026-09-29T05:52:14.134Z] 0396-rc4-published-glowcap-scaled-16-wasm-read 5.3 s (parallelism 4): raw.view 24.6, js.parse_view 40.6, raw.snapshot 275.5
+[2026-09-29T05:52:17.836Z] 0397-rc4-local-glowcap-scaled-16-wasm-kit 3.7 s (parallelism 4): kit.dispatch 346.6, kit.view 67.2, kit.dispatch+view 414.8
+[2026-09-29T05:52:21.520Z] 0398-main-local-glowcap-scaled-16-wasm-kit 3.7 s (parallelism 4): kit.dispatch 346.7, kit.view 66.9, kit.dispatch+view 414.5
+[2026-09-29T05:52:25.181Z] 0399-rc4-published-glowcap-scaled-16-wasm-kit 3.6 s (parallelism 4): kit.dispatch 344.2, kit.view 66.1, kit.dispatch+view 411
+[2026-09-29T05:52:27.022Z] 0400-rc4-local-glowcap-scaled-16-wasm-lifecycle 1.8 s (parallelism 4): raw.new 10710.6, raw.save 66.9, raw.restore 10628.7
+[2026-09-29T05:52:28.879Z] 0401-main-local-glowcap-scaled-16-wasm-lifecycle 1.9 s (parallelism 4): raw.new 10839.7, raw.save 63.2, raw.restore 10662.3
+[2026-09-29T05:52:29.928Z] 0402-hist-e6ace96-glowcap-scaled-16-wasm-lifecycle 1.0 s (parallelism 4): raw.new 10261.1, raw.save 58.3, raw.restore 10196.6
+[2026-09-29T05:52:31.796Z] 0403-rc4-published-glowcap-scaled-16-wasm-lifecycle 1.9 s (parallelism 4): raw.new 10597.3, raw.save 61.6, raw.restore 10753.7
+[2026-09-29T05:52:33.168Z] 0404-rc4-local-glowcap-scaled-64-native-apply 1.4 s (parallelism 4): apply 93.4
+[2026-09-29T05:52:34.504Z] 0405-main-local-glowcap-scaled-64-native-apply 1.3 s (parallelism 4): apply 92.6
+[2026-09-29T05:52:36.147Z] 0406-rc4-local-glowcap-scaled-64-native-web.dispatch_view 1.6 s (parallelism 4): web.dispatch_view 146.3
+[2026-09-29T05:52:37.797Z] 0407-main-local-glowcap-scaled-64-native-web.dispatch_view 1.6 s (parallelism 4): web.dispatch_view 146.6
+[2026-09-29T05:52:42.255Z] 0408-rc4-local-glowcap-scaled-64-native-web.dispatch_outcome 4.5 s (parallelism 4): web.dispatch_outcome 481.3
+[2026-09-29T05:52:46.718Z] 0409-main-local-glowcap-scaled-64-native-web.dispatch_outcome 4.5 s (parallelism 4): web.dispatch_outcome 487.1
+[2026-09-29T05:52:54.898Z] 0410-rc4-local-glowcap-scaled-64-native-read 8.1 s (parallelism 4): clone 61.8, clone.drop 34, save 13.7
+[2026-09-29T05:53:03.249Z] 0411-main-local-glowcap-scaled-64-native-read 8.3 s (parallelism 4): clone 62.2, clone.drop 34.3, save 14.2
+[2026-09-29T05:53:19.040Z] 0412-rc4-local-glowcap-scaled-64-native-lifecycle 15.8 s (parallelism 4): from_source 87675.3, restore 88728.8, restore.parse 37.5
+[2026-09-29T05:53:34.904Z] 0413-main-local-glowcap-scaled-64-native-lifecycle 15.9 s (parallelism 4): from_source 87693.6, restore 89582.3, restore.parse 39.1
+[2026-09-29T05:53:38.070Z] 0414-rc4-local-glowcap-scaled-64-wasm-raw.dispatch_view 3.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 188.1, js.parse_view 122.8
+[2026-09-29T05:53:41.224Z] 0415-main-local-glowcap-scaled-64-wasm-raw.dispatch_view 3.1 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 188.2, js.parse_view 122.2
+[2026-09-29T05:53:44.347Z] 0416-hist-e6ace96-glowcap-scaled-64-wasm-raw.dispatch_view 3.1 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 183.1, js.parse_view 122.1
+[2026-09-29T05:53:47.563Z] 0417-rc4-published-glowcap-scaled-64-wasm-raw.dispatch_view 3.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 190.2, js.parse_view 124.3
+[2026-09-29T05:53:49.700Z] 0418-rc4-local-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 167.5, abi.decode 18.7
+[2026-09-29T05:53:51.837Z] 0419-main-local-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.3, abi.exec 165.9, abi.decode 18.5
+[2026-09-29T05:53:53.912Z] 0420-hist-e6ace96-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 161, abi.decode 18.4
+[2026-09-29T05:53:56.027Z] 0421-rc4-published-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 164.3, abi.decode 18.4
+[2026-09-29T05:54:12.939Z] 0422-rc4-local-glowcap-scaled-64-wasm-read 16.9 s (parallelism 4): raw.view 90.9, js.parse_view 127.1, raw.snapshot 876.1
+[2026-09-29T05:54:29.858Z] 0423-main-local-glowcap-scaled-64-wasm-read 16.9 s (parallelism 4): raw.view 90.9, js.parse_view 127.5, raw.snapshot 868.7
+[2026-09-29T05:54:46.620Z] 0424-hist-e6ace96-glowcap-scaled-64-wasm-read 16.7 s (parallelism 4): raw.view 87.2, js.parse_view 126, raw.snapshot 872.2
+[2026-09-29T05:55:03.531Z] 0425-rc4-published-glowcap-scaled-64-wasm-read 16.9 s (parallelism 4): raw.view 90.7, js.parse_view 126.4, raw.snapshot 866.8
+[2026-09-29T05:55:16.811Z] 0426-rc4-local-glowcap-scaled-64-wasm-kit 13.3 s (parallelism 4): kit.dispatch 1305.6, kit.view 231.3, kit.dispatch+view 1541
+[2026-09-29T05:55:29.992Z] 0427-main-local-glowcap-scaled-64-wasm-kit 13.2 s (parallelism 4): kit.dispatch 1291.5, kit.view 227.9, kit.dispatch+view 1522
+[2026-09-29T05:55:43.091Z] 0428-rc4-published-glowcap-scaled-64-wasm-kit 13.1 s (parallelism 4): kit.dispatch 1285.8, kit.view 227.6, kit.dispatch+view 1515.6
+[2026-09-29T05:55:54.827Z] 0429-rc4-local-glowcap-scaled-64-wasm-lifecycle 11.7 s (parallelism 4): raw.new 83423.2, raw.save 96.6, raw.restore 82072.8
+[2026-09-29T05:56:06.540Z] 0430-main-local-glowcap-scaled-64-wasm-lifecycle 11.7 s (parallelism 4): raw.new 83497.1, raw.save 95.5, raw.restore 81681.8
+[2026-09-29T05:56:12.590Z] 0431-hist-e6ace96-glowcap-scaled-64-wasm-lifecycle 6.0 s (parallelism 4): raw.new 80511, raw.save 92.1, raw.restore 80195.8
+[2026-09-29T05:56:24.547Z] 0432-rc4-published-glowcap-scaled-64-wasm-lifecycle 11.9 s (parallelism 4): raw.new 84116.8, raw.save 108.2, raw.restore 83508.7
+[2026-09-29T05:56:26.914Z] 0433-rc4-local-ledger-session-native-apply 2.4 s (parallelism 4): apply 14.7
+[2026-09-29T05:56:28.263Z] 0434-main-local-ledger-session-native-apply 1.3 s (parallelism 4): apply 16.2
+[2026-09-29T05:56:29.098Z] 0435-rc4-local-ledger-session-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 22
+[2026-09-29T05:56:29.931Z] 0436-main-local-ledger-session-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 22
+[2026-09-29T05:56:30.819Z] 0437-rc4-local-ledger-session-native-dispatch_json 0.9 s (parallelism 4): dispatch_json 35.2
+[2026-09-29T05:56:31.709Z] 0438-main-local-ledger-session-native-dispatch_json 0.9 s (parallelism 4): dispatch_json 35.2
+[2026-09-29T05:56:32.621Z] 0439-rc4-local-ledger-session-native-dispatch_outcome_json 0.9 s (parallelism 4): dispatch_outcome_json 35.2
+[2026-09-29T05:56:33.518Z] 0440-main-local-ledger-session-native-dispatch_outcome_json 0.9 s (parallelism 4): dispatch_outcome_json 35.2
+[2026-09-29T05:56:34.287Z] 0441-rc4-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 22.8
+[2026-09-29T05:56:35.114Z] 0442-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 24.9
+[2026-09-29T05:56:36.189Z] 0443-rc4-local-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 60
+[2026-09-29T05:56:37.184Z] 0444-main-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.1
+[2026-09-29T05:56:38.296Z] 0445-rc4-local-ledger-session-native-web.dispatch 1.1 s (parallelism 4): web.dispatch 68.9
+[2026-09-29T05:56:39.462Z] 0446-main-local-ledger-session-native-web.dispatch 1.2 s (parallelism 4): web.dispatch 75.6
+[2026-09-29T05:56:41.156Z] 0447-rc4-local-ledger-session-native-read 1.7 s (parallelism 4): clone 1.8, clone.drop 1, save 6.7
+[2026-09-29T05:56:42.712Z] 0448-main-local-ledger-session-native-read 1.5 s (parallelism 4): clone 1.7, clone.drop 1, save 6.3
+[2026-09-29T05:56:44.071Z] 0449-rc4-local-ledger-session-native-web.read 1.3 s (parallelism 4): web.save 12.1, web.snapshot 49.8, web.view 5.1
+[2026-09-29T05:56:45.430Z] 0450-main-local-ledger-session-native-web.read 1.3 s (parallelism 4): web.save 12.4, web.snapshot 50.6, web.view 5.1
+[2026-09-29T05:56:45.719Z] 0451-rc4-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1310.7, restore 1371.7, restore.parse 22.6
+[2026-09-29T05:56:46.006Z] 0452-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1308.8, restore 1335.9, restore.parse 21.8
+[2026-09-29T05:56:47.064Z] 0453-rc4-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.5, js.parse_view 6.7
+[2026-09-29T05:56:48.102Z] 0454-main-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.1, js.parse_view 6.7
+[2026-09-29T05:56:49.092Z] 0455-hist-e6ace96-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27, js.parse_view 7.1
+[2026-09-29T05:56:50.149Z] 0456-rc4-published-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.3, js.parse_view 6.9
+[2026-09-29T05:56:51.668Z] 0457-rc4-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 62.2, js.parse_outcome 44.3, raw.dispatch_outcome+parse 107
+[2026-09-29T05:56:53.186Z] 0458-main-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 62.5, js.parse_outcome 44.5, raw.dispatch_outcome+parse 107.1
+[2026-09-29T05:56:53.284Z] 0459-hist-e6ace96-ledger-session-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:56:53.287Z] 0459-hist-e6ace96-ledger-session-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:56:54.791Z] 0460-rc4-published-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 61.2, js.parse_outcome 43.9, raw.dispatch_outcome+parse 105.7
+[2026-09-29T05:56:56.157Z] 0461-rc4-local-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 82
+[2026-09-29T05:56:57.481Z] 0462-main-local-ledger-session-wasm-raw.dispatch 1.3 s (parallelism 4): raw.dispatch 80.5
+[2026-09-29T05:56:58.805Z] 0463-hist-e6ace96-ledger-session-wasm-raw.dispatch 1.3 s (parallelism 4): raw.dispatch 87.5
+[2026-09-29T05:57:00.188Z] 0464-rc4-published-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 86.2
+[2026-09-29T05:57:01.185Z] 0465-rc4-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.2, abi.exec 26.9, abi.decode 0.6
+[2026-09-29T05:57:02.196Z] 0466-main-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.6, abi.decode 0.6
+[2026-09-29T05:57:03.115Z] 0467-hist-e6ace96-ledger-session-wasm-abi.dispatch_view 0.9 s (parallelism 4): abi.encode_args 0.3, abi.exec 25.7, abi.decode 0.6
+[2026-09-29T05:57:04.129Z] 0468-rc4-published-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27, abi.decode 0.6
+[2026-09-29T05:57:05.367Z] 0469-rc4-local-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 58.3, abi.decode 2.3
+[2026-09-29T05:57:06.586Z] 0470-main-local-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 57.5, abi.decode 2.2
+[2026-09-29T05:57:06.687Z] 0471-hist-e6ace96-ledger-session-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T05:57:06.689Z] 0471-hist-e6ace96-ledger-session-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T05:57:07.896Z] 0472-rc4-published-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 57, abi.decode 2.2
+[2026-09-29T05:57:10.154Z] 0473-rc4-local-ledger-session-wasm-read 2.2 s (parallelism 4): raw.view 6.9, js.parse_view 7.6, raw.snapshot 66.1
+[2026-09-29T05:57:12.467Z] 0474-main-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.3, js.parse_view 8.1, raw.snapshot 69.4
+[2026-09-29T05:57:14.694Z] 0475-hist-e6ace96-ledger-session-wasm-read 2.2 s (parallelism 4): raw.view 6.7, js.parse_view 8, raw.snapshot 67.7
+[2026-09-29T05:57:16.998Z] 0476-rc4-published-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.2, js.parse_view 7.9, raw.snapshot 68.4
+[2026-09-29T05:57:18.844Z] 0477-rc4-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 7, abi.view.decode 0.4, abi.snapshot.exec 65.2
+[2026-09-29T05:57:20.610Z] 0478-main-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.6, abi.view.decode 0.4, abi.snapshot.exec 60.7
+[2026-09-29T05:57:22.335Z] 0479-hist-e6ace96-ledger-session-wasm-abi.read 1.7 s (parallelism 4): abi.view.exec 6.4, abi.view.decode 0.4, abi.snapshot.exec 61.9
+[2026-09-29T05:57:24.123Z] 0480-rc4-published-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.7, abi.view.decode 0.4, abi.snapshot.exec 60.9
+[2026-09-29T05:57:25.831Z] 0481-rc4-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 110.3, kit.view 14.4, kit.dispatch+view 124.1
+[2026-09-29T05:57:27.515Z] 0482-main-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 111.7, kit.view 14.6, kit.dispatch+view 125.8
+[2026-09-29T05:57:29.215Z] 0483-rc4-published-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 112.2, kit.view 14.6, kit.dispatch+view 126.2
+[2026-09-29T05:57:32.240Z] 0484-rc4-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 15.9, kit.snapshot 116, kit.save 30.5
+[2026-09-29T05:57:35.235Z] 0485-main-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 15.9, kit.snapshot 116.1, kit.save 30.5
+[2026-09-29T05:57:38.234Z] 0486-rc4-published-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16, kit.snapshot 117.1, kit.save 30.7
+[2026-09-29T05:57:38.663Z] 0487-rc4-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1576.3, raw.save 48.9, raw.restore 1696.5
+[2026-09-29T05:57:39.109Z] 0488-main-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1616.1, raw.save 50.4, raw.restore 1719.3
+[2026-09-29T05:57:39.414Z] 0489-hist-e6ace96-ledger-session-wasm-lifecycle 0.3 s (parallelism 4): raw.new 1597.7, raw.save 51.1, raw.restore 1618.8
+[2026-09-29T05:57:39.859Z] 0490-rc4-published-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1427.1, raw.save 46.4, raw.restore 1530.9
+[2026-09-29T05:57:40.404Z] 0491-rc4-local-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.097, js.stringify_payload.last 0.061
+[2026-09-29T05:57:40.909Z] 0492-main-local-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.094, js.stringify_payload.last 0.06
+[2026-09-29T05:57:41.362Z] 0493-hist-e6ace96-ledger-session-wasm-micro 0.4 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.097, js.stringify_payload.last 0.059
+[2026-09-29T05:57:41.880Z] 0494-rc4-published-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.087, js.stringify_payload.last 0.058
+[2026-09-29T05:57:47.902Z] 0495-rc4-local-trail-rescue-scenarios-native-apply 6.0 s (parallelism 4): apply 46.6
+[2026-09-29T05:57:53.936Z] 0496-main-local-trail-rescue-scenarios-native-apply 6.0 s (parallelism 4): apply 46.1
+[2026-09-29T05:58:00.050Z] 0497-rc4-local-trail-rescue-scenarios-native-dispatch_view_json 6.1 s (parallelism 4): dispatch_view_json 49.8
+[2026-09-29T05:58:06.131Z] 0498-main-local-trail-rescue-scenarios-native-dispatch_view_json 6.1 s (parallelism 4): dispatch_view_json 49.7
+[2026-09-29T05:58:12.568Z] 0499-rc4-local-trail-rescue-scenarios-native-dispatch_json 6.4 s (parallelism 4): dispatch_json 80.9
+[2026-09-29T05:58:19.647Z] 0500-main-local-trail-rescue-scenarios-native-dispatch_json 7.1 s (parallelism 4): dispatch_json 79.6
+[2026-09-29T05:58:26.576Z] 0501-rc4-local-trail-rescue-scenarios-native-dispatch_outcome_json 6.9 s (parallelism 4): dispatch_outcome_json 90.1
+[2026-09-29T05:58:33.123Z] 0502-main-local-trail-rescue-scenarios-native-dispatch_outcome_json 6.5 s (parallelism 4): dispatch_outcome_json 81.4
+[2026-09-29T05:58:39.254Z] 0503-rc4-local-trail-rescue-scenarios-native-web.dispatch_view 6.1 s (parallelism 4): web.dispatch_view 58
+[2026-09-29T05:58:45.361Z] 0504-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.1 s (parallelism 4): web.dispatch_view 58.4
+[2026-09-29T05:58:52.106Z] 0505-rc4-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 117.5
+[2026-09-29T05:58:58.777Z] 0506-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 116.2
+[2026-09-29T05:59:05.668Z] 0507-rc4-local-trail-rescue-scenarios-native-web.dispatch 6.9 s (parallelism 4): web.dispatch 135.8
+[2026-09-29T05:59:12.682Z] 0508-main-local-trail-rescue-scenarios-native-web.dispatch 7.0 s (parallelism 4): web.dispatch 140.6
+[2026-09-29T05:59:20.455Z] 0509-rc4-local-trail-rescue-scenarios-native-read 7.7 s (parallelism 4): clone 10.3, clone.drop 5.6, save 5.3
+[2026-09-29T05:59:28.235Z] 0510-main-local-trail-rescue-scenarios-native-read 7.7 s (parallelism 4): clone 10.2, clone.drop 5.6, save 5.3
+[2026-09-29T05:59:35.602Z] 0511-rc4-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.9, web.snapshot 79.4, web.view 6.1
+[2026-09-29T05:59:42.937Z] 0512-main-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.7, web.snapshot 79.4, web.view 6.1
+[2026-09-29T05:59:43.570Z] 0513-rc4-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 3149.9, restore 3194.8, restore.parse 20.5
+[2026-09-29T05:59:44.163Z] 0514-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2888.9, restore 2990.7, restore.parse 18.7
+[2026-09-29T05:59:50.649Z] 0515-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 72.7, js.parse_view 25.4
+[2026-09-29T05:59:56.995Z] 0516-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.3 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 70.7, js.parse_view 24.9
+[2026-09-29T05:59:57.144Z] 0517-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T05:59:57.146Z] 0517-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T06:00:03.628Z] 0518-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 71.5, js.parse_view 25.2
+[2026-09-29T06:00:11.564Z] 0519-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 140.6, js.parse_outcome 80.4, raw.dispatch_outcome+parse 223.8
+[2026-09-29T06:00:19.364Z] 0520-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.8 s (parallelism 4): raw.dispatch_outcome 137.8, js.parse_outcome 74.1, raw.dispatch_outcome+parse 213.7
+[2026-09-29T06:00:19.469Z] 0521-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:00:19.471Z] 0521-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:00:27.226Z] 0522-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.7 s (parallelism 4): raw.dispatch_outcome 139.2, js.parse_outcome 74.7, raw.dispatch_outcome+parse 215.5
+[2026-09-29T06:00:34.322Z] 0523-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch 7.1 s (parallelism 4): raw.dispatch 167.8
+[2026-09-29T06:00:41.573Z] 0524-main-local-trail-rescue-scenarios-wasm-raw.dispatch 7.2 s (parallelism 4): raw.dispatch 170.1
+[2026-09-29T06:00:41.741Z] 0525-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:00:41.744Z] 0525-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch 0.2 s (parallelism 4): 
+[2026-09-29T06:00:49.319Z] 0526-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch 7.6 s (parallelism 4): raw.dispatch 184.4
+[2026-09-29T06:00:55.575Z] 0527-rc4-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 70.5, abi.decode 1.3
+[2026-09-29T06:01:01.895Z] 0528-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.3 s (parallelism 4): abi.encode_args 0.4, abi.exec 72.1, abi.decode 1.2
+[2026-09-29T06:01:02.047Z] 0529-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:01:02.050Z] 0529-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T06:01:08.214Z] 0530-rc4-published-trail-rescue-scenarios-wasm-abi.dispatch_view 6.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 68.8, abi.decode 1.2
+[2026-09-29T06:01:15.436Z] 0531-rc4-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.2 s (parallelism 4): abi.encode_args 0.5, abi.exec 134.6, abi.decode 3.2
+[2026-09-29T06:01:22.381Z] 0532-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 6.9 s (parallelism 4): abi.encode_args 0.4, abi.exec 129.1, abi.decode 3.1
+[2026-09-29T06:01:22.484Z] 0533-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:01:22.486Z] 0533-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:01:29.600Z] 0534-rc4-published-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.1 s (parallelism 4): abi.encode_args 0.4, abi.exec 135, abi.decode 3.3
+[2026-09-29T06:01:38.810Z] 0535-rc4-local-trail-rescue-scenarios-wasm-read 9.2 s (parallelism 4): raw.view 9.9, js.parse_view 25.9, raw.snapshot 107.7
+[2026-09-29T06:01:47.990Z] 0536-main-local-trail-rescue-scenarios-wasm-read 9.2 s (parallelism 4): raw.view 10.2, js.parse_view 25.7, raw.snapshot 106.9
+[2026-09-29T06:01:48.159Z] 0537-hist-e6ace96-trail-rescue-scenarios-wasm-read: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:01:48.162Z] 0537-hist-e6ace96-trail-rescue-scenarios-wasm-read 0.2 s (parallelism 4): 
+[2026-09-29T06:01:57.261Z] 0538-rc4-published-trail-rescue-scenarios-wasm-read 9.1 s (parallelism 4): raw.view 10.1, js.parse_view 25.8, raw.snapshot 106.9
+[2026-09-29T06:02:04.927Z] 0539-rc4-local-trail-rescue-scenarios-wasm-abi.read 7.6 s (parallelism 4): abi.view.exec 9, abi.view.decode 0.8, abi.snapshot.exec 97.7
+[2026-09-29T06:02:12.654Z] 0540-main-local-trail-rescue-scenarios-wasm-abi.read 7.7 s (parallelism 4): abi.view.exec 9.1, abi.view.decode 0.8, abi.snapshot.exec 99
+[2026-09-29T06:02:12.806Z] 0541-hist-e6ace96-trail-rescue-scenarios-wasm-abi.read: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:02:12.809Z] 0541-hist-e6ace96-trail-rescue-scenarios-wasm-abi.read 0.1 s (parallelism 4): 
+[2026-09-29T06:02:20.700Z] 0542-rc4-published-trail-rescue-scenarios-wasm-abi.read 7.9 s (parallelism 4): abi.view.exec 9.3, abi.view.decode 0.9, abi.snapshot.exec 100.7
+[2026-09-29T06:02:29.127Z] 0543-rc4-local-trail-rescue-scenarios-wasm-kit 8.4 s (parallelism 4): kit.dispatch 226.9, kit.view 35.2, kit.dispatch+view 264.4
+[2026-09-29T06:02:37.642Z] 0544-main-local-trail-rescue-scenarios-wasm-kit 8.5 s (parallelism 4): kit.dispatch 223.5, kit.view 34.4, kit.dispatch+view 261.1
+[2026-09-29T06:02:46.203Z] 0545-rc4-published-trail-rescue-scenarios-wasm-kit 8.5 s (parallelism 4): kit.dispatch 226, kit.view 34.9, kit.dispatch+view 263
+[2026-09-29T06:02:56.923Z] 0546-rc4-local-trail-rescue-scenarios-wasm-kit.read 10.7 s (parallelism 4): kit.view 34.9, kit.snapshot 181.4, kit.save 27.4
+[2026-09-29T06:03:07.847Z] 0547-main-local-trail-rescue-scenarios-wasm-kit.read 10.9 s (parallelism 4): kit.view 35.7, kit.snapshot 185.8, kit.save 27.9
+[2026-09-29T06:03:18.695Z] 0548-rc4-published-trail-rescue-scenarios-wasm-kit.read 10.8 s (parallelism 4): kit.view 34.7, kit.snapshot 180.3, kit.save 27.3
+[2026-09-29T06:03:19.344Z] 0549-rc4-local-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 3005.3, raw.save 36.4, raw.restore 3039.8
+[2026-09-29T06:03:20.007Z] 0550-main-local-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3286.6, raw.save 40.8, raw.restore 3287
+[2026-09-29T06:03:20.155Z] 0551-hist-e6ace96-trail-rescue-scenarios-wasm-lifecycle: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:03:20.157Z] 0551-hist-e6ace96-trail-rescue-scenarios-wasm-lifecycle 0.1 s (parallelism 4): 
+[2026-09-29T06:03:20.826Z] 0552-rc4-published-trail-rescue-scenarios-wasm-lifecycle 0.7 s (parallelism 4): raw.new 3338.1, raw.save 41.1, raw.restore 3325.3
+[2026-09-29T06:03:21.612Z] 0553-rc4-local-trail-rescue-scenarios-wasm-micro 0.8 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.11, js.stringify_payload.last 0.037
+[2026-09-29T06:03:22.409Z] 0554-main-local-trail-rescue-scenarios-wasm-micro 0.8 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.105, js.stringify_payload.last 0.036
+[2026-09-29T06:03:22.555Z] 0555-hist-e6ace96-trail-rescue-scenarios-wasm-micro: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:03:22.558Z] 0555-hist-e6ace96-trail-rescue-scenarios-wasm-micro 0.1 s (parallelism 4): 
+[2026-09-29T06:03:23.313Z] 0556-rc4-published-trail-rescue-scenarios-wasm-micro 0.7 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.113, js.stringify_payload.last 0.037
+[2026-09-29T06:03:23.959Z] 0557-main-local-glowcap-replay-native-apply 0.6 s (parallelism 4): apply 13.1
+[2026-09-29T06:03:24.606Z] 0558-rc4-local-glowcap-replay-native-apply 0.6 s (parallelism 4): apply 13.1
+[2026-09-29T06:03:25.392Z] 0559-main-local-glowcap-replay-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 15.9
+[2026-09-29T06:03:26.144Z] 0560-rc4-local-glowcap-replay-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 15.8
+[2026-09-29T06:03:28.104Z] 0561-main-local-glowcap-replay-native-dispatch_json 1.9 s (parallelism 4): dispatch_json 36.3
+[2026-09-29T06:03:30.096Z] 0562-rc4-local-glowcap-replay-native-dispatch_json 2.0 s (parallelism 4): dispatch_json 36.6
+[2026-09-29T06:03:32.134Z] 0563-main-local-glowcap-replay-native-dispatch_outcome_json 2.0 s (parallelism 4): dispatch_outcome_json 38.5
+[2026-09-29T06:03:34.101Z] 0564-rc4-local-glowcap-replay-native-dispatch_outcome_json 1.9 s (parallelism 4): dispatch_outcome_json 36.3
+[2026-09-29T06:03:35.012Z] 0565-main-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20
+[2026-09-29T06:03:35.923Z] 0566-rc4-local-glowcap-replay-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 20.1
+[2026-09-29T06:03:38.651Z] 0567-main-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 64.4
+[2026-09-29T06:03:41.342Z] 0568-rc4-local-glowcap-replay-native-web.dispatch_outcome 2.7 s (parallelism 4): web.dispatch_outcome 64
+[2026-09-29T06:03:44.755Z] 0569-main-local-glowcap-replay-native-web.dispatch 3.4 s (parallelism 4): web.dispatch 81.5
+[2026-09-29T06:03:48.109Z] 0570-rc4-local-glowcap-replay-native-web.dispatch 3.3 s (parallelism 4): web.dispatch 80.2
+[2026-09-29T06:03:54.198Z] 0571-main-local-glowcap-replay-native-read 6.0 s (parallelism 4): clone 7.1, clone.drop 3.8, save 8.9
+[2026-09-29T06:04:00.278Z] 0572-rc4-local-glowcap-replay-native-read 6.0 s (parallelism 4): clone 7, clone.drop 3.8, save 9
+[2026-09-29T06:04:04.868Z] 0573-main-local-glowcap-replay-native-web.read 4.5 s (parallelism 4): web.save 15.5, web.snapshot 65.3, web.view 6.3
+[2026-09-29T06:04:09.468Z] 0574-rc4-local-glowcap-replay-native-web.read 4.6 s (parallelism 4): web.save 15.4, web.snapshot 65.8, web.view 6.3
+[2026-09-29T06:04:10.484Z] 0575-main-local-glowcap-replay-native-lifecycle 1.0 s (parallelism 4): from_source 2848.2, restore 2938.8, restore.parse 27
+[2026-09-29T06:04:11.406Z] 0576-rc4-local-glowcap-replay-native-lifecycle 0.9 s (parallelism 4): from_source 2519.7, restore 2662.9, restore.parse 25.7
+[2026-09-29T06:04:13.035Z] 0577-main-local-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 43.8
+[2026-09-29T06:04:14.562Z] 0578-hist-e6ace96-glowcap-replay-wasm-published-method 1.5 s (parallelism 4): adapter.dispatch+view 41.3
+[2026-09-29T06:04:16.221Z] 0579-rc4-published-glowcap-replay-wasm-published-method 1.6 s (parallelism 4): adapter.dispatch+view 46.2
+[2026-09-29T06:04:17.924Z] 0580-rc4-local-glowcap-replay-wasm-published-method 1.7 s (parallelism 4): adapter.dispatch+view 46.7
+[2026-09-29T06:04:20.044Z] 0581-main-local-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 40.9, adapter.view 2.2, adapter.dispatch+view 43.1
+[2026-09-29T06:04:22.069Z] 0582-hist-e6ace96-glowcap-replay-wasm-adapter 2.0 s (parallelism 4): adapter.dispatch 39.3, adapter.view 2.1, adapter.dispatch+view 41.5
+[2026-09-29T06:04:24.253Z] 0583-rc4-published-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 44.2, adapter.view 2.3, adapter.dispatch+view 46.5
+[2026-09-29T06:04:26.401Z] 0584-rc4-local-glowcap-replay-wasm-adapter 2.1 s (parallelism 4): adapter.dispatch 41.2, adapter.view 2.2, adapter.dispatch+view 43.4
+[2026-09-29T06:04:28.410Z] 0585-main-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 24.6, js.parse_view 16.1
+[2026-09-29T06:04:30.369Z] 0586-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_view 1.9 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 23.3, js.parse_view 15.9
+[2026-09-29T06:04:32.425Z] 0587-rc4-published-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 26.2, js.parse_view 16.8
+[2026-09-29T06:04:34.460Z] 0588-rc4-local-glowcap-replay-wasm-raw.dispatch_view 2.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 25.1, js.parse_view 16.6
+[2026-09-29T06:04:40.945Z] 0589-main-local-glowcap-replay-wasm-raw.dispatch_outcome 6.4 s (parallelism 4): raw.dispatch_outcome 81, js.parse_outcome 71.4, raw.dispatch_outcome+parse 152.8
+[2026-09-29T06:04:41.087Z] 0590-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:04:41.089Z] 0590-hist-e6ace96-glowcap-replay-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:04:47.337Z] 0591-rc4-published-glowcap-replay-wasm-raw.dispatch_outcome 6.2 s (parallelism 4): raw.dispatch_outcome 74, js.parse_outcome 65.7, raw.dispatch_outcome+parse 139.9
+[2026-09-29T06:04:53.314Z] 0592-rc4-local-glowcap-replay-wasm-raw.dispatch_outcome 5.9 s (parallelism 4): raw.dispatch_outcome 73.7, js.parse_outcome 64.4, raw.dispatch_outcome+parse 138.2
+[2026-09-29T06:04:57.595Z] 0593-main-local-glowcap-replay-wasm-raw.dispatch 4.3 s (parallelism 4): raw.dispatch 97.2
+[2026-09-29T06:05:01.810Z] 0594-hist-e6ace96-glowcap-replay-wasm-raw.dispatch 4.2 s (parallelism 4): raw.dispatch 95.1
+[2026-09-29T06:05:06.261Z] 0595-rc4-published-glowcap-replay-wasm-raw.dispatch 4.4 s (parallelism 4): raw.dispatch 103.1
+[2026-09-29T06:05:10.552Z] 0596-rc4-local-glowcap-replay-wasm-raw.dispatch 4.3 s (parallelism 4): raw.dispatch 97.9
+[2026-09-29T06:05:11.859Z] 0597-main-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.2, abi.decode 2.4
+[2026-09-29T06:05:13.158Z] 0598-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_view 1.2 s (parallelism 4): abi.encode_args 0.1, abi.exec 20.5, abi.decode 2.4
+[2026-09-29T06:05:14.555Z] 0599-rc4-published-glowcap-replay-wasm-abi.dispatch_view 1.4 s (parallelism 4): abi.encode_args 0.1, abi.exec 23.3, abi.decode 2.6
+[2026-09-29T06:05:15.905Z] 0600-rc4-local-glowcap-replay-wasm-abi.dispatch_view 1.3 s (parallelism 4): abi.encode_args 0.1, abi.exec 21.8, abi.decode 2.5
+[2026-09-29T06:05:19.074Z] 0601-main-local-glowcap-replay-wasm-abi.dispatch_outcome 3.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 61, abi.decode 7.8
+[2026-09-29T06:05:19.184Z] 0602-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:05:19.187Z] 0602-hist-e6ace96-glowcap-replay-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:05:22.290Z] 0603-rc4-published-glowcap-replay-wasm-abi.dispatch_outcome 3.0 s (parallelism 4): abi.encode_args 0.2, abi.exec 58.3, abi.decode 7.4
+[2026-09-29T06:05:25.385Z] 0604-rc4-local-glowcap-replay-wasm-abi.dispatch_outcome 3.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 58.6, abi.decode 7.5
+[2026-09-29T06:05:35.499Z] 0605-main-local-glowcap-replay-wasm-read 10.0 s (parallelism 4): raw.view 11.1, js.parse_view 18.1, raw.snapshot 89.9
+[2026-09-29T06:05:45.503Z] 0606-hist-e6ace96-glowcap-replay-wasm-read 9.9 s (parallelism 4): raw.view 10, js.parse_view 17.5, raw.snapshot 92.4
+[2026-09-29T06:05:55.728Z] 0607-rc4-published-glowcap-replay-wasm-read 10.2 s (parallelism 4): raw.view 11, js.parse_view 18.1, raw.snapshot 90.4
+[2026-09-29T06:06:06.020Z] 0608-rc4-local-glowcap-replay-wasm-read 10.2 s (parallelism 4): raw.view 11, js.parse_view 18.1, raw.snapshot 90
+[2026-09-29T06:06:11.979Z] 0609-main-local-glowcap-replay-wasm-abi.read 5.9 s (parallelism 4): abi.view.exec 8.2, abi.view.decode 2.2, abi.snapshot.exec 69.3
+[2026-09-29T06:06:17.901Z] 0610-hist-e6ace96-glowcap-replay-wasm-abi.read 5.9 s (parallelism 4): abi.view.exec 7.5, abi.view.decode 2.2, abi.snapshot.exec 72
+[2026-09-29T06:06:23.861Z] 0611-rc4-published-glowcap-replay-wasm-abi.read 5.9 s (parallelism 4): abi.view.exec 8.3, abi.view.decode 2.3, abi.snapshot.exec 69
+[2026-09-29T06:06:30.050Z] 0612-rc4-local-glowcap-replay-wasm-abi.read 6.1 s (parallelism 4): abi.view.exec 8.8, abi.view.decode 2.3, abi.snapshot.exec 71.8
+[2026-09-29T06:06:37.286Z] 0613-main-local-glowcap-replay-wasm-kit 7.2 s (parallelism 4): kit.dispatch 137.4, kit.view 28.7, kit.dispatch+view 166.2
+[2026-09-29T06:06:44.321Z] 0614-rc4-published-glowcap-replay-wasm-kit 7.0 s (parallelism 4): kit.dispatch 134.5, kit.view 28, kit.dispatch+view 162.7
+[2026-09-29T06:06:51.544Z] 0615-rc4-local-glowcap-replay-wasm-kit 7.2 s (parallelism 4): kit.dispatch 140.7, kit.view 29.5, kit.dispatch+view 170.4
+[2026-09-29T06:07:08.302Z] 0616-main-local-glowcap-replay-wasm-kit.read 16.7 s (parallelism 4): kit.view 31.5, kit.snapshot 169.6, kit.save 40.6
+[2026-09-29T06:07:24.934Z] 0617-rc4-published-glowcap-replay-wasm-kit.read 16.6 s (parallelism 4): kit.view 30.5, kit.snapshot 169, kit.save 40.2
+[2026-09-29T06:07:41.331Z] 0618-rc4-local-glowcap-replay-wasm-kit.read 16.3 s (parallelism 4): kit.view 30.3, kit.snapshot 166.6, kit.save 39.9
+[2026-09-29T06:07:42.199Z] 0619-main-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2576.5, raw.save 48.6, raw.restore 2635.4
+[2026-09-29T06:07:42.843Z] 0620-hist-e6ace96-glowcap-replay-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2455.1, raw.save 43.1, raw.restore 2598.4
+[2026-09-29T06:07:43.736Z] 0621-rc4-published-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2744.1, raw.save 49.5, raw.restore 2879.4
+[2026-09-29T06:07:44.639Z] 0622-rc4-local-glowcap-replay-wasm-lifecycle 0.9 s (parallelism 4): raw.new 2594.9, raw.save 46.6, raw.restore 2672
+[2026-09-29T06:07:45.715Z] 0623-main-local-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.083, js.stringify_payload.last 0.089
+[2026-09-29T06:07:46.579Z] 0624-hist-e6ace96-glowcap-replay-wasm-micro 0.9 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.095, js.stringify_payload.last 0.078
+[2026-09-29T06:07:47.657Z] 0625-rc4-published-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.096, js.stringify_payload.last 0.079
+[2026-09-29T06:07:48.764Z] 0626-rc4-local-glowcap-replay-wasm-micro 1.1 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.075, js.stringify_payload.last 0.075
+[2026-09-29T06:07:49.583Z] 0627-main-local-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2537.2, restore 2655, restore.parse 19.4
+[2026-09-29T06:07:50.394Z] 0628-rc4-local-glowcap-resume-native-lifecycle 0.8 s (parallelism 4): from_source 2490.6, restore 2628.1, restore.parse 17.3
+[2026-09-29T06:07:51.192Z] 0629-main-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2687.5, raw.save 34.1, raw.restore 2669.9
+[2026-09-29T06:07:51.786Z] 0630-hist-e6ace96-glowcap-resume-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2705.8, raw.save 35.9, raw.restore 2676.5
+[2026-09-29T06:07:52.593Z] 0631-rc4-published-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2429, raw.save 33.6, raw.restore 2451.7
+[2026-09-29T06:07:53.414Z] 0632-rc4-local-glowcap-resume-wasm-lifecycle 0.8 s (parallelism 4): raw.new 2609.8, raw.save 33.4, raw.restore 2580.6
+[2026-09-29T06:07:54.623Z] 0633-main-local-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 13.4, adapter.resume.createPolicy 3716.7, adapter.resume.view 43.1
+[2026-09-29T06:07:55.807Z] 0634-hist-e6ace96-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 14.9, adapter.resume.createPolicy 3317.4, adapter.resume.view 49.9
+[2026-09-29T06:07:57.004Z] 0635-rc4-published-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 14.4, adapter.resume.createPolicy 3361.8, adapter.resume.view 44.3
+[2026-09-29T06:07:58.233Z] 0636-rc4-local-glowcap-resume-wasm-adapter-resume 1.2 s (parallelism 4): adapter.resume.parse 15.5, adapter.resume.createPolicy 3342.7, adapter.resume.view 42.8
+[2026-09-29T06:07:58.873Z] 0637-main-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 13
+[2026-09-29T06:07:59.457Z] 0638-rc4-local-glowcap-unbound-native-apply 0.6 s (parallelism 4): apply 11.8
+[2026-09-29T06:08:00.163Z] 0639-main-local-glowcap-unbound-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 14.5
+[2026-09-29T06:08:00.860Z] 0640-rc4-local-glowcap-unbound-native-dispatch_view_json 0.7 s (parallelism 4): dispatch_view_json 14.6
+[2026-09-29T06:08:01.627Z] 0641-main-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 16.9
+[2026-09-29T06:08:02.394Z] 0642-rc4-local-glowcap-unbound-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 16.7
+[2026-09-29T06:08:07.002Z] 0643-main-local-glowcap-unbound-native-read 4.5 s (parallelism 4): clone 0.3, clone.drop 0.3, save 8.9
+[2026-09-29T06:08:12.033Z] 0644-rc4-local-glowcap-unbound-native-read 4.9 s (parallelism 4): clone 0.4, clone.drop 0.3, save 9.6
+[2026-09-29T06:08:13.096Z] 0645-main-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 18.1, abi.decode 0.5
+[2026-09-29T06:08:14.098Z] 0646-hist-e6ace96-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 16.4, abi.decode 0.4
+[2026-09-29T06:08:15.147Z] 0647-rc4-published-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.8, abi.decode 0.5
+[2026-09-29T06:08:16.230Z] 0648-rc4-local-glowcap-unbound-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.1, abi.exec 17.8, abi.decode 0.5
+[2026-09-29T06:08:17.546Z] 0649-main-local-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 18.4, js.parse_view 5.9
+[2026-09-29T06:08:18.822Z] 0650-hist-e6ace96-glowcap-unbound-wasm-raw.dispatch_view 1.2 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 17.4, js.parse_view 5.8
+[2026-09-29T06:08:20.153Z] 0651-rc4-published-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 18.7, js.parse_view 5.9
+[2026-09-29T06:08:21.450Z] 0652-rc4-local-glowcap-unbound-wasm-raw.dispatch_view 1.3 s (parallelism 4): js.stringify_payload 0.2, raw.dispatch_view 18.3, js.parse_view 5.9
+[2026-09-29T06:08:21.825Z] 0653-main-local-glowcap-scaled-16-native-apply 0.4 s (parallelism 4): apply 28.1
+[2026-09-29T06:08:22.205Z] 0654-rc4-local-glowcap-scaled-16-native-apply 0.4 s (parallelism 4): apply 28.5
+[2026-09-29T06:08:22.683Z] 0655-main-local-glowcap-scaled-16-native-web.dispatch_view 0.5 s (parallelism 4): web.dispatch_view 44.2
+[2026-09-29T06:08:23.184Z] 0656-rc4-local-glowcap-scaled-16-native-web.dispatch_view 0.5 s (parallelism 4): web.dispatch_view 47.4
+[2026-09-29T06:08:24.498Z] 0657-main-local-glowcap-scaled-16-native-web.dispatch_outcome 1.3 s (parallelism 4): web.dispatch_outcome 143.5
+[2026-09-29T06:08:25.955Z] 0658-rc4-local-glowcap-scaled-16-native-web.dispatch_outcome 1.4 s (parallelism 4): web.dispatch_outcome 162.9
+[2026-09-29T06:08:28.672Z] 0659-main-local-glowcap-scaled-16-native-read 2.7 s (parallelism 4): clone 18.2, clone.drop 10.2, save 9.7
+[2026-09-29T06:08:31.269Z] 0660-rc4-local-glowcap-scaled-16-native-read 2.6 s (parallelism 4): clone 17, clone.drop 9.6, save 9.3
+[2026-09-29T06:08:33.500Z] 0661-main-local-glowcap-scaled-16-native-lifecycle 2.2 s (parallelism 4): from_source 11066.9, restore 11386.7, restore.parse 37
+[2026-09-29T06:08:35.612Z] 0662-rc4-local-glowcap-scaled-16-native-lifecycle 2.1 s (parallelism 4): from_source 10829.3, restore 10906.9, restore.parse 36.2
+[2026-09-29T06:08:36.700Z] 0663-main-local-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 59.1, js.parse_view 37.4
+[2026-09-29T06:08:37.739Z] 0664-hist-e6ace96-glowcap-scaled-16-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 54.8, js.parse_view 36.1
+[2026-09-29T06:08:38.831Z] 0665-rc4-published-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 58.5, js.parse_view 38.3
+[2026-09-29T06:08:39.901Z] 0666-rc4-local-glowcap-scaled-16-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 56.9, js.parse_view 36.5
+[2026-09-29T06:08:40.688Z] 0667-main-local-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 52.3, abi.decode 5.6
+[2026-09-29T06:08:41.434Z] 0668-hist-e6ace96-glowcap-scaled-16-wasm-abi.dispatch_view 0.7 s (parallelism 4): abi.encode_args 0.2, abi.exec 48.9, abi.decode 5.6
+[2026-09-29T06:08:42.183Z] 0669-rc4-published-glowcap-scaled-16-wasm-abi.dispatch_view 0.7 s (parallelism 4): abi.encode_args 0.2, abi.exec 49.3, abi.decode 5.4
+[2026-09-29T06:08:42.960Z] 0670-rc4-local-glowcap-scaled-16-wasm-abi.dispatch_view 0.8 s (parallelism 4): abi.encode_args 0.2, abi.exec 51.1, abi.decode 5.6
+[2026-09-29T06:08:48.030Z] 0671-main-local-glowcap-scaled-16-wasm-read 5.1 s (parallelism 4): raw.view 23.1, js.parse_view 38.8, raw.snapshot 257.6
+[2026-09-29T06:08:53.095Z] 0672-hist-e6ace96-glowcap-scaled-16-wasm-read 5.0 s (parallelism 4): raw.view 21.9, js.parse_view 37.8, raw.snapshot 258.2
+[2026-09-29T06:08:58.152Z] 0673-rc4-published-glowcap-scaled-16-wasm-read 5.0 s (parallelism 4): raw.view 23.4, js.parse_view 38.4, raw.snapshot 258.1
+[2026-09-29T06:09:03.260Z] 0674-rc4-local-glowcap-scaled-16-wasm-read 5.1 s (parallelism 4): raw.view 23.4, js.parse_view 38.6, raw.snapshot 261.1
+[2026-09-29T06:09:06.768Z] 0675-main-local-glowcap-scaled-16-wasm-kit 3.5 s (parallelism 4): kit.dispatch 326.4, kit.view 63.4, kit.dispatch+view 390.6
+[2026-09-29T06:09:10.347Z] 0676-rc4-published-glowcap-scaled-16-wasm-kit 3.6 s (parallelism 4): kit.dispatch 327.7, kit.view 63.6, kit.dispatch+view 391.5
+[2026-09-29T06:09:13.875Z] 0677-rc4-local-glowcap-scaled-16-wasm-kit 3.5 s (parallelism 4): kit.dispatch 331.4, kit.view 63.9, kit.dispatch+view 396.2
+[2026-09-29T06:09:15.663Z] 0678-main-local-glowcap-scaled-16-wasm-lifecycle 1.8 s (parallelism 4): raw.new 9908.8, raw.save 61.6, raw.restore 9963.6
+[2026-09-29T06:09:16.694Z] 0679-hist-e6ace96-glowcap-scaled-16-wasm-lifecycle 1.0 s (parallelism 4): raw.new 10156.9, raw.save 56.9, raw.restore 10276.8
+[2026-09-29T06:09:18.446Z] 0680-rc4-published-glowcap-scaled-16-wasm-lifecycle 1.7 s (parallelism 4): raw.new 9960.7, raw.save 59.2, raw.restore 10004.8
+[2026-09-29T06:09:20.235Z] 0681-rc4-local-glowcap-scaled-16-wasm-lifecycle 1.8 s (parallelism 4): raw.new 9973.5, raw.save 63.6, raw.restore 9927.3
+[2026-09-29T06:09:21.507Z] 0682-main-local-glowcap-scaled-64-native-apply 1.3 s (parallelism 4): apply 88.1
+[2026-09-29T06:09:22.885Z] 0683-rc4-local-glowcap-scaled-64-native-apply 1.4 s (parallelism 4): apply 101.8
+[2026-09-29T06:09:24.455Z] 0684-main-local-glowcap-scaled-64-native-web.dispatch_view 1.6 s (parallelism 4): web.dispatch_view 139.3
+[2026-09-29T06:09:26.100Z] 0685-rc4-local-glowcap-scaled-64-native-web.dispatch_view 1.6 s (parallelism 4): web.dispatch_view 147.1
+[2026-09-29T06:09:30.416Z] 0686-main-local-glowcap-scaled-64-native-web.dispatch_outcome 4.3 s (parallelism 4): web.dispatch_outcome 459.4
+[2026-09-29T06:09:34.665Z] 0687-rc4-local-glowcap-scaled-64-native-web.dispatch_outcome 4.2 s (parallelism 4): web.dispatch_outcome 456.3
+[2026-09-29T06:09:42.556Z] 0688-main-local-glowcap-scaled-64-native-read 7.9 s (parallelism 4): clone 58.1, clone.drop 32.1, save 13.2
+[2026-09-29T06:09:50.398Z] 0689-rc4-local-glowcap-scaled-64-native-read 7.8 s (parallelism 4): clone 58.5, clone.drop 32.2, save 13
+[2026-09-29T06:10:05.303Z] 0690-main-local-glowcap-scaled-64-native-lifecycle 14.9 s (parallelism 4): from_source 82900.7, restore 83738.7, restore.parse 36.6
+[2026-09-29T06:10:20.865Z] 0691-rc4-local-glowcap-scaled-64-native-lifecycle 15.6 s (parallelism 4): from_source 84755.2, restore 85583.9, restore.parse 37.9
+[2026-09-29T06:10:24.551Z] 0692-main-local-glowcap-scaled-64-wasm-raw.dispatch_view 3.7 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 194.7, js.parse_view 124.9
+[2026-09-29T06:10:27.779Z] 0693-hist-e6ace96-glowcap-scaled-64-wasm-raw.dispatch_view 3.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 190, js.parse_view 126.7
+[2026-09-29T06:10:30.959Z] 0694-rc4-published-glowcap-scaled-64-wasm-raw.dispatch_view 3.2 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 190.5, js.parse_view 121.5
+[2026-09-29T06:10:34.096Z] 0695-rc4-local-glowcap-scaled-64-wasm-raw.dispatch_view 3.1 s (parallelism 4): js.stringify_payload 0.4, raw.dispatch_view 184.9, js.parse_view 119.1
+[2026-09-29T06:10:36.314Z] 0696-main-local-glowcap-scaled-64-wasm-abi.dispatch_view 2.2 s (parallelism 4): abi.encode_args 0.2, abi.exec 166.9, abi.decode 18.7
+[2026-09-29T06:10:38.350Z] 0697-hist-e6ace96-glowcap-scaled-64-wasm-abi.dispatch_view 2.0 s (parallelism 4): abi.encode_args 0.2, abi.exec 155, abi.decode 17.8
+[2026-09-29T06:10:40.421Z] 0698-rc4-published-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 158.8, abi.decode 17.7
+[2026-09-29T06:10:42.541Z] 0699-rc4-local-glowcap-scaled-64-wasm-abi.dispatch_view 2.1 s (parallelism 4): abi.encode_args 0.2, abi.exec 165.6, abi.decode 18.1
+[2026-09-29T06:10:59.448Z] 0700-main-local-glowcap-scaled-64-wasm-read 16.9 s (parallelism 4): raw.view 89.1, js.parse_view 123.4, raw.snapshot 838.7
+[2026-09-29T06:11:16.183Z] 0701-hist-e6ace96-glowcap-scaled-64-wasm-read 16.7 s (parallelism 4): raw.view 87.3, js.parse_view 126.5, raw.snapshot 866.7
+[2026-09-29T06:11:32.602Z] 0702-rc4-published-glowcap-scaled-64-wasm-read 16.4 s (parallelism 4): raw.view 87.8, js.parse_view 122.7, raw.snapshot 834.3
+[2026-09-29T06:11:49.419Z] 0703-rc4-local-glowcap-scaled-64-wasm-read 16.8 s (parallelism 4): raw.view 92.2, js.parse_view 129.8, raw.snapshot 885.6
+[2026-09-29T06:12:02.582Z] 0704-main-local-glowcap-scaled-64-wasm-kit 13.1 s (parallelism 4): kit.dispatch 1293.9, kit.view 231.6, kit.dispatch+view 1549.7
+[2026-09-29T06:12:15.724Z] 0705-rc4-published-glowcap-scaled-64-wasm-kit 13.1 s (parallelism 4): kit.dispatch 1241.4, kit.view 218.9, kit.dispatch+view 1460.4
+[2026-09-29T06:12:28.800Z] 0706-rc4-local-glowcap-scaled-64-wasm-kit 13.1 s (parallelism 4): kit.dispatch 1257.8, kit.view 224.9, kit.dispatch+view 1487.5
+[2026-09-29T06:12:40.138Z] 0707-main-local-glowcap-scaled-64-wasm-lifecycle 11.3 s (parallelism 4): raw.new 78613.5, raw.save 91.6, raw.restore 78362.3
+[2026-09-29T06:12:45.945Z] 0708-hist-e6ace96-glowcap-scaled-64-wasm-lifecycle 5.8 s (parallelism 4): raw.new 76058.7, raw.save 90.4, raw.restore 75966
+[2026-09-29T06:12:57.290Z] 0709-rc4-published-glowcap-scaled-64-wasm-lifecycle 11.3 s (parallelism 4): raw.new 79195.1, raw.save 96.6, raw.restore 79377.2
+[2026-09-29T06:13:08.589Z] 0710-rc4-local-glowcap-scaled-64-wasm-lifecycle 11.3 s (parallelism 4): raw.new 77409, raw.save 98.4, raw.restore 78517.3
+[2026-09-29T06:13:09.401Z] 0711-main-local-ledger-session-native-apply 0.8 s (parallelism 4): apply 16.7
+[2026-09-29T06:13:10.148Z] 0712-rc4-local-ledger-session-native-apply 0.7 s (parallelism 4): apply 14.9
+[2026-09-29T06:13:10.908Z] 0713-main-local-ledger-session-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 20.4
+[2026-09-29T06:13:11.681Z] 0714-rc4-local-ledger-session-native-dispatch_view_json 0.8 s (parallelism 4): dispatch_view_json 20.1
+[2026-09-29T06:13:12.565Z] 0715-main-local-ledger-session-native-dispatch_json 0.9 s (parallelism 4): dispatch_json 35.4
+[2026-09-29T06:13:13.471Z] 0716-rc4-local-ledger-session-native-dispatch_json 0.9 s (parallelism 4): dispatch_json 35.4
+[2026-09-29T06:13:14.388Z] 0717-main-local-ledger-session-native-dispatch_outcome_json 0.9 s (parallelism 4): dispatch_outcome_json 35.3
+[2026-09-29T06:13:15.275Z] 0718-rc4-local-ledger-session-native-dispatch_outcome_json 0.9 s (parallelism 4): dispatch_outcome_json 35.4
+[2026-09-29T06:13:16.107Z] 0719-main-local-ledger-session-native-web.dispatch_view 0.8 s (parallelism 4): web.dispatch_view 24.2
+[2026-09-29T06:13:16.970Z] 0720-rc4-local-ledger-session-native-web.dispatch_view 0.9 s (parallelism 4): web.dispatch_view 25.8
+[2026-09-29T06:13:18.081Z] 0721-main-local-ledger-session-native-web.dispatch_outcome 1.1 s (parallelism 4): web.dispatch_outcome 63.7
+[2026-09-29T06:13:19.080Z] 0722-rc4-local-ledger-session-native-web.dispatch_outcome 1.0 s (parallelism 4): web.dispatch_outcome 56.4
+[2026-09-29T06:13:20.178Z] 0723-main-local-ledger-session-native-web.dispatch 1.1 s (parallelism 4): web.dispatch 71.3
+[2026-09-29T06:13:21.249Z] 0724-rc4-local-ledger-session-native-web.dispatch 1.1 s (parallelism 4): web.dispatch 69.5
+[2026-09-29T06:13:22.853Z] 0725-main-local-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 1, save 6.4
+[2026-09-29T06:13:24.438Z] 0726-rc4-local-ledger-session-native-read 1.6 s (parallelism 4): clone 1.7, clone.drop 0.9, save 6.2
+[2026-09-29T06:13:25.900Z] 0727-main-local-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 13.6, web.snapshot 55.4, web.view 5.6
+[2026-09-29T06:13:27.279Z] 0728-rc4-local-ledger-session-native-web.read 1.4 s (parallelism 4): web.save 12.3, web.snapshot 50.6, web.view 5.1
+[2026-09-29T06:13:27.581Z] 0729-main-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1317.1, restore 1359.8, restore.parse 22.8
+[2026-09-29T06:13:27.889Z] 0730-rc4-local-ledger-session-native-lifecycle 0.3 s (parallelism 4): from_source 1446.8, restore 1498.3, restore.parse 24.9
+[2026-09-29T06:13:28.937Z] 0731-main-local-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.8, js.parse_view 6.8
+[2026-09-29T06:13:29.932Z] 0732-hist-e6ace96-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 27.4, js.parse_view 6.8
+[2026-09-29T06:13:30.980Z] 0733-rc4-published-ledger-session-wasm-raw.dispatch_view 1.0 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.7, js.parse_view 6.8
+[2026-09-29T06:13:32.056Z] 0734-rc4-local-ledger-session-wasm-raw.dispatch_view 1.1 s (parallelism 4): js.stringify_payload 0.3, raw.dispatch_view 28.8, js.parse_view 7
+[2026-09-29T06:13:33.576Z] 0735-main-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 63.1, js.parse_outcome 44.5, raw.dispatch_outcome+parse 107.8
+[2026-09-29T06:13:33.679Z] 0736-hist-e6ace96-ledger-session-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:13:33.682Z] 0736-hist-e6ace96-ledger-session-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:13:35.282Z] 0737-rc4-published-ledger-session-wasm-raw.dispatch_outcome 1.6 s (parallelism 4): raw.dispatch_outcome 66.7, js.parse_outcome 47.6, raw.dispatch_outcome+parse 114.9
+[2026-09-29T06:13:36.828Z] 0738-rc4-local-ledger-session-wasm-raw.dispatch_outcome 1.5 s (parallelism 4): raw.dispatch_outcome 63.8, js.parse_outcome 45.1, raw.dispatch_outcome+parse 109.3
+[2026-09-29T06:13:38.191Z] 0739-main-local-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 83.3
+[2026-09-29T06:13:39.489Z] 0740-hist-e6ace96-ledger-session-wasm-raw.dispatch 1.3 s (parallelism 4): raw.dispatch 82.5
+[2026-09-29T06:13:40.871Z] 0741-rc4-published-ledger-session-wasm-raw.dispatch 1.4 s (parallelism 4): raw.dispatch 82.7
+[2026-09-29T06:13:42.218Z] 0742-rc4-local-ledger-session-wasm-raw.dispatch 1.3 s (parallelism 4): raw.dispatch 82.1
+[2026-09-29T06:13:43.246Z] 0743-main-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 28.3, abi.decode 0.6
+[2026-09-29T06:13:44.193Z] 0744-hist-e6ace96-ledger-session-wasm-abi.dispatch_view 0.9 s (parallelism 4): abi.encode_args 0.3, abi.exec 26, abi.decode 0.6
+[2026-09-29T06:13:45.212Z] 0745-rc4-published-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27, abi.decode 0.6
+[2026-09-29T06:13:46.230Z] 0746-rc4-local-ledger-session-wasm-abi.dispatch_view 1.0 s (parallelism 4): abi.encode_args 0.3, abi.exec 27.1, abi.decode 0.6
+[2026-09-29T06:13:47.457Z] 0747-main-local-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 57.9, abi.decode 2.3
+[2026-09-29T06:13:47.558Z] 0748-hist-e6ace96-ledger-session-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:13:47.560Z] 0748-hist-e6ace96-ledger-session-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:13:48.799Z] 0749-rc4-published-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 58.7, abi.decode 2.3
+[2026-09-29T06:13:50.032Z] 0750-rc4-local-ledger-session-wasm-abi.dispatch_outcome 1.2 s (parallelism 4): abi.encode_args 0.3, abi.exec 59, abi.decode 2.3
+[2026-09-29T06:13:52.357Z] 0751-main-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.2, js.parse_view 7.9, raw.snapshot 68.1
+[2026-09-29T06:13:54.605Z] 0752-hist-e6ace96-ledger-session-wasm-read 2.2 s (parallelism 4): raw.view 6.7, js.parse_view 7.9, raw.snapshot 67.4
+[2026-09-29T06:13:56.934Z] 0753-rc4-published-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.1, js.parse_view 7.7, raw.snapshot 67.1
+[2026-09-29T06:13:59.291Z] 0754-rc4-local-ledger-session-wasm-read 2.3 s (parallelism 4): raw.view 7.2, js.parse_view 7.9, raw.snapshot 68.9
+[2026-09-29T06:14:01.086Z] 0755-main-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.9, abi.view.decode 0.4, abi.snapshot.exec 63.3
+[2026-09-29T06:14:02.791Z] 0756-hist-e6ace96-ledger-session-wasm-abi.read 1.7 s (parallelism 4): abi.view.exec 6.3, abi.view.decode 0.4, abi.snapshot.exec 61.5
+[2026-09-29T06:14:04.561Z] 0757-rc4-published-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.6, abi.view.decode 0.4, abi.snapshot.exec 60.5
+[2026-09-29T06:14:06.371Z] 0758-rc4-local-ledger-session-wasm-abi.read 1.8 s (parallelism 4): abi.view.exec 6.6, abi.view.decode 0.3, abi.snapshot.exec 61.1
+[2026-09-29T06:14:08.054Z] 0759-main-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 110.6, kit.view 14.5, kit.dispatch+view 124.5
+[2026-09-29T06:14:09.749Z] 0760-rc4-published-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 111.7, kit.view 14.7, kit.dispatch+view 125.8
+[2026-09-29T06:14:11.449Z] 0761-rc4-local-ledger-session-wasm-kit 1.7 s (parallelism 4): kit.dispatch 111.8, kit.view 14.6, kit.dispatch+view 125.9
+[2026-09-29T06:14:14.395Z] 0762-main-local-ledger-session-wasm-kit.read 2.9 s (parallelism 4): kit.view 15.9, kit.snapshot 116.4, kit.save 30.7
+[2026-09-29T06:14:17.459Z] 0763-rc4-published-ledger-session-wasm-kit.read 3.1 s (parallelism 4): kit.view 16.5, kit.snapshot 119.5, kit.save 31.5
+[2026-09-29T06:14:20.443Z] 0764-rc4-local-ledger-session-wasm-kit.read 3.0 s (parallelism 4): kit.view 16.1, kit.snapshot 115.9, kit.save 30.8
+[2026-09-29T06:14:20.862Z] 0765-main-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1481.9, raw.save 45.4, raw.restore 1565.9
+[2026-09-29T06:14:21.163Z] 0766-hist-e6ace96-ledger-session-wasm-lifecycle 0.3 s (parallelism 4): raw.new 1476.7, raw.save 47.3, raw.restore 1493.8
+[2026-09-29T06:14:21.603Z] 0767-rc4-published-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1602.4, raw.save 49.9, raw.restore 1706.7
+[2026-09-29T06:14:22.028Z] 0768-rc4-local-ledger-session-wasm-lifecycle 0.4 s (parallelism 4): raw.new 1515.7, raw.save 46.4, raw.restore 1569.7
+[2026-09-29T06:14:22.569Z] 0769-main-local-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.09, js.stringify_payload.last 0.061
+[2026-09-29T06:14:23.023Z] 0770-hist-e6ace96-ledger-session-wasm-micro 0.4 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.094, js.stringify_payload.last 0.059
+[2026-09-29T06:14:23.539Z] 0771-rc4-published-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.099, js.stringify_payload.last 0.06
+[2026-09-29T06:14:24.047Z] 0772-rc4-local-ledger-session-wasm-micro 0.5 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.096, js.stringify_payload.last 0.059
+[2026-09-29T06:14:30.164Z] 0773-main-local-trail-rescue-scenarios-native-apply 6.1 s (parallelism 4): apply 46.7
+[2026-09-29T06:14:36.639Z] 0774-rc4-local-trail-rescue-scenarios-native-apply 6.5 s (parallelism 4): apply 50.6
+[2026-09-29T06:14:43.123Z] 0775-main-local-trail-rescue-scenarios-native-dispatch_view_json 6.5 s (parallelism 4): dispatch_view_json 53.5
+[2026-09-29T06:14:49.512Z] 0776-rc4-local-trail-rescue-scenarios-native-dispatch_view_json 6.4 s (parallelism 4): dispatch_view_json 51.4
+[2026-09-29T06:14:56.103Z] 0777-main-local-trail-rescue-scenarios-native-dispatch_json 6.6 s (parallelism 4): dispatch_json 82
+[2026-09-29T06:15:02.609Z] 0778-rc4-local-trail-rescue-scenarios-native-dispatch_json 6.5 s (parallelism 4): dispatch_json 82.5
+[2026-09-29T06:15:09.475Z] 0779-main-local-trail-rescue-scenarios-native-dispatch_outcome_json 6.9 s (parallelism 4): dispatch_outcome_json 85.6
+[2026-09-29T06:15:15.925Z] 0780-rc4-local-trail-rescue-scenarios-native-dispatch_outcome_json 6.4 s (parallelism 4): dispatch_outcome_json 80.9
+[2026-09-29T06:15:22.117Z] 0781-main-local-trail-rescue-scenarios-native-web.dispatch_view 6.2 s (parallelism 4): web.dispatch_view 57.7
+[2026-09-29T06:15:28.246Z] 0782-rc4-local-trail-rescue-scenarios-native-web.dispatch_view 6.1 s (parallelism 4): web.dispatch_view 57.6
+[2026-09-29T06:15:35.314Z] 0783-main-local-trail-rescue-scenarios-native-web.dispatch_outcome 7.1 s (parallelism 4): web.dispatch_outcome 125.8
+[2026-09-29T06:15:41.991Z] 0784-rc4-local-trail-rescue-scenarios-native-web.dispatch_outcome 6.7 s (parallelism 4): web.dispatch_outcome 115.6
+[2026-09-29T06:15:48.874Z] 0785-main-local-trail-rescue-scenarios-native-web.dispatch 6.9 s (parallelism 4): web.dispatch 135.8
+[2026-09-29T06:15:56.139Z] 0786-rc4-local-trail-rescue-scenarios-native-web.dispatch 7.3 s (parallelism 4): web.dispatch 148.2
+[2026-09-29T06:16:03.887Z] 0787-main-local-trail-rescue-scenarios-native-read 7.7 s (parallelism 4): clone 10.2, clone.drop 5.5, save 5.3
+[2026-09-29T06:16:12.115Z] 0788-rc4-local-trail-rescue-scenarios-native-read 8.2 s (parallelism 4): clone 11, clone.drop 6, save 5.7
+[2026-09-29T06:16:19.464Z] 0789-main-local-trail-rescue-scenarios-native-web.read 7.3 s (parallelism 4): web.save 10.8, web.snapshot 80, web.view 6.1
+[2026-09-29T06:16:26.849Z] 0790-rc4-local-trail-rescue-scenarios-native-web.read 7.4 s (parallelism 4): web.save 11, web.snapshot 80.3, web.view 6.2
+[2026-09-29T06:16:27.444Z] 0791-main-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2891.2, restore 2975, restore.parse 19.1
+[2026-09-29T06:16:28.034Z] 0792-rc4-local-trail-rescue-scenarios-native-lifecycle 0.6 s (parallelism 4): from_source 2968.2, restore 3035.3, restore.parse 17.4
+[2026-09-29T06:16:34.484Z] 0793-main-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.4 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 71.6, js.parse_view 25.4
+[2026-09-29T06:16:34.637Z] 0794-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:16:34.639Z] 0794-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_view 0.2 s (parallelism 4): 
+[2026-09-29T06:16:41.233Z] 0795-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_view 6.6 s (parallelism 4): js.stringify_payload 0.5, raw.dispatch_view 73, js.parse_view 25.1
+[2026-09-29T06:16:47.701Z] 0796-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch_view 6.5 s (parallelism 4): js.stringify_payload 0.6, raw.dispatch_view 73.1, js.parse_view 25.5
+[2026-09-29T06:16:55.631Z] 0797-main-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 143, js.parse_outcome 76.2, raw.dispatch_outcome+parse 221.5
+[2026-09-29T06:16:55.735Z] 0798-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:16:55.737Z] 0798-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:17:03.693Z] 0799-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.9 s (parallelism 4): raw.dispatch_outcome 144.2, js.parse_outcome 76.8, raw.dispatch_outcome+parse 224.2
+[2026-09-29T06:17:11.543Z] 0800-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch_outcome 7.8 s (parallelism 4): raw.dispatch_outcome 142, js.parse_outcome 75.7, raw.dispatch_outcome+parse 220.2
+[2026-09-29T06:17:18.791Z] 0801-main-local-trail-rescue-scenarios-wasm-raw.dispatch 7.2 s (parallelism 4): raw.dispatch 173.6
+[2026-09-29T06:17:18.962Z] 0802-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:17:18.965Z] 0802-hist-e6ace96-trail-rescue-scenarios-wasm-raw.dispatch 0.2 s (parallelism 4): 
+[2026-09-29T06:17:26.041Z] 0803-rc4-published-trail-rescue-scenarios-wasm-raw.dispatch 7.1 s (parallelism 4): raw.dispatch 164.8
+[2026-09-29T06:17:33.223Z] 0804-rc4-local-trail-rescue-scenarios-wasm-raw.dispatch 7.2 s (parallelism 4): raw.dispatch 166.9
+[2026-09-29T06:17:39.521Z] 0805-main-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.3 s (parallelism 4): abi.encode_args 0.4, abi.exec 70.6, abi.decode 1.2
+[2026-09-29T06:17:39.672Z] 0806-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_view: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:17:39.675Z] 0806-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_view 0.1 s (parallelism 4): 
+[2026-09-29T06:17:45.972Z] 0807-rc4-published-trail-rescue-scenarios-wasm-abi.dispatch_view 6.3 s (parallelism 4): abi.encode_args 0.4, abi.exec 70.6, abi.decode 1.2
+[2026-09-29T06:17:52.412Z] 0808-rc4-local-trail-rescue-scenarios-wasm-abi.dispatch_view 6.4 s (parallelism 4): abi.encode_args 0.4, abi.exec 71.2, abi.decode 1.2
+[2026-09-29T06:17:59.590Z] 0809-main-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.2 s (parallelism 4): abi.encode_args 0.4, abi.exec 132.2, abi.decode 3.2
+[2026-09-29T06:17:59.696Z] 0810-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_outcome: skipped: this runtime has no dispatch_outcome
+[2026-09-29T06:17:59.699Z] 0810-hist-e6ace96-trail-rescue-scenarios-wasm-abi.dispatch_outcome 0.1 s (parallelism 4): 
+[2026-09-29T06:18:06.701Z] 0811-rc4-published-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 131.8, abi.decode 3.2
+[2026-09-29T06:18:13.671Z] 0812-rc4-local-trail-rescue-scenarios-wasm-abi.dispatch_outcome 7.0 s (parallelism 4): abi.encode_args 0.4, abi.exec 129.8, abi.decode 3.2
+[2026-09-29T06:18:22.754Z] 0813-main-local-trail-rescue-scenarios-wasm-read 9.1 s (parallelism 4): raw.view 9.9, js.parse_view 25.6, raw.snapshot 106.4
+[2026-09-29T06:18:22.909Z] 0814-hist-e6ace96-trail-rescue-scenarios-wasm-read: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:18:22.912Z] 0814-hist-e6ace96-trail-rescue-scenarios-wasm-read 0.2 s (parallelism 4): 
+[2026-09-29T06:18:32.214Z] 0815-rc4-published-trail-rescue-scenarios-wasm-read 9.3 s (parallelism 4): raw.view 10.1, js.parse_view 26.1, raw.snapshot 107
+[2026-09-29T06:18:41.323Z] 0816-rc4-local-trail-rescue-scenarios-wasm-read 9.1 s (parallelism 4): raw.view 10.3, js.parse_view 25.9, raw.snapshot 106.8
+[2026-09-29T06:18:49.398Z] 0817-main-local-trail-rescue-scenarios-wasm-abi.read 8.1 s (parallelism 4): abi.view.exec 9.4, abi.view.decode 0.9, abi.snapshot.exec 101.4
+[2026-09-29T06:18:49.548Z] 0818-hist-e6ace96-trail-rescue-scenarios-wasm-abi.read: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:18:49.551Z] 0818-hist-e6ace96-trail-rescue-scenarios-wasm-abi.read 0.1 s (parallelism 4): 
+[2026-09-29T06:18:57.574Z] 0819-rc4-published-trail-rescue-scenarios-wasm-abi.read 8.0 s (parallelism 4): abi.view.exec 9.6, abi.view.decode 0.9, abi.snapshot.exec 102.5
+[2026-09-29T06:19:05.381Z] 0820-rc4-local-trail-rescue-scenarios-wasm-abi.read 7.8 s (parallelism 4): abi.view.exec 9.4, abi.view.decode 0.9, abi.snapshot.exec 99.3
+[2026-09-29T06:19:13.632Z] 0821-main-local-trail-rescue-scenarios-wasm-kit 8.2 s (parallelism 4): kit.dispatch 221.5, kit.view 34, kit.dispatch+view 258.8
+[2026-09-29T06:19:21.921Z] 0822-rc4-published-trail-rescue-scenarios-wasm-kit 8.3 s (parallelism 4): kit.dispatch 224.3, kit.view 34.6, kit.dispatch+view 260.9
+[2026-09-29T06:19:30.288Z] 0823-rc4-local-trail-rescue-scenarios-wasm-kit 8.4 s (parallelism 4): kit.dispatch 221.6, kit.view 34.2, kit.dispatch+view 259.1
+[2026-09-29T06:19:41.524Z] 0824-main-local-trail-rescue-scenarios-wasm-kit.read 11.2 s (parallelism 4): kit.view 36.7, kit.snapshot 190.5, kit.save 28.7
+[2026-09-29T06:19:52.306Z] 0825-rc4-published-trail-rescue-scenarios-wasm-kit.read 10.8 s (parallelism 4): kit.view 34.4, kit.snapshot 178.3, kit.save 26.9
+[2026-09-29T06:20:03.324Z] 0826-rc4-local-trail-rescue-scenarios-wasm-kit.read 11.0 s (parallelism 4): kit.view 35.8, kit.snapshot 186.6, kit.save 28.2
+[2026-09-29T06:20:03.949Z] 0827-main-local-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2988.5, raw.save 35.4, raw.restore 3001.4
+[2026-09-29T06:20:04.102Z] 0828-hist-e6ace96-trail-rescue-scenarios-wasm-lifecycle: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:20:04.105Z] 0828-hist-e6ace96-trail-rescue-scenarios-wasm-lifecycle 0.2 s (parallelism 4): 
+[2026-09-29T06:20:04.726Z] 0829-rc4-published-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2765, raw.save 34.9, raw.restore 2841.2
+[2026-09-29T06:20:05.340Z] 0830-rc4-local-trail-rescue-scenarios-wasm-lifecycle 0.6 s (parallelism 4): raw.new 2774.7, raw.save 35.3, raw.restore 2803.7
+[2026-09-29T06:20:06.094Z] 0831-main-local-trail-rescue-scenarios-wasm-micro 0.7 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.109, js.stringify_payload.last 0.035
+[2026-09-29T06:20:06.239Z] 0832-hist-e6ace96-trail-rescue-scenarios-wasm-micro: skipped: the program does not load on this runtime: line 389, column 1: invalid reactive identifier caveated(plan_basis, stale)
+[2026-09-29T06:20:06.242Z] 0832-hist-e6ace96-trail-rescue-scenarios-wasm-micro 0.1 s (parallelism 4): 
+[2026-09-29T06:20:07.062Z] 0833-rc4-published-trail-rescue-scenarios-wasm-micro 0.8 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.098, js.stringify_payload.last 0.034
+[2026-09-29T06:20:07.877Z] 0834-rc4-local-trail-rescue-scenarios-wasm-micro 0.8 s (parallelism 4): timer.hrtime_pair 0.1, js.stringify_payload.first 0.109, js.stringify_payload.last 0.038
+[2026-09-29T06:20:07.881Z] load during: {"what":"typeperf every 5 s for the whole run","samples":604,"counters":{"total":{"samples":604,"mean":8.7,"p95":10.6,"max":21.6},"processor 10":{"samples":604,"mean":62.6,"p95":99.1,"max":99.7},"processor 11":{"samples":604,"mean":19.8,"p95":44.4,"max":87.8},"processor 12":{"samples":604,"mean":19.7,"p95":47.6,"max":86},"processor 13":{"samples":604,"mean":25.6,"p95":99.7,"max":100}},"totalAbove10Percent":67,"totalAbove25Percent":0,"pinnedSumAbove150Percent":37}
+[2026-09-29T06:20:13.518Z] load after: {"totalCpuPercent":[1,15,8],"busiestProcesses":[{"name":"claude","pid":95512,"cpuSeconds":1.188},{"name":"powershell","pid":73772,"cpuSeconds":0.625},{"name":"claude","pid":104712,"cpuSeconds":0.297},{"name":"ChatGPT","pid":8524,"cpuSeconds":0.172},{"name":"IntelGraphicsSoftware","pid":14784,"cpuSeconds":0.125},{"name":"ChatGPT","pid":87544,"cpuSeconds":0.078}]}
+[2026-09-29T06:20:13.560Z] wrote C:\Users\walte\AppData\Local\Temp\claude\C--Dev-GPT-SandBox-Web\3bc468a2-40f8-4895-bd0a-fb452fae7549\scratchpad\perf-scratch\m\runs\baseline3\results.json and summary.md; 0 failure(s), 39 skipped, 0 correctness finding(s)

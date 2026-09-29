@@ -17,6 +17,12 @@ function segmentCell(stats, segment) {
   return value.runs > 1 ? `${fixed(value.median)} (${fixed(value.min)}–${fixed(value.max)})` : fixed(value.median);
 }
 
+function duringLine(during) {
+  if (!during) return 'not monitored';
+  const counters = Object.entries(during.counters).map(([name, stats]) => `${name} mean ${stats.mean}% p95 ${stats.p95}% max ${stats.max}%`).join('; ');
+  return `${during.what}, ${during.samples} samples: ${counters}; total above 10% in ${during.totalAbove10Percent} and above 25% in ${during.totalAbove25Percent} samples${during.pinnedSumAbove150Percent === null ? '' : `; pinned processors summing above 150% in ${during.pinnedSumAbove150Percent}`}`;
+}
+
 const opStats = (report, target, workload, engine, mode, op) => report.results[target]?.[workload]?.[engine]?.[mode]?.acrossRuns?.[op];
 
 function environmentSection(report) {
@@ -41,6 +47,7 @@ function environmentSection(report) {
     `- ${toolchain.wasmBindgen ?? 'wasm-bindgen ?'}; wasm-opt ${toolchain.wasmOpt ?? 'not installed (the build does not use it)'}`,
     `- Load before: ${loadLine(loadBefore)}`,
     `- Load after: ${loadLine(loadAfter)}`,
+    `- Load during: ${duringLine(report.environment.loadDuring)}`,
     '',
   ];
 }

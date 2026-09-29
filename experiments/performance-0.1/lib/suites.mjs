@@ -7,6 +7,10 @@ const GLOWCAP_WASM = ['published-method', 'adapter', 'raw.dispatch_view', 'raw.d
   'abi.dispatch_view', 'abi.dispatch_outcome', 'read', 'abi.read', 'kit', 'kit.read', 'lifecycle', 'micro'];
 const SCALED_NATIVE = ['apply', 'web.dispatch_view', 'web.dispatch_outcome', 'read', 'lifecycle'];
 const SCALED_WASM = ['raw.dispatch_view', 'abi.dispatch_view', 'read', 'kit', 'lifecycle'];
+// The decision workloads get every mode Glowcap gets except the three that
+// run through the Glowcap adapter, so their commits, reopens, evidence and
+// refusals are measured on every path the replay is.
+const DECISION_WASM = GLOWCAP_WASM.filter((mode) => !['published-method', 'adapter', 'adapter-resume'].includes(mode));
 
 const JOBS = [
   { workload: 'glowcap-replay', native: GLOWCAP_NATIVE, wasm: GLOWCAP_WASM },
@@ -15,10 +19,8 @@ const JOBS = [
   { workload: 'glowcap-unbound', native: ['apply', 'dispatch_view_json', 'web.dispatch_view', 'read'], wasm: ['abi.dispatch_view', 'raw.dispatch_view'] },
   { workload: 'glowcap-scaled-16', native: SCALED_NATIVE, wasm: SCALED_WASM },
   { workload: 'glowcap-scaled-64', native: SCALED_NATIVE, wasm: SCALED_WASM },
-  { workload: 'ledger-session', native: ['apply', 'web.dispatch_outcome', 'web.dispatch_view', 'read', 'lifecycle'],
-    wasm: ['raw.dispatch_outcome', 'abi.dispatch_outcome', 'kit', 'read', 'lifecycle'] },
-  { workload: 'trail-rescue-scenarios', native: ['apply', 'web.dispatch_view', 'web.dispatch_outcome', 'read', 'lifecycle'],
-    wasm: ['raw.dispatch_view', 'abi.dispatch_view', 'kit', 'read', 'lifecycle'] },
+  { workload: 'ledger-session', native: GLOWCAP_NATIVE, wasm: DECISION_WASM },
+  { workload: 'trail-rescue-scenarios', native: GLOWCAP_NATIVE, wasm: DECISION_WASM },
 ];
 
 export const SUITES = {

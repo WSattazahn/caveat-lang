@@ -20,7 +20,7 @@ import path from 'node:path';
 import { summarizeRounds, spread, toMicroseconds } from './lib/stats.mjs';
 import { harnessDirectory, loadManifest, loadWorkload, repositoryRoot, sha256 } from './lib/workloads.mjs';
 import { parseTarget, prepareTarget } from './lib/targets.mjs';
-import { machine, load, toolchain } from './lib/environment.mjs';
+import { machine, load, startMonitor, summarizeMonitor, toolchain } from './lib/environment.mjs';
 import { SUITES } from './lib/suites.mjs';
 import { renderSummary } from './lib/report.mjs';
 
@@ -81,6 +81,17 @@ environment.harness = { revision: spawnSync('git', ['rev-parse', 'HEAD'], { cwd:
 environment.loadBefore = await load(work);
 await log(`machine ${environment.machine.cpuModel}; pinning ${environment.pinning.affinityMask ?? 'none'} (${environment.pinning.logicalProcessors?.join(',') ?? '-'}), priority ${priority}`);
 await log(`load before: ${JSON.stringify(environment.loadBefore)}`);
+// A measurement needs mains power and the High performance plan; a smoke run
+// or --allow-any-power skips the check.
+const HIGH_PERFORMANCE = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c';
+if (process.platform === 'win32' && suiteName !== 'smoke' && !argv.includes('--allow-any-power')) {
+  const windows = environment.machine.windows ?? {};
+  const onMains = windows.batteryStatus === null || windows.batteryStatus === undefined || windows.batteryStatus === 2;
+  if (!onMains || !String(windows.powerScheme ?? '').includes(HIGH_PERFORMANCE)) {
+    await log(`STOPPED: battery status ${windows.batteryStatus} (2 = mains), power scheme ${windows.powerScheme}; a measurement needs mains power and High performance`);
+    process.exit(2);
+  }
+}
 
 const prepared = [];
 for (const target of targets) {
@@ -160,6 +171,10 @@ const correctness = [];
 const finalsSeen = [];
 let counter = 0;
 
+// Load during the timed jobs (builds are over by now).
+const monitor = argv.includes('--no-monitor') ? null : startMonitor(environment.pinning.logicalProcessors ?? [], 5);
+if (monitor) await log(`monitoring load with typeperf every ${monitor.seconds} s (${monitor.counters.join(', ')})`);
+
 for (let repeat = 0; repeat < repeats; repeat++) {
   for (const job of jobs) {
     const workload = workloads.get(job.workload);
@@ -213,6 +228,13 @@ for (let repeat = 0; repeat < repeats; repeat++) {
       await log(`${name} ${seconds.toFixed(1)} s (parallelism ${raw.process?.availableParallelism ?? raw.process?.affinity?.logicalProcessors ?? '?'}): ${headline}`);
     }
   }
+}
+
+if (monitor) {
+  const stopped = monitor.stop();
+  await writeFile(path.join(out, 'load.csv'), `${stopped.csv}\n`);
+  environment.loadDuring = summarizeMonitor(monitor, stopped);
+  await log(`load during: ${JSON.stringify(environment.loadDuring)}`);
 }
 
 // ---- aggregation ------------------------------------------------------------

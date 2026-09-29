@@ -1,5 +1,5 @@
 // The machine, toolchain and load a run was measured under.
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -103,6 +103,50 @@ export async function machine(scratch) {
 export async function load(scratch) {
   if (process.platform === 'win32') return powershell(WINDOWS_LOAD, scratch, 'load');
   return { loadavg: os.loadavg() };
+}
+
+// Windows: samples total CPU use, and each pinned logical processor's, every
+// `seconds` for the whole run with typeperf (one sample line per interval,
+// read from its output). The benchmark itself keeps about one pinned
+// processor busy, so the pinned processors' sum above 100% and the total
+// above one processor's share (100 / logical processors) is other load.
+export function startMonitor(processors = [], seconds = 5) {
+  if (process.platform !== 'win32') return null;
+  const counters = ['\\Processor(_Total)\\% Processor Time', ...processors.map((index) => `\\Processor(${index})\\% Processor Time`)];
+  const child = spawn('typeperf', [...counters, '-si', String(seconds)], { stdio: ['ignore', 'pipe', 'ignore'] });
+  let text = '';
+  child.stdout.on('data', (chunk) => { text += chunk; });
+  return {
+    seconds,
+    counters: ['total', ...processors.map((index) => `processor ${index}`)],
+    stop() {
+      child.kill();
+      const rows = text.split(/\r?\n/).filter((line) => /^"\d/.test(line))
+        .map((line) => line.split('","').map((cell) => cell.replace(/"/g, '')));
+      return { csv: text.trim(), rows };
+    },
+  };
+}
+
+// Mean, p95 and max of each monitored counter, and how many samples had
+// total CPU use above 10% and 25%.
+export function summarizeMonitor(monitor, stopped) {
+  if (!monitor || !stopped) return null;
+  const columns = monitor.counters.map((name, index) => {
+    const values = stopped.rows.map((row) => Number(row[index + 1])).filter(Number.isFinite).sort((a, b) => a - b);
+    const mean = values.reduce((sum, value) => sum + value, 0) / (values.length || 1);
+    return [name, { samples: values.length, mean: Number(mean.toFixed(1)), p95: values[Math.floor(0.95 * (values.length - 1))] ?? null, max: values.at(-1) ?? null }];
+  });
+  const totals = stopped.rows.map((row) => Number(row[1])).filter(Number.isFinite);
+  const pinned = stopped.rows.map((row) => row.slice(2).map(Number).reduce((sum, value) => sum + value, 0));
+  return {
+    what: `typeperf every ${monitor.seconds} s for the whole run`,
+    samples: totals.length,
+    counters: Object.fromEntries(columns.map(([name, stats]) => [name, { ...stats, p95: stats.p95 === null ? null : Number(stats.p95.toFixed(1)), max: stats.max === null ? null : Number(stats.max.toFixed(1)) }])),
+    totalAbove10Percent: totals.filter((value) => value > 10).length,
+    totalAbove25Percent: totals.filter((value) => value > 25).length,
+    pinnedSumAbove150Percent: monitor.counters.length > 1 ? pinned.filter((value) => value > 150).length : null,
+  };
 }
 
 // Toolchain as a given tree selects it (rust-toolchain.toml pins rustc).

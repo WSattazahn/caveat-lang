@@ -12,6 +12,7 @@ import { parseTarget } from './lib/targets.mjs';
 import { performanceCores } from './lib/environment.mjs';
 import { ADAPTER_LOCATIONS, rewriteAdapter } from './lib/adapter.mjs';
 import { SUITES } from './lib/suites.mjs';
+import { CLASS_ORDER, CLASS_RULES, changedParts, classify, glowcapCategory, signature } from './lib/classes.mjs';
 
 test('quantiles follow the published rule: samples[floor(p * (n - 1))]', () => {
   const sorted = [1, 2, 3, 4];
@@ -115,6 +116,34 @@ test('the adapter rewrite finds each published location exactly once', async () 
   const strip = (value) => value.replace(/"file:\/\/\/[^"]+"|'[^']*dist\/pkg-reactive[^']*'|'\.\/glowcap\.cav'|, import\.meta\.url/g, '');
   assert.equal(strip(rewritten), strip(text));
   assert.throws(() => rewriteAdapter(text.replace(ADAPTER_LOCATIONS.glue, "'elsewhere.js'"), { glueUrl: '', wasmUrl: '', programUrl: '' }), /expected/);
+});
+
+test('event classes follow their rules in order, and every effect kind has one', () => {
+  const accepted = (effects, changed = []) => ({ outcome: 'accepted', effects, changed });
+  assert.equal(classify({ outcome: 'rejected', effects: [], changed: [] }), 'refused');
+  assert.equal(classify(accepted(['reveal', 'commit', 'reopen'])), 'commit+reopen');
+  assert.equal(classify(accepted(['reveal', 'commit'])), 'commit');
+  assert.equal(classify(accepted(['qualify', 'reopen'])), 'reopen');
+  assert.equal(classify(accepted(['renew', 'reveal'])), 'evidence');
+  assert.equal(classify(accepted(['sample'])), 'evidence');
+  assert.equal(classify(accepted(['qualify'], ['states.x'])), 'qualify');
+  assert.equal(classify(accepted(['renew'])), 'renew');
+  assert.equal(classify(accepted([], ['states.glow'])), 'state-changing');
+  assert.equal(classify(accepted([])), 'idle');
+  assert.throws(() => classify(accepted(['teleport'])), /unknown effect kind/);
+  assert.deepEqual(CLASS_ORDER, CLASS_RULES.map(([name]) => name));
+  assert.equal(signature('advance', 'reopen', ['reopen', 'qualify', 'reopen']), 'advance reopen [qualify,reopen]');
+  assert.equal(signature('merge', 'refused', [], 'reject'), 'merge refused [] reject');
+});
+
+test('only volatile fields and clock states leave an event idle', () => {
+  const before = { sequence: 1, elapsed: 0, last_event: 'tick', effects: [], states: { now: 1, glow: 3 }, graph: { a: 1 } };
+  assert.deepEqual(changedParts(before, { ...before, sequence: 2, elapsed: 0.05, states: { now: 1.05, glow: 3 } }, ['now']), []);
+  assert.deepEqual(changedParts(before, { ...before, states: { now: 1, glow: 2 } }, ['now']), ['states.glow']);
+  assert.deepEqual(changedParts(before, { ...before, graph: { a: 2 } }, ['now']), ['graph']);
+  assert.equal(glowcapCategory('tick', 'idle'), 'idle tick');
+  assert.equal(glowcapCategory('tick', 'state-changing'), 'state-changing tick');
+  assert.equal(glowcapCategory('absorb', 'commit'), 'observation (commit)');
 });
 
 test('every suite names only workloads the manifest has', async () => {
