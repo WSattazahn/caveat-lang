@@ -21,8 +21,10 @@ A host redraws only what an event can change. The **view** is that part:
 
 ```text
 ReactiveSession::dispatch_view_json(event, payload) -> ReactiveView
+ReactiveSession::dispatch_view_outcome_json(event, payload) -> DispatchViewOutcome
 ReactiveSession::view() -> ReactiveView
 WebReactiveSession.dispatch_view(event, payload) -> compact JSON
+WebReactiveSession.dispatch_view_outcome(event, payload) -> compact JSON
 WebReactiveSession.view() -> compact JSON
 ```
 
@@ -37,3 +39,17 @@ On the glowcap beat a view is 2.9 KB, and dispatch plus parse takes about half
 as long as with the snapshot. The remaining cost is the transaction itself:
 the session is copied for rollback, and every binding is re-evaluated after
 each event.
+
+`dispatch_view_outcome`, `session.dispatchView` in the developer kit, returns
+the view inside a dispatch outcome: `{"outcome":"accepted","view":…}` for an
+accepted event, where the view is exactly what `view()` then returns, and a
+classified refusal as the returned value `dispatch_outcome` gives, where
+`dispatch_view` throws. See
+[Dispatch 0.1](caveat-dispatch-0.1.md#the-view-path).
+
+## Changes
+
+- 2026-09-29: `dispatch_view_outcome` returns the view as a dispatch outcome
+  ([Dispatch 0.1](caveat-dispatch-0.1.md#the-view-path)). A host that wants
+  the view and the refusal as a value no longer has to take the snapshot as
+  well. `dispatch_view`, `view` and the view's fields are unchanged.

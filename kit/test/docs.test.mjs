@@ -60,6 +60,51 @@ test('the kit README names the package\'s version', async () => {
   assert.ok(readme.includes(version), `README.md does not mention ${version}`);
 });
 
+// Session methods the release candidate the README installs does not have,
+// with the version that first has them. With that candidate installed, such a
+// method is not a function at all, so wherever the documentation mentions one
+// it names that version. Once that version is the one the README installs,
+// this test fails until the entry and the markers are removed.
+const NEWER_METHODS = { dispatchView: '0.1.0-rc.5' };
+const candidateNumber = version => Number(/^0\.1\.0-rc\.(\d+)$/.exec(version)?.[1] ?? NaN);
+
+// Paragraphs, list items and table rows, each with its first line number: a
+// blank line ends one, and a line that starts a list item or a table row
+// starts one.
+function passages(markdown) {
+  const units = [];
+  let current = null;
+  markdown.split(/\r?\n/).forEach((text, index) => {
+    if (!text.trim()) current = null;
+    else if (!current || text.startsWith('- ') || text.startsWith('|')) units.push(current = { at: index + 1, text });
+    else current.text += `\n${text}`;
+  });
+  return units;
+}
+
+test('every mention of a session method newer than the installed candidate names its version', async () => {
+  const { CaveatSession } = await import(pathToFileURL(path.join(kit, 'lib', 'session.mjs')).href);
+  const readme = await readFile(path.join(kit, 'README.md'), 'utf8');
+  const installed = /The release candidate is \*\*`caveat-lang@([^`]+)`\*\*/.exec(readme)?.[1];
+  assert.ok(installed, 'the kit README names the release candidate it installs');
+  const documents = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md']
+    .map(file => [`kit/${file}`, path.join(kit, file)]);
+  documents.push(['README.md', path.join(repo, 'README.md')]);
+  let mentions = 0;
+  for (const [method, since] of Object.entries(NEWER_METHODS)) {
+    assert.equal(typeof CaveatSession.prototype[method], 'function', `CaveatSession has no ${method}`);
+    assert.ok(candidateNumber(since) > candidateNumber(installed), `${method} is in ${installed}, which the README installs; remove it here and its markers`);
+    for (const [name, file] of documents) {
+      for (const { at, text } of passages(await readFile(file, 'utf8'))) {
+        if (!new RegExp(`\\b${method}\\b`).test(text)) continue;
+        mentions += 1;
+        assert.ok(text.includes(since), `${name}:${at} mentions ${method} without saying it is new in ${since}`);
+      }
+    }
+  }
+  assert.ok(mentions > 0, 'no document mentions the newer methods');
+});
+
 test('the getting-started guide marks its files, edits and commands', async () => {
   const steps = guideSteps(await readFile(path.join(kit, 'docs/GETTING_STARTED.md'), 'utf8'));
   assert.deepEqual(steps.map(step => step.kind), ['file', 'file', 'run', 'edit', 'run', 'edit', 'file', 'run', 'file', 'run', 'run']);

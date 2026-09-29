@@ -30,7 +30,13 @@ fn rejected(
     code: &str,
 ) -> Value {
     let before = checkpoint(session);
-    let result = json(&session.dispatch_outcome(event, payload).unwrap());
+    // The view path refuses the same event with the same text, and changes
+    // nothing either, so the refusal below runs on the same session.
+    let viewed = session.dispatch_view_outcome(event, payload).unwrap();
+    assert_eq!(checkpoint(session), before, "view path: {event} {payload}");
+    let wire = session.dispatch_outcome(event, payload).unwrap();
+    assert_eq!(viewed, wire, "view path: {event} {payload}");
+    let result = json(&wire);
     assert_eq!(result["schema"], SCHEMA);
     assert_eq!(result["outcome"], "rejected");
     assert_eq!(result["origin"], origin);
@@ -835,4 +841,104 @@ fn legacy_dispatch_view_and_apply_keep_their_error_text_and_behavior() {
     assert_eq!(checkpoint(&viewed), before);
     assert_eq!(serde_json::to_value(applied.snapshot()).unwrap(), before.0);
     assert_eq!(json(&applied.save_json().unwrap()), before.2);
+}
+
+// dispatch_view_outcome, the view path, is dispatch_outcome with the view in
+// place of the snapshot. Every refusal above also goes through it, in
+// `rejected`. Accepted, it returns the view the session then shows, byte for
+// byte, and the two paths leave the same session behind.
+fn accepted_view_wire(view: &str) -> String {
+    format!(r#"{{"schema":"{SCHEMA}","outcome":"accepted","view":{view}}}"#)
+}
+
+#[test]
+fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
+    let mut outcome = session(TIMED);
+    let mut viewed = session(TIMED);
+    let mut core = ReactiveSession::from_source(TIMED).unwrap();
+    for (event, payload) in [
+        ("seed", "{}"),
+        ("unblock", "{}"),
+        ("advance", r#"{"dt":0.125}"#),
+        ("advance", r#"{"dt":0.125}"#),
+        ("advance", r#"{"dt":0.25}"#),
+    ] {
+        let wire = viewed.dispatch_view_outcome(event, payload).unwrap();
+        assert_eq!(wire, accepted_view_wire(&viewed.view()), "{event}");
+        let result = json(&outcome.dispatch_outcome(event, payload).unwrap());
+        assert_eq!(result["outcome"], "accepted");
+        // The same session: the same save and snapshot, to the byte.
+        assert_eq!(viewed.save().unwrap(), outcome.save().unwrap(), "{event}");
+        assert_eq!(viewed.snapshot(), outcome.snapshot(), "{event}");
+        assert_eq!(viewed.view(), outcome.view(), "{event}");
+        let native = core.dispatch_view_outcome_json(event, payload).unwrap();
+        assert_eq!(serde_json::to_string(&native).unwrap(), wire);
+        let value = json(&wire);
+        assert!(value.get("snapshot").is_none());
+        assert_eq!(value["view"]["schema"], "caveat-reactive-view/0.1");
+        assert_eq!(value["view"]["sequence"], result["snapshot"]["sequence"]);
+    }
+    let shown = json(&viewed.view());
+    assert_eq!(shown["bindings"]["hud"]["value"], 2.0);
+    // mutate ran on the second and third advance.
+    assert_eq!(shown["decision_series"]["route"]["current"], "route@3");
+}
+
+#[test]
+fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
+    for expression in ["require(false, 1)", "1 / 0"] {
+        let source = format!(
+            r#"
+            state output = 0;
+            event run;
+            on run set output = 1;
+            on run set output = {expression};
+        "#
+        );
+        let mut game = session(&source);
+        let mut viewed = session(&source);
+        let mut core = ReactiveSession::from_source(&source).unwrap();
+        let before = checkpoint(&viewed);
+        let fatal = viewed.dispatch_view_outcome("run", "{}").unwrap_err();
+        assert_eq!(fatal, game.dispatch_outcome("run", "{}").unwrap_err());
+        assert_eq!(json(&fatal)["outcome"], "fatal");
+        assert_eq!(json(&fatal)["code"], "unclassified");
+        assert_eq!(checkpoint(&viewed), before);
+        assert_eq!(
+            serde_json::to_string(&core.dispatch_view_outcome_json("run", "{}").unwrap_err())
+                .unwrap(),
+            fatal
+        );
+    }
+}
+
+// The one refusal code no test above reaches through `rejected`.
+#[test]
+fn an_identifier_past_the_limit_is_the_same_refusal_on_the_view_path() {
+    let mut game = session(
+        r#"
+        identifiers limit 1;
+        state head = 0;
+        event pushed commit id;
+        on pushed set head = commit;
+        bind pr.head = id_text(head);
+    "#,
+    );
+    let accepted = game.dispatch_view_outcome("pushed", r#"{"commit":"a"}"#);
+    assert_eq!(accepted.unwrap(), accepted_view_wire(&game.view()));
+    rejected(
+        &mut game,
+        "pushed",
+        r#"{"commit":"b"}"#,
+        "limit",
+        "identifier_limit",
+    );
+    rejected(
+        &mut game,
+        "pushed",
+        r#"{"commit":1}"#,
+        "input",
+        "payload_invalid",
+    );
+    assert_eq!(json(&game.view())["bindings"]["pr"]["head"], "a");
 }

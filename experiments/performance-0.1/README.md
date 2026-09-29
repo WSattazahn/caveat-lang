@@ -143,6 +143,13 @@ checkout's adapter is used. Its hash is recorded in both cases.
   other jobs, is discarded, not kept as a replicate. A session with no load
   record during the run is rerun (RESULTS.md, section 2;
   [results/excluded/](results/excluded/README.md)).
+  Added after this baseline, for [Performance Optimization
+  0.1](../performance-opt-0.1/RESULTS.md), and off unless given:
+  `--monitor-lead=SECONDS` waits for that much of the monitor's record
+  before the first job, and `--job-guard` also samples the `System` process
+  and Windows Defender's scanner, judges every timed job by the samples
+  covering it as it ends, and runs a job that overlapped a burst again in its
+  place, recording the discarded attempt (`lib/guard.mjs` has the rule).
 - **Power.** On Windows a measurement (any suite but `smoke`) stops before
   timing unless the machine is on mains power with the High performance plan
   (`--allow-any-power` overrides).

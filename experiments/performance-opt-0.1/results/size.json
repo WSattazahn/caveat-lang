@@ -1,0 +1,125 @@
+{
+ "schema": "caveat-performance-opt-size/0.1",
+ "command": "node experiments/performance-opt-0.1/size.mjs --base=../main-334,../main-334/dist --branch=.,dist --out=experiments/performance-opt-0.1/results/size.json",
+ "base": {
+  "label": "base",
+  "checkout": {
+   "revision": "334d1b77285ff96d0f04bb23d6630d50e7425d4f",
+   "changedFiles": 0
+  },
+  "dist": {
+   "buildInfo": {
+    "revision": "334d1b77285ff96d0f04bb23d6630d50e7425d4f",
+    "clean": true,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+   }
+  },
+  "builds": {
+   "pkg-reactive": {
+    "wasm": {
+     "bytes": 2056842,
+     "gzipBytes": 579679,
+     "sha256": "85a8ab5c79485310540e71c09ffa8d30ca723a5cd9b846016f7b9e3f21c08f08"
+    },
+    "glue": {
+     "bytes": 14575,
+     "gzipBytes": 3209,
+     "sha256": "9066c9a19dcba3f0ae7d8c8e15d4de1d10bb06c09ea9ab1fd9e7026d2e55bcb8"
+    }
+   },
+   "pkg": {
+    "wasm": {
+     "bytes": 2311065,
+     "gzipBytes": 654934,
+     "sha256": "3d90694e432f508d12ddcebf148e82e2628baea8ea4267d75a561a84d5a56b72"
+    },
+    "glue": {
+     "bytes": 33840,
+     "gzipBytes": 4180,
+     "sha256": "066f035632eee8929ede2601dcee0d0137390bfcabdccf2004c9d71c1433e766"
+    }
+   }
+  },
+  "sessionLibrary": {
+   "bytes": 10461,
+   "gzipBytes": 3365,
+   "sha256": "b171d128027aebf24416aefabfc26bdc7cddc1f10f410e1dc67cd96d3abd4b7d"
+  },
+  "tarball": {
+   "filename": "caveat-lang-0.1.0-rc.5.tgz",
+   "bytes": 720626,
+   "sha256": "49ac9e298a1e1c0cb1c3cf7171e8eb3989bf31aa41c90b4c86e9951f430e18c8",
+   "unpackedBytes": 2512071,
+   "entries": 59
+  }
+ },
+ "branch": {
+  "label": "branch",
+  "checkout": {
+   "revision": "36534eef1e4bf665ef4b2343140b7af9da48c667",
+   "changedFiles": 0
+  },
+  "dist": {
+   "buildInfo": {
+    "revision": "36534eef1e4bf665ef4b2343140b7af9da48c667",
+    "clean": true,
+    "compiled": true,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "host": "x86_64-pc-windows-msvc",
+    "wasmBindgen": "0.2.104"
+   }
+  },
+  "builds": {
+   "pkg-reactive": {
+    "wasm": {
+     "bytes": 2061220,
+     "gzipBytes": 580944,
+     "sha256": "acbf1df4e2c31ed4a807fdfe5e56fa1b9b0f6c7f1a788c771f5af4ac63ae2276"
+    },
+    "glue": {
+     "bytes": 15854,
+     "gzipBytes": 3322,
+     "sha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3"
+    }
+   },
+   "pkg": {
+    "wasm": {
+     "bytes": 2315507,
+     "gzipBytes": 655769,
+     "sha256": "997bdf5ea83b6e64336fa45b45d7a5c168fee6a5eb489ea08a98afa16e8f1232"
+    },
+    "glue": {
+     "bytes": 35119,
+     "gzipBytes": 4300,
+     "sha256": "1339db799f807e302fcfd74f747ebb3b5d1fe29c0c73c1ed1b28924738ec6ba7"
+    }
+   }
+  },
+  "sessionLibrary": {
+   "bytes": 12008,
+   "gzipBytes": 3612,
+   "sha256": "f40dad99c758068fc9af6a054e3c11c22f188c4ee03f2f4c51bd1a3b0fefc282"
+  },
+  "tarball": {
+   "filename": "caveat-lang-0.1.0-rc.5.tgz",
+   "bytes": 723689,
+   "sha256": "cc6b44e7c06d074930e1506fac6af4f9ba1c6614179cec17eeec1d99f1d91399",
+   "unpackedBytes": 2523915,
+   "entries": 59
+  }
+ },
+ "delta": {
+  "pkg-reactive wasm bytes": 4378,
+  "pkg-reactive wasm gzip bytes": 1265,
+  "pkg-reactive glue bytes": 1279,
+  "pkg wasm bytes": 4442,
+  "pkg wasm gzip bytes": 835,
+  "pkg glue bytes": 1279,
+  "kit session.mjs bytes": 1547,
+  "kit tarball bytes": 3063,
+  "kit unpacked bytes": 11844
+ }
+}

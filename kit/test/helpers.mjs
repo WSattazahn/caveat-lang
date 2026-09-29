@@ -33,6 +33,10 @@ export function faulty(hooks = {}) {
       this.calls.push('dispatch');
       return hooks.dispatch ? hooks.dispatch(this, event, payload) : this.inner.dispatch_outcome(event, payload);
     }
+    dispatch_view_outcome(event, payload) {
+      this.calls.push('dispatchView');
+      return hooks.dispatchView ? hooks.dispatchView(this, event, payload) : this.inner.dispatch_view_outcome(event, payload);
+    }
     snapshot() { this.calls.push('snapshot'); return hooks.snapshot ? hooks.snapshot(this) : this.inner.snapshot(); }
     view() { this.calls.push('view'); return hooks.view ? hooks.view(this) : this.inner.view(); }
     save() { this.calls.push('save'); return hooks.save ? hooks.save(this) : this.inner.save(); }
