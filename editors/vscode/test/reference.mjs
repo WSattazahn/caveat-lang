@@ -1,5 +1,7 @@
 // The runtime's own rules, restated for checking the grammar against them:
 // - character classes (code, string, comment) from spec/caveat-text-0.1.md;
+// - whitespace as Rust's char::is_whitespace reads it, which the runtime
+//   splits words at and skips between statements;
 // - statement spans as runtime/src/link.rs statement_spans finds them, and
 //   statements as link.rs statements_of reads them, a last statement without
 //   its `;` included, which is how runtime/src/repeat.rs reads them;
@@ -11,6 +13,22 @@
 
 const identifierStart = ch => /[A-Za-z_]/.test(ch);
 const identifierChar = ch => /[A-Za-z0-9_]/.test(ch);
+
+// Rust's whitespace, the Unicode White_Space property, which link.rs,
+// repeat.rs and parser.rs read with char::is_whitespace, split_whitespace and
+// trim. JavaScript's \s, split(/\s+/) and trim() read another set: U+0085 is
+// whitespace to Rust only, and U+FEFF to JavaScript only. So the reference
+// uses no \s. fixtures/substitutions.json lists the set, checked against Rust.
+const spaces = String.raw`\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000`;
+const space = `[${spaces}]`;
+const oneSpace = new RegExp(`^${space}$`);
+const spaceRun = new RegExp(`${space}+`);
+export const isWhitespace = ch => oneSpace.test(ch);
+// The words of a text, split at whitespace, as Rust's split_whitespace splits
+// them: none empty.
+const wordsOf = text => text.split(spaceRun).filter(Boolean);
+// A statement without the `;` that ends it (repeat.rs without_terminator).
+const withoutTerminator = code => (code.endsWith(';') ? code.slice(0, -1) : code);
 
 // One class per character: 'code', 'string' or 'comment'. A string runs from
 // its opening quote to its closing quote (a backslash takes the next character,
@@ -54,7 +72,7 @@ export function statementSpans(text, classes = classify(text)) {
       start = null;
       continue;
     }
-    if (start === null && !/\s/.test(ch)) start = index;
+    if (start === null && !isWhitespace(ch)) start = index;
   }
   return spans;
 }
@@ -66,7 +84,7 @@ export function statementSpans(text, classes = classify(text)) {
 export function statementsOf(text, classes = classify(text)) {
   const spans = statementSpans(text, classes);
   for (let index = spans.at(-1)?.[1] ?? 0; index < text.length; index++) {
-    if (classes[index] === 'comment' || text[index] === ';' || /\s/.test(text[index])) continue;
+    if (classes[index] === 'comment' || text[index] === ';' || isWhitespace(text[index])) continue;
     spans.push([index, text.length]);
     break;
   }
@@ -82,7 +100,8 @@ export function codeOf(text, classes, [start, end]) {
 
 // A `for` block's header, up to the `{` that opens its body: its KIND, its
 // binding with and without the `$`, and P or nothing.
-const blockHeader = /^\s*for\s+([A-Za-z_]\w*)\s+as\s+(\$([A-Za-z_]\w*))(?:\s+routed\s+by\s+([A-Za-z_]\w*))?\s*\{/;
+const blockHeader = new RegExp(String.raw`^${space}*for${space}+([A-Za-z_]\w*)${space}+as${space}+(\$([A-Za-z_]\w*))`
+  + String.raw`(?:${space}+routed${space}+by${space}+([A-Za-z_]\w*))?${space}*\{`);
 
 // Every `for KIND as $NAME { ... }` statement, routed by P or not, a last one
 // without its `;` too, as repeat.rs expand finds them: its range up to the
@@ -137,7 +156,7 @@ function substitute(text, bindings) {
 function entityKinds(text, classes = classify(text)) {
   const kinds = new Map();
   for (const span of statementsOf(text, classes)) {
-    const words = codeOf(text, classes, span).replace(/;\s*$/, '').trim().split(/\s+/);
+    const words = wordsOf(withoutTerminator(codeOf(text, classes, span)));
     if (words.length !== 6 || words[0] !== 'entity' || words[2] !== 'kind' || words[4] !== 'at') continue;
     if (!kinds.has(words[3])) kinds.set(words[3], []);
     kinds.get(words[3]).push(words[1]);
@@ -156,13 +175,15 @@ function entityKinds(text, classes = classify(text)) {
 // statements that neither binds, declares none.
 export function eventKinds(text, classes = classify(text)) {
   const events = new Map();
+  // As repeat.rs event_declaration reads a statement: its words, the first
+  // `event`, then the name, then the parameters, split at commas.
   const declare = code => {
-    const declared = /^event\s+([A-Za-z_]\w*)([\s\S]*)$/.exec(code.trim().replace(/;$/, ''));
-    if (!declared || events.has(declared[1])) return;
-    events.set(declared[1], declared[2].split(',')
-      .map(parameter => parameter.trim().split(/\s+/))
+    const [first, name, ...rest] = wordsOf(withoutTerminator(code));
+    if (first !== 'event' || name === undefined || events.has(name)) return;
+    events.set(name, rest.join(' ').split(',')
+      .map(wordsOf)
       .filter(words => words.length === 3 && words[1] === 'kind')
-      .map(([name, , kind]) => [name, kind]));
+      .map(([parameter, , kind]) => [parameter, kind]));
   };
   const members = entityKinds(text, classes);
   for (const span of statementsOf(text, classes)) {
@@ -176,7 +197,7 @@ export function eventKinds(text, classes = classify(text)) {
     const bodyClasses = classify(body);
     const statements = statementsOf(body, bodyClasses).map(statement => ({
       text: body.slice(...statement),
-      first: /^\s*(\S+)/.exec(codeOf(body, bodyClasses, statement))?.[1],
+      first: wordsOf(withoutTerminator(codeOf(body, bodyClasses, statement)))[0],
     }));
     if (statements.some(({ first }) => first === 'for')) continue;
     const declarations = statements.filter(({ first }) => first !== 'on').map(statement => statement.text);
@@ -203,8 +224,8 @@ function routedRules(text, block) {
   const classes = classify(body);
   const rules = [];
   for (const [start, end] of statementsOf(body, classes)) {
-    const event = /^\s*on\s+(\S+)/.exec(codeOf(body, classes, [start, end]))?.[1];
-    const parameters = events.get(event) ?? [];
+    const [first, event] = wordsOf(withoutTerminator(codeOf(body, classes, [start, end])));
+    const parameters = (first === 'on' && events.get(event)) || [];
     if (!parameters.some(([name, kind]) => name === block.route && kind === block.kind)) continue;
     let uncommented = '';
     for (let index = start; index < end; index++) uncommented += classes[index] === 'comment' ? ' ' : body[index];
@@ -256,7 +277,7 @@ export function statementHeads(text, classes = classify(text)) {
     if (classes[index] === 'string') { expectHead = false; continue; }
     const ch = text[index];
     if (ch === ';' || ch === '{' || ch === '}') { expectHead = true; continue; }
-    if (/\s/.test(ch)) continue;
+    if (isWhitespace(ch)) continue;
     if (expectHead && identifierStart(ch)) {
       let end = index + 1;
       while (end < text.length && identifierChar(text[end])) end += 1;
@@ -307,7 +328,7 @@ export function relations(text, classes = classify(text)) {
   };
   for (let index = 0; index < text.length; index++) {
     const ch = text[index];
-    if (classes[index] === 'comment' || /\s/.test(ch)) {
+    if (classes[index] === 'comment' || isWhitespace(ch)) {
       endWord();
     } else if (classes[index] === 'code' && ';{}'.includes(ch)) {
       endPiece(ch);

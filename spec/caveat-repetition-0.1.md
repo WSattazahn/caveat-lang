@@ -348,4 +348,4 @@ what keeps the expansion checkable and the generated program ordinary.
   Any other `$` word that no binding begins is refused as not bound, as
   before: one that an `in`, numeric or `id` parameter begins outside a routed
   rule, one in a declaration, and a `$Q` in a comment of a rule whose code
-  names no member by Q.
+  and quoted text name no member by Q.

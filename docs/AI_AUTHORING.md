@@ -271,10 +271,10 @@ trace block, costs a line per witness, and it widens lineage: the trace shown
 enters the witness's records even when no one recants.
 
 In the witness block, a `$trace` in a comment is replaced only inside a rule
-whose code uses `$trace`, between its `on` and its `;`. A comment does not
-make a rule name a trace, so a `$trace` in a comment above the rule, after
-its `;`, or in a rule whose code does not use `$trace`, is refused as not
-bound.
+whose code or quoted text uses `$trace`, between its `on` and its `;`. A
+comment does not make a rule name a trace, so a `$trace` in a comment above
+the rule, after its `;`, or in a rule that uses `$trace` only in comments, is
+refused as not bound.
 
 The two members can be of one kind. In
 [Before the Rain](../game/before_the_rain.cav), `confront` names an exhibit

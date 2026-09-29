@@ -2538,3 +2538,28 @@ fn the_editor_reference_cases_read_as_the_runtime_reads_them() {
         }
     }
 }
+
+#[test]
+fn the_editor_reference_whitespace_is_the_runtimes() {
+    // The runtime splits words and skips between statements at Rust's
+    // whitespace, `char::is_whitespace`, which is not JavaScript's `\s`. The
+    // editor's reference reads as whitespace the characters the file lists
+    // (editors/vscode/test/reference.test.mjs), and they are these.
+    let file: Value =
+        serde_json::from_str(&read("../editors/vscode/test/fixtures/substitutions.json")).unwrap();
+    let listed = file["whitespace"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|point| {
+            let hex = point.as_str().unwrap().strip_prefix("U+").unwrap();
+            u32::from_str_radix(hex, 16).unwrap()
+        })
+        .collect::<Vec<_>>();
+    let rust = (0..=0x10FFFF)
+        .filter_map(char::from_u32)
+        .filter(|ch| ch.is_whitespace())
+        .map(u32::from)
+        .collect::<Vec<_>>();
+    assert_eq!(listed, rust);
+}
