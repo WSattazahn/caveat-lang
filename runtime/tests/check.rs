@@ -496,7 +496,8 @@ fn a_selection_that_is_not_a_top_level_conjunct_does_not_count() {
         "on read when target == device.handheld set $p_last = celsius;",
         "on read when target == seen set $p_last = celsius;",
         "on read when celsius == $index set $p_last = celsius;",
-        // A define counts only as a whole conjunct.
+        // A define counts as a whole conjunct or disjunct, and this one is a
+        // disjunct beside one that does not select.
         "define $p_either = $p_here or celsius > 50;\n    on read when $p_either set $p_last = celsius;",
         // `$p` only in quoted text.
         "on read when celsius > 59 reject \"$p is flooded\";",
@@ -630,6 +631,118 @@ for plot as $p {{
             .ends_with("runs whichever plot `from` or `to` names: its guard does not select one"),
         "{}",
         report.diagnostics[0].message
+    );
+}
+
+/// The plots with these rules in a `for` block, and events that name two or
+/// three plots, or a plot and a probe.
+fn moves(rules: &str) -> String {
+    plots(rules).replace(
+        "event tick",
+        "event move from kind plot, to kind plot;
+event relay from kind plot, via kind plot, to kind plot;
+event lend from kind plot, device kind probe;
+event tick",
+    )
+}
+
+#[test]
+fn a_disjunction_of_selections_routes_the_rule() {
+    for rules in [
+        // Either of two parameters of the kind, with or without parentheses.
+        "on move when from == $index or to == $index set $p_last = 1;",
+        "on move when (from == $index or to == $index) and $p_last < 9 set $p_last = 1;",
+        "on move when $p_last < 9 and ($index == to or from == $index) set $p_last = 1;",
+        // Three, however the chain is grouped.
+        "on relay when from == $index or via == $index or to == $index set $p_last = 1;",
+        "on relay when (from == $index or (via == $index)) or to == $index set $p_last = 1;",
+        // Each disjunct in any form a selection takes.
+        "on move when from == from.north or to == $p_slot or from == round($index) set $p_last = 1;",
+        // Through a define: the disjunction as a conjunct, or one disjunct.
+        "define $p_moved = from == $index or to == $index;\n    on move when $p_moved and $p_last < 9 set $p_last = 1;",
+        "define $p_left = from == $index;\n    on move when $p_left or to == $index set $p_last = 1;",
+        "define $p_left = from == $index;\n    define $p_moved = $p_left or to == $index;\n    on move when $p_moved set $p_last = 1;",
+    ] {
+        let source = moves(&format!("    {rules}\n"));
+        assert_eq!(codes(&check(&source)), [], "{rules}");
+    }
+}
+
+#[test]
+fn a_disjunction_with_a_disjunct_that_does_not_select_is_reported() {
+    for rules in [
+        "on move when from == $index or $p_last > 0 set $p_last = 1;",
+        "on move when (from == $index or to == 1) and $p_last < 9 set $p_last = 1;",
+        "on move when from == $index or from != $index set $p_last = 1;",
+        // A parameter of another kind.
+        "on lend when from == $index or device == $index set $p_last = 1;",
+        "on lend when from == $index or device == device.handheld set $p_last = 1;",
+        // A disjunct that is a conjunction, and a disjunction under `not`.
+        "on move when (from == $index and $p_last > 0) or to == $index set $p_last = 1;",
+        "on move when not (from == $index or to == $index) set $p_last = 1;",
+        // Through a define, as for a conjunct.
+        "define $p_left = from == $index or $p_last > 0;\n    on move when $p_left or to == $index set $p_last = 1;",
+    ] {
+        let source = moves(&format!("    {rules}\n"));
+        let line = line_of(&source, "on ");
+        assert_eq!(
+            codes(&check(&source)),
+            [("C003", line), ("C003", line)],
+            "{rules}"
+        );
+    }
+}
+
+#[test]
+fn a_hold_that_presents_two_exhibits_selects_each_by_either_parameter() {
+    // The shape of the hold in Before the Rain, a game written in Caveat
+    // outside this repository, where C003 reported every rule on `hold` for
+    // every exhibit.
+    let source = r#"place yard kind farm;
+entity farmhand kind suspect at yard;
+entity x_farmer kind exhibit at yard;
+entity x_prints kind exhibit at yard;
+entity x_can kind exhibit at yard;
+event hold suspect kind suspect, first kind exhibit, second kind exhibit;
+for exhibit as $e {
+    state $e_points = 1 min 0 max 3;
+    state $e_staked = 0 min 0 max 1;
+    on hold when (first == $index or second == $index) and $e_points == 0 reject "That exhibit is not established.";
+    on hold when first == $index or second == $index set $e_staked = 1;
+};
+"#;
+    assert_eq!(codes(&check(source)), []);
+    // What it says: each copy runs only for an exhibit the hold presents.
+    let mut session = ReactiveSession::from_source(source).expect("loads");
+    let values = session
+        .dispatch_json(
+            "hold",
+            r#"{"suspect":"farmhand","first":"x_can","second":"x_farmer"}"#,
+        )
+        .expect("hold is accepted")
+        .values;
+    assert_eq!(
+        (
+            values["x_farmer_staked"],
+            values["x_prints_staked"],
+            values["x_can_staked"]
+        ),
+        (1.0, 0.0, 1.0)
+    );
+    // A disjunct on the suspect, another kind, is no selection of an exhibit.
+    let suspect = source.replace(
+        "on hold when first == $index or second == $index set",
+        "on hold when first == $index or suspect == $index set",
+    );
+    let line = line_of(&suspect, "on hold when first");
+    let report = check(&suspect);
+    assert_eq!(
+        codes(&report),
+        [("C003", line), ("C003", line), ("C003", line)]
+    );
+    assert_eq!(
+        report.diagnostics[0].message,
+        "the rule on `hold` for `x_farmer` runs whichever exhibit `first` or `second` names: its guard does not select one"
     );
 }
 
@@ -862,16 +975,36 @@ fn a_rule_in_a_routed_block_is_not_checked() {
 
 #[test]
 fn dropping_routed_by_changes_two_kinds_of_rule_with_no_report() {
-    // A comparison of P that C003 counts as a selection, and a rule C003
-    // cannot read as written. Routed, each copy runs only for its own plot.
-    // Plain, neither is reported.
+    // A conjunct that C003 counts as a selection but that is not
+    // `target == $index` alone, and a rule C003 cannot read as written.
+    // Routed, each copy runs only for its own plot. Plain, none is reported.
     let rules = "    caveat $p_fog consequence low;
     on read when target == target.north set $p_last = celsius;
+    on pass when target == $index or from == $index set $p_last = 5;
     on read when celsius < -30 examine $p_fog cost $index;
 ";
-    for source in [routed_plots(rules), plots(rules)] {
-        assert_eq!(codes(&check(&format!("budget 4;\n{source}"))), []);
+    let pass = |source: String| {
+        format!("budget 4;\n{source}").replace(
+            "event tick",
+            "event pass target kind plot, from kind plot;\nevent tick",
+        )
+    };
+    let (routed, plain) = (pass(routed_plots(rules)), pass(plots(rules)));
+    for source in [&routed, &plain] {
+        assert_eq!(codes(&check(source)), []);
     }
+    // A pass from south to north: routed, only north's copy runs; plain,
+    // south's does too, through `from`.
+    let passed = |source: &str| {
+        let mut session = ReactiveSession::from_source(source).expect("loads");
+        let values = session
+            .dispatch_json("pass", r#"{"target":"north","from":"south"}"#)
+            .expect("pass is accepted")
+            .values;
+        (values["north_last"], values["south_last"])
+    };
+    assert_eq!(passed(&routed), (5.0, 0.0));
+    assert_eq!(passed(&plain), (5.0, 5.0));
 }
 
 #[test]
@@ -1293,6 +1426,8 @@ fn every_selection_by_index_that_c003_reads_is_checked() {
         "on read when $p_n < 9 and (target == $index and $p_n >= 0) set $p_n = 1;",
         "define $p_here = target == $index;\n    on read when $p_here set $p_n = 1;",
         "on move when to == $index set $p_n = 1;",
+        // A disjunction of selections, where only `to` reads `$index`.
+        "on move when to == $index or from == from.east set $p_n = 1;",
         // On the member's own event, which C003 does not check.
         "event $p_read target kind plot;\n    on $p_read when target == $index set $p_n = 1;",
     ] {
@@ -1314,8 +1449,8 @@ fn every_selection_by_index_that_c003_reads_is_checked() {
         "{}",
         report.diagnostics[0].message
     );
-    // A selection that is not a top-level conjunct is C003's to report, and
-    // one by name is not reported.
+    // A comparison in a disjunction that does not select is C003's to report,
+    // and a selection by name is not reported.
     for (rule, code) in [
         (
             "on read when target == $index or $p_n > 5 set $p_n = 1;",
@@ -1330,6 +1465,69 @@ fn every_selection_by_index_that_c003_reads_is_checked() {
             .map(|code| vec![(code, line), (code, line)])
             .unwrap_or_default();
         assert_eq!(codes(&check(&source)), expected, "{rule}");
+    }
+}
+
+#[test]
+fn each_disjunct_that_selects_by_index_is_checked() {
+    // North, which a zone block declares, comes before both top-level plots.
+    // Each disjunct is a way a copy runs, so each is reported.
+    let north_first = |rule: &str| {
+        program(&[
+            ZONE,
+            ZONE_BARE,
+            EAST,
+            SOUTH,
+            "event move from kind plot, to kind plot;\n",
+            &format!("for plot as $p {{\n    state $p_n = 0;\n    {rule}\n}};\n"),
+        ])
+    };
+    for (rule, order) in [
+        (
+            "on move when from == $index or to == $index set $p_n = $p_n + 1;",
+            ["from", "to"],
+        ),
+        (
+            "on move when $p_n < 9 and (to == $index or $index == from) set $p_n = $p_n + 1;",
+            ["to", "from"],
+        ),
+        (
+            "define $p_moved = from == $index or to == $index;\n    on move when $p_moved set $p_n = $p_n + 1;",
+            ["from", "to"],
+        ),
+    ] {
+        let source = north_first(rule);
+        let report = check(&source);
+        let line = line_of(&source, "on move");
+        assert_eq!(codes(&report), vec![("C004", line); 4], "{rule}");
+        // East's copy runs when either names north, and south's when either
+        // names east.
+        let expected = [("east", "north"), ("south", "east")]
+            .into_iter()
+            .flat_map(|(member, acts_for)| {
+                order.map(|parameter| {
+                    format!("the rule on `move` for `{member}` runs when `{parameter}` names `{acts_for}`, not `{member}`: ")
+                })
+            });
+        for (diagnostic, prefix) in report.diagnostics.iter().zip(expected) {
+            assert!(
+                diagnostic.message.starts_with(&prefix),
+                "{rule}: {}",
+                diagnostic.message
+            );
+        }
+        // What they describe: a move from north counts for east, and a move
+        // to east for south.
+        let moved = |from: &str, to: &str| {
+            let mut session = ReactiveSession::from_source(&source).expect("loads");
+            let values = session
+                .dispatch_json("move", &format!(r#"{{"from":"{from}","to":"{to}"}}"#))
+                .expect("move is accepted")
+                .values;
+            (values["east_n"], values["south_n"])
+        };
+        assert_eq!(moved("north", "south"), (1.0, 0.0), "{rule}");
+        assert_eq!(moved("south", "east"), (0.0, 1.0), "{rule}");
     }
 }
 

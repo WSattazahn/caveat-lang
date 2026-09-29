@@ -586,21 +586,50 @@ fn member_rules(
             let own_event =
                 written.event.contains(&member_marker) || written.event.contains(&index_marker);
             let mut conjuncts = Vec::new();
-            guard_conjuncts(
+            operands(
                 &written.condition,
+                Expr::conjuncts,
                 &defines,
                 &mut Vec::new(),
                 &mut conjuncts,
             );
-            // Each conjunct `P == E` or `E == P` whose E reads `$index`,
-            // itself or through a define, as (P, E), in the guard's order.
-            let by_index = conjuncts
+            // Each top-level conjunct as its disjuncts, the conjunct itself
+            // where it is no chain of `or`. With each disjunct, the (P, E) it
+            // compares, `P == E` or `E == P`, where E reads `$index`, itself
+            // or through a define.
+            let alternatives = conjuncts
                 .iter()
-                .filter_map(|conjunct| conjunct.equality())
-                .flat_map(|(left, right)| [(left, right), (right, left)])
-                .filter_map(|(parameter, value)| Some((parameter.as_name()?, value)))
-                .filter(|(_, value)| {
-                    reads_through(value, &index_marker, &defines, &mut HashSet::new())
+                .map(|conjunct| {
+                    let mut disjuncts = Vec::new();
+                    operands(
+                        conjunct,
+                        Expr::disjuncts,
+                        &defines,
+                        &mut Vec::new(),
+                        &mut disjuncts,
+                    );
+                    disjuncts
+                        .into_iter()
+                        .map(|disjunct| {
+                            let by_index = disjunct
+                                .equality()
+                                .into_iter()
+                                .flat_map(|(left, right)| [(left, right), (right, left)])
+                                .filter_map(|(parameter, value)| {
+                                    Some((parameter.as_name()?, value))
+                                })
+                                .filter(|(_, value)| {
+                                    reads_through(
+                                        value,
+                                        &index_marker,
+                                        &defines,
+                                        &mut HashSet::new(),
+                                    )
+                                })
+                                .collect::<Vec<_>>();
+                            (disjunct, by_index)
+                        })
+                        .collect::<Vec<_>>()
                 })
                 .collect::<Vec<_>>();
             for (index, member) in block.members.iter().enumerate() {
@@ -627,10 +656,10 @@ fn member_rules(
                 let Some(first) = parameters.first() else {
                     continue;
                 };
-                // The parameter a conjunct `P == E` or `E == P` compares with
-                // a value `accepts` takes.
-                let compared = |conjunct: &Expr, accepts: &dyn Fn(&Expr) -> bool| {
-                    let (left, right) = conjunct.equality()?;
+                // The parameter a comparison `P == E` or `E == P` compares
+                // with a value `accepts` takes.
+                let compared = |comparison: &Expr, accepts: &dyn Fn(&Expr) -> bool| {
+                    let (left, right) = comparison.equality()?;
                     [(left, right), (right, left)]
                         .into_iter()
                         .find_map(|(parameter, value)| {
@@ -640,27 +669,48 @@ fn member_rules(
                             accepts(value).then_some(*declared)
                         })
                 };
-                let selection = by_index.iter().find_map(|(name, value)| {
-                    let parameter = parameters.iter().find(|declared| declared.name == *name)?;
-                    Some((*parameter, *value))
-                });
-                if let Some((parameter, value)) = selection {
+                // A conjunct that selects the member, as C003 reads it: a
+                // selection, or a chain of `or` of selections.
+                let selects = |disjuncts: &[(&Expr, Vec<(&str, &Expr)>)]| {
+                    disjuncts
+                        .iter()
+                        .all(|(disjunct, _)| compared(disjunct, &routes).is_some())
+                };
+                // The first top-level conjunct that selects by `$index`: a
+                // comparison, or a chain of `or` that selects the member, with
+                // each of its disjuncts that compares with `$index`.
+                let selections = alternatives
+                    .iter()
+                    .find_map(|disjuncts| {
+                        let found = match disjuncts.as_slice() {
+                            [(_, compares)] => {
+                                compared_by(compares, &parameters).into_iter().collect()
+                            }
+                            _ if selects(disjuncts) => disjuncts
+                                .iter()
+                                .filter_map(|(_, compares)| compared_by(compares, &parameters))
+                                .collect(),
+                            _ => Vec::new(),
+                        };
+                        (!found.is_empty()).then_some(found)
+                    })
+                    .unwrap_or_default();
+                // The number E comes to in the member's copy: `$index` is the
+                // member's, and a name written with a binding is the copy's.
+                let position = index + 1;
+                let in_copy = |name: &str| {
+                    if name == index_marker {
+                        return Some(position as f64);
+                    }
+                    let name = name
+                        .replace(&member_marker, member)
+                        .replace(&index_marker, &position.to_string());
+                    defined(&name, (&program_defines, &functions), &known)
+                };
+                for (parameter, value) in selections {
                     let numbering = numberings
                         .entry((event.as_str(), parameter.name.as_str()))
                         .or_insert_with(|| numbering(parameter, block));
-                    // The number E comes to in the member's copy: `$index` is
-                    // the member's, and a name written with a binding is the
-                    // copy's.
-                    let position = index + 1;
-                    let in_copy = |name: &str| {
-                        if name == index_marker {
-                            return Some(position as f64);
-                        }
-                        let name = name
-                            .replace(&member_marker, member)
-                            .replace(&index_marker, &position.to_string());
-                        defined(&name, (&program_defines, &functions), &known)
-                    };
                     if let Some((numbering, number)) = numbering.as_ref().and_then(|numbering| {
                         Some((numbering, constant(value, &functions, &in_copy)?))
                     }) {
@@ -674,11 +724,7 @@ fn member_rules(
                         ));
                     }
                 }
-                if own_event
-                    || conjuncts
-                        .iter()
-                        .any(|conjunct| compared(conjunct, &routes).is_some())
-                {
+                if own_event || alternatives.iter().any(|disjuncts| selects(disjuncts)) {
                     continue;
                 }
                 let named = parameters
@@ -902,30 +948,43 @@ fn defined(
     number
 }
 
+/// The first (P, E) whose P is one of `parameters`, with that parameter.
+fn compared_by<'p, 'e>(
+    compares: &[(&str, &'e Expr)],
+    parameters: &[&'p Parameter],
+) -> Option<(&'p Parameter, &'e Expr)> {
+    compares.iter().find_map(|(name, value)| {
+        let parameter = parameters.iter().find(|declared| declared.name == *name)?;
+        Some((*parameter, *value))
+    })
+}
+
 /// Whether an event parameter is declared `NAME kind KIND`.
 fn of_kind(parameter: &Parameter, kind: &str) -> bool {
     matches!(&parameter.domain, ParameterDomain::Entity { kind: declared, .. } if declared == kind)
 }
 
-/// The operands of a guard's chain of `and`, each one that names a define
-/// replaced by the operands of its expression.
-fn guard_conjuncts<'a>(
+/// The operands of a chain, of `and` with `Expr::conjuncts` or of `or` with
+/// `Expr::disjuncts`, each one that names a define replaced by the operands of
+/// the same chain in its expression.
+fn operands<'a>(
     condition: &'a Expr,
+    chain: fn(&Expr) -> Vec<&Expr>,
     defines: &'a HashMap<String, Expr>,
     inlining: &mut Vec<&'a str>,
     out: &mut Vec<&'a Expr>,
 ) {
-    for conjunct in condition.conjuncts() {
-        match conjunct
+    for operand in chain(condition) {
+        match operand
             .as_name()
             .and_then(|name| defines.get_key_value(name))
         {
             Some((name, expression)) if !inlining.contains(&name.as_str()) => {
                 inlining.push(name);
-                guard_conjuncts(expression, defines, inlining, out);
+                operands(expression, chain, defines, inlining, out);
                 inlining.pop();
             }
-            _ => out.push(conjunct),
+            _ => out.push(operand),
         }
     }
 }

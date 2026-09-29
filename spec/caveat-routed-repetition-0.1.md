@@ -473,9 +473,12 @@ C003 like a define in any block over the same kind. Two things follow:
 - If `routed by P` is dropped from a header, the block is plain, and C003
   reports each of its rules that has no selection C003 recognizes. Two kinds
   of rule change meaning with no report. One has a top-level conjunct that
-  C003 counts as a selection but that compares P with something other than
-  `$index`, such as `target == target.pr21` or `target == $p_base`. Plain,
-  every member's copy runs when that comparison holds. The other is a rule
+  C003 counts as routing but that is not `P == $index` alone. It compares
+  P with something other than `$index`, such as `target == target.pr21` or
+  `target == $p_base`, or it compares another parameter of KIND, by itself
+  or in a chain of `or`, such as `base == $index` or
+  `target == $index or base == $index`. Plain, a member's copy runs whenever
+  that conjunct holds, whichever member P names. The other is a rule
   C003 cannot read as written, such as one with `examine $r_fog cost $index`.
   A rule that mentions no binding cannot be in a routed block (section 2), so
   dropping the clause cannot multiply one.
