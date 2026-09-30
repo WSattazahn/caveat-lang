@@ -152,6 +152,11 @@ outcome ends the server with status 1. [Serve 0.1](docs/reference/spec/caveat-se
 is the protocol. From code, `createServer` in `caveat-lang/serve` handles
 lines without any I/O.
 
+The [agent-evidence example](examples/agent-evidence/README.md), in the
+package from 0.1.0-rc.6, drives a session from Python. It shows how to tell a
+handled request from an accepted event, and both from a decision that permits
+what the application intends.
+
 ## Use a session from code
 
 With the package installed, save the
@@ -247,6 +252,9 @@ These commands run from a repository checkout, after `npm run build`.
 - `serve`: dispatch, explain, dependents, save and restore over the protocol;
   malformed requests answered without effect; a fatal outcome ending the
   server; and the process itself on standard input and output;
+- the agent-evidence example: its program loads with no warnings, and its
+  Python caller's tests pass against this checkout's `caveat serve`. They need
+  Python 3.9 or later;
 - `validate`, `replay` and `init`: exit statuses, line numbers, typed
   parameters, and `init`'s files staying identical to the guide's;
 - the packaged documentation: every source exists, every link in the kit's
@@ -273,9 +281,11 @@ install: the `caveat` command (`test` with exit statuses 0, 1 and 2,
 `explain`, `dependents`, `validate`, `replay`, `serve` and `init`), the
 library imported as `caveat-lang/node`, `caveat-lang/session`,
 `caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
-the browser check above. The tarball holds the command, the five library files,
-`init`'s templates, the runtime, this README, the license and the notices, and
-nothing else.
+the browser check above. It also copies the agent-evidence example out of the
+install and runs its Python tests against the installed command. The tarball
+holds the command, the five library files, `init`'s templates, the example,
+the runtime, the documentation, the license and the notices, and nothing
+else.
 
 The package is MIT licensed. Packing copies the repository's `LICENSE` and
 `THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the
