@@ -22,12 +22,10 @@ path or URL to `npm install` instead. Until rc.5 is published,
 `caveat-lang@next` installs rc.4, whose tarball is also on its [GitHub
 pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.4).
 
-The npm tag `latest` names rc.4, and a bare `npm install caveat-lang`
-installs it; here `latest` does not mean stable. Publishing with `--tag next`
-leaves `latest` where it is, so it names rc.4 until it is moved as a separate
-step, as it was moved to rc.4. So install a candidate by the tag `next` or by
-its exact version; `npm dist-tag ls caveat-lang` shows which version each tag
-names.
+Publishing with `--tag next` leaves the tag `latest` where it is. It moves
+only as a separate step, as it was moved to rc.4, and here it does not mean
+stable. So install a candidate by the tag `next` or by its exact version;
+`npm dist-tag ls caveat-lang` shows which version each tag names.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
@@ -294,6 +292,6 @@ for the release gates.
 ## Not yet
 
 - A stable release. Release candidates are published with the tag `next`.
-  `latest` names a release candidate too, as above, and does not mean stable.
+  `latest` names a release candidate too, and does not mean stable.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.
