@@ -63,8 +63,9 @@ test('the kit README names the package\'s version', async () => {
 // with the version that first has them. With that candidate installed, such a
 // method is not a function at all, so wherever the documentation mentions one
 // it names that version. Once that version is the one the README installs,
-// this test fails until the entry and the markers are removed.
-const NEWER_METHODS = { dispatchView: '0.1.0-rc.5' };
+// this test fails until the entry and the markers are removed. None is newer
+// than 0.1.0-rc.5, which has dispatchView.
+const NEWER_METHODS = {};
 const candidateNumber = version => Number(/^0\.1\.0-rc\.(\d+)$/.exec(version)?.[1] ?? NaN);
 
 // Paragraphs, list items and table rows, each with its first line number: a
@@ -101,7 +102,7 @@ test('every mention of a session method newer than the installed candidate names
       }
     }
   }
-  assert.ok(mentions > 0, 'no document mentions the newer methods');
+  if (Object.keys(NEWER_METHODS).length) assert.ok(mentions > 0, 'no document mentions the newer methods');
 });
 
 test('the getting-started guide marks its files, edits and commands', async () => {

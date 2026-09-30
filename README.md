@@ -22,7 +22,7 @@ Caveat is a programming language for programs that act on what they know and kee
 
 **[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)**, on one page: the problem, one example to run, and the limitations.
 
-**Try it** with Node 20 or later: `npm install caveat-lang@next` installs the release candidate, [0.1.0-rc.4](docs/releases/v0.1.0-rc.4.md) ([on npm](https://www.npmjs.com/package/caveat-lang)), and `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
+**Try it** with Node 20 or later. The release candidate is [0.1.0-rc.5](docs/releases/v0.1.0-rc.5.md). Once it is published on npm, `npm install caveat-lang@next` installs it; until then, that installs the previous candidate, [0.1.0-rc.4](docs/releases/v0.1.0-rc.4.md) ([on npm](https://www.npmjs.com/package/caveat-lang)). Then `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
@@ -70,8 +70,7 @@ state-bound failure and execution-budget exhaustion. Unclassified errors remain
 fatal. Existing dispatch methods retain their behavior; new integrations can use
 the explicit outcome contract when testing why an event was refused. A host that
 redraws from the view uses `dispatch_view_outcome` (`session.dispatchView` in the
-developer kit): the same outcome, with the view in place of the snapshot. It is
-new in 0.1.0-rc.5, which is not released; rc.4 does not have it.
+developer kit): the same outcome, with the view in place of the snapshot.
 
 ## What only Caveat does
 
