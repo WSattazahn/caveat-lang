@@ -34,6 +34,8 @@ test('the Python caller\'s tests pass against this checkout\'s caveat serve', as
     'test_a_later_attempt_with_replacement_evidence_is_judged_on_its_own',
     'test_an_earlier_approval_does_not_stand_in_for_this_attempt',
     'test_a_malformed_request_changes_nothing',
+    'test_a_refused_request_fails_the_attempt',
+    'test_a_full_history_refuses_more_evidence',
     'test_a_program_that_does_not_load_is_reported',
   ]) assert.match(result.report, new RegExp(`^${name} .* ok$`, 'm'), `${name} did not pass`);
   assert.match(result.report, /\nOK\n?$/);

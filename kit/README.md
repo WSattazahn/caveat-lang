@@ -283,7 +283,7 @@ library imported as `caveat-lang/node`, `caveat-lang/session`,
 `caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
 the browser check above. It also copies the agent-evidence example out of the
 install and runs its Python tests against the installed command. The tarball
-holds the command, the five library files, `init`'s templates, the example,
+holds the command, the six library files, `init`'s templates, the example,
 the runtime, the documentation, the license and the notices, and nothing
 else.
 

@@ -14,14 +14,20 @@ wrong, and asks for a new assessment. It talks to the program through
 
 For the language, read the [worked example](../../docs/WORKED_EXAMPLE.md) and
 [Caveat on one page](../../docs/REFERENCE.md). This page does not repeat them.
+Its links work where the package installs it,
+`node_modules/caveat-lang/examples/agent-evidence/`. In a copy, find the same
+documents under `node_modules/caveat-lang/`.
 
 ## Run it
 
-The example is in the package from `0.1.0-rc.6`. In a project directory:
+The example is in the package from `0.1.0-rc.6`. Earlier versions do not
+have it, so install that version or a later one by its number; the tag
+`next` may still name an earlier one (`npm view caveat-lang dist-tags`). In a
+project directory:
 
 ```sh
 npm init -y
-npm install caveat-lang@next
+npm install caveat-lang@0.1.0-rc.6
 cp -r node_modules/caveat-lang/examples/agent-evidence .
 cd agent-evidence
 npx --no-install caveat validate assessment.cav
@@ -29,14 +35,16 @@ npx --no-install caveat check assessment.cav
 python3 -B -m unittest -v test_caller
 ```
 
-On Windows, copy the folder by hand and use `python` if there is no
-`python3`. `-B` keeps Python from writing bytecode into the folder.
+`cp -r` is for a POSIX shell, such as Git Bash. In PowerShell, use
+`Copy-Item -Recurse` instead. Use `python` if there is no `python3`. `-B`
+keeps Python from writing bytecode into the folder.
 
 The caller starts `npx --no-install caveat serve assessment.cav`, so it finds
-the package installed in the project. To start `caveat` another way, set
-`CAVEAT_COMMAND` to a JSON array of words, such as
-`["node", "/path/to/caveat-lang/bin/caveat.mjs"]`, or pass `command=` to
-`CaveatServer`.
+the package installed in the project. npx adds a few seconds to each start.
+To start `caveat` another way, set `CAVEAT_COMMAND` to a JSON array of words,
+such as `["node", "../node_modules/caveat-lang/bin/caveat.mjs"]`, or pass
+`command=` to `CaveatServer`. In JSON, write a Windows path with forward
+slashes or doubled backslashes.
 
 ## The program
 
@@ -55,11 +63,17 @@ the package installed in the project. To start `caveat` another way, set
   the program's explicit withdrawal policy. The withdrawal keeps its record,
   and the approval keeps the grounds it was made on
   ([withdrawal](../../docs/reference/spec/caveat-withdrawal-0.1.md)). A
-  withdrawal reopens nothing by itself; the next rule reopens an approval that
-  rests on the withdrawn observation.
+  withdrawal reopens nothing by itself; a later rule reopens an approval that
+  rests on the withdrawn observation. The program refuses `retract` when
+  there is no observation, or when the latest one is already withdrawn.
 - `erase` is forbidden. The program always refuses it.
 
 The displayed value `assessment.verdict` is `none`, `approved` or `reopened`.
+
+A session keeps at most 16 observations and 8 assessments. After that,
+`observe` or `assess` is refused with origin `limit` and code
+`history_limit`, and every later attempt in the session fails. To go on, the
+application starts a new server.
 
 ## Three levels of an answer
 
@@ -83,12 +97,13 @@ do not take one for another.
 This response is valid, and the operation it answers did not succeed:
 
 ```json
-{"id":2,"ok":true,"outcome":"rejected","origin":"input","code":"bound_exceeded","sequence":1}
+{"id":2,"ok":true,"outcome":"rejected","origin":"input","code":"bound_exceeded","message":"confidence must be finite and in 0..100","sequence":1}
 ```
 
-`caller.py` raises `CaveatRequestError` for level 1 kind `request`,
-`CaveatSessionFailed` for any other kind, and `CaveatLoadError` for a program
-that does not load. A dispatch returns a `Dispatch` whose `accepted` answers
+`caller.py` raises `CaveatRequestError` for level 1 kind `request`, including
+a line the server could not read, which it answers with an `id` of null.
+It raises `CaveatSessionFailed` for any other kind, and `CaveatLoadError` for
+a program that does not load. A dispatch returns a `Dispatch` whose `accepted` answers
 level 2. An outcome or origin the contract does not name raises
 `CaveatProtocolError`; it is never read as a rejection.
 
@@ -97,10 +112,12 @@ level 2. An outcome or origin the contract does not name raises
 A workflow attempt succeeds only when its required operations succeed and its relevant, current CAVEAT assessment permits the intended result. A stored earlier assessment cannot substitute for a rejected required operation.
 
 `Attempt` carries it out. `require` sends a required operation; once one is
-rejected, the attempt has failed and sends nothing more. `finish` reads the
-current snapshot and asks the application's own test whether it permits the
-result. Here that test is `assessment_permits`: the verdict is `approved`,
-and the approval in force was committed during this attempt.
+rejected, or raises an error, the attempt has failed and sends nothing more.
+`finish` reads the current snapshot and asks the application's own test
+whether it permits the result. Here that test is `assessment_permits`: the
+verdict is `approved`, and the approval in force was committed during this
+attempt. `assess_answer` is this example's attempt: it names the required
+operations, `observe` then `assess`.
 
 A rejected event rolls back everything it did, so an earlier approval stays
 visible after it. That is how the protocol works. The rule, not the session,
@@ -113,13 +130,23 @@ decides that the attempt failed.
 | A test deliberately requests a forbidden action and gets the expected refusal | The TEST passed; the requested ACTION did not succeed. |
 | A later, separate attempt receives valid replacement evidence and an accepted reassessment | Evaluate that new attempt; do not permanently mark every future attempt failed because an earlier one failed. |
 
-Each row is a test in `test_caller.py`, and so is a malformed request.
+Each row is a test in `test_caller.py`. Other tests there cover a malformed
+request, a program that does not load, and the limits.
+
+## Change it
+
+To make the approval rest on more evidence, declare it and its event in the
+program, and add its `require` call to `assess_answer`. Then make
+`assessment_permits` check that the grounds of the approval in force include
+it, and give the evidence its own withdrawal and reopening rules. Grounds are
+sets: compare them as sets. Tests that call `assess_answer` keep working.
 
 ## From code instead
 
 A Node application can hold the session in process instead of starting a
-server: `runtime.open(source)` from `caveat-lang/node`, or `createServer` from
-`caveat-lang/serve` to handle the same lines without I/O. See the
+server: `loadRuntimeFromDirectory()` from `caveat-lang/node` gives a runtime,
+and `runtime.open(source)` a session. Or `createServer` from
+`caveat-lang/serve` handles the same lines without I/O. See the
 [package README](../../README.md#use-a-session-from-code). The three levels
 and the rule are the same.
 

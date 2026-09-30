@@ -17,6 +17,7 @@ from caller import (
     CaveatRequestError,
     CaveatServer,
     Dispatch,
+    assess_answer,
     assessment_permits,
 )
 
@@ -28,12 +29,17 @@ def verdict(snapshot):
     return snapshot["bindings"]["assessment"]["verdict"]
 
 
+def always(snapshot, attempt):
+    """A test that permits anything, so only the required operations decide."""
+    return True
+
+
 class ResponseLevels(unittest.TestCase):
     # A valid response that must not be read as the operation's success: the
     # request was handled, and the event was refused.
     def test_a_handled_request_can_carry_a_rejected_event(self):
-        response = {"id": 2, "ok": True, "outcome": "rejected", "origin": "input",
-                    "code": "bound_exceeded", "sequence": 1}
+        response = {"id": 2, "ok": True, "outcome": "rejected", "origin": "input", "code": "bound_exceeded",
+                    "message": "confidence must be finite and in 0..100", "sequence": 1}
         result = Dispatch.from_response("observe", response)
         self.assertFalse(result.accepted)
         self.assertEqual((result.origin, result.code, result.sequence), ("input", "bound_exceeded", 1))
@@ -55,10 +61,7 @@ class Attempts(unittest.TestCase):
         self.addCleanup(self.server.close)
 
     def approve(self, confidence=85):
-        attempt = Attempt(self.server)
-        attempt.require("observe", {"confidence": confidence})
-        attempt.require("assess")
-        return attempt.finish(assessment_permits)
+        return assess_answer(self.server, confidence)
 
     # A required operation is rejected after an earlier approval: this attempt
     # did not succeed, even if the old approval remains visible.
@@ -78,26 +81,40 @@ class Attempts(unittest.TestCase):
         # The old approval is still what the session shows; the refusal changed nothing.
         self.assertEqual(verdict(result.snapshot), "approved")
         self.assertEqual(self.server.save(), before)
+        # Even an assessment test that accepted the old approval could not
+        # make this attempt succeed: the rejected operation decides it.
+        self.assertFalse(attempt.finish(always).succeeded)
 
     # Evidence supporting an approval is withdrawn: the program's withdrawal
     # policy applies, and the old approval is not usable.
     def test_withdrawn_evidence_reopens_the_approval_by_the_programs_policy(self):
-        self.assertTrue(self.approve().succeeded)
+        # One attempt commits an approval, then withdraws the evidence under it.
+        attempt = Attempt(self.server)
+        attempt.require("observe", {"confidence": 85})
+        attempt.require("assess")
         grounds = self.server.snapshot()["commitment_grounds"]["assessment@1"]
+        attempt.require("retract")
+        result = attempt.finish(assessment_permits)
 
-        retracted = self.server.dispatch("retract")
-        self.assertTrue(retracted.accepted)
-        snapshot = self.server.snapshot()
+        self.assertIsNone(result.failed, "every required operation was accepted")
+        snapshot = result.snapshot
         self.assertEqual([entry["evidence"] for entry in snapshot["withdrawals"]], ["observations@1"])
         # The program reopens the assessment; its original grounds stay as they were.
         self.assertEqual(verdict(snapshot), "reopened")
         self.assertEqual(snapshot["commitment_grounds"]["assessment@1"], grounds)
         self.assertEqual(snapshot["decision_journal"][-1]["change"], "reopened")
+        # The approval was made in this attempt, and it is no longer in force.
+        self.assertFalse(result.permits)
+        self.assertFalse(result.succeeded)
 
-        # Assessing again on the withdrawn observation is refused, so the attempt fails.
-        attempt = Attempt(self.server)
-        refused = attempt.require("assess")
-        result = attempt.finish(assessment_permits)
+        # Withdrawing it again, or assessing again on it, is refused.
+        again = Attempt(self.server)
+        refused = again.require("retract")
+        self.assertEqual((refused.origin, refused.code, refused.message),
+                         ("policy", "reject", "The latest observation is already withdrawn."))
+        again = Attempt(self.server)
+        refused = again.require("assess")
+        result = again.finish(assessment_permits)
         self.assertEqual((refused.origin, refused.code, refused.message),
                          ("policy", "reject", "The latest observation is withdrawn."))
         self.assertFalse(result.succeeded)
@@ -111,7 +128,7 @@ class Attempts(unittest.TestCase):
 
         attempt = Attempt(self.server)
         refused = attempt.require("erase")
-        result = attempt.finish(lambda snapshot, attempt: True)
+        result = attempt.finish(always)
 
         self.assertEqual((refused.outcome, refused.origin, refused.code, refused.message),
                          ("rejected", "policy", "reject", "Evidence is withdrawn with a reason, never erased."))
@@ -131,8 +148,9 @@ class Attempts(unittest.TestCase):
         self.assertTrue(result.succeeded, result.failed)
         snapshot = result.snapshot
         self.assertEqual(verdict(snapshot), "approved")
-        self.assertEqual(snapshot["commitment_grounds"]["assessment@2"]["evidence"], ["observations@2"])
-        self.assertEqual(snapshot["commitment_grounds"]["assessment@1"]["evidence"], ["observations@1"])
+        # Grounds are sets; compare them as sets.
+        self.assertEqual(set(snapshot["commitment_grounds"]["assessment@2"]["evidence"]), {"observations@2"})
+        self.assertEqual(set(snapshot["commitment_grounds"]["assessment@1"]["evidence"]), {"observations@1"})
 
     # Level 3 reads the current assessment: an approval committed before this
     # attempt does not permit what this attempt asks for.
@@ -145,11 +163,13 @@ class Attempts(unittest.TestCase):
         self.assertFalse(result.succeeded)
 
     # A malformed request is refused as a request: nothing changes, and the
-    # server keeps serving.
+    # server keeps serving. A line the server cannot read, such as a payload
+    # holding NaN, is answered with an id of null and is refused the same way.
     def test_a_malformed_request_changes_nothing(self):
         self.assertTrue(self.approve().succeeded)
         before = self.server.save()
         for op, fields in (("dispatch", {"event": "observe", "payload": {"confidence": 50}, "extra": True}),
+                           ("dispatch", {"event": "observe", "payload": {"confidence": float("nan")}}),
                            ("frobnicate", {})):
             with self.assertRaises(CaveatRequestError) as caught:
                 self.server.request(op, **fields)
@@ -157,6 +177,27 @@ class Attempts(unittest.TestCase):
             self.assertEqual(caught.exception.response["error"]["kind"], "request")
         self.assertEqual(self.server.save(), before)
         self.assertTrue(self.server.dispatch("observe", {"confidence": 20}).accepted)
+
+    # A required operation refused as a request fails the attempt, even when
+    # the application catches the error and finishes the attempt anyway.
+    def test_a_refused_request_fails_the_attempt(self):
+        attempt = Attempt(self.server)
+        attempt.require("observe", {"confidence": 85})
+        with self.assertRaises(CaveatRequestError) as caught:
+            attempt.require("assess", ["not", "an", "object"])
+        self.assertIsNone(attempt.require("assess"), "nothing more is sent once a required operation fails")
+        result = attempt.finish(always)
+        self.assertIs(result.failed, caught.exception)
+        self.assertFalse(result.succeeded)
+
+    # The program keeps at most 16 observations. After that, observe is
+    # refused by the limit, and every attempt in this session fails.
+    def test_a_full_history_refuses_more_evidence(self):
+        for _ in range(16):
+            self.assertTrue(self.server.dispatch("observe", {"confidence": 20}).accepted)
+        result = self.approve(confidence=95)
+        self.assertEqual((result.failed.origin, result.failed.code), ("limit", "history_limit"))
+        self.assertFalse(result.succeeded)
 
 
 class Loading(unittest.TestCase):

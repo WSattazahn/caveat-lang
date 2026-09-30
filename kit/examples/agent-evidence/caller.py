@@ -26,13 +26,12 @@ from __future__ import annotations
 import json
 import os
 import queue
-import shlex
 import shutil
 import subprocess
 import tempfile
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 SERVE_SCHEMA = "caveat-serve/0.1"
 # Origins in Dispatch outcomes 0.1. An unknown origin is a protocol failure,
@@ -107,18 +106,18 @@ def default_command() -> List[str]:
     """The command that runs `caveat`, without `serve PROGRAM`.
 
     CAVEAT_COMMAND overrides it, as a JSON array of strings such as
-    ["node", "/path/to/caveat.mjs"], or as words split like a shell would.
-    Otherwise the installed package's command runs through npx, which is
-    npx.cmd on Windows.
+    ["node", "/path/to/caveat.mjs"]. Otherwise the installed package's command
+    runs through npx, which is npx.cmd on Windows.
     """
     configured = os.environ.get("CAVEAT_COMMAND")
     if configured:
-        if configured.lstrip().startswith("["):
+        try:
             words = json.loads(configured)
-            if not words or not all(isinstance(word, str) for word in words):
-                raise ValueError("CAVEAT_COMMAND must be a JSON array of strings")
-            return words
-        return shlex.split(configured)
+        except json.JSONDecodeError:
+            words = None
+        if not isinstance(words, list) or not words or not all(isinstance(word, str) for word in words):
+            raise ValueError('CAVEAT_COMMAND must be a JSON array of strings, such as ["node", "caveat.mjs"]')
+        return words
     npx = shutil.which("npx")
     if npx is None:
         raise FileNotFoundError("npx was not found; install Node, or set CAVEAT_COMMAND")
@@ -151,8 +150,7 @@ class CaveatServer:
         self._reader.start()
         ready = self._read_line()
         if ready is None or ready.get("schema") != SERVE_SCHEMA:
-            self._finish()
-            raise CaveatProtocolError(f"no ready line from caveat serve: {ready!r}{self._errors()}")
+            raise self._fail(f"no ready line from caveat serve: {ready!r}")
         if ready.get("ready") is not True:
             status = self._finish()
             message = (ready.get("error") or {}).get("message", "")
@@ -176,13 +174,15 @@ class CaveatServer:
         self._process.stdin.flush()
         response = self._read_line()
         if response is None:
-            status = self._finish()
-            raise CaveatProtocolError(f"the server ended without answering (status {status}){self._errors()}")
-        if response.get("id") != request_id:
-            raise CaveatProtocolError(f"response {response!r} does not echo id {request_id}")
+            raise self._fail("the server ended without answering")
+        error = response.get("error") or {}
+        # Requests are answered in order, so an id of null answers this line:
+        # the server could not read it, for example a payload holding NaN.
+        unread = response.get("id") is None and response.get("ok") is False and error.get("kind") == "request"
+        if response.get("id") != request_id and not unread:
+            raise self._fail(f"response {response!r} does not echo id {request_id}")
         if response.get("ok") is True:
             return response
-        error = response.get("error") or {}
         if error.get("kind") == "request":
             raise CaveatRequestError(error.get("message", ""), response)
         status = self._finish()
@@ -232,18 +232,33 @@ class CaveatServer:
         try:
             line = self._lines.get(timeout=self._timeout)
         except queue.Empty:
-            self._process.kill()
-            self._finish()
-            raise CaveatProtocolError(f"caveat serve wrote nothing for {self._timeout} seconds{self._errors()}")
+            raise self._fail(f"caveat serve wrote nothing for {self._timeout} seconds")
         if not line:
             return None
         try:
             value = json.loads(line)
-        except json.JSONDecodeError as error:
-            raise CaveatProtocolError(f"caveat serve wrote a line that is not JSON: {line!r}") from error
+        except json.JSONDecodeError:
+            raise self._fail(f"caveat serve wrote a line that is not JSON: {line!r}")
         if not isinstance(value, dict):
-            raise CaveatProtocolError(f"caveat serve wrote a line that is not an object: {line!r}")
+            raise self._fail(f"caveat serve wrote a line that is not an object: {line!r}")
         return value
+
+    def _fail(self, message: str) -> CaveatProtocolError:
+        """The server broke the protocol: stop it, and say what happened."""
+        self._kill()
+        status = self._finish()
+        return CaveatProtocolError(f"{message} (status {status}){self._errors()}")
+
+    def _kill(self) -> None:
+        if self._process.poll() is not None:
+            return
+        # On Windows the command may be a .cmd file, such as npx.cmd, run by
+        # cmd.exe; stopping the whole tree also stops caveat under it.
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(self._process.pid)],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if self._process.poll() is None:
+            self._process.kill()
 
     def _finish(self) -> Optional[int]:
         if self._process.stdin and not self._process.stdin.closed:
@@ -254,7 +269,7 @@ class CaveatServer:
         try:
             status = self._process.wait(timeout=30)
         except subprocess.TimeoutExpired:
-            self._process.kill()
+            self._kill()
             status = self._process.wait()
         self._reader.join(timeout=5)
         if self._stderr_text is None:
@@ -274,7 +289,8 @@ class AttemptResult:
 
     succeeded: bool
     operations: List[Dispatch]
-    failed: Optional[Dispatch]
+    # The rejected dispatch, or the error a required operation raised.
+    failed: Optional[Union[Dispatch, Exception]]
     permits: bool
     snapshot: Dict[str, Any]
 
@@ -283,15 +299,15 @@ class AttemptResult:
 class Attempt:
     """One workflow attempt: its required operations, then the current assessment.
 
-    `require` sends a required operation. Once one is rejected, the attempt
-    has failed; later required operations are not sent, because they would
-    run on a session the attempt did not bring about. `finish` reads the
-    current snapshot and applies `permits` to it.
+    `require` sends a required operation. Once one is rejected, or raises,
+    the attempt has failed; later required operations are not sent, because
+    they would run on a session the attempt did not bring about. `finish`
+    reads the current snapshot and applies `permits` to it.
     """
 
     server: CaveatServer
     operations: List[Dispatch] = field(default_factory=list)
-    failed: Optional[Dispatch] = None
+    failed: Optional[Union[Dispatch, Exception]] = None
 
     def __post_init__(self) -> None:
         # The sequence before this attempt, so `permits` can tell this
@@ -301,7 +317,13 @@ class Attempt:
     def require(self, event: str, payload: Optional[Dict[str, Any]] = None) -> Optional[Dispatch]:
         if self.failed is not None:
             return None
-        result = self.server.dispatch(event, payload)
+        try:
+            result = self.server.dispatch(event, payload)
+        except Exception as error:
+            # A refused request, or a failed session, is not a success either,
+            # even when the application catches the error and finishes.
+            self.failed = error
+            raise
         self.operations.append(result)
         if not result.accepted:
             self.failed = result
@@ -332,3 +354,14 @@ def assessment_permits(snapshot: Dict[str, Any], attempt: Attempt) -> bool:
     committed = [entry for entry in snapshot["decision_journal"]
                  if entry["decision"] == "assessment" and entry["change"] == "committed"]
     return bool(committed) and committed[-1]["sequence"] > attempt.start_sequence
+
+
+# This example's workflow. Its required operations are named here, once. A
+# workflow that needs more evidence adds its `require` calls here, and makes
+# `assessment_permits` check that the approval rests on that evidence.
+def assess_answer(server: CaveatServer, confidence: float) -> AttemptResult:
+    """One attempt: send an observation, ask for the assessment, and judge the result."""
+    attempt = Attempt(server)
+    attempt.require("observe", {"confidence": confidence})
+    attempt.require("assess")
+    return attempt.finish(assessment_permits)

@@ -34,6 +34,7 @@ on assess commit assessment because enough using latest(observations);
 # assessment keeps the grounds it was made on. Withdrawal reopens nothing by
 # itself: this rule reopens an assessment that rests on it.
 on retract when not has_sample(observations) reject "No observation to withdraw.";
+on retract when withdrawn(latest(observations)) reject "The latest observation is already withdrawn.";
 on retract when not observed(recheck) reveal recheck supports misreport;
 on retract withdraw latest(observations) because recheck;
 on retract when committed(assessment) and not reopened(assessment) and rests_on_withdrawn(assessment)
