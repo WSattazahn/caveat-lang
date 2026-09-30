@@ -171,6 +171,18 @@ made the first four:
 - Expecting `renew` to observe evidence. It makes a new, unobserved
   occurrence.
 
+An agent integrating Caveat into an application made these three:
+
+- An event of its own named `tick`. Any `tick` may take only `dt`, within
+  `0..0.1` seconds, even with a `clock` declaration: "tick must declare only dt
+  with bounds inside 0..0.1 seconds". Name it `advance` and declare
+  `clock advance every 1`.
+- One parameter name listing a member at different positions in two events:
+  "origin.external_text already names a different value". Each `NAME.MEMBER`
+  is one program-wide constant. Rename one, such as to `requester_origin`.
+- An event parameter named like a state: "parameter limitations shadows state
+  or a coordinate". Rename one of them.
+
 ## More
 
 - [Worked example](WORKED_EXAMPLE.md): one program through every command.
