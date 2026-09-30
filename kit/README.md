@@ -3,11 +3,11 @@
 A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
-The release candidate is **`caveat-lang@0.1.0-rc.4`**, with the command
-`caveat`. It is a preview, not a stable release. It was published to npm with
-the tag `next`, and the same tested tarball is attached to its [GitHub
-pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.4).
-It needs no Rust:
+The release candidate is **`caveat-lang@0.1.0-rc.5`**, with the command
+`caveat`. It is a preview, not a stable release: like the previous candidate,
+rc.4, it is to be published to npm with the tag `next`, with the same tested
+tarball attached to its GitHub pre-release. It needs no Rust. Once it is
+published, install it from npm:
 
 ```sh
 npm init -y
@@ -16,22 +16,18 @@ npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.4`. To use a
-verified tarball instead, such as the one on the GitHub pre-release, pass its
-path or URL to `npm install`.
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.5`. Before
+publication, or to use a verified tarball you were given, pass the tarball's
+path or URL to `npm install` instead. Until rc.5 is published,
+`caveat-lang@next` installs rc.4, whose tarball is also on its [GitHub
+pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.4).
 
-The npm tags `latest` and `next` both name rc.4, so a bare
-`npm install caveat-lang` installs it too; here `latest` does not mean
-stable. npm gave `latest` to rc.3 as the package's first version
-([npm/cli#8490](https://github.com/npm/cli/issues/8490)). rc.4 was published
-with `--tag next`, which does not set `latest`, and `latest` was then moved
-to it. So install a candidate by the tag `next` or by its exact version;
-`npm dist-tag ls caveat-lang` shows which version each tag names.
-
-The kit in the repository's `main` branch is the next candidate's
-development version, `0.1.0-rc.5`, which is **not released**: it is on
-neither npm nor GitHub. A tarball built from `main` carries that version.
-Until rc.5 is released, install rc.4 as shown above.
+The npm tag `latest` names rc.4, and a bare `npm install caveat-lang`
+installs it; here `latest` does not mean stable. Publishing with `--tag next`
+leaves `latest` where it is, so it names rc.4 until it is moved as a separate
+step, as it was moved to rc.4. So install a candidate by the tag `next` or by
+its exact version; `npm dist-tag ls caveat-lang` shows which version each tag
+names.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
@@ -189,8 +185,7 @@ It runs the same event and returns `{outcome: "accepted", view}`, where `view`
 is what `session.view()` then returns, or the same rejected outcome as
 `dispatch`. The runtime does not build the snapshot for it. Its payload checks
 and failures are `dispatch`'s, and after the same events either way the session
-is the same. `dispatchView` is new in `0.1.0-rc.5`, which is not released:
-rc.4's session library does not have it.
+is the same.
 
 Rejections are values, following the
 [dispatch outcome contract](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/spec/caveat-dispatch-0.1.md). Everything else
@@ -198,7 +193,7 @@ throws a `CaveatError` with a `kind`:
 
 | `kind` | Meaning |
 | --- | --- |
-| `load` | The source did not load; the message is the runtime's diagnostic. `dispatchView` (from 0.1.0-rc.5, not released; rc.4 has no such method) also throws it on a runtime build that predates it, and the session is untouched. |
+| `load` | The source did not load; the message is the runtime's diagnostic. `dispatchView` also throws it on a runtime build that predates it, and the session is untouched. |
 | `restore` | The save does not restore with this source. |
 | `payload` | The payload cannot be sent unchanged as JSON (a non-finite number, `undefined`, a hole in an array, a class instance). The session is untouched. |
 | `fatal` | An unclassified runtime error, an unrecognised outcome, runtime text that is not JSON, or a trap. The session refuses every later call and is never touched again. |
@@ -233,10 +228,10 @@ These commands run from a repository checkout, after `npm run build`.
   `$includes`, and `before` defined only after the first `send`;
 - the session library: typed outcomes, payload refusal, fatal and trapped
   sessions, and a runtime that predates `dispatch_outcome`;
-- `dispatchView` (new in 0.1.0-rc.5) against `dispatch` and `view`, event by
-  event: the same outcome, view, save and snapshot for every refusal code,
-  fatal outcomes, every tracked program on a seeded random stream, and the
-  Glowcap, agent ledger and Trail Rescue streams;
+- `dispatchView` against `dispatch` and `view`, event by event: the same
+  outcome, view, save and snapshot for every refusal code, fatal outcomes,
+  every tracked program on a seeded random stream, and the Glowcap, agent
+  ledger and Trail Rescue streams;
 - injected runtime faults: a rejection that changes state, a restore that
   loses history, a resumed session that diverges or disagrees, grounds outside
   lineage, fatal reports, unrecognised outcomes and traps. Each is caught and
@@ -299,6 +294,6 @@ for the release gates.
 ## Not yet
 
 - A stable release. Release candidates are published with the tag `next`.
-  `latest` also names rc.4, as above, and does not mean stable.
+  `latest` names a release candidate too, as above, and does not mean stable.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.
