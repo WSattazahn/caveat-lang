@@ -95,7 +95,7 @@ Background:
 ## The kit
 
 - [Package README](../README.md): the `caveat` command, the session library,
-  errors, and use in a browser.
+  errors, use in a browser, and TypeScript and bundlers.
 - [Scenarios 0.1](reference/spec/caveat-scenarios-0.1.md): scenario files.
 - [Dispatch outcomes 0.1](reference/spec/caveat-dispatch-0.1.md): accepted,
   rejected and fatal outcomes, and rejection origins and codes.

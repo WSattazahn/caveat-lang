@@ -225,6 +225,33 @@ const runtime = await loadRuntime({
 });
 ```
 
+## TypeScript and bundlers
+
+From `0.1.0-rc.6`, which is not released yet, every entry point carries its
+declarations (`lib/*.d.mts`), named by the `types` condition of its `exports`
+entry; rc.5 has none. TypeScript finds them with `"moduleResolution"` set to
+`"bundler"`, `"node16"` or `"nodenext"`, and nothing needs declaring by hand.
+They cover the session library, the dispatch outcomes, `CaveatError` and its
+kinds, the snapshot and view, and every report. The runtime module ships
+wasm-bindgen's own `runtime/caveat_runtime.d.ts`.
+
+In a bundled page, import the runtime module yourself and pass its namespace:
+
+```ts
+import { loadRuntime, type DispatchViewOutcome } from 'caveat-lang/session';
+import * as runtimeModule from 'caveat-lang/runtime/caveat_runtime.js';
+
+const runtime = await loadRuntime({ module: runtimeModule });
+const source = await (await fetch('/thermostat_history.cav')).text();
+const outcome: DispatchViewOutcome = runtime.open(source).dispatchView('read', { value: 17 });
+```
+
+The bundler follows that import like any other. The runtime finds its
+`.wasm` with `new URL(…, import.meta.url)`, which webpack and Vite emit beside
+the bundle. Given a URL instead, `loadRuntime` imports it with the browser's
+own `import()`, which webpack and Vite are told to leave alone. A namespace
+cannot be imported afresh, so after a trap only a URL gives a new instance.
+
 ## Tests
 
 These commands run from a repository checkout, after `npm run build`.
@@ -257,6 +284,11 @@ These commands run from a repository checkout, after `npm run build`.
   Python 3.9 or later;
 - `validate`, `replay` and `init`: exit statuses, line numbers, typed
   parameters, and `init`'s files staying identical to the guide's;
+- the TypeScript declarations, by name: every export, method and member,
+  every field of the snapshot, view, outcomes and reports, every option and
+  runtime call, and every code and kind, against the modules, real sessions,
+  the runtime's Rust structs and the documents that list them. Parameter and
+  return types are not compared;
 - the packaged documentation: every source exists, every link in the kit's
   own documents resolves inside the package, the authoring guide's script
   runs, and the getting-started guide, followed step by step, prints what it
@@ -283,9 +315,9 @@ library imported as `caveat-lang/node`, `caveat-lang/session`,
 `caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
 the browser check above. It also copies the agent-evidence example out of the
 install and runs its Python tests against the installed command. The tarball
-holds the command, the six library files, `init`'s templates, the example,
-the runtime, the documentation, the license and the notices, and nothing
-else.
+holds the command, the six library files and their declarations, `init`'s
+templates, the example, the runtime and its declarations, the documentation,
+the license and the notices, and nothing else.
 
 The package is MIT licensed. Packing copies the repository's `LICENSE` and
 `THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the

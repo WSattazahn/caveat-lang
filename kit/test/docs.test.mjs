@@ -18,7 +18,7 @@ const manifest = JSON.parse(await readFile(path.join(kit, 'pack-docs.json'), 'ut
 // Every path the packed tarball will hold, relative to the package root.
 async function packageFiles() {
   const files = new Set(['README.md', 'package.json', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
-    'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm', 'runtime/build-info.json']);
+    'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm', 'runtime/caveat_runtime.d.ts', 'runtime/build-info.json']);
   for (const directory of ['bin', 'lib', 'docs']) {
     for (const entry of await readdir(path.join(kit, directory), { withFileTypes: true })) {
       if (entry.isFile()) files.add(`${directory}/${entry.name}`);
