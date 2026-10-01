@@ -162,9 +162,10 @@ class CaveatServer:
         self._reader = threading.Thread(target=self._pump, daemon=True)
         self._reader.start()
         ready = self._read_line()
-        if ready is None or ready.get("schema") != SERVE_SCHEMA:
+        # `ready` is true or false; anything else is not a ready line.
+        if ready is None or ready.get("schema") != SERVE_SCHEMA or not isinstance(ready.get("ready"), bool):
             raise self._fail(f"no ready line from caveat serve: {ready!r}")
-        if ready.get("ready") is not True:
+        if not ready["ready"]:
             status = self._end()
             message = (ready.get("error") or {}).get("message", "")
             raise CaveatLoadError(message + self._stop_note(), status)
@@ -192,7 +193,9 @@ class CaveatServer:
         response = self._read_line()
         if response is None:
             raise self._fail("the server ended without answering")
-        error = response.get("error") or {}
+        error = response.get("error")
+        if not isinstance(error, dict):
+            error = {}
         # Requests are answered in order, so an id of null answers this line:
         # the server could not read it, for example a payload holding NaN.
         unread = response.get("id") is None and response.get("ok") is False and error.get("kind") == "request"
@@ -200,12 +203,15 @@ class CaveatServer:
             raise self._fail(f"response {response!r} does not echo id {request_id}")
         if response.get("ok") is True:
             return response
+        # Otherwise `ok` is false and the error names its kind.
+        if response.get("ok") is not False or not isinstance(error.get("kind"), str):
+            raise self._fail(f"not a Serve 0.1 response: {response!r}")
         if error.get("kind") == "request":
             raise CaveatRequestError(error.get("message", ""), response)
         # The session failed. The server exits with 1 by itself; `_end` stops
         # what is left of the launch.
         status = self._end()
-        raise CaveatSessionFailed(error.get("kind", "unknown"), error.get("message", "") + self._stop_note(), status)
+        raise CaveatSessionFailed(error["kind"], error.get("message", "") + self._stop_note(), status)
 
     # Level 2: an event is accepted or rejected; both are handled requests.
     def dispatch(self, event: str, payload: Optional[Dict[str, Any]] = None) -> Dispatch:
@@ -297,7 +303,10 @@ class CaveatServer:
                 self._stop_directly(f"stopping its process group failed: {error}")
             return
         if self._process.poll() is not None:
-            return  # taskkill finds the tree through a running first process only.
+            # taskkill finds the tree through a running first process only.
+            # One that has exited ended by itself, after what it started: npx
+            # and the shell under it each wait for the process they start.
+            return
         # The command may be a .cmd file, such as npx.cmd, run by cmd.exe;
         # stopping the whole tree also stops caveat under it.
         try:
@@ -307,13 +316,14 @@ class CaveatServer:
         except OSError as error:
             self._stop_directly(f"taskkill could not run: {error}")
             return
+        # A failure is reported even when the first process has exited since:
+        # taskkill may have stopped it and failed on a process under it.
         if done.returncode != 0:
             self._stop_directly(f"taskkill failed with status {done.returncode}: {done.stderr.strip()}")
 
     def _stop_directly(self, problem: str) -> None:
         """The tree could not be stopped: stop the first process, and remember why."""
-        if self._process.poll() is None:
-            self._process.kill()
+        self._process.kill()  # Does nothing to a process that has exited.
         self._stop_problem = f"{problem}; processes started under it may still be running"
 
     def _stop_note(self) -> str:
@@ -352,8 +362,8 @@ class AttemptResult:
 
     succeeded: bool
     operations: List[Dispatch]
-    # The rejected dispatch, or the error a required operation raised.
-    failed: Optional[Union[Dispatch, Exception]]
+    # The rejected dispatch, or what a required operation raised.
+    failed: Optional[Union[Dispatch, BaseException]]
     permits: bool
     snapshot: Dict[str, Any]
 
@@ -370,7 +380,7 @@ class Attempt:
 
     server: CaveatServer
     operations: List[Dispatch] = field(default_factory=list)
-    failed: Optional[Union[Dispatch, Exception]] = None
+    failed: Optional[Union[Dispatch, BaseException]] = None
 
     def __post_init__(self) -> None:
         # The sequence before this attempt, so `permits` can tell this
@@ -382,9 +392,10 @@ class Attempt:
             return None
         try:
             result = self.server.dispatch(event, payload)
-        except Exception as error:
-            # A refused request, or a failed session, is not a success either,
-            # even when the application catches the error and finishes.
+        except BaseException as error:
+            # A refused request, a failed session, or an interruption such as
+            # KeyboardInterrupt or a cancelled task is not a success either,
+            # even when the application catches it and finishes.
             self.failed = error
             raise
         self.operations.append(result)

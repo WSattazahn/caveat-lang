@@ -14,6 +14,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 from unittest import mock
@@ -33,6 +34,9 @@ from caller import (
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROGRAM = os.path.join(HERE, "assessment.cav")
+# How long the tests of a real server wait for any one line. npx can take more
+# than the caller's default, 60 seconds, to start `caveat` on a busy machine.
+SERVER_TIMEOUT = 300.0
 
 
 def verdict(snapshot):
@@ -71,7 +75,7 @@ class ResponseLevels(unittest.TestCase):
 
 class Attempts(unittest.TestCase):
     def setUp(self):
-        self.server = CaveatServer(PROGRAM, cwd=HERE)
+        self.server = CaveatServer(PROGRAM, cwd=HERE, timeout=SERVER_TIMEOUT)
         self.addCleanup(self.server.close)
 
     def approve(self, confidence=85):
@@ -213,6 +217,37 @@ class Attempts(unittest.TestCase):
         self.assertTrue(result.permits)
         self.assertFalse(result.succeeded)
 
+    # A required operation that raises, here after the server committed the
+    # approval, fails the attempt: a cancelled task is not a success.
+    def test_an_interrupted_required_operation_fails_the_attempt(self):
+        dispatch = self.server.dispatch
+
+        def interrupted(event, payload=None):
+            result = dispatch(event, payload)
+            if event == "assess":
+                raise Cancelled("cancelled while reading the response")
+            return result
+
+        attempt = Attempt(self.server)
+        attempt.require("observe", {"confidence": 85})
+        with mock.patch.object(self.server, "dispatch", interrupted), self.assertRaises(Cancelled) as caught:
+            attempt.require("assess")
+        result = attempt.finish(assessment_permits)
+        self.assertEqual(verdict(result.snapshot), "approved")
+        self.assertTrue(result.permits, "the approval was committed in this attempt")
+        self.assertIs(result.failed, caught.exception)
+        self.assertFalse(result.succeeded)
+
+    # assess_answer judges by the assessment test: when it does not permit
+    # the result, the attempt fails although every operation was accepted.
+    def test_assess_answer_applies_the_assessment_test(self):
+        with mock.patch.object(caller, "assessment_permits", return_value=False):
+            result = self.approve()
+        self.assertEqual([operation.event for operation in result.operations], ["observe", "assess"])
+        self.assertIsNone(result.failed)
+        self.assertFalse(result.permits)
+        self.assertFalse(result.succeeded)
+
     # The program keeps at most 16 observations. After that, observe is
     # refused by the limit, and every attempt in this session fails.
     def test_a_full_history_refuses_more_evidence(self):
@@ -221,6 +256,10 @@ class Attempts(unittest.TestCase):
         result = self.approve(confidence=95)
         self.assertEqual((result.failed.origin, result.failed.code), ("limit", "history_limit"))
         self.assertFalse(result.succeeded)
+
+
+class Cancelled(BaseException):
+    """Not an Exception, like asyncio.CancelledError and KeyboardInterrupt."""
 
 
 class FailingOperation:
@@ -239,19 +278,23 @@ class FailingOperation:
 
 
 class RequiredOperations(unittest.TestCase):
-    # Any error from a required operation fails the attempt, not only a
-    # refused request, even when the application catches it and finishes.
+    # Anything a required operation raises fails the attempt, not only a
+    # refused request: an error, an interruption or a cancelled task, even
+    # when the application catches it and finishes.
     def test_any_error_from_a_required_operation_fails_the_attempt(self):
-        server = FailingOperation(RuntimeError("the tool crashed"))
-        attempt = Attempt(server)
-        with self.assertRaises(RuntimeError) as caught:
-            attempt.require("observe", {"confidence": 85})
-        self.assertIsNone(attempt.require("assess"), "nothing more is sent once a required operation fails")
-        self.assertEqual(server.dispatched, ["observe"])
-        result = attempt.finish(always)
-        self.assertIs(result.failed, caught.exception)
-        self.assertTrue(result.permits)
-        self.assertFalse(result.succeeded)
+        for error in (RuntimeError("the tool crashed"), KeyboardInterrupt(), Cancelled()):
+            with self.subTest(error=type(error).__name__):
+                server = FailingOperation(error)
+                attempt = Attempt(server)
+                with self.assertRaises(type(error)) as caught:
+                    attempt.require("observe", {"confidence": 85})
+                self.assertIs(attempt.failed, caught.exception)
+                self.assertIsNone(attempt.require("assess"), "nothing more is sent once a required operation fails")
+                self.assertEqual(server.dispatched, ["observe"])
+                result = attempt.finish(always)
+                self.assertIs(result.failed, caught.exception)
+                self.assertTrue(result.permits)
+                self.assertFalse(result.succeeded)
 
 
 def snapshot_with(verdict_text, journal):
@@ -303,18 +346,28 @@ class Permits(unittest.TestCase):
 # A stand-in for `caveat serve`, written to a temporary directory by the tests
 # below. Its script says what to write: a ready line, then one reply per
 # request ("$id" becomes the request's id; None reads the request and answers
-# nothing), then whether to stay running ("hang") or exit with a status. With
-# "grandchild", it first starts a process of its own that stays alive, as npx
-# starts caveat under a shell. With "deaf", it stops reading requests before
-# it writes the ready line. It records when it wrote that line in "ready.time".
+# nothing), then whether to stay running ("hang") or exit with a status. A
+# stand-in that hangs, and the process it starts with "grandchild", sleep for
+# an hour: only being stopped ends them in time. The grandchild stays alive
+# as caveat does under the shell npx starts. With "deaf", the stand-in stops
+# reading requests before it writes the ready line. It records its own id in
+# "stand_in.pid", when it wrote the ready line in "ready.time", and the
+# requests it read in "requests.json".
 STAND_IN = r'''
 import json, os, subprocess, sys, time
+here = os.path.dirname(sys.argv[1])
 with open(sys.argv[1], encoding="utf-8") as handle:
     script = json.load(handle)
+def record(name, text):
+    # Written whole, then renamed, so a reader never sees half of it.
+    with open(os.path.join(here, name + ".tmp"), "w", encoding="utf-8") as handle:
+        handle.write(text)
+    os.replace(os.path.join(here, name + ".tmp"), os.path.join(here, name))
+record("stand_in.pid", str(os.getpid()))
 if script["grandchild"]:
-    pid_file = os.path.join(os.path.dirname(sys.argv[1]), "grandchild.pid")
+    pid_file = os.path.join(here, "grandchild.pid")
     code = ("import os, sys, time; open(sys.argv[1] + '.tmp', 'w').write(str(os.getpid())); "
-            "os.replace(sys.argv[1] + '.tmp', sys.argv[1]); time.sleep(60)")
+            "os.replace(sys.argv[1] + '.tmp', sys.argv[1]); time.sleep(3600)")
     subprocess.Popen([sys.executable, "-B", "-I", "-S", "-c", code, pid_file],
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     deadline = time.monotonic() + 10
@@ -326,30 +379,40 @@ def write(line):
     sys.stdout.write(line + "\n")
     sys.stdout.flush()
 if script["ready"] is not None:
-    with open(os.path.join(os.path.dirname(sys.argv[1]), "ready.time"), "w", encoding="utf-8") as handle:
-        handle.write(repr(time.time()))
+    record("ready.time", repr(time.time()))
     write(script["ready"])
+requests = []
 for reply in script["replies"]:
     request = sys.stdin.readline()
+    if request:
+        requests.append(json.loads(request))
+        record("requests.json", json.dumps(requests))
     if not request or reply is None:
         break
-    write(reply.replace('"$id"', json.dumps(json.loads(request).get("id"))))
+    write(reply.replace('"$id"', json.dumps(requests[-1].get("id"))))
 if script["end"] == "hang":
-    time.sleep(60)
+    time.sleep(3600)
 sys.exit(0 if script["end"] == "hang" else script["end"])
 '''
 
 READY = json.dumps({"schema": "caveat-serve/0.1", "ready": True, "program": "assessment.cav"})
 SNAPSHOT = json.dumps({"id": "$id", "ok": True, "snapshot": {"sequence": 0}})
+FATAL = json.dumps({"id": "$id", "ok": False, "error": {"kind": "fatal", "message": "boom"}})
+# What a stop that may leave processes running adds to the error.
+UNSURE = "; processes started under it may still be running)"
+
+# The tests' own process checks call subprocess.run as it was when they were
+# imported, so a test that makes the caller's taskkill fail does not change them.
+_run = subprocess.run
 
 
 def alive(pid):
     """Whether process `pid` is running. Never signals it."""
     if os.name == "nt":
         # os.kill on Windows terminates the process; ask tasklist instead.
-        listed = subprocess.run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                universal_newlines=True, errors="replace").stdout
+        listed = _run(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                      universal_newlines=True, errors="replace").stdout
         return f'"{pid}"' in listed
     try:
         os.kill(pid, 0)
@@ -365,6 +428,25 @@ def alive(pid):
         return True
 
 
+def kill(pid):
+    if os.name == "nt":
+        _run(["taskkill", "/F", "/PID", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        os.kill(pid, signal.SIGKILL)
+
+
+def unstoppable():
+    """Ways the launch cannot be stopped whole on this system, each with what the caller says about it."""
+    if os.name == "nt":
+        refused = subprocess.CompletedProcess(["taskkill"], 1, stderr="ERROR: refused\n")
+        return [(lambda: mock.patch.object(caller.subprocess, "run", side_effect=OSError("no taskkill")),
+                 "taskkill could not run: no taskkill"),
+                (lambda: mock.patch.object(caller.subprocess, "run", return_value=refused),
+                 "taskkill failed with status 1: ERROR: refused")]
+    return [(lambda: mock.patch.object(caller.os, "killpg", side_effect=PermissionError("not permitted")),
+             "stopping its process group failed: not permitted")]
+
+
 class GivingUp(unittest.TestCase):
     """A server that breaks the protocol, or does not end in time, is given up on,
     and nothing from its launch is left running."""
@@ -373,51 +455,91 @@ class GivingUp(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.directory = directory.name
-        self.addCleanup(self.stop_grandchild)
+        self.launches = []
 
     def start(self, *replies, ready=READY, end="hang", grandchild=True, deaf=False, timeout=15.0):
-        """Start CaveatServer on the stand-in. Returns the server, or raises what its constructor raises.
+        """Start CaveatServer on a new stand-in. Returns the server, or raises what its constructor raises.
 
         Only the tests of a server that does not answer, or does not exit, in time wait for the
         timeout; they shorten it. The others keep it long, so a slow start is not taken for one.
         """
-        stand_in = os.path.join(self.directory, "stand_in.py")
+        launch = os.path.join(self.directory, str(len(self.launches)))
+        os.mkdir(launch)
+        self.launches.append(launch)
+        # A failed test may leave the stand-in running; stop it, so nothing outlives the suite.
+        self.addCleanup(self.stop_launch, launch)
+        stand_in = os.path.join(launch, "stand_in.py")
         with open(stand_in, "w", encoding="utf-8") as handle:
             handle.write(STAND_IN)
-        script = os.path.join(self.directory, "script.json")
+        script = os.path.join(launch, "script.json")
         with open(script, "w", encoding="utf-8") as handle:
             json.dump({"ready": ready, "replies": list(replies), "end": end, "grandchild": grandchild,
                        "deaf": deaf}, handle)
-        server = CaveatServer(PROGRAM, command=[sys.executable, "-B", "-I", "-S", stand_in, script], cwd=HERE, timeout=timeout)
-        self.addCleanup(server.close)
+        server = CaveatServer(PROGRAM, command=[sys.executable, "-B", "-I", "-S", stand_in, script], cwd=HERE,
+                              timeout=timeout)
+
+        def close():
+            self.stop_launch(launch)
+            server.close()
+        self.addCleanup(close)
         return server
+
+    def recorded(self, name):
+        """What the latest stand-in recorded in `name`."""
+        with open(os.path.join(self.launches[-1], name), encoding="utf-8") as handle:
+            return handle.read()
 
     def grandchild(self):
         """The process the stand-in started. It writes its own id, so it was running."""
-        with open(os.path.join(self.directory, "grandchild.pid"), encoding="utf-8") as handle:
-            return int(handle.read())
+        return int(self.recorded("grandchild.pid"))
+
+    def stand_in(self):
+        return int(self.recorded("stand_in.pid"))
 
     def assertStopped(self, pid):
         deadline = time.monotonic() + 5
         while alive(pid) and time.monotonic() < deadline:
             time.sleep(0.1)
-        self.assertFalse(alive(pid), f"process {pid}, started under the server, is still running")
+        self.assertFalse(alive(pid), f"process {pid}, from the server's launch, is still running")
 
-    def stop_grandchild(self):
-        """Clean up after a failed test, so no process outlives the suite."""
-        if not os.path.exists(os.path.join(self.directory, "grandchild.pid")):
-            return
-        pid = self.grandchild()
-        if alive(pid):
-            if os.name == "nt":
-                subprocess.run(["taskkill", "/F", "/PID", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            else:
-                os.kill(pid, signal.SIGKILL)
+    def stop_launch(self, launch):
+        for name in ("stand_in.pid", "grandchild.pid"):
+            path = os.path.join(launch, name)
+            if os.path.exists(path):
+                with open(path, encoding="utf-8") as handle:
+                    pid = int(handle.read())
+                if alive(pid):
+                    kill(pid)
+
+    def within(self, seconds, action):
+        """Run `action`, which gives up on a stand-in, and return what it raised.
+
+        A stand-in that hangs never exits by itself, so a caller that waits for it instead of
+        stopping it would wait for an hour. After `seconds`, the test stops it and fails.
+        """
+        outcome = {}
+
+        def run():
+            try:
+                action()
+            except BaseException as error:
+                outcome["raised"] = error
+
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        worker.join(seconds)
+        if worker.is_alive():
+            for launch in self.launches:
+                self.stop_launch(launch)
+            worker.join(30)
+            self.fail(f"the caller did not give up within {seconds} seconds")
+        return outcome.get("raised")
 
     def test_a_server_that_writes_nothing_is_stopped_with_everything_it_started(self):
         with self.assertRaisesRegex(CaveatProtocolError, "wrote nothing for 2.0 seconds"):
             self.start(ready=None, timeout=2.0)
         self.assertStopped(self.grandchild())
+        self.assertStopped(self.stand_in())
 
     # The caller stops the launch as soon as it gives up; it does not wait out
     # the timeout first. The time is counted from the line, so a slow start
@@ -426,9 +548,8 @@ class GivingUp(unittest.TestCase):
         with self.assertRaisesRegex(CaveatProtocolError, "a line that is not JSON"):
             self.start(ready="Starting caveat...", timeout=60.0)
         given_up = time.time()
-        with open(os.path.join(self.directory, "ready.time"), encoding="utf-8") as handle:
-            written = float(handle.read())
-        self.assertLess(given_up - written, 30.0, "the caller waited for the server instead of stopping it")
+        self.assertLess(given_up - float(self.recorded("ready.time")), 30.0,
+                        "the caller waited for the server instead of stopping it")
         self.assertStopped(self.grandchild())
 
     def test_a_line_that_is_not_an_object_stops_everything_it_started(self):
@@ -436,10 +557,16 @@ class GivingUp(unittest.TestCase):
             self.start(ready="[1]")
         self.assertStopped(self.grandchild())
 
-    def test_a_ready_line_of_another_protocol_stops_everything_it_started(self):
-        with self.assertRaisesRegex(CaveatProtocolError, "no ready line"):
-            self.start(ready=json.dumps({"schema": "caveat-serve/9", "ready": True}))
-        self.assertStopped(self.grandchild())
+    # A ready line says ready true or false, in Serve 0.1. Anything else is
+    # not one, not even a ready line without `ready`, or with `ready: 1`.
+    def test_a_line_that_is_not_a_ready_line_stops_everything_it_started(self):
+        for ready in ({"schema": "caveat-serve/9", "ready": True},
+                      {"schema": "caveat-serve/0.1", "program": "assessment.cav"},
+                      {"schema": "caveat-serve/0.1", "ready": 1, "program": "assessment.cav"}):
+            with self.subTest(ready=ready):
+                with self.assertRaisesRegex(CaveatProtocolError, "no ready line"):
+                    self.start(ready=json.dumps(ready))
+                self.assertStopped(self.grandchild())
 
     def test_a_server_that_ends_without_a_ready_line_is_reported(self):
         with self.assertRaisesRegex(CaveatProtocolError, r"no ready line from caveat serve: None \(status 0\)"):
@@ -471,6 +598,19 @@ class GivingUp(unittest.TestCase):
             server.request("snapshot")
         self.assertStopped(self.grandchild())
 
+    # `ok` is exactly true, or exactly false with an error that names its
+    # kind. Anything else is neither a result nor a failed session.
+    def test_a_response_serve_does_not_allow_stops_everything_it_started(self):
+        for response in ({"id": "$id", "ok": 1, "snapshot": {"sequence": 0}},
+                         {"id": "$id", "ok": 1, "error": {"kind": "fatal", "message": "x"}},
+                         {"id": "$id", "ok": False, "error": {"message": "x"}},
+                         {"id": "$id", "ok": False, "error": "x"}):
+            with self.subTest(response=response):
+                server = self.start(json.dumps(response))
+                with self.assertRaisesRegex(CaveatProtocolError, "not a Serve 0.1 response"):
+                    server.request("snapshot")
+                self.assertStopped(self.grandchild())
+
     # The same null-id refusal, well formed, is a refused request, and the server keeps serving.
     def test_an_id_of_null_on_a_request_error_is_a_refused_request(self):
         server = self.start(json.dumps({"id": None, "ok": False, "error": {"kind": "request", "message": "unreadable"}}),
@@ -487,15 +627,38 @@ class GivingUp(unittest.TestCase):
         self.assertStopped(self.grandchild())
 
     # When the launch cannot be stopped as a whole, the caller stops its first
-    # process and says so; it does not report a clean stop.
+    # process at once, and says so; it does not report a clean stop.
     def test_a_launch_that_cannot_be_stopped_whole_is_reported(self):
-        if os.name == "nt":
-            refusal, problem = mock.patch.object(caller.subprocess, "run", side_effect=OSError("no taskkill")),                 "taskkill could not run: no taskkill"
-        else:
-            refusal, problem = mock.patch.object(caller.os, "killpg", side_effect=PermissionError("not permitted")),                 "stopping its process group failed: not permitted"
-        with refusal, self.assertRaises(CaveatProtocolError) as caught:
-            self.start(ready="Starting caveat...", grandchild=False, timeout=30.0)
-        self.assertIn(f"({problem}; processes started under it may still be running)", str(caught.exception))
+        for refusal, problem in unstoppable():
+            with self.subTest(problem=problem):
+                with refusal():
+                    raised = self.within(50.0, lambda: self.start(ready="Starting caveat...", grandchild=False,
+                                                                  timeout=20.0))
+                self.assertIsInstance(raised, CaveatProtocolError)
+                self.assertIn(f"({problem}{UNSURE}", str(raised))
+                self.assertStopped(self.stand_in())
+
+    # So does an error the server reported, when what is left of its launch
+    # could not be stopped whole.
+    def test_a_load_error_says_when_the_launch_could_not_be_stopped_whole(self):
+        failed = json.dumps({"schema": "caveat-serve/0.1", "ready": False, "error": {"kind": "load", "message": "bad"}})
+        for refusal, problem in unstoppable():
+            with self.subTest(problem=problem):
+                with refusal():
+                    raised = self.within(40.0, lambda: self.start(ready=failed, grandchild=False, timeout=8.0))
+                self.assertIsInstance(raised, CaveatLoadError)
+                self.assertEqual(str(raised), f"bad ({problem}{UNSURE}")
+                self.assertStopped(self.stand_in())
+
+    def test_a_failed_session_says_when_the_launch_could_not_be_stopped_whole(self):
+        for refusal, problem in unstoppable():
+            with self.subTest(problem=problem):
+                server = self.start(FATAL, grandchild=False, timeout=8.0)
+                with refusal():
+                    raised = self.within(40.0, lambda: server.request("snapshot"))
+                self.assertIsInstance(raised, CaveatSessionFailed)
+                self.assertEqual(str(raised), f"fatal: boom ({problem}{UNSURE}")
+                self.assertStopped(self.stand_in())
 
     def test_a_server_that_ends_without_answering_is_reported(self):
         server = self.start(None, end=0, grandchild=False)
@@ -510,32 +673,35 @@ class GivingUp(unittest.TestCase):
         self.assertStopped(self.grandchild())
 
     # A failed session is not a refused request: it fails the attempt, the
-    # server has ended, and nothing more can be sent.
+    # server has ended, and nothing more can be sent. A server that exits by
+    # itself leaves nothing to report about stopping it.
     def test_a_failed_session_fails_the_attempt_and_ends_the_server(self):
-        server = self.start(SNAPSHOT, json.dumps({"id": "$id", "ok": False, "error": {"kind": "fatal", "message": "boom"}}),
-                            end=1, grandchild=False)
+        server = self.start(SNAPSHOT, FATAL, end=1, grandchild=False)
         attempt = Attempt(server)
         with self.assertRaises(CaveatSessionFailed) as caught:
             attempt.require("observe", {"confidence": 85})
         self.assertEqual((caught.exception.kind, caught.exception.status), ("fatal", 1))
+        self.assertEqual(str(caught.exception), "fatal: boom")
         self.assertIs(attempt.failed, caught.exception)
         self.assertIsNone(attempt.require("assess"), "nothing more is sent once a required operation fails")
         with self.assertRaisesRegex(CaveatProtocolError, "the server has ended"):
             attempt.finish(always)
 
-    # A failed session whose server does not exit is stopped, with everything it started.
+    # A failed session whose server does not exit is stopped, with everything
+    # it started, once the timeout has passed.
     def test_a_failed_session_that_does_not_exit_is_stopped(self):
-        server = self.start(json.dumps({"id": "$id", "ok": False, "error": {"kind": "fatal", "message": "boom"}}),
-                            timeout=10.0)
-        with self.assertRaisesRegex(CaveatSessionFailed, "fatal: boom"):
-            server.request("snapshot")
+        server = self.start(FATAL, timeout=10.0)
+        raised = self.within(40.0, lambda: server.request("snapshot"))
+        self.assertIsInstance(raised, CaveatSessionFailed)
+        self.assertEqual(str(raised), "fatal: boom")
         self.assertStopped(self.grandchild())
+        self.assertStopped(self.stand_in())
 
     # On POSIX the launch's process group outlives its first process, so what a
     # server that exits by itself leaves running is stopped too.
     @unittest.skipIf(os.name == "nt", "taskkill finds a process tree only while its first process runs")
     def test_a_failed_session_leaves_nothing_running_on_posix(self):
-        server = self.start(json.dumps({"id": "$id", "ok": False, "error": {"kind": "fatal", "message": "boom"}}), end=1)
+        server = self.start(FATAL, end=1)
         with self.assertRaises(CaveatSessionFailed) as caught:
             server.request("snapshot")
         self.assertEqual(caught.exception.status, 1)
@@ -544,14 +710,17 @@ class GivingUp(unittest.TestCase):
     # A server that answers close and then keeps running is stopped, and close says so.
     def test_a_close_that_does_not_finish_in_time_stops_everything_it_started(self):
         server = self.start(json.dumps({"id": "$id", "ok": True}), timeout=10.0)
-        with self.assertRaisesRegex(CaveatProtocolError, "did not exit within 10.0 seconds of close"):
-            server.close()
+        raised = self.within(40.0, server.close)
+        self.assertIsInstance(raised, CaveatProtocolError)
+        self.assertIn("did not exit within 10.0 seconds of close", str(raised))
         self.assertStopped(self.grandchild())
 
-    # A server that closes correctly is not stopped: it exits by itself, with status 0.
+    # A server that closes correctly is asked to, and is not stopped: it exits
+    # by itself, with status 0.
     def test_a_server_that_closes_correctly_exits_by_itself(self):
         server = self.start(json.dumps({"id": "$id", "ok": True}), end=0, grandchild=False)
         self.assertEqual(server.close(), 0)
+        self.assertEqual(json.loads(self.recorded("requests.json")), [{"id": 1, "op": "close"}])
 
 
 class Loading(unittest.TestCase):
@@ -563,7 +732,7 @@ class Loading(unittest.TestCase):
             with open(broken, "w", encoding="utf-8") as handle:
                 handle.write("this is not caveat;\n")
             with self.assertRaises(CaveatLoadError) as caught:
-                CaveatServer(broken, cwd=HERE)
+                CaveatServer(broken, cwd=HERE, timeout=SERVER_TIMEOUT)
         self.assertEqual(caught.exception.status, 2)
         self.assertTrue(str(caught.exception))
 

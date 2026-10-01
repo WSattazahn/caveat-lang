@@ -116,16 +116,17 @@ wrote a line Serve 0.1 does not allow, stopped reading requests, or did not
 exit after `close` or a failed session, it stops every process the launch
 started, not only the first: npx runs `caveat` under a shell. On POSIX that
 is the launch's own process group; on Windows, the process tree, with
-`taskkill /T`. If that fails, it stops the first process, and the error it
-raises says that processes started under it may still be running. A server
-that closes correctly exits by itself.
+`taskkill /T`, while the first process runs. If that fails, it stops the
+first process, and the error it raises says that processes started under it
+may still be running. A server that closes correctly exits by itself.
 
 ## The caller's rule
 
 A workflow attempt succeeds only when its required operations succeed and its relevant, current CAVEAT assessment permits the intended result. A stored earlier assessment cannot substitute for a rejected required operation.
 
 `Attempt` carries it out. `require` sends a required operation; once one is
-rejected, or raises an error, the attempt has failed and sends nothing more.
+rejected, or raises anything, an interruption or a cancelled task included,
+the attempt has failed and sends nothing more.
 `finish` reads the current snapshot and asks the application's own test
 whether it permits the result. Here that test is `assessment_permits`: the
 verdict is `approved`, and the approval in force was committed during this
