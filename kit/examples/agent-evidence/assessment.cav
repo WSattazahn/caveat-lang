@@ -1,0 +1,48 @@
+scene "Decide whether an agent's answer is supported by the evidence sent to it.";
+
+# What the program reasons about. A source label describes evidence; it does
+# not authenticate it.
+claim answer_supported;
+claim misreport;
+evidence tool from "a tool observation the agent reported";
+evidence recheck from "a second look at that observation";
+
+# Every observation is kept. The assessment is a series of revisions, and an
+# observation against the answer reopens the one in force.
+readings observations from tool limit 16;
+decisions assessment limit 8 reopened by observations opposing answer_supported;
+
+# What the application can send. `confidence` outside 0..100 is refused
+# before any rule runs, as input/bound_exceeded.
+event observe confidence min 0 max 100;
+event assess;
+event retract;
+event erase;
+
+on observe when confidence >= 70 sample observations = confidence supports answer_supported;
+on observe when confidence < 70 sample observations = confidence opposes answer_supported;
+
+# The assessment rests on the latest observation, and only a strong one
+# approves the answer.
+on assess when not has_sample(observations) reject "No observation to assess.";
+on assess when withdrawn(latest(observations)) reject "The latest observation is withdrawn.";
+on assess when committed(assessment) and not reopened(assessment) reject "Already assessed.";
+on assess when latest(observations) < 70 reject "The evidence does not support the answer.";
+on assess commit assessment because enough using latest(observations);
+
+# Withdrawal policy. A withdrawn observation keeps its record, and the
+# assessment keeps the grounds it was made on. Withdrawal reopens nothing by
+# itself: this rule reopens an assessment that rests on it.
+on retract when not has_sample(observations) reject "No observation to withdraw.";
+on retract when withdrawn(latest(observations)) reject "The latest observation is already withdrawn.";
+on retract when not observed(recheck) reveal recheck supports misreport;
+on retract withdraw latest(observations) because recheck;
+on retract when committed(assessment) and not reopened(assessment) and rests_on_withdrawn(assessment)
+    reopen assessment because recheck;
+
+# Forbidden: evidence is withdrawn with a reason, never erased.
+on erase reject "Evidence is withdrawn with a reason, never erased.";
+
+bind assessment.verdict = "none";
+bind assessment.verdict = "approved" when committed(assessment) and not reopened(assessment);
+bind assessment.verdict = "reopened" when reopened(assessment);

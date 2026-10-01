@@ -24,9 +24,20 @@ async function packageFiles() {
       if (entry.isFile()) files.add(`${directory}/${entry.name}`);
     }
   }
+  const walk = async directory => {
+    for (const entry of await readdir(path.join(kit, directory), { withFileTypes: true })) {
+      if (entry.isDirectory()) await walk(`${directory}/${entry.name}`);
+      else if (entry.isFile()) files.add(`${directory}/${entry.name}`);
+    }
+  };
+  await walk('examples');
   for (const file of manifest.reference) files.add(`docs/reference/${file}`);
   return files;
 }
+
+// The kit's own documents, whose links must all resolve inside the package.
+const KIT_DOCUMENTS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md',
+  'examples/agent-evidence/README.md'];
 
 export function relativeLinks(markdown) {
   return [...markdown.matchAll(/\]\(([^)\s]+)\)/g)].map(match => match[1])
@@ -42,7 +53,7 @@ test('every packaged documentation source exists', () => {
 
 test('links in the kit documentation resolve inside the package', async () => {
   const files = await packageFiles();
-  for (const document of ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md']) {
+  for (const document of KIT_DOCUMENTS) {
     const markdown = await readFile(path.join(kit, document), 'utf8');
     for (const target of relativeLinks(markdown)) {
       const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(document), target));

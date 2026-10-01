@@ -101,6 +101,9 @@ Background:
   rejected and fatal outcomes, and rejection origins and codes.
 - [Serve 0.1](reference/spec/caveat-serve-0.1.md): `caveat serve`, one session
   driven by another program through JSON lines.
+- [Agent evidence](../examples/agent-evidence/README.md): a Python caller for
+  `caveat serve` that sends evidence, withdraws it and judges each attempt by
+  the current assessment.
 - [Check 0.1](reference/spec/caveat-check-0.1.md): `caveat check`, advisory
   warnings about patterns worth a second look, and how to allow one on purpose.
 
