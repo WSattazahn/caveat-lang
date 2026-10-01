@@ -28,7 +28,9 @@ const dist = path.join(root, 'dist');
 const run = path.join(root, 'test-results', 'kit-package', new Date().toISOString().replace(/[:.]/g, '-'));
 const consumer = path.join(run, 'consumer');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
-const RUNTIME_FILES = ['caveat_runtime.js', 'caveat_runtime_bg.wasm'];
+// wasm-bindgen's declarations for the runtime module ship beside it, for a
+// TypeScript host that imports caveat-lang/runtime/caveat_runtime.js itself.
+const RUNTIME_FILES = ['caveat_runtime.js', 'caveat_runtime_bg.wasm', 'caveat_runtime.d.ts'];
 const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
 // Caveat's license and the notices of the crates compiled into the runtime.
 const LEGAL_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
@@ -38,6 +40,8 @@ const STAGED_DOCS = packDocs.reference.map(file => [file, `docs/reference/${file
 const STAGED_ROOTS = ['docs/reference'];
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md'];
+// The library's modules, each with its TypeScript declarations.
+const LIBRARY = ['check', 'explain', 'node', 'scenarios', 'serve', 'session'];
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -102,11 +106,12 @@ try {
   const dry = JSON.parse(npm(['pack', '--dry-run', '--json'], kit))[0];
   const files = dry.files.map(file => file.path).sort();
   assert.deepEqual(files, [
-    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'lib/check.mjs', 'lib/explain.mjs', 'lib/node.mjs', 'lib/scenarios.mjs', 'lib/serve.mjs', 'lib/session.mjs', 'package.json',
+    'LICENSE', 'THIRD_PARTY_NOTICES.md', 'bin/caveat.mjs', 'package.json',
+    ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
-    'runtime/build-info.json', 'runtime/caveat_runtime.js', 'runtime/caveat_runtime_bg.wasm',
+    'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
     ...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target),
-  ].sort(), 'the tarball holds exactly the library, command, runtime, documentation, license and notices');
+  ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
   tarball = path.join(run, packed.filename);
@@ -141,6 +146,13 @@ for (const file of RUNTIME_FILES) {
 assert.equal(await readFile(path.join(installed, 'runtime', 'build-info.json'), 'utf8'),
   await readFile(path.join(run, 'build-info.json'), 'utf8'), 'retained build metadata matches the installed runtime');
 assert.ok(['caveat', 'caveat.cmd'].some(name => existsSync(path.join(consumer, 'node_modules', '.bin', name))), 'npm linked the caveat command');
+// Every entry point but the runtime's names its declarations, which arrived.
+for (const [entry, target] of Object.entries(installedManifest.exports)) {
+  if (entry === './runtime/*') continue;
+  assert.deepEqual(Object.keys(target), ['types', 'default'], `${entry} lists its types first`);
+  assert.equal(target.types, target.default.replace(/\.mjs$/, '.d.mts'), `${entry} declares its own module`);
+  assert.ok(existsSync(path.join(installed, target.types)), `${entry}: ${target.types} is installed`);
+}
 report.checks.install = true;
 
 // The license ships unchanged, and the metadata says what it is.

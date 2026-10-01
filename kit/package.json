@@ -31,12 +31,30 @@
     "caveat": "bin/caveat.mjs"
   },
   "exports": {
-    "./session": "./lib/session.mjs",
-    "./node": "./lib/node.mjs",
-    "./scenarios": "./lib/scenarios.mjs",
-    "./explain": "./lib/explain.mjs",
-    "./serve": "./lib/serve.mjs",
-    "./check": "./lib/check.mjs",
+    "./session": {
+      "types": "./lib/session.d.mts",
+      "default": "./lib/session.mjs"
+    },
+    "./node": {
+      "types": "./lib/node.d.mts",
+      "default": "./lib/node.mjs"
+    },
+    "./scenarios": {
+      "types": "./lib/scenarios.d.mts",
+      "default": "./lib/scenarios.mjs"
+    },
+    "./explain": {
+      "types": "./lib/explain.d.mts",
+      "default": "./lib/explain.mjs"
+    },
+    "./serve": {
+      "types": "./lib/serve.d.mts",
+      "default": "./lib/serve.mjs"
+    },
+    "./check": {
+      "types": "./lib/check.d.mts",
+      "default": "./lib/check.mjs"
+    },
     "./runtime/*": "./runtime/*"
   },
   "files": [

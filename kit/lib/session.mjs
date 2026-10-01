@@ -247,15 +247,20 @@ let freshInstances = 0;
 // instance has trapped, a URL is imported again under a unique query, which
 // gives a separate module with its own memory, so recovery never reuses the
 // trapped instance. A namespace cannot be re-imported, so it is refused.
+//
+// A URL is only known at run time, so a bundler cannot follow it. The
+// comments tell webpack and Vite to leave both imports to the platform's own
+// import() instead of warning about an expression they cannot resolve; a
+// bundled host passes the namespace it imported itself.
 export async function loadRuntime({ module, wasm, identity }) {
   const url = typeof module === 'string' || module instanceof URL ? new URL(String(module), import.meta.url) : null;
-  let namespace = url ? await import(url.href) : module;
+  let namespace = url ? await import(/* webpackIgnore: true */ /* @vite-ignore */ url.href) : module;
   if (lifecycles.get(namespace.WebReactiveSession)?.trapped) {
     if (!url) throw new CaveatError('fatal', 'this runtime instance trapped; pass its module URL to load a fresh one');
     const fresh = new URL(url.href);
     freshInstances += 1;
     fresh.searchParams.set('caveat-instance', String(freshInstances));
-    namespace = await import(fresh.href);
+    namespace = await import(/* webpackIgnore: true */ /* @vite-ignore */ fresh.href);
   }
   await namespace.default({ module_or_path: wasm });
   if (typeof namespace.WebReactiveSession?.prototype?.dispatch_outcome !== 'function') {

@@ -174,6 +174,8 @@ made the first four:
 ## More
 
 - [Worked example](WORKED_EXAMPLE.md): one program through every command.
+- [Package README](../README.md): the session library from code, with its
+  TypeScript types, in Node, a browser or a bundled page.
 - [Getting started](GETTING_STARTED.md): a slower first walk through.
 - [Authoring guide](reference/docs/AI_AUTHORING.md): time, evidence that ages,
   and running a session from a script.
