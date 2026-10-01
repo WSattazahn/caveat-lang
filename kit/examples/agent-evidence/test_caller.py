@@ -235,6 +235,8 @@ class Attempts(unittest.TestCase):
         self.assertIsNone(result.snapshot)
         self.assertFalse(result.permits)
         self.assertFalse(result.succeeded)
+        # Nothing is sending, so the finished attempt frees the server for a retry.
+        self.assertTrue(self.approve(confidence=90).succeeded)
 
     # A required operation that raises, here after the server committed the
     # approval, fails the attempt: a cancelled task is not a success. The
@@ -420,6 +422,58 @@ class Attempts(unittest.TestCase):
         self.assertIs(attempt.finish(always), result)
         with self.assertRaises(AttemptFinished):
             attempt.begin("assess")
+        # An operation that was never sent does not hold the server.
+        self.assertTrue(self.approve(confidence=90).succeeded)
+
+    # finish() holds the server until its verdict is stored: an attempt
+    # started while finish reads the session would otherwise land its
+    # approval in that read, and turn this unsuccessful attempt into a success.
+    def test_a_finishing_attempt_holds_the_server_until_its_verdict_is_stored(self):
+        attempt = Attempt(self.server)
+        attempt.require("observe", {"confidence": 20})
+        held = HeldRequests(self.server, "snapshot")
+        self.addCleanup(held.gate.set)
+        with mock.patch.object(self.server, "request", held):
+            finishing, outcome = in_worker(lambda: attempt.finish(assessment_permits))
+            self.assertTrue(held.arrived.wait(SERVER_TIMEOUT), "finish never read the session")
+            with self.assertRaises(AttemptInProgress):
+                self.approve(confidence=90)
+            held.gate.set()
+            finishing.join(SERVER_TIMEOUT)
+        self.assertFalse(finishing.is_alive())
+        self.assertFalse(outcome["returned"].succeeded, "attempt 1 observed 20 only")
+        self.assertTrue(self.approve(confidence=90).succeeded)
+
+    # A slow second finish() of an attempt frees the server only if that
+    # attempt still holds it, never the next attempt's hold.
+    def test_a_late_finish_does_not_free_the_next_attempts_hold(self):
+        first = Attempt(self.server)
+        first.require("observe", {"confidence": 20})
+        held = HeldRequests(self.server, "snapshot")
+        self.addCleanup(held.gate.set)
+        with mock.patch.object(self.server, "request", held):
+            slow, outcome = in_worker(lambda: first.finish(assessment_permits))
+            self.assertTrue(held.arrived.wait(SERVER_TIMEOUT), "finish never read the session")
+            result = first.finish(assessment_permits)
+            second = Attempt(self.server)
+            held.gate.set()
+            slow.join(SERVER_TIMEOUT)
+        self.assertFalse(slow.is_alive())
+        self.assertIs(outcome["returned"], result)
+        with self.assertRaises(AttemptInProgress):
+            Attempt(self.server)
+        second.require("observe", {"confidence": 20})
+        second.require("assess")
+        self.assertFalse(second.finish(assessment_permits).succeeded)
+        self.assertTrue(self.approve(confidence=90).succeeded)
+
+    # An interruption while Attempt() reads the starting sequence, before
+    # anything is written, frees the server again.
+    def test_an_attempt_that_cannot_start_does_not_hold_the_server(self):
+        with mock.patch.object(self.server, "snapshot", side_effect=KeyboardInterrupt), \
+                self.assertRaises(KeyboardInterrupt):
+            Attempt(self.server)
+        self.assertTrue(self.approve(confidence=90).succeeded)
 
 
 class PausedAfterRelease:
@@ -443,17 +497,18 @@ class PausedAfterRelease:
 
 
 class HeldRequests:
-    """Stands in for a server's `request`: records each request, and holds a dispatch at `gate` before it is written."""
+    """Stands in for a server's `request`: records each request, and holds the first `op` at `gate` before it is written."""
 
-    def __init__(self, server):
+    def __init__(self, server, op="dispatch"):
         self.request = server.request
+        self.op = op
         self.made = []
         self.arrived = threading.Event()
         self.gate = threading.Event()
 
     def __call__(self, op, **fields):
         self.made.append(op)
-        if op == "dispatch":
+        if op == self.op and not self.arrived.is_set():
             self.arrived.set()
             if not self.gate.wait(SERVER_TIMEOUT):
                 raise RuntimeError("the gate was never opened")
@@ -569,6 +624,17 @@ class RequiredOperations(unittest.TestCase):
         for worker, outcome in workers:
             worker.join(10)
             self.assertTrue(outcome, "an attempt did not go ahead once its lock was released")
+
+    # Finding the server free and claiming it are one step under the server's
+    # attempt lock, so two attempts never both find it free.
+    def test_claiming_the_server_takes_its_attempt_lock(self):
+        server = FailingOperation(RuntimeError("the tool crashed"))
+        with server._attempt_lock:
+            worker, outcome = in_worker(lambda: Attempt(server))
+            time.sleep(0.5)
+            self.assertIsNone(server._attempt, "an attempt claimed the server without its lock")
+        worker.join(10)
+        self.assertIs(server._attempt, outcome["returned"])
 
 
 def snapshot_with(verdict_text, journal):
