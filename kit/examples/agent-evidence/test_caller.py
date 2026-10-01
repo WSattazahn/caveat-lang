@@ -9,6 +9,7 @@ The tests of a server that breaks the protocol start a stand-in written to a
 temporary directory instead.
 """
 import asyncio
+import dataclasses
 import json
 import os
 import signal
@@ -110,8 +111,12 @@ class Attempts(unittest.TestCase):
         # The old approval is still what the session shows; the refusal changed nothing.
         self.assertEqual(verdict(result.snapshot), "approved")
         self.assertEqual(self.server.save(), before)
-        # The verdict is final: finishing again returns it, whatever the test.
+        # The verdict is final: finishing again returns it, whatever the test,
+        # and nothing can change it.
         self.assertIs(attempt.finish(assessment_permits), result)
+        self.assertIsInstance(result.operations, tuple)
+        with self.assertRaises(dataclasses.FrozenInstanceError):
+            result.succeeded = True
 
     # Evidence supporting an approval is withdrawn: the program's withdrawal
     # policy applies, and the old approval is not usable.
@@ -280,37 +285,71 @@ class Attempts(unittest.TestCase):
     # required operation. Its acceptance is not recorded, so the attempt did
     # not succeed, and finish leaves the server alone: the worker owns the pipe.
     def test_an_operation_still_in_flight_at_finish_leaves_the_attempt_unsuccessful(self):
+        for confidence, late in ((250, "rejected"), (85, "accepted")):
+            with self.subTest(late=late):
+                attempt = Attempt(self.server)
+                operation = attempt.begin("observe", {"confidence": confidence})
+                held = HeldRequests(self.server)
+                self.addCleanup(held.gate.set)
+                with mock.patch.object(self.server, "request", held):
+                    worker, outcome = in_worker(operation.send)
+                    self.assertTrue(held.arrived.wait(SERVER_TIMEOUT), "the worker never sent the operation")
+                    result = attempt.finish(always)
+                    self.assertEqual(held.made, ["dispatch"],
+                                     "finish talked to the server while an operation was in flight")
+                    held.gate.set()
+                    worker.join(SERVER_TIMEOUT)
+                self.assertFalse(worker.is_alive())
+                self.assertFalse(result.succeeded)
+                self.assertFalse(result.permits)
+                self.assertIsNone(result.snapshot)
+                self.assertIsNone(result.failed)
+                self.assertEqual(statuses(result), [("observe", "unconfirmed")])
+
+                # The response arrives after the verdict: it is recorded on
+                # the operation, and neither the verdict nor the attempt changes.
+                self.assertEqual(operation.status, late)
+                self.assertIs(operation.dispatch, outcome["returned"])
+                self.assertIsNone(attempt.failed, "a late outcome changed the finished attempt")
+                with self.assertRaises(RuntimeError):
+                    operation.send()
+                self.assertEqual(operation.status, late, "a second send() changed the recorded outcome")
+                self.assertIs(attempt.finish(always), result)
+                self.assertFalse(result.succeeded)
+                self.assertEqual(statuses(result), [("observe", "unconfirmed")])
+        # A retry is a new attempt, once nothing of the finished one is still
+        # sending. The gate held each request before it was written, so the
+        # pipe is in step, and the same server serves it.
+        self.assertNotEqual(operation.status, "sending")
+        self.assertTrue(self.approve(confidence=90).succeeded)
+
+    # Two callers finish the same attempt while a worker is still sending. The
+    # first decides under the lock: a response that arrives before the second
+    # call, while the first is still on its way out, cannot make it a success.
+    def test_a_concurrent_finish_does_not_change_the_verdict(self):
         attempt = Attempt(self.server)
-        operation = attempt.begin("observe", {"confidence": 85})
+        attempt.require("observe", {"confidence": 85})
+        operation = attempt.begin("assess")
+        paused = attempt._lock = PausedAfterRelease(attempt, "finish")
         held = HeldRequests(self.server)
         self.addCleanup(held.gate.set)
+        self.addCleanup(paused.gate.set)
         with mock.patch.object(self.server, "request", held):
-            worker, outcome = in_worker(operation.send)
+            worker, _ = in_worker(operation.send)
             self.assertTrue(held.arrived.wait(SERVER_TIMEOUT), "the worker never sent the operation")
-            result = attempt.finish(always)
-            self.assertEqual(held.made, ["dispatch"], "finish talked to the server while an operation was in flight")
+            first, outcome = in_worker(lambda: attempt.finish(assessment_permits), name="finish")
+            self.assertTrue(paused.arrived.wait(SERVER_TIMEOUT), "the first finish never released the lock")
             held.gate.set()
             worker.join(SERVER_TIMEOUT)
-        self.assertFalse(worker.is_alive())
-        self.assertFalse(result.succeeded)
-        self.assertFalse(result.permits)
-        self.assertIsNone(result.snapshot)
-        self.assertEqual(statuses(result), [("observe", "unconfirmed")])
-
-        # The response arrives after the verdict: it is recorded on the
-        # operation, and the verdict stands.
-        self.assertTrue(outcome["returned"].accepted)
-        self.assertEqual(operation.status, "accepted")
-        self.assertIs(operation.dispatch, outcome["returned"])
-        with self.assertRaises(RuntimeError):
-            operation.send()
-        self.assertEqual(operation.status, "accepted", "a second send() changed the recorded outcome")
-        self.assertIs(attempt.finish(always), result)
-        self.assertFalse(result.succeeded)
-        self.assertEqual(statuses(result), [("observe", "unconfirmed")])
-        # A retry is a new attempt. The gate held the request before it was
-        # written, so the pipe is in step, and the same server serves it.
-        self.assertTrue(self.approve(confidence=90).succeeded)
+            self.assertEqual(operation.status, "accepted")
+            second = attempt.finish(assessment_permits)
+            paused.gate.set()
+            first.join(SERVER_TIMEOUT)
+        self.assertIs(outcome["returned"], second)
+        self.assertFalse(second.succeeded)
+        self.assertFalse(second.permits)
+        self.assertIsNone(second.snapshot)
+        self.assertEqual(statuses(second), [("observe", "accepted"), ("assess", "unconfirmed")])
 
     # The application finishes the attempt after registering an operation for
     # a worker, and before the worker sends it: it is never sent.
@@ -334,6 +373,28 @@ class Attempts(unittest.TestCase):
         self.assertEqual(held.made, [], "the operation reached the server after finish")
         self.assertEqual(self.server.snapshot()["sequence"], sequence)
         self.assertIs(attempt.finish(always), result)
+        with self.assertRaises(AttemptFinished):
+            attempt.begin("assess")
+
+
+class PausedAfterRelease:
+    """Stands in for an attempt's lock. The thread named `name` is held at `gate` once it has
+    released the lock with the attempt finished."""
+
+    def __init__(self, attempt, name):
+        self.lock, self.attempt, self.name = attempt._lock, attempt, name
+        self.arrived = threading.Event()
+        self.gate = threading.Event()
+
+    def __enter__(self):
+        return self.lock.__enter__()
+
+    def __exit__(self, *exc):
+        self.lock.__exit__(*exc)
+        if threading.current_thread().name == self.name and self.attempt._finished and not self.arrived.is_set():
+            self.arrived.set()
+            self.gate.wait(SERVER_TIMEOUT)
+        return False
 
 
 class HeldRequests:
@@ -354,7 +415,7 @@ class HeldRequests:
         return self.request(op, **fields)
 
 
-def in_worker(action):
+def in_worker(action, name=None):
     """Run `action` on a worker thread. Returns the thread, and what it returned or raised once it ends."""
     outcome = {}
 
@@ -364,7 +425,7 @@ def in_worker(action):
         except BaseException as error:
             outcome["raised"] = error
 
-    worker = threading.Thread(target=run, daemon=True)
+    worker = threading.Thread(target=run, daemon=True, name=name)
     worker.start()
     return worker, outcome
 
@@ -443,6 +504,22 @@ class RequiredOperations(unittest.TestCase):
                 self.assertEqual(statuses(result), [("observe", "unconfirmed"), ("assess", "not sent")])
                 self.assertFalse(result.permits)
                 self.assertFalse(result.succeeded)
+
+    # Registration, outcomes and finish take the attempt's one lock: while it
+    # is held, none of them goes ahead.
+    def test_registration_outcomes_and_finish_take_one_lock(self):
+        server = FailingOperation(RuntimeError("the tool crashed"))
+        attempt = Attempt(server)
+        operation = attempt.begin("observe", {"confidence": 85})
+        with attempt._lock:
+            workers = [in_worker(action) for action in (lambda: attempt.begin("assess"), operation.send,
+                                                        lambda: attempt.finish(always))]
+            time.sleep(0.5)
+            self.assertEqual([outcome for _, outcome in workers], [{}, {}, {}],
+                             "an attempt went ahead without its lock")
+        for worker, outcome in workers:
+            worker.join(10)
+            self.assertTrue(outcome, "an attempt did not go ahead once its lock was released")
 
 
 def snapshot_with(verdict_text, journal):
@@ -766,6 +843,38 @@ class GivingUp(unittest.TestCase):
         with self.assertRaisesRegex(CaveatRequestError, "unreadable"):
             server.request("snapshot")
         self.assertEqual(server.snapshot(), {"sequence": 0})
+        self.assertEqual(server.close(), 0)
+
+    # Requests from two threads take turns on the pipe: the second is not
+    # written while the first waits for its response.
+    def test_requests_from_two_threads_take_turns_on_the_pipe(self):
+        server = self.start(SNAPSHOT, SNAPSHOT, json.dumps({"id": "$id", "ok": True}), end=0, grandchild=False)
+        read_line, reads, gate = server._read_line, [], threading.Event()
+        self.addCleanup(gate.set)
+
+        def held_read_line():
+            reads.append(threading.current_thread().name)
+            if len(reads) == 1 and not gate.wait(30):
+                raise RuntimeError("the gate was never opened")
+            return read_line()
+
+        requests = os.path.join(self.launches[-1], "requests.json")
+        with mock.patch.object(server, "_read_line", held_read_line):
+            first, first_outcome = in_worker(server.snapshot)
+            deadline = time.monotonic() + 30
+            while not os.path.exists(requests) and time.monotonic() < deadline:
+                time.sleep(0.02)
+            second, second_outcome = in_worker(server.snapshot)
+            # Long enough for a second request, written without waiting, to reach the stand-in.
+            time.sleep(1.0)
+            self.assertEqual(len(json.loads(self.recorded("requests.json"))), 1,
+                             "a second request was written while the first waited for its response")
+            self.assertEqual(len(reads), 1)
+            gate.set()
+            first.join(30)
+            second.join(30)
+        self.assertEqual([first_outcome, second_outcome], [{"returned": {"sequence": 0}}] * 2)
+        self.assertEqual([request["id"] for request in json.loads(self.recorded("requests.json"))], [1, 2])
         self.assertEqual(server.close(), 0)
 
     def test_a_server_that_stops_reading_requests_stops_everything_it_started(self):

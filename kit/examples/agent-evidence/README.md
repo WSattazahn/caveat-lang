@@ -149,7 +149,8 @@ cannot cover an incomplete operation.
 - After `finish`, nothing more is registered or sent in the attempt: a
   `send()` that had not started raises `AttemptFinished` without contacting
   the server. A response that arrives later is recorded on its `Operation`,
-  and does not change the result. A retry is a new `Attempt`.
+  and does not change the result. A retry is a new `Attempt`, started once
+  nothing of the finished one is still sending (see below).
 
 `assess_answer` is this example's attempt: it names the required operations,
 `observe` then `assess`.
@@ -174,7 +175,7 @@ decides that the attempt failed.
 | A test deliberately requests a forbidden action and gets the expected refusal | The TEST passed; the requested ACTION did not succeed. |
 | A later, separate attempt receives valid replacement evidence and an accepted reassessment | Evaluate that new attempt; do not permanently mark every future attempt failed because an earlier one failed. |
 | A required operation is interrupted after an earlier approval | It is unconfirmed, not rejected. This attempt did not succeed; the old approval does not cover it. |
-| The attempt is finished while a worker is still sending a required operation | This attempt did not succeed. A later acceptance is recorded on the operation; a retry is a new attempt. |
+| The attempt is finished while a worker is still sending a required operation | This attempt did not succeed. A later acceptance is recorded on the operation; a retry is a new attempt, once that operation is no longer sending. |
 
 Each row is a test in `test_caller.py`. Other tests there cover a malformed
 request, a program that does not load, the limits, each condition of
@@ -219,7 +220,11 @@ async def observe(attempt, confidence):
 ```
 
 If `finish` runs while `send` is still running, the operation is unconfirmed
-and the attempt did not succeed.
+and the attempt did not succeed. Its request may still reach the server
+afterwards, and land in whatever attempt is running then. So before a retry on
+the same server, wait until that `Operation`'s `status` is no longer
+`sending`, for example by awaiting the executor's future; or retry on a new
+server.
 
 ## Change it
 

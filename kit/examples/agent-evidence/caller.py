@@ -490,6 +490,8 @@ class Attempt:
         self._operations: List[Operation] = []
         self._failed: Optional[Union[Dispatch, BaseException]] = None
         self._finished = False
+        # What finish() counts, fixed by the first call: the operations and the first failure.
+        self._final: Optional[Tuple[Tuple[OperationResult, ...], Optional[Union[Dispatch, BaseException]]]] = None
         self._result: Optional[AttemptResult] = None
         # The sequence before this attempt, so `permits` can tell this
         # attempt's assessment from an earlier one.
@@ -527,28 +529,32 @@ class Attempt:
         with self._lock:
             if self._result is not None:
                 return self._result
-            # From here on, nothing more is registered or sent in this attempt.
-            self._finished = True
-            # An operation still registered or sending has no outcome, and a
-            # worker may hold the pipe. After an unconfirmed one, what the
-            # session holds is not known. Either way, the server is not read.
-            unanswered = any(operation.status in (REGISTERED, SENDING, UNCONFIRMED)
-                             for operation in self._operations)
-            operations = tuple(OperationResult(operation.event, FINAL_STATUS.get(operation.status, operation.status),
-                                               operation.dispatch, operation.error)
-                               for operation in self._operations)
-            failed = self._failed
-        snapshot, allowed = None, False
-        if not unanswered:
-            # Outside the lock: no operation can be sent any more.
-            snapshot = self.server.snapshot()
-            allowed = bool(permits(snapshot, self))
+            if self._final is None:
+                # From here on, nothing more is registered or sent in this
+                # attempt, and its operations count as they stand now.
+                self._finished = True
+                operations = tuple(OperationResult(operation.event,
+                                                   FINAL_STATUS.get(operation.status, operation.status),
+                                                   operation.dispatch, operation.error)
+                                   for operation in self._operations)
+                # An operation still registered or sending has no outcome, and
+                # a worker may hold the pipe. After an unconfirmed one, what
+                # the session holds is not known. Either way, the attempt did
+                # not succeed, and the server is not read.
+                if any(operation.status in (REGISTERED, SENDING, UNCONFIRMED) for operation in self._operations):
+                    self._result = AttemptResult(False, operations, self._failed, False, None)
+                    return self._result
+                self._final = (operations, self._failed)
+            # Every operation has its outcome, and none can change any more.
+            operations, failed = self._final
+        # Outside the lock, so a slow server does not hold up the attempt.
+        snapshot = self.server.snapshot()
+        allowed = bool(permits(snapshot, self))
         # A failed operation is never accepted, so this also requires that none failed.
         succeeded = allowed and all(operation.status == ACCEPTED for operation in operations)
-        result = AttemptResult(succeeded, operations, failed, allowed, snapshot)
         with self._lock:
             if self._result is None:
-                self._result = result
+                self._result = AttemptResult(succeeded, operations, failed, allowed, snapshot)
             return self._result
 
 
