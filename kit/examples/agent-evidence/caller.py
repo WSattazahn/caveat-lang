@@ -27,6 +27,7 @@ import json
 import os
 import queue
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
@@ -125,13 +126,22 @@ def default_command() -> List[str]:
 
 
 class CaveatServer:
-    """One `caveat serve PROGRAM` process, holding one session."""
+    """One `caveat serve PROGRAM` process, holding one session.
+
+    When the caller gives up on the server, it stops every process the launch
+    started, not only the one it started itself: `npx` runs `caveat` under a
+    shell (`cmd.exe` on Windows), and stopping only the first process would
+    leave the server running.
+    """
 
     def __init__(self, program: str, command: Optional[List[str]] = None, cwd: Optional[str] = None,
                  timeout: float = 60.0):
         self._next_id = 0
-        # How long to wait for any one line before giving up on the server.
+        # How long to wait for any one line, or for the server to exit, before
+        # giving up on it.
         self._timeout = timeout
+        # Set when stopping the server may have left a process running.
+        self._stop_problem: Optional[str] = None
         self._stderr = tempfile.TemporaryFile()
         self._process = subprocess.Popen(
             [*(command or default_command()), "serve", program],
@@ -141,6 +151,9 @@ class CaveatServer:
             stderr=self._stderr,
             encoding="utf-8",
             bufsize=1,
+            # On POSIX the launch gets a process group of its own, so giving up
+            # can stop all of it. Windows stops the tree with taskkill instead.
+            start_new_session=os.name != "nt",
         )
         # Lines are read on a thread, so a server that never answers ends in
         # an error after the timeout instead of a hang.
@@ -152,9 +165,9 @@ class CaveatServer:
         if ready is None or ready.get("schema") != SERVE_SCHEMA:
             raise self._fail(f"no ready line from caveat serve: {ready!r}")
         if ready.get("ready") is not True:
-            status = self._finish()
+            status = self._end()
             message = (ready.get("error") or {}).get("message", "")
-            raise CaveatLoadError(message, status)
+            raise CaveatLoadError(message + self._stop_note(), status)
         self.ready = ready
 
     def __enter__(self) -> "CaveatServer":
@@ -167,11 +180,15 @@ class CaveatServer:
     def request(self, op: str, **fields: Any) -> Dict[str, Any]:
         """Send one request. Returns a response with `ok: true`, or raises."""
         if self._process.poll() is not None:
-            raise CaveatProtocolError("the server has ended")
+            raise self._fail("the server has ended")
         self._next_id += 1
         request_id = self._next_id
-        self._process.stdin.write(json.dumps({"id": request_id, "op": op, **fields}) + "\n")
-        self._process.stdin.flush()
+        line = json.dumps({"id": request_id, "op": op, **fields}) + "\n"
+        try:
+            self._process.stdin.write(line)
+            self._process.stdin.flush()
+        except OSError as error:
+            raise self._fail(f"the server stopped reading requests: {error}") from None
         response = self._read_line()
         if response is None:
             raise self._fail("the server ended without answering")
@@ -185,15 +202,22 @@ class CaveatServer:
             return response
         if error.get("kind") == "request":
             raise CaveatRequestError(error.get("message", ""), response)
-        status = self._finish()
-        raise CaveatSessionFailed(error.get("kind", "unknown"), error.get("message", ""), status)
+        # The session failed. The server exits with 1 by itself; `_end` stops
+        # what is left of the launch.
+        status = self._end()
+        raise CaveatSessionFailed(error.get("kind", "unknown"), error.get("message", "") + self._stop_note(), status)
 
     # Level 2: an event is accepted or rejected; both are handled requests.
     def dispatch(self, event: str, payload: Optional[Dict[str, Any]] = None) -> Dispatch:
         fields: Dict[str, Any] = {"event": event}
         if payload is not None:
             fields["payload"] = payload
-        return Dispatch.from_response(event, self.request("dispatch", **fields))
+        response = self.request("dispatch", **fields)
+        try:
+            return Dispatch.from_response(event, response)
+        except CaveatProtocolError as error:
+            # An outcome the contract does not name: the server cannot be trusted.
+            raise self._fail(str(error)) from None
 
     # Level 3 reads the current session.
     def snapshot(self) -> Dict[str, Any]:
@@ -212,12 +236,18 @@ class CaveatServer:
         return self.request("restore", save=save)["sequence"]
 
     def close(self) -> Optional[int]:
-        """Close the session and wait for the server. Returns its exit status."""
+        """Close the session and wait for the server. Returns its exit status.
+
+        A server that does not answer `close`, or does not exit in time
+        afterwards, is stopped, and CaveatProtocolError is raised.
+        """
         if self._process.poll() is None:
+            self.request("close")
+            self._close_input()
             try:
-                self.request("close")
-            except (CaveatProtocolError, OSError):
-                pass
+                self._process.wait(timeout=self._timeout)
+            except subprocess.TimeoutExpired:
+                raise self._fail(f"caveat serve did not exit within {self._timeout} seconds of close") from None
         return self._finish()
 
     def _pump(self) -> None:
@@ -244,32 +274,65 @@ class CaveatServer:
         return value
 
     def _fail(self, message: str) -> CaveatProtocolError:
-        """The server broke the protocol: stop it, and say what happened."""
-        self._kill()
+        """The caller gives up on the server: stop the launch, and say what happened."""
+        self._stop()
         status = self._finish()
-        return CaveatProtocolError(f"{message} (status {status}){self._errors()}")
+        return CaveatProtocolError(f"{message} (status {status}){self._stop_note()}{self._errors()}")
 
-    def _kill(self) -> None:
-        if self._process.poll() is not None:
+    def _end(self) -> Optional[int]:
+        """The session is over, and the server exits by itself: wait for it, then stop what is left."""
+        status = self._finish()
+        self._stop()
+        return status
+
+    def _stop(self) -> None:
+        """Stop every process the launch started, including those under the first one."""
+        if os.name != "nt":
+            # The launch's own process group, which outlives its first process.
+            try:
+                os.killpg(self._process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass  # Nothing of it is left.
+            except PermissionError as error:
+                self._stop_directly(f"stopping its process group failed: {error}")
             return
-        # On Windows the command may be a .cmd file, such as npx.cmd, run by
-        # cmd.exe; stopping the whole tree also stops caveat under it.
-        if os.name == "nt":
-            subprocess.run(["taskkill", "/T", "/F", "/PID", str(self._process.pid)],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if self._process.poll() is not None:
+            return  # taskkill finds the tree through a running first process only.
+        # The command may be a .cmd file, such as npx.cmd, run by cmd.exe;
+        # stopping the whole tree also stops caveat under it.
+        try:
+            done = subprocess.run(["taskkill", "/T", "/F", "/PID", str(self._process.pid)],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                  universal_newlines=True, errors="replace")
+        except OSError as error:
+            self._stop_directly(f"taskkill could not run: {error}")
+            return
+        if done.returncode != 0:
+            self._stop_directly(f"taskkill failed with status {done.returncode}: {done.stderr.strip()}")
+
+    def _stop_directly(self, problem: str) -> None:
+        """The tree could not be stopped: stop the first process, and remember why."""
         if self._process.poll() is None:
             self._process.kill()
+        self._stop_problem = f"{problem}; processes started under it may still be running"
 
-    def _finish(self) -> Optional[int]:
+    def _stop_note(self) -> str:
+        return f" ({self._stop_problem})" if self._stop_problem else ""
+
+    def _close_input(self) -> None:
         if self._process.stdin and not self._process.stdin.closed:
             try:
                 self._process.stdin.close()
             except OSError:
                 pass
+
+    def _finish(self) -> Optional[int]:
+        """Wait for the server to exit, stopping it if it does not in time, and release what it held."""
+        self._close_input()
         try:
-            status = self._process.wait(timeout=30)
+            status = self._process.wait(timeout=self._timeout)
         except subprocess.TimeoutExpired:
-            self._kill()
+            self._stop()
             status = self._process.wait()
         self._reader.join(timeout=5)
         if self._stderr_text is None:

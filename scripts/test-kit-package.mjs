@@ -309,7 +309,8 @@ for (const command of ['validate', 'check']) {
 }
 const called = await runCallerTests(agentEvidence);
 assert.equal(called.status, 0, `${called.python}\n${called.stdout}${called.stderr}`);
-assert.match(called.report, /\nOK\n?$/, 'the caller tests report OK');
+// One caller test is for POSIX only; Windows reports it skipped.
+assert.match(called.report, process.platform === 'win32' ? /\nOK \(skipped=1\)\n?$/ : /\nOK\n?$/, 'the caller tests report OK');
 assert.doesNotMatch(called.report, /ResourceWarning/, 'the caller leaves a pipe or file open');
 assert.deepEqual(called.after, called.before, 'the caller tests left files behind');
 report.checks.agentEvidence = { python: called.python, tests: Number(/^Ran (\d+) tests?/m.exec(called.report)?.[1]) };

@@ -20,20 +20,24 @@ documents under `node_modules/caveat-lang/`.
 
 ## Run it
 
-The example is in the package from `0.1.0-rc.6`. Earlier versions do not
-have it, so install that version or a later one by its number; the tag
-`next` may still name an earlier one (`npm view caveat-lang dist-tags`). In a
-project directory:
+In a project directory:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.6
+npm install caveat-lang@next
 cp -r node_modules/caveat-lang/examples/agent-evidence .
 cd agent-evidence
 npx --no-install caveat validate assessment.cav
 npx --no-install caveat check assessment.cav
 python3 -B -m unittest -v test_caller
 ```
+
+The example ships in the package from `0.1.0-rc.6`. With an earlier release
+there is no `examples/` folder, so `cp` finds nothing: take this folder from
+the repository instead,
+[kit/examples/agent-evidence](https://github.com/WSattazahn/caveat-lang/tree/main/kit/examples/agent-evidence),
+and put it in the project directory. Its files run, unchanged, on
+`0.1.0-rc.5`.
 
 `cp -r` is for a POSIX shell, such as Git Bash. In PowerShell, use
 `Copy-Item -Recurse` instead. Use `python` if there is no `python3`. `-B`
@@ -107,6 +111,15 @@ a program that does not load. A dispatch returns a `Dispatch` whose `accepted` a
 level 2. An outcome or origin the contract does not name raises
 `CaveatProtocolError`; it is never read as a rejection.
 
+When the caller gives up on a server, because it wrote nothing in time,
+wrote a line Serve 0.1 does not allow, stopped reading requests, or did not
+exit after `close` or a failed session, it stops every process the launch
+started, not only the first: npx runs `caveat` under a shell. On POSIX that
+is the launch's own process group; on Windows, the process tree, with
+`taskkill /T`. If that fails, it stops the first process, and the error it
+raises says that processes started under it may still be running. A server
+that closes correctly exits by itself.
+
 ## The caller's rule
 
 A workflow attempt succeeds only when its required operations succeed and its relevant, current CAVEAT assessment permits the intended result. A stored earlier assessment cannot substitute for a rejected required operation.
@@ -131,7 +144,9 @@ decides that the attempt failed.
 | A later, separate attempt receives valid replacement evidence and an accepted reassessment | Evaluate that new attempt; do not permanently mark every future attempt failed because an earlier one failed. |
 
 Each row is a test in `test_caller.py`. Other tests there cover a malformed
-request, a program that does not load, and the limits.
+request, a program that does not load, the limits, each condition of
+`assessment_permits`, and, with a stand-in the tests write to a temporary
+directory, a server that breaks the protocol.
 
 ## Change it
 

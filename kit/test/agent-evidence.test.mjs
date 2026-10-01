@@ -37,8 +37,18 @@ test('the Python caller\'s tests pass against this checkout\'s caveat serve', as
     'test_a_refused_request_fails_the_attempt',
     'test_a_full_history_refuses_more_evidence',
     'test_a_program_that_does_not_load_is_reported',
+    'test_any_error_from_a_required_operation_fails_the_attempt',
+    'test_a_failed_session_fails_the_attempt_and_ends_the_server',
+    'test_a_server_that_writes_nothing_is_stopped_with_everything_it_started',
+    'test_a_first_line_that_is_not_json_stops_everything_it_started',
+    'test_a_server_that_stops_reading_requests_stops_everything_it_started',
+    'test_a_launch_that_cannot_be_stopped_whole_is_reported',
+    'test_a_close_that_does_not_finish_in_time_stops_everything_it_started',
+    'test_a_server_that_closes_correctly_exits_by_itself',
+    ...(process.platform === 'win32' ? [] : ['test_a_failed_session_leaves_nothing_running_on_posix']),
   ]) assert.match(result.report, new RegExp(`^${name} .* ok$`, 'm'), `${name} did not pass`);
-  assert.match(result.report, /\nOK\n?$/);
+  // One test is for POSIX only; Windows reports it skipped.
+  assert.match(result.report, process.platform === 'win32' ? /\nOK \(skipped=1\)\n?$/ : /\nOK\n?$/);
   assert.doesNotMatch(result.report, /ResourceWarning/, 'the caller leaves a pipe or file open');
   assert.deepEqual(result.after, result.before, 'the tests left files in the example');
 });
