@@ -32,6 +32,16 @@ function run(command, args, env = process.env) {
   if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
 }
 
+// wasm-bindgen emits Symbol.dispose in its declarations. Declare that type
+// dependency in each generated runtime, so an ES2022 consumer need not add
+// esnext.disposable to its own lib list. JavaScript and WASM stay as emitted.
+async function bindRuntime(command, source, outDir) {
+  run(command, [source, '--out-dir', outDir, '--target', 'web']);
+  const file = path.join(outDir, 'caveat_runtime.d.ts');
+  const declarations = await readFile(file, 'utf8');
+  await writeFile(file, `/// <reference lib="esnext.disposable" />\n${declarations}`);
+}
+
 // Resolve a program's imports with the runtime's own linker.
 function linkBundle(file) {
   const result = spawnSync(
@@ -110,7 +120,7 @@ try {
 
   await rm(dist, { recursive: true, force: true });
   await mkdir(path.join(dist, 'pkg'), { recursive: true });
-  run(bindgen.command, [wasm, '--out-dir', path.join(dist, 'pkg'), '--target', 'web']);
+  await bindRuntime(bindgen.command, wasm, path.join(dist, 'pkg'));
   // For hosts that run only reactive programs: no sequential, graphics or 3D
   // sessions. See spec/caveat-view-0.1.md. --assemble-only reuses the last
   // lean build if there is one, as it reuses the full one.
@@ -118,7 +128,7 @@ try {
     run(tool('cargo').command, ['build', '--locked', '--manifest-path', 'runtime/Cargo.toml', '--lib', '--target', 'wasm32-unknown-unknown', '--release', '--no-default-features', '--target-dir', reactiveTarget], remappedRustflags());
   }
   if (compile || existsSync(reactiveWasm)) {
-    run(bindgen.command, [reactiveWasm, '--out-dir', path.join(dist, 'pkg-reactive'), '--target', 'web']);
+    await bindRuntime(bindgen.command, reactiveWasm, path.join(dist, 'pkg-reactive'));
   }
   await writeFile(path.join(dist, 'build-info.json'), `${JSON.stringify(buildInfo(compile), null, 2)}\n`);
   await cp(path.join(root, 'web'), dist, { recursive: true });

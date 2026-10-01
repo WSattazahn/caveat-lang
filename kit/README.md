@@ -238,7 +238,12 @@ rc.5 has none. TypeScript finds them with `"moduleResolution"` set to
 `"bundler"`, `"node16"` or `"nodenext"`, and nothing needs declaring by hand.
 They cover the session library, the dispatch outcomes, `CaveatError` and its
 kinds, the snapshot and view, and every report. The runtime module ships
-wasm-bindgen's own `runtime/caveat_runtime.d.ts`.
+wasm-bindgen's `runtime/caveat_runtime.d.ts`, with a reference to the
+`esnext.disposable` TypeScript library required by its `Symbol.dispose`
+member. The generated declaration loads that library itself; a consumer
+using `ES2022` does not need to add it to its own `lib` list. Release-preparation
+compiler probes use TypeScript 6.0.3; a minimum supported compiler version
+has not been established.
 
 In a bundled page, import the runtime module yourself and pass its namespace:
 

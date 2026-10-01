@@ -197,6 +197,15 @@ test('every entry point names its declarations, which declare exactly its export
   }
 });
 
+test('generated runtime declarations name the library their disposal members require', async () => {
+  for (const directory of ['pkg', 'pkg-reactive']) {
+    const file = path.join(repo, 'dist', directory, 'caveat_runtime.d.ts');
+    const text = await readFile(file, 'utf8');
+    assert.match(text, /\[Symbol\.dispose\]\(\): void;/, `${directory} declares a disposal member`);
+    assert.match(text, /^\/\/\/ <reference lib="esnext\.disposable" \/>\r?\n/, `${directory} loads the disposal types before its declarations`);
+  }
+});
+
 test('a declared constant is the value the module exports', async () => {
   for (const name of Object.keys(declarations)) {
     const text = stripComments(await readFile(path.join(kit, 'lib', `${name}.d.mts`), 'utf8'));
