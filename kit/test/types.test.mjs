@@ -12,10 +12,12 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CaveatError, CaveatSession, createRuntime } from '../lib/session.mjs';
-import { dependents, explain } from '../lib/explain.mjs';
+import { dependents, explain, parseEvents } from '../lib/explain.mjs';
 import { createServer } from '../lib/serve.mjs';
-import { ScenarioFileError, parseScenarioFile, report, runScenarioFile } from '../lib/scenarios.mjs';
-import { Real, faulty, real, repo, scenarioFile, sourceReader, thermostat, trail } from './helpers.mjs';
+import {
+  ScenarioFileError, expectAt, firstDifference, groundsViolation, match as matchExpected, parseScenarioFile, report, runScenarioFile,
+} from '../lib/scenarios.mjs';
+import { Real, RealModule, faulty, real, repo, scenarioFile, sourceReader, thermostat, trail } from './helpers.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
@@ -54,8 +56,12 @@ function readDeclarations(source) {
   const values = new Set();
   const shapes = new Map();
   const aliases = new Map();
+  // Every export is a type, an interface or a declared function, constant or
+  // class, so the values below are all the module's declared values.
+  for (const line of text.match(/^export\b.*/gm) ?? []) {
+    assert.match(line, /^export (?:type [\w{]|(?:interface|declare (?:function|const|class)) \w)/, `an export this test cannot read: ${line}`);
+  }
   for (const [, name] of text.matchAll(/^export declare (?:function|const|class) (\w+)/gm)) values.add(name);
-  assert.doesNotMatch(text, /^export \{/m, 'value re-exports are not used');
   for (const match of text.matchAll(/^export (?:declare )?(interface|class) (\w+)[^{]*/gm)) {
     const required = new Set();
     const optional = new Set();
@@ -335,6 +341,48 @@ test('snapshot and view types have the fields the runtime serializes', async () 
   assertShape('ReadingStream', snapshots.flatMap(snapshot => Object.values(snapshot.reading_streams)), { complete: true });
   assertShape('ReadingOccurrence', snapshots.flatMap(snapshot => Object.values(snapshot.reading_streams).flatMap(stream => stream.occurrences)), { complete: true });
   assertShape('EffectSample', snapshots.flatMap(snapshot => snapshot.effects.filter(effect => effect.kind === 'sample')), { complete: true });
+});
+
+// The runtime contract is what the library calls on a runtime's module, class
+// and sessions: an optional member is one it checks for first, and the
+// repository's runtime has every member.
+test('the runtime contract and the options name what the library reads', async () => {
+  const read = async file => stripComments(await readFile(path.join(kit, 'lib', file), 'utf8'));
+  const library = await read('session.mjs');
+  const named = (text, pattern) => sorted([...text.matchAll(pattern)].map(found => found[1]));
+  for (const [declared, called, checked, real] of [
+    ['RuntimeSessionHandle', /this\.#inner\.(\w+)\(/g, /typeof this\.#inner\.(\w+) !== 'function'/g, Real.prototype],
+    ['RuntimeSessionClass', /SessionClass\.(\w+)\(/g, /typeof SessionClass\.(\w+) !== 'function'/g, Real],
+    ['RuntimeModule', /namespace\.(\w+)\b/g, /$^/g, RealModule],
+  ]) {
+    assert.deepEqual(named(library, called), sorted(members(declared)), `${declared}: what the library calls`);
+    assert.deepEqual(named(library, checked), sorted(shape(declared).optional), `${declared}: what it checks for first`);
+    for (const name of members(declared)) assert.ok(name in real, `the runtime has ${declared}.${name}`);
+  }
+
+  const destructured = (text, entry) => {
+    const found = new RegExp(`export (?:async )?function ${entry}\\((?:\\w+, )?\\{ ([^}]*) \\}`).exec(text);
+    assert.ok(found, `${entry} takes an options object`);
+    return sorted(found[1].split(',').map(item => item.trim().split(/\s*=/)[0]));
+  };
+  assert.deepEqual(destructured(library, 'loadRuntime'), sorted(members('LoadRuntimeOptions')));
+  assert.deepEqual(destructured(await read('serve.mjs'), 'createServer'), sorted(members('ServeOptions')));
+  assert.deepEqual(destructured(await read('scenarios.mjs'), 'runScenarioFile'), sorted(members('RunScenarioOptions')));
+  const node = await read('node.mjs');
+  const identity = [/const identity = \{([^}]*)\}/, /Object\.assign\(identity, \{([^}]*)\}/].flatMap(pattern => named(pattern.exec(node)[1], /(\w+):/g));
+  assert.deepEqual(sorted(identity), sorted(members('RuntimeIdentity')), 'the identity loadRuntimeFromDirectory gives');
+
+  assertShape('Difference', [
+    firstDifference({ a: 1 }, { a: 2 }), firstDifference([1], [1, 2]), matchExpected({ a: 1, b: 2 }, { a: 1, b: 3 }),
+    expectAt({ a: 1 }, '/a', 2), expectAt({}, '/b', 1),
+  ], { complete: true });
+  assert.equal(firstDifference({ a: 1 }, { a: 1 }), null);
+  assertShape('GroundsViolation', [
+    groundsViolation({ value_grounds: { x: { evidence: ['e'] } }, qualified_values: { x: { provenance: { evidence: [] } } } }),
+    groundsViolation({ commitment_grounds: { d: { caveats: ['c'] } }, commitment_bases: {} }),
+  ], { complete: true });
+  assert.equal(groundsViolation(snapshots.at(-1)), null);
+  assertShape('EventLine', parseEvents('{"event":"read","payload":{"value":17}}\n{"event":"warm"}\n'), { complete: true });
 });
 
 // ---------------------------------------------------------------- reports

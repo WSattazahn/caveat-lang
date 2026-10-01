@@ -276,10 +276,11 @@ These commands run from a repository checkout, after `npm run build`.
   server; and the process itself on standard input and output;
 - `validate`, `replay` and `init`: exit statuses, line numbers, typed
   parameters, and `init`'s files staying identical to the guide's;
-- the TypeScript declarations: every export, method and member, every field
-  of the snapshot, view, outcomes and reports, and every code and kind,
-  against the modules, real sessions, the runtime's Rust structs and the
-  documents that list them;
+- the TypeScript declarations, by name: every export, method and member,
+  every field of the snapshot, view, outcomes and reports, every option and
+  runtime call, and every code and kind, against the modules, real sessions,
+  the runtime's Rust structs and the documents that list them. Parameter and
+  return types are not compared;
 - the packaged documentation: every source exists, every link in the kit's
   own documents resolves inside the package, the authoring guide's script
   runs, and the getting-started guide, followed step by step, prints what it

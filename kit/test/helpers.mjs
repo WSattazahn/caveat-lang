@@ -10,6 +10,7 @@ export const real = await loadRuntimeFromDirectory(defaultRuntimeDirectory());
 const namespace = await import(new URL(`../../dist/pkg-reactive/caveat_runtime.js?instance=helpers`, import.meta.url).href);
 await namespace.default({ module_or_path: await readFile(new URL('../../dist/pkg-reactive/caveat_runtime_bg.wasm', import.meta.url)) });
 export const Real = namespace.WebReactiveSession;
+export const RealModule = namespace;
 
 export const thermostat = await readFile(new URL('../../examples/thermostat_history.cav', import.meta.url), 'utf8');
 export const trail = await readFile(new URL('../../game/trail_rescue.cav', import.meta.url), 'utf8');
