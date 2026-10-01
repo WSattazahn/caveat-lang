@@ -80,6 +80,20 @@ export function resolveLink(from, target) {
   return { path: resolved, anchor };
 }
 
+// A local destination in an installed document, normalized within the package.
+// Check containment before looking at the host filesystem: an existing file
+// in the consumer must never satisfy a package link. Backslashes are rejected
+// so a Windows host cannot reinterpret a POSIX path as a parent traversal.
+export function packageLinkPath(from, target) {
+  const destination = target.split('#')[0];
+  const { path: file } = resolveLink(from, target);
+  if (!isRelative(target) || destination.startsWith('/') || destination.includes('\\')
+      || file === '..' || file.startsWith('../') || path.posix.isAbsolute(file)) {
+    throw new Error(`${from} links to ${target}, which is outside the package`);
+  }
+  return file;
+}
+
 // The document at repository path `from`, as it is copied into the package.
 // `shipped(path)` says whether a repository path is copied into the package
 // beside it. Returns the rewritten markdown and each link that was rewritten.

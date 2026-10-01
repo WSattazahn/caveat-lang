@@ -7,7 +7,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isRelative, markdownLinks, resolveLink, rewriteLinks } from './links.mjs';
+import { isRelative, markdownLinks, packageLinkPath, resolveLink, rewriteLinks } from './links.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const repo = path.join(kit, '..');
@@ -75,6 +75,26 @@ test('image links, titles, angle brackets and reference definitions are rewritte
 test('the revision must be a full commit SHA, and a link may not leave the repository', () => {
   assert.throws(() => rewriteLinks('', { from: 'a.md', revision: 'main', shipped }), /not a full commit SHA/);
   assert.throws(() => rewriteLinks('[up](../../x.md)', { from: 'spec/a.md', revision: REVISION, shipped }), /outside the repository/);
+});
+
+test('an installed document cannot link to an existing consumer manifest', () => {
+  const installed = path.join(repo, 'node_modules', 'caveat-lang');
+  const target = '../../package.json';
+  assert.ok(existsSync(path.join(installed, target)), 'the consumer manifest exists outside the package');
+  assert.throws(() => packageLinkPath('README.md', target), /outside the package/);
+  assert.throws(() => packageLinkPath('README.md', '..'), /outside the package/);
+  assert.throws(() => packageLinkPath('docs/README.md', '../../package.json'), /outside the package/);
+});
+
+test('installed document paths reject absolute destinations and Windows separators', () => {
+  for (const target of ['/README.md', 'C:/README.md', '//server/share/README.md', '..\\..\\package.json', '\\README.md']) {
+    assert.throws(() => packageLinkPath('README.md', target), /outside the package/, target);
+  }
+});
+
+test('installed document paths allow deep ascent that stays within the package', () => {
+  assert.equal(packageLinkPath('docs/reference/spec/profile.md', '../../../README.md#intro'), 'README.md');
+  assert.equal(packageLinkPath('docs/reference/spec/profile.md', '../examples/./thermostat_history.cav'), 'docs/reference/examples/thermostat_history.cav');
 });
 
 // The documents the package copies: a link a copy keeps resolves inside the

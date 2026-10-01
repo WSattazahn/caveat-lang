@@ -21,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-kit-browser.mjs';
 import { followGuide } from '../kit/test/guide.mjs';
-import { isRelative, markdownLinks, rewriteLinks } from '../kit/test/links.mjs';
+import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -198,7 +198,7 @@ const inside = [];
 for (const file of installedDocs) {
   for (const { target: link } of markdownLinks(await readFile(path.join(installed, file), 'utf8'))) {
     if (!isRelative(link)) continue;
-    const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), link.split('#')[0]));
+    const target = packageLinkPath(file, link);
     assert.ok(existsSync(path.join(installed, target)), `${file} links to ${link}, which is not in the package`);
     inside.push(`${file} -> ${link}`);
   }
