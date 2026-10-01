@@ -151,6 +151,9 @@ class CaveatServer:
         self._timeout = timeout
         # Set when stopping the server may have left a process running.
         self._stop_problem: Optional[str] = None
+        # The attempt that holds the server, if any: one attempt at a time.
+        self._attempt: Optional["Attempt"] = None
+        self._attempt_lock = threading.Lock()
         self._stderr = tempfile.TemporaryFile()
         self._process = subprocess.Popen(
             [*(command or default_command()), "serve", program],
@@ -284,6 +287,22 @@ class CaveatServer:
                 raise self._fail(f"caveat serve did not exit within {self._timeout} seconds of close") from None
         return self._finish()
 
+    # One attempt at a time: a late operation of an earlier attempt would land
+    # in the next one, and could become its evidence. An attempt takes its own
+    # lock before this one, never the other way round.
+    def _hold(self, attempt: "Attempt") -> None:
+        with self._attempt_lock:
+            if self._attempt is not None:
+                raise AttemptInProgress("an earlier attempt on this server is unfinished, or still has an "
+                                        "operation sending; wait for that operation to finish, or start a "
+                                        "new server")
+            self._attempt = attempt
+
+    def _release(self, attempt: "Attempt") -> None:
+        with self._attempt_lock:
+            if self._attempt is attempt:
+                self._attempt = None
+
     def _pump(self) -> None:
         try:
             for line in self._process.stdout:
@@ -402,6 +421,10 @@ class AttemptFinished(Exception):
     """The attempt is finished: nothing more is registered or sent in it. A retry is a new Attempt."""
 
 
+class AttemptInProgress(Exception):
+    """An earlier attempt on the server is unfinished, or still has an operation sending. Nothing was sent."""
+
+
 class Operation:
     """A required operation, registered by `Attempt.begin`. `send` dispatches it once, in any thread.
 
@@ -482,6 +505,10 @@ class Attempt:
     would run on a session the attempt did not bring about. `finish` decides,
     once. Registration, outcomes and `finish` take one lock, so their order
     is never in doubt.
+
+    One attempt at a time per server: `Attempt(server)` raises
+    AttemptInProgress, before it talks to the server, while an earlier
+    attempt on it is unfinished or still has an operation sending.
     """
 
     def __init__(self, server: CaveatServer):
@@ -493,9 +520,14 @@ class Attempt:
         # What finish() counts, fixed by the first call: the operations and the first failure.
         self._final: Optional[Tuple[Tuple[OperationResult, ...], Optional[Union[Dispatch, BaseException]]]] = None
         self._result: Optional[AttemptResult] = None
-        # The sequence before this attempt, so `permits` can tell this
-        # attempt's assessment from an earlier one.
-        self.start_sequence = server.snapshot()["sequence"]
+        server._hold(self)
+        try:
+            # The sequence before this attempt, so `permits` can tell this
+            # attempt's assessment from an earlier one.
+            self.start_sequence = server.snapshot()["sequence"]
+        except BaseException:
+            server._release(self)
+            raise
 
     @property
     def failed(self) -> Optional[Union[Dispatch, BaseException]]:
@@ -523,6 +555,12 @@ class Attempt:
             # is kept on the operation only.
             if status != ACCEPTED and self._failed is None and not self._finished:
                 self._failed = dispatch if error is None else error
+            self._release_if_done()
+
+    def _release_if_done(self) -> None:
+        """Called with the lock held: once the verdict is decided and nothing is sending, free the server."""
+        if self._result is not None and all(operation.status != SENDING for operation in self._operations):
+            self.server._release(self)
 
     def finish(self, permits: Callable[[Dict[str, Any], "Attempt"], bool]) -> AttemptResult:
         """Finish the attempt and return its verdict. Called again, it returns the same result."""
@@ -543,6 +581,8 @@ class Attempt:
                 # not succeed, and the server is not read.
                 if any(operation.status in (REGISTERED, SENDING, UNCONFIRMED) for operation in self._operations):
                     self._result = AttemptResult(False, operations, self._failed, False, None)
+                    # One still sending holds the server until its outcome is recorded.
+                    self._release_if_done()
                     return self._result
                 self._final = (operations, self._failed)
             # Every operation has its outcome, and none can change any more.
@@ -555,6 +595,7 @@ class Attempt:
         with self._lock:
             if self._result is None:
                 self._result = AttemptResult(succeeded, operations, failed, allowed, snapshot)
+            self._release_if_done()
             return self._result
 
 

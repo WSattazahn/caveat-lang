@@ -43,6 +43,7 @@ test('the Python caller\'s tests pass against this checkout\'s caveat serve', as
     'test_an_operation_still_in_flight_at_finish_leaves_the_attempt_unsuccessful',
     'test_an_operation_not_yet_sent_at_finish_is_never_sent',
     'test_a_concurrent_finish_does_not_change_the_verdict',
+    'test_a_new_attempt_waits_until_the_last_one_has_nothing_sending',
     'test_registration_outcomes_and_finish_take_one_lock',
     'test_requests_from_two_threads_take_turns_on_the_pipe',
     'test_an_interrupted_request_gives_up_on_the_server',

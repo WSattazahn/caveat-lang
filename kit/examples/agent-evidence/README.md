@@ -220,11 +220,14 @@ async def observe(attempt, confidence):
 ```
 
 If `finish` runs while `send` is still running, the operation is unconfirmed
-and the attempt did not succeed. Its request may still reach the server
-afterwards, and land in whatever attempt is running then. So before a retry on
-the same server, wait until that `Operation`'s `status` is no longer
-`sending`, for example by awaiting the executor's future; or retry on a new
-server.
+and the attempt did not succeed.
+
+**One attempt at a time per server.** `Attempt(server)` raises
+`AttemptInProgress`, before it talks to the server, while an earlier attempt
+on that server is unfinished or still has an operation sending. Wait for that
+send to finish, for example by awaiting the executor's future, or start a new
+server. A late operation would otherwise land in the next attempt, and could
+become its evidence.
 
 ## Change it
 

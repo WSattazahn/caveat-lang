@@ -25,6 +25,7 @@ import caller
 from caller import (
     Attempt,
     AttemptFinished,
+    AttemptInProgress,
     CaveatLoadError,
     CaveatProtocolError,
     CaveatRequestError,
@@ -145,6 +146,7 @@ class Attempts(unittest.TestCase):
         refused = again.require("retract")
         self.assertEqual((refused.origin, refused.code, refused.message),
                          ("policy", "reject", "The latest observation is already withdrawn."))
+        self.assertFalse(again.finish(assessment_permits).succeeded)
         again = Attempt(self.server)
         refused = again.require("assess")
         result = again.finish(assessment_permits)
@@ -323,6 +325,49 @@ class Attempts(unittest.TestCase):
         self.assertNotEqual(operation.status, "sending")
         self.assertTrue(self.approve(confidence=90).succeeded)
 
+    # One attempt at a time per server. A finished attempt whose operation is
+    # still sending holds the server: its late observation would land in the
+    # next attempt and could become that attempt's evidence. Once nothing is
+    # sending, the next attempt is judged on its own observation.
+    def test_a_new_attempt_waits_until_the_last_one_has_nothing_sending(self):
+        with self.subTest(holding="unfinished, nothing sending"):
+            open_attempt = Attempt(self.server)
+            open_attempt.require("observe", {"confidence": 20})
+            with self.assertRaises(AttemptInProgress):
+                Attempt(self.server)
+            self.assertFalse(open_attempt.finish(assessment_permits).succeeded)
+
+        first = Attempt(self.server)
+        operation = first.begin("observe", {"confidence": 90})
+        held = HeldRequests(self.server)
+        self.addCleanup(held.gate.set)
+        with mock.patch.object(self.server, "request", held):
+            worker, _ = in_worker(operation.send)
+            self.assertTrue(held.arrived.wait(SERVER_TIMEOUT), "the worker never sent the operation")
+            result = first.finish(assessment_permits)
+            self.assertFalse(result.succeeded)
+            self.assertEqual(statuses(result), [("observe", "unconfirmed")])
+            with self.assertRaises(AttemptInProgress):
+                Attempt(self.server)
+            self.assertEqual(held.made, ["dispatch"], "a refused attempt talked to the server")
+            held.gate.set()
+            worker.join(SERVER_TIMEOUT)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(operation.status, "accepted", "the late observation reached the session")
+
+        # The server is free again. This attempt's own observation, below 70,
+        # decides it, not the earlier attempt's 90.
+        second = Attempt(self.server)
+        second.require("observe", {"confidence": 40})
+        refused = second.require("assess")
+        result = second.finish(assessment_permits)
+        self.assertEqual((refused.origin, refused.code), ("policy", "reject"))
+        self.assertFalse(result.succeeded)
+        self.assertNotEqual(verdict(result.snapshot), "approved")
+
+        # A later attempt with its own high observation succeeds.
+        self.assertTrue(self.approve(confidence=85).succeeded)
+
     # Two callers finish the same attempt while a worker is still sending. The
     # first decides under the lock: a response that arrives before the second
     # call, while the first is still on its way out, cannot make it a success.
@@ -476,6 +521,10 @@ class FailingOperation:
     def __init__(self, error):
         self.error = error
         self.dispatched = []
+        self._attempt, self._attempt_lock = None, threading.Lock()
+
+    _hold = CaveatServer._hold
+    _release = CaveatServer._release
 
     def snapshot(self):
         return {"sequence": 0, "bindings": {"assessment": {"verdict": "none"}}, "decision_journal": []}
