@@ -1,0 +1,9 @@
+{
+  "name": "caveat-cli-collision-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Install-only fixture for the caveat executable collision; third-party code is never invoked.",
+  "dependencies": {
+    "caveat-cli": "0.19.13"
+  }
+}

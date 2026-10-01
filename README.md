@@ -1,4 +1,4 @@
-# CAVEAT
+# CAVEAT Language
 
 **Programs that remember why.** For the thinking behind it, read
 [The Caveatist way](docs/WHY_CAVEAT.md#the-caveatist-way).
@@ -25,7 +25,11 @@ Caveat is a programming language for programs that act on what they know and kee
 **Try it** with Node 20 or later. The release candidate [0.1.0-rc.6](docs/releases/v0.1.0-rc.6.md) is [published on npm](https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.6): `npm install caveat-lang@next` installs it, or pin `caveat-lang@0.1.0-rc.6`. npm's `latest` tag remains on rc.5. Then `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
 
 This checkout is the **0.1.0-rc.7 development version**, which is not released.
-The install instructions above use the published rc.6 candidate.
+The install instructions above use the published rc.6 candidate. In rc.7,
+`caveat-lang` is the unambiguous CLI name; `caveat` remains supported shorthand.
+For an installed rc.7 tarball, use `npx --no-install caveat-lang init`.
+See [project names and CLI commands](kit/docs/NAMES.md) for the version boundary
+and the distinction from other projects named Caveat.
 
 **Using Caveat from an agent?** Start with the
 [Python `caveat serve` example](kit/examples/agent-evidence/README.md).

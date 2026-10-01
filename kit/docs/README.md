@@ -18,6 +18,10 @@ background, not required reading.
   ranges, the session clock, evidence that ages and decisions that are
   reconsidered.
 
+- [Project names and CLI commands](NAMES.md): the unambiguous `caveat-lang`
+  command in rc.7, the supported `caveat` shorthand and other projects with the
+  same name.
+
 ## The reactive language
 
 The language is specified as a base profile followed by additions. Read them in

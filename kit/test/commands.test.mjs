@@ -19,6 +19,21 @@ async function inDirectory(body) {
   try { return await body(directory); } finally { await rm(directory, { recursive: true, force: true }); }
 }
 
+test('help identifies CAVEAT Language, and version works without loading a runtime', async () => {
+  const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
+  assert.deepEqual(manifest.bin, { caveat: 'bin/caveat.mjs', 'caveat-lang': 'bin/caveat.mjs' });
+  const help = caveat(['help']);
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /^CAVEAT Language — Programs that remember why\./);
+  assert.match(help.stdout, /caveat-lang --version/);
+  assert.match(help.stdout, /Both caveat-lang and caveat invoke this CLI/);
+  for (const argument of ['version', '--version', '-v']) {
+    const result = caveat([argument], { cwd: tmpdir() });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, `CAVEAT Language ${manifest.version}\n`);
+  }
+});
+
 test('init writes exactly the files the getting-started guide has you write', async () => {
   const steps = guideSteps(await readFile(path.join(kit, 'docs', 'GETTING_STARTED.md'), 'utf8'));
   for (const name of templates) {
@@ -30,7 +45,7 @@ test('init writes exactly the files the getting-started guide has you write', as
     const result = caveat(['init', target]);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual((await readdir(target)).sort(), [...templates].sort());
-    assert.match(result.stdout, /caveat test umbrella\.scenarios\.json/);
+    assert.match(result.stdout, /caveat-lang test umbrella\.scenarios\.json/);
     const tested = caveat(['test', 'umbrella.scenarios.json'], { cwd: target });
     assert.equal(tested.status, 0, tested.stdout + tested.stderr);
 

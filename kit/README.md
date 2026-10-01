@@ -1,4 +1,4 @@
-# caveat-lang
+# CAVEAT Language (`caveat-lang`)
 
 A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
@@ -23,7 +23,18 @@ stable. Install a candidate by `next` or its exact version;
 `npm dist-tag ls caveat-lang` shows which version each tag names.
 
 This checkout is the **0.1.0-rc.7 development version**, which is not released.
-The npm instructions above install the published rc.6 candidate.
+The npm instructions above install the published rc.6 candidate. **New in rc.7:**
+`caveat-lang` is the unambiguous command; `caveat` remains supported shorthand.
+With a verified rc.7 tarball installed, prefer:
+
+```sh
+npx --no-install caveat-lang --version
+npx --no-install caveat-lang init
+npx --no-install caveat-lang test umbrella.scenarios.json
+```
+
+See [project names and CLI commands](docs/NAMES.md) for the distinction from
+other projects named Caveat. The rc.6 command is still `caveat`.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
@@ -45,11 +56,11 @@ sanitized examples and output.
 
 ## Run scenario files
 
-From an installed tarball:
+From an installed rc.7 tarball (use `caveat` instead for rc.6):
 
 ```sh
-npx --no-install caveat test --json a.scenarios.json b.scenarios.json
-npx --no-install caveat test --runtime path/to/pkg-reactive file.scenarios.json
+npx --no-install caveat-lang test --json a.scenarios.json b.scenarios.json
+npx --no-install caveat-lang test --runtime path/to/pkg-reactive file.scenarios.json
 ```
 
 From a repository checkout, build the runtime first:
@@ -79,8 +90,8 @@ or reopened; each piece of evidence with its caveats; and the evidence behind
 each displayed value. Refused events are listed and change nothing.
 
 ```sh
-npx --no-install caveat explain program.cav events.jsonl
-npx --no-install caveat explain --json program.cav events.jsonl
+npx --no-install caveat-lang explain program.cav events.jsonl
+npx --no-install caveat-lang explain --json program.cav events.jsonl
 ```
 
 The events file has one JSON object per line, `{"event": "read", "payload":
@@ -103,8 +114,8 @@ A reading stream, or the evidence it reads from, stands for every reading in
 it.
 
 ```sh
-npx --no-install caveat dependents program.cav sky events.jsonl
-npx --no-install caveat dependents --json program.cav forecast_is_old events.jsonl
+npx --no-install caveat-lang dependents program.cav sky events.jsonl
+npx --no-install caveat-lang dependents --json program.cav forecast_is_old events.jsonl
 ```
 
 The exit statuses are those of `explain`, and 2 also means the program
@@ -114,10 +125,10 @@ declares no such name. From code, `dependents(snapshot, name)` in
 ## Check, replay, start
 
 ```sh
-npx --no-install caveat validate program.cav
-npx --no-install caveat check program.cav
-npx --no-install caveat replay program.cav events.jsonl
-npx --no-install caveat init my-project
+npx --no-install caveat-lang validate program.cav
+npx --no-install caveat-lang check program.cav
+npx --no-install caveat-lang replay program.cav events.jsonl
+npx --no-install caveat-lang init my-project
 ```
 
 - `validate` loads a program and lists its events, reading streams, decision

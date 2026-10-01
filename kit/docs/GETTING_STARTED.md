@@ -1,4 +1,4 @@
-# Getting started with Caveat
+# Getting started with CAVEAT Language
 
 This guide starts from an empty directory and ends with a program that makes a
 decision, reopens it when it learns something new, and still remembers why it
@@ -34,6 +34,21 @@ Check that the `caveat` command works:
 ```sh
 npx --no-install caveat help
 ```
+
+### rc.7 command name
+
+When using a verified **rc.7 tarball**, prefer `caveat-lang`:
+
+```sh
+npx --no-install caveat-lang --version
+npx --no-install caveat-lang help
+```
+
+Use `caveat-lang` in place of `caveat` in every command below. Both spellings
+invoke the same language CLI in rc.7; `caveat-lang` avoids the collision with
+other packages that install `caveat`. The published rc.6 installed above has
+only the shorter name, so this guide retains it for that version. See
+[project names and CLI commands](NAMES.md).
 
 ## 2. Write a program
 
