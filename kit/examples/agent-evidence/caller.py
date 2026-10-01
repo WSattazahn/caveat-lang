@@ -20,6 +20,11 @@ The caller's rule, which `Attempt` carries out:
     its relevant, current CAVEAT assessment permits the intended result. A
     stored earlier assessment cannot substitute for a rejected required
     operation.
+
+In full: an attempt succeeds only when every required operation has
+explicitly recorded accepted completion, no required operation has failed,
+and the relevant assessment permits success. An earlier approval cannot cover
+an incomplete operation.
 """
 from __future__ import annotations
 
@@ -31,8 +36,8 @@ import signal
 import subprocess
 import tempfile
 import threading
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 SERVE_SCHEMA = "caveat-serve/0.1"
 # Origins in Dispatch outcomes 0.1. An unknown origin is a protocol failure,
@@ -137,6 +142,10 @@ class CaveatServer:
     def __init__(self, program: str, command: Optional[List[str]] = None, cwd: Optional[str] = None,
                  timeout: float = 60.0):
         self._next_id = 0
+        # One request at a time: two threads never interleave on the pipe.
+        self._lock = threading.Lock()
+        # Set when a request was interrupted before its response was read.
+        self._out_of_step = False
         # How long to wait for any one line, or for the server to exit, before
         # giving up on it.
         self._timeout = timeout
@@ -180,6 +189,14 @@ class CaveatServer:
     # Level 1: send one request and read its response.
     def request(self, op: str, **fields: Any) -> Dict[str, Any]:
         """Send one request. Returns a response with `ok: true`, or raises."""
+        with self._lock:
+            return self._request(op, fields)
+
+    def _request(self, op: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+        if self._out_of_step:
+            raise CaveatProtocolError("a request was interrupted before its response was read, so the pipe is "
+                                      "out of step; the caller gave up on this server and stopped it. "
+                                      "Start a new server.")
         if self._process.poll() is not None:
             raise self._fail("the server has ended")
         self._next_id += 1
@@ -188,9 +205,20 @@ class CaveatServer:
         try:
             self._process.stdin.write(line)
             self._process.stdin.flush()
+            response = self._read_line()
+        except CaveatProtocolError:
+            raise  # The caller has given up on the server already.
         except OSError as error:
             raise self._fail(f"the server stopped reading requests: {error}") from None
-        response = self._read_line()
+        except BaseException:
+            # Interrupted, for example by KeyboardInterrupt, between writing
+            # the request and reading its response: the next line on the pipe
+            # may answer this request. Give up on the server, and let the
+            # interruption go on.
+            self._out_of_step = True
+            self._stop()
+            self._finish()
+            raise
         if response is None:
             raise self._fail("the server ended without answering")
         error = response.get("error")
@@ -356,63 +384,172 @@ class CaveatServer:
         return f"\n{self._stderr_text}" if self._stderr_text else ""
 
 
-@dataclass
+# What finish() reports for each required operation.
+ACCEPTED = "accepted"  # Its acceptance is recorded.
+REJECTED = "rejected"  # The server handled it and refused it; the session is unchanged.
+# Sending raised, or was still under way when the attempt finished. This is
+# NOT a rejection: the server may or may not have applied the operation.
+UNCONFIRMED = "unconfirmed"
+NOT_SENT = "not sent"  # An earlier operation failed, or the attempt finished first.
+# Before it has an outcome, an operation is registered, then sending.
+REGISTERED = "registered"
+SENDING = "sending"
+# How finish() reports an operation that has no outcome yet.
+FINAL_STATUS = {REGISTERED: NOT_SENT, SENDING: UNCONFIRMED}
+
+
+class AttemptFinished(Exception):
+    """The attempt is finished: nothing more is registered or sent in it. A retry is a new Attempt."""
+
+
+class Operation:
+    """A required operation, registered by `Attempt.begin`. `send` dispatches it once, in any thread.
+
+    `status`, `dispatch` and `error` record what happened to it, even after
+    the attempt is finished; the finished attempt's result does not change.
+    """
+
+    def __init__(self, attempt: "Attempt", event: str, payload: Optional[Dict[str, Any]]):
+        self.attempt = attempt
+        self.event = event
+        self.payload = payload
+        self.status = REGISTERED
+        self.dispatch: Optional[Dispatch] = None
+        self.error: Optional[BaseException] = None
+
+    def send(self) -> Optional[Dispatch]:
+        """Dispatch the operation and record its outcome.
+
+        Sends nothing, and returns None, when an earlier operation of the
+        attempt has failed. Raises AttemptFinished, without contacting the
+        server, when the attempt is finished.
+        """
+        attempt = self.attempt
+        with attempt._lock:
+            if self.status != REGISTERED:
+                raise RuntimeError(f"send() was called already for {self.event}")
+            if attempt._finished:
+                self.status = NOT_SENT
+                raise AttemptFinished(f"{self.event} was not sent: the attempt is finished")
+            if attempt._failed is not None:
+                self.status = NOT_SENT
+                return None
+            self.status = SENDING
+        try:
+            result = attempt.server.dispatch(self.event, self.payload)
+        except BaseException as error:
+            # Any error, and an interruption such as KeyboardInterrupt or a
+            # cancelled task, fails the attempt, and goes on to the caller.
+            attempt._record(self, UNCONFIRMED, None, error)
+            raise
+        attempt._record(self, ACCEPTED if result.accepted else REJECTED, result, None)
+        return result
+
+
+@dataclass(frozen=True)
+class OperationResult:
+    """One required operation, as it stood when the attempt finished.
+
+    `status` is ACCEPTED, REJECTED, UNCONFIRMED or NOT_SENT. Unconfirmed is
+    not a rejection: the server may or may not have applied the operation.
+    """
+
+    event: str
+    status: str
+    dispatch: Optional[Dispatch] = None
+    error: Optional[BaseException] = None
+
+
+@dataclass(frozen=True)
 class AttemptResult:
-    """The verdict on one attempt, and why."""
+    """The final verdict on one attempt, and why. Nothing that happens later changes it."""
 
     succeeded: bool
-    operations: List[Dispatch]
-    # The rejected dispatch, or what a required operation raised.
+    operations: Tuple[OperationResult, ...]
+    # The first failure: the rejected dispatch, or what sending raised.
     failed: Optional[Union[Dispatch, BaseException]]
     permits: bool
-    snapshot: Dict[str, Any]
+    # The snapshot `permits` was applied to, or None when the server was not read.
+    snapshot: Optional[Dict[str, Any]]
 
 
-@dataclass
 class Attempt:
     """One workflow attempt: its required operations, then the current assessment.
 
-    `require` sends a required operation. Once one is rejected, or raises,
-    the attempt has failed; later required operations are not sent, because
-    they would run on a session the attempt did not bring about. `finish`
-    reads the current snapshot and applies `permits` to it.
+    `begin` registers a required operation, and `send`, on what it returns,
+    dispatches it; `require` does both. Once one is rejected, or raises, the
+    attempt has failed, and later required operations are not sent: they
+    would run on a session the attempt did not bring about. `finish` decides,
+    once. Registration, outcomes and `finish` take one lock, so their order
+    is never in doubt.
     """
 
-    server: CaveatServer
-    operations: List[Dispatch] = field(default_factory=list)
-    failed: Optional[Union[Dispatch, BaseException]] = None
-
-    def __post_init__(self) -> None:
+    def __init__(self, server: CaveatServer):
+        self.server = server
+        self._lock = threading.Lock()
+        self._operations: List[Operation] = []
+        self._failed: Optional[Union[Dispatch, BaseException]] = None
+        self._finished = False
+        self._result: Optional[AttemptResult] = None
         # The sequence before this attempt, so `permits` can tell this
         # attempt's assessment from an earlier one.
-        self.start_sequence = self.server.snapshot()["sequence"]
+        self.start_sequence = server.snapshot()["sequence"]
+
+    @property
+    def failed(self) -> Optional[Union[Dispatch, BaseException]]:
+        with self._lock:
+            return self._failed
+
+    def begin(self, event: str, payload: Optional[Dict[str, Any]] = None) -> Operation:
+        """Register a required operation, in this thread, before anything sends it."""
+        with self._lock:
+            if self._finished:
+                raise AttemptFinished(f"{event} was not registered: the attempt is finished")
+            operation = Operation(self, event, payload)
+            self._operations.append(operation)
+            return operation
 
     def require(self, event: str, payload: Optional[Dict[str, Any]] = None) -> Optional[Dispatch]:
-        if self.failed is not None:
-            return None
-        try:
-            result = self.server.dispatch(event, payload)
-        except BaseException as error:
-            # A refused request, a failed session, or an interruption such as
-            # KeyboardInterrupt or a cancelled task is not a success either,
-            # even when the application catches it and finishes.
-            self.failed = error
-            raise
-        self.operations.append(result)
-        if not result.accepted:
-            self.failed = result
-        return result
+        """Register a required operation and send it, in this thread."""
+        return self.begin(event, payload).send()
+
+    def _record(self, operation: Operation, status: str, dispatch: Optional[Dispatch],
+                error: Optional[BaseException]) -> None:
+        with self._lock:
+            operation.status, operation.dispatch, operation.error = status, dispatch, error
+            # The first failure fails the attempt. After finish, the outcome
+            # is kept on the operation only.
+            if status != ACCEPTED and self._failed is None and not self._finished:
+                self._failed = dispatch if error is None else error
 
     def finish(self, permits: Callable[[Dict[str, Any], "Attempt"], bool]) -> AttemptResult:
-        snapshot = self.server.snapshot()
-        allowed = bool(permits(snapshot, self))
-        return AttemptResult(
-            succeeded=self.failed is None and allowed,
-            operations=list(self.operations),
-            failed=self.failed,
-            permits=allowed,
-            snapshot=snapshot,
-        )
+        """Finish the attempt and return its verdict. Called again, it returns the same result."""
+        with self._lock:
+            if self._result is not None:
+                return self._result
+            # From here on, nothing more is registered or sent in this attempt.
+            self._finished = True
+            # An operation still registered or sending has no outcome, and a
+            # worker may hold the pipe. After an unconfirmed one, what the
+            # session holds is not known. Either way, the server is not read.
+            unanswered = any(operation.status in (REGISTERED, SENDING, UNCONFIRMED)
+                             for operation in self._operations)
+            operations = tuple(OperationResult(operation.event, FINAL_STATUS.get(operation.status, operation.status),
+                                               operation.dispatch, operation.error)
+                               for operation in self._operations)
+            failed = self._failed
+        snapshot, allowed = None, False
+        if not unanswered:
+            # Outside the lock: no operation can be sent any more.
+            snapshot = self.server.snapshot()
+            allowed = bool(permits(snapshot, self))
+        # A failed operation is never accepted, so this also requires that none failed.
+        succeeded = allowed and all(operation.status == ACCEPTED for operation in operations)
+        result = AttemptResult(succeeded, operations, failed, allowed, snapshot)
+        with self._lock:
+            if self._result is None:
+                self._result = result
+            return self._result
 
 
 # This example's assessment: what permits the application to use the answer.

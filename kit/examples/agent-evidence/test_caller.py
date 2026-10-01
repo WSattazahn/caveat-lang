@@ -8,6 +8,7 @@ CAVEAT_COMMAND chooses how `caveat` is started; see caller.default_command.
 The tests of a server that breaks the protocol start a stand-in written to a
 temporary directory instead.
 """
+import asyncio
 import json
 import os
 import signal
@@ -22,6 +23,7 @@ from unittest import mock
 import caller
 from caller import (
     Attempt,
+    AttemptFinished,
     CaveatLoadError,
     CaveatProtocolError,
     CaveatRequestError,
@@ -46,6 +48,10 @@ def verdict(snapshot):
 def always(snapshot, attempt):
     """A test that permits anything, so only the required operations decide."""
     return True
+
+
+def statuses(result):
+    return [(operation.event, operation.status) for operation in result.operations]
 
 
 class ResponseLevels(unittest.TestCase):
@@ -91,20 +97,21 @@ class Attempts(unittest.TestCase):
         attempt = Attempt(self.server)
         refused = attempt.require("observe", {"confidence": 250})
         self.assertIsNone(attempt.require("assess"), "nothing more is sent once a required operation fails")
-        result = attempt.finish(assessment_permits)
+        # Even an assessment test that accepts the old approval cannot make
+        # this attempt succeed: the rejected operation decides it.
+        result = attempt.finish(always)
 
         self.assertEqual((refused.outcome, refused.origin, refused.code), ("rejected", "input", "bound_exceeded"))
+        self.assertTrue(result.permits)
         self.assertFalse(result.succeeded)
         self.assertIs(result.failed, refused)
-        self.assertEqual(result.operations, [refused])
+        self.assertEqual(statuses(result), [("observe", "rejected"), ("assess", "not sent")])
+        self.assertIs(result.operations[0].dispatch, refused)
         # The old approval is still what the session shows; the refusal changed nothing.
         self.assertEqual(verdict(result.snapshot), "approved")
         self.assertEqual(self.server.save(), before)
-        # Even an assessment test that accepted the old approval could not
-        # make this attempt succeed: the rejected operation decides it.
-        permissive = attempt.finish(always)
-        self.assertTrue(permissive.permits)
-        self.assertFalse(permissive.succeeded)
+        # The verdict is final: finishing again returns it, whatever the test.
+        self.assertIs(attempt.finish(assessment_permits), result)
 
     # Evidence supporting an approval is withdrawn: the program's withdrawal
     # policy applies, and the old approval is not usable.
@@ -153,6 +160,8 @@ class Attempts(unittest.TestCase):
 
         self.assertEqual((refused.outcome, refused.origin, refused.code, refused.message),
                          ("rejected", "policy", "reject", "Evidence is withdrawn with a reason, never erased."))
+        self.assertEqual(statuses(result), [("erase", "rejected")])
+        self.assertTrue(result.permits)
         self.assertFalse(result.succeeded)
         self.assertIs(result.failed, refused)
         self.assertEqual(self.server.save(), before)
@@ -214,11 +223,15 @@ class Attempts(unittest.TestCase):
         self.assertEqual(self.server.snapshot()["sequence"], sequence, "the later assess was not sent")
         result = attempt.finish(always)
         self.assertIs(result.failed, caught.exception)
-        self.assertTrue(result.permits)
+        self.assertEqual(statuses(result), [("observe", "accepted"), ("assess", "unconfirmed"), ("assess", "not sent")])
+        # After an unconfirmed operation, finish does not read the session.
+        self.assertIsNone(result.snapshot)
+        self.assertFalse(result.permits)
         self.assertFalse(result.succeeded)
 
     # A required operation that raises, here after the server committed the
-    # approval, fails the attempt: a cancelled task is not a success.
+    # approval, fails the attempt: a cancelled task is not a success. The
+    # operation is unconfirmed, not rejected: here the server did apply it.
     def test_an_interrupted_required_operation_fails_the_attempt(self):
         dispatch = self.server.dispatch
 
@@ -233,10 +246,16 @@ class Attempts(unittest.TestCase):
         with mock.patch.object(self.server, "dispatch", interrupted), self.assertRaises(Cancelled) as caught:
             attempt.require("assess")
         result = attempt.finish(assessment_permits)
-        self.assertEqual(verdict(result.snapshot), "approved")
-        self.assertTrue(result.permits, "the approval was committed in this attempt")
+        self.assertEqual(statuses(result), [("observe", "accepted"), ("assess", "unconfirmed")])
         self.assertIs(result.failed, caught.exception)
+        self.assertIs(result.operations[1].error, caught.exception)
+        self.assertIsNone(result.snapshot)
+        self.assertFalse(result.permits)
         self.assertFalse(result.succeeded)
+        # The approval was committed in this attempt, and still does not make it succeed.
+        snapshot = self.server.snapshot()
+        self.assertEqual(verdict(snapshot), "approved")
+        self.assertTrue(assessment_permits(snapshot, attempt))
 
     # assess_answer judges by the assessment test: when it does not permit
     # the result, the attempt fails although every operation was accepted.
@@ -256,6 +275,134 @@ class Attempts(unittest.TestCase):
         result = self.approve(confidence=95)
         self.assertEqual((result.failed.origin, result.failed.code), ("limit", "history_limit"))
         self.assertFalse(result.succeeded)
+
+    # The application finishes the attempt while a worker is still sending a
+    # required operation. Its acceptance is not recorded, so the attempt did
+    # not succeed, and finish leaves the server alone: the worker owns the pipe.
+    def test_an_operation_still_in_flight_at_finish_leaves_the_attempt_unsuccessful(self):
+        attempt = Attempt(self.server)
+        operation = attempt.begin("observe", {"confidence": 85})
+        held = HeldRequests(self.server)
+        self.addCleanup(held.gate.set)
+        with mock.patch.object(self.server, "request", held):
+            worker, outcome = in_worker(operation.send)
+            self.assertTrue(held.arrived.wait(SERVER_TIMEOUT), "the worker never sent the operation")
+            result = attempt.finish(always)
+            self.assertEqual(held.made, ["dispatch"], "finish talked to the server while an operation was in flight")
+            held.gate.set()
+            worker.join(SERVER_TIMEOUT)
+        self.assertFalse(worker.is_alive())
+        self.assertFalse(result.succeeded)
+        self.assertFalse(result.permits)
+        self.assertIsNone(result.snapshot)
+        self.assertEqual(statuses(result), [("observe", "unconfirmed")])
+
+        # The response arrives after the verdict: it is recorded on the
+        # operation, and the verdict stands.
+        self.assertTrue(outcome["returned"].accepted)
+        self.assertEqual(operation.status, "accepted")
+        self.assertIs(operation.dispatch, outcome["returned"])
+        with self.assertRaises(RuntimeError):
+            operation.send()
+        self.assertEqual(operation.status, "accepted", "a second send() changed the recorded outcome")
+        self.assertIs(attempt.finish(always), result)
+        self.assertFalse(result.succeeded)
+        self.assertEqual(statuses(result), [("observe", "unconfirmed")])
+        # A retry is a new attempt. The gate held the request before it was
+        # written, so the pipe is in step, and the same server serves it.
+        self.assertTrue(self.approve(confidence=90).succeeded)
+
+    # The application finishes the attempt after registering an operation for
+    # a worker, and before the worker sends it: it is never sent.
+    def test_an_operation_not_yet_sent_at_finish_is_never_sent(self):
+        attempt = Attempt(self.server)
+        operation = attempt.begin("observe", {"confidence": 85})
+        sequence = self.server.snapshot()["sequence"]
+        held = HeldRequests(self.server)
+        held.gate.set()
+        with mock.patch.object(self.server, "request", held):
+            result = attempt.finish(always)
+            self.assertEqual(held.made, [], "finish talked to the server while an operation was registered")
+            worker, outcome = in_worker(operation.send)
+            worker.join(SERVER_TIMEOUT)
+        self.assertFalse(worker.is_alive())
+        self.assertFalse(result.succeeded)
+        self.assertFalse(result.permits)
+        self.assertEqual(statuses(result), [("observe", "not sent")])
+        self.assertIsInstance(outcome.get("raised"), AttemptFinished)
+        self.assertEqual(operation.status, "not sent")
+        self.assertEqual(held.made, [], "the operation reached the server after finish")
+        self.assertEqual(self.server.snapshot()["sequence"], sequence)
+        self.assertIs(attempt.finish(always), result)
+
+
+class HeldRequests:
+    """Stands in for a server's `request`: records each request, and holds a dispatch at `gate` before it is written."""
+
+    def __init__(self, server):
+        self.request = server.request
+        self.made = []
+        self.arrived = threading.Event()
+        self.gate = threading.Event()
+
+    def __call__(self, op, **fields):
+        self.made.append(op)
+        if op == "dispatch":
+            self.arrived.set()
+            if not self.gate.wait(SERVER_TIMEOUT):
+                raise RuntimeError("the gate was never opened")
+        return self.request(op, **fields)
+
+
+def in_worker(action):
+    """Run `action` on a worker thread. Returns the thread, and what it returned or raised once it ends."""
+    outcome = {}
+
+    def run():
+        try:
+            outcome["returned"] = action()
+        except BaseException as error:
+            outcome["raised"] = error
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    return worker, outcome
+
+
+class Interruptions(unittest.TestCase):
+    # An earlier attempt's approval is in force when this attempt's required
+    # operation is interrupted after its request was written, before its
+    # response was read. The application catches the interruption and
+    # finishes: the attempt did not succeed, and the old approval, which an
+    # assessment test that permits anything would accept, does not cover it.
+    def test_an_interrupted_operation_is_unconfirmed_and_no_earlier_approval_covers_it(self):
+        for interruption in (KeyboardInterrupt, asyncio.CancelledError):
+            with self.subTest(interruption=interruption.__name__), \
+                    CaveatServer(PROGRAM, cwd=HERE, timeout=SERVER_TIMEOUT) as server:
+                self.assertTrue(assess_answer(server, 85).succeeded)
+                attempt = Attempt(server)
+                before = server.snapshot()
+                with mock.patch.object(server, "_read_line", side_effect=interruption()), \
+                        self.assertRaises(interruption) as caught:
+                    attempt.require("observe", {"confidence": 90})
+                result = attempt.finish(lambda *_: True)
+
+                self.assertFalse(result.succeeded)
+                self.assertEqual(statuses(result), [("observe", "unconfirmed")])
+                self.assertIs(result.failed, caught.exception)
+                self.assertIs(result.operations[0].error, caught.exception)
+                self.assertIsNone(result.operations[0].dispatch)
+                self.assertIsNone(result.snapshot)
+                self.assertFalse(result.permits)
+                # The stale-approval trap: before the attempt, an approval
+                # committed by the earlier attempt was in force.
+                self.assertEqual(verdict(before), "approved")
+                committed = [entry["sequence"] for entry in before["decision_journal"]
+                             if entry["decision"] == "assessment" and entry["change"] == "committed"]
+                self.assertTrue(committed and committed[-1] <= attempt.start_sequence)
+                # The pipe is out of step, so the server is not used again.
+                with self.assertRaisesRegex(CaveatProtocolError, "out of step"):
+                    server.snapshot()
 
 
 class Cancelled(BaseException):
@@ -293,7 +440,8 @@ class RequiredOperations(unittest.TestCase):
                 self.assertEqual(server.dispatched, ["observe"])
                 result = attempt.finish(always)
                 self.assertIs(result.failed, caught.exception)
-                self.assertTrue(result.permits)
+                self.assertEqual(statuses(result), [("observe", "unconfirmed"), ("assess", "not sent")])
+                self.assertFalse(result.permits)
                 self.assertFalse(result.succeeded)
 
 
@@ -665,6 +813,22 @@ class GivingUp(unittest.TestCase):
         with self.assertRaisesRegex(CaveatProtocolError, "ended without answering"):
             server.request("snapshot")
 
+    # A request interrupted after it was written, before its response was
+    # read, leaves the pipe out of step: the next line read could answer it.
+    # The caller lets the interruption go on, gives up on the server and
+    # stops everything it started; the server is not used again.
+    def test_an_interrupted_request_gives_up_on_the_server(self):
+        for interruption in (KeyboardInterrupt, asyncio.CancelledError):
+            with self.subTest(interruption=interruption.__name__):
+                server = self.start(SNAPSHOT, SNAPSHOT)
+                with mock.patch.object(server, "_read_line", side_effect=interruption()), \
+                        self.assertRaises(interruption):
+                    server.request("snapshot")
+                self.assertStopped(self.grandchild())
+                self.assertStopped(self.stand_in())
+                with self.assertRaisesRegex(CaveatProtocolError, "out of step"):
+                    server.request("snapshot")
+
     # An outcome the contract does not name is a protocol failure, not a rejection.
     def test_an_unknown_outcome_stops_everything_it_started(self):
         server = self.start(json.dumps({"id": "$id", "ok": True, "outcome": "maybe", "sequence": 1}))
@@ -684,8 +848,13 @@ class GivingUp(unittest.TestCase):
         self.assertEqual(str(caught.exception), "fatal: boom")
         self.assertIs(attempt.failed, caught.exception)
         self.assertIsNone(attempt.require("assess"), "nothing more is sent once a required operation fails")
+        result = attempt.finish(always)
+        self.assertEqual(statuses(result), [("observe", "unconfirmed"), ("assess", "not sent")])
+        self.assertIs(result.failed, caught.exception)
+        self.assertIsNone(result.snapshot)
+        self.assertFalse(result.succeeded)
         with self.assertRaisesRegex(CaveatProtocolError, "the server has ended"):
-            attempt.finish(always)
+            server.snapshot()
 
     # A failed session whose server does not exit is stopped, with everything
     # it started, once the timeout has passed.
