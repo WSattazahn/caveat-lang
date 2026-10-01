@@ -38,6 +38,11 @@ example](docs/WORKED_EXAMPLE.md) takes one program through every command. The
 reference and the thermostat example that ship in the package. The
 repository's test suites are not included.
 
+To call Caveat from an agent or a tool, start with the [agent-evidence
+example](examples/agent-evidence/README.md), in the package from
+0.1.0-rc.6. It drives `caveat serve` from Python and judges each attempt by
+the current assessment.
+
 ## Run scenario files
 
 From an installed tarball:
@@ -54,9 +59,10 @@ npm run build
 node kit/bin/caveat.mjs test examples/thermostat_history.scenarios.json
 ```
 
-Files follow [Scenarios 0.1](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/spec/caveat-scenarios-0.1.md). Every file is
-validated before anything runs. Exit status is 0 when every scenario passes,
-1 when one fails, and 2 when a file is invalid or the runtime cannot load.
+Files follow [Scenarios 0.1](docs/reference/spec/caveat-scenarios-0.1.md).
+Every file is validated before anything runs. Exit status is 0 when every
+scenario passes, 1 when one fails, and 2 when a file is invalid or the runtime
+cannot load.
 
 ```text
 PASS R01  A scouted plan goes stale and is reopened on the scout's own evidence  (6 events, 3 rejected, 1 resumes)
@@ -159,9 +165,11 @@ what the application intends.
 
 ## Use a session from code
 
-With the package installed, save the
-[thermostat example](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/examples/thermostat_history.cav)
-as `thermostat_history.cav` alongside this code:
+The package ships the
+[thermostat example](docs/reference/examples/thermostat_history.cav). With the
+package installed, copy it from
+`node_modules/caveat-lang/docs/reference/examples/thermostat_history.cav` to
+`thermostat_history.cav` alongside this code:
 
 ```js
 import { readFile } from 'node:fs/promises';
@@ -194,8 +202,8 @@ and failures are `dispatch`'s, and after the same events either way the session
 is the same.
 
 Rejections are values, following the
-[dispatch outcome contract](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/spec/caveat-dispatch-0.1.md). Everything else
-throws a `CaveatError` with a `kind`:
+[dispatch outcome contract](docs/reference/spec/caveat-dispatch-0.1.md).
+Everything else throws a `CaveatError` with a `kind`:
 
 | `kind` | Meaning |
 | --- | --- |
@@ -290,9 +298,11 @@ These commands run from a repository checkout, after `npm run build`.
   the runtime's Rust structs and the documents that list them. Parameter and
   return types are not compared;
 - the packaged documentation: every source exists, every link in the kit's
-  own documents resolves inside the package, the authoring guide's script
-  runs, and the getting-started guide, followed step by step, prints what it
-  shows. The package test follows the guide again from the installed tarball.
+  own documents resolves inside the package, every link a copied document
+  keeps resolves inside it and every link it rewrites names a repository
+  file, the authoring guide's script runs, and the getting-started guide,
+  followed step by step, prints what it shows. The package test follows the
+  guide again from the installed tarball.
 
 `npm run test:scenario-conversion` runs the
 [converted Trail Rescue and Glowcap suites](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/experiments/scenario-conversion/README.md).
@@ -317,7 +327,9 @@ the browser check above. It also copies the agent-evidence example out of the
 install and runs its Python tests against the installed command. The tarball
 holds the command, the six library files and their declarations, `init`'s
 templates, the example, the runtime and its declarations, the documentation,
-the license and the notices, and nothing else.
+the license and the notices, and nothing else. In the documents copied from
+the repository, links that leave the package point to GitHub at the build's
+revision.
 
 The package is MIT licensed. Packing copies the repository's `LICENSE` and
 `THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the
