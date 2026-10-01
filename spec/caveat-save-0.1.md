@@ -76,8 +76,8 @@ save is refused with an error, and never crashes the runtime, when:
   evidence, `retains` from a commitment to a caveat, `relies_on` from a
   commitment to evidence and `reopens` from evidence to a commitment, and
   never add `in_context`;
-- evidence the save cites is not observed, that is, the restored graph holds
-  nothing it supports or opposes: evidence a `relies_on` relation relies on
+- evidence the save cites is not observed, that is, it has neither a restored
+  supporting/opposing relation nor a valid [neutral observation record](caveat-neutral-reveal-0.1.md): evidence a `relies_on` relation relies on
   or a `reopens` relation names as its cause, evidence in any lineage,
   grounds, basis, guard or other provenance record, and withdrawn evidence
   and a withdrawal's reason. Evidence enters these only once observed, and
@@ -136,6 +136,10 @@ different trust mechanism. Mutation tests exercise the requirement that an
 edited save is refused or remains playable without crashing.
 
 ## Changes
+
+- 2026-10-01: [Neutral Reveal 0.1](caveat-neutral-reveal-0.1.md) adds an
+  optional ordered `observations` record without fabricating graph relations.
+  Stance-only saves retain their existing format; new runtimes accept old saves.
 
 - 2026-09-27: restore refuses a save whose graph holds an occurrence of
   renewable evidence that its renewals do not list at its position

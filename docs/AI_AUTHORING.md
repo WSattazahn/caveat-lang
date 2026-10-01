@@ -327,6 +327,19 @@ A display prefix such as `Proceeding` alone cannot distinguish confidence
 68 from 12. Exact text is appropriate when the text itself is the contract.
 No new string matcher is part of this candidate.
 
+## Consulting a source without taking a stance
+
+In rc.7, `on consult reveal memory;` observes the current evidence occurrence
+without claiming that it supports or opposes anything. `observed(memory)` then
+becomes true and `qualified(value, memory)`, late qualification and withdrawal
+can use it. Sampling from a source still does not observe the source itself.
+
+A neutral reveal does not assess, reopen a decision, or infer trustworthiness.
+Existing stance-bearing reveals remain supported. The
+[neutral reveal contract](../spec/caveat-neutral-reveal-0.1.md) describes
+idempotence, guard provenance, renewal and old-save compatibility. Explanations
+show neutral evidence as observed with no stance, rather than inventing a claim.
+
 ## Repeated assessments and late qualifications
 
 The [agent-evidence starter](../kit/examples/agent-evidence/README.md#assessing-again)

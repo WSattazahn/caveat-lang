@@ -70,8 +70,9 @@ export interface RevisionChange {
 
 export interface ExplainedEvidence {
   id: string;
-  relation: 'supports' | 'opposes';
-  claim: string;
+  /** Null together with claim for observed evidence without a stance. */
+  relation: 'supports' | 'opposes' | null;
+  claim: string | null;
   value: number | null;
   sequence: number | null;
   event: string | null;

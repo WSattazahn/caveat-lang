@@ -233,6 +233,8 @@ export interface Snapshot {
   commitment_bases: Record<string, CommitmentBasis>;
   reading_streams: Record<string, ReadingStream>;
   decision_series: Record<string, DecisionSeries>;
+  /** First-observation order; present after neutral observation, otherwise derived from stance relations. */
+  observations?: string[];
   observation_qualifications: Record<string, Provenance>;
   examination_qualifications: Record<string, Provenance>;
   reopening_qualifications: Record<string, Provenance>;
@@ -425,8 +427,9 @@ export interface EffectSample {
 export interface EffectReveal {
   kind: 'reveal';
   evidence: string;
-  relation: string;
-  target: string;
+  /** Relation and target are both absent for neutral reveal, otherwise both present. */
+  relation?: 'supports' | 'opposes';
+  target?: string;
 }
 
 export interface EffectExamine {

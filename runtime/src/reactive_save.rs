@@ -46,6 +46,14 @@ pub struct ReactiveSave {
     /// Each renewable evidence's occurrences, first to current.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub renewals: BTreeMap<String, Vec<String>>,
+    /// Complete first-observation order once neutral reveal is used. Absence
+    /// keeps the legacy edge-derived representation; an explicit empty list is invalid.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_observations"
+    )]
+    pub observations: Option<Vec<String>>,
     /// Texts received for `id` parameters, in handle order. Saves made before
     /// spec/caveat-identifiers-0.1.md have none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -80,6 +88,12 @@ pub struct ReactiveSave {
     pub cues: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cue_qualifications: Vec<Compact>,
+}
+
+fn deserialize_observations<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Vec<String>>, D::Error> {
+    Vec::<String>::deserialize(deserializer).map(Some)
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -385,6 +399,7 @@ impl ReactiveSession {
                 .filter(|(_, renewal)| renewal.occurrences.len() > 1)
                 .map(|(name, renewal)| (name.clone(), renewal.occurrences.clone()))
                 .collect(),
+            observations: (!self.observations.is_empty()).then(|| (*self.observations).clone()),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (*self.withdrawals).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
@@ -465,7 +480,7 @@ impl ReactiveSession {
             self.identifiers.limit(),
             save.identifiers.clone(),
         )?);
-        let observed = self.restore_graph(&save.graph)?;
+        let observed = self.restore_graph(save)?;
         self.restore_withdrawals(save, &observed)?;
         self.restore_states(&save.states, &observed)?;
         self.restore_records(save, &observed)?;
@@ -615,7 +630,8 @@ impl ReactiveSession {
     }
 
     /// The graph as the save leaves it, and the evidence it observes.
-    fn restore_graph(&mut self, saved: &SavedGraph) -> Result<HashSet<NodeId>, String> {
+    fn restore_graph(&mut self, save: &ReactiveSave) -> Result<HashSet<NodeId>, String> {
+        let saved = &save.graph;
         let committable = self.committable_actions();
         for node in &saved.nodes {
             let (name, kind) = match node {
@@ -699,6 +715,7 @@ impl ReactiveSession {
         // when the event added the relation, and stays observed: the next
         // commitment and qualification that read it require it. Checked
         // against the whole graph, which holds the observation somewhere.
+        self.restore_observations(save)?;
         let observed = self.observed_evidence();
         for [from, name, to] in &saved.relations {
             let evidence = match name.as_str() {
@@ -724,6 +741,142 @@ impl ReactiveSession {
         Ok(observed)
     }
 
+    /// Source-reachable neutral effects, including symbol-instantiated procedures.
+    fn neutral_targets(&self) -> HashSet<&str> {
+        let mut pending = self
+            .rules
+            .iter()
+            .map(|rule| &rule.effect)
+            .collect::<Vec<_>>();
+        let mut visited = HashSet::new();
+        let mut targets = HashSet::new();
+        while let Some(effect) = pending.pop() {
+            match effect {
+                Effect::Observe { evidence } => {
+                    targets.insert(evidence.as_str());
+                }
+                Effect::Call { name, .. } if visited.insert(name) => {
+                    if let Some(procedure) = self.procedures.get(name) {
+                        pending.extend(procedure.body.iter().map(|step| &step.effect));
+                    }
+                }
+                _ => {}
+            }
+        }
+        targets
+    }
+
+    fn restore_observations(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        let Some(observations) = &save.observations else {
+            return Ok(());
+        };
+        if observations.is_empty() {
+            return Err("observations must be omitted or nonempty".into());
+        }
+        let targets = self.neutral_targets();
+        if targets.is_empty() || save.sequence == 0 {
+            return Err(
+                "observations require a source-reachable neutral reveal in an accepted event"
+                    .into(),
+            );
+        }
+        let neutral_target = |name: &str| {
+            targets.contains(name)
+                || occurrence_parts(name).is_some_and(|(base, _)| {
+                    self.renewals.contains_key(base) && targets.contains(base)
+                })
+        };
+        let mut seen = HashSet::new();
+        for name in observations {
+            self.require_kind(name, "evidence")?;
+            if !seen.insert(name.as_str()) {
+                return Err(format!("observations repeats {name}"));
+            }
+            if !self.predicate("observed", name)? && !neutral_target(name) {
+                return Err(format!(
+                    "observations names {name}, which no reachable neutral reveal observes"
+                ));
+            }
+        }
+        // Source-declared observations existed before any event. Later first
+        // stances need not have ledger order: a neutral reveal may precede them.
+        let mut loaded = Vec::new();
+        for edge in &self.graph.edges[..self.loaded.edges] {
+            if matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                && matches!(
+                    self.graph.nodes.get(&edge.from),
+                    Some(NodeKind::Evidence { .. })
+                )
+            {
+                let name = self
+                    .symbols
+                    .iter()
+                    .find_map(|(name, id)| (*id == edge.from).then_some(name))
+                    .unwrap();
+                if !loaded.contains(name) {
+                    loaded.push(name.clone());
+                }
+            }
+        }
+        if !observations.starts_with(&loaded) {
+            return Err("observations changes source-declared observation order".into());
+        }
+        for id in self.observed_evidence() {
+            let name = self
+                .symbols
+                .iter()
+                .find_map(|(name, candidate)| (*candidate == id).then_some(name))
+                .unwrap();
+            if !seen.contains(name.as_str()) {
+                return Err(format!("observations omits stance-bearing evidence {name}"));
+            }
+        }
+        let positions = observations
+            .iter()
+            .enumerate()
+            .map(|(index, name)| (name.as_str(), index))
+            .collect::<HashMap<_, _>>();
+        let mut readings = save
+            .reading_streams
+            .values()
+            .flat_map(|stream| &stream.occurrences)
+            .collect::<Vec<_>>();
+        readings.sort_by_key(|reading| {
+            positions
+                .get(reading.id.as_str())
+                .copied()
+                .unwrap_or(usize::MAX)
+        });
+        let mut last_reading = None;
+        for reading in readings {
+            let rank = positions
+                .get(reading.id.as_str())
+                .ok_or_else(|| format!("observations omits reading {}", reading.id))?;
+            let node = self
+                .symbols
+                .get(&reading.id)
+                .ok_or_else(|| format!("observations names unknown reading {}", reading.id))?;
+            if last_reading.is_some_and(|(sequence, id)| reading.sequence < sequence || *node <= id)
+            {
+                return Err("observations changes reading chronology".into());
+            }
+            last_reading = Some((reading.sequence, *node));
+            for evidence in &reading.provenance.evidence {
+                if positions
+                    .get(evidence.as_str())
+                    .is_none_or(|position| position > rank)
+                {
+                    return Err(format!(
+                        "reading {} cites evidence not yet observed: {evidence}",
+                        reading.id
+                    ));
+                }
+            }
+        }
+        self.observations = Arc::new(observations.clone());
+        Ok(())
+    }
+
     /// Every action a rule or procedure can commit.
     fn committable_actions(&self) -> HashSet<String> {
         self.rules
@@ -741,8 +894,8 @@ impl ReactiveSession {
             .collect()
     }
 
-    /// Every evidence node the graph observes: something it supports or
-    /// opposes, as `observed(...)` reads it. Collected once, since a save may
+    /// Every evidence node observed explicitly or by a stance-bearing edge.
+    /// Collected once, since a save may
     /// cite the same evidence in many relations and records.
     fn observed_evidence(&self) -> HashSet<NodeId> {
         self.graph
@@ -756,6 +909,7 @@ impl ReactiveSession {
                     )
             })
             .map(|edge| edge.from)
+            .chain(self.observations.iter().map(|name| self.symbols[name]))
             .collect()
     }
 
@@ -984,6 +1138,7 @@ impl ReactiveSession {
         }
         for scheduled in &save.scheduled_qualifications {
             self.require_kind(&scheduled.evidence, "evidence")?;
+            self.require_observed(&scheduled.evidence, observed)?;
             self.require_kind(&scheduled.caveat, "caveat")?;
             if !(scheduled.after.is_finite()
                 && scheduled.after >= 0.0
@@ -1051,8 +1206,54 @@ impl ReactiveSession {
             let names: Vec<&str> = match effect {
                 EffectReport::Sample { id, target, .. } => vec![id, target],
                 EffectReport::Reveal {
-                    evidence, target, ..
-                } => vec![evidence, target],
+                    evidence,
+                    relation,
+                    target,
+                } => {
+                    self.require_kind(evidence, "evidence")?;
+                    self.require_observed(evidence, observed)?;
+                    match (relation, target) {
+                        (None, None) => {
+                            if !self.observations.iter().any(|name| name == evidence) {
+                                return Err(
+                                    "neutral reveal effect is missing its observation record"
+                                        .into(),
+                                );
+                            }
+                            let targets = self.neutral_targets();
+                            let base = occurrence_parts(evidence)
+                                .map_or(evidence.as_str(), |(base, _)| base);
+                            if !targets.contains(base) {
+                                return Err(format!(
+                                    "neutral reveal effect names unreachable evidence {evidence}"
+                                ));
+                            }
+                        }
+                        (Some(relation), Some(target)) => {
+                            self.require_kind(target, "claim")?;
+                            let stance = match relation.as_str() {
+                                "supports" => Relation::Supports,
+                                "opposes" => Relation::Opposes,
+                                _ => {
+                                    return Err(
+                                        "reveal effect relation must be supports or opposes".into(),
+                                    )
+                                }
+                            };
+                            if !self.graph.edges.iter().any(|edge| {
+                                edge.from == self.symbols[evidence]
+                                    && edge.to == self.symbols[target]
+                                    && edge.relation == stance
+                            }) {
+                                return Err("reveal effect has no matching graph relation".into());
+                            }
+                        }
+                        _ => {
+                            return Err("reveal effect requires relation and target together".into())
+                        }
+                    }
+                    vec![evidence]
+                }
                 EffectReport::Examine { caveat, .. } => vec![caveat],
                 EffectReport::Commit { action, retained } => std::iter::once(action)
                     .chain(retained)

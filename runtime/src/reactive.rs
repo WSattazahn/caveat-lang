@@ -211,6 +211,10 @@ pub enum Effect {
         /// See spec/caveat-explanations-0.2.md.
         because: Option<Vec<Expr>>,
     },
+    /// Record an observation without a stance toward any claim.
+    Observe {
+        evidence: String,
+    },
     Reveal {
         evidence: String,
         relation: Relation,
@@ -732,13 +736,15 @@ impl<'a> OrderStep<'a> {
 
     fn revealed(&self) -> Option<String> {
         match self.effect {
-            Effect::Reveal { evidence, .. } => Some(evidence.clone()),
+            Effect::Reveal { evidence, .. } | Effect::Observe { evidence } => {
+                Some(evidence.clone())
+            }
             _ => None,
         }
     }
 
     fn reveals(&self, evidence: &str) -> bool {
-        matches!(self.effect, Effect::Reveal { evidence: revealed, .. } if revealed == evidence)
+        matches!(self.effect, Effect::Reveal { evidence: revealed, .. } | Effect::Observe { evidence: revealed } if revealed == evidence)
     }
 
     /// Evidence this step certainly needs observed once it runs as far as the
@@ -864,6 +870,7 @@ impl Changes {
         let graph = !(Arc::ptr_eq(&old.graph, &new.graph)
             || (old.graph.edges == new.graph.edges && old.graph.nodes == new.graph.nodes))
             || !same(&old.symbols, &new.symbols)
+            || !same(&old.observations, &new.observations)
             || !same(
                 &old.observation_qualifications,
                 &new.observation_qualifications,
@@ -907,8 +914,10 @@ pub enum EffectReport {
     },
     Reveal {
         evidence: String,
-        relation: String,
-        target: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        relation: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        target: Option<String>,
     },
     Examine {
         caveat: String,
@@ -1052,6 +1061,9 @@ pub struct ReactiveSnapshot {
     /// Seconds counted from the time event's `dt`.
     pub elapsed: f64,
     pub renewals: BTreeMap<String, Renewal>,
+    /// First observations in acquisition order, present once a neutral reveal occurs.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub observations: Vec<String>,
     /// Texts received for `id` parameters: the entry at index 0 has handle 1.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub identifiers: Vec<String>,
@@ -1117,6 +1129,9 @@ pub struct ReactiveSession {
     reading_streams: Arc<BTreeMap<String, ReadingStream>>,
     decision_series: Arc<BTreeMap<String, DecisionSeries>>,
     renewals: Arc<BTreeMap<String, Renewal>>,
+    /// Empty retains legacy edge-derived observation ordering. The first neutral
+    /// reveal materializes the complete order; all later observations append.
+    observations: Arc<Vec<String>>,
     /// Texts received for `id` parameters, in handle order.
     identifiers: Arc<Identifiers>,
     /// Withdrawn observations, in the order they were withdrawn.
@@ -1287,6 +1302,7 @@ impl ReactiveSession {
             reading_streams: Arc::default(),
             decision_series: Arc::default(),
             renewals: Arc::default(),
+            observations: Arc::default(),
             identifiers: Arc::default(),
             withdrawals: Arc::default(),
             commitment_permissions: Arc::default(),
@@ -2306,6 +2322,9 @@ impl ReactiveSession {
                             .map_err(|error| format!("set {name} because: {error}"))?;
                     }
                 }
+                Effect::Observe { evidence } => {
+                    self.require_kind(evidence, "evidence")?;
+                }
                 Effect::Reveal {
                     evidence, claim, ..
                 } => {
@@ -2871,7 +2890,9 @@ impl ReactiveSession {
                     .merge(guard)
                     .map_err(Into::into);
             }
-            Effect::Reveal { evidence, .. } | Effect::Renew { evidence } => {
+            Effect::Reveal { evidence, .. }
+            | Effect::Observe { evidence }
+            | Effect::Renew { evidence } => {
                 Some(("observed", self.occurrence(evidence).to_string()))
             }
             Effect::Withdraw { target, .. } => self
@@ -3473,10 +3494,11 @@ impl ReactiveSession {
         Ok(match kind {
             "observed" => {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
-                    && self.graph.edges.iter().any(|edge| {
-                        edge.from == *id
-                            && matches!(edge.relation, Relation::Supports | Relation::Opposes)
-                    })
+                    && (self.observations.iter().any(|observed| observed == name)
+                        || self.graph.edges.iter().any(|edge| {
+                            edge.from == *id
+                                && matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                        }))
             }
             "examined" => matches!(
                 self.graph.nodes.get(id),
@@ -3530,21 +3552,54 @@ impl ReactiveSession {
             .collect()
     }
 
-    /// Evidence names in the order each was first observed: the position of
-    /// its first supporting or opposing relation in the graph.
+    /// Start explicit ordering only when an edge cannot represent observation.
+    fn record_observation(&mut self, evidence: &str, neutral: bool) {
+        if self.observations.is_empty() && neutral {
+            let names = self
+                .symbols
+                .iter()
+                .map(|(name, id)| (*id, name))
+                .collect::<HashMap<_, _>>();
+            let mut observations = Vec::new();
+            for edge in &self.graph.edges {
+                if matches!(edge.relation, Relation::Supports | Relation::Opposes)
+                    && matches!(
+                        self.graph.nodes.get(&edge.from),
+                        Some(NodeKind::Evidence { .. })
+                    )
+                {
+                    let name = names[&edge.from];
+                    if !observations.contains(name) {
+                        observations.push(name.clone());
+                    }
+                }
+            }
+            self.observations = Arc::new(observations);
+        }
+        if (neutral || !self.observations.is_empty())
+            && !self.observations.iter().any(|name| name == evidence)
+        {
+            Arc::make_mut(&mut self.observations).push(evidence.to_string());
+        }
+    }
+
+    /// Evidence names in first-observation order. Legacy sessions derive that
+    /// order from their edges; neutral observations require an explicit ledger.
     fn in_observation_order<'a>(&self, evidence: impl Iterator<Item = &'a String>) -> Vec<String> {
         let mut named = evidence
             .map(|name| {
-                let id = self.symbols.get(name).copied();
-                let rank = self
-                    .graph
-                    .edges
-                    .iter()
-                    .position(|edge| {
+                let rank = if self.observations.is_empty() {
+                    let id = self.symbols.get(name).copied();
+                    self.graph.edges.iter().position(|edge| {
                         Some(edge.from) == id
                             && matches!(edge.relation, Relation::Supports | Relation::Opposes)
                     })
-                    .unwrap_or(usize::MAX);
+                } else {
+                    self.observations
+                        .iter()
+                        .position(|observed| observed == name)
+                }
+                .unwrap_or(usize::MAX);
                 (rank, name.clone())
             })
             .collect::<Vec<_>>();
@@ -3840,6 +3895,7 @@ impl ReactiveSession {
                     source,
                 });
                 Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
+                self.record_observation(&name, false);
                 Arc::make_mut(&mut self.graph).relate(id, *relation, self.symbols[claim]);
                 for caveat in inherited {
                     Arc::make_mut(&mut self.graph).relate(caveat, Relation::Qualifies, id);
@@ -4028,6 +4084,22 @@ impl ReactiveSession {
                     },
                 );
             }
+            Effect::Observe { evidence } => {
+                let evidence = self.occurrence(evidence).to_string();
+                if !self.predicate("observed", &evidence)? {
+                    self.clear_predicate_dependency("observed", &evidence);
+                    Arc::make_mut(&mut self.observation_qualifications)
+                        .entry(evidence.clone())
+                        .or_default()
+                        .merge(guard)?;
+                    self.record_observation(&evidence, true);
+                    self.effects.push(EffectReport::Reveal {
+                        evidence,
+                        relation: None,
+                        target: None,
+                    });
+                }
+            }
             Effect::Reveal {
                 evidence,
                 relation,
@@ -4047,11 +4119,12 @@ impl ReactiveSession {
                         .entry(evidence.clone())
                         .or_default()
                         .merge(guard)?;
+                    self.record_observation(evidence, false);
                     Arc::make_mut(&mut self.graph).relate(from, *relation, to);
                     self.effects.push(EffectReport::Reveal {
                         evidence: evidence.clone(),
-                        relation: relation_name(*relation).into(),
-                        target: claim.clone(),
+                        relation: Some(relation_name(*relation).into()),
+                        target: Some(claim.clone()),
                     });
                 }
             }
@@ -4746,6 +4819,7 @@ impl ReactiveSession {
             decision_journal: (*self.journal).clone(),
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
+            observations: (*self.observations).clone(),
             identifiers: self.identifiers.texts().to_vec(),
             withdrawals: (*self.withdrawals).clone(),
             commitment_permissions: (*self.commitment_permissions).clone(),
@@ -4864,6 +4938,9 @@ fn rename_effect(effect: &Effect, names: &HashMap<String, String>) -> Effect {
                     .map(|citation| citation.rename_symbols(names))
                     .collect()
             }),
+        },
+        Effect::Observe { evidence } => Effect::Observe {
+            evidence: rename(evidence),
         },
         Effect::Reveal {
             evidence,
@@ -5760,6 +5837,9 @@ fn parse_effect(words: &[&str]) -> Result<Effect, String> {
                 because,
             })
         }
+        ["reveal", evidence] => Ok(Effect::Observe {
+            evidence: identifier(evidence)?,
+        }),
         ["reveal", evidence, relation, claim] if matches!(*relation, "supports" | "opposes") => {
             Ok(Effect::Reveal {
                 evidence: identifier(evidence)?,

@@ -162,6 +162,7 @@ function sessionsOf() {
     [trail, []],
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']]],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']]],
+    ['evidence memory from "lookup"; event consult; on consult reveal memory;', [['consult']]],
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
   ];
   const snapshots = [];
@@ -350,6 +351,7 @@ test('snapshot and view types have the fields the runtime serializes', async () 
   assertShape('ReadingStream', snapshots.flatMap(snapshot => Object.values(snapshot.reading_streams)), { complete: true });
   assertShape('ReadingOccurrence', snapshots.flatMap(snapshot => Object.values(snapshot.reading_streams).flatMap(stream => stream.occurrences)), { complete: true });
   assertShape('EffectSample', snapshots.flatMap(snapshot => snapshot.effects.filter(effect => effect.kind === 'sample')), { complete: true });
+  assertShape('EffectReveal', snapshots.flatMap(snapshot => snapshot.effects.filter(effect => effect.kind === 'reveal')), { complete: true });
 });
 
 // The runtime contract is what the library calls on a runtime's module, class

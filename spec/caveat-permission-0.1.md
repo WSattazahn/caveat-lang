@@ -111,3 +111,11 @@ This profile does not include:
   commit, so enforcing expiry takes explicit rules;
 - several permissions on one commitment;
 - permission for effects other than `commit`.
+
+## Neutral observations
+
+[Neutral reveal](caveat-neutral-reveal-0.1.md) can observe an explicitly named
+evidence grant without asserting a claim. The existing `permitted by E` rule
+still requires observed, unwithdrawn evidence. The author chooses which source
+serves as a grant; a neutral observation does not create general authority or
+prove that the source authentically granted permission.
