@@ -21,6 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-kit-browser.mjs';
 import { followGuide } from '../kit/test/guide.mjs';
+import { isRelative, markdownLinks, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -40,6 +41,11 @@ const LEGAL_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
 const packDocs = JSON.parse(await readFile(path.join(kit, 'pack-docs.json'), 'utf8'));
 const STAGED_DOCS = packDocs.reference.map(file => [file, `docs/reference/${file}`]);
 const STAGED_ROOTS = ['docs/reference'];
+// The build being packed. A copied document's links that leave the package
+// are rewritten to point to GitHub at its revision.
+const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 'utf8'));
+const shipped = file => packDocs.reference.includes(file);
+const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md'];
 // The library's modules, each with its TypeScript declarations.
@@ -84,7 +90,8 @@ async function stageRuntime() {
   for (const file of LEGAL_FILES) await copyFile(path.join(root, file), path.join(kit, file));
   for (const [source, target] of STAGED_DOCS) {
     await mkdir(path.dirname(path.join(kit, target)), { recursive: true });
-    await copyFile(path.join(root, source), path.join(kit, target));
+    if (source.endsWith('.md')) await writeFile(path.join(kit, target), staged(source, await readFile(path.join(root, source), 'utf8')).text);
+    else await copyFile(path.join(root, source), path.join(kit, target));
   }
 }
 async function removeRuntime() {
@@ -169,22 +176,31 @@ assert.match(await readFile(path.join(installed, 'LICENSE'), 'utf8'), /^MIT Lice
 assert.equal(installedManifest.license, 'MIT');
 report.checks.license = 'MIT';
 
-// The documentation ships unchanged. Links from the copied references to
-// repository files outside the package are listed, not required.
+// The documentation ships as copied, except that a copied document's links
+// that leave the package point to GitHub at the build's revision.
+let rewrittenLinks = 0;
 for (const [source, target] of STAGED_DOCS) {
-  assert.equal(await readFile(path.join(installed, target), 'utf8'), await readFile(path.join(root, source), 'utf8'), `installed ${target} matches ${source}`);
+  const expected = staged(source, await readFile(path.join(root, source), 'utf8'));
+  assert.equal(await readFile(path.join(installed, target), 'utf8'), expected.text, `installed ${target} matches ${source}, its links rewritten`);
+  rewrittenLinks += expected.rewritten.length;
 }
-const outside = [];
-const OWN_DOCS = [...KIT_DOCS, `${EXAMPLE}/README.md`];
-for (const file of [...OWN_DOCS, ...STAGED_DOCS.map(([, target]) => target)].filter(file => file.endsWith('.md'))) {
-  const markdown = await readFile(path.join(installed, file), 'utf8');
-  for (const [, link] of markdown.matchAll(/\]\(([^)\s]+)\)/g)) {
-    if (/^(https?:|mailto:|#)/.test(link)) continue;
+// Every relative link in every installed document resolves inside the package.
+const installedDocs = [];
+const walk = async directory => {
+  for (const entry of await readdir(path.join(installed, directory), { withFileTypes: true })) {
+    const file = path.posix.join(directory, entry.name);
+    if (entry.isDirectory()) await walk(file);
+    else if (file.endsWith('.md')) installedDocs.push(file);
+  }
+};
+await walk('.');
+const inside = [];
+for (const file of installedDocs) {
+  for (const { target: link } of markdownLinks(await readFile(path.join(installed, file), 'utf8'))) {
+    if (!isRelative(link)) continue;
     const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), link.split('#')[0]));
-    if (!existsSync(path.join(installed, target))) {
-      assert.ok(!OWN_DOCS.includes(file), `${file} links to ${link}, which is not in the package`);
-      outside.push(`${file} -> ${link}`);
-    }
+    assert.ok(existsSync(path.join(installed, target)), `${file} links to ${link}, which is not in the package`);
+    inside.push(`${file} -> ${link}`);
   }
 }
 // Routed blocks ship with their profile, and the references that link to it
@@ -193,9 +209,9 @@ const routedSpec = 'docs/reference/spec/caveat-routed-repetition-0.1.md';
 assert.ok(existsSync(path.join(installed, routedSpec)), `${routedSpec} is in the package`);
 for (const from of ['caveat-repetition-0.1.md', 'caveat-check-0.1.md']) {
   const link = `docs/reference/spec/${from} -> caveat-routed-repetition-0.1.md`;
-  assert.ok(!outside.includes(link), `${link} resolves inside the package`);
+  assert.ok(inside.includes(link), `${link} resolves inside the package`);
 }
-report.docs = { copied: STAGED_DOCS.length, linksOutsidePackage: outside };
+report.docs = { copied: STAGED_DOCS.length, documents: installedDocs.length, linksInside: inside.length, linksRewritten: rewrittenLinks };
 report.checks.docs = true;
 
 // The command, by its installed path.
@@ -211,7 +227,6 @@ assert.match(failing.stdout, /FAIL T01 step 5 expect \[primary\]: \/bindings\/he
 await writeFile(path.join(consumer, 'invalid.scenarios.json'), JSON.stringify({ ...doc, extra: true }));
 assert.equal(node([cli, 'test', 'invalid.scenarios.json'], consumer).status, 2);
 const json = JSON.parse(node([cli, 'test', '--json', 'thermostat_history.scenarios.json'], consumer).stdout);
-const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 'utf8'));
 assert.equal(json.runtime.revision, buildInfo.revision, 'the report names the bundled runtime');
 report.runtime = json.runtime;
 await writeFile(path.join(consumer, 'readings.jsonl'), '{"event":"read","payload":{"value":17}}\n{"event":"read","payload":{"value":99}}\n');
