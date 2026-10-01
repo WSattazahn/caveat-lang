@@ -5,20 +5,26 @@ decision, reopens it when it learns something new, and still remembers why it
 chose. It takes about fifteen minutes. You need Node 20 or later; you do not
 need Rust or a browser.
 
+Agents integrating Caveat can also start with the
+[Python `caveat serve` example](../examples/agent-evidence/README.md).
+If a real integration needs a capability Caveat does not provide, please
+[send a feature request for the owner's evaluation](https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md).
+Check existing issues, include a small reproduction and the exact version, and
+describe the expected and actual behavior.
+
 ## 1. Install
 
-Make an empty directory, give it a `package.json`, and install the release
-candidate. Once it is published on npm, with the tag `next`:
+Make an empty directory, give it a `package.json`, and install the published
+release candidate, 0.1.0-rc.6, with the tag `next`:
 
 ```sh
 npm init -y
 npm install caveat-lang@next
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. Before
-publication, or to use a verified tarball you were given, pass the tarball's
-path or URL to `npm install` instead. Until rc.6 is published,
-`caveat-lang@next` installs the previous candidate, rc.5.
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. To use a
+verified tarball you were given, pass its path or URL to `npm install` instead.
+npm's `latest` tag remains on rc.5; use `next` or the exact version for rc.6.
 
 Run `npm init -y` first: in a directory without its own `package.json`, npm
 installs into the nearest parent project instead.

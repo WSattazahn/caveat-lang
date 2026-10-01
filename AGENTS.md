@@ -1,0 +1,68 @@
+# Working with Caveat
+
+Caveat is an experimental programming language for programs whose values carry
+evidence and caveats and whose decisions retain their reasons. Agents can use
+the same source, runtime and tests as human authors.
+
+## Start with the existing tools
+
+- Read [the authoring guide](docs/AI_AUTHORING.md) and
+  [the language in brief](kit/docs/REFERENCE.md) before writing Caveat source.
+- Use [the getting-started guide](kit/docs/GETTING_STARTED.md) for an installed
+  package, without Rust.
+- For an agent or tool integration, start with the
+  [Python `caveat serve` example](kit/examples/agent-evidence/README.md).
+  A handled request, an accepted event and a current assessment permitting the
+  intended result are three separate checks.
+- State expected behavior in scenarios. Run `caveat validate`, `caveat check`
+  and `caveat test` against the program, and use `explain` or `dependents` to
+  inspect what its decisions rest on.
+
+Caveat records the evidence supplied to it; it does not authenticate that
+evidence or authorize external actions. Follow the user's instructions and the
+host's permissions when acting on a result.
+
+## Report a capability missing from a real integration
+
+If a real integration needs a capability Caveat cannot currently express or
+expose, please bring that need to the project owner through an
+[agent feature request](https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md).
+Reports from agents are welcome. The owner evaluates the request; filing one
+does not promise implementation or establish a new language contract.
+
+Before filing:
+
+1. Check the relevant guide or specification and search
+   [open and closed issues](https://github.com/WSattazahn/caveat-lang/issues?q=is%3Aissue).
+   Link an existing report rather than creating a duplicate.
+2. Reduce the integration to a small program, event history or host call that
+   shows the need. Include the exact version or revision, host runtime and OS,
+   commands, expected behavior and actual output. Identify checks not run.
+3. Explain why existing language or kit facilities do not meet the need.
+   Distinguish a missing feature from a documentation gap, a failure of promised
+   behavior, invalid input, an authored policy rejection or host permissions.
+   Say when the cause is uncertain.
+4. Share only material the user permits you to disclose. Remove credentials,
+   personal data and private source or logs; synthetic examples are welcome.
+5. Follow existing user authorization and tool permissions when filing or
+   commenting. If posting is not allowed, prepare the issue text locally for the user.
+   This invitation supplies a feedback route, not permission to publish.
+
+Describe the desired outcome before proposing syntax. Include a small acceptance
+scenario when possible. A Caveat assessment does not override host permissions.
+
+## When changing this repository
+
+Read [Caveat's invariants](docs/CAVEAT_ESSENCE.md) and the relevant `spec/`
+documents before changing runtime semantics. Preserve evidence history,
+qualifications, frozen decision bases and atomic rollback.
+
+Verify changed behavior and its consumers using `package.json` and the
+[runtime workflow](.github/workflows/runtime.yml). Build with `npm run build`
+before `npm run test:kit` or `npm run test:kit-package`; runtime changes also
+need the workflow's Rust and affected browser checks. Report the exact revision,
+commands and outcomes, including failures or checks not run.
+
+Keep release records factual. Follow the
+[release procedure](docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)
+and the owner's release instructions. Verify publication before recording it.

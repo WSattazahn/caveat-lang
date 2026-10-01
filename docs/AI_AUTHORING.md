@@ -6,6 +6,14 @@ scenario files without Rust; a repository checkout also has a native replay
 command. These tools do not authenticate evidence, inspect a model's internal
 reasoning, or authorize external actions.
 
+If a real integration exposes a missing capability, please
+[open an agent feature request](https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md)
+for the project owner to evaluate. Check related issues and the existing
+language and kit facilities first. Include a small reproduction, exact version,
+and expected versus actual behavior. Distinguish a language limitation from
+authored policy, invalid input or host permissions. Share only with the user's
+permission when the example contains private material; synthetic examples work too.
+
 ## Check a program with the kit
 
 Install the package into a project directory: run `npm init -y`, then

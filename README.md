@@ -22,7 +22,18 @@ Caveat is a programming language for programs that act on what they know and kee
 
 **[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)**, on one page: the problem, one example to run, and the limitations.
 
-**Try it** with Node 20 or later. The release candidate is [0.1.0-rc.6](docs/releases/v0.1.0-rc.6.md). Once it is published on npm, `npm install caveat-lang@next` installs it; until then, that installs the previous candidate, [0.1.0-rc.5](docs/releases/v0.1.0-rc.5.md) ([on npm](https://www.npmjs.com/package/caveat-lang)). Then `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
+**Try it** with Node 20 or later. The release candidate [0.1.0-rc.6](docs/releases/v0.1.0-rc.6.md) is [published on npm](https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.6): `npm install caveat-lang@next` installs it, or pin `caveat-lang@0.1.0-rc.6`. npm's `latest` tag remains on rc.5. Then `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
+
+This checkout is the **0.1.0-rc.7 development version**, which is not released.
+The install instructions above use the published rc.6 candidate.
+
+**Using Caveat from an agent?** Start with the
+[Python `caveat serve` example](kit/examples/agent-evidence/README.md).
+If a real integration exposes a missing capability, please
+[open an agent feature request](https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md)
+for the project owner to evaluate. Include a small reproduction, the exact
+version and expected versus actual behavior; check existing issues first.
+[Agent guidance](AGENTS.md) explains the workflow.
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 
