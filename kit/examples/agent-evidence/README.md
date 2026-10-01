@@ -7,7 +7,7 @@ wrong, and asks for a new assessment. It talks to the program through
 `caveat serve`, from Python.
 
 - `assessment.cav`: the program.
-- `caller.py`: a small client for [Serve 0.1](../../docs/reference/spec/caveat-serve-0.1.md),
+- `caller.py`: a client for [Serve 0.1](../../docs/reference/spec/caveat-serve-0.1.md),
   standard library only, Python 3.9 or later.
 - `test_caller.py`: tests that drive a real `caveat serve` process through the
   situations below.
