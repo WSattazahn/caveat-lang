@@ -3,11 +3,11 @@
 A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
-The release candidate is **`caveat-lang@0.1.0-rc.5`**, with the command
-`caveat`. It is a preview, not a stable release. It was published to npm with
-the tag `next`, and the same tested tarball is attached to its [GitHub
-pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.5).
-It needs no Rust:
+The release candidate is **`caveat-lang@0.1.0-rc.6`**, with the command
+`caveat`. It is a preview, not a stable release: like the previous candidate,
+rc.5, it is to be published to npm with the tag `next`, with the same tested
+tarball attached to its GitHub pre-release. It needs no Rust. Once it is
+published, install it from npm:
 
 ```sh
 npm init -y
@@ -16,19 +16,16 @@ npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.5`. To use a
-verified tarball instead, such as the one on the GitHub pre-release, pass its
-path or URL to `npm install`.
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. Before
+publication, or to use a verified tarball you were given, pass the tarball's
+path or URL to `npm install` instead. Until rc.6 is published,
+`caveat-lang@next` installs rc.5, whose tarball is also on its [GitHub
+pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.5).
 
 Publishing with `--tag next` leaves the tag `latest` where it is. It moves
 only as a separate step, as it was moved to rc.4 and to rc.5, and here it
 does not mean stable. So install a candidate by the tag `next` or by its exact
 version; `npm dist-tag ls caveat-lang` shows which version each tag names.
-
-The kit in the repository's `main` branch is the next candidate's
-development version, `0.1.0-rc.6`, which is **not released**: it is on
-neither npm nor GitHub. A tarball built from `main` carries that version.
-Until rc.6 is released, install rc.5 as shown above.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
@@ -235,9 +232,9 @@ const runtime = await loadRuntime({
 
 ## TypeScript and bundlers
 
-From `0.1.0-rc.6`, which is not released yet, every entry point carries its
-declarations (`lib/*.d.mts`), named by the `types` condition of its `exports`
-entry; rc.5 has none. TypeScript finds them with `"moduleResolution"` set to
+Every library entry point carries its declarations (`lib/*.d.mts`), named
+by the `types` condition of its `exports` entry. They are new in rc.6;
+rc.5 has none. TypeScript finds them with `"moduleResolution"` set to
 `"bundler"`, `"node16"` or `"nodenext"`, and nothing needs declaring by hand.
 They cover the session library, the dispatch outcomes, `CaveatError` and its
 kinds, the snapshot and view, and every report. The runtime module ships
