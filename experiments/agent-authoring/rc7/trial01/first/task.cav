@@ -1,0 +1,47 @@
+scene "Assess supplied observations for one task, with a consulted reference.";
+claim answer_supported;
+claim reference_consulted;
+claim misreport;
+evidence tool from "the host's supplied observation for this task";
+evidence reference from "a reference consulted for this task";
+evidence recheck from "a correction of the latest supplied observation";
+caveat outdated consequence material;
+readings observations from tool limit 16;
+decisions assessment limit 8 reopened by observations;
+state assessment_basis = 0 min -10 max 100;
+
+event observe confidence min 0 max 100;
+event consult;
+event assess;
+event retract;
+event qualify_reference;
+
+on observe when confidence >= 70 sample observations = confidence supports answer_supported;
+on observe when confidence < 70 sample observations = confidence opposes answer_supported;
+on consult when not observed(reference) reveal reference supports reference_consulted;
+
+on assess when not has_sample(observations) reject "No observation to assess.";
+on assess when not observed(reference) reject "Consult the reference first.";
+on assess when withdrawn(latest(observations)) reject "The latest observation is withdrawn.";
+on assess when committed(assessment) and not reopened(assessment) reject "Already assessed.";
+on assess set assessment_basis = qualified(latest(observations) - if(carries(reference, outdated), 10, 0), reference);
+on assess when assessment_basis < 70 reject "The effective confidence is below 70.";
+on assess commit assessment because enough using assessment_basis;
+
+on retract when not has_sample(observations) reject "No observation to withdraw.";
+on retract when withdrawn(latest(observations)) reject "The latest observation is already withdrawn.";
+on retract when not observed(recheck) reveal recheck supports misreport;
+on retract withdraw latest(observations) because recheck;
+on retract when committed(assessment) and not reopened(assessment) and rests_on_withdrawn(assessment)
+    reopen assessment because recheck;
+
+on qualify_reference when not observed(reference) reject "No consulted reference to qualify.";
+on qualify_reference when carries(reference, outdated) reject "The reference is already qualified.";
+on qualify_reference qualify reference with outdated;
+on qualify_reference when committed(assessment) and not reopened(assessment) and has_caveat(assessment_basis, outdated)
+    reopen assessment because caveated(assessment_basis, outdated);
+
+bind assessment.verdict = "none";
+bind assessment.verdict = "approved" when committed(assessment) and not reopened(assessment);
+bind assessment.verdict = "reopened" when reopened(assessment);
+bind assessment.effective_confidence = assessment_basis;

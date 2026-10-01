@@ -1,0 +1,6 @@
+PASS S01  Same-task second observation creates new grounds; resume and correct latest  (9 events, 1 rejected, 1 resumes)
+PASS S02  Required observation can reject after approval, with later retry  (6 events, 1 rejected, 0 resumes)
+PASS S03  Consulted source qualifies late; exact earlier and later grounds survive restore  (5 events, 0 rejected, 1 resumes)
+PASS S04  Missing, weak, and withdrawn evidence cannot approve  (7 events, 4 rejected, 0 resumes)
+PASS S05  Qualification penalty changes permission to answer under this policy  (7 events, 1 rejected, 0 resumes)
+5 passed, 0 failed (experiments/agent-authoring/rc7/trial01/final/task.scenarios.json)

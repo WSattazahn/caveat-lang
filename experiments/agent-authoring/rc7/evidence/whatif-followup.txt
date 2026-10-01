@@ -1,0 +1,97 @@
+Yes. That is a **major `whatif` design constraint**, and it changes the plan substantially.
+
+The rc.6 documentation backs up the finding: a WebAssembly trap is fatal, and the release notes specifically warn that an already-imported WASM module namespace cannot simply produce a fresh instance after its instance traps; recovery requires loading a fresh runtime, such as through the runtime URL. The dispatch contract also says that after a fatal outcome or exception—including a WASM trap—the affected session must be discarded.
+
+So I would change the Codex plan from:
+
+> fork/clone the session, run hypothetical events, discard the fork
+
+to:
+
+> **A `whatif` that promises isolation from fatal hypothetical execution must run in an independently disposable runtime instance or process, not merely another session sharing the live WASM runtime.**
+
+### Revised `whatif` architecture
+
+There are really two levels of isolation:
+
+| Hypothetical outcome | Same runtime, separate session |
+|---|---|
+| accepted | potentially fine |
+| classified rejection | potentially fine |
+| ordinary session-level fatal | session must be discarded |
+| **WASM trap** | **unsafe as an isolation boundary because other sessions sharing that runtime may also become unusable** |
+
+Because callers cannot safely assume in advance that a hypothetical branch will never trap, the clean public contract should probably be:
+
+**`whatif` executes in a fresh disposable runtime instance.**
+
+For `caveat serve`, the strongest implementation may be a separate child process. That gives the hypothetical branch its own WASM instance and also contains host/process-level failure more cleanly.
+
+For the in-process JS API, an isolated runtime loaded from the runtime URL may work, but Codex needs to verify that it actually creates an independent WASM instance. **Reusing an imported module namespace is not sufficient for a fatal-isolation guarantee.**
+
+### Add these acceptance tests
+
+I’d have Codex explicitly test four things:
+
+1. Open **two normal live sessions sharing runtime A**. Run ordinary events in both.
+2. Run a hypothetical branch in **isolated runtime B** that deliberately reaches a reproducible WASM trap.
+3. Confirm runtime B/hypothetical session is discarded.
+4. Confirm **both original sessions on runtime A still dispatch, snapshot, save, and restore correctly afterward**.
+
+And do the inverse control test:
+
+> Put the hypothetical session on the **same runtime** as live sessions, trigger the trap, and document whether the live sessions become unusable.
+
+That gives hard evidence for why the isolation boundary exists rather than merely documenting a theoretical concern.
+
+Also test:
+
+- accepted hypothetical branch
+- classified rejection
+- fatal `unclassified` without a WASM trap
+- actual WASM trap
+- child-process crash/early exit if using process isolation
+- repeated `whatif`s after one hypothetical runtime traps
+- no leakage of IDs, sequence, elapsed time, readings, decisions, cues, or effects
+- live save before/after remains identical
+
+### This also changes the CLI/serve decision
+
+It makes **`serve`-level `whatif` more expensive than we originally assumed**.
+
+A convenient implementation might be:
+
+```text
+live Caveat server
+       │
+       ├── normal dispatch → live WASM runtime
+       │
+       └── whatif
+             │
+             ├── save current session
+             ├── spawn isolated Caveat runtime/process
+             ├── restore save there
+             ├── dispatch hypothetical events
+             ├── collect outcomes/snapshot/explain
+             └── destroy isolated runtime/process
+```
+
+That is more robust than “clone another session inside the same runtime.”
+
+There is an important compatibility question, though: **restoring the live save into the isolated runtime must use exactly compatible source/runtime semantics.** Codex should verify that rather than assuming arbitrary cross-version/source restoration.
+
+### I would modify the rc.7 decision gate
+
+`whatif` should now be accepted for rc.7 only if Codex can demonstrate:
+
+> **Hypothetical execution, including a branch that traps WASM, cannot damage the live runtime or any other live session.**
+
+If achieving that requires substantial process/runtime lifecycle machinery, it is also reasonable for Codex to conclude:
+
+> the semantics are desirable, but a fully trap-isolated `whatif` is too large for rc.7.
+
+I would **not** ship a lightweight same-runtime `whatif` and describe it as “safe” or “atomic” if a pathological hypothetical branch can kill unrelated sessions.
+
+And this finding actually strengthens Muse’s proposal conceptually: **the useful feature is no longer merely convenience around `save → dispatch → restore`; it can provide a real isolation boundary that users would otherwise need to engineer themselves.** That makes `whatif` more valuable—but also substantially more demanding to implement correctly.
+
+**Source credibility:** rc.6 release/runtime documentation and dispatch contract: **10/10** for the existing fatal/trap contract. Your new shared-runtime reproduction: **high-value implementation finding; Codex should preserve the exact reproducer as an rc.7 regression fixture.**

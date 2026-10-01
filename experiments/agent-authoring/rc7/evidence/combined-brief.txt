@@ -1,0 +1,1177 @@
+Yes. I’d hand Codex **one combined brief** now, with Muse and Dot treated as two separate fresh-agent trials pointing at the same rc.6 integration pattern.
+
+# Caveat rc.7 — Combined Evaluation Plan From Muse + Dot Feedback
+
+## Objective
+
+Use the independent feedback from **Muse** and the **Dot agent** to decide what should actually change in Caveat for `0.1.0-rc.7`.
+
+Do **not** begin by implementing their feature requests.
+
+The objective is to determine:
+
+1. What rc.6 already solved through the official agent-evidence starter.
+2. What remaining friction is documentation or application-lifecycle design.
+3. What represents a genuine language/runtime/tooling limitation.
+4. Which proposed additions deserve implementation in rc.7.
+5. Which should explicitly be rejected or deferred.
+
+Preserve Caveat's existing invariants while making agent integrations easier and harder to misuse.
+
+---
+
+# Evidence available
+
+## Muse — first build on rc.5
+
+Muse built `assistant_beliefs.cav`, an assistant self-model tracking:
+
+- clarity of user intent
+- memory freshness
+- trust in tool output
+- a strategy decision such as proceed versus clarify
+
+Its original proposals were:
+
+1. stance-less `reveal EVIDENCE;`
+2. first-class `abstain`
+3. hypothetical execution / `whatif`
+4. improved `because` diagnostics
+5. flexible string matching in scenarios
+6. better `define` versus `fn` diagnostics
+
+Muse specifically did **not** propose:
+
+- weakening observed-before-qualify
+- automatic supports/opposes inference
+- general effect-level `if/else`
+
+---
+
+## Muse — rebuild on rc.6
+
+Muse then rebuilt the tracker using the official rc.6 agent-evidence starter.
+
+Reported results:
+
+- `validate` succeeds
+- `check` has no warnings
+- 7/7 application scenarios pass
+- the starter's 53 tests pass
+- the demo runs end-to-end
+
+Important changes in the rebuild:
+
+- Uses the official `CaveatServer` and `Attempt` instead of a hand-written subprocess client.
+- Separates observation from assessment.
+- Treats correction as withdrawal rather than erasure.
+- Uses explicit reopening policy.
+- Uses the starter's rule that an attempt succeeds only when:
+  - all required operations succeed, and
+  - the relevant current Caveat assessment permits the result.
+- Demonstrates that late qualification does not rewrite archived readings or frozen decision grounds.
+- Later observations from the qualified evidence source inherit the caveat.
+
+Muse identified one documentation friction:
+
+> the distinction between the evidence template, archived reading occurrences, current dependent values, and future observations was not obvious.
+
+---
+
+## Dot agent — fresh integration using rc.6 starter
+
+The Dot independently tried the official starter.
+
+Reported benefit:
+
+- reused the Python client instead of writing subprocess communication
+- reused required-operation bookkeeping
+- avoided manually combining operation success with assessment success
+- correctly handled a subtle failure:
+  - an old approval remained visible after a new observation was rejected
+  - the new attempt was still correctly classified as unsuccessful
+
+Reported remaining friction:
+
+> lifecycle management
+
+Specifically:
+
+> assessing twice without reopening produces “Already assessed.”
+
+Dot still had to decide how and when another assessment should become a new revision.
+
+---
+
+# Core hypothesis to test
+
+The combined reports suggest:
+
+> rc.6 may already provide much of the necessary language machinery. The largest remaining problems may be lifecycle guidance, documentation, diagnostics, and a few missing integration conveniences rather than entirely new reasoning semantics.
+
+Treat this as a hypothesis, not a conclusion.
+
+---
+
+# Phase 0 — Establish rc.7 baseline
+
+Before changing anything:
+
+1. Verify current `main`.
+2. Verify the exact rc.6 release/tag/commit.
+3. Verify publication state.
+4. Identify any changes already merged after rc.6.
+5. Check whether an rc.7 development branch already exists.
+6. If it does not, establish the correct post-rc.6 development baseline.
+
+Record:
+
+- rc.5 SHA
+- rc.6 SHA
+- current `main` SHA
+- rc.7 base SHA
+- relevant changes between rc.6 and current main
+
+Do not modify rc.6.
+
+---
+
+# Phase 1 — Preserve the actual agent artifacts
+
+Obtain the original files if available.
+
+## Muse v1
+
+Preserve:
+
+- original `assistant_beliefs.cav`
+- original four scenarios
+- failing examples
+- workarounds
+- `PROPOSAL.md`
+- demo/events
+
+## Muse v2 / rc.6 rebuild
+
+Preserve:
+
+- `assistant_beliefs.cav`
+- seven scenarios
+- `assistant_tracker.py`
+- `demo_events.jsonl`
+- copied `agent-evidence/`
+- installed dependency/version information
+- run logs if available
+
+Verify that the copied official starter is actually unchanged.
+
+## Dot integration
+
+Preserve:
+
+- program
+- Python integration
+- eight scenarios/tests
+- package/runtime identity
+- exact reproduction of “Already assessed”
+
+Do not combine the test counts.
+
+Report them separately:
+
+- starter tests
+- Muse application scenarios
+- Dot application scenarios
+- any new rc.7 tests
+
+The same underlying behavior appearing in several suites should not be counted as several independent proofs.
+
+---
+
+# Phase 2 — Reproduce before changing anything
+
+Reproduce both agents' reports on the rc.7 baseline.
+
+Classify every observation as:
+
+- reproduced
+- already fixed
+- application-policy issue
+- documentation issue
+- tooling issue
+- language/runtime issue
+- agent misunderstanding
+- insufficient evidence
+
+Do not implement something merely because Muse encountered it on rc.5.
+
+Muse's v2 and Dot's rc.6 results are now more relevant starting points.
+
+---
+
+# Phase 3 — Study what the rc.6 starter actually improved
+
+The rc.6 starter should be treated as a product feature in its own right.
+
+Determine exactly what integration code it eliminated.
+
+Measure or describe:
+
+### Without starter
+
+What would an agent/application have to implement itself?
+
+Examples:
+
+- process launch
+- JSON-lines protocol
+- request IDs
+- response matching
+- request failure handling
+- fatal session handling
+- rejected versus accepted dispatch
+- attempt bookkeeping
+- required-operation tracking
+- unfinished operations
+- combining operation outcome with application approval
+- preventing stale approval from satisfying a new failed attempt
+
+### With starter
+
+Identify which of those disappear.
+
+Preserve concrete examples from Muse and Dot.
+
+The question is not merely:
+
+> Does the starter run?
+
+It is:
+
+> Does it materially reduce integration work and failure-handling mistakes?
+
+If yes, document that honestly as an rc.6 success.
+
+---
+
+# Phase 4 — Lifecycle management becomes an rc.7 priority
+
+This is the strongest combined issue from Muse v2 and Dot.
+
+The shipped starter deliberately refuses:
+
+```caveat
+assess
+```
+
+when an assessment remains in force.
+
+That is correct for its authored policy.
+
+The friction is that a fresh integrator must determine **what kind of second assessment they actually mean**.
+
+Document and test at least three cases.
+
+---
+
+## Lifecycle A — Duplicate assessment
+
+Sequence:
+
+```text
+observe strong evidence
+assess
+assess again
+```
+
+Expected:
+
+The second assessment remains refused.
+
+This is not a new decision.
+
+Do not make the runtime silently create another revision.
+
+---
+
+## Lifecycle B — New evidence should reconsider the same decision
+
+Example:
+
+```text
+observe 85
+assess
+observe 90
+```
+
+The starter currently only automatically reopens on matching opposing observations.
+
+Evaluate an alternate policy using Caveat's existing mechanism:
+
+```caveat
+decisions assessment limit 8 reopened by observations;
+```
+
+Test whether this cleanly supports:
+
+```text
+observe
+assess
+observe new evidence
+assess revision
+```
+
+without new syntax.
+
+Compare:
+
+### Policy 1
+
+Reconsider only when explicitly concerning evidence arrives.
+
+### Policy 2
+
+Reconsider whenever any new observation arrives.
+
+Neither is universally correct.
+
+The application must choose.
+
+---
+
+## Lifecycle C — Different task / different decision
+
+A new user task should not accidentally become revision N+1 of an unrelated previous assessment.
+
+Determine the recommended pattern for task boundaries:
+
+- separate decision series
+- new session
+- identifiers / subject-specific modeling
+- another existing construct
+
+Do not silently reuse an old approval for a different subject.
+
+---
+
+# Phase 5 — Add targeted lifecycle tests
+
+These tests should be added regardless of whether new language features are introduced.
+
+## L1 — Duplicate assess
+
+Assess twice without reopening.
+
+Expected:
+
+- refusal
+- no new revision
+- session unchanged by the rejected event
+
+## L2 — Supporting observation under shipped policy
+
+Create approval.
+
+Add another supporting observation.
+
+Confirm whether the current approval remains in force.
+
+Document that this is intentional.
+
+## L3 — Supporting observation under every-observation policy
+
+Use:
+
+```caveat
+reopened by observations
+```
+
+Verify:
+
+- new observation reopens the current revision
+- new assess creates a new revision
+- old grounds remain frozen
+
+## L4 — Opposing observation
+
+Verify existing `reopened by ... opposing ...` behavior.
+
+## L5 — Rejected required operation after old approval
+
+Reproduce Dot's important case:
+
+1. old approval exists
+2. new required observation is rejected
+3. old approval remains visible
+4. current attempt still fails
+
+This must remain true.
+
+## L6 — Failed attempt followed by valid later attempt
+
+A failed attempt must not permanently poison future valid attempts.
+
+## L7 — Unfinished operation
+
+An unconfirmed operation must not count as success.
+
+Old approval must not cover it.
+
+## L8 — Save/restore
+
+Perform lifecycle transition, save, restore, continue.
+
+Decision state and later behavior must remain identical.
+
+---
+
+# Phase 6 — Evaluate Muse's late-qualification finding precisely
+
+This should become a documentation and regression-test target even if no language change is needed.
+
+The documentation must distinguish:
+
+1. evidence template
+2. reading occurrence
+3. current value derived from evidence
+4. archived reading
+5. frozen decision grounds
+6. future observation
+
+For example:
+
+```text
+memory
+    ↓ sample
+freshness@1
+```
+
+After:
+
+```caveat
+qualify memory with stale;
+```
+
+Codex must verify exactly what happens to:
+
+- `memory`
+- a currently computed value depending directly on `memory`
+- `freshness@1`
+- `strategy@1`
+- a later `freshness@2`
+- `strategy@2`
+
+Do not simplify the behavior to merely:
+
+> past clean, future stale
+
+The real contract is about dependency identity and frozen records.
+
+---
+
+# Phase 7 — Add two critical stale/withdrawal tests
+
+These are especially important because the existing happy-path scenarios may not cover them.
+
+## Q1 — Learn stale, then reassess without a fresh memory observation
+
+Sequence:
+
+```text
+observe memory
+assess
+learn_stale
+reopen for some reason
+assess again WITHOUT another memory sample
+```
+
+Determine exactly what evidence the new decision rests on.
+
+Questions:
+
+- Does it reuse the archived old reading?
+- Does the new decision carry `stale`?
+- Should the application require resampling?
+
+Do not change runtime behavior merely to produce a desired policy result.
+
+First establish the language semantics.
+
+Then decide what the application should require.
+
+---
+
+## Q2 — Withdraw evidence, then reassess without replacement
+
+Sequence:
+
+```text
+observe clarity
+assess
+withdraw clarity
+reopen
+assess again WITHOUT a new clarity observation
+```
+
+The application should not accidentally proceed on evidence it explicitly withdrew.
+
+Compare Muse's policy with the official starter, which already refuses assessment when the latest observation is withdrawn.
+
+If Muse's tracker needs the same protection, add it at the application-policy level unless a language defect is demonstrated.
+
+---
+
+# Phase 8 — Verify application-specific grounds
+
+Using `Attempt` correctly is necessary but not sufficient.
+
+A custom application also needs to verify that the resulting decision rests on the evidence required for that attempt.
+
+Add tests for:
+
+- missing clarity evidence
+- missing memory evidence
+- missing tool evidence
+- old evidence reused unintentionally
+- wrong reading selected
+- decision committed in the attempt but grounded on the wrong observations
+
+Define what evidence may legitimately carry over between attempts.
+
+Do not impose freshness universally without an application requirement.
+
+But do not let accidental reuse silently pass either.
+
+---
+
+# Phase 9 — Investigate stance-less `reveal`
+
+Muse's original concern remains conceptually interesting.
+
+Question:
+
+> Can Caveat honestly record “I consulted this evidence source” without claiming that the source supports or opposes a particular claim?
+
+Do not assume the rc.6 redesign resolved this.
+
+Inspect how Muse v2 causes `memory` itself to become observed.
+
+If v2 still needs a semantically artificial relation solely to make:
+
+```caveat
+qualify memory with stale;
+```
+
+legal, the original concern remains.
+
+Prototype:
+
+```caveat
+reveal memory;
+```
+
+## Required semantics
+
+It must:
+
+- mark evidence observed
+- create no invented support relation
+- create no invented opposition relation
+- preserve observed-before-qualify
+- preserve observation-order checks
+- preserve withdrawal rules
+- preserve reopening requirements
+- work through save/restore
+- work with renewables
+- distinguish template observation from reading occurrences
+
+## Required compatibility
+
+Existing stance-bearing:
+
+```caveat
+reveal evidence supports claim;
+reveal evidence opposes claim;
+```
+
+must continue behaving exactly as before.
+
+## Decision
+
+Return one:
+
+- implement rc.7
+- documentation/application solution is enough
+- defer
+- reject
+
+Do not leave it as a vague future idea.
+
+---
+
+# Phase 10 — Evaluate `whatif`
+
+Muse wants safe counterfactual execution.
+
+First determine what already exists through:
+
+- save
+- restore
+- second session
+- replay
+- `serve`
+
+The proposed improvement may be a standardized convenience operation rather than a new reasoning primitive.
+
+---
+
+## Important distinction
+
+These are different:
+
+### Branch from current session
+
+History already contains:
+
+```text
+clarity 85
+strategy proceed
+```
+
+Then hypothetically add:
+
+```text
+clarity 40
+```
+
+This asks:
+
+> What happens after an additional reading of 40?
+
+### Replace an earlier event
+
+Fork from before clarity 85 and instead send clarity 40.
+
+This asks:
+
+> What would have happened if the original reading had been 40?
+
+Do not claim these are equivalent.
+
+---
+
+## Possible `serve` operation
+
+Evaluate something like:
+
+```json
+{
+  "op": "whatif",
+  "events": [...]
+}
+```
+
+Possible semantics:
+
+1. clone/fork current session
+2. apply hypothetical events
+3. return each outcome
+4. optionally return snapshot/view
+5. optionally return explain
+6. discard fork
+7. leave live session unchanged
+
+---
+
+## Required isolation tests
+
+Verify that hypothetical execution cannot change live:
+
+- sequence
+- elapsed time
+- state
+- readings
+- reading IDs
+- decisions
+- decision IDs
+- identifiers
+- caveats
+- withdrawals
+- reopening records
+- journal
+- effects
+- cues
+- save output
+
+Also test:
+
+- accepted hypothetical events
+- policy rejection
+- input rejection
+- evaluation rejection
+- limit rejection
+- fatal hypothetical path
+
+A fatal hypothetical branch must not destroy the live session.
+
+---
+
+## Do not overclaim
+
+`whatif` can answer:
+
+> What would this policy do from this state under these events?
+
+It cannot answer:
+
+> Would that result be better?
+
+An external evaluator or authored objective is required for that.
+
+---
+
+# Phase 11 — Reevaluate `abstain`
+
+Do not implement this merely because Muse originally used “clarifying” as a third outcome.
+
+Muse v2 apparently models clarification successfully as an actual strategy decision.
+
+That weakens the argument that:
+
+```text
+clarifying
+```
+
+must itself be represented as abstention.
+
+Find a genuinely distinct requirement:
+
+> The system has evaluated the substantive decision and deliberately refuses to choose any substantive outcome.
+
+That is different from:
+
+> The system chooses to ask for clarification.
+
+If that distinction matters in a real integration, then design `abstain`.
+
+---
+
+## If justified, specify state machine before syntax
+
+Cover:
+
+```text
+none → abstain
+abstain → commit
+commit → reopen → abstain
+abstain → reopen → commit
+abstain → abstain
+```
+
+Define:
+
+```caveat
+committed(strategy)
+abstained(strategy)
+reopened(strategy)
+latest(strategy)
+```
+
+for every relevant state.
+
+Also define:
+
+- series limit use
+- revision identity
+- journal entry
+- grounds
+- lineage
+- retained caveats
+- predecessor relationship
+- explain output
+- save/restore
+- automatic reopening
+
+Particularly ensure:
+
+> After a previous substantive commitment is reopened and the system abstains, a host cannot accidentally continue treating that old commitment as the current actionable decision.
+
+If the contract is not clean enough, **do not ship `abstain` in rc.7.**
+
+---
+
+# Phase 12 — Improve the two clear diagnostics
+
+These should be independent of the larger feature decisions.
+
+## D1 — Incorrect `because` citation
+
+Muse encountered an error such as:
+
+> unknown numeric identifier intent_clear
+
+when the symbol was actually known but was the wrong kind of citation.
+
+Differentiate:
+
+- unknown symbol
+- known symbol of wrong kind
+- valid citation
+- citation not present in lineage/grounds
+
+Do not weaken grounding checks.
+
+---
+
+## D2 — `define` versus `fn`
+
+For:
+
+```caveat
+define freshness_last() = ...
+```
+
+give a targeted diagnostic.
+
+Something conceptually like:
+
+> `define` declares a named expression and does not take parameters. Use `define freshness_last = ...`. Use `fn freshness_last(...) = ...` only for a pure function with explicit parameters.
+
+Do not automatically recommend `fn` when the expression needs to read state/history that a pure function cannot capture.
+
+---
+
+# Phase 13 — Evaluate flexible scenario text matching
+
+Muse wanted to avoid hardcoding:
+
+```text
+Proceeding (confidence 68)
+```
+
+when it mainly cared about:
+
+```text
+Proceeding
+```
+
+Do not immediately introduce unrestricted regex.
+
+Evaluate small matchers such as:
+
+```json
+{"$starts_with": "Proceeding"}
+```
+
+or:
+
+```json
+{"$contains": "Proceeding"}
+```
+
+Important behavior should still be tested structurally.
+
+If confidence matters, assert confidence separately.
+
+Do not let a test pass with:
+
+```text
+Proceeding (confidence 12)
+```
+
+when the expected score is actually 68.
+
+---
+
+# Phase 14 — Improve lifecycle documentation before inventing lifecycle APIs
+
+Add a section to the agent-evidence starter:
+
+## Assessing again
+
+Explain the difference between:
+
+### Duplicate call
+
+No new evidence.
+
+Result:
+
+> Already assessed.
+
+### New evidence, same decision
+
+Choose an authored reopening policy.
+
+For example:
+
+```caveat
+reopened by observations
+```
+
+if every new observation should trigger reconsideration.
+
+### Contrary evidence
+
+Use a filtered trigger such as:
+
+```caveat
+reopened by observations opposing answer_supported
+```
+
+if only concerning evidence should trigger reconsideration.
+
+### Correction
+
+Withdraw the evidence with a reason and explicitly define reopening policy.
+
+### Different task
+
+Use a properly scoped decision/session/model rather than silently revising an unrelated assessment.
+
+Make every example executable.
+
+---
+
+# Phase 15 — Improve qualification documentation
+
+Add a concise executable explanation of:
+
+```text
+evidence template
+        ↓
+reading occurrence
+        ↓
+current derived value
+        ↓
+decision
+```
+
+Then show late qualification.
+
+Explicitly state:
+
+- qualifying the template does not rewrite an archived reading
+- qualifying the template does not rewrite earlier decision grounds
+- current values actually depending on that evidence may update
+- later occurrences can inherit template qualifications
+- merely creating a later decision does not magically resample the source
+
+This should be incorporated into the normal authoring path, not hidden only in the formal specification.
+
+---
+
+# Phase 16 — Fresh-agent test after improvements
+
+Use at least one context that has not seen Muse's or Dot's feedback.
+
+Give it normal rc.7 documentation and an integration task requiring:
+
+1. observation
+2. assessment
+3. second observation
+4. reassessment
+5. correction
+6. rejected required operation
+7. a later successful retry
+8. save/restore
+9. late qualification
+
+Do not tell the agent:
+
+- which reopening policy to choose
+- how to solve the lifecycle
+- about Muse's original proposals
+
+Observe whether it:
+
+- understands attempt success
+- avoids using an old approval for a failed new attempt
+- distinguishes observation from assessment
+- understands reopening
+- avoids erasing history
+- understands late qualification
+- chooses an appropriate repeated-assessment policy
+
+Preserve first attempt and corrections.
+
+Do not convert one fresh-agent success into a broad reliability claim.
+
+---
+
+# Phase 17 — Proposed rc.7 PR structure
+
+Do not create a single giant "Muse + Dot feedback" PR.
+
+## PR 1 — Documentation and lifecycle examples
+
+Potential contents:
+
+- repeated-assessment guidance
+- qualification/archive explanation
+- executable examples
+- targeted tests
+
+This may solve meaningful friction with no language change.
+
+---
+
+## PR 2 — Authoring diagnostics
+
+- `because` diagnostic
+- `define`/`fn` diagnostic
+- scenario matcher if justified
+
+---
+
+## PR 3 — stance-less observation
+
+Only if the evaluation proves it solves a real unresolved semantic problem.
+
+Include:
+
+- spec
+- parser
+- runtime
+- graph representation
+- save/restore
+- observation-order analysis
+- tests
+- docs
+- compatibility results
+
+---
+
+## PR 4 — `whatif`
+
+Only if standardized isolated session branching provides sufficient concrete benefit.
+
+Include:
+
+- exact starting-state contract
+- `serve` operation
+- CLI only if its source state is explicit
+- isolation tests
+- docs
+
+---
+
+## PR 5 — `abstain`
+
+Only if a real unresolved distinction remains after the working clarify-strategy pattern is considered.
+
+Design first.
+
+Implementation second.
+
+It is completely acceptable for this to remain outside rc.7.
+
+---
+
+# Phase 18 — Regression gates
+
+For any accepted rc.7 change run the complete appropriate suite:
+
+- Rust tests
+- reactive runtime tests
+- WASM tests
+- JavaScript kit tests
+- Python starter tests
+- package tests
+- scenario corpus
+- save/restore tests
+- mutation/fuzz tests where affected
+- Glowcap scenarios
+- Trail Rescue scenarios
+- existing agent-authoring fixtures
+- Muse v2 tracker
+- Dot integration
+
+Where relevant, compare:
+
+- old idiomatic code
+- new idiomatic rc.7 code
+
+Backward compatibility matters.
+
+---
+
+# Phase 19 — Final decision report
+
+Return a table:
+
+| Candidate | Muse evidence | Dot evidence | Reproduced on rc.7 baseline? | Existing solution? | Change justified? | rc.7 disposition |
+|---|---|---|---|---|---|---|
+| lifecycle documentation | | | | | | |
+| qualification documentation | | | | | | |
+| custom integration tests | | | | | | |
+| stance-less reveal | | | | | | |
+| whatif | | | | | | |
+| abstain | | | | | | |
+| `because` diagnostic | | | | | | |
+| `define` diagnostic | | | | | | |
+| scenario matcher | | | | | | |
+
+Every row must end with one explicit disposition:
+
+- **IMPLEMENT rc.7**
+- **DOCUMENT rc.7**
+- **ALREADY SATISFIED**
+- **DEFER with concrete missing evidence**
+- **REJECT**
+
+Avoid indefinite “revisit later” entries without a trigger.
+
+If deferred, state what future evidence would reopen the question.
+
+---
+
+# What success for rc.7 would look like
+
+Do not judge success by feature count.
+
+A good rc.7 might contain:
+
+- substantially better repeated-assessment guidance
+- clearer late-qualification documentation
+- stronger integration regression tests
+- better diagnostics
+- perhaps stance-less observation
+- perhaps `whatif`
+- no `abstain` yet
+
+if that is what the evidence supports.
+
+Likewise, if testing shows that one of the larger proposals solves a real recurring problem cleanly while preserving Caveat's invariants, implement it.
+
+The goal is:
+
+> Fresh agents should write less support code, make fewer lifecycle mistakes, preserve evidence honestly, and understand why the runtime behaved as it did.
+
+Do not weaken Caveat's guarantees merely to make an integration superficially easier.
+
+---
+
+# Evidence weighting
+
+**Caveat rc.6 tagged source/specification — 9/10**
+
+Primary evidence for what the shipped design actually promises and implements.
+
+**Muse rc.6 report — 7/10 until artifacts are independently rerun**
+
+Detailed firsthand feedback from a real build and seven reported passing scenarios.
+
+**Dot rc.6 report — 7/10 until artifacts are independently rerun**
+
+Independent firsthand integration feedback with eight reported scenarios and a specific lifecycle difficulty.
+
+**Muse original rc.5 proposal — 6.5/10 as present-day product evidence**
+
+Very useful discovery evidence, but some reported friction may have been reduced by the later starter and better integration pattern.
+
+**Fresh rc.7 reproduction and regression results — target 9/10**
+
+These should become the basis for actual implementation decisions.
+
+This is the version I’d give Codex now. The biggest change from the earlier plan is that **Muse and Dot have independently given us evidence that the rc.6 starter itself is useful**, while both also point toward lifecycle understanding as the next practical friction point. So rc.7 shouldn’t be treated as “implement Muse’s three proposals”; it should be treated as **find what still remains after the starter succeeded**.

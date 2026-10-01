@@ -309,6 +309,23 @@ are sets. Older saves can omit the two new fields, so generic consumers should
 treat their absence as unknown. Saved records are checked for internal
 consistency; an unsigned save is not proof that its history really occurred.
 
+## Repeated assessments and late qualifications
+
+The [agent-evidence starter](../kit/examples/agent-evidence/README.md#assessing-again)
+separates duplicate calls, new evidence for the same decision, corrections and
+new tasks. Its executable examples compare opposing-only and every-observation
+reopening policies. Neither policy is the default for every application.
+
+Its [qualification example](../kit/examples/agent-evidence/QUALIFICATION.md)
+shows why a template, current template-dependent value, archived reading and
+frozen decision grounds can carry different caveats. Reassessment does not
+resample. Its custom caller checks exact required occurrence IDs and makes
+memory carry-over an explicit application policy. An accepted operation and
+a newly committed decision alone do not establish the right grounds.
+
+For hypotheses, see [branching with a separate runtime](../kit/examples/agent-evidence/BRANCHING.md).
+A second session sharing a WASM instance cannot isolate a trap.
+
 ## Evidence from fresh authors
 
 The [first authoring pilot](AI_AUTHORING_PILOT.md) supplied this guide, language

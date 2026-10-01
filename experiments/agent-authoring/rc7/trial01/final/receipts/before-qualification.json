@@ -1,0 +1,350 @@
+{
+  "schema": "caveat-reactive/0.1",
+  "source_id": "fnv1a64:f0eb07d684656b28:2726",
+  "sequence": 3,
+  "elapsed": 0,
+  "renewals": {},
+  "scheduled_qualifications": [],
+  "last_event": "assess",
+  "values": {
+    "assessment_basis": 85
+  },
+  "qualified_values": {
+    "assessment_basis": {
+      "value": 85,
+      "provenance": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "commitment_bases": {
+    "assessment@1": {
+      "value": 85,
+      "provenance": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "reading_streams": {
+    "observations": {
+      "template": "tool",
+      "limit": 16,
+      "current": "observations@1",
+      "occurrences": [
+        {
+          "id": "observations@1",
+          "ordinal": 1,
+          "sequence": 1,
+          "event": "observe",
+          "value": 85,
+          "provenance": {
+            "evidence": [
+              "observations@1"
+            ],
+            "caveats": []
+          },
+          "relation": "supports",
+          "claim": "answer_supported"
+        }
+      ],
+      "selection_qualifications": {
+        "evidence": [],
+        "caveats": []
+      }
+    }
+  },
+  "decision_series": {
+    "assessment": {
+      "limit": 8,
+      "current": "assessment@1",
+      "revisions": [
+        {
+          "id": "assessment@1",
+          "previous": null,
+          "ordinal": 1,
+          "sequence": 3,
+          "event": "assess"
+        }
+      ],
+      "selection_qualifications": {
+        "evidence": [],
+        "caveats": []
+      }
+    }
+  },
+  "observation_qualifications": {
+    "observations@1": {
+      "evidence": [],
+      "caveats": []
+    },
+    "reference": {
+      "evidence": [],
+      "caveats": []
+    }
+  },
+  "examination_qualifications": {},
+  "reopening_qualifications": {},
+  "predicate_qualifications": {},
+  "events": [
+    {
+      "name": "assess",
+      "parameters": []
+    },
+    {
+      "name": "consult",
+      "parameters": []
+    },
+    {
+      "name": "observe",
+      "parameters": [
+        {
+          "name": "confidence",
+          "min": 0,
+          "max": 100
+        }
+      ]
+    },
+    {
+      "name": "qualify_reference",
+      "parameters": []
+    },
+    {
+      "name": "retract",
+      "parameters": []
+    }
+  ],
+  "bindings": {
+    "assessment": {
+      "effective_confidence": 85,
+      "verdict": "approved"
+    }
+  },
+  "binding_qualifications": {
+    "assessment": {
+      "effective_confidence": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": []
+      },
+      "verdict": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "binding_explanations": {
+    "assessment": {
+      "effective_confidence": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": []
+      },
+      "verdict": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "value_grounds": {
+    "assessment_basis": {
+      "evidence": [
+        "observations@1",
+        "reference"
+      ],
+      "caveats": []
+    }
+  },
+  "commitment_grounds": {
+    "assessment@1": {
+      "evidence": [
+        "observations@1",
+        "reference"
+      ],
+      "caveats": []
+    }
+  },
+  "decision_journal": [
+    {
+      "decision": "assessment",
+      "commitment": "assessment@1",
+      "change": "committed",
+      "sequence": 3,
+      "event": "assess",
+      "elapsed": 0,
+      "value": 85,
+      "because": [
+        "observations@1",
+        "reference"
+      ],
+      "caveats": []
+    }
+  ],
+  "cues": [],
+  "cue_qualifications": [],
+  "controls": {},
+  "clock": null,
+  "world": {
+    "start_at": null,
+    "places": [],
+    "entities": [],
+    "connections": [],
+    "action_plans": []
+  },
+  "scenes": [
+    "Assess supplied observations for one task, with a consulted reference."
+  ],
+  "labels": {},
+  "symbols": [
+    {
+      "name": "answer_supported",
+      "kind": "claim",
+      "source": null,
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "assessment@1",
+      "kind": "commitment",
+      "source": null,
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "misreport",
+      "kind": "claim",
+      "source": null,
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "observations@1",
+      "kind": "evidence",
+      "source": "the host's supplied observation for this task",
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "outdated",
+      "kind": "caveat",
+      "source": null,
+      "written_by": null,
+      "consequence": "material",
+      "display": null,
+      "attention": "unexamined"
+    },
+    {
+      "name": "recheck",
+      "kind": "evidence",
+      "source": "a correction of the latest supplied observation",
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "reference",
+      "kind": "evidence",
+      "source": "a reference consulted for this task",
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "reference_consulted",
+      "kind": "claim",
+      "source": null,
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "tool",
+      "kind": "evidence",
+      "source": "the host's supplied observation for this task",
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    },
+    {
+      "name": "withdrawn",
+      "kind": "caveat",
+      "source": null,
+      "written_by": null,
+      "consequence": "material",
+      "display": null,
+      "attention": "unexamined"
+    }
+  ],
+  "relations": [
+    {
+      "from": "observations@1",
+      "relation": "supports",
+      "to": "answer_supported",
+      "origin": "live"
+    },
+    {
+      "from": "reference",
+      "relation": "supports",
+      "to": "reference_consulted",
+      "origin": "live"
+    },
+    {
+      "from": "assessment@1",
+      "relation": "relies_on",
+      "to": "observations@1",
+      "origin": "live"
+    },
+    {
+      "from": "assessment@1",
+      "relation": "relies_on",
+      "to": "reference",
+      "origin": "live"
+    }
+  ],
+  "commitments": [
+    {
+      "action": "assessment@1",
+      "open": false,
+      "retained": [],
+      "retained_authorship": [],
+      "reopened_by": []
+    }
+  ],
+  "budget": null,
+  "effects": [
+    {
+      "kind": "commit",
+      "action": "assessment@1",
+      "retained": []
+    }
+  ]
+}

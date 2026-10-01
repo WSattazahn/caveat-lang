@@ -1,0 +1,12 @@
+test_correction_withdraws_then_replaces (__main__.IntegrationTests.test_correction_withdraws_then_replaces) ... ok
+test_late_source_qualification_freezes_old_grounds (__main__.IntegrationTests.test_late_source_qualification_freezes_old_grounds) ... ok
+test_new_task_does_not_inherit_and_cannot_restore_old_save (__main__.IntegrationTests.test_new_task_does_not_inherit_and_cannot_restore_old_save) ... ok
+test_qualified_source_can_make_score_insufficient (__main__.IntegrationTests.test_qualified_source_can_make_score_insufficient) ... ok
+test_rejected_required_observation_and_retry (__main__.IntegrationTests.test_rejected_required_observation_and_retry) ... ok
+test_save_restore_continue_same_task (__main__.IntegrationTests.test_save_restore_continue_same_task) ... ok
+test_second_supporting_observation_reassesses (__main__.IntegrationTests.test_second_supporting_observation_reassesses) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.921s
+
+OK

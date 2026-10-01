@@ -1,0 +1,5 @@
+task.cav loads.
+  events: assess, consult, observe (confidence 0..100), qualify_reference, retract
+  reading streams: observations from tool, limit 16
+  decision series: assessment, limit 8
+  displayed: assessment.effective_confidence, assessment.verdict
