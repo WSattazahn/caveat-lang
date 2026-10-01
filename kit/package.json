@@ -61,6 +61,7 @@
     "bin/",
     "lib/",
     "templates/",
+    "examples/",
     "runtime/",
     "docs/",
     "README.md",

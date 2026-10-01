@@ -1,9 +1,10 @@
 // Packs the developer kit with the reactive runtime inside it, installs the
 // tarball into a fresh consumer directory, and uses it only through the
 // installed package: the caveat command, the library by package name, the
-// session library in a browser, and the packaged getting-started guide and
-// worked example followed step by step from an empty directory. Run after
-// `npm run build`.
+// session library in a browser, the packaged getting-started guide and worked
+// example followed step by step from an empty directory, and the packaged
+// agent-evidence example's Python tests, which need Python 3.9 or later. Run
+// after `npm run build`.
 //
 //   node scripts/test-kit-package.mjs            PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //   node scripts/test-kit-package.mjs --no-browser
@@ -20,6 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-kit-browser.mjs';
 import { followGuide } from '../kit/test/guide.mjs';
+import { runCallerTests } from '../kit/test/python.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const kit = path.join(root, 'kit');
@@ -42,6 +44,10 @@ const STAGED_ROOTS = ['docs/reference'];
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md'];
 // The library's modules, each with its TypeScript declarations.
 const LIBRARY = ['check', 'explain', 'node', 'scenarios', 'serve', 'session'];
+// The agent-evidence example, committed in kit/examples/. Nothing else, such
+// as Python's bytecode or test output, may be packed with it.
+const EXAMPLE = 'examples/agent-evidence';
+const EXAMPLE_FILES = ['README.md', 'assessment.cav', 'caller.py', 'test_caller.py'].map(file => `${EXAMPLE}/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -110,8 +116,8 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target),
-  ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, license and notices');
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...STAGED_DOCS.map(([, target]) => target),
+  ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, example, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
   tarball = path.join(run, packed.filename);
@@ -169,13 +175,14 @@ for (const [source, target] of STAGED_DOCS) {
   assert.equal(await readFile(path.join(installed, target), 'utf8'), await readFile(path.join(root, source), 'utf8'), `installed ${target} matches ${source}`);
 }
 const outside = [];
-for (const file of [...KIT_DOCS, ...STAGED_DOCS.map(([, target]) => target)].filter(file => file.endsWith('.md'))) {
+const OWN_DOCS = [...KIT_DOCS, `${EXAMPLE}/README.md`];
+for (const file of [...OWN_DOCS, ...STAGED_DOCS.map(([, target]) => target)].filter(file => file.endsWith('.md'))) {
   const markdown = await readFile(path.join(installed, file), 'utf8');
   for (const [, link] of markdown.matchAll(/\]\(([^)\s]+)\)/g)) {
     if (/^(https?:|mailto:|#)/.test(link)) continue;
     const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), link.split('#')[0]));
     if (!existsSync(path.join(installed, target))) {
-      assert.ok(!KIT_DOCS.includes(file), `${file} links to ${link}, which is not in the package`);
+      assert.ok(!OWN_DOCS.includes(file), `${file} links to ${link}, which is not in the package`);
       outside.push(`${file} -> ${link}`);
     }
   }
@@ -299,6 +306,26 @@ for (const result of worked) {
   assert.equal(result.actual, result.expected, `the worked example's output for ${result.command}`);
 }
 report.checks.workedExample = worked.map(result => result.command);
+
+// The agent-evidence example, copied out of the installed package as its
+// README says, and run with its default launcher, `npx --no-install caveat`,
+// which finds the installed command.
+const agentEvidence = path.join(reader, 'agent-evidence');
+await mkdir(agentEvidence);
+for (const file of EXAMPLE_FILES) {
+  await copyFile(path.join(reader, 'node_modules', manifest.name, file), path.join(agentEvidence, path.posix.basename(file)));
+}
+for (const command of ['validate', 'check']) {
+  const checked = shell(`npx --no-install caveat ${command} assessment.cav`, agentEvidence);
+  assert.equal(checked.status, 0, checked.stdout + checked.stderr);
+}
+const called = await runCallerTests(agentEvidence);
+assert.equal(called.status, 0, `${called.python}\n${called.stdout}${called.stderr}`);
+// One caller test is for POSIX only; Windows reports it skipped.
+assert.match(called.report, process.platform === 'win32' ? /\nOK \(skipped=1\)\n?$/ : /\nOK\n?$/, 'the caller tests report OK');
+assert.doesNotMatch(called.report, /ResourceWarning/, 'the caller leaves a pipe or file open');
+assert.deepEqual(called.after, called.before, 'the caller tests left files behind');
+report.checks.agentEvidence = { python: called.python, tests: Number(/^Ran (\d+) tests?/m.exec(called.report)?.[1]) };
 
 // The session library and runner in a browser, loaded from the installed package.
 if (!process.argv.includes('--no-browser')) {
