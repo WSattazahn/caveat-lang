@@ -16,7 +16,7 @@ npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang serve umbrella.cav
 ```
 
-The rc.7 development version is not published yet; these commands require an
+The rc.7 release preparation candidate is not published on npm yet; these commands require an
 installed rc.7 tarball. The published rc.6 has only `caveat`; use that spelling
 with the [rc.6 installation instructions](GETTING_STARTED.md).
 

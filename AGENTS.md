@@ -21,7 +21,7 @@ the same source, runtime and tests as human authors.
 Identify the package version before following commands. The published rc.6
 candidate uses `caveat`; verified rc.7 tarballs also provide `caveat-lang`,
 `doctor` and `demo agent`. Do not infer publication from this checkout's version.
-In this rc.7 checkout, after building, `node kit/bin/caveat.mjs doctor --json`
+In a checkout with doctor support, after building, `node kit/bin/caveat.mjs doctor --json`
 checks the runtime and `node kit/bin/caveat.mjs demo agent` demonstrates the
 starter's observation, correction and assessment lifecycle. The demo uses
 illustrative inputs and changes no project files.
