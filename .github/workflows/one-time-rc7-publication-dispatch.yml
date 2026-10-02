@@ -1,29 +1,28 @@
-name: one-time rc7 publication record dispatch
+name: inspect one-time rc7 publication record
 on:
   push:
     branches: [codex/dispatch-rc7-publication-record]
 permissions:
   contents: read
-  actions: write
+  actions: read
 jobs:
-  dispatch:
+  inspect:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
-        with: {persist-credentials: false}
-      - uses: actions/setup-node@v7
-        with: {node-version: 22}
-      - name: Read-only registry gate before dispatching existing finalization
-        run: node scripts/record-rc7-publication.mjs --check-only
-      - name: Dispatch main publication documentation workflow once
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --method POST repos/WSattazahn/caveat-lang/actions/workflows/record-rc7-publication.yml/dispatches -f ref=main
-      - uses: actions/upload-artifact@v7
-        if: always()
+      - uses: actions/download-artifact@v8
         with:
-          name: rc7-dispatch-independent-receipts
-          path: test-results/
-          retention-days: 90
+          artifact-ids: 11234894115
+          run-id: 37026797517
+          github-token: ${{ github.token }}
+          path: receipts
+      - name: Print retained public error and prepared PR only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ['rc7-publication-record.stderr.txt', 'prepared-pr.json']:
+              paths=list(Path('receipts').rglob(name))
+              if len(paths)!=1: raise RuntimeError('Expected one '+name)
+              print(name)
+              print(paths[0].read_text())
+          PY
