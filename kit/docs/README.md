@@ -117,3 +117,7 @@ Background:
   [scenarios](reference/examples/thermostat_history.scenarios.json): readings kept over
   time, and a decision revised on every reading while earlier revisions keep
   their basis.
+
+For an agent integration, follow the [agent quickstart](AGENT_START.md): choose
+commands for the installed version, test a small policy, and use the official
+caller to keep required-operation success separate from assessment.

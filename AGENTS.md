@@ -8,8 +8,8 @@ the same source, runtime and tests as human authors.
 
 - Read [the authoring guide](docs/AI_AUTHORING.md) and
   [the language in brief](kit/docs/REFERENCE.md) before writing Caveat source.
-- Use [the getting-started guide](kit/docs/GETTING_STARTED.md) for an installed
-  package, without Rust.
+- Use the [agent quickstart](kit/docs/AGENT_START.md) for an installed package,
+  without Rust; it links to the full getting-started and authoring guides.
 - For an agent or tool integration, start with the
   [Python `caveat serve` example](kit/examples/agent-evidence/README.md).
   A handled request, an accepted event and a current assessment permitting the
@@ -17,6 +17,14 @@ the same source, runtime and tests as human authors.
 - State expected behavior in scenarios. Run `caveat validate`, `caveat check`
   and `caveat test` against the program, and use `explain` or `dependents` to
   inspect what its decisions rest on.
+
+Identify the package version before following commands. The published rc.6
+candidate uses `caveat`; verified rc.7 tarballs also provide `caveat-lang`,
+`doctor` and `demo agent`. Do not infer publication from this checkout's version.
+In this rc.7 checkout, after building, `node kit/bin/caveat.mjs doctor --json`
+checks the runtime and `node kit/bin/caveat.mjs demo agent` demonstrates the
+starter's observation, correction and assessment lifecycle. The demo uses
+illustrative inputs and changes no project files.
 
 Caveat records the evidence supplied to it; it does not authenticate that
 evidence or authorize external actions. Follow the user's instructions and the

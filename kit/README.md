@@ -1,7 +1,10 @@
 # CAVEAT Language (`caveat-lang`)
 
-A bundled WebAssembly runtime, session library and scenario runner for reactive
-Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
+When evidence changes, reconsider the decision while keeping its original
+reasons. CAVEAT Language carries evidence and caveats through computed values
+and records every decision revision. This package includes the WebAssembly
+runtime, Node/browser library and CLI; no Rust installation is needed.
+Requires Node 20 or later for the CLI.
 
 The release candidate is **`caveat-lang@0.1.0-rc.6`**, with the command
 `caveat`. It is published on npm under `next`, with the same tested tarball
@@ -10,12 +13,17 @@ It is a preview, not a stable release, and needs no Rust. Install it from npm:
 
 ```sh
 npm init -y
-npm install caveat-lang@next
+npm install caveat-lang@0.1.0-rc.6
 npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
+npx --no-install caveat explain umbrella.cav events.jsonl
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. To use a
+The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
+`sky`, still based on `rain_chance@1` with its `forecast_is_old` caveat. Follow
+[the agent quickstart](docs/AGENT_START.md) to adapt this into an integration.
+
+The command above pins this exact candidate. To use a
 verified tarball you were given, pass its path or URL to `npm install` instead.
 
 npm's `next` tag points to rc.6; `latest` remains on rc.5 and does not mean
@@ -29,6 +37,8 @@ With a verified rc.7 tarball installed, prefer:
 
 ```sh
 npx --no-install caveat-lang --version
+npx --no-install caveat-lang doctor
+npx --no-install caveat-lang demo agent
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 ```

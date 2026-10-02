@@ -1,8 +1,9 @@
 # Agent adoption follow-up
 
 Recorded October 1, 2026 after the owner asked to retain the adoption proposal
-as follow-up work. This is a backlog, not additional rc.7 implementation or a
-release gate approved by that discussion.
+as follow-up work. The owner subsequently authorized working through the
+recommended order. Implementation proceeds on `codex/agent-adoption`; this
+authorization does not approve publication or make every item a release gate.
 
 The active rc.7 scope is the evaluated lifecycle/qualification guidance,
 application grounding tests, authoring diagnostics, the `caveat-lang` executable
@@ -10,7 +11,18 @@ alias and coexistence test, and approved neutral reveal. Public `whatif`,
 `abstain`, and scenario string matchers remain deferred. Neutral reveal was
 explicitly approved after the earlier proposal to defer it.
 
-## Proposed work and acceptance evidence
+## Execution order
+
+1. Doctor and the deterministic agent demonstration — implemented and tested.
+2. Onboarding contract and README first screen — implemented and checked.
+3. Thin MCP authoring bridge — interface reviewed; implementation in progress.
+4. Packed-release dependency security checks.
+5. Preregistered cold-agent adoption experiment.
+6. Dated name audit before 1.0.
+
+Each item requires the acceptance evidence below before it is recorded as done.
+
+## Work and acceptance evidence
 
 | Follow-up | Desired outcome | Evidence needed before calling it complete |
 | --- | --- | --- |
@@ -40,3 +52,21 @@ explicitly approved after the earlier proposal to defer it.
 The proposed adoption work should make these capabilities easier to discover
 and use. It does not authorize a memory-store product, a project rename,
 publication, or feature-for-feature competition with another CAVEAT project.
+
+## Execution receipts
+
+Doctor/demo: commit `0d0f178`; 196 kit tests passed before the final demo review
+fix, followed by 15 passing demo/CLI checks and 10 passing doctor checks for the
+final owned modules. A preliminary installed tarball passed both collision
+owners, doctor/demo aliases, library, Python and browser checks (SHA-256
+`6c143069ef685aaa55fb581658731e890edcd0f2c01c10979d6acb3f1c1ef155`). Its dirty-build
+metadata makes it development evidence, not a releasable candidate. The final
+candidate package is checked again after the remaining package changes.
+
+Onboarding: actual fresh `caveat-lang@0.1.0-rc.6` install/init/test/explain passed;
+the example's two scenarios and displayed decision history match the README.
+All 19 documentation/command tests passed. Existing feature-request instructions
+already covered permission, reproducibility and acceptance; they were retained.
+
+The requested root npm scripts typecheck, lint, test and audit:all are absent;
+the attempted commands failed as missing scripts. They are not passing gates.
