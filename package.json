@@ -10,6 +10,8 @@
   },
   "scripts": {
     "build": "node scripts/build-web.mjs",
+    "verify:lean": "node scripts/verify-lean.mjs",
+    "test:lean-gate": "node --test scripts/verify-lean.test.mjs",
     "assemble": "node scripts/build-web.mjs --assemble-only",
     "serve": "node scripts/serve.mjs",
     "test:beacon": "node scripts/test-beacon.mjs",

@@ -27,6 +27,14 @@ const NEUTRAL_SOURCE = `evidence memory from "lookup"; caveat stale consequence 
   on age qualify memory with stale;
   bind hud.seen = observed(memory); bind hud.score = score because score;`;
 
+const GROUNDS_SOURCE = `evidence chart from "chart"; evidence other from "independent observation";
+  caveat age consequence low; caveat unrelated consequence material; age qualifies chart;
+  state basis = 0; state narrow = 0; event consult;
+  on consult reveal chart; on consult reveal other;
+  on consult set basis = qualified(1, chart);
+  on consult set narrow = basis because nothing;
+  on consult commit act because enough using basis;`;
+
 // Executed in the page. The paths are URL prefixes on the test server.
 function pageCheck({ kit, runtime: runtimeBase, examples, clockSource }) {
   return `
@@ -87,6 +95,47 @@ try {
     && neutralEvidence[0].claim === null && neutralEvidence[0].caveats.includes('stale');
   neutral.close();
   neutralRestored.close();
+
+  // Exercise the restore trust boundary through the public kit and actual WASM.
+  // Every added name is valid and observed/declared; only subset inclusion fails.
+  const groundsSource = ${JSON.stringify(GROUNDS_SOURCE)};
+  const grounded = runtime.open(groundsSource);
+  grounded.dispatch('consult');
+  const groundedSave = grounded.save();
+  const validGrounds = runtime.restore(groundsSource, groundedSave);
+  results.restoreNarrowedGrounds = JSON.stringify(validGrounds.snapshot()) === JSON.stringify(grounded.snapshot())
+    && validGrounds.snapshot().value_grounds.narrow.evidence.length === 0;
+  validGrounds.close();
+  const alterations = [
+    ['state basis grounds include evidence other outside its lineage', saved => {
+      saved.states.basis.grounds = { evidence: ['chart', 'other'], caveats: ['age'] };
+    }],
+    ['state basis grounds include caveat unrelated outside its lineage', saved => {
+      saved.states.basis.grounds = { evidence: ['chart'], caveats: ['age', 'unrelated'] };
+    }],
+    ['commitment act grounds include evidence other outside its lineage', saved => {
+      saved.commitment_grounds.act.evidence = ['chart', 'other'];
+      saved.decision_journal[0].because = ['chart', 'other'];
+    }],
+    ['commitment act grounds include caveat unrelated outside its lineage', saved => {
+      saved.commitment_grounds.act.caveats = ['age', 'unrelated'];
+      saved.decision_journal[0].caveats = ['age', 'unrelated'];
+    }],
+  ];
+  results.restoreGroundsRejected = true;
+  for (const [expected, alter] of alterations) {
+    const saved = JSON.parse(groundedSave);
+    alter(saved);
+    let refused = false;
+    try {
+      const unexpected = runtime.restore(groundsSource, JSON.stringify(saved));
+      unexpected.close();
+    } catch (error) {
+      refused = error.kind === 'restore' && error.message.includes(expected);
+    }
+    if (!refused) throw new Error('restore failed to refuse: ' + expected);
+  }
+  grounded.close();
 
   const fileUrl = new URL(${JSON.stringify(`${examples}thermostat_history.scenarios.json`)}, location.href);
   const doc = parseScenarioFile(await text(fileUrl));
@@ -170,7 +219,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }
