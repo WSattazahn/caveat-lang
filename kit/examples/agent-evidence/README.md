@@ -390,7 +390,7 @@ restore and after every subsequent accepted or rejected event under both
 policies. Serve's `explain` event list starts again after restore; the snapshot
 retains the decision and observation history.
 
-From this rc.7 development checkout or a package candidate containing the new
+From this rc.7 candidate checkout or a package candidate containing the new
 suite, run it separately from the original 53 tests:
 
 ```sh

@@ -340,3 +340,11 @@ These placeholders are intentionally not runnable release instructions today.
 There is no implemented npm-kit package or tag-driven publishing workflow at
 the inspected head. Shipping a kit is a separate deliverable after this
 consolidation, not a side effect of merging the language stack.
+
+## Current release procedure addendum — 2026-10-02 UTC
+
+The historical inventory above predates the implemented kit and present CI.
+The kit now exists; Runtime includes full/reactive-only lint/tests, installed
+package validation, browser checks, reproducibility and same-tarball security.
+Use [rc.7 release preparation](releases/v0.1.0-rc.7.md) for current sequencing.
+Historical source pins, study limitations and registered evidence remain intact.

@@ -138,3 +138,10 @@ It supports the existing CAVEAT Language identity and unambiguous CLI alias.
 
 Implementation and evidence are on draft PR #81. Publication, tagging, merging,
 and installing the bridge into a live desktop host have not been performed.
+
+## Authorized release phase — 2026-10-02 UTC
+
+The owner subsequently authorized integration and rc.7 release preparation.
+PR76–81 are merged with historical commits preserved. This updates current
+status without rewriting the draft-phase receipts above. npm publication
+remains manual and pending; follow the [release gates](releases/v0.1.0-rc.7.md).

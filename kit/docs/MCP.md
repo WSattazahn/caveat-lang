@@ -1,4 +1,4 @@
-# MCP authoring tools (rc.7 development)
+# MCP authoring tools (rc.7 candidate)
 
 An installed rc.7 tarball can expose existing Caveat authoring operations to a
 local MCP host. Published rc.6 does not include this command. The bridge uses
