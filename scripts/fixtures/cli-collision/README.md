@@ -1,20 +1,21 @@
-# CLI collision fixture
+# CLI ownership collision fixture
 
-`npm run test:kit-package` installs this locked `caveat-cli@0.19.13` and the
-newly packed `caveat-lang` in two fresh directories. It needs npm registry
-access or a cache containing the lockfile's exact dependencies. All third-party
-installs and rebuilds use `--ignore-scripts`; the competing executable is never
-run, and no hooks or memory store are initialized.
+This fixture installs the real `caveat-cli@0.19.13` package beside the packed
+`caveat-lang` candidate. The regression deliberately gives each package
+ownership of the ambiguous `caveat` executable and checks that `caveat-lang`
+still launches CAVEAT Language. Third-party lifecycle scripts and the competing
+CLI are never executed.
 
-The fixture verifies npm's `caveat` shim target for each package in turn. npm
-install ordering differs across versions, so it removes only the generated
-`caveat` shims and asks npm to relink the selected owner with `npm rebuild`.
-It then invokes the real `caveat-lang` shim and npm exec, checking CAVEAT
-Language help and the packed package version in both ownership cases. This is
-about executable selection, not compatibility with the other tool's runtime.
+The competitor package is pinned with its registry integrity hash. Its
+`smol-toml` dependency is overridden from the published exact `1.7.0` requirement
+to `1.7.1`, which fixes the malformed TOML denial of service in
+[GHSA-7w5x-hrqm-74c2](https://github.com/advisories/GHSA-7w5x-hrqm-74c2).
+This is a fixture with a patched dependency tree, not a reproduction of the
+competitor's original dependency tree or a test of its application behavior.
+The lockfile pins the replacement and its integrity, and the collision receipt
+records `dependencyOverrides` explicitly.
 
-The fixture package and transitive dependencies are pinned by the checked-in
-lockfile, with registry integrity hashes. Refresh them deliberately when
-updating this regression; do not replace the real package with a local stub.
-The package report records the selected version, integrity and both cases.
-The fixture is not included in the published language package.
+Run `npm audit --json --audit-level=high` in this directory to inspect its locked
+dependencies. The full installed collision test runs in `npm run test:kit-package`
+from the repository root, after `npm run build`. Its consumer directories are
+created under `test-results/kit-package/`; the fixture itself is never published.

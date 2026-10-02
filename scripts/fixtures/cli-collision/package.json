@@ -5,5 +5,10 @@
   "description": "Install-only fixture for the caveat executable collision; third-party code is never invoked.",
   "dependencies": {
     "caveat-cli": "0.19.13"
+  },
+  "overrides": {
+    "caveat-cli": {
+      "smol-toml": "1.7.1"
+    }
   }
 }

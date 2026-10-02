@@ -1,7 +1,9 @@
 // Real, pinned co-installation regression for npm's ambiguous caveat shim.
 // This fixture needs npm registry access (or a primed cache); npm ci verifies
 // the lockfile's integrity hashes. Lifecycle scripts and the competing CLI
-// are never executed. All writes stay in the caller's fresh result directory.
+// are never executed. The fixture overrides only smol-toml to its patched
+// 1.7.1 release; this verifies the real CLI package with a patched dependency
+// tree, not the competitor's original dependency tree. All writes stay in the caller's fresh result directory.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, readFile, realpath, unlink } from 'node:fs/promises';
@@ -38,6 +40,7 @@ async function assertShim(directory, name, owner, target) {
 }
 
 export async function checkCliCollision({ tarball, directory, manifest, help, version }) {
+  const fixtureManifest = JSON.parse(await readFile(path.join(fixture, 'package.json'), 'utf8'));
   const lock = JSON.parse(await readFile(path.join(fixture, 'package-lock.json'), 'utf8'));
   const pinned = lock.packages['node_modules/caveat-cli'];
   const cases = [];
@@ -83,5 +86,5 @@ export async function checkCliCollision({ tarball, directory, manifest, help, ve
     }
     cases.push({ doctor: true, caveatOwner: owner, caveatLangOwner: manifest.name, help: true, version: true, npmExec: true });
   }
-  return { package: `caveat-cli@${pinned.version}`, integrity: pinned.integrity, lifecycleScripts: false, competingCliExecuted: false, cases };
+  return { package: `caveat-cli@${pinned.version}`, integrity: pinned.integrity, dependencyOverrides: fixtureManifest.overrides ?? {}, lifecycleScripts: false, competingCliExecuted: false, cases };
 }
