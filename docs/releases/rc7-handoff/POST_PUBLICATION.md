@@ -43,3 +43,28 @@ receipt artifact. A successfully created branch plus prepared-pr.json contains
 the exact reviewed next PR step; report the permission error and use the
 owner-authorized GitHub connection without changing protection/settings. Never
 silently mark this follow-up complete or claim npm availability on a failed gate.
+
+## 2026-10-02 recovery amendment
+
+The immutable release asset Publish-Rc7.ps1 (SHA256
+860d75b726097e481b7e9d0206ffa4f401de9bfc89e63162a106f2e4a1f4e88e)
+is preserved. It checked registry visibility only once after npm accepted the
+publication, and reported a misleading identity/integrity mismatch on HTTP404.
+The owner observed npm's processing message and + caveat-lang@0.1.0-rc.7;
+the initial version endpoint returned HTTP404. This is accepted/pending evidence,
+not evidence of different bytes. Subsequent registry download and fresh install
+succeeded before Windows PowerShell5.1 refused the lockfile's empty packages key.
+No authentication URLs, codes or tokens are retained here.
+
+The moving-source helper now polls at most 61 reads with 10-second intervals
+(10 minutes plus request time). HTTP404 and the known old next=rc.6 state may
+propagate; actual identity/integrity mismatch, unexpected channels, and every
+non404 request error refuse immediately. latest must remain rc.5. Timeout says
+accepted/pending/unverified and retains a public recovery-context JSON with the
+exact artifact identity. Use the reviewed source helper with **-VerifyOnly** for
+this already accepted version; do not publish again. VerifyOnly cannot call login
+or publish even while the registry version is absent. Node selects the installed
+package lock entry before PowerShell parses JSON, supporting PowerShell5.1.
+The frozen release helper has neither fix; do not overwrite that asset or assert
+its original hash identifies this amended source. A successful recovery still
+requires exact registry bytes, a fresh install and the publication-record workflow.
