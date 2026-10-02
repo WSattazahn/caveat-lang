@@ -6,6 +6,15 @@ const repo='WSattazahn/caveat-lang',revision=process.env.FINAL_MAIN;
 const token=process.env.GH_TOKEN;
 const hash=b=>createHash('sha256').update(b).digest('hex');
 async function api(p){const r=await fetch('https://api.github.com/repos/'+repo+'/'+p,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json'}});assert(r.ok,p+' HTTP'+r.status);return r.json();}
+if(process.argv.includes('--verify-release-body')){
+ const current=await api('releases/tags/v0.1.0-rc.7');
+ assert(current.prerelease&&!current.draft);assert.equal(current.target_commitish,'1f3fc7a2208eec964399d6c14232690f411e48be');
+ assert.equal(current.body,await readFile('test-results/postpublication/github-final-notes.md','utf8'),'Release completion body mismatch');
+ assert(current.body.includes('## Verified npm publication')&&current.body.includes('## Cloud publication documentation completion')&&current.body.includes(revision));
+ for(const [name,id] of [['Publish-Rc7.ps1',605023994],['caveat-lang-0.1.0-rc.7.tgz',605023640],['npm-publication-verification-20261002T145851184.json',605839559]])assert.equal(current.assets.find(a=>a.name===name)?.id,id);
+ const proof=current.assets.find(a=>a.name==='rc7-postpublication-cloud-verification-'+revision+'.json');assert(proof);assert.equal(proof.digest,'sha256:'+hash(await readFile('test-results/postpublication/verification.json')));
+ console.log('Prerelease completion body, owner proof and immutable primary assets preserved');process.exit(0);
+}
 if(process.argv.includes('--recheck-release-body')){
  const before=JSON.parse(await readFile('test-results/postpublication/github-release-body-before.json'));
  const current=await api('releases/tags/v0.1.0-rc.7');
@@ -27,7 +36,7 @@ for(const [run,file,event] of [[runtime,'runtime.yml','push'],[pages,'pages.yml'
  assert.equal(run.event,event);assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');
 }
 function bindArtifact(artifact){assert.equal(artifact.workflow_run.id,runtime.id);assert.equal(artifact.workflow_run.head_sha,revision);assert.equal(artifact.workflow_run.head_branch,'main');}
-const artifacts=(await api('actions/runs/'+runtime.id+'/artifacts')).artifacts;
+const artifacts=(await api('actions/runs/'+runtime.id+'/artifacts?per_page=100')).artifacts;
 const dist=artifacts.find(a=>a.name==='browser-dist');assert(dist&&!dist.expired);bindArtifact(dist);
 const zipResponse=await fetch('https://api.github.com/repos/'+repo+'/actions/artifacts/'+dist.id+'/zip',{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json'}});assert(zipResponse.ok);
 const zip=Buffer.from(await zipResponse.arrayBuffer());assert.equal('sha256:'+hash(zip),dist.digest);
@@ -75,7 +84,7 @@ const reports=await findReports('test-results/postpublication/security');assert.
 const securityBytes=await readFile(reports[0]);const security=JSON.parse(securityBytes);assert(security.passed);assert.equal(security.artifact.version,'0.1.0-rc.8');assert.equal(security.artifact.buildInfo.revision,revision);
 for(const command of security.commands){for(const stream of ['stdout','stderr']){const r=command[stream];assert.equal(hash(await readFile(reports[0].slice(0,reports[0].lastIndexOf('/')+1)+r.file)),r.sha256);}}
 const retainedRecordRun=37026797517;
-const recordArtifacts=(await api('actions/runs/'+retainedRecordRun+'/artifacts')).artifacts;
+const recordArtifacts=(await api('actions/runs/'+retainedRecordRun+'/artifacts?per_page=100')).artifacts;
 const recordZip=await retainedArtifact(recordArtifacts.find(a=>a.id===11234894115),'test-results/postpublication/publication-record-37026797517.zip');
 assert.equal(recordZip.sha256,'d643906f7f2e0f822011acd9404f26cfdded8bd1fe87c88902195cc029b6fca3');
 
@@ -95,7 +104,7 @@ assert.equal(registryProof.wasmSha256,'32139e7b59306e4da799f6977ec9356f68add27c7
 assert(Number.isFinite(Date.parse(registryProof.verifiedAt)));assert(Math.abs(Date.now()-Date.parse(registryProof.verifiedAt))<15*60*1000,'Registry receipt is stale');
 for(const command of registryProof.commands){assert.equal(command.exitCode,0);assert.equal(hash(await readFile('test-results/rc7-publication-record/'+command.file)),command.sha256);}
 for(const run of [runtime,pages]){const latest=await api('actions/runs/'+run.id);assert.equal(latest.run_attempt,run.run_attempt,'CI rerun during verification');assert.equal(latest.status,'completed');assert.equal(latest.conclusion,'success');assert.equal(latest.head_sha,revision);}
-const latestArtifacts=(await api('actions/runs/'+runtime.id+'/artifacts')).artifacts;
+const latestArtifacts=(await api('actions/runs/'+runtime.id+'/artifacts?per_page=100')).artifacts;
 for(const original of [dist,securityArtifact]){const latest=latestArtifacts.find(a=>a.name===original.name);assert(latest);assert.equal(latest.id,original.id);assert.equal(latest.digest,original.digest);}
 const receipt={verifiedAt:new Date().toISOString(),main:revision,publicationReleaseRevision:'1f3fc7a2208eec964399d6c14232690f411e48be',runtime:{id:runtime.id,attempt:runtime.run_attempt},pages:{id:pages.id,attempt:pages.run_attempt},browserArtifact:{id:dist.id,sha256:hash(zip)},liveFiles:files,frozenAssets:frozen,amendedSourceHelperSha256,registryProof,finalMainDevelopmentSecurity:{artifact:securityZip,reportSha256:hash(securityBytes),report:security},retainedPublicationRecord:recordZip,cloudVerificationRun:process.env.GITHUB_RUN_ID,limitations:['Checks do not prove absence of all unknown defects or vulnerabilities.','Frozen initial WebKit attempt was interrupted; retry passed.','Historical study qualifications and name-audit limits remain.']};
 assert.equal((await api('git/ref/heads/main')).object.sha,revision,'Main moved during final verification');
