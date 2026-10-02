@@ -2302,8 +2302,7 @@ impl ReactiveSession {
                         return Err(format!("state {name} requires a numeric expression"));
                     }
                     for citation in because.iter().flatten() {
-                        citation
-                            .validate(&numeric, &validate_predicate)
+                        self.validate_citation(citation, &numeric, &validate_predicate)
                             .map_err(|error| format!("set {name} because: {error}"))?;
                     }
                 }
@@ -2442,8 +2441,7 @@ impl ReactiveSession {
             }
             // A citation may be of any type; only its provenance is used.
             for citation in binding.because.iter().flatten() {
-                citation
-                    .validate(&numeric, &validate_predicate)
+                self.validate_citation(citation, &numeric, &validate_predicate)
                     .map_err(|error| {
                         format!(
                             "binding {}.{} because: {error}",
@@ -2591,6 +2589,48 @@ impl ReactiveSession {
                 "incremental binding explanations differ"
             );
         }
+    }
+
+    /// Citations are expressions, not claim/evidence/history names. Keep the
+    /// expression validator's checks, but explain a failed numeric lookup in
+    /// the citation's context. Other expression errors retain their diagnostic.
+    fn validate_citation(
+        &self,
+        citation: &Expr,
+        numeric: &HashSet<String>,
+        predicate: &impl Fn(&str, &str) -> Result<(), String>,
+    ) -> Result<(), String> {
+        citation.validate(numeric, predicate).map(|_| ()).map_err(|error| {
+            let Some(name) = error.strip_prefix("unknown numeric identifier ") else {
+                return error;
+            };
+            let kind = if self.reading_streams.contains_key(name) {
+                Some("reading stream")
+            } else if self.decision_series.contains_key(name) {
+                Some("decision series")
+            } else if self.events.contains_key(name) {
+                Some("event")
+            } else if self.procedures.contains_key(name) {
+                Some("procedure")
+            } else {
+                self.symbols.get(name).and_then(|id| self.graph.nodes.get(id)).map(|node| {
+                    match node {
+                        NodeKind::Claim { .. } => "claim",
+                        NodeKind::Evidence { .. } => "evidence",
+                        NodeKind::Caveat { .. } => "caveat",
+                        NodeKind::Context { .. } => "context",
+                        NodeKind::Commitment { .. } => "commitment",
+                        NodeKind::Observation { .. } => "observation",
+                    }
+                })
+            };
+            match kind {
+                Some(kind) => format!(
+                    "{name} is a declared {kind}, not a value citation; cite a state, a history read such as latest(STREAM), or an evidence-bearing expression that the value or its conditions actually read"
+                ),
+                None => format!("unknown citation identifier {name}"),
+            }
+        })
     }
 
     /// Evaluate `because` citations and check that they cite only what the
@@ -5464,8 +5504,16 @@ fn parse_define(line: &str) -> Result<Directive, String> {
         .unwrap()
         .split_once('=')
         .ok_or("define expects NAME = EXPRESSION")?;
+    let name = name.trim();
+    if let Some((function_name, _)) = name.split_once('(') {
+        if let Ok(function_name) = identifier(function_name.trim()) {
+            return Err(format!(
+                "define declares a named expression and does not take parameters; use define {function_name} = EXPRESSION; use fn {function_name}(...) = EXPRESSION only for a pure function with explicit parameters, which cannot capture state, history or evidence"
+            ));
+        }
+    }
     Ok(Directive::Define {
-        name: identifier(name.trim())?,
+        name: identifier(name)?,
         expression: reactive_expr::parse_unresolved(expression.trim())?,
     })
 }

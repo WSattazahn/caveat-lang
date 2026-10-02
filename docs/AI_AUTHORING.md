@@ -309,6 +309,24 @@ are sets. Older saves can omit the two new fields, so generic consumers should
 treat their absence as unknown. Saved records are checked for internal
 consistency; an unsigned save is not proof that its history really occurred.
 
+## Citations and named expressions
+
+A `because` citation is an expression whose provenance the value or its
+conditions actually read. A bare claim such as `intent_clear` is a known
+symbol of the wrong kind, not an unknown name. Cite the state, `latest(STREAM)`
+or an appropriate evidence-bearing expression. Choosing a valid expression
+does not bypass the check against the original lineage.
+
+`define freshness_last = latest(freshness);` names an expression. It does
+not take parentheses or parameters. `fn` is for pure functions with explicit
+arguments; it cannot capture state, history or evidence. Pass values in when
+that is the computation you intend.
+
+For scenario checks, assert the decision and numeric score structurally.
+A display prefix such as `Proceeding` alone cannot distinguish confidence
+68 from 12. Exact text is appropriate when the text itself is the contract.
+No new string matcher is part of this candidate.
+
 ## Repeated assessments and late qualifications
 
 The [agent-evidence starter](../kit/examples/agent-evidence/README.md#assessing-again)
