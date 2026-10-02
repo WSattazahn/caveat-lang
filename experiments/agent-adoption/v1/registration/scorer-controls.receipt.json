@@ -1,0 +1,28 @@
+{
+  "combinedOutputLimitBytes": 16777216,
+  "command": [
+    "C:\\Program Files\\nodejs\\node.exe",
+    "--test",
+    "C:\\Dev\\caveat-lang\\experiments\\agent-adoption\\v1\\checks.test.mjs"
+  ],
+  "cwd": "C:\\Dev\\caveat-lang",
+  "elapsedSeconds": 0.407,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:47:20.200Z",
+  "observedOutputBytes": 1551,
+  "pid": 67536,
+  "retainedOutputBytes": 1551,
+  "startedAt": "2026-10-02T00:47:19.793Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "scorer-controls.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 1551,
+    "file": "scorer-controls.stdout",
+    "sha256": "1706cf077457110812933eb02e652c0abaeef125929dc1aa9b19a07ed6fec8f5"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 120
+}

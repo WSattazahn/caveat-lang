@@ -1,0 +1,24 @@
+✔ correct private tracker passes every semantic check (51.9876ms)
+✔ valid correction may reopen because the withdrawn reading rather than the correction evidence (13.3134ms)
+✔ mutant that fabricates template support cannot pass neutral observation checks (13.9361ms)
+✔ mutant that commits during observation fails observation and assessment separation (8.951ms)
+✔ mutant with only opposing-reading reopening fails the every-reading contract (22.0149ms)
+✔ correction still requires a reopening event and the exact withdrawal reason (22.8778ms)
+✔ correct host performs required operations and obtains fresh approval (4.2091ms)
+✔ correct private registered scenarios run including historical assertions and resume (16.702ms)
+✔ mutant that substitutes a bare value loses exact decision grounds (8.0413ms)
+✔ mutant missing the weak-reading policy refusal is rejected (8.9992ms)
+✔ mutant that checks template stale instead of selected archived reading is rejected (8.9339ms)
+✔ mutant missing correction withdrawal is rejected (8.1379ms)
+✔ mutant that reuses visible old approval after rejected operations is rejected (2.9217ms)
+✔ host cannot pass by returning the expected boolean sequence without operations (1.0756ms)
+✔ scenario evaluator refuses alternate sources and preserves failed assertions (12.8463ms)
+✔ full scorer preserves first failures, records hashes, and leaves manual scores unset (59.6342ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 351.0172

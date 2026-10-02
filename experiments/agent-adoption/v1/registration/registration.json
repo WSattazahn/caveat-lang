@@ -1,0 +1,721 @@
+{
+  "candidate": {
+    "bytes": 810225,
+    "name": "caveat-lang",
+    "runtime": {
+      "clean": true,
+      "compiled": true,
+      "host": "x86_64-pc-windows-msvc",
+      "reactiveWasmSha256": "e0c1ff6921485ac342f4eced76c68f58b14615077838c6f2af7da725430c6ba3",
+      "revision": "a24a6e91d75eeab466baa32a108ee9a242f43ac2"
+    },
+    "sha256": "eea2c9239f3d648a1af740843abee5ed1eac1c972c327793bb9af2ede36b9a1f",
+    "tarball": "inputs/caveat-lang-0.1.0-rc.7.tgz",
+    "version": "0.1.0-rc.7"
+  },
+  "configuration": {
+    "approval": "--approve-for-me with windows.sandbox=elevated; no conflicting --sandbox flag",
+    "boundary": "Shared host filesystem and caches; procedural packet boundary, not OS isolation. Project docs disabled; web search disabled; no tool-driven network required.",
+    "environmentExcludedNames": [
+      "CODEX_SESSION_ID",
+      "CODEX_THREAD_ID"
+    ],
+    "environmentValuesRecorded": false,
+    "modelOverride": null,
+    "observedPreflightModel": "gpt-6.1-sol",
+    "observedPreflightReasoning": "none",
+    "perTrialModelReported": null,
+    "perTrialReasoningReported": null,
+    "preflight": {
+      "bytes": 2156,
+      "file": "inputs/preflight.txt",
+      "observedHeader": {
+        "approval": "on-request",
+        "model": "gpt-6.1-sol",
+        "provider": "openai",
+        "reasoning effort": "none",
+        "sandbox": "workspace-write [workdir, /tmp, $TMPDIR]"
+      },
+      "originalPath": "C:\\Dev\\caveat-lang\\test-results\\adoption\\cli-preflight\\write-preflight-2.stderr",
+      "sha256": "f47bfc578bbc8a3b6e7731408c585da56eb1b9be9b7c2f4e1fdeeabf8560d25c"
+    },
+    "preflightEvidenceScope": "Equivalent non-JSON preflight only; JSON trials expose no configuration header.",
+    "preflightNotes": "Parsed settings describe the supplied equivalent non-JSON preflight only; JSON trials expose no config header; no explicit model/effort override.",
+    "reasoningOverride": null
+  },
+  "inputs": {
+    "caveat-lang-0.1.0-rc.7.tgz": {
+      "bytes": 810225,
+      "sha256": "eea2c9239f3d648a1af740843abee5ed1eac1c972c327793bb9af2ede36b9a1f"
+    },
+    "package-report.json": {
+      "bytes": 7313,
+      "sha256": "3398771a394b4f78c800d170ce42fbe11c3cdc730ae6f796f5cc5a111d5de5c5"
+    },
+    "preflight.txt": {
+      "bytes": 2156,
+      "sha256": "f47bfc578bbc8a3b6e7731408c585da56eb1b9be9b7c2f4e1fdeeabf8560d25c"
+    },
+    "security-report.json": {
+      "bytes": 31550,
+      "sha256": "6b5b21622068a83cc9b331fd4c170868cebf6da1deac6a5f29e72a4730dbeaa8"
+    }
+  },
+  "installedPackageFiles": {
+    "LICENSE": {
+      "bytes": 1073,
+      "sha256": "655351c67c8027cd9f1827daf8a7f94736e8589eabc11a3a35439154347bdc59"
+    },
+    "README.md": {
+      "bytes": 20786,
+      "sha256": "1ef6ea5b0faecb7ab71436b4e775045439429ea44b17dcd34df7d5170b15db89"
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "bytes": 15109,
+      "sha256": "a107899a295a4ed79cb8781f7b6be1fd7f9f3f112683deea75bba2eebe9edad6"
+    },
+    "bin/caveat.mjs": {
+      "bytes": 20126,
+      "sha256": "e4918078851535e8fb368161e24206319de121bc7ca2fbb3d47847d921ea68cd"
+    },
+    "docs/AGENT_START.md": {
+      "bytes": 4121,
+      "sha256": "cb4e98db8282766bca23e9b0de1c466c5750b11b8763a5bf4ad453799c62925f"
+    },
+    "docs/GETTING_STARTED.md": {
+      "bytes": 13195,
+      "sha256": "c6a72c064ff5d5978ce12d17137c1c6d589020377049e049890c06ffbef05814"
+    },
+    "docs/MCP.md": {
+      "bytes": 3727,
+      "sha256": "4f001317faeb2bbd14cf7dc29c922fb1925c7375005164f6e8b73bd64fffb01b"
+    },
+    "docs/NAMES.md": {
+      "bytes": 1917,
+      "sha256": "64d6b4ee0580611486e12a4776acb39aaee83fc37109f4d993df38dc407adc6f"
+    },
+    "docs/README.md": {
+      "bytes": 6420,
+      "sha256": "f6f29460050fc3471f263a2faee26aef0833b46897c00c2d52576b45eb57d24d"
+    },
+    "docs/REFERENCE.md": {
+      "bytes": 11265,
+      "sha256": "066895937749e425c784c8a4ebdae4b0eaae15aea20fdefe41b8cc64bbd4c779"
+    },
+    "docs/WORKED_EXAMPLE.md": {
+      "bytes": 12790,
+      "sha256": "ce9aa41692295eb18476214f22eebabb0eed0eb21097fb8b3472f1bef73c56fc"
+    },
+    "docs/reference/docs/AI_AUTHORING.md": {
+      "bytes": 21668,
+      "sha256": "4ddef4844b6981870c83af5bf8ae2af17e573e3937e668943eb68a5a5c33a3f3"
+    },
+    "docs/reference/docs/CAVEAT_ESSENCE.md": {
+      "bytes": 12887,
+      "sha256": "01584aee2629a98a11169b39d1b168022450e2c3b5991b506b6b3e10a2416fa3"
+    },
+    "docs/reference/docs/MCP_AUTHORING_DESIGN.md": {
+      "bytes": 4936,
+      "sha256": "5eae69d2715fc2e8156e3ecc9b91320507681aa87579c7847d67ca92fea24fc8"
+    },
+    "docs/reference/docs/PACKAGE_SECURITY.md": {
+      "bytes": 6024,
+      "sha256": "cf5702111aefa0b9c29195900c71a61825ee8edc1d7996faabf92e91e3ce89f0"
+    },
+    "docs/reference/examples/thermostat_history.cav": {
+      "bytes": 2432,
+      "sha256": "374241b1d9d7528092b5ad7e216d6e0a8baecdb38b0ca29d96953665fefc29f6"
+    },
+    "docs/reference/examples/thermostat_history.scenarios.json": {
+      "bytes": 3505,
+      "sha256": "24cef7e1254b883d2fb48b95194573b3fb1ed75a2067db603f22862a56fadf37"
+    },
+    "docs/reference/runtime/prelude.cav": {
+      "bytes": 899,
+      "sha256": "017c7e6bd06fc70afdf049c43da753b63984478db8113fd544c4b94d74ab5864"
+    },
+    "docs/reference/spec/caveat-0.1.md": {
+      "bytes": 2254,
+      "sha256": "b68d49205944e816726595dd9b545069653dd96ac9b0f1bd0713b3267f8baa46"
+    },
+    "docs/reference/spec/caveat-check-0.1.md": {
+      "bytes": 22288,
+      "sha256": "9aa55d451d22c142ffc6a08dbeb090e41661b331f4c0dd153b267fac24bf6310"
+    },
+    "docs/reference/spec/caveat-decision-journal-0.1.md": {
+      "bytes": 3190,
+      "sha256": "59d1c52b8ae16513ac6a07406d92a64866f257ad7af6895d3051939501b3f16a"
+    },
+    "docs/reference/spec/caveat-define-0.1.md": {
+      "bytes": 1673,
+      "sha256": "5704211a4be1894307e6566fce993eb2b38a008a03cfd32384eb5b50d32d1a8c"
+    },
+    "docs/reference/spec/caveat-dispatch-0.1.md": {
+      "bytes": 14589,
+      "sha256": "96f709a7ec9f40ef796e378c3588a6239691a15c34041de0d59f031f2aff83d0"
+    },
+    "docs/reference/spec/caveat-elapsed-0.1.md": {
+      "bytes": 3798,
+      "sha256": "d7aac3fb02e4990c2d6b0eae33d4a280377012af4f974f8912b3741cd5837ed1"
+    },
+    "docs/reference/spec/caveat-explanations-0.1.md": {
+      "bytes": 5470,
+      "sha256": "cbf384190dc18c70f98eb74677a5ad003521d24d25eb53327002e006122a96e1"
+    },
+    "docs/reference/spec/caveat-explanations-0.2.md": {
+      "bytes": 4719,
+      "sha256": "20a89b36c2fa9560d4dcd9007539a7041b763d5fdc818e7234733a797f9e237f"
+    },
+    "docs/reference/spec/caveat-identifiers-0.1.md": {
+      "bytes": 5083,
+      "sha256": "93589671ff31d416f644f59a99576547e2a86021a0f802e38f2f4e794fb873ec"
+    },
+    "docs/reference/spec/caveat-late-qualification-0.1.md": {
+      "bytes": 2739,
+      "sha256": "25d55a7888259666bd125019e26293cf054682445e0bd2cb66bc34f25016317d"
+    },
+    "docs/reference/spec/caveat-neutral-reveal-0.1.md": {
+      "bytes": 5586,
+      "sha256": "d3e3f2f7e07ffc6070cbeca3ffd2bec195b9b345e2ff9c16731a31d0bc2efaa1"
+    },
+    "docs/reference/spec/caveat-observation-order-0.1.md": {
+      "bytes": 3041,
+      "sha256": "e0f1b4b9832435bc94c4ddf4c6f2e70caf49f7c30b4c4bc1a7954c1727c69611"
+    },
+    "docs/reference/spec/caveat-permission-0.1.md": {
+      "bytes": 5374,
+      "sha256": "44ba3d03c07185de913cadefa5960a8bb0042f34165ad1a4472f8516ad8fe21d"
+    },
+    "docs/reference/spec/caveat-procedure-symbols-0.1.md": {
+      "bytes": 4812,
+      "sha256": "35606b0f8d162aef53268d7ebfae2107a979424652283ace4cd02cc9a2776c55"
+    },
+    "docs/reference/spec/caveat-reactive-0.1.md": {
+      "bytes": 9923,
+      "sha256": "bf2fa4a7229b65aeca651e250d5b2609fac5d5e6d6dfceda59f18665a7df2ef1"
+    },
+    "docs/reference/spec/caveat-reactive-0.2.md": {
+      "bytes": 11378,
+      "sha256": "22a7ad15f0e5cf2f35de2c1bd467295d0d20a84ec56898ccb0f81fec6d012bc4"
+    },
+    "docs/reference/spec/caveat-reactive-0.3.md": {
+      "bytes": 10483,
+      "sha256": "628fd24e1fd39b5c1412e7b0a57ef39c92be5aa9233baad30a4f5d2e48b6330e"
+    },
+    "docs/reference/spec/caveat-reactive-0.4.md": {
+      "bytes": 7481,
+      "sha256": "09547985ab839c85e15a39aff313809f67d4e85c268f008829ebcf1f974507ed"
+    },
+    "docs/reference/spec/caveat-reactive-0.5.md": {
+      "bytes": 11468,
+      "sha256": "cd12f52e7926b99530695a00d82547cb98a2f07768137f16c8fb984b842de8de"
+    },
+    "docs/reference/spec/caveat-reactive-0.6.md": {
+      "bytes": 6947,
+      "sha256": "8df44120a9fc197ac36be708033a71fbab1c8657009fb2a2304c8cf66f62e729"
+    },
+    "docs/reference/spec/caveat-reactive-0.7.md": {
+      "bytes": 6468,
+      "sha256": "5a54d8914e32f7e3c7a33e806554fb0d7f026f5fbe5c33daa3189f28cd7b4cdb"
+    },
+    "docs/reference/spec/caveat-reject-0.1.md": {
+      "bytes": 1318,
+      "sha256": "569e3f2f0c4463b5cc7aa160a8284f096f0188a1fe3a6576dace31d66b841e53"
+    },
+    "docs/reference/spec/caveat-renewal-0.1.md": {
+      "bytes": 5438,
+      "sha256": "1fd6db1b3059366255b0b9ae2cd8f8ed218b07830fa5a6aa0308f877a64343e4"
+    },
+    "docs/reference/spec/caveat-reopening-triggers-0.1.md": {
+      "bytes": 3759,
+      "sha256": "7a7ef4d1b83ac6f5a9f91a418929a9c599de16f09d9866b8e8d92a0785e78814"
+    },
+    "docs/reference/spec/caveat-repetition-0.1.md": {
+      "bytes": 19084,
+      "sha256": "13027252f764fb0cb59377785bb02034d4f13880000cf24c71fb20455ac88095"
+    },
+    "docs/reference/spec/caveat-routed-repetition-0.1.md": {
+      "bytes": 26544,
+      "sha256": "9d3c9e91ccd1119cba4b086f3d4aa8a0ff5317d46250bf1168ef7844d8e4419d"
+    },
+    "docs/reference/spec/caveat-save-0.1.md": {
+      "bytes": 13779,
+      "sha256": "600e7fca540bd19b36f4d677cc008cbb784494e3a2569c086c2c29baff4f7c69"
+    },
+    "docs/reference/spec/caveat-scenarios-0.1.md": {
+      "bytes": 16465,
+      "sha256": "a9c7e8e7270727a91402997f3c4e2e7ed0af7923901719577e246b1f35b77420"
+    },
+    "docs/reference/spec/caveat-serve-0.1.md": {
+      "bytes": 3173,
+      "sha256": "f4f8ac31bb49f4789a7c41e32fd3ae0c61a77b737ae427d8a7d60d0c4b4ebd86"
+    },
+    "docs/reference/spec/caveat-state-caveats-0.1.md": {
+      "bytes": 4285,
+      "sha256": "2a3a7f07bfd3ec5cdc71374b2ee4fc80b33b00dbf99a09596f1e4df884a75786"
+    },
+    "docs/reference/spec/caveat-text-0.1.md": {
+      "bytes": 3686,
+      "sha256": "48e8d2a42e626896169988576dbf99670056a3d7a1e70fb912eaa68534b50ae6"
+    },
+    "docs/reference/spec/caveat-typed-parameters-0.1.md": {
+      "bytes": 3641,
+      "sha256": "4e928a30d14b9e3b6a0545b3718a6348bae96f2da660da576ab97ee9fba73ba8"
+    },
+    "docs/reference/spec/caveat-view-0.1.md": {
+      "bytes": 2587,
+      "sha256": "03666318b390e1e9a63f9fda26c5c74aecd36a95468aa1710683d2fd2d0786f2"
+    },
+    "docs/reference/spec/caveat-withdrawal-0.1.md": {
+      "bytes": 6982,
+      "sha256": "e159f08c8568cadb808b873c9efe58bf13577d2166e7714030fc55788df9ee33"
+    },
+    "examples/agent-evidence/BRANCHING.md": {
+      "bytes": 3333,
+      "sha256": "669b1590639baafdd2c29c97eaa0f4f282d337aba26c1c4692453f06d5768c7b"
+    },
+    "examples/agent-evidence/QUALIFICATION.md": {
+      "bytes": 6128,
+      "sha256": "a44b1b950bdaeef0bc1c953aa8f1e070fcca61d0945cbfd4a5702b736edc2f42"
+    },
+    "examples/agent-evidence/README.md": {
+      "bytes": 22058,
+      "sha256": "dacf6bba92869b7e47e3116ec8cbc7dc5280526ccc77e3e6953f733145433d77"
+    },
+    "examples/agent-evidence/assessment.cav": {
+      "bytes": 2516,
+      "sha256": "4119af19e00135d0d7a1207f2e68ec515cecd0bc9932d9dce8ecb4136c5bcc02"
+    },
+    "examples/agent-evidence/caller.py": {
+      "bytes": 28223,
+      "sha256": "d26cf3cc06250b3b9cadcfb5d44a153b9de278b72b7789dbb91543d88776a255"
+    },
+    "examples/agent-evidence/grounded_assessment.cav": {
+      "bytes": 2209,
+      "sha256": "72f9e009369d836adac28201afb1bd11a3855664c5796aa8e0125b3680c6b4cf"
+    },
+    "examples/agent-evidence/grounds.py": {
+      "bytes": 1352,
+      "sha256": "c37d58707c0e1274b278159e557035ac8c7cece1dacce3390d39b76fc9a8bf6a"
+    },
+    "examples/agent-evidence/qualification.cav": {
+      "bytes": 1250,
+      "sha256": "5cd4155677df95090f335def4f48c084558bc692e3d07be8ea0346dfc42b2321"
+    },
+    "examples/agent-evidence/test_branching.py": {
+      "bytes": 529,
+      "sha256": "551ff07616d01254bc0222646f5362b5bff979cc7bb91f006805803690acc478"
+    },
+    "examples/agent-evidence/test_caller.py": {
+      "bytes": 58220,
+      "sha256": "a6fa87aadc850c365478abe10f9b91af703471c0502a852ddc2ae2007b13b34d"
+    },
+    "examples/agent-evidence/test_grounds.py": {
+      "bytes": 7054,
+      "sha256": "d2072b9cf63484ca83d578e476d9e210f4a7565f7756dfdaa8ca85164e97321c"
+    },
+    "examples/agent-evidence/test_lifecycle.py": {
+      "bytes": 12132,
+      "sha256": "26254c3de40f1e3d383d8d29ec855b338deb51a1daca5f91b10ac63b093c2ee0"
+    },
+    "examples/agent-evidence/test_qualification.py": {
+      "bytes": 4010,
+      "sha256": "a6fdb4f63fbcd1199cb6f47c2c786bde952bb21f1ace008823f42cf45911a726"
+    },
+    "lib/authoring-worker.d.mts": {
+      "bytes": 98,
+      "sha256": "c441a54e94f73e085000686a6a6f351e4718ce886720a8ebaa68bffff34900ed"
+    },
+    "lib/authoring-worker.mjs": {
+      "bytes": 1927,
+      "sha256": "f0cd17b2674460289b3906fc915c97b5c18c625fe4e9c626db058c8517c5bf92"
+    },
+    "lib/authoring.d.mts": {
+      "bytes": 1003,
+      "sha256": "054b34b6575072b32267cbd8110327f912adcda963864ab5aeefd66c91c5fc67"
+    },
+    "lib/authoring.mjs": {
+      "bytes": 10104,
+      "sha256": "a37a1c00f91879a100c5e8d36032a30aee3579f360eea8cc6d7f1b25fc5e0691"
+    },
+    "lib/check.d.mts": {
+      "bytes": 457,
+      "sha256": "349143c5429a5ace4cafe39031fa8a10161a41d7d484c963e69e0fba1ea543c9"
+    },
+    "lib/check.mjs": {
+      "bytes": 1062,
+      "sha256": "93f111c3c9fb0b7d75924180c680bcabe4cc5f19641f225b5f9af99580c3443a"
+    },
+    "lib/demo.d.mts": {
+      "bytes": 922,
+      "sha256": "ca62daf85db1ee2f1b21c61e8e452b81a5c67cb0edd9c6ee55499615463ae5b9"
+    },
+    "lib/demo.mjs": {
+      "bytes": 7722,
+      "sha256": "dc29873d6999f29e45ecde03ffe29362381877bcfc5d481f249b67a67587941d"
+    },
+    "lib/doctor.d.mts": {
+      "bytes": 1607,
+      "sha256": "7f58566b1285320732691fb9739b04ffb0943723a3edb285e086f86ef33af331"
+    },
+    "lib/doctor.mjs": {
+      "bytes": 13018,
+      "sha256": "4504a1a6e6157eb706e0a5cf5eaad642f7f41801a46cd494dbed06e525e57948"
+    },
+    "lib/explain.d.mts": {
+      "bytes": 4304,
+      "sha256": "0b789e79cc1b74bd90621f08132423a9c9d91f88c485e9d98d91223da2d07854"
+    },
+    "lib/explain.mjs": {
+      "bytes": 14633,
+      "sha256": "b40bd60886fd01d0e2585d65b3584cea29a629b5fefdd168af3cb5e5b3ca20dc"
+    },
+    "lib/mcp.d.mts": {
+      "bytes": 952,
+      "sha256": "b65c31442d04cede452bd2c4911ee93ef54c0a95c4b3ca7380546ced2f2d5380"
+    },
+    "lib/mcp.mjs": {
+      "bytes": 16291,
+      "sha256": "0ac0467db1236618aca11ffd2bea1fb7fbbaeeedfbbe5ca90f09f7a173265d58"
+    },
+    "lib/node.d.mts": {
+      "bytes": 796,
+      "sha256": "a31e6a15f8097a3f584cfb0b993406d27c982fbbdf7cdbc23754bef9e81869d1"
+    },
+    "lib/node.mjs": {
+      "bytes": 2230,
+      "sha256": "5cd3fcee4caa1564657cb7956fc6d8ee3f2bb1f549d34a777c90cd16cd1898d3"
+    },
+    "lib/scenarios.d.mts": {
+      "bytes": 7163,
+      "sha256": "abbccac5cb9a72756d2a0f77c432f5ac2227e38cf9cfef083430e0651a706693"
+    },
+    "lib/scenarios.mjs": {
+      "bytes": 30201,
+      "sha256": "b5b7928a8eb38a6b1266070745472756898b6539b3fc6bceda1b74a9c2726bd0"
+    },
+    "lib/serve.d.mts": {
+      "bytes": 1788,
+      "sha256": "629c9ba815f2bda38476ea72c26307071e593d96938e757e23d252d3ef0ad59e"
+    },
+    "lib/serve.mjs": {
+      "bytes": 5026,
+      "sha256": "40b009b76e58fae83ae8129a5cfb9878630fc7c0e54e961757f4d912737a4d8d"
+    },
+    "lib/session.d.mts": {
+      "bytes": 14805,
+      "sha256": "539c0ec39f9e18d50af6f8b0a8852e5ca9ca67fdd3ff068538180ba44ce4bc3e"
+    },
+    "lib/session.mjs": {
+      "bytes": 12381,
+      "sha256": "91665184b6cb67ff4dbb8c1f84a02de1a8d26910cce11cfb1176c1c4ddf52be7"
+    },
+    "package.json": {
+      "bytes": 1892,
+      "sha256": "4dcbd92549541ef3c5e55403808388f5ed1005b488e7300d7fab4b9358edb8bb"
+    },
+    "runtime/build-info.json": {
+      "bytes": 212,
+      "sha256": "266ee0aa74271de47c1d2ca366818deffbb14db20722d79d98795bab51619fa2"
+    },
+    "runtime/caveat_runtime.d.ts": {
+      "bytes": 4262,
+      "sha256": "2bf7a8c023c08837642518395e4cec6ead872cddcd2721d8bee1ba00e20d095c"
+    },
+    "runtime/caveat_runtime.js": {
+      "bytes": 15854,
+      "sha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3"
+    },
+    "runtime/caveat_runtime_bg.wasm": {
+      "bytes": 2092411,
+      "sha256": "e0c1ff6921485ac342f4eced76c68f58b14615077838c6f2af7da725430c6ba3"
+    },
+    "templates/events.jsonl": {
+      "bytes": 115,
+      "sha256": "0ebbdd9cb0bf8c27ca334df50584d5ada01e6f9a752a9f64c39fefc1ad52d770"
+    },
+    "templates/umbrella.cav": {
+      "bytes": 1065,
+      "sha256": "daa89b2abadde3e5c8dd2e0691f0c0dcb8d74a6b3ac73393e875b87fe1325bdd"
+    },
+    "templates/umbrella.scenarios.json": {
+      "bytes": 1379,
+      "sha256": "c45346173d10d5be4c95971122c7ed0c0a4a2dd90d8dcc7af6fb63ebd29323dc"
+    }
+  },
+  "limits": {
+    "evaluatorOutputBytes": 16777216,
+    "evaluatorSeconds": 120,
+    "trialOutputBytes": 33554432,
+    "trialSeconds": 1200
+  },
+  "packetFiles": {
+    "TASK.md": {
+      "bytes": 6421,
+      "sha256": "2cad97258e058b0011f165e5b626095ee77ea457c1dd13c680f368e7c2d92ee9"
+    },
+    "package-lock.json": {
+      "bytes": 732,
+      "sha256": "5d250665fc09d3041dcab776ff77ec86d1ea58880dab46a359754150db55fa5b"
+    },
+    "package.json": {
+      "bytes": 167,
+      "sha256": "4334d1413de8cf470ac46b64e487143fce000f3d7a3694abe50f8e587c70196c"
+    }
+  },
+  "policy": "No intervention or evaluator feedback. No overwrite/restart. Retain infrastructure failures, timeouts, incomplete submissions and raw output.",
+  "preparationFiles": {
+    "codex-version.receipt.json": {
+      "bytes": 756,
+      "sha256": "e33a3ed7256f257e7b3a87953c829f041ef5c913ba048c1652bfd04e0d81bdf9"
+    },
+    "codex-version.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "codex-version.stdout": {
+      "bytes": 18,
+      "sha256": "48784a39efd6841c30aff4c70ab315bea1dccee48519515cb308652cdef3ea57"
+    },
+    "install-A01.receipt.json": {
+      "bytes": 1043,
+      "sha256": "3c49b3b23f378ae7fc10e1e6917a8760e5911e4b8cd4702a1b2797a46c06ba4e"
+    },
+    "install-A01.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "install-A01.stdout": {
+      "bytes": 26,
+      "sha256": "03130f1f7f8332817c8cfbbbc61688bd046197ba4042a10969605a206901791e"
+    },
+    "install-A02.receipt.json": {
+      "bytes": 1043,
+      "sha256": "588c1c3c2b4d8eb0d3a0d64ef9ce01d7346057fc811018bcb1b87e8581a8141f"
+    },
+    "install-A02.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "install-A02.stdout": {
+      "bytes": 26,
+      "sha256": "b30f4311fc93e952377fb9076e0407d12a2c9491bf309d52ba1c93dae1ee1467"
+    },
+    "install-A03.receipt.json": {
+      "bytes": 1043,
+      "sha256": "08765fd2e9547fdc135f4f8c0525d73ab0885799fefe448e2c77f3be7026e709"
+    },
+    "install-A03.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "install-A03.stdout": {
+      "bytes": 26,
+      "sha256": "a248e80dd0d353b7cc8919343757bb50d467f93eabeabcf218417bcd9aa8c4b2"
+    },
+    "node-version.receipt.json": {
+      "bytes": 706,
+      "sha256": "912097c75f550330c52d3c183e72ac730e4f0990cbcb1347e0c3616587f230bb"
+    },
+    "node-version.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "node-version.stdout": {
+      "bytes": 10,
+      "sha256": "d3418c43c24a028c4774f8771e03c578ccc9021a4098708b6aa0b7f6686b5bbe"
+    },
+    "npm-version.receipt.json": {
+      "bytes": 772,
+      "sha256": "774e1ca1278beaa12a3549d19d5ddbc83772832f6effe2c89c063c2a4d69731f"
+    },
+    "npm-version.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "npm-version.stdout": {
+      "bytes": 7,
+      "sha256": "6652f34fa7bd3c33105c7b13666aee5fab7bc2918c24aea60d213e26f08cb468"
+    },
+    "scorer-controls.receipt.json": {
+      "bytes": 797,
+      "sha256": "ff4b6a1e472443b1c292950153cbdffb2f3fdfce575be54307fbfb97da533303"
+    },
+    "scorer-controls.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "scorer-controls.stdout": {
+      "bytes": 1551,
+      "sha256": "1706cf077457110812933eb02e652c0abaeef125929dc1aa9b19a07ed6fec8f5"
+    }
+  },
+  "preparedAt": "2026-10-02T00:47:20.213Z",
+  "runDirectory": "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592",
+  "schema": "caveat-adoption-registration/1",
+  "scorerInputs": {
+    "C:\\Dev\\caveat-lang\\dist\\pkg-reactive\\caveat_runtime.js": {
+      "bytes": 15854,
+      "sha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3"
+    },
+    "C:\\Dev\\caveat-lang\\dist\\pkg-reactive\\caveat_runtime_bg.wasm": {
+      "bytes": 2092411,
+      "sha256": "e0c1ff6921485ac342f4eced76c68f58b14615077838c6f2af7da725430c6ba3"
+    },
+    "C:\\Dev\\caveat-lang\\kit\\examples\\agent-evidence\\assessment.cav": {
+      "bytes": 2516,
+      "sha256": "4119af19e00135d0d7a1207f2e68ec515cecd0bc9932d9dce8ecb4136c5bcc02"
+    },
+    "C:\\Dev\\caveat-lang\\kit\\lib\\check.mjs": {
+      "bytes": 1062,
+      "sha256": "93f111c3c9fb0b7d75924180c680bcabe4cc5f19641f225b5f9af99580c3443a"
+    },
+    "C:\\Dev\\caveat-lang\\kit\\lib\\explain.mjs": {
+      "bytes": 14633,
+      "sha256": "b40bd60886fd01d0e2585d65b3584cea29a629b5fefdd168af3cb5e5b3ca20dc"
+    },
+    "C:\\Dev\\caveat-lang\\kit\\lib\\node.mjs": {
+      "bytes": 2230,
+      "sha256": "5cd3fcee4caa1564657cb7956fc6d8ee3f2bb1f549d34a777c90cd16cd1898d3"
+    },
+    "C:\\Dev\\caveat-lang\\kit\\lib\\scenarios.mjs": {
+      "bytes": 30201,
+      "sha256": "b5b7928a8eb38a6b1266070745472756898b6539b3fc6bceda1b74a9c2726bd0"
+    },
+    "C:\\Dev\\caveat-lang\\kit\\lib\\session.mjs": {
+      "bytes": 12381,
+      "sha256": "91665184b6cb67ff4dbb8c1f84a02de1a8d26910cce11cfb1176c1c4ddf52be7"
+    }
+  },
+  "scorerValidation": {
+    "bytes": 797,
+    "receipt": "preparation/scorer-controls.receipt.json",
+    "sha256": "ff4b6a1e472443b1c292950153cbdffb2f3fdfce575be54307fbfb97da533303"
+  },
+  "status": "registered-not-run",
+  "studyFiles": {
+    "PROTOCOL.md": {
+      "bytes": 10465,
+      "sha256": "17b72dcb515679ba6638a085a2888aa7885ce447eaf33f7ff18ca65e954d7a1b"
+    },
+    "TASK.md": {
+      "bytes": 6421,
+      "sha256": "2cad97258e058b0011f165e5b626095ee77ea457c1dd13c680f368e7c2d92ee9"
+    },
+    "checks.test.mjs": {
+      "bytes": 9649,
+      "sha256": "97c616b7f5dd663f807d50fc137bd84108e3ddf1b222bfd950ff687da4683a79"
+    },
+    "evaluator/gold-host.mjs": {
+      "bytes": 858,
+      "sha256": "c2a8eff2b914bf689f90e60a7499860561ae3552289c3cf408cf18703d1b4d8e"
+    },
+    "evaluator/gold-tracker.cav": {
+      "bytes": 1556,
+      "sha256": "4fbe2f2b543163e6f5eedf725df98a81019fd73fcc9bcef4c33dbe0b81f74258"
+    },
+    "evaluator/gold.scenarios.json": {
+      "bytes": 6570,
+      "sha256": "41b1ad56a3808c3147fb4cb4905a054bb8818e3b95fa7e69eb3a7e74f7b2e929"
+    },
+    "run-trials.py": {
+      "bytes": 28448,
+      "sha256": "38e703c7765bae0c7f98cdac21caf5a5bf5a015e6959d8e4e68adf34f6c509d6"
+    },
+    "verify.mjs": {
+      "bytes": 18952,
+      "sha256": "3f46e182b148f57c0a40cbc94cdfea40dbbacfe409a3e27b56ca62db20182225"
+    }
+  },
+  "tools": {
+    "codex": {
+      "bytes": 324702000,
+      "path": "C:\\Users\\walte\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+      "sha256": "34549ded6e2aee87c911c62d025e52e26c488683d0f489cd68f756baef1a6df6"
+    },
+    "node": {
+      "bytes": 89894400,
+      "path": "C:\\Program Files\\nodejs\\node.exe",
+      "sha256": "f13ac3ca23248dc389507e8fe38c34489ab7edb3e6d6700eb6da6a0b7e128eaf"
+    },
+    "versions": {
+      "codex-version": "codex-cli 0.159.2",
+      "node-version": "v24.11.1",
+      "npm-version": "11.6.2"
+    }
+  },
+  "trials": [
+    {
+      "command": [
+        "C:\\Users\\walte\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+        "exec",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--skip-git-repo-check",
+        "--approve-for-me",
+        "-c",
+        "windows.sandbox=\"elevated\"",
+        "-c",
+        "project_doc_max_bytes=0",
+        "-c",
+        "web_search=\"disabled\"",
+        "--json",
+        "-C",
+        "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A01",
+        "-o",
+        "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A01\\final-response.md",
+        "-"
+      ],
+      "directory": "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A01",
+      "id": "A01"
+    },
+    {
+      "command": [
+        "C:\\Users\\walte\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+        "exec",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--skip-git-repo-check",
+        "--approve-for-me",
+        "-c",
+        "windows.sandbox=\"elevated\"",
+        "-c",
+        "project_doc_max_bytes=0",
+        "-c",
+        "web_search=\"disabled\"",
+        "--json",
+        "-C",
+        "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A02",
+        "-o",
+        "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A02\\final-response.md",
+        "-"
+      ],
+      "directory": "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A02",
+      "id": "A02"
+    },
+    {
+      "command": [
+        "C:\\Users\\walte\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+        "exec",
+        "--ephemeral",
+        "--ignore-user-config",
+        "--skip-git-repo-check",
+        "--approve-for-me",
+        "-c",
+        "windows.sandbox=\"elevated\"",
+        "-c",
+        "project_doc_max_bytes=0",
+        "-c",
+        "web_search=\"disabled\"",
+        "--json",
+        "-C",
+        "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A03",
+        "-o",
+        "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A03\\final-response.md",
+        "-"
+      ],
+      "directory": "C:\\Dev\\caveat-lang\\test-results\\agent-adoption\\2026-10-02T00-47-15.379Z-64592\\A03",
+      "id": "A03"
+    }
+  ]
+}
