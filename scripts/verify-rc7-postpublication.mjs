@@ -62,7 +62,7 @@ for(const expected of frozenExpected){
  const asset=release.assets.find(a=>a.name===expected.name);assert(asset);assert.equal(asset.id,expected.id);assert.equal(asset.digest,expected.digest);
  const r=await fetch(asset.browser_download_url);assert(r.ok);const b=Buffer.from(await r.arrayBuffer());assert.equal('sha256:'+hash(b),expected.digest);const retained={id:asset.id,sha256:hash(b),bytes:b.length};
  if(asset.name==='npm-publication-verification-20261002T145851184.json'){
-  const proof=JSON.parse(b);assert.equal(proof.version,'0.1.0-rc.7');assert.equal(proof.revision,'1f3fc7a2208eec964399d6c14232690f411e48be');assert.equal(proof.sha256,'0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc');assert.equal(proof.next,'0.1.0-rc.7');assert.equal(proof.latest,'0.1.0-rc.5');assert(proof.exactVersionFreshInstall);ownerPublicationReceipt={...retained,proof};
+  const proof=JSON.parse(b.toString('utf8').replace(/^\uFEFF/,''));assert.equal(proof.version,'0.1.0-rc.7');assert.equal(proof.revision,'1f3fc7a2208eec964399d6c14232690f411e48be');assert.equal(proof.sha256,'0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc');assert.equal(proof.next,'0.1.0-rc.7');assert.equal(proof.latest,'0.1.0-rc.5');assert(proof.exactVersionFreshInstall);ownerPublicationReceipt={...retained,proof};
  }else frozen[asset.name]=retained;
 }
 const helperAtMain=await api('contents/docs/releases/rc7-handoff/Publish-Rc7.ps1?ref='+revision);
