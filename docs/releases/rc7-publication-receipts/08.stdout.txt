@@ -1,0 +1,3 @@
+PASS U01  A rainy forecast decides; a clear sky reopens the decision, which keeps its reasons  (2 events, 0 rejected, 1 resumes)
+PASS U02  Refused events leave nothing behind  (3 events, 2 rejected, 0 resumes)
+2 passed, 0 failed (umbrella.scenarios.json)

@@ -1,5 +1,11 @@
 # Getting started with CAVEAT Language
 
+> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
+> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
+> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+
+
 This guide starts from an empty directory and ends with a program that makes a
 decision, reopens it when it learns something new, and still remembers why it
 chose. It takes about fifteen minutes. You need Node 20 or later; you do not
@@ -15,16 +21,16 @@ describe the expected and actual behavior.
 ## 1. Install
 
 Make an empty directory, give it a `package.json`, and install the published
-release candidate, 0.1.0-rc.6, with the tag `next`:
+release candidate, 0.1.0-rc.7, with the tag `next`:
 
 ```sh
 npm init -y
 npm install caveat-lang@next
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. To use a
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.7`. To use a
 verified tarball you were given, pass its path or URL to `npm install` instead.
-npm's `latest` tag remains on rc.5; use `next` or the exact version for rc.6.
+npm's `latest` tag remains on rc.5; use `next` or the exact version for rc.7.
 
 Run `npm init -y` first: in a directory without its own `package.json`, npm
 installs into the nearest parent project instead.
@@ -38,9 +44,8 @@ npx --no-install caveat help
 ### rc.7 command name
 
 The frozen [rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
-is available; npm publication is pending. This checkout is unpublished rc.8
-development. The npm instructions above deliberately retain the verified
-published rc.6 version.
+and exact npm version are available and verified. This checkout is unpublished rc.8
+development. The npm instructions above install the verified published rc.7 version.
 
 When using a verified **rc.7 tarball**, prefer `caveat-lang`:
 
@@ -51,8 +56,7 @@ npx --no-install caveat-lang help
 
 Use `caveat-lang` in place of `caveat` in every command below. Both spellings
 invoke the same language CLI in rc.7; `caveat-lang` avoids the collision with
-other packages that install `caveat`. The published rc.6 installed above has
-only the shorter name, so this guide retains it for that version. See
+other packages that install `caveat`. Historical rc.6 had only the shorter name; rc.7 installed above provides both executable names. See
 [project names and CLI commands](NAMES.md).
 
 ## 2. Write a program

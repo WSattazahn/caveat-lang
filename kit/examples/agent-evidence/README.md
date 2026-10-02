@@ -1,5 +1,11 @@
 # Agent evidence: calling Caveat from an application
 
+> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
+> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
+> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+
+
 This example shows an application, such as an agent's harness, using a Caveat
 program as the place its assessment is made and recorded. The application
 sends evidence in, obtains an assessment, withdraws evidence found to be

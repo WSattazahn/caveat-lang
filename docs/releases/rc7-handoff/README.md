@@ -1,5 +1,28 @@
 # rc.7 manual publication handoff
 
+## Current status — 2026-10-02
+
+rc.7 is published and verified on the official npm registry. The owner completed
+Windows VerifyOnly recovery without a second publication; independent Linux
+verification passed in run37026797517. next names rc.7; latest remains rc.5.
+[Publication receipts](../v0.1.0-rc.7-npm-publication.json) record exact frozen
+bytes and fresh-install checks. [PR86](https://github.com/WSattazahn/caveat-lang/pull/86)
+records public installation documentation; its CI/merge/Pages completion is the
+cloud follow-up, with no further owner publication command required.
+
+The frozen release helper is retained as historical evidence. Its immediate
+post-publish HTTP404 error and PowerShell5.1 empty-lock-key failure are documented
+in [the recovery amendment](POST_PUBLICATION.md#2026-10-02-recovery-amendment).
+Use only the amended, reviewed source with -VerifyOnly if verification recovery
+is needed; do not republish or replace the frozen helper/tarball. The immutable
+tarball README likewise reflects prepublication preparation. rc.8 remains
+unpublished development.
+
+## Historical prepublication procedure
+
+The instructions below describe the original frozen handoff; current status
+and recovery instructions above supersede its pending claim and helper guidance.
+
 The immutable rc.7 Linux release candidate is main commit
 `1f3fc7a2208eec964399d6c14232690f411e48be`, not this moving handoff/development branch.
 The tagged GitHub asset must be the installed-package tarball retained by

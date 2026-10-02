@@ -1,5 +1,20 @@
 # Registry-gated rc.7 documentation finalization
 
+## Current status — 2026-10-02
+
+Owner Windows VerifyOnly recovery and independent Linux registry checks passed.
+The cloud dispatched the workflow below as run37026797517. It verified exact
+bytes and a fresh install, committed receipts, and created the documentation
+branch; Actions-token POST pulls then returned HTTP403. The authorized GitHub
+connection created [PR86](https://github.com/WSattazahn/caveat-lang/pull/86)
+without changing settings or protection. Failure receipt artifact11234894115
+(SHA256 d643906f7f2e0f822011acd9404f26cfdded8bd1fe87c88902195cc029b6fca3)
+and inspector37027019037 preserve the actual result. Normal PR review/CI,
+merge and final-main Pages checks will be completed by the cloud follow-up; the
+owner does not need another publication or dispatch command. The procedure
+below is retained for review and recovery, not a request to publish again.
+
+
 This is a one-time, owner-triggered follow-up, not recurring automation.
 `Publish-Rc7.ps1` first verifies the immutable GitHub tag/asset, publishes only
 its retained bytes with next, verifies registry SHA256/SHA512 and a fresh

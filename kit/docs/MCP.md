@@ -1,6 +1,12 @@
 # MCP authoring tools (rc.7; rc.8 development)
 
-The frozen rc.7 GitHub candidate is available; npm publication remains pending.
+> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
+> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
+> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+
+
+The frozen rc.7 GitHub candidate and exact npm version are available and verified.
 This checkout is unpublished rc.8 development. No MCP desktop host is installed
 by the release or development process.
 

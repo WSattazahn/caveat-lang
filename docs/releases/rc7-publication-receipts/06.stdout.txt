@@ -1,0 +1,2228 @@
+{
+  "schema": "caveat-demo/0.1",
+  "demo": "agent",
+  "inputs": "illustrative",
+  "runtime": {
+    "reactiveWasmSha256": "32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977",
+    "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-unknown-linux-gnu"
+  },
+  "source": {
+    "file": "examples/agent-evidence/assessment.cav",
+    "sha256": "4119af19e00135d0d7a1207f2e68ec515cecd0bc9932d9dce8ecb4136c5bcc02"
+  },
+  "steps": [
+    {
+      "event": "observe",
+      "payload": {
+        "confidence": 85
+      },
+      "snapshot": {
+        "schema": "caveat-reactive/0.1",
+        "source_id": "fnv1a64:42e2ed8af13f0db6:2516",
+        "sequence": 1,
+        "elapsed": 0,
+        "renewals": {},
+        "scheduled_qualifications": [],
+        "last_event": "observe",
+        "values": {},
+        "qualified_values": {},
+        "commitment_bases": {},
+        "reading_streams": {
+          "observations": {
+            "template": "tool",
+            "limit": 16,
+            "current": "observations@1",
+            "occurrences": [
+              {
+                "id": "observations@1",
+                "ordinal": 1,
+                "sequence": 1,
+                "event": "observe",
+                "value": 85,
+                "provenance": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "decision_series": {
+          "assessment": {
+            "limit": 8,
+            "current": null,
+            "revisions": [],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "observation_qualifications": {
+          "observations@1": {
+            "evidence": [],
+            "caveats": []
+          }
+        },
+        "examination_qualifications": {},
+        "reopening_qualifications": {},
+        "predicate_qualifications": {},
+        "events": [
+          {
+            "name": "assess",
+            "parameters": []
+          },
+          {
+            "name": "erase",
+            "parameters": []
+          },
+          {
+            "name": "observe",
+            "parameters": [
+              {
+                "name": "confidence",
+                "min": 0,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "name": "retract",
+            "parameters": []
+          }
+        ],
+        "bindings": {
+          "assessment": {
+            "verdict": "none"
+          }
+        },
+        "binding_qualifications": {
+          "assessment": {
+            "verdict": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "binding_explanations": {
+          "assessment": {
+            "verdict": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "value_grounds": {},
+        "commitment_grounds": {},
+        "decision_journal": [],
+        "cues": [],
+        "cue_qualifications": [],
+        "controls": {},
+        "clock": null,
+        "world": {
+          "start_at": null,
+          "places": [],
+          "entities": [],
+          "connections": [],
+          "action_plans": []
+        },
+        "scenes": [
+          "Decide whether an agent's answer is supported by the evidence sent to it."
+        ],
+        "labels": {},
+        "symbols": [
+          {
+            "name": "answer_supported",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "misreport",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@1",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "recheck",
+            "kind": "evidence",
+            "source": "a second look at that observation",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "tool",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "withdrawn",
+            "kind": "caveat",
+            "source": null,
+            "written_by": null,
+            "consequence": "material",
+            "display": null,
+            "attention": "unexamined"
+          }
+        ],
+        "relations": [
+          {
+            "from": "observations@1",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          }
+        ],
+        "commitments": [],
+        "budget": null,
+        "effects": [
+          {
+            "kind": "sample",
+            "stream": "observations",
+            "id": "observations@1",
+            "value": 85,
+            "relation": "supports",
+            "target": "answer_supported"
+          }
+        ]
+      },
+      "explanation": {
+        "schema": "caveat-explain/0.1",
+        "sequence": 1,
+        "elapsed": 0,
+        "events": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          }
+        ],
+        "decisions": [
+          {
+            "name": "assessment",
+            "limit": 8,
+            "current": null,
+            "revisions": []
+          }
+        ],
+        "evidence": [
+          {
+            "id": "observations@1",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 85,
+            "sequence": 1,
+            "event": "observe",
+            "caveats": [],
+            "withdrawn": null
+          }
+        ],
+        "displayed": [
+          {
+            "name": "assessment.verdict",
+            "value": "none",
+            "cites": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "snapshot": {
+        "schema": "caveat-reactive/0.1",
+        "source_id": "fnv1a64:42e2ed8af13f0db6:2516",
+        "sequence": 2,
+        "elapsed": 0,
+        "renewals": {},
+        "scheduled_qualifications": [],
+        "last_event": "assess",
+        "values": {},
+        "qualified_values": {},
+        "commitment_bases": {
+          "assessment@1": {
+            "value": 85,
+            "provenance": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "reading_streams": {
+          "observations": {
+            "template": "tool",
+            "limit": 16,
+            "current": "observations@1",
+            "occurrences": [
+              {
+                "id": "observations@1",
+                "ordinal": 1,
+                "sequence": 1,
+                "event": "observe",
+                "value": 85,
+                "provenance": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "decision_series": {
+          "assessment": {
+            "limit": 8,
+            "current": "assessment@1",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "previous": null,
+                "ordinal": 1,
+                "sequence": 2,
+                "event": "assess"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "observation_qualifications": {
+          "observations@1": {
+            "evidence": [],
+            "caveats": []
+          }
+        },
+        "examination_qualifications": {},
+        "reopening_qualifications": {},
+        "predicate_qualifications": {},
+        "events": [
+          {
+            "name": "assess",
+            "parameters": []
+          },
+          {
+            "name": "erase",
+            "parameters": []
+          },
+          {
+            "name": "observe",
+            "parameters": [
+              {
+                "name": "confidence",
+                "min": 0,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "name": "retract",
+            "parameters": []
+          }
+        ],
+        "bindings": {
+          "assessment": {
+            "verdict": "approved"
+          }
+        },
+        "binding_qualifications": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "binding_explanations": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "value_grounds": {},
+        "commitment_grounds": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1"
+            ],
+            "caveats": []
+          }
+        },
+        "decision_journal": [
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "committed",
+            "sequence": 2,
+            "event": "assess",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "observations@1"
+            ],
+            "caveats": []
+          }
+        ],
+        "cues": [],
+        "cue_qualifications": [],
+        "controls": {},
+        "clock": null,
+        "world": {
+          "start_at": null,
+          "places": [],
+          "entities": [],
+          "connections": [],
+          "action_plans": []
+        },
+        "scenes": [
+          "Decide whether an agent's answer is supported by the evidence sent to it."
+        ],
+        "labels": {},
+        "symbols": [
+          {
+            "name": "answer_supported",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "assessment@1",
+            "kind": "commitment",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "misreport",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@1",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "recheck",
+            "kind": "evidence",
+            "source": "a second look at that observation",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "tool",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "withdrawn",
+            "kind": "caveat",
+            "source": null,
+            "written_by": null,
+            "consequence": "material",
+            "display": null,
+            "attention": "unexamined"
+          }
+        ],
+        "relations": [
+          {
+            "from": "observations@1",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@1",
+            "relation": "relies_on",
+            "to": "observations@1",
+            "origin": "live"
+          }
+        ],
+        "commitments": [
+          {
+            "action": "assessment@1",
+            "open": false,
+            "retained": [],
+            "retained_authorship": [],
+            "reopened_by": []
+          }
+        ],
+        "budget": null,
+        "effects": [
+          {
+            "kind": "commit",
+            "action": "assessment@1",
+            "retained": []
+          }
+        ]
+      },
+      "explanation": {
+        "schema": "caveat-explain/0.1",
+        "sequence": 2,
+        "elapsed": 0,
+        "events": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "assess",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          }
+        ],
+        "decisions": [
+          {
+            "name": "assessment",
+            "limit": 8,
+            "current": "assessment@1",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "value": 85,
+                "status": "in force",
+                "grounds": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "lineage": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "permission": null,
+                "withdrawn": [],
+                "history": [
+                  {
+                    "change": "committed",
+                    "sequence": 2,
+                    "event": "assess",
+                    "because": [
+                      "observations@1"
+                    ],
+                    "caveats": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "id": "observations@1",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 85,
+            "sequence": 1,
+            "event": "observe",
+            "caveats": [],
+            "withdrawn": null
+          }
+        ],
+        "displayed": [
+          {
+            "name": "assessment.verdict",
+            "value": "approved",
+            "cites": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event": "retract",
+      "payload": {},
+      "snapshot": {
+        "schema": "caveat-reactive/0.1",
+        "source_id": "fnv1a64:42e2ed8af13f0db6:2516",
+        "sequence": 3,
+        "elapsed": 0,
+        "renewals": {},
+        "withdrawals": [
+          {
+            "evidence": "observations@1",
+            "because": "recheck",
+            "sequence": 3,
+            "event": "retract"
+          }
+        ],
+        "scheduled_qualifications": [],
+        "last_event": "retract",
+        "values": {},
+        "qualified_values": {},
+        "commitment_bases": {
+          "assessment@1": {
+            "value": 85,
+            "provenance": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "reading_streams": {
+          "observations": {
+            "template": "tool",
+            "limit": 16,
+            "current": "observations@1",
+            "occurrences": [
+              {
+                "id": "observations@1",
+                "ordinal": 1,
+                "sequence": 1,
+                "event": "observe",
+                "value": 85,
+                "provenance": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "decision_series": {
+          "assessment": {
+            "limit": 8,
+            "current": "assessment@1",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "previous": null,
+                "ordinal": 1,
+                "sequence": 2,
+                "event": "assess"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "observation_qualifications": {
+          "observations@1": {
+            "evidence": [],
+            "caveats": []
+          },
+          "recheck": {
+            "evidence": [],
+            "caveats": []
+          }
+        },
+        "examination_qualifications": {},
+        "reopening_qualifications": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1",
+              "recheck"
+            ],
+            "caveats": []
+          }
+        },
+        "predicate_qualifications": {},
+        "events": [
+          {
+            "name": "assess",
+            "parameters": []
+          },
+          {
+            "name": "erase",
+            "parameters": []
+          },
+          {
+            "name": "observe",
+            "parameters": [
+              {
+                "name": "confidence",
+                "min": 0,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "name": "retract",
+            "parameters": []
+          }
+        ],
+        "bindings": {
+          "assessment": {
+            "verdict": "reopened"
+          }
+        },
+        "binding_qualifications": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "binding_explanations": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "value_grounds": {},
+        "commitment_grounds": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1"
+            ],
+            "caveats": []
+          }
+        },
+        "decision_journal": [
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "committed",
+            "sequence": 2,
+            "event": "assess",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "observations@1"
+            ],
+            "caveats": []
+          },
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "reopened",
+            "sequence": 3,
+            "event": "retract",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "recheck"
+            ],
+            "caveats": []
+          }
+        ],
+        "cues": [],
+        "cue_qualifications": [],
+        "controls": {},
+        "clock": null,
+        "world": {
+          "start_at": null,
+          "places": [],
+          "entities": [],
+          "connections": [],
+          "action_plans": []
+        },
+        "scenes": [
+          "Decide whether an agent's answer is supported by the evidence sent to it."
+        ],
+        "labels": {},
+        "symbols": [
+          {
+            "name": "answer_supported",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "assessment@1",
+            "kind": "commitment",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "misreport",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@1",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "recheck",
+            "kind": "evidence",
+            "source": "a second look at that observation",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "tool",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "withdrawn",
+            "kind": "caveat",
+            "source": null,
+            "written_by": null,
+            "consequence": "material",
+            "display": null,
+            "attention": "unexamined"
+          }
+        ],
+        "relations": [
+          {
+            "from": "observations@1",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@1",
+            "relation": "relies_on",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "recheck",
+            "relation": "supports",
+            "to": "misreport",
+            "origin": "live"
+          },
+          {
+            "from": "withdrawn",
+            "relation": "qualifies",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "recheck",
+            "relation": "reopens",
+            "to": "assessment@1",
+            "origin": "live"
+          }
+        ],
+        "commitments": [
+          {
+            "action": "assessment@1",
+            "open": true,
+            "retained": [],
+            "retained_authorship": [],
+            "reopened_by": [
+              "recheck"
+            ]
+          }
+        ],
+        "budget": null,
+        "effects": [
+          {
+            "kind": "reveal",
+            "evidence": "recheck",
+            "relation": "supports",
+            "target": "misreport"
+          },
+          {
+            "kind": "withdraw",
+            "evidence": "observations@1",
+            "because": "recheck"
+          },
+          {
+            "kind": "reopen",
+            "action": "assessment@1",
+            "because": "recheck"
+          }
+        ]
+      },
+      "explanation": {
+        "schema": "caveat-explain/0.1",
+        "sequence": 3,
+        "elapsed": 0,
+        "events": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "assess",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "retract",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          }
+        ],
+        "decisions": [
+          {
+            "name": "assessment",
+            "limit": 8,
+            "current": "assessment@1",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "value": 85,
+                "status": "reopened",
+                "grounds": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "lineage": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "permission": null,
+                "withdrawn": [
+                  {
+                    "evidence": "observations@1",
+                    "because": "recheck",
+                    "sequence": 3,
+                    "event": "retract"
+                  }
+                ],
+                "history": [
+                  {
+                    "change": "committed",
+                    "sequence": 2,
+                    "event": "assess",
+                    "because": [
+                      "observations@1"
+                    ],
+                    "caveats": []
+                  },
+                  {
+                    "change": "reopened",
+                    "sequence": 3,
+                    "event": "retract",
+                    "because": [
+                      "recheck"
+                    ],
+                    "caveats": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "id": "observations@1",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 85,
+            "sequence": 1,
+            "event": "observe",
+            "caveats": [
+              "withdrawn"
+            ],
+            "withdrawn": {
+              "because": "recheck",
+              "sequence": 3,
+              "event": "retract"
+            }
+          },
+          {
+            "id": "recheck",
+            "relation": "supports",
+            "claim": "misreport",
+            "value": null,
+            "sequence": null,
+            "event": null,
+            "caveats": [],
+            "withdrawn": null
+          }
+        ],
+        "displayed": [
+          {
+            "name": "assessment.verdict",
+            "value": "reopened",
+            "cites": {
+              "evidence": [
+                "observations@1",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event": "observe",
+      "payload": {
+        "confidence": 92
+      },
+      "snapshot": {
+        "schema": "caveat-reactive/0.1",
+        "source_id": "fnv1a64:42e2ed8af13f0db6:2516",
+        "sequence": 4,
+        "elapsed": 0,
+        "renewals": {},
+        "withdrawals": [
+          {
+            "evidence": "observations@1",
+            "because": "recheck",
+            "sequence": 3,
+            "event": "retract"
+          }
+        ],
+        "scheduled_qualifications": [],
+        "last_event": "observe",
+        "values": {},
+        "qualified_values": {},
+        "commitment_bases": {
+          "assessment@1": {
+            "value": 85,
+            "provenance": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "reading_streams": {
+          "observations": {
+            "template": "tool",
+            "limit": 16,
+            "current": "observations@2",
+            "occurrences": [
+              {
+                "id": "observations@1",
+                "ordinal": 1,
+                "sequence": 1,
+                "event": "observe",
+                "value": 85,
+                "provenance": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              },
+              {
+                "id": "observations@2",
+                "ordinal": 2,
+                "sequence": 4,
+                "event": "observe",
+                "value": 92,
+                "provenance": {
+                  "evidence": [
+                    "observations@2"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "decision_series": {
+          "assessment": {
+            "limit": 8,
+            "current": "assessment@1",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "previous": null,
+                "ordinal": 1,
+                "sequence": 2,
+                "event": "assess"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "observation_qualifications": {
+          "observations@1": {
+            "evidence": [],
+            "caveats": []
+          },
+          "observations@2": {
+            "evidence": [],
+            "caveats": []
+          },
+          "recheck": {
+            "evidence": [],
+            "caveats": []
+          }
+        },
+        "examination_qualifications": {},
+        "reopening_qualifications": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1",
+              "recheck"
+            ],
+            "caveats": []
+          }
+        },
+        "predicate_qualifications": {},
+        "events": [
+          {
+            "name": "assess",
+            "parameters": []
+          },
+          {
+            "name": "erase",
+            "parameters": []
+          },
+          {
+            "name": "observe",
+            "parameters": [
+              {
+                "name": "confidence",
+                "min": 0,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "name": "retract",
+            "parameters": []
+          }
+        ],
+        "bindings": {
+          "assessment": {
+            "verdict": "reopened"
+          }
+        },
+        "binding_qualifications": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "binding_explanations": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "value_grounds": {},
+        "commitment_grounds": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1"
+            ],
+            "caveats": []
+          }
+        },
+        "decision_journal": [
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "committed",
+            "sequence": 2,
+            "event": "assess",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "observations@1"
+            ],
+            "caveats": []
+          },
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "reopened",
+            "sequence": 3,
+            "event": "retract",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "recheck"
+            ],
+            "caveats": []
+          }
+        ],
+        "cues": [],
+        "cue_qualifications": [],
+        "controls": {},
+        "clock": null,
+        "world": {
+          "start_at": null,
+          "places": [],
+          "entities": [],
+          "connections": [],
+          "action_plans": []
+        },
+        "scenes": [
+          "Decide whether an agent's answer is supported by the evidence sent to it."
+        ],
+        "labels": {},
+        "symbols": [
+          {
+            "name": "answer_supported",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "assessment@1",
+            "kind": "commitment",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "misreport",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@1",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@2",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "recheck",
+            "kind": "evidence",
+            "source": "a second look at that observation",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "tool",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "withdrawn",
+            "kind": "caveat",
+            "source": null,
+            "written_by": null,
+            "consequence": "material",
+            "display": null,
+            "attention": "unexamined"
+          }
+        ],
+        "relations": [
+          {
+            "from": "observations@1",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@1",
+            "relation": "relies_on",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "recheck",
+            "relation": "supports",
+            "to": "misreport",
+            "origin": "live"
+          },
+          {
+            "from": "withdrawn",
+            "relation": "qualifies",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "recheck",
+            "relation": "reopens",
+            "to": "assessment@1",
+            "origin": "live"
+          },
+          {
+            "from": "observations@2",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          }
+        ],
+        "commitments": [
+          {
+            "action": "assessment@1",
+            "open": true,
+            "retained": [],
+            "retained_authorship": [],
+            "reopened_by": [
+              "recheck"
+            ]
+          }
+        ],
+        "budget": null,
+        "effects": [
+          {
+            "kind": "sample",
+            "stream": "observations",
+            "id": "observations@2",
+            "value": 92,
+            "relation": "supports",
+            "target": "answer_supported"
+          }
+        ]
+      },
+      "explanation": {
+        "schema": "caveat-explain/0.1",
+        "sequence": 4,
+        "elapsed": 0,
+        "events": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "assess",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "retract",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 92
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          }
+        ],
+        "decisions": [
+          {
+            "name": "assessment",
+            "limit": 8,
+            "current": "assessment@1",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "value": 85,
+                "status": "reopened",
+                "grounds": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "lineage": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "permission": null,
+                "withdrawn": [
+                  {
+                    "evidence": "observations@1",
+                    "because": "recheck",
+                    "sequence": 3,
+                    "event": "retract"
+                  }
+                ],
+                "history": [
+                  {
+                    "change": "committed",
+                    "sequence": 2,
+                    "event": "assess",
+                    "because": [
+                      "observations@1"
+                    ],
+                    "caveats": []
+                  },
+                  {
+                    "change": "reopened",
+                    "sequence": 3,
+                    "event": "retract",
+                    "because": [
+                      "recheck"
+                    ],
+                    "caveats": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "id": "observations@1",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 85,
+            "sequence": 1,
+            "event": "observe",
+            "caveats": [
+              "withdrawn"
+            ],
+            "withdrawn": {
+              "because": "recheck",
+              "sequence": 3,
+              "event": "retract"
+            }
+          },
+          {
+            "id": "recheck",
+            "relation": "supports",
+            "claim": "misreport",
+            "value": null,
+            "sequence": null,
+            "event": null,
+            "caveats": [],
+            "withdrawn": null
+          },
+          {
+            "id": "observations@2",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 92,
+            "sequence": 4,
+            "event": "observe",
+            "caveats": [],
+            "withdrawn": null
+          }
+        ],
+        "displayed": [
+          {
+            "name": "assessment.verdict",
+            "value": "reopened",
+            "cites": {
+              "evidence": [
+                "observations@1",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "snapshot": {
+        "schema": "caveat-reactive/0.1",
+        "source_id": "fnv1a64:42e2ed8af13f0db6:2516",
+        "sequence": 5,
+        "elapsed": 0,
+        "renewals": {},
+        "withdrawals": [
+          {
+            "evidence": "observations@1",
+            "because": "recheck",
+            "sequence": 3,
+            "event": "retract"
+          }
+        ],
+        "scheduled_qualifications": [],
+        "last_event": "assess",
+        "values": {},
+        "qualified_values": {},
+        "commitment_bases": {
+          "assessment@1": {
+            "value": 85,
+            "provenance": {
+              "evidence": [
+                "observations@1"
+              ],
+              "caveats": []
+            }
+          },
+          "assessment@2": {
+            "value": 92,
+            "provenance": {
+              "evidence": [
+                "observations@1",
+                "observations@2",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "reading_streams": {
+          "observations": {
+            "template": "tool",
+            "limit": 16,
+            "current": "observations@2",
+            "occurrences": [
+              {
+                "id": "observations@1",
+                "ordinal": 1,
+                "sequence": 1,
+                "event": "observe",
+                "value": 85,
+                "provenance": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              },
+              {
+                "id": "observations@2",
+                "ordinal": 2,
+                "sequence": 4,
+                "event": "observe",
+                "value": 92,
+                "provenance": {
+                  "evidence": [
+                    "observations@2"
+                  ],
+                  "caveats": []
+                },
+                "relation": "supports",
+                "claim": "answer_supported"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "decision_series": {
+          "assessment": {
+            "limit": 8,
+            "current": "assessment@2",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "previous": null,
+                "ordinal": 1,
+                "sequence": 2,
+                "event": "assess"
+              },
+              {
+                "id": "assessment@2",
+                "previous": "assessment@1",
+                "ordinal": 2,
+                "sequence": 5,
+                "event": "assess"
+              }
+            ],
+            "selection_qualifications": {
+              "evidence": [],
+              "caveats": []
+            }
+          }
+        },
+        "observation_qualifications": {
+          "observations@1": {
+            "evidence": [],
+            "caveats": []
+          },
+          "observations@2": {
+            "evidence": [],
+            "caveats": []
+          },
+          "recheck": {
+            "evidence": [],
+            "caveats": []
+          }
+        },
+        "examination_qualifications": {},
+        "reopening_qualifications": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1",
+              "recheck"
+            ],
+            "caveats": []
+          }
+        },
+        "predicate_qualifications": {},
+        "events": [
+          {
+            "name": "assess",
+            "parameters": []
+          },
+          {
+            "name": "erase",
+            "parameters": []
+          },
+          {
+            "name": "observe",
+            "parameters": [
+              {
+                "name": "confidence",
+                "min": 0,
+                "max": 100
+              }
+            ]
+          },
+          {
+            "name": "retract",
+            "parameters": []
+          }
+        ],
+        "bindings": {
+          "assessment": {
+            "verdict": "approved"
+          }
+        },
+        "binding_qualifications": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1",
+                "observations@2",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "binding_explanations": {
+          "assessment": {
+            "verdict": {
+              "evidence": [
+                "observations@1",
+                "observations@2",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        "value_grounds": {},
+        "commitment_grounds": {
+          "assessment@1": {
+            "evidence": [
+              "observations@1"
+            ],
+            "caveats": []
+          },
+          "assessment@2": {
+            "evidence": [
+              "observations@2"
+            ],
+            "caveats": []
+          }
+        },
+        "decision_journal": [
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "committed",
+            "sequence": 2,
+            "event": "assess",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "observations@1"
+            ],
+            "caveats": []
+          },
+          {
+            "decision": "assessment",
+            "commitment": "assessment@1",
+            "change": "reopened",
+            "sequence": 3,
+            "event": "retract",
+            "elapsed": 0,
+            "value": 85,
+            "because": [
+              "recheck"
+            ],
+            "caveats": []
+          },
+          {
+            "decision": "assessment",
+            "commitment": "assessment@2",
+            "change": "committed",
+            "sequence": 5,
+            "event": "assess",
+            "elapsed": 0,
+            "value": 92,
+            "because": [
+              "observations@2"
+            ],
+            "caveats": []
+          }
+        ],
+        "cues": [],
+        "cue_qualifications": [],
+        "controls": {},
+        "clock": null,
+        "world": {
+          "start_at": null,
+          "places": [],
+          "entities": [],
+          "connections": [],
+          "action_plans": []
+        },
+        "scenes": [
+          "Decide whether an agent's answer is supported by the evidence sent to it."
+        ],
+        "labels": {},
+        "symbols": [
+          {
+            "name": "answer_supported",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "assessment@1",
+            "kind": "commitment",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "assessment@2",
+            "kind": "commitment",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "misreport",
+            "kind": "claim",
+            "source": null,
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@1",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "observations@2",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "recheck",
+            "kind": "evidence",
+            "source": "a second look at that observation",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "tool",
+            "kind": "evidence",
+            "source": "a tool observation the agent reported",
+            "written_by": null,
+            "consequence": null,
+            "display": null,
+            "attention": null
+          },
+          {
+            "name": "withdrawn",
+            "kind": "caveat",
+            "source": null,
+            "written_by": null,
+            "consequence": "material",
+            "display": null,
+            "attention": "unexamined"
+          }
+        ],
+        "relations": [
+          {
+            "from": "observations@1",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@1",
+            "relation": "relies_on",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "recheck",
+            "relation": "supports",
+            "to": "misreport",
+            "origin": "live"
+          },
+          {
+            "from": "withdrawn",
+            "relation": "qualifies",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "recheck",
+            "relation": "reopens",
+            "to": "assessment@1",
+            "origin": "live"
+          },
+          {
+            "from": "observations@2",
+            "relation": "supports",
+            "to": "answer_supported",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@2",
+            "relation": "relies_on",
+            "to": "observations@1",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@2",
+            "relation": "relies_on",
+            "to": "observations@2",
+            "origin": "live"
+          },
+          {
+            "from": "assessment@2",
+            "relation": "relies_on",
+            "to": "recheck",
+            "origin": "live"
+          }
+        ],
+        "commitments": [
+          {
+            "action": "assessment@1",
+            "open": true,
+            "retained": [],
+            "retained_authorship": [],
+            "reopened_by": [
+              "recheck"
+            ]
+          },
+          {
+            "action": "assessment@2",
+            "open": false,
+            "retained": [],
+            "retained_authorship": [],
+            "reopened_by": []
+          }
+        ],
+        "budget": null,
+        "effects": [
+          {
+            "kind": "commit",
+            "action": "assessment@2",
+            "retained": []
+          }
+        ]
+      },
+      "explanation": {
+        "schema": "caveat-explain/0.1",
+        "sequence": 5,
+        "elapsed": 0,
+        "events": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "assess",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "retract",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 92
+            },
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          },
+          {
+            "event": "assess",
+            "payload": {},
+            "outcome": {
+              "schema": "caveat-dispatch/0.1",
+              "outcome": "accepted"
+            }
+          }
+        ],
+        "decisions": [
+          {
+            "name": "assessment",
+            "limit": 8,
+            "current": "assessment@2",
+            "revisions": [
+              {
+                "id": "assessment@1",
+                "value": 85,
+                "status": "superseded",
+                "grounds": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "lineage": {
+                  "evidence": [
+                    "observations@1"
+                  ],
+                  "caveats": []
+                },
+                "permission": null,
+                "withdrawn": [
+                  {
+                    "evidence": "observations@1",
+                    "because": "recheck",
+                    "sequence": 3,
+                    "event": "retract"
+                  }
+                ],
+                "history": [
+                  {
+                    "change": "committed",
+                    "sequence": 2,
+                    "event": "assess",
+                    "because": [
+                      "observations@1"
+                    ],
+                    "caveats": []
+                  },
+                  {
+                    "change": "reopened",
+                    "sequence": 3,
+                    "event": "retract",
+                    "because": [
+                      "recheck"
+                    ],
+                    "caveats": []
+                  }
+                ]
+              },
+              {
+                "id": "assessment@2",
+                "value": 92,
+                "status": "in force",
+                "grounds": {
+                  "evidence": [
+                    "observations@2"
+                  ],
+                  "caveats": []
+                },
+                "lineage": {
+                  "evidence": [
+                    "observations@1",
+                    "observations@2",
+                    "recheck"
+                  ],
+                  "caveats": []
+                },
+                "permission": null,
+                "withdrawn": [],
+                "history": [
+                  {
+                    "change": "committed",
+                    "sequence": 5,
+                    "event": "assess",
+                    "because": [
+                      "observations@2"
+                    ],
+                    "caveats": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "evidence": [
+          {
+            "id": "observations@1",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 85,
+            "sequence": 1,
+            "event": "observe",
+            "caveats": [
+              "withdrawn"
+            ],
+            "withdrawn": {
+              "because": "recheck",
+              "sequence": 3,
+              "event": "retract"
+            }
+          },
+          {
+            "id": "recheck",
+            "relation": "supports",
+            "claim": "misreport",
+            "value": null,
+            "sequence": null,
+            "event": null,
+            "caveats": [],
+            "withdrawn": null
+          },
+          {
+            "id": "observations@2",
+            "relation": "supports",
+            "claim": "answer_supported",
+            "value": 92,
+            "sequence": 4,
+            "event": "observe",
+            "caveats": [],
+            "withdrawn": null
+          }
+        ],
+        "displayed": [
+          {
+            "name": "assessment.verdict",
+            "value": "approved",
+            "cites": {
+              "evidence": [
+                "observations@1",
+                "observations@2",
+                "recheck"
+              ],
+              "caveats": []
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "preservation": {
+    "commitment": "assessment@1",
+    "originalGrounds": {
+      "evidence": [
+        "observations@1"
+      ],
+      "caveats": []
+    },
+    "finalGrounds": {
+      "evidence": [
+        "observations@1"
+      ],
+      "caveats": []
+    },
+    "unchanged": true
+  }
+}
