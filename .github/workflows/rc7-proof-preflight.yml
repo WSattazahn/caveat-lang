@@ -1,0 +1,16 @@
+name: one-time postpublication proof preflight
+on:
+  push:
+    branches: [codex/review-rc7-postpublication-proof]
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - run: node --check scripts/verify-rc7-postpublication.mjs
