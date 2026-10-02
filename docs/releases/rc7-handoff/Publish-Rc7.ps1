@@ -35,7 +35,7 @@ function Assert-Hash([string]$File) {
     if ($integrity -ne $ExpectedIntegrity) { throw 'Tarball SHA512 integrity mismatch' }
 }
 function Get-RegistryVersion {
-    try { return (Invoke-RestMethod -Uri "$Registry/caveat-lang/$Version") }
+    try { return (Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/caveat-lang/$Version") }
     catch {
         $response = $_.Exception.Response
         if ($null -ne $response -and [int]$response.StatusCode -eq 404) { return $null }
@@ -71,7 +71,7 @@ function Invoke-PublicationDecision {
 }
 function Read-InstalledLock {
     # npm locks contain packages['']; PowerShell5.1 cannot deserialize that key.
-    Read-NativeJson -Exe $Node -Arguments @('-e','const fs=require("node:fs");const p=JSON.parse(fs.readFileSync("package-lock.json","utf8")).packages?.["node_modules/caveat-lang"];if(!p)throw Error("Missing installed package lock entry");process.stdout.write(JSON.stringify(p));')
+    Read-NativeJson -Exe $Node -Arguments @('-e',"const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('package-lock.json','utf8')).packages?.['node_modules/caveat-lang'];if(!p)throw Error('Missing installed package lock entry');process.stdout.write(JSON.stringify(p));")
 }
 
 $Release = Read-NativeJson -Exe $Gh -Arguments @('api','repos/WSattazahn/caveat-lang/releases/tags/v0.1.0-rc.7')
@@ -122,7 +122,7 @@ function Test-Consumer([string]$Package, [string]$Name) {
     } finally { Pop-Location }
 }
 Test-Consumer $Tarball 'before-publication'
-$Tags = Invoke-RestMethod -Uri "$Registry/-/package/caveat-lang/dist-tags"
+$Tags = Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/-/package/caveat-lang/dist-tags"
 if ($Tags.latest -ne '0.1.0-rc.5' -or $Tags.next -notin @('0.1.0-rc.6',$Version)) { throw 'Unexpected dist-tags; stop for review' }
 $Context = Join-Path $Run 'npm-publication-context.json'
 # Persist only public recovery identity; no login output, URLs, codes or tokens.
@@ -135,7 +135,7 @@ $Published = Invoke-PublicationDecision -Existing $Existing -VerificationOnly ([
     Invoke-Native -Exe $Npm -Arguments @('publish',$Tarball,'--access','public','--tag','next','--ignore-scripts','--registry',$Registry)
     @{version=$Version; revision=$Revision; sha256=$ExpectedSha256; integrity=$ExpectedIntegrity; registry=$Registry; status='accepted/pending/unverified'; recovery='Use -VerifyOnly; do not publish again'; acceptedAt=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath $Context -Encoding UTF8
 } -Wait {
-    Wait-RegistryPublication -ReadVersion { Get-RegistryVersion } -ReadTags { Invoke-RestMethod -Uri "$Registry/-/package/caveat-lang/dist-tags" }
+    Wait-RegistryPublication -ReadVersion { Get-RegistryVersion } -ReadTags { Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/-/package/caveat-lang/dist-tags" }
 }
 $DownloadUri = [Uri]$Published.dist.tarball
 if ($DownloadUri.Scheme -ne 'https' -or $DownloadUri.Host -ne 'registry.npmjs.org') { throw 'Unexpected registry tarball origin' }
@@ -143,7 +143,7 @@ $RegistryTarball = Join-Path $Run 'registry-rc7.tgz'
 Invoke-WebRequest -UseBasicParsing -Uri $DownloadUri -OutFile $RegistryTarball
 Assert-Hash $RegistryTarball
 Test-Consumer "caveat-lang@$Version" 'registry-install'
-$Tags = Invoke-RestMethod -Uri "$Registry/-/package/caveat-lang/dist-tags"
+$Tags = Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/-/package/caveat-lang/dist-tags"
 if ($Tags.next -ne $Version -or $Tags.latest -ne '0.1.0-rc.5') { throw 'Unexpected channels after publication; explicit owner review is required. No dist-tag was silently changed.' }
 $NpmVersion = & $Npm --version
 if ($LASTEXITCODE -ne 0) { throw 'npm version command failed' }

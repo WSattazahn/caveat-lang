@@ -43,7 +43,7 @@ foreach($Existing in @($null,$Valid)) {
 }
 Refuses { Invoke-PublicationDecision -Existing $null -VerificationOnly $true -Publish {$script:Published++} -Wait {throw 'HTTP404 timeout'} } 'HTTP404'
 Assert ($script:Published -eq 0 -and $script:Waited -eq 2) 'VerifyOnly must never publish'
-# Actual HTTP404/non404 wrapper behavior, without network.
+# Transport errors escape the wrapper; null-return seam above models HTTP404.
 $Registry='https://registry.npmjs.org'
 function Invoke-RestMethod { throw [Net.WebException]::new('unavailable',$null,[Net.WebExceptionStatus]::ProtocolError,$null) }
 Refuses { Get-RegistryVersion } 'unavailable'
