@@ -4,7 +4,8 @@
 // session library in a browser, the packaged getting-started guide and worked
 // example followed step by step from an empty directory, and the packaged
 // agent-evidence example's Python tests, which need Python 3.9 or later. Run
-// after `npm run build`.
+// after `npm run build`. The pinned CLI collision check also needs npm registry
+// access (or a primed cache); third-party lifecycle scripts are disabled.
 //
 //   node scripts/test-kit-package.mjs            PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //   node scripts/test-kit-package.mjs --no-browser
@@ -23,6 +24,7 @@ import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-ki
 import { followGuide } from '../kit/test/guide.mjs';
 import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
+import { checkCliCollision, installedCommand } from './test-cli-collision.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const kit = path.join(root, 'kit');
@@ -47,7 +49,7 @@ const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 
 const shipped = file => packDocs.reference.includes(file);
 const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md'];
 // The library's modules, each with its TypeScript declarations.
 const LIBRARY = ['check', 'explain', 'node', 'scenarios', 'serve', 'session'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
@@ -160,7 +162,21 @@ for (const file of RUNTIME_FILES) {
 }
 assert.equal(await readFile(path.join(installed, 'runtime', 'build-info.json'), 'utf8'),
   await readFile(path.join(run, 'build-info.json'), 'utf8'), 'retained build metadata matches the installed runtime');
-assert.ok(['caveat', 'caveat.cmd'].some(name => existsSync(path.join(consumer, 'node_modules', '.bin', name))), 'npm linked the caveat command');
+assert.deepEqual(manifest.bin, { caveat: 'bin/caveat.mjs', 'caveat-lang': 'bin/caveat.mjs' });
+const aliasOutputs = {};
+for (const name of ['caveat', 'caveat-lang']) {
+  const help = installedCommand(consumer, name, ['help']);
+  const version = installedCommand(consumer, name, ['--version']);
+  for (const result of [help, version]) assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(help.stdout, /^CAVEAT Language — Programs that remember why\./);
+  assert.equal(version.stdout, `CAVEAT Language ${manifest.version}\n`);
+  aliasOutputs[name] = { help: help.stdout, version: version.stdout };
+}
+assert.deepEqual(aliasOutputs['caveat-lang'], aliasOutputs.caveat, 'both npm executable names invoke the same CLI and package version');
+report.checks.cliAliases = { names: Object.keys(aliasOutputs), version: aliasOutputs.caveat.version.trim(), helpMatches: true };
+report.checks.cliCollision = await checkCliCollision({
+  tarball, directory: path.join(run, 'cli-collision'), manifest, ...aliasOutputs.caveat,
+});
 // Every entry point but the runtime's names its declarations, which arrived.
 for (const [entry, target] of Object.entries(installedManifest.exports)) {
   if (entry === './runtime/*') continue;

@@ -19,15 +19,21 @@ import { dependents, explain, formatDependents, formatExplanation, parseEvents }
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 
-const USAGE = `Usage:
-  caveat test [--runtime <dir>] [--json] <file.scenarios.json>...
-  caveat explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
-  caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
-  caveat validate [--runtime <dir>] [--json] <program.cav>
-  caveat check [--runtime <dir>] [--json] [--strict] <program.cav>
-  caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
-  caveat serve [--runtime <dir>] <program.cav>
-  caveat init [<directory>]
+const USAGE = `CAVEAT Language — Programs that remember why.
+
+Usage:
+  caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
+  caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+  caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
+  caveat-lang validate [--runtime <dir>] [--json] <program.cav>
+  caveat-lang check [--runtime <dir>] [--json] [--strict] <program.cav>
+  caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
+  caveat-lang serve [--runtime <dir>] <program.cav>
+  caveat-lang init [<directory>]
+  caveat-lang --version
+
+Both caveat-lang and caveat invoke this CLI. Prefer caveat-lang when other
+packages also install a command named caveat.
 
 test runs Caveat scenario files (spec/caveat-scenarios-0.1.md).
   Exit status: 0 every scenario passed, 1 a scenario failed, 2 a file was
@@ -86,6 +92,7 @@ const COMMANDS = {
 
 function parseArguments(argv) {
   const [command, ...rest] = argv;
+  if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
   const options = { command, files: [], json: false, strict: false, runtime: null };
@@ -321,9 +328,9 @@ async function init(options) {
   console.log([
     `Wrote ${TEMPLATES.slice(0, -1).join(', ')} and ${TEMPLATES.at(-1)}${where}, the program from docs/GETTING_STARTED.md.`,
     'Next:',
-    '  npx --no-install caveat test umbrella.scenarios.json',
-    '  npx --no-install caveat explain umbrella.cav events.jsonl',
-    '  npx --no-install caveat dependents umbrella.cav sky events.jsonl',
+    '  npx --no-install caveat-lang test umbrella.scenarios.json',
+    '  npx --no-install caveat-lang explain umbrella.cav events.jsonl',
+    '  npx --no-install caveat-lang dependents umbrella.cav sky events.jsonl',
   ].join('\n'));
   return 0;
 }
@@ -369,6 +376,11 @@ async function testScenarios(options) {
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.command === 'help') { console.log(USAGE); return 0; }
+  if (options.command === 'version') {
+    const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+    console.log(`CAVEAT Language ${manifest.version}`);
+    return 0;
+  }
   if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
   const run = {
     test: testScenarios, explain: explainProgram, dependents: dependentsOf,

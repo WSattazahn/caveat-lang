@@ -52,6 +52,11 @@ such as `["node", "../node_modules/caveat-lang/bin/caveat.mjs"]`, or pass
 `command=` to `CaveatServer`. In JSON, write a Windows path with forward
 slashes or doubled backslashes.
 
+With an rc.7 tarball installed alongside another package that owns `caveat`,
+set `CAVEAT_COMMAND` to `["npx", "--no-install", "caveat-lang"]` (use
+`"npx.cmd"` on Windows). rc.6 has only the shorter name. See
+[project names and CLI commands](../../docs/NAMES.md).
+
 ## The program
 
 `assessment.cav` has four events:
