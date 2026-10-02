@@ -25,5 +25,15 @@
     "Rust crate 0.1.0",
     "editor 0.1.0"
   ],
-  "historicalArchivesUnchanged": true
+  "historicalArchivesUnchanged": true,
+  "integrationBase": "61757c67efab1243f349d37640591dc665c95ce7",
+  "handoffPr": 83,
+  "handoffRuntime": {
+    "run": 36975501401,
+    "head": "f1575f90321ced0675987d15f9f54e4eb4e49752",
+    "attempt": 1,
+    "status": "success",
+    "LegacyDoor": "scope skipped; final rc7 main LegacyDoor passed"
+  },
+  "finalSourceReviewAt": "2026-10-02T07:11:51.323142+00:00"
 }
