@@ -43,10 +43,18 @@ foreach($Existing in @($null,$Valid)) {
 }
 Refuses { Invoke-PublicationDecision -Existing $null -VerificationOnly $true -Publish {$script:Published++} -Wait {throw 'HTTP404 timeout'} } 'HTTP404'
 Assert ($script:Published -eq 0 -and $script:Waited -eq 2) 'VerifyOnly must never publish'
-# Transport errors escape the wrapper; null-return seam above models HTTP404.
+# Deterministic actual wrapper classification, without network.
+Add-Type -TypeDefinition 'public class Rc7ResponseException : System.Exception { public object Response {get;set;} public Rc7ResponseException(string message) : base(message) {} }'
 $Registry='https://registry.npmjs.org'
-function Invoke-RestMethod { throw [Net.WebException]::new('unavailable',$null,[Net.WebExceptionStatus]::ProtocolError,$null) }
-Refuses { Get-RegistryVersion } 'unavailable'
+$script:HttpStatus=404
+function Invoke-RestMethod {
+    $ErrorResponse=[Rc7ResponseException]::new("HTTP$script:HttpStatus")
+    $ErrorResponse.Response=[pscustomobject]@{StatusCode=$script:HttpStatus}
+    throw $ErrorResponse
+}
+Assert ($null -eq (Get-RegistryVersion)) 'HTTP404 must return null'
+$script:HttpStatus=503
+Refuses { Get-RegistryVersion } 'HTTP503'
 Remove-Item Function:Invoke-RestMethod
 # Actual Node parse + PowerShell5.1 deserialization of selected lock entry.
 $Node=(Get-Command node -ErrorAction Stop).Source

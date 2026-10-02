@@ -62,9 +62,18 @@ propagate; actual identity/integrity mismatch, unexpected channels, and every
 non404 request error refuse immediately. latest must remain rc.5. Timeout says
 accepted/pending/unverified and retains a public recovery-context JSON with the
 exact artifact identity. Use the reviewed source helper with **-VerifyOnly** for
-this already accepted version; do not publish again. VerifyOnly cannot call login
+this already accepted version; do not publish again. VerifyOnly cannot call npm login
 or publish even while the registry version is absent. Node selects the installed
 package lock entry before PowerShell parses JSON, supporting PowerShell5.1.
 The frozen release helper has neither fix; do not overwrite that asset or assert
 its original hash identifies this amended source. A successful recovery still
 requires exact registry bytes, a fresh install and the publication-record workflow.
+
+At 2026-10-02T14:58:51.184Z, the owner-console VerifyOnly recovery completed
+successfully using a temporary copy that selected the lock entry with Node.
+The receipt is retained in the GitHub prerelease as
+npm-publication-verification-20261002T145851184.json (asset605839559).
+Both tarball and registry consumers, exact hashes, lock integrity/origin, aliases,
+Linux build identity/WASM, doctor/demo and umbrella scenarios passed. next is
+rc.7 and latest remains rc.5. No second npm publication occurred. This owner
+receipt precedes the independent cloud verification and public-docs finalization.
