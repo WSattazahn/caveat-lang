@@ -31,17 +31,26 @@ export function explain(snapshot, events = []) {
   for (const stream of Object.values(snapshot.reading_streams ?? {})) {
     for (const occurrence of stream.occurrences ?? []) readings.set(occurrence.id, occurrence);
   }
-  const evidence = (snapshot.relations ?? [])
-    .filter(relation => relation.relation === 'supports' || relation.relation === 'opposes')
-    .map(relation => {
-      const reading = readings.get(relation.from);
-      return {
-        id: relation.from, relation: relation.relation, claim: relation.to,
-        value: reading?.value ?? null, sequence: reading?.sequence ?? null, event: reading?.event ?? null,
-        caveats: qualifiedBy[relation.from] ?? [],
-        withdrawn: withdrawals.get(relation.from) ?? null,
-      };
-    });
+  const stances = (snapshot.relations ?? [])
+    .filter(relation => relation.relation === 'supports' || relation.relation === 'opposes');
+  // Older and stance-only snapshots use edge order. Once neutral observation
+  // exists, acquisition order comes from the explicit occurrence ledger. A
+  // later stance must not move an earlier neutral observation in that order.
+  const relations = snapshot.observations?.length
+    ? [...new Set([...snapshot.observations, ...stances.map(item => item.from)])].flatMap(id => {
+      const found = stances.filter(item => item.from === id);
+      return found.length ? found : [{ from: id, relation: null, to: null }];
+    })
+    : stances;
+  const evidence = relations.map(relation => {
+    const reading = readings.get(relation.from);
+    return {
+      id: relation.from, relation: relation.relation, claim: relation.to,
+      value: reading?.value ?? null, sequence: reading?.sequence ?? null, event: reading?.event ?? null,
+      caveats: qualifiedBy[relation.from] ?? [],
+      withdrawn: withdrawals.get(relation.from) ?? null,
+    };
+  });
 
   const journal = snapshot.decision_journal ?? [];
   const decisions = Object.entries(snapshot.decision_series ?? {}).map(([name, series]) => ({
@@ -131,7 +140,8 @@ export function formatExplanation(report, title = 'the program') {
     const value = item.value === null ? '' : ` = ${show(item.value)}`;
     const when = item.sequence === null ? '' : `  (#${item.sequence} ${item.event})`;
     const withdrawn = item.withdrawn ? `  ${withdrawnNote(item.withdrawn)}` : '';
-    lines.push(`  ${item.id}${value} ${item.relation} ${item.claim}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}${withdrawn}`);
+    const stance = item.relation === null ? 'observed (no stance)' : `${item.relation} ${item.claim}`;
+    lines.push(`  ${item.id}${value} ${stance}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}${withdrawn}`);
   }
   lines.push('', 'Displayed');
   if (!report.displayed.length) lines.push('  nothing bound');

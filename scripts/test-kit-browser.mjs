@@ -21,6 +21,12 @@ const types = {
 
 export const CLOCK_SOURCE = 'scene "Clock probe.";\nevent advance dt min 0 max 3600;\nclock advance every 1;\nbind hud.elapsed = elapsed();\n';
 
+const NEUTRAL_SOURCE = `evidence memory from "lookup"; caveat stale consequence material;
+  state score = 0; event consult; event age;
+  on consult reveal memory; on consult set score = qualified(80, memory);
+  on age qualify memory with stale;
+  bind hud.seen = observed(memory); bind hud.score = score because score;`;
+
 // Executed in the page. The paths are URL prefixes on the test server.
 function pageCheck({ kit, runtime: runtimeBase, examples, clockSource }) {
   return `
@@ -68,6 +74,19 @@ try {
   results.elapsed = clock.view().bindings.hud.elapsed === 2.5 && clockRestored.snapshot().elapsed === 2.5;
   clock.close();
   clockRestored.close();
+
+  const neutral = runtime.open(${JSON.stringify(NEUTRAL_SOURCE)});
+  const neutralView = neutral.dispatchView('consult');
+  neutral.dispatch('age');
+  const neutralRestored = runtime.restore(${JSON.stringify(NEUTRAL_SOURCE)}, neutral.save());
+  const { explain } = await import(${JSON.stringify(`${kit}explain.mjs`)});
+  const neutralEvidence = explain(neutralRestored.snapshot()).evidence;
+  results.neutralObservation = neutralView.outcome === 'accepted' && neutralView.view.bindings.hud.seen
+    && JSON.stringify(neutralRestored.snapshot()) === JSON.stringify(neutral.snapshot())
+    && neutralEvidence.length === 1 && neutralEvidence[0].relation === null
+    && neutralEvidence[0].claim === null && neutralEvidence[0].caveats.includes('stale');
+  neutral.close();
+  neutralRestored.close();
 
   const fileUrl = new URL(${JSON.stringify(`${examples}thermostat_history.scenarios.json`)}, location.href);
   const doc = parseScenarioFile(await text(fileUrl));
@@ -151,7 +170,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }

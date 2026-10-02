@@ -109,7 +109,7 @@ sees what the earlier ones did.
 | --- | --- |
 | `set STATE = EXPRESSION [because CITATION, …]` | Sets a number. |
 | `sample STREAM = EXPRESSION supports\|opposes CLAIM` | Records a reading. |
-| `reveal EVIDENCE supports\|opposes CLAIM` | Observes evidence. |
+| `reveal EVIDENCE [supports\|opposes CLAIM]` | Observes evidence, optionally with a stance ([neutral reveal](reference/spec/caveat-neutral-reveal-0.1.md)). |
 | `commit SERIES because enough\|budget\|deadline [using EXPRESSION] [permitted by GRANT [for EXPRESSION]] [retaining CAVEAT, …]` | Makes a decision. GRANT is evidence or `latest(STREAM)`. `for X` requires the grant's value to equal X ([permission](reference/spec/caveat-permission-0.1.md)). |
 | `reopen SERIES because EVIDENCE\|latest(STREAM)\|caveated(STATE, CAVEAT)` | Reopens the current revision. |
 | `withdraw EVIDENCE\|latest(STREAM) because EVIDENCE` | Marks it wrong. Later reads carry a `withdrawn` caveat ([withdrawal](reference/spec/caveat-withdrawal-0.1.md)). |

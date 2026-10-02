@@ -14,7 +14,7 @@ Caveat's identity is the persistent epistemic graph described in the [original s
 - An explanation may cite less than a value depended on, never more. The runtime rejects a citation its binding did not read; the complete lineage remains inspectable.
 - Lineage records what could have influenced a value; grounds record what it is based on. Control (guards, skipped rules, revealing guards, predecessor decisions) belongs to lineage only, and grounds never exceed lineage.
 
-`observed(...)` answers whether an evidence edge was reached, not whether a claim is true. `committed(...)` and `reopened(...)` describe the history and current status of a decision. These queries do not turn the graph into a single confidence score.
+`observed(...)` answers whether evidence was observed, through a stance-bearing relation or an explicit [neutral reveal](../spec/caveat-neutral-reveal-0.1.md), not whether a claim is true. Neutral observation asserts no support or opposition. `committed(...)` and `reopened(...)` describe the history and current status of a decision. These queries do not turn the graph into a single confidence score.
 
 ## Ordinary computation still has a place
 

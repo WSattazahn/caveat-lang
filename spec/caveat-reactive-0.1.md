@@ -138,7 +138,7 @@ The predicates read the actual reached graph:
 
 | Predicate | True when |
 | --- | --- |
-| `observed(EVIDENCE)` | A reached `supports` or `opposes` edge originates at that evidence |
+| `observed(EVIDENCE)` | A reached stance edge or [neutral reveal](caveat-neutral-reveal-0.1.md) observes that evidence |
 | `examined(CAVEAT)` | Live attention is `Examined` |
 | `committed(ACTION)` | That named commitment exists, including if reopened |
 | `reopened(ACTION)` | That commitment exists and is open |
@@ -150,6 +150,7 @@ do not collapse uncertainty into a Boolean claim of truth.
 The graph effects are:
 
 ```text
+reveal EVIDENCE                 -- Neutral Reveal 0.1
 reveal EVIDENCE supports CLAIM
 reveal EVIDENCE opposes CLAIM
 examine CAVEAT cost UNSIGNED_INTEGER

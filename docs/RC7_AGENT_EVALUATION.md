@@ -6,6 +6,17 @@ Evaluation date: October 1, 2026 (America/Los_Angeles). The review is split betw
 This is an evaluation and development candidate,
 not an rc.7 publication or a claim that the unavailable Muse/Dot applications pass.
 
+## Approved scope extension
+
+After reviewing this evaluation, the owner approved neutral reveal for rc.7
+and a `caveat-lang` CLI alias alongside the existing `caveat` command.
+[Neutral Reveal 0.1](../spec/caveat-neutral-reveal-0.1.md) defines the additive
+observation record, compatibility and acceptance requirements. The
+[command naming note](../kit/docs/NAMES.md) explains the alias and the real,
+pinned co-installation regression fixture. The original evaluation receipts
+below remain historical; the new feature's checks are reported in its PR.
+`whatif`, `abstain`, and string matchers remain deferred.
+
 ## Baseline and evidence
 
 | Identity | Verified value |
@@ -41,7 +52,7 @@ The unrelated Dot rc.5 checker ZIP with 22 scenarios is excluded.
 | lifecycle documentation | v2 separates observation/assessment and uses explicit reopening | second assessment rejected; flow unclear | Yes: duplicate refused; shipped supporting observation leaves old approval; every-observation policy reopens | Authored `reopened by` plus separate sessions | Yes, explain policy choices with executable examples | **DOCUMENT rc.7** |
 | qualification documentation | v2 reports archived/future distinction unclear | No separate report | Yes: direct template-dependent value changes, archived occurrence and frozen grounds do not; Q1 reuses old clean grounds | Existing identity and qualification semantics | Yes, explain six distinct records and resampling | **DOCUMENT rc.7** |
 | custom integration tests | v2 permit description checks new commitment, but original grounds checks unavailable | rejected operation must defeat old approval | Yes: new commitment with wrong or old grounds can pass a generic permit test; exact custom check refuses | `Attempt` plus an application-specific permit callback | Yes: L1-L8, Q1/Q2, exact sources and explicit carry-over | **IMPLEMENT rc.7** |
-| stance-less reveal | v1 reports artificial `memory supports memory_trustworthy` workaround; v2 source unavailable | No report | Neutral syntax rejected; sampling does not observe template; exact v2 workaround unverified | A truthful stance may fit some models; does not represent neutral consultation itself | Real language-modeling gap; compatibility design not complete | **DEFER with concrete missing evidence**: independent observation-record design and complete save/renewal/order/withdrawal/consumer compatibility tests |
+| stance-less reveal | v1 reports artificial `memory supports memory_trustworthy` workaround; v2 source unavailable | No report | Neutral syntax rejected; sampling does not observe template; exact v2 workaround unverified | A truthful stance may fit some models; does not represent neutral consultation itself | Real language-modeling gap; compatibility design not complete | **IMPLEMENT rc.7, subsequently authorized**: separate observation record and save/renewal/order/withdrawal/consumer tests in the neutral-reveal follow-up |
 | whatif | wants counterfactual execution without risking live state | No report | Separate-runtime API branches work; injected actual WASM trap demonstrates shared-instance failure boundary | Save into another runtime/process with same source/build | Useful potential isolation feature, but public lifecycle/resource contract not complete | **DEFER with concrete missing evidence**: bounded disposable-runtime/process contract, crash/resource tests and complete operation acceptance suite; document existing recipe now |
 | abstain | v1 distinguishes non-choice from choosing clarification; v2 successfully chooses clarification | No report | No original non-choice application to rerun; new primitive absent | A substantive clarification strategy already expresses a choice to clarify | Insufficient verified need for a new decision state | **DEFER with concrete missing evidence**: real non-choice integration plus complete five-transition state/query/restore/actionability contract |
 | `because` diagnostic | known claim described as unknown numeric identifier | No report | Yes, on baseline WASM | Correct grounding checks existed; messages conflated kinds | Yes, diagnostic-only change with native and WASM tests | **IMPLEMENT rc.7** |
@@ -131,10 +142,10 @@ ownership and disposal, crash/early-exit tests if using a child process, and
 repeated-use acceptance tests. It can describe policy consequences; evaluating
 whether an outcome is better remains external or authored.
 
-## Why neutral reveal needs a separate design
+## Why neutral reveal required a separate design
 
-The load probe `on consult reveal memory;` is rejected. Today `observed` is
-computed from support/opposition edges. Making stance optional in the parser
+The baseline load probe `on consult reveal memory;` was rejected. At that
+baseline, `observed` was computed from support/opposition edges. Making stance optional in the parser
 alone would break that contract. Implementation must introduce a truthful,
 authoritative observation record with occurrence identity, ordering and guard
 provenance. That record must survive restore, qualification, withdrawal and
@@ -144,8 +155,8 @@ Affected consumers include `Effect::Reveal`, parser/validation, procedure
 substitution, observation-order analysis, execution/predicates, snapshots and
 effect reports, graph representation, restore's observed-evidence validation,
 and kit explain/dependents. Existing stance-bearing sources and old saves need
-explicit compatibility tests. Until that complete representation is specified
-and tested, this evaluation does not ship a parser-only approximation.
+explicit compatibility tests. The approved follow-up implements that representation and its compatibility
+checks under [Neutral Reveal 0.1](../spec/caveat-neutral-reveal-0.1.md).
 
 ## Fresh-agent trial
 

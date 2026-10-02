@@ -19,6 +19,9 @@ the same event, so it can only fail; reveal absorb_cave first, or guard the rule
 observed(absorb_cave)
 ```
 
+Both `reveal E supports|opposes CLAIM` and [neutral `reveal E`](caveat-neutral-reveal-0.1.md)
+count as possible observations. Sampling from E still does not observe E itself.
+
 ## What is rejected
 
 Only uses that are **certain** to fail. A use is a place that needs evidence
