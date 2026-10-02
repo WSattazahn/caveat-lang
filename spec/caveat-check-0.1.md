@@ -82,7 +82,8 @@ reading the stream with `latest`, `history_count`, `history_at`, a fold,
 A *reopening path* is any `reopen` of the series, in a rule or in a
 procedure, or a declared [reopening trigger](caveat-reopening-triggers-0.1.md)
 on it. Both commits and reopenings are found after procedure calls and `for`
-blocks are expanded. A reopening inside a procedure that takes the series as a
+blocks are expanded, the copies of a rule that names a member by its
+parameter included. A reopening inside a procedure that takes the series as a
 `decisions` parameter therefore counts.
 
 A series may not be committed again until its current revision is reopened
@@ -176,7 +177,10 @@ It does not check:
 - a rule that loads only once `$index` is a number, such as
   `examine X cost $index`, because it cannot be read as written;
 - rules outside `for` blocks, procedure steps and bindings;
-- a rule in a [routed](caveat-routed-repetition-0.1.md) block;
+- a rule in a [routed](caveat-routed-repetition-0.1.md) block. A rule that
+  names a member by its parameter, such as `$shown`, is routed
+  ([routed repetition](caveat-routed-repetition-0.1.md) section 10), so C003
+  does not check it;
 - whether the selection is the right one. `target == target.north` in the
   copy for `south` is routed, and so is one parameter compared where another
   was meant, alone or in a chain of `or`.
@@ -292,7 +296,8 @@ It does not check:
 
 - a rule in a routed block. A routed block refuses an entity of its kind in
   a `for` block ([routed repetition](caveat-routed-repetition-0.1.md)
-  section 7), so its `$index` and P agree;
+  section 7), so its `$index` and P agree. A rule that names a member by its
+  parameter is routed (section 10 there), so C004 does not check it either;
 - a selection by name or by a member constant, such as `target == target.$p`
   or `target == target.east`;
 - `$index` reached some other way: through a state, as in
@@ -434,3 +439,10 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
   does not check a rule on the member's own event. A rule that got C004
   before may get more: `from == $index and to == $index` got it on `from`,
   and now gets it on `to` as well.
+- 2026-09-29: check reads a program in which a routed rule names a member
+  by its event's parameter, such as `$shown`
+  ([routed repetition](caveat-routed-repetition-0.1.md) section 10). It reads
+  `$shown` as a name the source does not use, as it reads `$NAME` and
+  `$index`. C002 reads the rule's copies, and C003 and C004 do not check it,
+  since it is routed. Such programs did not load before, so no report
+  changes.

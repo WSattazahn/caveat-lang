@@ -1,13 +1,15 @@
 # CAVEAT Routed Repetition 0.1
 
 **Status:** implemented. The pass is in `runtime/src/repeat.rs`, and C003
-skips routed blocks in `runtime/src/reactive_check.rs`. Sections 1 to 8 are
-tested in `runtime/tests/routed_repetition.rs` and `runtime/tests/check.rs`.
-The converted agent ledger passes the ledger's 11 scenarios
-(`kit/test/commands.test.mjs`). Section 9 lists what routing does not
-prevent. Of those limits, only entities of KIND in another part has a test.
-A runtime older than this profile refuses a `routed by` header as a
-malformed `for` block.
+skips routed blocks in `runtime/src/reactive_check.rs`. Sections 1 to 8 and
+10 are tested in `runtime/tests/routed_repetition.rs` and
+`runtime/tests/check.rs`. The converted agent ledger passes the ledger's 11
+scenarios (`kit/test/commands.test.mjs`), and Before the Rain
+(`game/before_the_rain.cav`) passes its 12 (`npm run test:before-the-rain`).
+Section 9 lists what routing does not prevent. Of those limits, only
+entities of KIND in another part has a test. A runtime older than this
+profile refuses a `routed by` header as a malformed `for` block, and one
+older than section 10 refuses `$Q` as not bound.
 
 The [agent ledger](../experiments/agent-ledger/ledger-identifiers.cav) writes
 one [repetition](caveat-repetition-0.1.md) block over its pull requests. All
@@ -65,6 +67,11 @@ the author routes the block by that parameter, or keeps the rules on it in a
 plain block. Renaming the event's parameter instead would change what every
 host sends and every recorded history holds.
 
+A routed rule can still name a second member that its event names, by that
+parameter's own name: `$shown` for `shown kind exhibit` (section 10). The
+header routes by one parameter, and the text shows which parameter names the
+second member.
+
 A plain block is unchanged. Its header is still exactly `for KIND as $NAME`,
 so every existing program expands byte for byte as before. Routing is a
 profile of its own rather than a new section of Repetition 0.1, because it
@@ -111,6 +118,8 @@ did would then depend on the header, and C003 does not check such a rule, so
 dropping the clause would multiply it with no report. Written once, outside
 the block, it runs once per event either way:
 `on observe set observations = observations + 1;` belongs there.
+
+`$Q` (section 10) names another member, so it is not a mention.
 
 Two kinds of rule in the block are not routed. They expand as written, as in a
 plain block:
@@ -325,14 +334,17 @@ another writes, the new order is the author's to check, as for any moved rule.
 Routing runs with Repetition 0.1: once per part, before names are rewritten.
 EVENT is looked up among the `event` declarations of the block's own part (a
 single-file program is one part). A declaration a `for` block writes counts
-only when Repetition 0.1 expands that whole block, for every member, or would
-but for its body's last statement without its `;`: that block's declarations
-count as its copies read, and loading then stops at the block, with Repetition
-0.1's error. A declaration that is the part's last statement counts without
-its `;`, as the loader reads it. A program declares every event it reacts to,
-`tick` included: `game/glowcap.cav` writes `event tick dt min 0 max 0.1;`. The
-prelude holds functions only. Like Repetition 0.1, which iterates only kinds
-declared in its own part, routing reads nothing else.
+only when Repetition 0.1 expands that block's statements other than its `on`
+rules, for every member, or would but for its body's last statement without
+its `;`: that block's declarations count as its copies read, and loading then
+stops at the block, with Repetition 0.1's error. A rule declares no event,
+and one that names a member by `$Q` is bound only once its event is read
+(section 10), so the rules are left out. A declaration that is the part's last
+statement counts without its `;`, as the loader reads it. A program declares
+every event it reacts to, `tick` included: `game/glowcap.cav` writes
+`event tick dt min 0 max 0.1;`. The prelude holds functions only. Like
+Repetition 0.1, which iterates only kinds declared in its own part, routing
+reads nothing else.
 
 An error stops loading at the first one found. Blocks are read in source
 order, and in each block the checks run in this order:
@@ -341,8 +353,16 @@ order, and in each block the checks run in this order:
 2. an entity of KIND in a `for` block;
 3. each rule, in the order written;
 4. whether the block routes any rule;
-5. Repetition 0.1's check that every `$` name is bound, as each member's copy
+5. section 10, rule by rule in the order written: in each rule, each `$`
+   word in the order written, then the rule as a whole;
+6. the work of each event that a rule of section 10 is on, in the order of
+   those rules;
+7. Repetition 0.1's check that every `$` name is bound, as each member's copy
    is written.
+
+A plain block has checks 1, 5 and 7, and check 5 only reads a `$` word in an
+`on` rule that neither `$NAME` nor `$index` begins. Such a word is refused
+either way, so a plain block that loads is read as it always was.
 
 In a bundle an error is prefixed with the part's name, as Repetition 0.1's
 errors are. HEADER below is the block's header, from `for` up to but not
@@ -417,6 +437,87 @@ refused with:
 `on approved` in `for pr as $p routed by target`: `approved` declares `target id`, not `target kind pr`; keep the rules on `approved` in a plain for block
 ```
 
+Section 10 adds the errors below, in the order checks 5 and 6 find them. In
+each, EVENT is written without `$` and is declared in the part. $WORD is the
+whole `$` word as written, such as `$shown_points`. Q is a parameter of
+EVENT, `$Q` is Q with a `$`, and K is Q's kind.
+
+- **A word either could name.** In a routed rule, `$NAME` or `$index` begins
+  $WORD, and so does a `kind` parameter Q of EVENT that is longer, or as long
+  and not P.
+
+  ```text
+  `$WORD` in `on EVENT` in `HEADER` could be `$NAME` or the K `EVENT` names by `Q`; rename `$NAME` so that only one of them begins it, or write the rule in a block routed by `Q`
+  ```
+
+  Where `$index` begins the word, the message names `$index` and does not
+  suggest renaming it. Where Q is P, it does not suggest routing by Q. Where
+  both hold, it suggests writing `$NAME` for the K that P names.
+
+- **P named by its parameter.** In a routed rule, neither `$NAME` nor
+  `$index` begins $WORD, and the longest `kind` parameter of EVENT that
+  begins it is P.
+
+  ```text
+  `$WORD` in `on EVENT` in `HEADER`: the block is routed by `P`, so the KIND it names is `$NAME`; write `$NAME` for `$P`
+  ```
+
+- **A parameter of another form.** In a routed rule, no binding and no
+  `kind` parameter of EVENT begins $WORD, and another parameter Q does, the
+  longest if several do. FORM is as for P of another form.
+
+  ```text
+  `$WORD` in `on EVENT` in `HEADER`: `EVENT` declares `Q FORM`, and a `$` names a member only by a `kind` parameter
+  ```
+
+- **A parameter outside a routed rule.** In an `on` rule of a plain block,
+  or in a rule of a routed block that is not routed, neither `$NAME` nor
+  `$index` begins $WORD, and a `kind` parameter of EVENT does. Anywhere
+  else, such as in a declaration or in a rule on an event written with `$`,
+  the word is refused as not bound, as before.
+
+  ```text
+  `$WORD` in `on EVENT` in `HEADER`: a `$` names the member a parameter names only in a routed rule (spec/caveat-routed-repetition-0.1.md section 10), and this rule is not routed
+  ```
+
+- **A rule that names members by two parameters.** Q1 and Q2 are the
+  parameters in the order the rule first names a member by them:
+
+  ```text
+  `on EVENT` in `HEADER` names members by `$Q1` and `$Q2`; a rule names a member by one parameter at most, so write it in a block routed by one of them
+  ```
+
+  With more, the message names each, as `$Q1`, `$Q2` and `$Q3`.
+
+- **A rule that names members only by a parameter.** The rule names a member
+  by `$Q`, and neither `$NAME` nor `$index` begins any of its words.
+
+  ```text
+  `on EVENT` in `HEADER` names members only by `$Q`, and neither `$NAME` nor `$index`; each KIND's copy of it would be the same rule, so write it in a block routed by `Q`
+  ```
+
+- **A kind with no member in the part.** No top-level `entity` statement of
+  the part declares an entity of kind K.
+
+  ```text
+  `$Q` in `on EVENT` in `HEADER`: no entity is declared `kind K` at the top level of this part, so `$Q` names no member
+  ```
+
+- **An entity of K in a `for` block.** A `for` block in the part declares an
+  entity of kind K. ENTITY is its name as written there.
+
+  ```text
+  `$Q` in `on EVENT` in `HEADER`: `Q` counts entity `ENTITY` of kind K, declared in a for block, and `$Q` does not; declare it at the top level of this part
+  ```
+
+- **More work than one event can do.** N is the number of rules the block
+  writes on EVENT, counted as section 10 counts them, and it is more than
+  4096.
+
+  ```text
+  `HEADER` writes N rules on `EVENT`, and one event does at most 4096 steps of work; each copy spends a step whether its route holds or not
+  ```
+
 Each of these is an error rather than a quiet choice:
 
 - A header that routes nothing says something untrue about the block. A plain
@@ -440,6 +541,26 @@ Each of these is an error rather than a quiet choice:
   today. `caveat check` reports it where the entity comes before a
   top-level member, so that a member's copy acts for another member (C004
   in [Check 0.1](caveat-check-0.1.md)).
+- A word that either could name named the block's member before, and a
+  parameter's name begins it now too. Either could be meant, and nothing
+  would show which.
+- In the only copy that runs, the member P names is the block's own, so
+  `$P` would write W×|KIND| copies to say what `$NAME` says once.
+- A parameter of another form holds a number or a choice, not a member's
+  position.
+- A rule that is not routed would run once for each block member, for the
+  member Q names. No game has needed that, and C003 would then have to read
+  `$Q`.
+- A rule that names members by two parameters would multiply its copies
+  again, and no game has needed it.
+- A rule that names members only by a parameter is the same in every block
+  member's copy, as a routed rule that mentions no binding is.
+- A kind with no member in the part would give the rule no copy, and it would
+  vanish without a report.
+- An entity of K in a `for` block makes Q count a member that `$Q` does not,
+  the miscount refused above for P.
+- An event with more work than it can do would be refused each time it is
+  sent, as `limit/work_limit`. Refused at load, the block says so once.
 
 In the evaluation of a prototype, 20 edits that renamed an event's subject
 parameter or gave it another kind were all refused by the errors for P of
@@ -463,6 +584,10 @@ C004 does not check a rule in a routed block either. A block routed over KIND
 loads only when no `for` block declares an entity of KIND (section 7), so in a
 single-file program, the only kind check reads, each member's `$index` is its
 number in P.
+
+A rule that names a member by its parameter is routed, so C003 and C004 do
+not check it. C002 reads its copies. Check reads `$Q` as a name the source
+does not use, as it reads `$NAME` and `$index`.
 
 Plain blocks are checked exactly as before, including a plain block over the
 same kind beside a routed one. A define written in a routed block counts for
@@ -499,12 +624,20 @@ following is prevented or reported.
   either names a KIND by P or names none. It does not check that P names the
   member the rules are about. If every such event also had `base kind pr`,
   `routed by base` would be accepted where `target` was meant.
+- **A wrong Q.** A rule that names a member by `$Q` (section 10) names it by
+  the parameter written. The text shows which parameter that is, and nothing
+  checks that it is the one meant.
+- **Members of Q's kind the rule did not mean.** `$Q` covers every member of
+  Q's kind. Where a rule means only some of them, such as the traces among
+  Before the Rain's exhibits, a rule that refuses the others must come first.
 - **Entities of KIND in another part.** A kind is not namespaced
   ([caveat-0.5](caveat-0.5-draft.md)), so a module in a bundle may declare
   entities of KIND too. P counts them, and `$index` does not. A member's
   position in P can then differ from its `$index`, and the route selects
   another member's copy, or none. The pass reads only its own part, so it
-  cannot see them. A hand-written `target == $index` has the same limit.
+  cannot see them. A hand-written `target == $index` has the same limit. Q
+  counts the entities of its kind in other parts as P does, and the copies of
+  a rule that names a member by `$Q` have the same limit.
 - **A selection through state.** After `on read set current = target;`, a
   rule on an event that names no member, guarded by `current == $index`, is
   not routed. Its selection is the author's, as in a plain block. A member's
@@ -524,3 +657,230 @@ following is prevented or reported.
 Routing serves the common case, where a rule is about the member its event
 names. It does not make members private to their rules, and it does not make
 cross-member access impossible.
+
+## 10. A member named by its parameter
+
+[Before the Rain](../game/before_the_rain.cav), a game built on this profile,
+has an event that names two exhibits:
+
+```caveat
+event confront about kind exhibit, shown kind exhibit, recants in no yes;
+```
+
+`about` is the witness whose account is confronted, and `shown` is the trace
+shown to them. A recant takes the account back because of that trace, and a
+trace that says what the account says cannot bring one. Routing by `about`
+covers the witness. The trace has no name in the source, and
+`withdraw E because R` needs R written there. So the game named each trace by
+hand, and each witness to compare with:
+
+```caveat
+// What was shown must be an examined trace that says otherwise.
+for exhibit as $s {
+    on confront when shown == $index and $index <= 3 reject "Show them a trace.";
+    on confront when shown == $index and $s_points == 0 reject "That trace shows nothing yet.";
+    on confront when shown == $index and about == 1 and x_farmer_points == $s_points reject "That trace agrees with them.";
+    on confront when shown == $index and about == 2 and x_farmhand_points == $s_points reject "That trace agrees with them.";
+    on confront when shown == $index and about == 3 and x_neighbour_points == $s_points reject "That trace agrees with them.";
+};
+
+// A recant takes the account back because of the trace that was shown.
+for exhibit as $w routed by about {
+    on confront when recants == recants.yes and shown == 4 withdraw ev_$w because ev_x_prints;
+    on confront when recants == recants.yes and shown == 5 withdraw ev_$w because ev_x_can;
+    on confront when recants == recants.yes and shown == 6 withdraw ev_$w because ev_x_lamp;
+    on confront when recants == recants.yes and shown == 7 withdraw ev_$w because ev_x_hay;
+};
+```
+
+Seven of these rules name a witness or a trace by hand, one for each of 3
+witnesses and 4 traces, and they grow with both. The game's author wrote the
+form they wanted: `because ev_$shown`. With this section, the seven rules are
+two, and their number does not grow:
+
+```caveat
+// What was shown must be an examined trace.
+for exhibit as $s routed by shown {
+    on confront when $index <= 3 reject "Show them a trace.";
+    on confront when $s_points == 0 reject "That trace shows nothing yet.";
+};
+
+// A recant takes the account back because of the trace that was shown, and
+// only a trace that says otherwise can bring one.
+for exhibit as $w routed by about {
+    on confront when $w_points == $shown_points reject "That trace agrees with them.";
+    on confront when recants == recants.yes withdraw ev_$w because ev_$shown;
+};
+```
+
+In a routed rule (section 2), `$Q` names the member that the rule's event
+names by its parameter Q, where the event declares `Q kind K` and Q is not P.
+K may be KIND, as in Before the Rain, or another kind. `$Q` composes as
+`$NAME` does: `ev_$shown` becomes `ev_x_can`, `$shown_points` becomes
+`x_can_points`, `$shown.x` becomes `x_can.x`, and `"$shown"` becomes
+`"x_can"`. `$Q` is bound nowhere else: not in a plain block, not in a rule
+that is not routed, and not in a declaration, a `define`, a `bind`, a `cue`,
+a `proc` body or a rule on an event written with `$NAME` or `$index`. There a
+`$` word that no binding of the block's own begins is refused, as before
+(section 7). A rule's text runs from its `on` to its `;`, comments inside it
+included, and each copy is that text with its bindings replaced. A comment
+binds nothing and is not checked: the rule's code and quoted text say whether
+it names a member by Q, and a word in a comment inside the rule is bound by
+the longest of `$NAME`, `$index` and, when they name a member by it, `$Q`
+that begins it. So a `$Q` in a comment names Q's member only in a rule whose
+code or quoted text names a member by that Q. Anywhere else it is read as any
+`$` word in a block is, bound by `$NAME` or `$index` if one begins it and
+otherwise refused as not bound, in a comment on the line above a rule or after
+its `;` too, which is not part of the rule. A routed rule may pass the
+members' symbols to a procedure, as in `call recant(ev_$w, ev_$shown)`, at
+the cost described below.
+
+The pass reads each `$` word of a routed rule in order, comments blanked and
+quoted text included. The longest of `$NAME` and `$index` that begins the
+word binds it, as before. If neither begins it, the longest `kind` parameter
+of the event that begins it binds it as `$Q`. A word that `$NAME` or `$index`
+begins stays theirs, unless a `kind` parameter of the event begins it too and
+is longer, or as long and not P. Then either could be meant, and the rule is
+refused (section 7): `$shown_n` in a block bound `$s` and routed by `about` is
+one. A binding named exactly P, as in `for exhibit as $about routed by about`,
+keeps its word, since both name the same member. A rule names members by one
+parameter at most. It must still mention `$NAME` or `$index`, and `$Q` is not
+a mention.
+
+In each block member's copy, a rule that uses `$Q` is written once for each
+member of K, in declaration order, as if written:
+
+| Written in the block | Expanded as if written |
+| --- | --- |
+| `on E EFFECT` | `on E when P == I and Q == N EFFECT` |
+| `on E when G EFFECT` | `on E when P == I and Q == N and G EFFECT` |
+| the same, with an `or` in G outside parentheses | `on E when P == I and Q == N and (G) EFFECT` |
+
+I is the block member's position, as in section 3. N is the member's position
+among the part's top-level `entity` statements of K, the count `$index` uses.
+The route is placed as section 3 places `P == I`, in the copy with `$Q`
+already replaced. In the copy for the farmhand's account and the can, the
+second rule above is:
+
+```caveat
+on confront when about == 2 and shown == 5 and recants == recants.yes withdraw ev_x_farmhand because ev_x_can;
+```
+
+That is the rule the game wrote by hand, with its selections first.
+
+The copies go one after another where the rule is, separated by one space.
+A rule on one line adds no line, so its copies share the line it is written
+on. A diagnostic gives the line in the expanded text, as Repetition 0.1
+section 4 says. The block still expands member-major: the whole body for the
+block's first member, with every copy of such a rule where the rule is, then
+the whole body for the next.
+
+The copies have no order that can show. On any event, P names one member and
+Q names one, so at most one copy of a written rule passes its route. Every
+other copy stops at a route, since `and` stops at its first false operand. A
+route compares only event parameters, and the runtime builds those as plain
+values, with no provenance, so a route that does not hold has none. A skipped
+effect is retained only under a guard with provenance, so a copy that stops
+adds nothing to lineage or grounds. The copy that runs has the grounds, lineage,
+withdrawal record and journal entry of the rule written by hand for that pair.
+This rests on event parameters carrying no provenance. If a later profile
+gives them provenance, the test
+`a_copy_that_its_route_stops_adds_nothing_to_lineage` in
+`runtime/tests/routed_repetition.rs` fails, and this section must be
+revisited.
+
+This is not a nested block, and section 1 still holds. The header routes by
+one parameter. Section 1's objection to a second was that its choice would
+not show in the text, and here the second member is named in the text, by its
+own parameter. The binding is the parameter's name, so two parameters of one
+kind, such as `about` and `shown`, cannot swap roles without it showing. A
+`for` block inside another is still refused.
+
+A rule that uses `$Q` is written W×|K| times, for a block of W members. Each
+copy spends a step of the event's work whether its route holds or not, as
+every rule on the event does. In Before the Rain, the rules on `confront` went
+from 86 to 135, and an accepted `confront` took 10 to 14 µs longer, 7 to 10
+percent, in three runs of the WebAssembly runtime under Node. A copy of a rule
+whose effect is a `call` costs more when its route stops it: it still walks
+every step of the procedure ([procedures](caveat-reactive-0.7.md)), which the
+count below does not include. Such a program can load and then have every
+event refused as `limit/work_limit`. Evidence and other symbol arguments also
+specialize the procedure once for each pair of members, at most 1024.
+
+The pass counts that work when the program loads. For each event that a rule
+using `$Q` is on, it counts the block's rules on the event: W×|K| for each
+rule that uses `$Q`, and W for each other rule. A count over 4096, the most
+steps one event can do, is refused (section 7). So 64 members of one kind with
+one such rule on an event write 4096 rules, which load and run, and 65 members
+write 4225, which are refused. With one more rule of the block on the event,
+63 members write 4032 and load, and 64 write 4160 and are refused. The count
+is a floor: rules outside the block, and the steps of a procedure that a copy
+calls, count only when the event runs, and the runtime then refuses the event
+as `limit/work_limit`.
+
+When K is KIND, some copies pair a member with itself, and `$shown` covers
+every exhibit, the three accounts too. The rules that refuse what the rule
+does not mean must come first. A `withdraw` or a `qualify` that names
+evidence never observed fails the event, so Before the Rain keeps the block
+routed by `shown` before the block routed by `about`. Merged into the
+exhibit block above both, the withdrawal would run before those refusals,
+and a trace that was never examined would fail the event.
+
+Three ways to write these rules without this section were measured, and each
+costs more:
+
+- A block routed the other way, by `shown`, names the witness by hand in
+  each rule instead: min(W, T) rules, each naming a member by hand.
+- A relay state, set to the witness's points in the block routed by `about`
+  and compared in the block routed by `shown`, costs W + 2 rules. A state
+  cannot name evidence, so each witness's withdrawal is still written by
+  hand, and the state is carried in every save.
+- A procedure for each witness, called from the block routed by `shown`,
+  costs W + 2 rules too, and it widens lineage: the trace shown enters the
+  witness's predicate qualifications, binding explanations and qualified
+  values even without a recant. In 3,000 random histories, the snapshots
+  after 506, 1,328 and 947 of 15,530 accepted events differed in those.
+
+This section does not name a member:
+
+- in a plain block, or in a rule that is not routed;
+- in a declaration, a `define`, a `bind` or a `proc`;
+- by two parameters in one rule;
+- by an `in`, numeric or `id` parameter;
+- held in a state;
+- of a kind declared in another part.
+
+Nor does it write a rule about either of two members, such as Before the
+Rain's hold on the exhibits named by `first` and `second`. Such a rule
+selects its member by hand, in a plain block, and how `caveat check` reads
+that selection is a separate question.
+
+## Changes
+
+- 2026-09-29: a routed rule names the member its event names by another
+  `kind` parameter Q as `$Q` (section 10). Before the Rain wrote 7 rules for
+  3 witnesses and 4 traces, and their number grew with both. `$shown` writes
+  them as 2. `$Q` was refused before as not bound. Every program that loaded
+  before still loads, and expands byte for byte as before, except one now
+  refused: a routed rule with a word that `$NAME` or `$index` begins and a
+  `kind` parameter of its event begins too, longer, or as long and not P,
+  such as `$shown_n` in a block bound `$s` and routed by `about`. It read as
+  the member's name followed by `hown_n`. No program in the repository has
+  one. Of the programs that did not load, where a `$` word that no binding of
+  the block's own begins, outside the comments of an `on` rule on an event
+  written without `$`, is begun by a parameter of the event and names no
+  member as section 10 allows, it is refused with a message that says why,
+  where it was refused as not bound (section 7):
+  - in a routed rule, whatever the parameter's form;
+  - in a plain block, or in a rule that is not routed, when the parameter is
+    a `kind` parameter.
+
+  Any other `$` word that no binding begins is refused as not bound, as
+  before: one that an `in`, numeric or `id` parameter begins outside a routed
+  rule, one in a declaration, and a `$Q` in a comment of a rule whose code
+  and quoted text name no member by Q. Event declarations are read without
+  the block's rules, so a program that does not load may report another error
+  first. Nothing changes in the runtime, snapshots or saves. In 3,000 random
+  histories of 30 events, Before the Rain rewritten this way left the same
+  snapshot, source identity aside, after every event as the game written by
+  hand. Every refusal was the same apart from rule numbers in messages.

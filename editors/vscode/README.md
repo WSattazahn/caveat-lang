@@ -64,8 +64,12 @@ The package lands in `test-results/vscode/`.
   expression tokenizer reads them (`2`, `2.`, `.5`, `1e-3`), and names after
   a dot, which are always properties.
 - Repetition: in a `for KIND as $NAME { … }` body, routed by P or not, every
-  substituted `$NAME` and `$index`, in code, quoted text and comments alike. A `$` outside a
-  `for` body is marked invalid, since the runtime refuses it.
+  substituted `$NAME` and `$index`, in code, quoted text and comments alike,
+  and, in a routed rule whose code or quoted text names a member by `$Q` for
+  a `kind` parameter Q of its event, that `$Q` in the rule's code, quoted
+  text and comments (between its `on` and its `;`). A `$Q` in a comment of a
+  rule that names no member by that Q outside its comments is not bound. A
+  `$` outside a `for` body is marked invalid, since the runtime refuses it.
 
 ## How it is tested
 
@@ -77,6 +81,14 @@ tokenizer and regular-expression engine VS Code itself uses.
   that follows the runtime: where strings and comments begin and end, which
   `$` names a `for` block substitutes and how much of each name, statement
   heads, relations, built-in calls, properties and numbers.
+- `test/fixtures/substitutions.json` holds programs whose `$` words the
+  corpus cannot show, such as ones the runtime refuses, ones whose last
+  statement has no `;` and ones with U+0085 or U+FEFF, which Rust and
+  JavaScript disagree on as whitespace, with how much of each word the
+  reference reads as substituted. It also lists Rust's whitespace, the only
+  characters the reference reads as whitespace. The runtime's tests
+  (`runtime/tests/routed_repetition.rs`) check that the runtime expands or
+  refuses each program as the file says, and that the list is Rust's.
 - The runtime's own word lists (`RESERVED` and `CALLABLE` in
   `runtime/src/link.rs`, `POSITIONAL` and `OUTSIDE_MODULES` in
   `runtime/tests/modules.rs`) must each be accounted for, so a keyword added

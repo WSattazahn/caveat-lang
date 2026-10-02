@@ -116,6 +116,12 @@ Two bindings are available inside the body:
 - `$NAME` — the member's name.
 - `$index` — its one-based position in the kind's declaration order.
 
+In a [routed](caveat-routed-repetition-0.1.md) rule, `$Q` also names the
+member that the rule's event names by another `kind` parameter Q (routed
+Repetition 0.1 section 10). A word that `$NAME` or `$index` begins stays
+theirs, and a routed rule in which such a parameter also begins one, longer,
+or as long and not the parameter the block is routed by, is refused.
+
 `$NAME` substitutes as text wherever it appears, so it composes into longer
 identifiers (`$r_reading` becomes `reef_one_reading`), into dotted names
 (`$r.x`, `$r.reveal.opacity`), and inside quoted text (`from "$r"`). A `$`
@@ -149,6 +155,11 @@ generated names depend on another part's declarations, and
 
 `for` blocks do not nest. A nested one is rejected rather than given an
 ordering nobody asked about.
+
+A routed rule that names a member by its parameter is written once for each
+member of that parameter's kind, where the rule is. That is not a nested
+block: at most one of those copies runs on an event, so their order cannot
+show. A `for` block inside another is still refused.
 
 Expansion changes how many lines a part has, so a diagnostic pointing into or
 after an expanded block reports the line in the expanded text rather than the
@@ -315,3 +326,26 @@ what keeps the expansion checkable and the generated program ordinary.
   A last block may still leave out its own `;` once its body's last
   statement has one, and a `}` in a comment, a quoted brace and a brace pair
   within a statement load as before.
+- 2026-09-29: in a routed rule, `$Q` names the member that the rule's event
+  names by another `kind` parameter Q, and the rule is written once for each
+  member of Q's kind (routed Repetition 0.1 section 10). `$Q` was refused
+  before as not bound. Every program that loaded before still loads, and
+  expands byte for byte as before, except one now refused: a routed rule
+  with a word that `$NAME` or `$index` begins and a `kind` parameter of its
+  event begins too, longer, or as long and not the parameter the block is
+  routed by, such as `$shown_n` in a block bound `$s` and routed by `about`.
+  It read as the member's name followed by `hown_n`. No program in the
+  repository has one. In a plain block, such a word reads as before. Of the
+  programs that did not load, where a `$` word that no binding of the block's
+  own begins, outside the comments of an `on` rule on an event written
+  without `$`, is begun by a parameter of the event and names no member as
+  section 10 allows, it is refused with a message that says why, where it was
+  refused as not bound (routed Repetition 0.1 section 7):
+  - in a routed rule, whatever the parameter's form;
+  - in a plain block, or in a rule that is not routed, when the parameter is
+    a `kind` parameter.
+
+  Any other `$` word that no binding begins is refused as not bound, as
+  before: one that an `in`, numeric or `id` parameter begins outside a routed
+  rule, one in a declaration, and a `$Q` in a comment of a rule whose code
+  and quoted text name no member by Q.

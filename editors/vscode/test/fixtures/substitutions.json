@@ -1,0 +1,345 @@
+{
+  "about": "Programs whose `$` words the reference (test/reference.mjs) must read as the runtime does. runtime/tests/routed_repetition.rs checks each against the runtime: it expands to a text holding `expands_to` and loads, or it is refused with `refused`. test/reference.test.mjs checks the reference against `substitutions`: each `$` word in the program's for block bodies, in order, and how many characters of it, the `$` included, the runtime substitutes, 0 where it refuses the word. Each `source` is its lines. `whitespace` lists the characters Rust's char::is_whitespace accepts, the whitespace at which the runtime splits words and skips between statements: routed_repetition.rs checks the list against Rust, and reference.test.mjs checks the reference's whitespace against it.",
+  "cases": [
+    {
+      "name": "a $Q in a comment inside a rule whose code names a member by Q is substituted",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront about kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n // compares $shown",
+        "        set $w_n = 1;",
+        "};"
+      ],
+      "expands_to": "on confront when about == 1 and shown == 2 and x_a_n >= x_b_n // compares x_b",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 6], ["shown", 6], ["w_n", 2]]
+    },
+    {
+      "name": "a $Q in a comment inside a rule whose code names no member by a parameter is not bound",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront about kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= 0 // compares $shown",
+        "        set $w_n = 1;",
+        "};"
+      ],
+      "refused": "$shown is not bound in this for block; $ is not a literal",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown", 0], ["w_n", 2]]
+    },
+    {
+      "name": "a $Q in a comment inside a rule whose code names a member by another parameter is not bound",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event compare about kind exhibit, first kind exhibit, second kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on compare when $first_n >= $w_n // not $second",
+        "        set $w_n = 1;",
+        "};"
+      ],
+      "refused": "$second is not bound in this for block; $ is not a literal",
+      "substitutions": [["w_n", 2], ["first_n", 6], ["w_n", 2], ["second", 0], ["w_n", 2]]
+    },
+    {
+      "name": "a $Q in a comment above the rule is not bound",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront about kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    // compares $shown",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};"
+      ],
+      "refused": "$shown is not bound in this for block; $ is not a literal",
+      "substitutions": [["w_n", 2], ["shown", 0], ["w_n", 2], ["shown_n", 6], ["w_n", 2]]
+    },
+    {
+      "name": "a routed rule on an event a for block declares names a member by its parameter",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity ann kind witness at yard;",
+        "for witness as $v { event poke_$v about kind exhibit, shown kind exhibit; };",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};"
+      ],
+      "expands_to": "on poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["v", 2], ["w_n", 2], ["w_n", 2], ["shown_n", 6]]
+    },
+    {
+      "name": "a routed rule names a member by its parameter when the part's last statement, without its ';', declares the event",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};",
+        "event confront about kind exhibit, shown kind exhibit"
+      ],
+      "expands_to": "on confront when about == 1 and shown == 2 and x_a_n >= x_b_n set x_a_n = 1;",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 6], ["w_n", 2]]
+    },
+    {
+      "name": "a for block that is the part's last statement, without its ';', is a block, and declares the event a routed rule reads",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity ann kind witness at yard;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};",
+        "for witness as $v { event poke_$v about kind exhibit, shown kind exhibit; }"
+      ],
+      "expands_to": "on poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 6], ["v", 2]]
+    },
+    {
+      "name": "an entity that is the part's last statement, without its ';', is a member whose copy of a for block declares the event a routed rule reads",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "for witness as $v { event poke_$v about kind exhibit, shown kind exhibit; };",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};",
+        "entity ann kind witness at yard"
+      ],
+      "expands_to": "on poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["v", 2], ["w_n", 2], ["w_n", 2], ["shown_n", 6]]
+    },
+    {
+      "name": "a for block whose body's last statement has no ';' declares the event a routed rule before it reads, and is refused itself",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity ann kind witness at yard;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};",
+        "for witness as $v { event poke_$v about kind exhibit, shown kind exhibit };"
+      ],
+      "refused": "line 9, column 21: the last statement in the body of `for witness as $v`, `event poke_$v about kind exhibit, shown kind exhibit`, has no `;` before the `}` that ends the body; each member's copy of it would run into what follows the copy, so end it with `;`",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 6], ["v", 2]]
+    },
+    {
+      "name": "a $Q in a comment inside a rule whose quoted text alone names a member by Q is substituted",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront about kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= 0 // about $shown",
+        "        reject \"vs $shown\";",
+        "};"
+      ],
+      "expands_to": "on confront when about == 1 and shown == 2 and x_a_n >= 0 // about x_b",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown", 6], ["shown", 6]]
+    },
+    {
+      "name": "a U+0085 before the part's last statement, without its ';', is whitespace, and the event that statement declares is read",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};",
+        "\u0085event confront about kind exhibit, shown kind exhibit"
+      ],
+      "expands_to": "on confront when about == 1 and shown == 2 and x_a_n >= x_b_n set x_a_n = 1;",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 6], ["w_n", 2]]
+    },
+    {
+      "name": "a U+0085 before the part's last statement, without its ';', is whitespace, and the entity that statement declares is a member",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "for witness as $v { event poke_$v about kind exhibit, shown kind exhibit; };",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};",
+        "\u0085entity ann kind witness at yard"
+      ],
+      "expands_to": "on poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["v", 2], ["w_n", 2], ["w_n", 2], ["shown_n", 6]]
+    },
+    {
+      "name": "a U+FEFF before the part's last statement, without its ';', is not whitespace, so that statement declares no event",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};",
+        "\ufeffevent confront about kind exhibit, shown kind exhibit"
+      ],
+      "refused": "`on confront` in `for exhibit as $w routed by about`: no event `confront` is declared in this part, so the block cannot tell whether it names a exhibit",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 0], ["w_n", 2]]
+    },
+    {
+      "name": "a U+FEFF before a statement with its ';' is not whitespace, so that statement declares no event",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "\ufeffevent confront about kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};"
+      ],
+      "refused": "`on confront` in `for exhibit as $w routed by about`: no event `confront` is declared in this part, so the block cannot tell whether it names a exhibit",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 0], ["w_n", 2]]
+    },
+    {
+      "name": "a U+FEFF before a parameter's name is not whitespace, so the event names no member by that parameter",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront \ufeffabout kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};"
+      ],
+      "refused": "`on confront` in `for exhibit as $w routed by about`: `confront` names a exhibit by `\ufeffabout`, `shown`, not by `about`; route the block by one of them, or keep the rules on `confront` in a plain for block",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 0], ["w_n", 2]]
+    },
+    {
+      "name": "a U+0085 separates the words of an entity, an event, a block's header and a routed rule",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity\u0085ann kind witness at yard;",
+        "for\u0085witness as $v { event\u0085poke_$v\u0085about kind exhibit,\u0085shown\u0085kind\u0085exhibit; };",
+        "for\u0085exhibit\u0085as $w\u0085routed\u0085by\u0085about\u0085{",
+        "    state $w_n = 0;",
+        "    on\u0085poke_ann when $w_n == $shown_n reject \"same\";",
+        "};"
+      ],
+      "expands_to": "on\u0085poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["v", 2], ["w_n", 2], ["w_n", 2], ["shown_n", 6]]
+    },
+    {
+      "name": "a U+0085 after the 'on' of a rule in a block's body ends the word, so the rule is routed, and is left out of the events the block declares",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity ann kind witness at yard;",
+        "event tap who kind witness, other kind exhibit;",
+        "for witness as $v routed by who {",
+        "    event poke_$v about kind exhibit, shown kind exhibit;",
+        "    state $v_n = 0;",
+        "    on\u0085tap when $v_n == $other_n reject \"x\";",
+        "};",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};"
+      ],
+      "expands_to": "on poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["v", 2], ["v_n", 2], ["v_n", 2], ["other_n", 6], ["w_n", 2], ["w_n", 2], ["shown_n", 6]]
+    },
+    {
+      "name": "quoted text before a parameter's name is a word of that parameter, so the event names no member by it",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront \"x\" about kind exhibit, shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};"
+      ],
+      "refused": "`on confront` in `for exhibit as $w routed by about`: `confront` names a exhibit by `shown`, not by `about`; route the block by `shown`, or keep the rules on `confront` in a plain for block",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 0], ["w_n", 2]]
+    },
+    {
+      "name": "quoted text with a space before a parameter's name is split at the space, so the event names no member by that parameter",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "event confront about kind exhibit, \"a b\" shown kind exhibit;",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on confront when $w_n >= $shown_n set $w_n = 1;",
+        "};"
+      ],
+      "refused": "$shown_n is not bound in this for block; $ is not a literal",
+      "substitutions": [["w_n", 2], ["w_n", 2], ["shown_n", 0], ["w_n", 2]]
+    },
+    {
+      "name": "quoted text before a parameter's name in an event a for block declares is a word of that parameter, so the event names no member by it",
+      "source": [
+        "place yard kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity ann kind witness at yard;",
+        "for witness as $v { event poke_$v \"q\" about kind exhibit, shown kind exhibit; };",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};"
+      ],
+      "refused": "`on poke_ann` in `for exhibit as $w routed by about`: `poke_ann` names a exhibit by `shown`, not by `about`; route the block by `shown`, or keep the rules on `poke_ann` in a plain for block",
+      "substitutions": [["v", 2], ["w_n", 2], ["w_n", 2], ["shown_n", 0]]
+    },
+    {
+      "name": "an entity at a quoted place is a member, whose copy of a for block declares the event a routed rule reads",
+      "source": [
+        "place yard kind farm;",
+        "place \"yard\" kind farm;",
+        "entity x_a kind exhibit at yard;",
+        "entity x_b kind exhibit at yard;",
+        "entity ann kind witness at \"yard\";",
+        "for witness as $v { event poke_$v about kind exhibit, shown kind exhibit; };",
+        "for exhibit as $w routed by about {",
+        "    state $w_n = 0;",
+        "    on poke_ann when $w_n == $shown_n reject \"same\";",
+        "};"
+      ],
+      "expands_to": "on poke_ann when about == 1 and shown == 2 and x_a_n == x_b_n reject \"same\";",
+      "substitutions": [["v", 2], ["w_n", 2], ["w_n", 2], ["shown_n", 6]]
+    }
+  ],
+  "whitespace": [
+    "U+0009", "U+000A", "U+000B", "U+000C", "U+000D", "U+0020", "U+0085", "U+00A0", "U+1680",
+    "U+2000", "U+2001", "U+2002", "U+2003", "U+2004", "U+2005", "U+2006", "U+2007", "U+2008",
+    "U+2009", "U+200A", "U+2028", "U+2029", "U+202F", "U+205F", "U+3000"
+  ]
+}

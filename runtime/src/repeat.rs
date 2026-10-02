@@ -11,12 +11,20 @@
 //! selection `P == $index` at the front of its guard. See
 //! spec/caveat-routed-repetition-0.1.md. The copy is the text a hand-routed
 //! block expands to, so routing adds no runtime semantics either.
+//!
+//! Section 10 of Routed Repetition 0.1 lets a routed rule name a second
+//! member, the one its event names by another `kind` parameter Q, as `$Q`.
+//! Each member's copy of such a rule is written once for each member of Q's
+//! kind, with `Q == N` after the route. It is a text expansion too: each copy
+//! is the rule an author would write by hand for that pair, and at most one
+//! of them runs on an event.
 
 use crate::link::{
     blank_comments, block_braces, is_identifier_char, is_identifier_start, statement_words,
     statements_of,
 };
 use crate::parser::position_of;
+use crate::reactive::MAX_EVENT_STEPS;
 
 /// Expand every `for` block in one source. A source with no `for` block is
 /// returned unchanged, so an existing program expands to itself byte for byte.
@@ -67,6 +75,25 @@ pub(crate) fn instantiate(
     substitute(template, &[(binding, member), ("index", index)])
 }
 
+/// `instantiate`, with each `$Q` also replaced by the text `markers` gives
+/// for Q: how check reads a rule that names a member by another `kind`
+/// parameter of its event (spec/caveat-routed-repetition-0.1.md section 10).
+/// A marker named as the binding or `index` binds nothing, so the block's own
+/// bindings keep their words.
+pub(crate) fn instantiate_with(
+    template: &str,
+    (binding, member, index): (&str, &str, &str),
+    markers: &[(&str, &str)],
+) -> Result<String, String> {
+    let mut bindings = vec![(binding, member), ("index", index)];
+    bindings.extend(
+        markers
+            .iter()
+            .filter(|(name, _)| *name != binding && *name != "index"),
+    );
+    substitute(template, &bindings)
+}
+
 /// Members of each entity kind, in declaration order: every top-level
 /// `entity` statement the loader declares, among `statements`, which hold a
 /// last statement without its `;` too. Each is read as the loader reads it,
@@ -98,17 +125,30 @@ fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
     if let Some(error) = block.unended {
         return Err(error);
     }
+    let header = block.header.join(" ");
+    // The part's events, read for a routed block, and for a plain block only
+    // when one of its rules has a `$` word that no binding of its own begins,
+    // which does not load. A plain block that loads expands as it always did.
+    let mut events = None;
     // Which rules are routed is read from the body as written, once.
     let routed = match block.route {
         Some(parameter) => Routing {
-            header: block.header.join(" "),
+            header: header.clone(),
             kind: block.kind,
             binding: block.binding,
             parameter,
         }
-        .rules(block.body, part)?,
+        .rules(
+            block.body,
+            part,
+            events.get_or_insert_with(|| part.events()),
+        )?,
         None => Vec::new(),
     };
+    // Section 10: the routed rules that name a member by another `kind`
+    // parameter of their event, and the checks of every `$` word in a rule.
+    let named = parameter_rules(&block, &header, &routed, part, &mut events)?;
+    event_work(&block, &header, &named)?;
 
     let mut out = String::new();
     for (position, member) in block.members.iter().enumerate() {
@@ -118,7 +158,7 @@ fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
             None => out.push_str(&substitute(block.body, &bindings)?),
             Some(parameter) => out.push_str(&routed_copy(
                 block.body,
-                &routed,
+                (&routed, &named),
                 &bindings,
                 &format!("{parameter} == {index}"),
             )?),
@@ -128,6 +168,290 @@ fn expand_block(span: (usize, usize), part: &Part) -> Result<String, String> {
         }
     }
     Ok(out)
+}
+
+/// An event a part declares: its name, and each parameter's name with the
+/// words declared after it, such as `kind pr` or `in failed passed`.
+type Event = (String, Vec<(String, String)>);
+
+/// A routed rule that names a member by `$Q`, where Q is another `kind`
+/// parameter of its event (spec/caveat-routed-repetition-0.1.md section 10).
+struct Named<'k> {
+    /// The rule's span in the body.
+    span: (usize, usize),
+    event: String,
+    /// Q.
+    parameter: String,
+    /// The part's top-level members of Q's kind, which Q numbers from 1.
+    members: &'k [String],
+}
+
+/// Section 10's checks, rule by rule in the order written, and the routed
+/// rules that name a member by `$Q`.
+///
+/// In a routed rule, each `$` word, quoted text included and comments not,
+/// is read by section 1's rule. `$NAME` and `$index` keep a word that one of
+/// them begins, unless a `kind` parameter of the rule's event begins it too
+/// and is longer, or as long and not P: then either could be meant, and the
+/// rule is refused. A word neither begins is bound by the longest `kind`
+/// parameter that begins it, which may not be P. A word no parameter begins
+/// is read as before. Any other `on` rule, in a plain block too, is refused
+/// only for a word that no binding of the block's own begins and a `kind`
+/// parameter of its event does, which is not bound there. Its other words
+/// are read as before.
+fn parameter_rules<'p>(
+    block: &Block,
+    header: &str,
+    routed: &[(usize, usize)],
+    part: &Part<'p>,
+    events: &mut Option<Vec<Event>>,
+) -> Result<Vec<Named<'p>>, String> {
+    // The longest binding of the block's own that begins a word, as
+    // `substitute` binds it.
+    let own = |word: &str| {
+        [block.name, "index"]
+            .into_iter()
+            .filter(|name| word.starts_with(name))
+            .max_by_key(|name| name.len())
+    };
+    let mut out = Vec::new();
+    for (start, end) in statements_of(block.body) {
+        let is_routed = routed.contains(&(start, end));
+        let code = blank_comments(without_terminator(&block.body[start..end]));
+        let dollars = dollar_words(&code);
+        // Any other statement with only the block's own words reads as
+        // before, without its event read.
+        if !is_routed && dollars.iter().all(|word| own(word).is_some()) {
+            continue;
+        }
+        let ["on", event, ..] = words(&code)[..] else {
+            continue;
+        };
+        // An event written with `$NAME` or `$index` is read as before.
+        if event.contains('$') {
+            continue;
+        }
+        let events = events.get_or_insert_with(|| part.events());
+        let Some((_, parameters)) = events.iter().find(|(declared, _)| declared == event) else {
+            continue;
+        };
+        let kinds = parameters.iter().filter_map(|(name, form)| {
+            match form.split_whitespace().collect::<Vec<_>>()[..] {
+                ["kind", kind] => Some((name.as_str(), kind)),
+                _ => None,
+            }
+        });
+        if !is_routed {
+            let unbound = dollars.iter().find(|word| {
+                own(word).is_none() && kinds.clone().any(|(name, _)| word.starts_with(name))
+            });
+            if let Some(word) = unbound {
+                return Err(format!(
+                    "`${word}` in `on {event}` in `{header}`: a `$` names the member a parameter names only in a routed rule (spec/caveat-routed-repetition-0.1.md section 10), and this rule is not routed"
+                ));
+            }
+            continue;
+        }
+        // Only a routed block has routed rules.
+        let route = block.route.unwrap_or_default();
+        let mut named: Vec<(&str, &str)> = Vec::new();
+        let mut mentions_own = false;
+        for word in &dollars {
+            let longest = kinds
+                .clone()
+                .filter(|(name, _)| word.starts_with(name))
+                .max_by_key(|(name, _)| name.len());
+            match (own(word), longest) {
+                (Some(mine), Some((name, kind)))
+                    if name.len() > mine.len() || (name.len() == mine.len() && name != route) =>
+                {
+                    return Err(either_binding(
+                        block,
+                        header,
+                        (word, mine),
+                        (event, name, kind),
+                    ));
+                }
+                (Some(_), _) => mentions_own = true,
+                (None, Some((name, kind))) if name == route => {
+                    return Err(format!(
+                        "`${word}` in `on {event}` in `{header}`: the block is routed by `{name}`, so the {kind} it names is `{}`; write `{}` for `${name}`",
+                        block.binding, block.binding
+                    ));
+                }
+                (None, Some(parameter)) => {
+                    if !named.contains(&parameter) {
+                        named.push(parameter);
+                    }
+                }
+                (None, None) => {
+                    let other = parameters
+                        .iter()
+                        .filter(|(name, _)| word.starts_with(name.as_str()))
+                        .max_by_key(|(name, _)| name.len());
+                    if let Some((name, form)) = other {
+                        let declared = format!("{name} {form}");
+                        return Err(format!(
+                            "`${word}` in `on {event}` in `{header}`: `{event}` declares `{}`, and a `$` names a member only by a `kind` parameter",
+                            declared.trim_end()
+                        ));
+                    }
+                    // No binding begins it: refused as not bound when the
+                    // copies are written, as before.
+                }
+            }
+        }
+        let (parameter, kind) = match named[..] {
+            [] => continue,
+            [one] => one,
+            [.., last] => {
+                let names = named[..named.len() - 1]
+                    .iter()
+                    .map(|(name, _)| format!("`${name}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(format!(
+                    "`on {event}` in `{header}` names members by {names} and `${}`; a rule names a member by one parameter at most, so write it in a block routed by one of them",
+                    last.0
+                ));
+            }
+        };
+        if !mentions_own {
+            return Err(format!(
+                "`on {event}` in `{header}` names members only by `${parameter}`, and neither `{}` nor `$index`; each {}'s copy of it would be the same rule, so write it in a block routed by `{parameter}`",
+                block.binding, block.kind
+            ));
+        }
+        let Some((_, members)) = part.kinds.iter().find(|(declared, _)| declared == kind) else {
+            return Err(format!(
+                "`${parameter}` in `on {event}` in `{header}`: no entity is declared `kind {kind}` at the top level of this part, so `${parameter}` names no member"
+            ));
+        };
+        if let Some(entity) = part.entity_in_block(kind) {
+            return Err(format!(
+                "`${parameter}` in `on {event}` in `{header}`: `{parameter}` counts entity `{entity}` of kind {kind}, declared in a for block, and `${parameter}` does not; declare it at the top level of this part"
+            ));
+        }
+        out.push(Named {
+            span: (start, end),
+            event: event.to_string(),
+            parameter: parameter.to_string(),
+            members,
+        });
+    }
+    Ok(out)
+}
+
+/// The refusal of `word`, which `own`, `$NAME` or `$index`, begins, and the
+/// `kind` parameter `name` of `event` begins too, longer, or as long and not
+/// P. The remedies are the ones that apply: renaming the binding, which
+/// `$index` cannot be, and routing by the parameter, which P already is.
+fn either_binding(
+    block: &Block,
+    header: &str,
+    (word, own): (&str, &str),
+    (event, name, kind): (&str, &str, &str),
+) -> String {
+    let written = if own == "index" {
+        "$index"
+    } else {
+        block.binding
+    };
+    let mut remedies = Vec::new();
+    if own != "index" {
+        remedies.push(format!(
+            "rename `{}` so that only one of them begins it",
+            block.binding
+        ));
+    }
+    if block.route != Some(name) {
+        remedies.push(format!("write the rule in a block routed by `{name}`"));
+    }
+    if remedies.is_empty() {
+        remedies.push(format!(
+            "write `{}` for the {kind} that `{name}` names",
+            block.binding
+        ));
+    }
+    format!(
+        "`${word}` in `on {event}` in `{header}` could be `{written}` or the {kind} `{event}` names by `{name}`; {}",
+        remedies.join(", or ")
+    )
+}
+
+/// Section 10's count of the work an event does, for each event that a rule
+/// naming a member by `$Q` is on: W×|K| copies of each such rule, and W of
+/// each other rule of the block on the event, W the block's members and K
+/// Q's kind. Every copy spends a step of the event's work (reactive.rs
+/// `MAX_EVENT_STEPS`), whether its route holds or not. The count is a floor:
+/// rules outside the block, and the steps of a procedure a copy calls, are
+/// counted only when the event runs.
+fn event_work(block: &Block, header: &str, named: &[Named]) -> Result<(), String> {
+    if named.is_empty() {
+        return Ok(());
+    }
+    let rules = statements_of(block.body)
+        .into_iter()
+        .filter_map(|(start, end)| {
+            let code = blank_comments(without_terminator(&block.body[start..end]));
+            match words(&code)[..] {
+                ["on", event, ..] => Some(((start, end), event.to_string())),
+                _ => None,
+            }
+        })
+        .collect::<Vec<_>>();
+    let mut counted: Vec<&str> = Vec::new();
+    for rule in named {
+        if counted.contains(&rule.event.as_str()) {
+            continue;
+        }
+        counted.push(&rule.event);
+        let steps = rules
+            .iter()
+            .filter(|(_, event)| *event == rule.event)
+            .map(|(span, _)| {
+                let copies = named
+                    .iter()
+                    .find(|named| named.span == *span)
+                    .map_or(1, |named| named.members.len());
+                block.members.len().saturating_mul(copies)
+            })
+            .fold(0, usize::saturating_add);
+        if steps > MAX_EVENT_STEPS {
+            return Err(format!(
+                "`{header}` writes {steps} rules on `{}`, and one event does at most {MAX_EVENT_STEPS} steps of work; each copy spends a step whether its route holds or not",
+                rule.event
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Each `$` word in a statement: the name after the `$`, as `substitute`
+/// reads it. A `$` that no name follows has none.
+fn dollar_words(code: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut rest = code;
+    while let Some(at) = rest.find('$') {
+        let after = &rest[at + 1..];
+        let mut end = 0;
+        for (offset, ch) in after.char_indices() {
+            let acceptable = if offset == 0 {
+                is_identifier_start(ch)
+            } else {
+                is_identifier_char(ch)
+            };
+            if !acceptable {
+                break;
+            }
+            end = offset + ch.len_utf8();
+        }
+        if end > 0 {
+            out.push(&after[..end]);
+        }
+        rest = &after[end..];
+    }
+    out
 }
 
 /// A `for` block whose header, binding, body and kind have passed Repetition
@@ -262,8 +586,13 @@ impl Routing<'_> {
     /// has passed: an entity of KIND in a `for` block, which `$index` does
     /// not count, then each rule in the order written, then whether any rule
     /// is routed. A rule is routed from its event alone; what the rule does
-    /// is not read.
-    fn rules(&self, body: &str, part: &Part) -> Result<Vec<(usize, usize)>, String> {
+    /// is not read. `events` are the part's.
+    fn rules(
+        &self,
+        body: &str,
+        part: &Part,
+        events: &[Event],
+    ) -> Result<Vec<(usize, usize)>, String> {
         let Routing {
             header,
             kind,
@@ -275,7 +604,6 @@ impl Routing<'_> {
                 "`{header}`: `$index` does not count entity `{entity}` of kind {kind}, declared in a for block, but `{parameter}` does; declare it at the top level of this part"
             ));
         }
-        let events = part.events();
         let member = format!("kind {kind}");
         let mut routed = Vec::new();
         // Every statement in the body ends with its `;`, the last one too
@@ -359,12 +687,12 @@ struct Part<'a> {
 impl Part<'_> {
     /// Every event the part declares, each parameter with the words declared
     /// after its name. A declaration a `for` block writes counts once
-    /// expanded: only a block whose body Repetition 0.1 expands for every
-    /// member counts. A block that does not expand is left out here and
-    /// reports its own error when it is expanded. A body whose last statement
-    /// has no `;` is read as its copies read, and its block is refused for
-    /// that when it is expanded.
-    fn events(&self) -> Vec<(String, Vec<(String, String)>)> {
+    /// expanded: only a block whose statements other than its `on` rules
+    /// Repetition 0.1 expands for every member counts. A block that does not
+    /// expand is left out here and reports its own error when it is
+    /// expanded. A body whose last statement has no `;` is read as its copies
+    /// read, and its block is refused for that when it is expanded.
+    fn events(&self) -> Vec<Event> {
         let mut events = Vec::new();
         for (start, end) in self.statements {
             let text = &self.source[*start..*end];
@@ -384,10 +712,22 @@ impl Part<'_> {
         events
     }
 
-    /// Each member's copy of a `for` block's body, as Repetition 0.1 expands
-    /// it. None when the block does not expand.
+    /// Each member's copy of a `for` block's body without its `on` rules, as
+    /// Repetition 0.1 expands it. None when it does not expand.
     fn copies(&self, span: (usize, usize)) -> Option<Vec<String>> {
         let block = read_block(self.source, span, self.kinds).ok()?;
+        // An `on` rule declares no event, and one that names a member by `$Q`
+        // is bound only once its event is read (section 10), so the rules are
+        // left out: such a rule does not hide the block's events from a
+        // routed block that reads them.
+        let declarations = statements_of(block.body)
+            .into_iter()
+            .map(|(start, end)| &block.body[start..end])
+            .filter(|statement| {
+                words(&blank_comments(without_terminator(statement))).first() != Some(&"on")
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         block
             .members
             .iter()
@@ -395,7 +735,7 @@ impl Part<'_> {
             .map(|(position, member)| {
                 let index = (position + 1).to_string();
                 substitute(
-                    block.body,
+                    &declarations,
                     &[(block.name, member.as_str()), ("index", index.as_str())],
                 )
                 .ok()
@@ -544,22 +884,42 @@ fn event_declaration(statement: &str) -> Option<(String, Vec<(String, String)>)>
 }
 
 /// A routed block's body for one member: substituted as any block's body is,
-/// with the route written into each copy of a routed rule.
+/// with the route written into each copy of a routed rule. A rule that names
+/// a member by `$Q` is written once for each member of Q's kind, in
+/// declaration order, the copies one after another where the rule is, with
+/// one space between them, and each copy's route `P == I and Q == N`
+/// (section 10).
 fn routed_copy(
     body: &str,
-    routed: &[(usize, usize)],
+    (routed, named): (&[(usize, usize)], &[Named]),
     bindings: &[(&str, &str); 2],
     route: &str,
 ) -> Result<String, String> {
     let mut out = String::with_capacity(body.len());
     let mut cursor = 0;
-    for (start, end) in routed {
-        out.push_str(&substitute(&body[cursor..*start], bindings)?);
-        out.push_str(&with_route(
-            &substitute(&body[*start..*end], bindings)?,
-            route,
-        ));
-        cursor = *end;
+    for &(start, end) in routed {
+        out.push_str(&substitute(&body[cursor..start], bindings)?);
+        let rule = &body[start..end];
+        match named.iter().find(|named| named.span == (start, end)) {
+            None => out.push_str(&with_route(&substitute(rule, bindings)?, route)),
+            Some(named) => {
+                for (position, member) in named.members.iter().enumerate() {
+                    if position > 0 {
+                        out.push(' ');
+                    }
+                    let [own, index] = *bindings;
+                    let copy = substitute(
+                        rule,
+                        &[own, index, (named.parameter.as_str(), member.as_str())],
+                    )?;
+                    out.push_str(&with_route(
+                        &copy,
+                        &format!("{route} and {} == {}", named.parameter, position + 1),
+                    ));
+                }
+            }
+        }
+        cursor = end;
     }
     out.push_str(&substitute(&body[cursor..], bindings)?);
     Ok(out)
@@ -665,7 +1025,7 @@ fn words(code: &str) -> Vec<&str> {
 /// Replace every `$binding` in the body. Substitution reaches inside quoted
 /// text on purpose: the body is a template, and `evidence $r_reading from
 /// "$r";` needs the member's name in both places.
-fn substitute(body: &str, bindings: &[(&str, &str); 2]) -> Result<String, String> {
+fn substitute(body: &str, bindings: &[(&str, &str)]) -> Result<String, String> {
     let mut out = String::with_capacity(body.len());
     let mut chars = body.char_indices().peekable();
     while let Some((index, ch)) = chars.next() {

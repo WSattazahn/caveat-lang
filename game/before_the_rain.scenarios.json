@@ -1,0 +1,182 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "before_the_rain.cav",
+  "scenarios": [
+    {
+      "id": "B01",
+      "title": "A hold on two clean traces, signed and ruled, grades CLEAN when the file agrees",
+      "steps": [
+        { "send": "examine", "payload": { "about": "x_prints", "points": 2 } },
+        { "send": "examine", "payload": { "about": "x_can", "points": 2 } },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_prints", "second": "x_can" } },
+        { "expect": {
+            "/bindings/hold/state": "held",
+            "/bindings/hold/firsthand": 2,
+            "/commitment_grounds/hold@1": { "evidence": ["ev_x_can", "ev_x_prints"], "caveats": [] }
+        } },
+        { "send": "warrant" },
+        { "send": "rule" },
+        { "send": "close", "payload": { "culprit": "neighbour" } },
+        { "expect": { "/bindings/verdict/stamp": "CLEAN" } }
+      ]
+    },
+    {
+      "id": "B02",
+      "title": "The constable won't sign a hold that rests on hearsay alone",
+      "steps": [
+        { "send": "ask", "payload": { "about": "x_farmer", "accuses": "farmhand" } },
+        { "send": "ask", "payload": { "about": "x_neighbour", "accuses": "farmhand" } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_farmer", "second": "x_neighbour" } },
+        { "expect": { "/commitment_grounds/hold@1": { "evidence": ["ev_x_farmer", "ev_x_neighbour"], "caveats": ["secondhand"] } } },
+        { "send": "warrant", "rejected": "The constable won't sign on hearsay alone." },
+        { "send": "rule", "rejected": { "origin": "policy", "code": "not_permitted" } }
+      ]
+    },
+    {
+      "id": "B03",
+      "title": "Exhibits must be established, distinct, and point at the one held",
+      "steps": [
+        { "send": "examine", "payload": { "about": "x_prints", "points": 1 } },
+        { "send": "examine", "payload": { "about": "x_lamp", "points": 0 } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_prints", "second": "x_lamp" }, "rejected": "That exhibit is not established." },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_prints", "second": "x_prints" }, "rejected": "Present two different exhibits." },
+        { "send": "ask", "payload": { "about": "x_farmer", "accuses": "neighbour" } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_prints", "second": "x_farmer" }, "rejected": "That exhibit does not point at them." },
+        { "send": "ask", "payload": { "about": "x_prints", "accuses": "neighbour" }, "rejected": "Traces are examined, not asked." },
+        { "send": "examine", "payload": { "about": "x_farmer", "points": 1 }, "rejected": "Ask a witness; examine a trace." },
+        { "expect": { "/bindings/hold/state": "none", "/bindings/x_lamp/status": "inconclusive" } }
+      ]
+    },
+    {
+      "id": "B04",
+      "title": "A recant loosens a hold staked on that account, and only that one",
+      "steps": [
+        { "send": "ask", "payload": { "about": "x_farmhand", "accuses": "neighbour" } },
+        { "send": "examine", "payload": { "about": "x_prints", "points": 2 } },
+        { "send": "examine", "payload": { "about": "x_can", "points": 1 } },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_farmhand", "second": "x_prints" } },
+        { "checkpoint": "held" },
+        { "send": "confront", "payload": { "about": "x_farmhand", "shown": "x_prints", "recants": "yes" }, "rejected": "That trace agrees with them." },
+        { "send": "confront", "payload": { "about": "x_farmhand", "shown": "x_can", "recants": "yes" } },
+        { "expect": {
+            "/bindings/hold/state": "loose",
+            "/bindings/x_farmhand/status": "taken back",
+            "/decision_journal/1": { "change": "reopened", "because": ["ev_x_farmhand"] }
+        } },
+        { "same_as": "held", "paths": ["/commitment_grounds/hold@1", "/decision_journal/0"] },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_farmhand", "second": "x_prints" }, "rejected": "That account was taken back." }
+      ]
+    },
+    {
+      "id": "B05",
+      "title": "A recant of an account the hold never used leaves the hold standing",
+      "steps": [
+        { "send": "ask", "payload": { "about": "x_farmer", "accuses": "farmhand" } },
+        { "send": "examine", "payload": { "about": "x_prints", "points": 2 } },
+        { "send": "examine", "payload": { "about": "x_can", "points": 2 } },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_prints", "second": "x_can" } },
+        { "send": "confront", "payload": { "about": "x_farmer", "shown": "x_prints", "recants": "yes" } },
+        { "expect": { "/bindings/hold/state": "held", "/bindings/x_farmer/status": "taken back" } }
+      ]
+    },
+    {
+      "id": "B06",
+      "title": "The bottle compromises the farmhand's word, before or after he spoke, and loosens a hold on it",
+      "steps": [
+        { "send": "ask", "payload": { "about": "x_farmhand", "accuses": "neighbour" } },
+        { "send": "examine", "payload": { "about": "x_prints", "points": 2 } },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_farmhand", "second": "x_prints" } },
+        { "send": "search_cot", "payload": { "found": "yes" } },
+        { "expect": {
+            "/bindings/hold/state": "loose",
+            "/bindings/x_farmhand/status": "compromised",
+            "/decision_journal/1": { "change": "reopened", "because": ["ev_x_farmhand"] }
+        } },
+        { "send": "search_cot", "payload": { "found": "yes" }, "rejected": "You have already searched the cot." }
+      ]
+    },
+    {
+      "id": "B07",
+      "title": "Re-holding someone else tears up the old warrant",
+      "steps": [
+        { "send": "ask", "payload": { "about": "x_farmhand", "accuses": "neighbour" } },
+        { "send": "examine", "payload": { "about": "x_prints", "points": 2 } },
+        { "send": "examine", "payload": { "about": "x_can", "points": 1 } },
+        { "send": "examine", "payload": { "about": "x_hay", "points": 1 } },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_farmhand", "second": "x_prints" } },
+        { "send": "warrant" },
+        { "send": "confront", "payload": { "about": "x_farmhand", "shown": "x_can", "recants": "yes" } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_can", "second": "x_hay" } },
+        { "send": "rule", "rejected": { "origin": "policy", "code": "not_permitted" } },
+        { "send": "warrant" },
+        { "send": "rule" },
+        { "expect": { "/bindings/case/ruled": 1 } }
+      ]
+    },
+    {
+      "id": "B08",
+      "title": "Right suspect on a compromised account grades RIGHT BUT NOT ON YOUR EVIDENCE",
+      "steps": [
+        { "send": "search_cot", "payload": { "found": "yes" } },
+        { "send": "ask", "payload": { "about": "x_farmhand", "accuses": "neighbour" } },
+        { "send": "examine", "payload": { "about": "x_prints", "points": 2 } },
+        { "send": "hold", "payload": { "suspect": "neighbour", "first": "x_farmhand", "second": "x_prints" } },
+        { "send": "warrant" },
+        { "send": "rule" },
+        { "send": "close", "payload": { "culprit": "neighbour" } },
+        { "expect": { "/bindings/verdict/stamp": "RIGHT BUT NOT ON YOUR EVIDENCE" } }
+      ]
+    },
+    {
+      "id": "B09",
+      "title": "Right suspect on an exhibit the file shows was false grades RIGHT BUT NOT ON YOUR EVIDENCE",
+      "steps": [
+        { "send": "examine", "payload": { "about": "x_prints", "points": 1 } },
+        { "send": "examine", "payload": { "about": "x_can", "points": 1 } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_prints", "second": "x_can" } },
+        { "send": "warrant" },
+        { "send": "rule" },
+        { "send": "expose", "payload": { "about": "x_can" } },
+        { "send": "close", "payload": { "culprit": "farmhand" } },
+        { "expect": { "/bindings/verdict/stamp": "RIGHT BUT NOT ON YOUR EVIDENCE" } }
+      ]
+    },
+    {
+      "id": "B10",
+      "title": "Wrong suspect grades WRONG; dusk with no ruling grades NO CASE; a closed case refuses play",
+      "steps": [
+        { "send": "examine", "payload": { "about": "x_prints", "points": 1 } },
+        { "send": "examine", "payload": { "about": "x_can", "points": 1 } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_prints", "second": "x_can" } },
+        { "send": "warrant" },
+        { "send": "rule" },
+        { "send": "ask", "payload": { "about": "x_farmer", "accuses": "farmhand" }, "rejected": "The case is closed." },
+        { "send": "close", "payload": { "culprit": "neighbour" } },
+        { "expect": { "/bindings/verdict/stamp": "WRONG" } }
+      ]
+    },
+    {
+      "id": "B11",
+      "title": "Dusk before any ruling grades NO CASE",
+      "steps": [
+        { "send": "close", "payload": { "culprit": "accident" }, "rejected": "The case is still open." },
+        { "send": "advance", "payload": { "dt": 10 } },
+        { "send": "dusk" },
+        { "send": "close", "payload": { "culprit": "accident" } },
+        { "expect": { "/bindings/verdict/stamp": "NO CASE", "/elapsed": 10 } }
+      ]
+    },
+    {
+      "id": "B12",
+      "title": "A trace read after the rain carries weathered; one read before stays clean",
+      "steps": [
+        { "send": "examine", "payload": { "about": "x_prints", "points": 1 } },
+        { "send": "rain" },
+        { "send": "examine", "payload": { "about": "x_can", "points": 1 } },
+        { "expect": { "/bindings/x_prints/status": "on record", "/bindings/x_can/status": "weathered" } },
+        { "send": "hold", "payload": { "suspect": "farmhand", "first": "x_prints", "second": "x_can" } },
+        { "expect": { "/commitment_grounds/hold@1": { "evidence": ["ev_x_can", "ev_x_prints"], "caveats": ["weathered"] } } }
+      ]
+    }
+  ]
+}

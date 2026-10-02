@@ -254,7 +254,7 @@
 #        ^^^ variable.other.template
 #           ^^^^^ !variable.other.template
  };
- event dive target kind reef;
+ event dive target kind reef, near kind reef;
  for reef as $r routed by target {
 #^^^ keyword.control.repeat meta.block.repeat
 #            ^^ variable.parameter.template
@@ -265,6 +265,9 @@
    on dive when $r_seen == $index set $r_seen = 2;
 #               ^^ variable.other.template meta.block.repeat
 #                          ^^^^^^ variable.other.template
+   on dive when $near_seen == 1 set $r_seen = 3;
+#               ^^^^^ variable.other.template meta.block.repeat
+#                    ^^^^^ !variable.other.template
  };
 #^ punctuation.section.block.end meta.block.repeat
 

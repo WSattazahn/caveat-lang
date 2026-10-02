@@ -10,6 +10,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { followGuide, guideSteps } from './guide.mjs';
+import { loadRuntimeFromDirectory } from '../lib/node.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const repo = path.join(kit, '..');
@@ -134,6 +135,29 @@ test('the authoring guide\'s script runs against its example', async () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^accepted \[/);
   assert.match(result.stdout, /commitment: 'heating@1'/);
+});
+
+// The guide's example of a rule that names a second member by its event's
+// parameter: it checks clean, and each confrontation ends as the guide says.
+test('the authoring guide\'s second-member example refuses and withdraws as it says', async () => {
+  const guide = await readFile(path.join(repo, 'docs', 'AI_AUTHORING.md'), 'utf8');
+  const heading = guide.indexOf('## Name a second member by its parameter');
+  assert.ok(heading >= 0, 'the authoring guide has the section');
+  const source = /```caveat\n([\s\S]*?)```/.exec(guide.slice(heading))?.[1];
+  assert.ok(source, 'the section has a program');
+  const runtime = await loadRuntimeFromDirectory();
+  assert.deepEqual(runtime.check(source).diagnostics, []);
+  const session = runtime.open(source);
+  const refusal = (event, payload) => session.dispatch(event, payload).message;
+  assert.equal(session.dispatch('ask', { witness: 'bob', says: 2 }).outcome, 'accepted');
+  assert.equal(session.dispatch('examine', { trace: 'can', says: 1 }).outcome, 'accepted');
+  assert.equal(refusal('confront', { witness: 'bob', trace: 'prints', recants: 'yes' }), 'That trace shows nothing yet.');
+  assert.equal(refusal('confront', { witness: 'ann', trace: 'can', recants: 'yes' }), 'They have not given an account yet.');
+  const recant = session.dispatch('confront', { witness: 'bob', trace: 'can', recants: 'yes' });
+  assert.equal(recant.outcome, 'accepted');
+  assert.deepEqual(recant.snapshot.withdrawals.map(({ evidence, because }) => ({ evidence, because })),
+    [{ evidence: 'ev_bob', because: 'ev_can' }]);
+  session.close();
 });
 
 // Follows a kit document in a fresh directory. The repository has no installed

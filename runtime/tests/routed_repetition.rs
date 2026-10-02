@@ -1,7 +1,9 @@
 //! Routed Repetition 0.1: `for KIND as $NAME routed by P { ... };`. See
 //! spec/caveat-routed-repetition-0.1.md.
 
-use caveat_runtime::reactive::{BindingValue, ParameterDomain, ReactiveSession};
+use caveat_runtime::reactive::{
+    BindingValue, DispatchResult, ParameterDomain, ReactiveSession, ReactiveSnapshot,
+};
 use caveat_runtime::{link, repeat};
 use serde_json::Value;
 
@@ -1302,10 +1304,17 @@ mod repetition_0_1 {
 fn every_program_with_a_for_block_expands_as_before() {
     // The editor's highlighting fixture has one routed block among its plain
     // ones. Without the clause it expands as before, and with it, as if the
-    // route were written by hand.
+    // route were written by hand. One of its rules names a second reef by
+    // `$near` (section 10), and by hand it names the fixture's one reef.
     let fixture = read("../editors/vscode/test/fixtures/scopes.cav");
     assert_eq!(fixture.matches(" routed by target {").count(), 1);
-    let unrouted = fixture.replace(" routed by target {", " {");
+    let near = "on dive when $near_seen == 1 set $r_seen = 3;";
+    assert_eq!(fixture.matches(near).count(), 1);
+    let by_hand = fixture.replace(
+        near,
+        "on dive when near == 1 and reef_one_seen == 1 set $r_seen = 3;",
+    );
+    let unrouted = by_hand.replace(" routed by target {", " {");
     assert_eq!(repeat::expand(&unrouted), repetition_0_1::expand(&unrouted));
     assert_eq!(
         repeat::expand(&fixture).unwrap(),
@@ -1346,6 +1355,9 @@ fn every_program_with_a_for_block_expands_as_before() {
         "for reef as $r { for reef as $q { claim $q; }; };",
         "for reef { claim x; };",
         "for reef as $r routes by target { claim $r_seen; };",
+        // A word the binding begins is the binding's, though an event
+        // parameter begins it too (section 10).
+        "event show target kind reef, shown kind reef;\nfor reef as $s { state $shown_n = 0; on show when target == $index set $shown_n = 1; };",
     ] {
         let source = format!("{entities}{block}\n");
         assert_eq!(
@@ -1528,4 +1540,1026 @@ fn a_guard_at_the_nesting_limit_as_written_fails_to_load_once_routed() {
     assert!(load(ROUTED, format!("target == $index and {}", chain(62)))
         .unwrap_err()
         .contains(too_deep));
+}
+
+// ── Section 10: a member named by its parameter ────────────────────────────
+
+/// Two witnesses and two traces, as in docs/AI_AUTHORING.md: `confront`
+/// names a witness by `witness` and a trace by `trace`, and `pick` names the
+/// witness a verdict rests on. The trace block comes first, so a trace that
+/// shows nothing is refused before a witness's copy can withdraw anything
+/// because of it.
+const CASE: &str = "place yard kind farm;
+entity ann kind witness at yard;
+entity bob kind witness at yard;
+entity prints kind trace at yard;
+entity can kind trace at yard;
+claim guilty;
+state basis = 0;
+decisions verdict limit 4;
+event ask witness kind witness, says min 0 max 3;
+event examine trace kind trace, says min 0 max 3;
+event confront witness kind witness, trace kind trace, recants in no yes;
+event pick witness kind witness;
+for trace as $t routed by trace {
+    evidence ev_$t from \"the $t\";
+    state $t_says = 0 min 0 max 3;
+    on examine reveal ev_$t opposes guilty;
+    on examine set $t_says = qualified(says, ev_$t);
+    on confront when $t_says == 0 reject \"That trace shows nothing yet.\";
+};
+";
+
+const WITNESSES: &str = "for witness as $w routed by witness";
+
+/// The witness block's declarations, and its rules before the two below.
+const ACCOUNTS: &str = "
+    evidence ev_$w from \"$w's account\";
+    state $w_says = 0 min 0 max 3;
+    on ask reveal ev_$w supports guilty;
+    on ask set $w_says = qualified(says, ev_$w);
+    on pick set basis = $w_says;
+    on confront when not observed(ev_$w) reject \"They have not given an account yet.\";
+    on confront when withdrawn(ev_$w) reject \"They have already taken it back.\";
+    bind $w.status = \"on record\" when observed(ev_$w);
+    bind $w.status = \"taken back\" when withdrawn(ev_$w);
+";
+
+/// The two rules that name the trace the event names, by `$trace`.
+const RECANT: &str =
+    "    on confront when $w_says == $trace_says reject \"That trace agrees with them.\";
+    on confront when recants == recants.yes withdraw ev_$w because ev_$trace;
+";
+
+/// The same two rules, each written by hand once for each trace, as a
+/// program without section 10 writes them.
+const RECANT_BY_HAND: &str = "    on confront when trace == 1 and $w_says == prints_says reject \"That trace agrees with them.\"; on confront when trace == 2 and $w_says == can_says reject \"That trace agrees with them.\";
+    on confront when trace == 1 and recants == recants.yes withdraw ev_$w because ev_prints; on confront when trace == 2 and recants == recants.yes withdraw ev_$w because ev_can;
+";
+
+/// After the witness block: the verdict rests on the account picked, and
+/// comes loose when that account is taken back.
+const VERDICT: &str = "on pick commit verdict because enough using basis;
+on confront when committed(verdict) and not reopened(verdict) and rests_on_withdrawn(verdict) reopen verdict because caveated(basis, withdrawn);
+bind case.verdict = \"none\";
+bind case.verdict = \"held\" when committed(verdict) and not reopened(verdict);
+bind case.verdict = \"loose\" when reopened(verdict);
+";
+
+/// The case with a witness block, `header { body };`, and the verdict.
+fn case(header: &str, body: &str) -> String {
+    format!("{CASE}{header} {{{body}}};\n{VERDICT}")
+}
+
+/// What the witness block expands to, and the line after it.
+fn witnesses(header: &str, body: &str) -> Result<String, String> {
+    let before = repeat::expand(CASE).unwrap().len();
+    repeat::expand(&case(header, body))
+        .map(|text| text[before..text.len() - VERDICT.len()].to_string())
+}
+
+/// Each outcome, as accepted or as its refusal's message, and the snapshot
+/// after the last, its `source_id` cleared: the programs compared are
+/// different sources.
+fn run_case(source: &str, events: &[(&str, &str)]) -> (Vec<String>, ReactiveSnapshot) {
+    let mut session =
+        ReactiveSession::from_source(source).unwrap_or_else(|error| panic!("{error}\n{source}"));
+    let outcomes = events
+        .iter()
+        .map(
+            |(event, payload)| match session.dispatch_outcome_json(event, payload) {
+                Ok(outcome) => match outcome.result {
+                    DispatchResult::Accepted { .. } => "accepted".to_string(),
+                    DispatchResult::Rejected { message, .. } => message,
+                },
+                Err(fatal) => panic!("{event} {payload}: {}", fatal.message),
+            },
+        )
+        .collect();
+    let mut snapshot = session.snapshot();
+    snapshot.source_id.clear();
+    (outcomes, snapshot)
+}
+
+/// Bob gives an account, a verdict rests on it, and he takes it back when
+/// shown the can, which says otherwise.
+const RECANTING: [(&str, &str); 9] = [
+    ("ask", r#"{"witness":"bob","says":2}"#),
+    ("examine", r#"{"trace":"can","says":1}"#),
+    ("pick", r#"{"witness":"bob"}"#),
+    (
+        "confront",
+        r#"{"witness":"bob","trace":"prints","recants":"yes"}"#,
+    ),
+    (
+        "confront",
+        r#"{"witness":"ann","trace":"can","recants":"yes"}"#,
+    ),
+    ("examine", r#"{"trace":"prints","says":2}"#),
+    (
+        "confront",
+        r#"{"witness":"bob","trace":"prints","recants":"yes"}"#,
+    ),
+    (
+        "confront",
+        r#"{"witness":"bob","trace":"can","recants":"yes"}"#,
+    ),
+    (
+        "confront",
+        r#"{"witness":"bob","trace":"can","recants":"yes"}"#,
+    ),
+];
+
+const RECANTING_OUTCOMES: [&str; 9] = [
+    "accepted",
+    "accepted",
+    "accepted",
+    "That trace shows nothing yet.",
+    "They have not given an account yet.",
+    "accepted",
+    "That trace agrees with them.",
+    "accepted",
+    "They have already taken it back.",
+];
+
+#[test]
+fn a_rule_that_names_a_member_by_its_parameter_is_the_rule_written_for_each_by_hand() {
+    // Each witness's copy of a rule, once for each trace, is the rule that
+    // was written by hand for that trace.
+    let named = witnesses(WITNESSES, &format!("{ACCOUNTS}{RECANT}")).unwrap();
+    assert_eq!(
+        named,
+        witnesses(WITNESSES, &format!("{ACCOUNTS}{RECANT_BY_HAND}")).unwrap()
+    );
+    // Every pair, in full.
+    assert_eq!(
+        witnesses(
+            WITNESSES,
+            "\n    on confront when recants == recants.yes withdraw ev_$w because ev_$trace;\n"
+        )
+        .unwrap(),
+        "\n    on confront when witness == 1 and trace == 1 and recants == recants.yes withdraw ev_ann because ev_prints; \
+         on confront when witness == 1 and trace == 2 and recants == recants.yes withdraw ev_ann because ev_can;\n\
+         \n    on confront when witness == 2 and trace == 1 and recants == recants.yes withdraw ev_bob because ev_prints; \
+         on confront when witness == 2 and trace == 2 and recants == recants.yes withdraw ev_bob because ev_can;\n\n"
+    );
+}
+
+#[test]
+fn the_copies_go_in_the_kinds_order_where_the_rule_is_adding_no_line() {
+    let body = format!("{ACCOUNTS}{RECANT}");
+    let named = witnesses(WITNESSES, &body).unwrap();
+    // As many lines as the same block names only its own witness in.
+    let own = witnesses(WITNESSES, &body.replace("$trace", "$w")).unwrap();
+    assert_eq!(named.lines().count(), own.lines().count());
+    // Member-major: ann's copies, in the order the traces are declared, then
+    // bob's, each on the line the rule is written on, right after the
+    // member's copies of the rule before it.
+    let lines = named.lines().collect::<Vec<_>>();
+    let at = |text: &str| lines.iter().position(|line| line.contains(text)).unwrap();
+    assert_eq!(
+        [lines[at("withdraw ev_ann")], lines[at("withdraw ev_bob")]],
+        [
+            "    on confront when witness == 1 and trace == 1 and recants == recants.yes withdraw ev_ann because ev_prints; \
+             on confront when witness == 1 and trace == 2 and recants == recants.yes withdraw ev_ann because ev_can;",
+            "    on confront when witness == 2 and trace == 1 and recants == recants.yes withdraw ev_bob because ev_prints; \
+             on confront when witness == 2 and trace == 2 and recants == recants.yes withdraw ev_bob because ev_can;",
+        ]
+    );
+    assert_eq!(at("withdraw ev_ann"), at("ann_says == prints_says") + 1);
+    assert!(at("withdraw ev_ann") < at("bob_says == prints_says"));
+}
+
+#[test]
+fn each_copy_gets_its_route_where_section_3_puts_it_with_q_after_p() {
+    for (written, first) in [
+        (
+            "on confront withdraw ev_$w because ev_$trace;",
+            "on confront when witness == 1 and trace == 1 withdraw ev_ann because ev_prints;",
+        ),
+        (
+            "on confront when recants == recants.yes withdraw ev_$w because ev_$trace;",
+            "on confront when witness == 1 and trace == 1 and recants == recants.yes withdraw ev_ann because ev_prints;",
+        ),
+        (
+            "on confront when recants == recants.yes or $trace_says == 3 withdraw ev_$w because ev_$trace;",
+            "on confront when witness == 1 and trace == 1 and (recants == recants.yes or prints_says == 3) withdraw ev_ann because ev_prints;",
+        ),
+    ] {
+        let expanded = witnesses(WITNESSES, &format!("\n    {written}\n")).unwrap();
+        let copy = expanded.lines().nth(1).unwrap().trim_start();
+        assert_eq!(&copy[..first.len()], first, "{written}");
+    }
+}
+
+#[test]
+fn q_composes_into_names_dotted_names_and_quoted_text_as_name_does() {
+    let expanded = witnesses(
+        WITNESSES,
+        "\n    on confront when $trace_says > $w_says and $trace.x >= 0 reject \"$w: $trace, ev_$trace\";\n",
+    )
+    .unwrap();
+    assert!(
+        expanded.contains(
+            "on confront when witness == 1 and trace == 2 and can_says > ann_says and can.x >= 0 reject \"ann: can, ev_can\";"
+        ),
+        "{expanded}"
+    );
+}
+
+/// Two exhibits, a witness, and events that name exhibits and witnesses.
+/// No entity is declared `kind suspect`.
+const EXHIBITS: &str = "place yard kind farm;
+entity x_a kind exhibit at yard;
+entity x_b kind exhibit at yard;
+entity ann kind witness at yard;
+event confront about kind exhibit, shown kind exhibit, recants in no yes;
+event compare about kind exhibit, first kind exhibit, second kind exhibit;
+event rank about kind exhibit, index_of kind exhibit;
+event testify about kind exhibit, by kind witness;
+event accuse about kind exhibit, by kind suspect;
+event point by kind witness;
+";
+
+const EXHIBIT_BLOCK: &str = "for exhibit as $w routed by about";
+
+/// What `header { body };` after the exhibits expands to.
+fn exhibits(header: &str, body: &str) -> Result<String, String> {
+    repeat::expand(&format!("{EXHIBITS}{header} {{{body}}};\n"))
+        .map(|text| text[EXHIBITS.len()..].to_string())
+}
+
+fn exhibits_refused(header: &str, body: &str) -> String {
+    match exhibits(header, body) {
+        Ok(text) => panic!("expected a refusal, expanded to:\n{text}"),
+        Err(error) => error,
+    }
+}
+
+#[test]
+fn over_one_kind_every_ordered_pair_is_copied_the_same_member_twice_too() {
+    assert_eq!(
+        exhibits(
+            EXHIBIT_BLOCK,
+            "\n    on confront when $w_n == $shown_n reject \"$shown agrees with $w\";\n"
+        )
+        .unwrap(),
+        "\n    on confront when about == 1 and shown == 1 and x_a_n == x_a_n reject \"x_a agrees with x_a\"; \
+         on confront when about == 1 and shown == 2 and x_a_n == x_b_n reject \"x_b agrees with x_a\";\n\
+         \n    on confront when about == 2 and shown == 1 and x_b_n == x_a_n reject \"x_a agrees with x_b\"; \
+         on confront when about == 2 and shown == 2 and x_b_n == x_b_n reject \"x_b agrees with x_b\";\n\n"
+    );
+}
+
+#[test]
+fn a_withdrawal_rests_on_the_trace_the_event_names_and_a_verdict_comes_loose() {
+    let (outcomes, snapshot) =
+        run_case(&case(WITNESSES, &format!("{ACCOUNTS}{RECANT}")), &RECANTING);
+    assert_eq!(outcomes, RECANTING_OUTCOMES);
+    // The rejected events change nothing, so the recant is the fifth event
+    // that was accepted.
+    assert_eq!(
+        serde_json::to_value(&snapshot.withdrawals).unwrap(),
+        serde_json::json!([{"evidence": "ev_bob", "because": "ev_can", "sequence": 5, "event": "confront"}])
+    );
+    assert_eq!(
+        snapshot.bindings["bob"]["status"],
+        BindingValue::Text("taken back".into())
+    );
+    // The verdict rested on bob's account, so it came loose.
+    assert_eq!(
+        snapshot.bindings["case"]["verdict"],
+        BindingValue::Text("loose".into())
+    );
+    // Written by hand, one rule for each trace: the same records.
+    assert_eq!(
+        run_case(
+            &case(WITNESSES, &format!("{ACCOUNTS}{RECANT_BY_HAND}")),
+            &RECANTING
+        ),
+        (outcomes, snapshot)
+    );
+}
+
+#[test]
+fn a_procedure_takes_the_members_symbols_and_is_specialized_for_each_pair() {
+    let body = format!(
+        "{ACCOUNTS}    on confront when $w_says == $trace_says reject \"That trace agrees with them.\";
+    on confront when recants == recants.yes call recant(ev_$w, ev_$trace);
+"
+    );
+    let expanded = witnesses(WITNESSES, &body).unwrap();
+    assert!(expanded.contains(
+        "on confront when witness == 2 and trace == 2 and recants == recants.yes call recant(ev_bob, ev_can);"
+    ));
+    let source = format!(
+        "{}proc recant(account evidence, trace evidence) {{\n    withdraw account because trace;\n}};\n",
+        case(WITNESSES, &body)
+    );
+    // The same records as the rule that withdraws the account itself.
+    assert_eq!(
+        run_case(&source, &RECANTING),
+        run_case(&case(WITNESSES, &format!("{ACCOUNTS}{RECANT}")), &RECANTING)
+    );
+}
+
+#[test]
+fn a_copy_that_its_route_stops_adds_nothing_to_lineage() {
+    // reactive.rs builds an event's parameters as plain values
+    // (`Tracked::plain` in `run_event`). A route compares only parameters,
+    // so a route that does not hold has no provenance, and a copy it stops
+    // retains nothing (`retain_skipped_effect` returns on an empty guard).
+    // The copy that runs is then the rule written by hand, alone. Section 10
+    // rests on this: if parameters ever carry provenance, this test fails.
+    let doubt = "    state $w_doubt = 0 min 0 max 3;
+    bind $w.doubt = $w_doubt;
+";
+    // The withdrawal reads both accounts before the recant. A copy that
+    // does not withdraw, with a guard that read them, qualifies `withdrawn`
+    // with them; a copy its route stops reads neither.
+    let rules = "    on confront when $w_says == $trace_says reject \"That trace agrees with them.\";
+    on confront when $w_says != $trace_says and recants == recants.yes withdraw ev_$w because ev_$trace;
+    on confront when recants == recants.no set $w_doubt = $trace_says;
+";
+    let named = case(WITNESSES, &format!("{ACCOUNTS}{doubt}{rules}"));
+    // Only the copies for bob and the can, written by hand after the block.
+    // Bob's copies are the last rules in the block, so they run in the same
+    // place.
+    let running = case(WITNESSES, &format!("{ACCOUNTS}{doubt}")).replace(
+        VERDICT,
+        &format!(
+            "on confront when witness == 2 and trace == 2 and bob_says == can_says reject \"That trace agrees with them.\";
+on confront when witness == 2 and trace == 2 and bob_says != can_says and recants == recants.yes withdraw ev_bob because ev_can;
+on confront when witness == 2 and trace == 2 and recants == recants.no set bob_doubt = can_says;
+{VERDICT}"
+        ),
+    );
+    let events = [
+        ("ask", r#"{"witness":"bob","says":2}"#),
+        ("ask", r#"{"witness":"ann","says":3}"#),
+        ("examine", r#"{"trace":"can","says":1}"#),
+        ("examine", r#"{"trace":"prints","says":3}"#),
+        ("pick", r#"{"witness":"bob"}"#),
+        (
+            "confront",
+            r#"{"witness":"bob","trace":"can","recants":"no"}"#,
+        ),
+        (
+            "confront",
+            r#"{"witness":"bob","trace":"can","recants":"yes"}"#,
+        ),
+    ];
+    let (outcomes, snapshot) = run_case(&named, &events);
+    assert_eq!(outcomes, ["accepted"; 7]);
+    assert_eq!(run_case(&running, &events), (outcomes, snapshot.clone()));
+    // The records compared are not empty.
+    assert!(!snapshot.binding_explanations.is_empty());
+    assert!(!snapshot.predicate_qualifications.is_empty());
+    assert!(snapshot.qualified_values.contains_key("ann_doubt"));
+    assert_eq!(snapshot.values["bob_doubt"], 1.0);
+}
+
+/// Before the Rain's confront rules as Vessel first wrote them (its
+/// FINDINGS F3): one line for each witness to compare, and one for each
+/// trace to recant because of.
+const BEFORE_THE_RAIN_BY_HAND: &str = r#"// What was shown must be an examined trace that says otherwise.
+for exhibit as $s {
+    on confront when shown == $index and $index <= 3 reject "Show them a trace.";
+    on confront when shown == $index and $s_points == 0 reject "That trace shows nothing yet.";
+    on confront when shown == $index and about == 1 and x_farmer_points == $s_points reject "That trace agrees with them.";
+    on confront when shown == $index and about == 2 and x_farmhand_points == $s_points reject "That trace agrees with them.";
+    on confront when shown == $index and about == 3 and x_neighbour_points == $s_points reject "That trace agrees with them.";
+};
+
+// A recant takes the account back because of the trace that was shown.
+for exhibit as $w routed by about {
+    on confront when recants == recants.yes and shown == 4 withdraw ev_$w because ev_x_prints;
+    on confront when recants == recants.yes and shown == 5 withdraw ev_$w because ev_x_can;
+    on confront when recants == recants.yes and shown == 6 withdraw ev_$w because ev_x_lamp;
+    on confront when recants == recants.yes and shown == 7 withdraw ev_$w because ev_x_hay;
+};
+"#;
+
+/// The same rules in game/before_the_rain.cav, the trace named by `$shown`.
+const BEFORE_THE_RAIN_NAMED: &str = r#"// What was shown must be an examined trace.
+for exhibit as $s routed by shown {
+    on confront when $index <= 3 reject "Show them a trace.";
+    on confront when $s_points == 0 reject "That trace shows nothing yet.";
+};
+
+// A recant takes the account back because of the trace that was shown, and
+// only a trace that says otherwise can bring one.
+for exhibit as $w routed by about {
+    on confront when $w_points == $shown_points reject "That trace agrees with them.";
+    on confront when recants == recants.yes withdraw ev_$w because ev_$shown;
+};
+"#;
+
+/// Before the Rain written by hand, and as the game directory holds it.
+fn before_the_rain() -> (String, String) {
+    let named = read("../game/before_the_rain.cav");
+    assert_eq!(named.matches(BEFORE_THE_RAIN_NAMED).count(), 1);
+    (
+        named.replace(BEFORE_THE_RAIN_NAMED, BEFORE_THE_RAIN_BY_HAND),
+        named,
+    )
+}
+
+/// A fixed-seed xorshift generator, so every run sends the same histories.
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> f64 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 7;
+        self.0 ^= self.0 << 17;
+        (self.0 >> 11) as f64 / (1u64 << 53) as f64
+    }
+
+    fn pick<'a>(&mut self, from: &[&'a str]) -> &'a str {
+        from[(self.next() * from.len() as f64) as usize]
+    }
+}
+
+/// One of Before the Rain's histories: mostly accounts and examinations
+/// first, then confrontations, holds, rulings and the rest, in any order a
+/// player might send them. About one event in six shows a witness a trace
+/// and has them recant, so that recants are not rare.
+fn history(rng: &mut Rng, length: usize) -> Vec<(&'static str, String)> {
+    const EXHIBITS: [&str; 7] = [
+        "x_farmer",
+        "x_farmhand",
+        "x_neighbour",
+        "x_prints",
+        "x_can",
+        "x_lamp",
+        "x_hay",
+    ];
+    const SUSPECTS: [&str; 3] = ["farmhand", "neighbour", "accident"];
+    let mut events = Vec::new();
+    for step in 0..length {
+        let roll = rng.next();
+        let early = step < length / 3;
+        let event = if roll < if early { 0.3 } else { 0.1 } {
+            let (about, accuses) = (rng.pick(&EXHIBITS), rng.pick(&SUSPECTS));
+            (
+                "ask",
+                format!(r#"{{"about":"{about}","accuses":"{accuses}"}}"#),
+            )
+        } else if roll < if early { 0.6 } else { 0.2 } {
+            let (about, points) = (rng.pick(&EXHIBITS), (rng.next() * 4.0) as u32);
+            (
+                "examine",
+                format!(r#"{{"about":"{about}","points":{points}}}"#),
+            )
+        } else if roll < 0.45 {
+            let (about, shown) = (rng.pick(&EXHIBITS), rng.pick(&EXHIBITS));
+            let recants = rng.pick(&["no", "yes", "yes"]);
+            (
+                "confront",
+                format!(r#"{{"about":"{about}","shown":"{shown}","recants":"{recants}"}}"#),
+            )
+        } else if roll < 0.58 {
+            let (suspect, first, second) = (
+                rng.pick(&SUSPECTS),
+                rng.pick(&EXHIBITS),
+                rng.pick(&EXHIBITS),
+            );
+            (
+                "hold",
+                format!(r#"{{"suspect":"{suspect}","first":"{first}","second":"{second}"}}"#),
+            )
+        } else if roll < 0.63 {
+            ("warrant", "{}".into())
+        } else if roll < 0.67 {
+            let found = rng.pick(&["no", "yes"]);
+            ("search_cot", format!(r#"{{"found":"{found}"}}"#))
+        } else if roll < 0.7 {
+            ("rain", "{}".into())
+        } else if roll < 0.76 {
+            let dt = (rng.next() * 3.0) as u32;
+            ("advance", format!(r#"{{"dt":{dt}}}"#))
+        } else if roll < 0.78 {
+            ("rule", "{}".into())
+        } else if roll < 0.79 {
+            ("dusk", "{}".into())
+        } else if roll < 0.82 {
+            let about = rng.pick(&EXHIBITS);
+            ("expose", format!(r#"{{"about":"{about}"}}"#))
+        } else if roll < 0.84 {
+            let culprit = rng.pick(&SUSPECTS);
+            ("close", format!(r#"{{"culprit":"{culprit}"}}"#))
+        } else {
+            let (about, shown) = (rng.pick(&EXHIBITS[..3]), rng.pick(&EXHIBITS[3..]));
+            (
+                "confront",
+                format!(r#"{{"about":"{about}","shown":"{shown}","recants":"yes"}}"#),
+            )
+        };
+        events.push(event);
+    }
+    events
+}
+
+/// What an outcome shows: the snapshot, its `source_id` cleared, or the
+/// refusal, with the rule numbers in its message taken out, since the two
+/// programs number their rules differently.
+#[derive(Debug, PartialEq)]
+enum Seen {
+    Accepted(Box<ReactiveSnapshot>),
+    Rejected(String, String, String),
+    Fatal(String, String),
+}
+
+fn seen(session: &mut ReactiveSession, event: &str, payload: &str) -> Seen {
+    match session.dispatch_outcome_json(event, payload) {
+        Ok(outcome) => match outcome.result {
+            DispatchResult::Accepted { mut snapshot } => {
+                snapshot.source_id.clear();
+                Seen::Accepted(snapshot)
+            }
+            DispatchResult::Rejected {
+                origin,
+                code,
+                message,
+            } => Seen::Rejected(
+                format!("{origin:?}"),
+                format!("{code:?}"),
+                without_rule_numbers(&message),
+            ),
+        },
+        Err(fatal) => Seen::Fatal(fatal.code.into(), without_rule_numbers(&fatal.message)),
+    }
+}
+
+/// A message with each `rule N` written `rule _`.
+fn without_rule_numbers(message: &str) -> String {
+    let mut out = String::new();
+    let mut rest = message;
+    while let Some(at) = rest.find("rule ") {
+        out.push_str(&rest[..at + "rule ".len()]);
+        rest = &rest[at + "rule ".len()..];
+        let number = rest.len()
+            - rest
+                .trim_start_matches(|ch: char| ch.is_ascii_digit())
+                .len();
+        if number > 0 {
+            out.push('_');
+        }
+        rest = &rest[number..];
+    }
+    out.push_str(rest);
+    out
+}
+
+#[test]
+fn before_the_rain_runs_every_history_as_the_program_written_by_hand() {
+    let (by_hand, named) = before_the_rain();
+    // F3's seven rules are two, and confront has 49 more rules to try.
+    let count = |source: &str| {
+        repeat::expand(source)
+            .unwrap()
+            .matches("on confront when")
+            .count()
+    };
+    assert_eq!((count(&by_hand), count(&named)), (86, 135));
+
+    let mut rng = Rng(0x9e37_79b9_7f4a_7c15);
+    let (mut events, mut accepted, mut withdrawals) = (0, 0, 0);
+    let mut refusals = std::collections::BTreeSet::new();
+    for _ in 0..70 {
+        let mut hand = ReactiveSession::from_source(&by_hand).unwrap();
+        let mut session = ReactiveSession::from_source(&named).unwrap();
+        for (event, payload) in history(&mut rng, 30) {
+            let outcome = seen(&mut session, event, &payload);
+            assert_eq!(
+                outcome,
+                seen(&mut hand, event, &payload),
+                "{event} {payload}"
+            );
+            events += 1;
+            match outcome {
+                Seen::Accepted(_) => accepted += 1,
+                Seen::Rejected(_, _, message) => {
+                    refusals.insert(message);
+                }
+                // The rejects come first, so no recant withdraws because of
+                // a trace that was never read.
+                Seen::Fatal(code, message) => panic!("{event} {payload}: {code} {message}"),
+            }
+        }
+        withdrawals += session.snapshot().withdrawals.len();
+        // The final save restores, into the program it was made by.
+        for (source, session) in [(&by_hand, &hand), (&named, &session)] {
+            let restored =
+                ReactiveSession::restore_json(source, &session.save_json().unwrap()).unwrap();
+            assert_eq!(restored.snapshot(), session.snapshot());
+        }
+    }
+    assert!(events >= 2000, "{events} events");
+    assert!(
+        accepted > 500 && withdrawals > 10,
+        "{accepted} accepted, {withdrawals} withdrawn"
+    );
+    for message in [
+        "Show them a trace.",
+        "That trace shows nothing yet.",
+        "That trace agrees with them.",
+        "They have already taken it back.",
+    ] {
+        assert!(refusals.contains(message), "{message}: {refusals:?}");
+    }
+}
+
+// Section 10's errors, in the order section 7 lists them.
+
+#[test]
+fn a_word_both_the_binding_and_a_parameter_begin_is_refused() {
+    // A longer parameter, and one as long as the binding.
+    assert_eq!(
+        exhibits_refused(
+            "for exhibit as $s routed by about",
+            "\n    state $s_n = 0;\n    on confront when $s_n == $shown_n reject \"x\";\n"
+        ),
+        "`$shown_n` in `on confront` in `for exhibit as $s routed by about` could be `$s` or the exhibit `confront` names by `shown`; rename `$s` so that only one of them begins it, or write the rule in a block routed by `shown`"
+    );
+    assert_eq!(
+        exhibits_refused(
+            "for exhibit as $shown routed by about",
+            "\n    on confront when $shown_n == 0 reject \"x\";\n"
+        ),
+        "`$shown_n` in `on confront` in `for exhibit as $shown routed by about` could be `$shown` or the exhibit `confront` names by `shown`; rename `$shown` so that only one of them begins it, or write the rule in a block routed by `shown`"
+    );
+    // P longer than the binding, and a parameter longer than `$index`.
+    assert_eq!(
+        exhibits_refused(
+            "for exhibit as $a routed by about",
+            "\n    on confront when $about_n == 0 reject \"x\";\n"
+        ),
+        "`$about_n` in `on confront` in `for exhibit as $a routed by about` could be `$a` or the exhibit `confront` names by `about`; rename `$a` so that only one of them begins it"
+    );
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on rank when $index_of == 1 and $w_n == 0 reject \"x\";\n"
+        ),
+        "`$index_of` in `on rank` in `for exhibit as $w routed by about` could be `$index` or the exhibit `rank` names by `index_of`; write the rule in a block routed by `index_of`"
+    );
+    // A binding named P keeps its word: it names the same member.
+    assert_eq!(
+        exhibits(
+            "for exhibit as $about routed by about",
+            "\n    on confront when $about_n == $shown_n reject \"x\";\n"
+        )
+        .unwrap()
+        .lines()
+        .nth(1)
+        .unwrap(),
+        "    on confront when about == 1 and shown == 1 and x_a_n == x_a_n reject \"x\"; on confront when about == 1 and shown == 2 and x_a_n == x_b_n reject \"x\";"
+    );
+}
+
+#[test]
+fn p_named_by_its_parameter_is_refused() {
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on confront when $about_n == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        "`$about_n` in `on confront` in `for exhibit as $w routed by about`: the block is routed by `about`, so the exhibit it names is `$w`; write `$w` for `$about`"
+    );
+}
+
+#[test]
+fn a_parameter_of_another_form_names_no_member() {
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on confront when $recants_x == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        "`$recants_x` in `on confront` in `for exhibit as $w routed by about`: `confront` declares `recants in no yes`, and a `$` names a member only by a `kind` parameter"
+    );
+}
+
+#[test]
+fn a_rule_that_names_members_by_two_parameters_is_refused() {
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on compare when $first_n == $second_n and $w_n == 0 reject \"x\";\n"
+        ),
+        "`on compare` in `for exhibit as $w routed by about` names members by `$first` and `$second`; a rule names a member by one parameter at most, so write it in a block routed by one of them"
+    );
+}
+
+#[test]
+fn a_rule_that_names_members_only_by_a_parameter_is_refused() {
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on confront when $shown_n == 0 reject \"x\";\n"
+        ),
+        "`on confront` in `for exhibit as $w routed by about` names members only by `$shown`, and neither `$w` nor `$index`; each exhibit's copy of it would be the same rule, so write it in a block routed by `shown`"
+    );
+}
+
+#[test]
+fn a_parameter_whose_kind_has_no_top_level_member_is_refused() {
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on accuse when $by_n == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        "`$by` in `on accuse` in `for exhibit as $w routed by about`: no entity is declared `kind suspect` at the top level of this part, so `$by` names no member"
+    );
+    // Of another kind, with a member, the rule is copied for it.
+    let body = "\n    on testify when $by_n == 0 and $w_n == 0 reject \"x\";\n";
+    assert_eq!(
+        exhibits(EXHIBIT_BLOCK, body)
+            .unwrap()
+            .lines()
+            .nth(1)
+            .unwrap(),
+        "    on testify when about == 1 and by == 1 and ann_n == 0 and x_a_n == 0 reject \"x\";"
+    );
+    // An entity of that kind in a for block is counted by the parameter.
+    let zones =
+        "entity z1 kind zone at yard;\nfor zone as $z { entity $z_w kind witness at yard; };\n";
+    assert_eq!(
+        repeat::expand(&format!("{EXHIBITS}{zones}{EXHIBIT_BLOCK} {{{body}}};\n")).unwrap_err(),
+        "`$by` in `on testify` in `for exhibit as $w routed by about`: `by` counts entity `$z_w` of kind witness, declared in a for block, and `$by` does not; declare it at the top level of this part"
+    );
+}
+
+#[test]
+fn a_parameter_names_a_member_only_in_a_routed_rule() {
+    let unrouted = |header: &str, event: &str, word: &str| {
+        format!("`{word}` in `on {event}` in `{header}`: a `$` names the member a parameter names only in a routed rule (spec/caveat-routed-repetition-0.1.md section 10), and this rule is not routed")
+    };
+    // In a plain block, and in a rule of a routed block on an event that
+    // names no exhibit.
+    assert_eq!(
+        exhibits_refused(
+            "for exhibit as $w",
+            "\n    on confront when about == $index and $shown_n == 0 reject \"x\";\n"
+        ),
+        unrouted("for exhibit as $w", "confront", "$shown_n")
+    );
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on confront when $w_n == 0 reject \"x\";\n    on point when $by_n == 0 and $w_n == 0 reject \"y\";\n"
+        ),
+        unrouted(EXHIBIT_BLOCK, "point", "$by_n")
+    );
+    // A word the block's own binding begins is its own, as before.
+    assert_eq!(
+        exhibits(
+            "for exhibit as $s",
+            "\n    on confront when shown == $index and $shown_n == 0 reject \"x\";\n"
+        )
+        .unwrap()
+        .lines()
+        .nth(1)
+        .unwrap(),
+        "    on confront when shown == 1 and x_ahown_n == 0 reject \"x\";"
+    );
+}
+
+#[test]
+fn a_parameter_of_another_form_has_its_own_message_only_in_a_routed_rule() {
+    // In a routed rule, a word that any parameter of the event begins and no
+    // binding does is refused with a message of its own. Outside one, only a
+    // `kind` parameter's word is; an `in`, numeric or `id` parameter's word
+    // is refused as not bound, as before.
+    let tagged = |header: &str, body: &str| {
+        repeat::expand(&format!(
+            "{EXHIBITS}event tag about kind exhibit, badge id, score min 0 max 9;\nevent rest mood in calm tense;\n{header} {{{body}}};\n"
+        ))
+        .unwrap_err()
+    };
+    let other_form = |word: &str, declared: &str| {
+        format!("`{word}` in `on tag` in `{EXHIBIT_BLOCK}`: `tag` declares `{declared}`, and a `$` names a member only by a `kind` parameter")
+    };
+    assert_eq!(
+        tagged(
+            EXHIBIT_BLOCK,
+            "\n    on tag when $badge_n == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        other_form("$badge_n", "badge id")
+    );
+    assert_eq!(
+        tagged(
+            EXHIBIT_BLOCK,
+            "\n    on tag when $score_n == 0 and $w_n == 0 reject \"x\";\n"
+        ),
+        other_form("$score_n", "score min 0 max 9")
+    );
+    let not_bound =
+        |word: &str| format!("{word} is not bound in this for block; $ is not a literal");
+    for (header, body, word) in [
+        (
+            "for exhibit as $w",
+            "\n    on tag when about == $index and $badge_n == 0 reject \"x\";\n",
+            "$badge_n",
+        ),
+        (
+            "for exhibit as $w",
+            "\n    on confront when about == $index and $recants_n == 0 reject \"x\";\n",
+            "$recants_n",
+        ),
+        (
+            EXHIBIT_BLOCK,
+            "\n    on tag when $w_n == 0 reject \"x\";\n    on rest when $mood_n == 0 and $w_n == 0 reject \"y\";\n",
+            "$mood_n",
+        ),
+    ] {
+        assert_eq!(tagged(header, body), not_bound(word), "{body}");
+    }
+}
+
+#[test]
+fn q_is_not_bound_outside_a_routed_rule() {
+    for statement in [
+        "state $shown_n = 0;",
+        "bind $shown.x = 1;",
+        "define $w_d = $shown_n;",
+        "proc p_$w() { set $w_n = $shown_n; };",
+        "on $w_ev when $shown_n == 0 reject \"x\";",
+    ] {
+        assert_eq!(
+            exhibits_refused(
+                EXHIBIT_BLOCK,
+                &format!("\n    state $w_n = 0;\n    on confront when $w_n == 0 reject \"x\";\n    {statement}\n")
+            ),
+            format!(
+                "${} is not bound in this for block; $ is not a literal",
+                if statement.starts_with("bind") { "shown" } else { "shown_n" }
+            ),
+            "{statement}"
+        );
+    }
+}
+
+/// Members of kind `member`, and a block routed by `target` whose rule on
+/// `meet` names the other member, with `extra` rules after it.
+fn crowd(members: usize, extra: &str) -> String {
+    let mut source = String::from("place yard kind farm;\n");
+    for member in 1..=members {
+        source.push_str(&format!("entity m{member} kind member at yard;\n"));
+    }
+    source.push_str(&format!(
+        "event meet target kind member, other kind member;
+for member as $m routed by target {{
+    state $m_n = 0;
+    on meet when $other_n == 0 set $m_n = 1;
+{extra}}};
+"
+    ));
+    source
+}
+
+#[test]
+fn an_event_that_a_block_gives_more_work_than_one_event_can_do_is_refused() {
+    let too_much = |steps: usize| {
+        format!("`for member as $m routed by target` writes {steps} rules on `meet`, and one event does at most 4096 steps of work; each copy spends a step whether its route holds or not")
+    };
+    // 64 members, each with 64 copies: every step one event can take.
+    let mut session = ReactiveSession::from_source(&crowd(64, "")).unwrap();
+    session
+        .dispatch_json("meet", r#"{"target":"m64","other":"m1"}"#)
+        .unwrap();
+    assert_eq!(session.snapshot().values["m64_n"], 1.0);
+    assert_eq!(repeat::expand(&crowd(65, "")).unwrap_err(), too_much(4225));
+    // Every rule of the block on the event counts, once per member.
+    let more = "    on meet set $m_n = 2;\n";
+    let mut session = ReactiveSession::from_source(&crowd(63, more)).unwrap();
+    session
+        .dispatch_json("meet", r#"{"target":"m63","other":"m63"}"#)
+        .unwrap();
+    assert_eq!(session.snapshot().values["m63_n"], 2.0);
+    assert_eq!(
+        repeat::expand(&crowd(64, more)).unwrap_err(),
+        too_much(4160)
+    );
+    // It is refused before a `$` name that is not bound.
+    assert_eq!(
+        repeat::expand(&crowd(65, "    state $typo = 0;\n")).unwrap_err(),
+        too_much(4225)
+    );
+}
+
+#[test]
+fn section_10_errors_come_after_routing_and_word_by_word_in_a_rule() {
+    // Routing reads every rule first: an event it cannot read is refused
+    // before a rule above it that names members only by `$shown`.
+    assert_eq!(
+        exhibits_refused(
+            EXHIBIT_BLOCK,
+            "\n    on confront when $shown_n == 0 reject \"x\";\n    on nowhere set $w_n = 1;\n"
+        ),
+        "`on nowhere` in `for exhibit as $w routed by about`: no event `nowhere` is declared in this part, so the block cannot tell whether it names a exhibit"
+    );
+    // In a rule, each word first, then the rule: `$about` is refused before
+    // the two parameters, and before the missing `$w`.
+    assert!(exhibits_refused(
+        EXHIBIT_BLOCK,
+        "\n    on compare when $first_n == $second_n and $about_n == 0 reject \"x\";\n"
+    )
+    .starts_with("`$about_n` in `on compare`"));
+    // And rule by rule: the first rule's error is the one reported.
+    assert!(exhibits_refused(
+        EXHIBIT_BLOCK,
+        "\n    on confront when $recants_x == $w_n reject \"x\";\n    on confront when $about_n == $w_n reject \"x\";\n"
+    )
+    .starts_with("`$recants_x`"));
+    // A word refused as not routed comes before a `$` name that is not bound
+    // in an earlier statement.
+    assert!(exhibits_refused(
+        "for exhibit as $w",
+        "\n    state $typo = 0;\n    on confront when about == $index and $shown_n == 0 reject \"x\";\n"
+    )
+    .starts_with("`$shown_n` in `on confront`"));
+}
+
+#[test]
+fn a_rule_that_names_a_member_by_its_parameter_hides_no_event_its_block_declares() {
+    // Each exhibit's block declares its own `nudge` event, and has a rule
+    // that names the exhibit shown. A routed block reads those events: they
+    // are read without the block's rules.
+    let source = format!(
+        "{EXHIBITS}for exhibit as $w routed by about {{
+    event nudge_$w target kind exhibit;
+    state $w_n = 0;
+    on confront when $w_n == $shown_n reject \"x\";
+}};
+for exhibit as $e routed by target {{
+    state $e_m = 0;
+    on nudge_x_a set $e_m = 1;
+}};
+"
+    );
+    let expanded = repeat::expand(&source).unwrap();
+    assert!(expanded.contains("on nudge_x_a when target == 2 set x_b_m = 1;"));
+}
+
+#[test]
+fn the_editor_reference_cases_read_as_the_runtime_reads_them() {
+    // The editor's tests check their reference reading of `$` words against
+    // these programs (editors/vscode/test/reference.test.mjs). Each is
+    // refused as the file says, or expands to a text holding what it says,
+    // and loads.
+    let file: Value =
+        serde_json::from_str(&read("../editors/vscode/test/fixtures/substitutions.json")).unwrap();
+    let cases = file["cases"].as_array().unwrap();
+    assert!(cases.len() >= 5);
+    for case in cases {
+        let name = case["name"].as_str().unwrap();
+        let mut source = case["source"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|line| line.as_str().unwrap())
+            .collect::<Vec<_>>()
+            .join("\n");
+        source.push('\n');
+        match (case["expands_to"].as_str(), case["refused"].as_str()) {
+            (Some(line), None) => {
+                let expanded =
+                    repeat::expand(&source).unwrap_or_else(|error| panic!("{name}: {error}"));
+                assert!(expanded.contains(line), "{name}:\n{expanded}");
+                ReactiveSession::from_source(&source)
+                    .unwrap_or_else(|error| panic!("{name}: {error}"));
+            }
+            (None, Some(message)) => {
+                assert_eq!(repeat::expand(&source).unwrap_err(), message, "{name}");
+            }
+            _ => panic!("{name}: a case says `expands_to` or `refused`"),
+        }
+    }
+}
+
+#[test]
+fn the_editor_reference_whitespace_is_the_runtimes() {
+    // The runtime splits words and skips between statements at Rust's
+    // whitespace, `char::is_whitespace`, which is not JavaScript's `\s`. The
+    // editor's reference reads as whitespace the characters the file lists
+    // (editors/vscode/test/reference.test.mjs), and they are these.
+    let file: Value =
+        serde_json::from_str(&read("../editors/vscode/test/fixtures/substitutions.json")).unwrap();
+    let listed = file["whitespace"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|point| {
+            let hex = point.as_str().unwrap().strip_prefix("U+").unwrap();
+            u32::from_str_radix(hex, 16).unwrap()
+        })
+        .collect::<Vec<_>>();
+    let rust = (0..=0x10FFFF)
+        .filter_map(char::from_u32)
+        .filter(|ch| ch.is_whitespace())
+        .map(u32::from)
+        .collect::<Vec<_>>();
+    assert_eq!(listed, rust);
 }

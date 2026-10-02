@@ -1123,6 +1123,112 @@ for tunnel as $t {
     assert_eq!(codes(&check(&unallowed)), [("C003", line), ("C003", line)]);
 }
 
+// ── A member named by its parameter (routed repetition section 10) ─────────
+
+/// Two witnesses and two traces. `confront` names one of each, and a trace
+/// that shows nothing is refused first.
+const CASE: &str = r#"place yard kind farm;
+entity ann kind witness at yard;
+entity bob kind witness at yard;
+entity prints kind trace at yard;
+entity can kind trace at yard;
+claim guilty;
+event ask witness kind witness, says min 0 max 3;
+event examine trace kind trace, says min 0 max 3;
+event confront witness kind witness, trace kind trace, recants in no yes;
+for trace as $t routed by trace {
+    evidence ev_$t from "the $t";
+    state $t_says = 0 min 0 max 3;
+    on examine reveal ev_$t opposes guilty;
+    on examine set $t_says = qualified(says, ev_$t);
+    on confront when $t_says == 0 reject "That trace shows nothing yet.";
+};
+"#;
+
+/// The case with these rules in a block over the witnesses, routed by
+/// `witness`, after each witness's account.
+fn witnesses(rules: &str) -> String {
+    format!(
+        "{CASE}for witness as $w routed by witness {{
+    evidence ev_$w from \"$w's account\";
+    state $w_says = 0 min 0 max 3;
+    on ask reveal ev_$w supports guilty;
+    on ask set $w_says = qualified(says, ev_$w);
+{rules}}};
+"
+    )
+}
+
+const RECANT: &str =
+    "    on confront when $w_says == $trace_says reject \"That trace agrees with them.\";
+    on confront when recants == recants.yes withdraw ev_$w because ev_$trace;
+";
+
+#[test]
+fn a_rule_that_names_a_member_by_its_parameter_is_routed_and_checks_clean() {
+    let report = check(&witnesses(RECANT));
+    assert_eq!(codes(&report), []);
+    assert!(report.suppressed.is_empty());
+}
+
+#[test]
+fn c002_reads_a_reopening_written_only_in_a_rule_that_names_a_member_by_its_parameter() {
+    let source = |reopen: &str| {
+        witnesses(&format!(
+            "    evidence $w_voice from \"$w's voice\";
+    readings $w_heard from $w_voice limit 4;
+    decisions $w_trust limit 2;
+    on ask sample $w_heard = says supports guilty;
+    on ask commit $w_trust because enough using latest($w_heard);
+{reopen}"
+        ))
+    };
+    let unreopened = source("");
+    let line = line_of(&unreopened, "decisions $w_trust");
+    assert_eq!(codes(&check(&unreopened)), [("C002", line), ("C002", line)]);
+    // Each witness's copies of the rule reopen its own series.
+    let reopened =
+        source("    on confront when recants == recants.yes reopen $w_trust because ev_$trace;\n");
+    assert_eq!(codes(&check(&reopened)), []);
+}
+
+#[test]
+fn a_plain_block_beside_one_that_names_a_member_by_its_parameter_is_still_checked() {
+    let source = format!(
+        "{}for witness as $v {{\n    on confront set $v_says = 0;\n}};\n",
+        witnesses(RECANT)
+    );
+    assert_eq!(
+        codes(&check(&source)),
+        for_both(&[line_of(&source, "on confront set $v_says")])
+    );
+}
+
+#[test]
+fn a_word_a_plain_blocks_binding_begins_is_read_as_before() {
+    // `$shown_n` is `$s` followed by `hown_n`, though `shown` is a parameter
+    // of `confront`: the rule mentions `$s` and has no selection.
+    let source = |guard: &str| {
+        format!(
+            "place yard kind farm;
+entity x_a kind exhibit at yard;
+entity x_b kind exhibit at yard;
+event confront about kind exhibit, shown kind exhibit;
+for exhibit as $s {{
+    state $shown_n = 0;
+    on confront {guard}set $shown_n = 1;
+}};
+"
+        )
+    };
+    let unselected = source("");
+    assert_eq!(
+        codes(&check(&unselected)),
+        for_both(&[line_of(&unselected, "on confront")])
+    );
+    assert_eq!(codes(&check(&source("when shown == $index "))), []);
+}
+
 // ── C004: a member's `$index` and its number in a `kind` parameter ────────
 
 // The pieces of the programs from the evaluation behind C004. `read` numbers

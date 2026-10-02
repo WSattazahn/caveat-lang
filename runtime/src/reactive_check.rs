@@ -59,7 +59,7 @@ pub fn check_source(source: &str) -> Result<CheckReport, String> {
         return Err("caveat check reads a single-file program, not a bundle".into());
     }
     let session = ReactiveSession::from_source(source)?;
-    let (statements, blocks) = statements(source)?;
+    let (statements, blocks) = statements(source, &session)?;
     let mut found = repeated_rules(&session, &statements);
     found.extend(unreopened_decisions(&session, &statements));
     found.extend(member_rules(&session, &statements, &blocks, source));
@@ -95,7 +95,10 @@ struct Block {
     body: Vec<(String, Position)>,
 }
 
-fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
+fn statements(
+    source: &str,
+    session: &ReactiveSession,
+) -> Result<(Vec<Statement>, Vec<Block>), String> {
     let kinds = crate::repeat::declared_kinds(source);
     let (mut out, mut blocks) = (Vec::new(), Vec::new());
     // The parser accepts a last statement without its semicolon, after any
@@ -116,9 +119,9 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         let (Some(open), Some(close)) = crate::repeat::body_braces(text) else {
             continue;
         };
-        let (kind, binding, routed) = match statement_words(&text[..open])[..] {
-            ["for", kind, "as", binding] => (kind, binding, false),
-            ["for", kind, "as", binding, "routed", "by", _] => (kind, binding, true),
+        let (kind, binding, route) = match statement_words(&text[..open])[..] {
+            ["for", kind, "as", binding] => (kind, binding, None),
+            ["for", kind, "as", binding, "routed", "by", route] => (kind, binding, Some(route)),
             _ => continue,
         };
         let binding = binding.trim_start_matches('$');
@@ -136,13 +139,24 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
             // A template can scan only once expanded, as `"\$p"` does; C003
             // then skips it.
             templates.extend(scan_statements_at(template, at).unwrap_or_default());
+            let markers = route
+                .map(|route| parameter_markers(session, template, route, source))
+                .unwrap_or_default();
+            let markers = markers
+                .iter()
+                .map(|(parameter, marker)| (parameter.as_str(), marker.as_str()))
+                .collect::<Vec<_>>();
             for (index, member) in members.iter().enumerate() {
-                let expanded = crate::repeat::instantiate(
-                    template,
-                    binding,
-                    member,
-                    &(index + 1).to_string(),
-                )?;
+                let position = (index + 1).to_string();
+                let expanded = if markers.is_empty() {
+                    crate::repeat::instantiate(template, binding, member, &position)?
+                } else {
+                    crate::repeat::instantiate_with(
+                        template,
+                        (binding, member, &position),
+                        &markers,
+                    )?
+                };
                 for (text, _) in scan_statements_at(&expanded, at)? {
                     out.push(Statement {
                         text,
@@ -155,12 +169,44 @@ fn statements(source: &str) -> Result<(Vec<Statement>, Vec<Block>), String> {
         blocks.push(Block {
             kind: kind.to_string(),
             binding: binding.to_string(),
-            routed,
+            routed: route.is_some(),
             members: members.to_vec(),
             body: templates,
         });
     }
     Ok((out, blocks))
+}
+
+/// For a rule template in a block routed by `route`, a name the source never
+/// uses for each `kind` parameter of the rule's event other than P, which
+/// check reads `$Q` as, as it reads `$NAME` and `$index`
+/// (spec/caveat-routed-repetition-0.1.md section 10). C003 and C004 do not
+/// check a routed block, so no selection reads such a name.
+fn parameter_markers(
+    session: &ReactiveSession,
+    template: &str,
+    route: &str,
+    source: &str,
+) -> Vec<(String, String)> {
+    let ["on", event, ..] = statement_words(template)[..] else {
+        return Vec::new();
+    };
+    session
+        .events
+        .get(event)
+        .into_iter()
+        .flatten()
+        .filter(|parameter| {
+            parameter.name != route && matches!(parameter.domain, ParameterDomain::Entity { .. })
+        })
+        .map(|parameter| {
+            let mut marker = format!("caveat_check_parameter_{}", parameter.name);
+            while source.contains(&marker) {
+                marker.push('_');
+            }
+            (parameter.name.clone(), marker)
+        })
+        .collect()
 }
 
 /// A comment line directly above the statement: `# caveat check: allow
