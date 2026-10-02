@@ -83,13 +83,33 @@ async function findReports(directory){
   const p=directory+'/'+entry.name;if(entry.isDirectory())found.push(...await findReports(p));else if(entry.name==='report.json')found.push(p);
  }return found;
 }
-const reports=await findReports('test-results/postpublication/security');assert.equal(reports.length,1);
-const securityBytes=await readFile(reports[0]);const security=JSON.parse(securityBytes);assert(security.passed);assert.equal(security.artifact.version,'0.1.0-rc.8');assert.equal(security.artifact.buildInfo.revision,revision);
-for(const command of security.commands){for(const stream of ['stdout','stderr']){const r=command[stream];assert.equal(hash(await readFile(reports[0].slice(0,reports[0].lastIndexOf('/')+1)+r.file)),r.sha256);}}
+const reports=await findReports('test-results/postpublication/security');
+let securityBytes=null,security=null,securityPath=null;const expectedRefusalControls=[];
+for(const file of reports){
+ const bytes=await readFile(file);const report=JSON.parse(bytes);
+ assert.equal(report.schema,'caveat-package-security/0.1','Unexpected security report schema');
+ if(report.artifact?.buildInfo?.revision===revision){
+  assert.equal(security,null,'Multiple reports claim final build identity');
+  security=report;securityBytes=bytes;securityPath=file;
+ }else{
+  assert.equal(report.artifact,null,'Unrelated artifact report must be reviewed');
+  assert.equal(report.passed,false);assert.equal(report.failures.length,1);
+  assert(report.failures[0].includes('does-not-exist-security-report.json'),'Unrecognized failure report must be reviewed');
+  expectedRefusalControls.push({file,sha256:hash(bytes),passed:false,failures:report.failures,kind:'intentional missing-input refusal control'});
+ }
+}
+assert(security,'No report binds to final main');assert(security.passed);assert.deepEqual(security.failures,[]);
+assert.equal(security.artifact.version,'0.1.0-rc.8');assert.equal(security.artifact.buildInfo.revision,revision);
+for(const name of ['artifact','packed-npm-runtime','rust-build-lockfile','repository-development-and-site','editor-development','collision-fixture','mcp-client-fixture'])assert(security.scopes[name].passed,name+' did not pass');
+for(const command of security.commands){for(const stream of ['stdout','stderr']){const r=command[stream];assert.equal(hash(await readFile(securityPath.slice(0,securityPath.lastIndexOf('/')+1)+r.file)),r.sha256);}}
 const retainedRecordRun=37026797517;
 const recordArtifacts=(await api('actions/runs/'+retainedRecordRun+'/artifacts?per_page=100')).artifacts;
 const recordZip=await retainedArtifact(recordArtifacts.find(a=>a.id===11234894115),'test-results/postpublication/publication-record-37026797517.zip');
 assert.equal(recordZip.sha256,'d643906f7f2e0f822011acd9404f26cfdded8bd1fe87c88902195cc029b6fca3');
+
+const refusalArtifacts=(await api('actions/runs/37032766258/artifacts?per_page=100')).artifacts;
+const verifierRefusal=await retainedArtifact(refusalArtifacts.find(a=>a.id===11238755471),'test-results/postpublication/postpublication-verifier-refusal-37032766258.zip');
+assert.equal(verifierRefusal.sha256,'04249e1e530090e46742b878667d4c530349daf32aecc7ed48e51f7d2d5e8a35');
 
 const registryProof=JSON.parse(await readFile('test-results/rc7-publication-record/verification.json'));
 assert.equal(registryProof.version,'0.1.0-rc.7');assert.equal(registryProof.revision,'1f3fc7a2208eec964399d6c14232690f411e48be');
@@ -109,7 +129,7 @@ for(const command of registryProof.commands){assert.equal(command.exitCode,0);as
 for(const run of [runtime,pages]){const latest=await api('actions/runs/'+run.id);assert.equal(latest.run_attempt,run.run_attempt,'CI rerun during verification');assert.equal(latest.status,'completed');assert.equal(latest.conclusion,'success');assert.equal(latest.head_sha,revision);}
 const latestArtifacts=(await api('actions/runs/'+runtime.id+'/artifacts?per_page=100')).artifacts;
 for(const original of [dist,securityArtifact]){const latest=latestArtifacts.find(a=>a.name===original.name);assert(latest);assert.equal(latest.id,original.id);assert.equal(latest.digest,original.digest);}
-const receipt={verifiedAt:new Date().toISOString(),main:revision,publicationReleaseRevision:'1f3fc7a2208eec964399d6c14232690f411e48be',runtime:{id:runtime.id,attempt:runtime.run_attempt},pages:{id:pages.id,attempt:pages.run_attempt},browserArtifact:{id:dist.id,sha256:hash(zip)},liveFiles:files,frozenAssets:frozen,ownerPublicationReceipt,amendedSourceHelperSha256,registryProof,finalMainDevelopmentSecurity:{artifact:securityZip,reportSha256:hash(securityBytes),report:security},retainedPublicationRecord:recordZip,cloudVerificationRun:process.env.GITHUB_RUN_ID,limitations:['Checks do not prove absence of all unknown defects or vulnerabilities.','Earlier PR81 head8cce9e0 WebKit attempt1 was interrupted; run36950065494 attempt2 passed. Frozen release Runtime36970516513 and final-main checks are separate.','Historical study qualifications and name-audit limits remain.']};
+const receipt={verifiedAt:new Date().toISOString(),main:revision,publicationReleaseRevision:'1f3fc7a2208eec964399d6c14232690f411e48be',runtime:{id:runtime.id,attempt:runtime.run_attempt},pages:{id:pages.id,attempt:pages.run_attempt},browserArtifact:{id:dist.id,sha256:hash(zip)},liveFiles:files,frozenAssets:frozen,ownerPublicationReceipt,amendedSourceHelperSha256,registryProof,finalMainDevelopmentSecurity:{artifact:securityZip,reportSha256:hash(securityBytes),report:security,expectedRefusalControls},retainedPublicationRecord:recordZip,retainedVerifierRefusal:{run:37032766258,job:110923427503,artifact:verifierRefusal,diagnosticRun:37033160374,cause:'Verifier assumed one report; archive includes intentional missing-input refusal control and exact candidate report; corrected identity selection preserves both'},cloudVerificationRun:process.env.GITHUB_RUN_ID,limitations:['Checks do not prove absence of all unknown defects or vulnerabilities.','Earlier PR81 head8cce9e0 WebKit attempt1 was interrupted; run36950065494 attempt2 passed. Frozen release Runtime36970516513 and final-main checks are separate.','Historical study qualifications and name-audit limits remain.']};
 assert.equal((await api('git/ref/heads/main')).object.sha,revision,'Main moved during final verification');
 await writeFile('test-results/postpublication/verification.json',JSON.stringify(receipt,null,2)+'\n');
 await writeFile('test-results/postpublication/github-release-body-before.json',JSON.stringify({id:release.id,body:release.body},null,2));
