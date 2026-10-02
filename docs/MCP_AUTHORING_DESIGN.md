@@ -62,9 +62,15 @@ These are bridge limits, not changes to language semantics:
 
 A fresh child loads a fresh WASM instance for every tool call. Launch uses the
 current Node executable and an absolute first-party worker path, without a
-shell; Windows child windows stay hidden. Input travels over a pipe. Inherited
-NODE_OPTIONS/NODE_PATH preload controls are removed. There is no shared runtime
-between calls. Timeout, cancellation, EOF, overflow or malformed worker output
+shell; Windows child windows stay hidden. Input travels over a pipe. Starting
+with the rc.9 candidate, the bridge passes an empty environment object instead
+of copying the parent's application environment. The worker needs no such
+configuration: its input and runtime location are explicit. Node/libuv may add
+platform support variables, notably standard Windows process, path, temporary
+directory and profile entries. A real-child regression checks that an unrelated
+synthetic secret and NODE_OPTIONS/NODE_PATH are absent. This is reduced exposure,
+not a claim that the operating system supplies zero environment variables.
+There is no shared runtime between calls. Timeout, cancellation, EOF, overflow or malformed worker output
 kills and reaps that child. Node heap limits do not bound WASM memory or total
 RSS: this is subprocess fault containment, not an operating-system sandbox.
 

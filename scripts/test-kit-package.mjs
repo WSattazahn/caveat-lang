@@ -26,6 +26,7 @@ import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit
 import { runCallerTests } from '../kit/test/python.mjs';
 import { checkCliCollision, installedCommand } from './test-cli-collision.mjs';
 import { checkMcpClient } from './test-mcp-client.mjs';
+import { checkPackageDocuments, installationCommands, packageIdentity } from './kit-docs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const kit = path.join(root, 'kit');
@@ -38,6 +39,8 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 // TypeScript host that imports caveat-lang/runtime/caveat_runtime.js itself.
 const RUNTIME_FILES = ['caveat_runtime.js', 'caveat_runtime_bg.wasm', 'caveat_runtime.d.ts'];
 const manifest = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
+// Generate before building/packing, never repair source silently during a gate.
+await checkPackageDocuments(kit);
 // Caveat's license and the notices of the crates compiled into the runtime.
 const LEGAL_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
 // Documentation copied from the repository: [source, path in the package].
@@ -247,8 +250,43 @@ for (const from of ['caveat-repetition-0.1.md', 'caveat-check-0.1.md']) {
   const link = `docs/reference/spec/${from} -> caveat-routed-repetition-0.1.md`;
   assert.ok(inside.includes(link), `${link} resolves inside the package`);
 }
-report.docs = { copied: STAGED_DOCS.length, documents: installedDocs.length, linksInside: inside.length, linksRewritten: rewrittenLinks };
+const packageDocuments = await checkPackageDocuments(installed);
+report.docs = { copied: STAGED_DOCS.length, documents: installedDocs.length, linksInside: inside.length, linksRewritten: rewrittenLinks,
+  packageIdentity: packageIdentity(installedManifest),
+  generatedBlocks: packageDocuments.flatMap(document => document.blocks.map(block => `${document.file}:${block}`)),
+};
 report.checks.docs = true;
+
+// Follow the README from a fresh consumer. Its exact-version npm install is
+// deliberately substituted with the retained tarball: this checks unpublished
+// candidates without downloading a different artifact or repacking after tests.
+const readmeReader = path.join(run, 'readme-reader');
+await mkdir(readmeReader);
+npm(['init', '-y'], readmeReader);
+npm(['install', tarball, '--offline', '--ignore-scripts', '--no-audit', '--no-fund'], readmeReader);
+const readmeInstalled = path.join(readmeReader, 'node_modules', manifest.name);
+const readmeManifest = JSON.parse(await readFile(path.join(readmeInstalled, 'package.json'), 'utf8'));
+assert.equal(packageIdentity(readmeManifest), packageIdentity(manifest));
+const readme = await readFile(path.join(readmeInstalled, 'README.md'), 'utf8');
+const printed = /<!-- caveat-package:starter -->\n```sh\n([\s\S]*?)\n```\n<!-- \/caveat-package:starter -->/.exec(readme)?.[1].split('\n');
+assert.deepEqual(printed, installationCommands(readmeManifest, 'starter'), 'the installed README pins and runs this package');
+const readmeCommands = [];
+for (const command of printed.slice(2)) {
+  const result = shell(command, readmeReader);
+  assert.equal(result.status, 0, `${command}\n${result.stdout}${result.stderr}`);
+  if (command.endsWith('--version')) assert.equal(result.stdout, `CAVEAT Language ${manifest.version}\n`);
+  if (command.endsWith(' doctor')) assert.match(result.stdout, /^CAVEAT Language doctor: checks passed/);
+  if (command.endsWith('demo agent')) assert.match(result.stdout, /^CAVEAT Language: agent demo/);
+  if (command.includes(' test ')) assert.match(result.stdout, /2 passed, 0 failed/);
+  if (command.includes(' explain ')) {
+    assert.match(result.stdout, /umbrella@1/);
+    assert.match(result.stdout, /rain_chance@1/);
+    assert.match(result.stdout, /forecast_is_old/);
+  }
+  readmeCommands.push(command);
+}
+report.checks.readme = { packageIdentity: packageIdentity(readmeManifest), tarballSha256: report.sha256,
+  documentedInstall: printed[1], installedFrom: report.tarball, commands: readmeCommands };
 
 // The command, by its installed path.
 const cli = path.join(installed, 'bin', 'caveat.mjs');

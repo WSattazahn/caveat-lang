@@ -1,6 +1,6 @@
 // Bounded source fixtures for the Lean/Rust guard-and-citation comparison.
 // This module validates and renders syntax; it does not evaluate Caveat semantics.
-export const SCHEMA = 'caveat-guard-citation/0.1';
+export const SCHEMA = 'caveat-guard-citation/0.2';
 export const STATES = Object.freeze(['a', 'b', 'g', 'x', 'y']);
 export const GENERATOR_SEED = 0x05eedca7;
 export const MAX_CASE_BYTES = 64 * 1024;
@@ -46,6 +46,22 @@ function references(value, path) {
   for (const [index, entry] of value.entries()) reference(entry, `${path}[${index}]`);
 }
 
+// One nonnested conditional expression; external statement guards remain separate.
+function bodyWidth(value, path) {
+  if (Array.isArray(value)) { references(value, path); return value.length; }
+  objectFields(value, ['condition', 'then', 'else'], path);
+  reference(value.condition, path + '.condition');
+  references(value.then, path + '.then');
+  references(value.else, path + '.else');
+  return Math.max(value.then.length, value.else.length);
+}
+
+const renderSum = names => names.length === 0 ? '0' : names.join(' + ');
+function renderBody(body) {
+  return Array.isArray(body) ? renderSum(body)
+    : 'if(' + body.condition + ' != 0, ' + renderSum(body.then) + ', ' + renderSum(body.else) + ')';
+}
+
 /** Validate the bounded JSON protocol; return the original case without mutation. */
 export function validateCase(value) {
   objectFields(value, ['schema', 'id', 'seed', 'steps'], 'case');
@@ -70,10 +86,10 @@ export function validateCase(value) {
       const path = `${stepPath}.actions[${actionIndex}]`;
       objectFields(action, ['target', 'body', 'guard', 'citations'], path);
       reference(action.target, `${path}.target`);
-      references(action.body, `${path}.body`);
+      const width = bodyWidth(action.body, `${path}.body`);
       if (action.guard !== null) reference(action.guard, `${path}.guard`);
       if (action.citations !== null) references(action.citations, `${path}.citations`);
-      magnitudeBound *= Math.max(1, action.body.length);
+      magnitudeBound *= Math.max(1, width);
       if (magnitudeBound > 1_000_000_000) fail(path, 'conservative numeric bound exceeds 1e9');
     }
   }
@@ -110,7 +126,7 @@ export function renderCase(value) {
   for (const [index, step] of value.steps.entries()) {
     for (const action of step.actions) {
       const guard = action.guard === null ? '' : ` when ${action.guard} != 0`;
-      const body = action.body.length === 0 ? '0' : action.body.join(' + ');
+      const body = renderBody(action.body);
       const citation = action.citations === null ? ''
         : ` because ${action.citations.length === 0 ? 'nothing' : action.citations.join(', ')}`;
       lines.push(`on step${index}${guard} set ${action.target} = ${body}${citation};`);
@@ -125,6 +141,41 @@ function action(target, body, guard = null, citations = null) {
 
 function fixture(id, seed, ...steps) {
   return { schema: SCHEMA, id, seed, steps: steps.map((actions) => ({ actions })) };
+}
+
+function selection(condition, yes, no) { return { condition, then: yes, else: no }; }
+
+function branchCases() {
+  const seed = () => ({ a: 3, b: -2, g: 1 });
+  const choose = () => selection('g', ['a'], ['b']);
+  return [
+    fixture('branch-true', seed(), [action('x', choose())]),
+    fixture('branch-false', { a: 3, b: -2, g: 0 }, [action('x', choose())]),
+    fixture('branch-equal-values', { a: 7, b: 7, g: 1 }, [action('x', choose())]),
+    fixture('branch-equal-values-false', { a: 7, b: 7, g: 0 }, [action('x', choose())]),
+    fixture('branch-zero-selected', { a: 0, b: -2, g: 1 }, [action('x', choose())]),
+    fixture('branch-negative-condition', seed(), [action('x', selection('b', ['a'], ['g']))]),
+    fixture('branch-empty-selected', seed(), [action('x', selection('g', [], ['b']))]),
+    fixture('branch-duplicate-reads', seed(), [action('x', selection('g', ['a', 'a', 'b'], []))]),
+    fixture('branch-condition-narrowed', seed(),
+      [action('g', ['g'], null, [])], [action('x', choose())]),
+    fixture('branch-selected-narrowed', seed(),
+      [action('a', ['a'], null, [])], [action('x', choose())]),
+    fixture('branch-condition-narrowed-false', { a: 3, b: -2, g: 0 },
+      [action('g', ['g'], null, [])], [action('x', choose())]),
+    fixture('branch-selected-narrowed-false', { a: 3, b: -2, g: 0 },
+      [action('b', ['b'], null, [])], [action('x', choose())]),
+    fixture('branch-outer-guard', seed(), [action('x', selection('a', ['b'], []), 'g')]),
+    fixture('branch-skipped-outer-guard', { a: 3, b: -2, g: 0 },
+      [action('x', ['b'])], [action('x', selection('a', ['a'], ['b']), 'g', ['a'])]),
+    fixture('branch-cite-condition', seed(), [action('x', choose(), null, ['g'])]),
+    fixture('branch-cite-selected', seed(), [action('x', choose(), null, ['a'])]),
+    fixture('branch-cite-unselected', seed(), [action('x', choose(), null, ['b'])], [action('y', ['b'])]),
+    fixture('branch-late-rejection', seed(),
+      [action('x', ['b']), action('y', choose(), null, ['b'])], [action('y', ['x'])]),
+    fixture('branch-sequential-selection', { a: 3, b: -2, g: 0 },
+      [action('g', ['a']), action('x', choose())], [action('g', []), action('y', choose())]),
+  ];
 }
 
 function fixedCases() {
@@ -197,7 +248,7 @@ function generatedCases() {
 
 /** Return fresh fixtures each time. Rejections stay in the corpus. */
 export function cases() {
-  const values = [...fixedCases(), ...generatedCases()];
+  const values = [...fixedCases(), ...branchCases(), ...generatedCases()];
   for (const value of values) validateCase(value);
   return values;
 }

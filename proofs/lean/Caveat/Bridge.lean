@@ -32,9 +32,20 @@ def seeded (seed : Seed) : State
 def write (before : State) (target : StateName) (value : Tracked) : State :=
   fun name => if name = target then value else before name
 
+/-- An eager sum or one nonnested conditional between eager sums. -/
+inductive Body where
+  | sum (names : List StateName)
+  | select (condition : StateName) (yes no : List StateName)
+  deriving Repr
+
+/-- Conservative numeric growth uses the larger branch, not both branches. -/
+def Body.width : Body → Nat
+  | .sum names => names.length
+  | .select _ yes no => max yes.length no.length
+
 structure Action where
   target : StateName
-  body : List StateName
+  body : Body
   guard : Option StateName
   citations : Option (List StateName)
   deriving Repr
@@ -44,6 +55,13 @@ def readBody (state : State) (names : List StateName) : Tracked :=
   names.foldl (fun acc name =>
     let value := state name
     Tracked.combine (acc.value + value.value) acc value) (Tracked.plain 0)
+
+/-- Expression conditions contribute to both channels; the unused branch is a thunk. -/
+def evalBody (state : State) : Body → Tracked
+  | .sum names => readBody state names
+  | .select condition yes no =>
+      Tracked.select (state condition)
+        (fun _ => readBody state yes) (fun _ => readBody state no)
 
 def readGuard (state : State) : Option StateName → Tracked
   | none => Tracked.plain 1
@@ -56,7 +74,7 @@ def readCitations (state : State) (names : List StateName) : Provenance :=
 def runAction (before : State) (action : Action) : Outcome State :=
   let guard := readGuard before action.guard
   let candidate := (before action.target).guardedWrite guard
-    (fun _ => readBody before action.body)
+    (fun _ => evalBody before action.body)
   if guard.value == 0 then .accepted (write before action.target candidate)
   else
     match action.citations with
@@ -99,6 +117,65 @@ theorem body_append_exact_combination (before : State) (names : List StateName)
         (readBody before names) (before name) := by
   simp [readBody, List.foldl_append]
 
+theorem sum_body_exact (before : State) (names : List StateName) :
+    evalBody before (.sum names) = readBody before names := rfl
+
+theorem true_body_exact_value (before : State) (condition : StateName)
+    (yes no : List StateName) (h : (before condition).value ≠ 0) :
+    (evalBody before (.select condition yes no)).value = (readBody before yes).value := by
+  simp [evalBody, Tracked.select, Tracked.combine, h]
+
+theorem false_body_exact_value (before : State) (condition : StateName)
+    (yes no : List StateName) (h : (before condition).value = 0) :
+    (evalBody before (.select condition yes no)).value = (readBody before no).value := by
+  simp [evalBody, Tracked.select, Tracked.combine, h]
+
+theorem true_body_exact_lineage (before : State) (condition : StateName)
+    (yes no : List StateName) (h : (before condition).value ≠ 0) :
+    (evalBody before (.select condition yes no)).lineage =
+      (before condition).lineage.union (readBody before yes).lineage := by
+  simp [evalBody, Tracked.select, Tracked.combine, h]
+
+theorem false_body_exact_lineage (before : State) (condition : StateName)
+    (yes no : List StateName) (h : (before condition).value = 0) :
+    (evalBody before (.select condition yes no)).lineage =
+      (before condition).lineage.union (readBody before no).lineage := by
+  simp [evalBody, Tracked.select, Tracked.combine, h]
+
+theorem true_body_exact_grounds (before : State) (condition : StateName)
+    (yes no : List StateName) (h : (before condition).value ≠ 0) :
+    (evalBody before (.select condition yes no)).grounds =
+      (before condition).grounds.union (readBody before yes).grounds := by
+  simp [evalBody, Tracked.select, Tracked.combine, h]
+
+theorem false_body_exact_grounds (before : State) (condition : StateName)
+    (yes no : List StateName) (h : (before condition).value = 0) :
+    (evalBody before (.select condition yes no)).grounds =
+      (before condition).grounds.union (readBody before no).grounds := by
+  simp [evalBody, Tracked.select, Tracked.combine, h]
+
+/-- Distinct evidence and caveats make dropping either evaluated dependency visible. -/
+theorem nonempty_true_body_excludes_unselected :
+    let result := evalBody (seeded ⟨7, 11, 1⟩) (.select .g [.a] [.b])
+    result.value = 7 ∧
+    result.lineage = ⟨["eg", "ea"], ["cg", "ca"]⟩ ∧
+    result.grounds = ⟨["eg", "ea"], ["cg", "ca"]⟩ := by decide
+
+theorem nonempty_false_body_excludes_unselected :
+    let result := evalBody (seeded ⟨7, 11, 0⟩) (.select .g [.a] [.b])
+    result.value = 11 ∧
+    result.lineage = ⟨["eg", "eb"], ["cg", "cb"]⟩ ∧
+    result.grounds = ⟨["eg", "eb"], ["cg", "cb"]⟩ := by decide
+
+/-- g is an expression condition; b is only an external guard, even though also untaken. -/
+theorem nonempty_expression_condition_distinct_from_statement_guard :
+    let before := seeded ⟨7, 11, 1⟩
+    let result := (before .x).guardedWrite (before .b)
+      (fun _ => evalBody before (.select .g [.a] [.b]))
+    result.value = 7 ∧
+    result.lineage = ⟨["eg", "ea", "eb"], ["cg", "ca", "cb"]⟩ ∧
+    result.grounds = ⟨["eg", "ea"], ["cg", "ca"]⟩ := by decide
+
 theorem skipped_action_exact_state (before : State) (action : Action)
     (h : (readGuard before action.guard).value = 0) :
     runAction before action =
@@ -111,14 +188,14 @@ theorem accepted_uncited_action_exact_state (before : State) (action : Action)
     (hc : action.citations = none) :
     runAction before action =
       .accepted (write before action.target
-        ((readBody before action.body).control (readGuard before action.guard))) := by
+        ((evalBody before action.body).control (readGuard before action.guard))) := by
   simp [runAction, Tracked.guardedWrite, h, hc]
 
 theorem accepted_cited_action_exact_state (before : State) (action : Action)
     (names : List StateName) (value : Tracked)
     (h : (readGuard before action.guard).value ≠ 0)
     (hc : action.citations = some names)
-    (hv : cite ((readBody before action.body).control (readGuard before action.guard))
+    (hv : cite ((evalBody before action.body).control (readGuard before action.guard))
       (readCitations before names) = .accepted value) :
     runAction before action = .accepted (write before action.target value) := by
   simp [runAction, Tracked.guardedWrite, h, hc, hv]
@@ -128,7 +205,7 @@ theorem invalid_cited_action_rejected (before : State) (action : Action)
     (h : (readGuard before action.guard).value ≠ 0)
     (hc : action.citations = some names)
     (invalid : ¬ (readCitations before names).Included
-      ((readBody before action.body).control (readGuard before action.guard)).lineage) :
+      ((evalBody before action.body).control (readGuard before action.guard)).lineage) :
     runAction before action = .rejected .ungroundedCitation := by
   simp [runAction, Tracked.guardedWrite, h, hc, cite, invalid]
 

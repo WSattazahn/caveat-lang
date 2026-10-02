@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { checkedOutput, firstDifference, modelTrace, compare, dependencyDropMutation,
+import { readFileSync } from 'node:fs';
+import { checkedOutput, firstDifference, modelTrace, compare, dependencyDropMutation, unselectedBranchMutation,
   InfrastructureFailure, SemanticMismatch, runtimeTrace, verifyMutation, wasmTrace, assertSourceHashesUnchanged, checkedDecoderRejection } from './verify-lean-conformance.mjs';
 import { STATES, SCHEMA } from './lean-conformance-cases.mjs';
 
@@ -222,4 +223,45 @@ test('decoder refusals require exact nonzero status, empty stdout and intended d
     { status: 0 }, { status: 2 }, { stdout: '{}' }, { stderr: 'unrelated parser error' },
     { signal: 'SIGTERM' }, { error: new Error('ENOENT') },
   ]) assert.throws(() => checkedDecoderRejection({ ...result, ...changed }, control), InfrastructureFailure);
+});
+
+
+test('compiled mutation anchors fail closed when evaluator structure is absent or ambiguous', () => {
+  const source = readFileSync(new URL('../runtime/src/reactive_expr.rs', import.meta.url), 'utf8');
+  for (const mutate of [dependencyDropMutation, unselectedBranchMutation]) {
+    assert.notEqual(mutate(source), source);
+    assert.throws(() => mutate(''), InfrastructureFailure);
+    assert.throws(() => mutate(source + source), InfrastructureFailure);
+  }
+  assert.throws(() => dependencyDropMutation(source, 'arbitrary'), InfrastructureFailure);
+});
+
+test('branch controls require exact missing or injected provenance on both selections', () => {
+  for (const yes of [true, false]) {
+    for (const id of ['branch-condition-loss', 'branch-selected-loss', 'branch-unselected-injection']) {
+      const { expected } = mutationWitness('guard-into-grounds');
+      expected.frames[1].states.g.value = yes ? 1 : 0;
+      expected.frames[2].states.g.value = yes ? 1 : 0;
+      const selected = yes ? ['ea', 'ca'] : ['eb', 'cb'];
+      const unused = yes ? ['eb', 'cb'] : ['ea', 'ca'];
+      expected.frames[2].states.x = tracked(yes ? 3 : -2, [selected[0], 'eg'].sort(), [selected[1], 'cg'].sort());
+      const actual = structuredClone(expected), x = actual.frames[2].states.x;
+      for (const field of ['lineage', 'grounds']) {
+        if (id === 'branch-unselected-injection') {
+          x[field].evidence.push(unused[0]); x[field].evidence.sort();
+          x[field].caveats.push(unused[1]); x[field].caveats.sort();
+        } else {
+          const removed = id === 'branch-condition-loss' ? ['eg', 'cg'] : selected;
+          x[field].evidence = x[field].evidence.filter(v => v !== removed[0]);
+          x[field].caveats = x[field].caveats.filter(v => v !== removed[1]);
+        }
+      }
+      assert.ok(verifyMutation(id, expected, actual).path);
+      assert.throws(() => verifyMutation(id, expected, expected), InfrastructureFailure);
+      const unrelated = structuredClone(expected); unrelated.frames[2].states.y.value = 99;
+      assert.throws(() => verifyMutation(id, expected, unrelated), InfrastructureFailure);
+      actual.frames[2].states.x.value = 999;
+      assert.throws(() => verifyMutation(id, expected, actual), InfrastructureFailure);
+    }
+  }
 });

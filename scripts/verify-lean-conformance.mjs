@@ -189,12 +189,23 @@ const mutationAnchor = [
   '                provenance.borrow_mut().merge(&tracked.provenance)?;',
 ].join('\n');
 
-export function dependencyDropMutation(source) {
+export function dependencyDropMutation(source, name = "a") {
+  if (!["a", "b", "g"].includes(name)) throw new InfrastructureFailure("Unregistered metadata-drop state");
   const normalized = source.replaceAll('\r\n', '\n');
   if (normalized.split(mutationAnchor).length !== 2) throw new InfrastructureFailure('Dependency-drop mutation anchor must occur exactly once');
   return normalized.replace(mutationAnchor, mutationAnchor.replace(
     'provenance.borrow_mut().merge(&tracked.provenance)?;',
-    'if name != "a" { provenance.borrow_mut().merge(&tracked.provenance)?; }'));
+    'if name != ' + JSON.stringify(name) + ' { provenance.borrow_mut().merge(&tracked.provenance)?; }'));
+}
+
+const branchMutationAnchor = "            Node::If(condition, yes, no) => {\n                if condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?\n                {\n                    yes.evaluate_values(\n                        numbers,\n                        predicate,\n                        qualify,\n                        history,\n                        identifiers,\n                        remaining,\n                    )\n                } else {\n                    no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)\n                }\n            }\n";
+const branchMutationReplacement = "            Node::If(condition, yes, no) => {\n                let chosen = condition\n                    .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?\n                    .boolean()?;\n                // Deliberate mutation: evaluate both branches and retain the selected number.\n                let yes_value = yes.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?;\n                let no_value = no.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?;\n                if chosen { Ok(yes_value) } else { Ok(no_value) }\n            }\n";
+export function unselectedBranchMutation(source) {
+  const normalized = source.replaceAll('\r\n', '\n');
+  if (normalized.split(branchMutationAnchor).length !== 2) {
+    throw new InfrastructureFailure('Untaken-branch mutation anchor must occur exactly once');
+  }
+  return normalized.replace(branchMutationAnchor, branchMutationReplacement);
 }
 
 function capture(session) { return { snapshot: session.snapshot(), save: session.save(), view: session.view() }; }
@@ -247,6 +258,29 @@ export function verifyMutation(id, expected, actual) {
         }
         for (const kind of ['evidence', 'caveats']) {
           assert(actual.frames[2].states.x.grounds[kind].every(name => actual.frames[2].states.x.lineage[kind].includes(name)));
+        }
+        break;
+      }
+      case 'branch-condition-loss':
+      case 'branch-selected-loss':
+      case 'branch-unselected-injection': {
+        assert.equal(intended.frames.length, 3, 'registered branch witnesses have one modeled step');
+        const frame = intended.frames[2];
+        assert.equal(frame.outcome.outcome, 'accepted');
+        const yes = intended.frames[1].states.g.value !== 0;
+        const selected = yes ? ['ea', 'ca'] : ['eb', 'cb'];
+        const unused = yes ? ['eb', 'cb'] : ['ea', 'ca'];
+        const x = frame.states.x;
+        assert.equal(x.value, yes ? 3 : -2);
+        for (const field of ['lineage', 'grounds']) {
+          assert.deepEqual(x[field], { evidence: [selected[0], 'eg'].sort(), caveats: [selected[1], 'cg'].sort() });
+          if (id === 'branch-unselected-injection') {
+            x[field].evidence.push(unused[0]); x[field].evidence.sort();
+            x[field].caveats.push(unused[1]); x[field].caveats.sort();
+          } else {
+            const lost = id === 'branch-condition-loss' ? ['eg', 'cg'] : selected;
+            remove(x[field], ...lost);
+          }
         }
         break;
       }
@@ -322,7 +356,7 @@ export async function verifyConformance({ caseId } = {}) {
   mkdirSync(output, { recursive: true });
   const report = { schema: 'caveat-conformance-report/0.1', startedAt: new Date().toISOString(),
     status: 'failed', mode: caseId ? 'single-case replay' : 'complete gate', fragment: SCHEMA, generatorSeed: GENERATOR_SEED, commands: [], cases: [], mutations: [], decoderControls: [],
-    scope: 'bounded guarded assignments/citations; sampled correspondence, not Rust refinement' };
+    scope: 'bounded conditional expressions and guarded assignments/citations; sampled correspondence, not Rust refinement' };
   writeFileSync(join(output, 'report.json'), JSON.stringify(report, null, 2) + '\n');
   function commandResult(command, args, options = {}) {
     const result = spawnSync(command, args, { cwd: root, encoding: 'utf8',
@@ -457,17 +491,30 @@ export async function verifyConformance({ caseId } = {}) {
     mkdirSync(join(mutantRoot, 'examples'));
     cpSync(join(root, 'runtime/examples/lean_conformance.rs'), join(mutantRoot, 'examples/lean_conformance.rs'));
     const mutationFile = join(mutantRoot, 'src/reactive_expr.rs');
-    writeFileSync(mutationFile, dependencyDropMutation(readFileSync(mutationFile, 'utf8')));
-    report.runtimeMutation = { originalSha256: digest(readFileSync(join(root, 'runtime/src/reactive_expr.rs'))),
-      mutatedSha256: digest(readFileSync(mutationFile)), path: relative(root, mutationFile) };
+    const originalEvaluator = readFileSync(join(root, 'runtime/src/reactive_expr.rs'), 'utf8');
     const mutantTarget = join(root, 'runtime/target/lean-mutants');
-    run('cargo', ['build', '--locked', '--manifest-path', join(mutantRoot, 'Cargo.toml'),
-      '--target-dir', mutantTarget, '--no-default-features', '--example', 'lean_conformance']);
-    const mutant = join(mutantTarget, 'debug/examples/lean_conformance' + suffix);
-    report.runtimeMutation.executableSha256 = digest(readFileSync(mutant));
-    const lossCase = sources.get('eager-cancellation');
-    semanticMutation('drop-both-channels', 'eager-cancellation', 'compiled Rust mutation',
-      jsonCommand(mutant, [], { schema: 'caveat-native-trace/0.1', ...lossCase }));
+    report.runtimeMutations = [];
+    function compiledMutation(id, variant, transform, witnesses) {
+      writeFileSync(mutationFile, transform(originalEvaluator));
+      const recordedSource = join(output, 'mutation-' + variant + '.rs');
+      cpSync(mutationFile, recordedSource);
+      const receipt = { id, variant, originalSha256: digest(originalEvaluator),
+        mutatedSha256: digest(readFileSync(mutationFile)), path: relative(root, recordedSource).replaceAll('\\', '/') };
+      run('cargo', ['build', '--locked', '--manifest-path', join(mutantRoot, 'Cargo.toml'),
+        '--target-dir', mutantTarget, '--no-default-features', '--example', 'lean_conformance']);
+      const mutant = join(mutantTarget, 'debug/examples/lean_conformance' + suffix);
+      receipt.executableSha256 = digest(readFileSync(mutant));
+      report.runtimeMutations.push(receipt);
+      for (const fixtureId of witnesses) {
+        semanticMutation(id, fixtureId, 'compiled Rust mutation / ' + variant,
+          jsonCommand(mutant, [], { schema: 'caveat-native-trace/0.1', ...sources.get(fixtureId) }));
+      }
+    }
+    compiledMutation('drop-both-channels', 'drop-eager-a', source => dependencyDropMutation(source), ['eager-cancellation']);
+    compiledMutation('branch-condition-loss', 'drop-condition-g', source => dependencyDropMutation(source, 'g'), ['branch-true', 'branch-false']);
+    compiledMutation('branch-selected-loss', 'drop-selected-a', source => dependencyDropMutation(source, 'a'), ['branch-true']);
+    compiledMutation('branch-selected-loss', 'drop-selected-b', source => dependencyDropMutation(source, 'b'), ['branch-false']);
+    compiledMutation('branch-unselected-injection', 'evaluate-unselected', unselectedBranchMutation, ['branch-true', 'branch-false']);
     // Separate source-translation mutations drive the unmodified real runtime.
     const translations = [
       ['skip-guard-loss', 'skipped-guard', source => source.replace('when g != 0', 'when false')],
@@ -488,7 +535,7 @@ export async function verifyConformance({ caseId } = {}) {
     }
     report.status = 'passed';
     report.summary = 'Conformance passed: ' + corpus.length + ' cases, ' + accepted + ' accepted / ' + rejected +
-      ' rejected modeled steps; native/WASM full captures and continuation agree; 5 semantic mutation families detected.';
+      ' rejected modeled steps; native/WASM full captures and continuation agree; 8 semantic mutation families detected.';
   } catch (error) {
     report.error = { name: error.constructor.name, message: error.message,
       caseId: error.caseId, runner: error.runner, difference: error.difference };

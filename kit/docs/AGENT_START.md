@@ -1,10 +1,8 @@
 # Start an agent integration
 
-> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
-> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
-> `next` names rc.8; `latest` remains rc.5.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
-
+<!-- caveat-package:identity -->
+Package: **`caveat-lang@0.1.0-rc.9`**.
+<!-- /caveat-package:identity -->
 
 Use Caveat when your application needs to keep a decision's evidence, carry its
 caveats, and reconsider it while retaining the original grounds. Supplied inputs
@@ -13,24 +11,28 @@ permission to act outside the host's authorization.
 
 ## Choose commands for the installed version
 
-With Node 20 or later, try the published **0.1.0-rc.8** preview in an empty
-directory:
+With Node 20 or later, install the exact version this guide accompanies in an
+empty directory. If you were given a verified tarball, use its path or URL in
+place of the npm package specifier.
 
+<!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.8
-npx --no-install caveat init
-npx --no-install caveat test umbrella.scenarios.json
-npx --no-install caveat explain umbrella.cav events.jsonl
+npm install caveat-lang@0.1.0-rc.9
+npx --no-install caveat-lang --version
+npx --no-install caveat-lang doctor
+npx --no-install caveat-lang demo agent
+npx --no-install caveat-lang init
+npx --no-install caveat-lang test umbrella.scenarios.json
+npx --no-install caveat-lang explain umbrella.cav events.jsonl
 ```
+<!-- /caveat-package:starter -->
 
 The two scenarios pass. The explanation retains `rain_chance@1` and its
 `forecast_is_old` caveat as `umbrella@1`'s grounds after `sky` reopens it.
 [Getting started](GETTING_STARTED.md) explains each file and command.
 
-The [rc.8 GitHub tarball](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8)
-and exact npm version are available and verified. With rc.8 installed, use its
-unambiguous command name, introduced in rc.7:
+With this package installed, use its unambiguous command name, introduced in rc.7:
 
 ```sh
 npx --no-install caveat-lang --version

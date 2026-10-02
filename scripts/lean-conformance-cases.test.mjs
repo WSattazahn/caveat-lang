@@ -25,7 +25,7 @@ function rejected(change) {
 test('fixed and generated cases are valid, unique, deterministic and freshly allocated', () => {
   const first = cases();
   const second = cases();
-  assert.equal(first.length, 53);
+  assert.equal(first.length, 72);
   assert.equal(first.filter(({ id }) => id.startsWith('generated-')).length, 32);
   assert.equal(new Set(first.map(({ id }) => id)).size, first.length);
   assert.deepEqual(first, second);
@@ -185,5 +185,39 @@ test('malformed containers fail instead of coercing values', () => {
 test('generated corpus content has a reviewable stable digest', () => {
   const generated = cases().filter(({ id }) => id.startsWith('generated-'));
   const digest = createHash('sha256').update(JSON.stringify(generated)).digest('hex');
-  assert.equal(digest, '4c2376191129214acd361938ea9715295e5dbb8e95ff50f31b7505bc1a755c0b');
+  assert.equal(digest, '97c3b13e636a7ed847e04e22df2d2726395cddfeb73c5044f8016f989050591e');
+});
+
+
+test('conditional rendering keeps branch expressions separate from statement guards', () => {
+  const value = sample();
+  value.steps[0].actions[0] = { target: 'x', body: { condition: 'a', then: ['b', 'b'], else: [] }, guard: 'g', citations: ['a'] };
+  assert.match(renderCase(value).source, /on step0 when g != 0 set x = if\(a != 0, b \+ b, 0\) because a;/);
+  const byId = new Map(cases().map(v => [v.id, v]));
+  for (const [id, selected] of [['branch-true', 1], ['branch-false', 0]]) {
+    assert.equal(byId.get(id).seed.g, selected);
+    assert.match(renderCase(byId.get(id)).source, /on step0 set x = if\(g != 0, a, b\);/);
+  }
+  assert.equal(byId.get('branch-late-rejection').steps[0].actions.length, 2);
+});
+
+test('conditional protocol refuses missing, extra, nested, sparse and injected syntax', () => {
+  const selection = () => ({ condition: 'g', then: ['a'], else: ['b'] });
+  const rejectBody = change => rejected(value => {
+    const body = selection(); change(body); value.steps[0].actions[0].body = body;
+  });
+  for (const field of ['condition', 'then', 'else']) {
+    rejectBody(body => { delete body[field]; });
+    rejectBody(body => { Object.defineProperty(body, field, { get: () => 'a' }); });
+  }
+  rejectBody(body => { body.extra = true; });
+  rejectBody(body => { body[Symbol('hidden')] = 'a'; });
+  for (const value of [null, [], {}, 'unknown', 'g); reject "injected"', 0]) {
+    rejectBody(body => { body.condition = value; });
+  }
+  for (const field of ['then', 'else']) {
+    for (const bad of [selection(), ['unknown'], [selection()], Array(1), Array(5).fill('a'), null, 'a']) {
+      rejectBody(body => { body[field] = bad; });
+    }
+  }
 });

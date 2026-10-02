@@ -1,7 +1,7 @@
 # CAVEAT Lean model and narrow executable bridge
 
-This pinned rc.8 verification project contains core dependency and outcome
-proofs plus a narrow executable guard-and-citation comparison model. The runner
+This pinned rc.9 verification project contains core dependency and outcome
+proofs plus a narrow executable branch, guard, and citation comparison model. The runner
 executes the same constructors covered by the proofs. Its accepted fragment is
 small and explicit; it is not a model of the complete CAVEAT language.
 
@@ -15,7 +15,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports the core model, laws, executable bridge, and runner. `laws.json` records 58 authored theorem declarations, including four inclusion helper lemmas and 16 bridge laws. `theorems.json` inventories all 128 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, and runner. `laws.json` records 68 authored theorem declarations, including four inclusion helper lemmas and 26 bridge laws. `theorems.json` inventories all 147 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -107,18 +107,18 @@ a fatal session. Those boundaries require targeted runtime and host tests.
 The core does not compute provenance identifier counts or provenance UTF-8 byte limits, so its
 unbounded union equations make no claim about an overflowing runtime union.
 
-## Executable guard-and-citation fragment
+## Executable branch, guard, and citation fragment
 
 `lake build --wfail` also builds `.lake/build/bin/caveat_compare` (`.exe` on
 Windows). It reads one JSON request from stdin and writes one compact JSON
 response. Invalid requests produce stderr and exit status 1; they are
 infrastructure failures, not modeled CAVEAT rejections.
 
-The protocol schema is `caveat-guard-citation/0.1`:
+The protocol schema is `caveat-guard-citation/0.2`:
 
 ```json
 {
-  "schema": "caveat-guard-citation/0.1",
+  "schema": "caveat-guard-citation/0.2",
   "id": "guard-citation-example",
   "seed": {"a": 3, "b": 5, "g": 1},
   "steps": [{"actions": [{
@@ -140,9 +140,14 @@ and rejects overflow without waiting for EOF or buffering the entire stream.
 Seeds `a` and `b` are integers in [-1000,1000]; `g` is 0 or 1. Numeric tokens
 use integer spelling, excluding fractions, exponents, and negative zero.
 There are 1..8 steps, 1..4 actions per step, and at most eight actions in total.
-Body and citation lists contain 0..4 references. A conservative magnitude bound
-multiplies the largest seed magnitude (at least one) by each body length (at
-least one), regardless of guards or rejection, and must remain at most 10^9.
+An eager body is an array of 0..4 state references. Alternatively, a body is
+exactly `{"condition":"g","then":["a"],"else":["b"]}`: the condition is one state
+reference and each branch is an array of 0..4 references. Nested conditional
+bodies, missing or extra fields, and invalid branch references are rejected.
+Citation lists also contain 0..4 references. A conservative magnitude bound
+multiplies the largest seed magnitude (at least one) by each eager body length,
+or the larger branch length for a conditional (each multiplier at least one),
+regardless of guards or rejection, and must remain at most 10^9.
 These resource restrictions admit a small exactly representable comparison
 domain; no theorem proves the decoder or Rust's resource-bound implementation.
 
@@ -152,9 +157,15 @@ uses neutral reveals in chronological order `eg`, `ea`, `eb`; it models that
 initialization directly, not arbitrary reveal semantics. Each later frame
 represents one transaction containing the listed sequential actions.
 
-A body eagerly sums its current referenced states, folding the existing
-`Tracked.combine` from plain zero. A null guard is plain one; a reference reads
-that state's current tracked value. `Tracked.guardedWrite` selects a successful
+An eager body sums its current referenced states, folding the existing
+`Tracked.combine` from plain zero. `Bridge.evalBody` executes a conditional
+through the proved `Tracked.select`, with each branch sum supplied as a thunk.
+A nonzero condition selects `then`; zero selects `else`. Only the selected sum
+contributes its value and dependencies. The condition contributes its lineage
+and grounds to their respective channels, even when the selected sum is empty.
+This expression condition differs from the external statement guard, which
+contributes lineage only. A null guard is plain one; a reference reads that
+state's current tracked value. `Tracked.guardedWrite` selects a successful
 body with guard lineage or retains the previous value and grounds with added
 guard lineage. A false guard skips body and citation evaluation. Null citations
 retain the body's grounds. A citation list unions the current referenced
@@ -164,8 +175,10 @@ Guard-only citations are valid when their grounds are included in the candidate
 lineage. Self-citation reads the target's current pre-write grounds.
 
 `Bridge.runAction`, `runActions`, and `runSessionStep` compose those operations.
-The 16 bridge laws cover exact target selection, preservation of other states,
-body-fold combination, skipped and accepted writes, invalid citations,
+The 26 bridge laws cover exact target selection, preservation of other states,
+body-fold combination, true/false branch values and exact lineage/grounds,
+nonempty branch witnesses and the distinction between expression conditions
+and statement guards, skipped and accepted writes, invalid citations,
 sequential reads of updated state, rejection after earlier successful writes,
 and modeled-session rollback. A rejected step retains values, observations,
 and effects from before the entire step. Acceptance clears effects and retains
@@ -195,7 +208,8 @@ Sampled executable agreement is conformance evidence, not a proof of
 Rust-to-Lean refinement or correctness for all admitted programs.
 
 Evidence renewal and occurrence identity, arbitrary observations, save/restore,
-complete runtime session rollback, source parsing, function evaluation, graph
-semantics, work budgets, and general effect scheduling are not formalized here.
+complete runtime session rollback, source parsing, function evaluation, nested
+conditional bodies, arbitrary expressions, graph semantics, work budgets, and
+general effect scheduling are not formalized here.
 CAVEAT's evidence remains supplied evidence; the model does not authenticate it
 or turn it into a truth guarantee.

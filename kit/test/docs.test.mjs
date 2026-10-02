@@ -10,6 +10,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { followGuide, guideSteps } from './guide.mjs';
+import { checkPackageDocuments } from '../../scripts/kit-docs.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const repo = path.join(kit, '..');
@@ -62,12 +63,10 @@ test('links in the kit documentation resolve inside the package', async () => {
   }
 });
 
-// A version change must say what the new version is: a release candidate, or
-// a development version that is not released.
-test('the kit README names the package\'s version', async () => {
-  const { version } = JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8'));
-  const readme = await readFile(path.join(kit, 'README.md'), 'utf8');
-  assert.ok(readme.includes(version), `README.md does not mention ${version}`);
+// Package identity and exact installation examples must agree everywhere; a
+// stray mention of the new version cannot excuse a stale install command.
+test('the kit documentation matches its manifest and contains no moving release notices', async () => {
+  await checkPackageDocuments(kit);
 });
 
 // Session methods the release candidate the README installs does not have,
@@ -96,7 +95,7 @@ function passages(markdown) {
 test('every mention of a session method newer than the installed candidate names its version', async () => {
   const { CaveatSession } = await import(pathToFileURL(path.join(kit, 'lib', 'session.mjs')).href);
   const readme = await readFile(path.join(kit, 'README.md'), 'utf8');
-  const installed = /The release candidate is \*\*`caveat-lang@([^`]+)`\*\*/.exec(readme)?.[1];
+  const installed = /Package: \*\*`caveat-lang@([^`]+)`\*\*/.exec(readme)?.[1];
   assert.ok(installed, 'the kit README names the release candidate it installs');
   const documents = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md']
     .map(file => [`kit/${file}`, path.join(kit, file)]);

@@ -6,7 +6,7 @@ open Lean
 namespace Caveat.Runner
 open Bridge
 
-def schema : String := "caveat-guard-citation/0.1"
+def schema : String := "caveat-guard-citation/0.2"
 
 structure Request where
   id : String
@@ -37,6 +37,31 @@ def parseName (json : Json) : Except String StateName := do
 def parseNames (json : Json) (label : String) : Except String (List StateName) := do
   (← arrayBetween json 0 4 label).mapM parseName
 
+def parseBodyBranch (json : Json) (label : String) : Except String (List StateName) := do
+  match json with
+  | .arr _ =>
+      let entries ← arrayBetween json 0 4 s!"conditional {label}"
+      entries.mapM fun entry => do
+        match entry with
+        | .str _ => parseName entry
+        | _ => throw s!"conditional {label} requires state references"
+  | _ => throw s!"conditional {label} requires an array"
+
+/-- Only the exact object shape is admitted; branch entries are never recursive bodies. -/
+def parseBody (json : Json) : Except String Body := do
+  match json with
+  | .arr _ => .sum <$> parseNames json "body"
+  | .obj _ =>
+      exactFields json ["condition", "then", "else"] []
+      let conditionJson ← json.getObjVal? "condition"
+      let condition ← match conditionJson with
+        | .str _ => parseName conditionJson
+        | _ => throw "conditional condition requires a state reference"
+      let yes ← parseBodyBranch (← json.getObjVal? "then") "then"
+      let no ← parseBodyBranch (← json.getObjVal? "else") "else"
+      pure (.select condition yes no)
+  | _ => throw "body requires an array or a conditional object"
+
 def optional (json : Json) (key : String) : Option Json :=
   match json.getObjVal? key with
   | .error _ => none
@@ -46,7 +71,7 @@ def optional (json : Json) (key : String) : Option Json :=
 def parseAction (json : Json) : Except String Action := do
   exactFields json ["target", "body", "guard", "citations"] []
   let target ← parseName (← json.getObjVal? "target")
-  let body ← parseNames (← json.getObjVal? "body") "body"
+  let body ← parseBody (← json.getObjVal? "body")
   let guard ← match optional json "guard" with
     | none => pure none
     | some value => some <$> parseName value
@@ -84,7 +109,7 @@ def parseRequest (json : Json) : Except String Request := do
   unless actions.length ≤ 8 do throw "at most eight total actions"
   let mut magnitude := max 1 (max seed.a.natAbs (max seed.b.natAbs seed.g.natAbs))
   for action in actions do
-    magnitude := magnitude * max 1 action.body.length
+    magnitude := magnitude * max 1 action.body.width
     unless magnitude ≤ 1000000000 do throw "conservative intermediate numeric bound exceeded"
   pure ⟨id, seed, steps⟩
 

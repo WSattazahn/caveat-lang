@@ -133,9 +133,11 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
     active = job;
     let child;
     try {
-      const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !['NODE_OPTIONS', 'NODE_PATH'].includes(key.toUpperCase())));
+      // The worker uses fixed executable/module paths, inline input and local
+      // runtime files; it needs no application configuration or parent secrets.
+      // Node/libuv may supply platform support variables (notably on Windows).
       child = spawnWorker(process.execPath, ['--max-old-space-size=128', WORKER, runtimeDirectory], {
-        stdio: ['pipe', 'pipe', 'pipe'], shell: false, windowsHide: true, env,
+        stdio: ['pipe', 'pipe', 'pipe'], shell: false, windowsHide: true, env: {},
       });
       job.child = child;
     } catch (error) {
