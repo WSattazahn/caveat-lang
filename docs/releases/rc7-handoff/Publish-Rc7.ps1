@@ -35,13 +35,45 @@ function Assert-Hash([string]$File) {
     if ($integrity -ne $ExpectedIntegrity) { throw 'Tarball SHA512 integrity mismatch' }
 }
 function Get-RegistryVersion {
-    try { return (Invoke-RestMethod -Uri "$Registry/caveat-lang/$Version") }
+    try { return (Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/caveat-lang/$Version") }
     catch {
         $response = $_.Exception.Response
         if ($null -ne $response -and [int]$response.StatusCode -eq 404) { return $null }
         throw
     }
 }
+
+function Assert-RegistryIdentity($Metadata) {
+    if ($null -eq $Metadata -or $Metadata.name -ne 'caveat-lang' -or $Metadata.version -ne $Version -or $Metadata.dist.integrity -ne $ExpectedIntegrity) { throw 'Registry identity/integrity mismatch; refusing immediately' }
+}
+function Wait-RegistryPublication {
+    param([scriptblock]$ReadVersion, [scriptblock]$ReadTags,
+          [scriptblock]$Delay = { param($Seconds) Start-Sleep -Seconds $Seconds },
+          [int]$Attempts = 61, [int]$IntervalSeconds = 10)
+    if ($Attempts -lt 1 -or $IntervalSeconds -lt 0) { throw 'Invalid polling bounds' }
+    for ($Attempt = 1; $Attempt -le $Attempts; $Attempt++) {
+        # ReadVersion returns null ONLY for HTTP404; every other HTTP error escapes.
+        $Metadata = & $ReadVersion
+        if ($null -ne $Metadata) { Assert-RegistryIdentity $Metadata }
+        $Channels = & $ReadTags
+        if ($Channels.latest -ne '0.1.0-rc.5' -or $Channels.next -notin @('0.1.0-rc.6',$Version)) { throw 'Unexpected dist-tags; refusing immediately; no tags changed' }
+        if ($null -ne $Metadata -and $Channels.next -eq $Version) { return $Metadata }
+        if ($Attempt -lt $Attempts) { & $Delay $IntervalSeconds }
+    }
+    throw 'rc.7 accepted/pending/unverified: registry propagation timed out. Do not publish again. Recover with -VerifyOnly. Retain npm-publication-context.json.'
+}
+function Invoke-PublicationDecision {
+    param($Existing, [bool]$VerificationOnly, [scriptblock]$Publish, [scriptblock]$Wait)
+    if ($null -ne $Existing) { Assert-RegistryIdentity $Existing }
+    if ($null -eq $Existing -and -not $VerificationOnly) { & $Publish }
+    # VerifyOnly always polls and has no path to Publish, including an absent version.
+    return (& $Wait)
+}
+function Read-InstalledLock {
+    # npm locks contain packages['']; PowerShell5.1 cannot deserialize that key.
+    Read-NativeJson -Exe $Node -Arguments @('-e',"const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('package-lock.json','utf8')).packages?.['node_modules/caveat-lang'];if(!p)throw Error('Missing installed package lock entry');process.stdout.write(JSON.stringify(p));")
+}
+
 $Release = Read-NativeJson -Exe $Gh -Arguments @('api','repos/WSattazahn/caveat-lang/releases/tags/v0.1.0-rc.7')
 if (-not $Release.prerelease -or $Release.draft) { throw 'GitHub release must remain a published prerelease' }
 $Ref = Read-NativeJson -Exe $Gh -Arguments @('api','repos/WSattazahn/caveat-lang/git/ref/tags/v0.1.0-rc.7')
@@ -65,8 +97,7 @@ function Test-Consumer([string]$Package, [string]$Name) {
         Invoke-Native -Exe $Npm -Arguments @('init','-y')
         Invoke-Native -Exe $Npm -Arguments @('install',$Package,'--ignore-scripts','--no-audit','--no-fund','--registry',$Registry,'--cache',(Join-Path $Consumer 'cache'))
         if ($Name -eq 'registry-install') {
-            $Lock = Get-Content -LiteralPath 'package-lock.json' -Raw | ConvertFrom-Json
-            $Locked = $Lock.packages.'node_modules/caveat-lang'
+            $Locked = Read-InstalledLock
             if ($Locked.integrity -ne $ExpectedIntegrity -or ([Uri]$Locked.resolved).Host -ne 'registry.npmjs.org') { throw 'Fresh-install lock integrity/origin mismatch' }
         }
         $PackageRoot = Join-Path $Consumer 'node_modules/caveat-lang'
@@ -91,27 +122,28 @@ function Test-Consumer([string]$Package, [string]$Name) {
     } finally { Pop-Location }
 }
 Test-Consumer $Tarball 'before-publication'
-$Tags = Invoke-RestMethod -Uri "$Registry/-/package/caveat-lang/dist-tags"
+$Tags = Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/-/package/caveat-lang/dist-tags"
 if ($Tags.latest -ne '0.1.0-rc.5' -or $Tags.next -notin @('0.1.0-rc.6',$Version)) { throw 'Unexpected dist-tags; stop for review' }
+$Context = Join-Path $Run 'npm-publication-context.json'
+# Persist only public recovery identity; no login output, URLs, codes or tokens.
+@{version=$Version; revision=$Revision; sha256=$ExpectedSha256; integrity=$ExpectedIntegrity; registry=$Registry; verifyOnly=[bool]$VerifyOnly; status='pending/unverified'; recovery='Run this reviewed helper with -VerifyOnly; never republish an accepted version'} | ConvertTo-Json | Set-Content -LiteralPath $Context -Encoding UTF8
+Write-Host "Recovery context: $Context"
 $Existing = Get-RegistryVersion
-if ($null -eq $Existing) {
-    if ($VerifyOnly) { throw 'rc.7 is not published' }
+$Published = Invoke-PublicationDecision -Existing $Existing -VerificationOnly ([bool]$VerifyOnly) -Publish {
     Write-Host 'npm login may open a browser and request account/2FA approval. No credentials are recorded.'
     Invoke-Native -Exe $Npm -Arguments @('login','--registry',$Registry)
     Invoke-Native -Exe $Npm -Arguments @('publish',$Tarball,'--access','public','--tag','next','--ignore-scripts','--registry',$Registry)
-} else {
-    if ($Existing.dist.integrity -ne $ExpectedIntegrity -or $Existing.name -ne 'caveat-lang' -or $Existing.version -ne $Version) { throw 'Existing version contains different bytes or identity' }
-    Write-Host 'Exact version exists; publication skipped. Verifying registry bytes.'
+    @{version=$Version; revision=$Revision; sha256=$ExpectedSha256; integrity=$ExpectedIntegrity; registry=$Registry; status='accepted/pending/unverified'; recovery='Use -VerifyOnly; do not publish again'; acceptedAt=[DateTime]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content -LiteralPath $Context -Encoding UTF8
+} -Wait {
+    Wait-RegistryPublication -ReadVersion { Get-RegistryVersion } -ReadTags { Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/-/package/caveat-lang/dist-tags" }
 }
-$Published = Get-RegistryVersion
-if ($null -eq $Published -or $Published.dist.integrity -ne $ExpectedIntegrity -or $Published.name -ne 'caveat-lang' -or $Published.version -ne $Version) { throw 'Registry identity/integrity mismatch' }
 $DownloadUri = [Uri]$Published.dist.tarball
 if ($DownloadUri.Scheme -ne 'https' -or $DownloadUri.Host -ne 'registry.npmjs.org') { throw 'Unexpected registry tarball origin' }
 $RegistryTarball = Join-Path $Run 'registry-rc7.tgz'
 Invoke-WebRequest -UseBasicParsing -Uri $DownloadUri -OutFile $RegistryTarball
 Assert-Hash $RegistryTarball
 Test-Consumer "caveat-lang@$Version" 'registry-install'
-$Tags = Invoke-RestMethod -Uri "$Registry/-/package/caveat-lang/dist-tags"
+$Tags = Invoke-RestMethod -TimeoutSec 30 -Uri "$Registry/-/package/caveat-lang/dist-tags"
 if ($Tags.next -ne $Version -or $Tags.latest -ne '0.1.0-rc.5') { throw 'Unexpected channels after publication; explicit owner review is required. No dist-tag was silently changed.' }
 $NpmVersion = & $Npm --version
 if ($LASTEXITCODE -ne 0) { throw 'npm version command failed' }

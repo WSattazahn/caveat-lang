@@ -1,0 +1,42 @@
+{
+  "recordedAt": "2026-10-02",
+  "releaseRevision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+  "frozenHelperSha256": "860d75b726097e481b7e9d0206ffa4f401de9bfc89e63162a106f2e4a1f4e88e",
+  "ownerReportedFailures": [
+    {
+      "stage": "after accepted npm publish",
+      "publicOutput": [
+        "Your package is being processed and may take a few minutes to become available.",
+        "+ caveat-lang@0.1.0-rc.7",
+        "Registry identity/integrity mismatch"
+      ],
+      "observedRegistryStatus": 404,
+      "interpretation": "accepted/pending visibility; not evidence of mismatched bytes"
+    },
+    {
+      "stage": "Windows PowerShell 5.1 VerifyOnly registry consumer",
+      "message": "argument name is not valid",
+      "cause": "full npm lock packages contains empty key; ConvertFrom-Json cannot create that property"
+    }
+  ],
+  "ownerRecovery": {
+    "mode": "VerifyOnly",
+    "temporaryCopyOnly": true,
+    "noRepublish": true,
+    "receiptAssetId": 605839559,
+    "receiptAssetName": "npm-publication-verification-20261002T145851184.json",
+    "exitCode": 0
+  },
+  "initialCloudTest": {
+    "head": "6c2937d26b2deef3160f58afdee470aceda45519",
+    "runId": 37023904267,
+    "jobId": 110893575511,
+    "conclusion": "failure",
+    "cause": "PowerShell5.1 legacy native argument passing removed embedded double quotes in Node -e source",
+    "publicDiagnostic": "SyntaxError: missing ) after argument list",
+    "independentRegistryJobId": 110893575272,
+    "independentRegistryConclusion": "success",
+    "powerShell7": "skipped"
+  },
+  "privacy": "No authentication output, login URLs, codes or tokens retained. Full cloud test log remains at GitHub; this public summary retains the failure identity and diagnosis."
+}
