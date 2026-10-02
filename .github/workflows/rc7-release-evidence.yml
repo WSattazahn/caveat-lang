@@ -40,7 +40,7 @@ jobs:
           const runs=[];
           for(const [id,event] of [[36970516513,'push'],[36972072386,'workflow_run']]) {
             const r=await fetch(`https://api.github.com/repos/WSattazahn/caveat-lang/actions/runs/${id}`,{headers:{Authorization:`Bearer ${process.env.GH_TOKEN}`,Accept:'application/vnd.github+json'}});
-            assert(r.ok(),`Run metadata HTTP ${r.status}`);const run=await r.json();
+            assert(r.ok,`Run metadata HTTP ${r.status}`);const run=await r.json();
             assert.equal(run.head_sha,process.env.RELEASE_SHA);assert.equal(run.event,event);assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');assert.equal(run.run_attempt,1);
             runs.push({id,head:run.head_sha,event,status:run.status,conclusion:run.conclusion,attempt:run.run_attempt});
           }
@@ -55,12 +55,12 @@ jobs:
           const hash=b=>createHash('sha256').update(b).digest('hex');
           const local=JSON.parse(await readFile('dist/build-info.json'));
           assert.equal(local.revision,process.env.RELEASE_SHA);assert(local.clean&&local.compiled);assert.equal(local.host,'x86_64-unknown-linux-gnu');
-          const r=await fetch(`${process.env.SITE_URL}build-info.json?revision=${process.env.RELEASE_SHA}`);assert(r.ok());const live=await r.json();assert.deepEqual(live,local);
+          const r=await fetch(`${process.env.SITE_URL}build-info.json?revision=${process.env.RELEASE_SHA}`);assert(r.ok);const live=await r.json();assert.deepEqual(live,local);
           const checks=[];
           for(const directory of ['pkg','pkg-reactive']) for(const file of await readdir(`dist/${directory}`)) {
             if(!/\.(js|wasm)$/.test(file))continue;
             const name=`${directory}/${file}`;const expected=hash(await readFile(`dist/${name}`));
-            const response=await fetch(`${process.env.SITE_URL}${name}?revision=${process.env.RELEASE_SHA}`);assert(response.ok(),name);
+            const response=await fetch(`${process.env.SITE_URL}${name}?revision=${process.env.RELEASE_SHA}`);assert(response.ok,name);
             const actual=hash(Buffer.from(await response.arrayBuffer()));assert.equal(actual,expected,name);checks.push({name,sha256:actual});
           }
           assert.equal(checks.length,4,'Both full/reactive JS and WASM must be checked');
