@@ -1,9 +1,9 @@
 # Agent evidence: calling Caveat from an application
 
-> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
-> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
-> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
+> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
+> `next` names rc.8; `latest` remains rc.5.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
 
 
 This example shows an application, such as an agent's harness, using a Caveat
@@ -58,7 +58,7 @@ such as `["node", "../node_modules/caveat-lang/bin/caveat.mjs"]`, or pass
 `command=` to `CaveatServer`. In JSON, write a Windows path with forward
 slashes or doubled backslashes.
 
-With an rc.7 tarball installed alongside another package that owns `caveat`,
+With rc.7 or later installed alongside another package that owns `caveat`,
 set `CAVEAT_COMMAND` to `["npx", "--no-install", "caveat-lang"]` (use
 `"npx.cmd"` on Windows). rc.6 has only the shorter name. See
 [project names and CLI commands](../../docs/NAMES.md).
@@ -396,9 +396,8 @@ restore and after every subsequent accepted or rejected event under both
 policies. Serve's `explain` event list starts again after restore; the snapshot
 retains the decision and observation history.
 
-From this unpublished rc.8 development checkout or the frozen rc.7 GitHub
-package candidate containing the new
-suite, run it separately from the original 53 tests:
+From this repository checkout or the installed rc.8 package, run the lifecycle
+suite separately from the original 53 tests:
 
 ```sh
 python3 -B -m unittest -v test_lifecycle

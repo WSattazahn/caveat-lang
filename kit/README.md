@@ -1,9 +1,9 @@
 # CAVEAT Language (`caveat-lang`)
 
-> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
-> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
-> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
+> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
+> `next` names rc.8; `latest` remains rc.5.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
 
 
 When evidence changes, reconsider the decision while keeping its original
@@ -12,14 +12,14 @@ and records every decision revision. This package includes the WebAssembly
 runtime, Node/browser library and CLI; no Rust installation is needed.
 Requires Node 20 or later for the CLI.
 
-The release candidate is **`caveat-lang@0.1.0-rc.7`**, with the command
+The release candidate is **`caveat-lang@0.1.0-rc.8`**, with the command
 `caveat-lang` (and supported `caveat` shorthand). It is published on npm under `next`, with the same tested tarball
-attached to its [GitHub pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7).
+attached to its [GitHub pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8).
 It is a preview, not a stable release, and needs no Rust. Install it from npm:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.7
+npm install caveat-lang@0.1.0-rc.8
 npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 npx --no-install caveat explain umbrella.cav events.jsonl
@@ -32,18 +32,16 @@ The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
 The command above pins this exact candidate. To use a
 verified tarball you were given, pass its path or URL to `npm install` instead.
 
-npm's `next` tag points to rc.7; `latest` remains on rc.5 and does not mean
+npm's `next` tag points to rc.8; `latest` remains on rc.5 and does not mean
 stable. Install a candidate by `next` or its exact version;
 `npm dist-tag ls caveat-lang` shows which version each tag names.
 
-This checkout is **0.1.0-rc.8 development**, unpublished. The
-[rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
-is frozen with its exact tested Linux tarball and evidence. rc.7 npm publication
-is verified; the published npm version is rc.7. Development does not
-change the frozen rc.7 tag or artifact.
-The npm instructions above install the published rc.7 candidate. **New in rc.7:**
-`caveat-lang` is the unambiguous command; `caveat` remains supported shorthand.
-With a verified rc.7 tarball installed, prefer:
+The [rc.8 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8)
+retains the exact tested Linux tarball and evidence. Registry integrity and a
+fresh exact-version install are verified in the linked publication receipt.
+The npm instructions above install that published rc.8 candidate. Introduced
+in rc.7, `caveat-lang` is the unambiguous command; `caveat` remains supported
+shorthand. With rc.8 installed, prefer:
 
 ```sh
 npx --no-install caveat-lang --version
@@ -76,7 +74,7 @@ sanitized examples and output.
 
 ## Check the installation and see an agent decision
 
-With an installed **rc.7 tarball** (these commands are not in published rc.6):
+With rc.8 installed (these commands were introduced in rc.7):
 
 ```sh
 npx --no-install caveat-lang doctor
@@ -100,14 +98,14 @@ measure a model's confidence or authorize an external action.
 
 ## Use authoring tools from an MCP host
 
-An installed rc.7 tarball can run `caveat-lang mcp` for the five existing
+An installed rc.8 package can run `caveat-lang mcp` for the five existing
 authoring operations. It takes inline source and uses a fresh subprocess for
 each call. See [MCP setup and limits](docs/MCP.md), including its explicit
 2025-11-25 stdio compatibility profile. Published rc.6 does not include it.
 
 ## Run scenario files
 
-From an installed rc.7 tarball (use `caveat` instead for rc.6):
+From an installed rc.8 package (use `caveat` instead for historical rc.6):
 
 ```sh
 npx --no-install caveat-lang test --json a.scenarios.json b.scenarios.json
