@@ -20,6 +20,8 @@ import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
 import { doctor, formatDoctor } from '../lib/doctor.mjs';
 import { runAgentDemo, formatAgentDemo } from '../lib/demo.mjs';
+import { serveMcp } from '../lib/mcp.mjs';
+import { describeValidation } from '../lib/authoring.mjs';
 
 const USAGE = `CAVEAT Language — Programs that remember why.
 
@@ -34,6 +36,7 @@ Usage:
   caveat-lang init [<directory>]
   caveat-lang doctor [--runtime <dir>] [--json]
   caveat-lang demo agent [--runtime <dir>] [--json]
+  caveat-lang mcp [--runtime <dir>]
   caveat-lang --version
 
 Both caveat-lang and caveat invoke this CLI. Prefer caveat-lang when other
@@ -84,6 +87,10 @@ Its illustrative inputs are supplied, not independently verified. Output shows
 actual decision grounds and preserved history. It writes no files.
   Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
 
+mcp serves five authoring tools over stdio using the 2025-11-25 MCP profile.
+It takes inline source, runs each call in a fresh subprocess, and exposes no
+persistent session or file access. stdout contains protocol messages only.
+
 init writes the getting-started program, its scenarios and an events file
 into a directory (default: the current one). It refuses to overwrite a file.
 
@@ -102,6 +109,7 @@ const COMMANDS = {
   serve: [1, 1, 'name one program'],
   init: [0, 1, 'name at most one directory'],
   doctor: [0, 0, 'doctor takes no positional arguments'],
+  mcp: [0, 0, 'mcp takes no positional arguments'],
   demo: [1, 1, 'name the demonstration: agent'],
 };
 
@@ -113,7 +121,7 @@ function parseArguments(argv) {
   const options = { command, files: [], json: false, strict: false, runtime: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
-    if (argument === '--json' && !['replay', 'serve', 'init'].includes(command)) options.json = true;
+    if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
@@ -238,16 +246,7 @@ async function validateProgram(options) {
   }
   const snapshot = session.snapshot();
   session.close();
-  const result = {
-    schema: 'caveat-validate/0.1', program, loads: true,
-    events: snapshot.events ?? [],
-    reading_streams: Object.fromEntries(Object.entries(snapshot.reading_streams ?? {})
-      .map(([name, stream]) => [name, { from: stream.template, limit: stream.limit }])),
-    decision_series: Object.fromEntries(Object.entries(snapshot.decision_series ?? {})
-      .map(([name, series]) => [name, { limit: series.limit }])),
-    displayed: Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
-      Object.keys(properties).map(property => `${target}.${property}`)),
-  };
+  const result = describeValidation(snapshot, program);
   if (options.json) { console.log(JSON.stringify(result, null, 2)); return 0; }
   const joined = items => (items.length ? items.join(', ') : 'none');
   console.log([
@@ -421,6 +420,7 @@ async function main() {
   const run = {
     test: testScenarios, explain: explainProgram, dependents: dependentsOf,
     validate: validateProgram, check: checkProgram, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
+    mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];
   return run(options);
 }

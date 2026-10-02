@@ -25,6 +25,7 @@ import { followGuide } from '../kit/test/guide.mjs';
 import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
 import { checkCliCollision, installedCommand } from './test-cli-collision.mjs';
+import { checkMcpClient } from './test-mcp-client.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const kit = path.join(root, 'kit');
@@ -49,9 +50,9 @@ const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 
 const shipped = file => packDocs.reference.includes(file);
 const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session'];
+const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -200,6 +201,7 @@ for (const [entry, target] of Object.entries(installedManifest.exports)) {
   assert.equal(target.types, target.default.replace(/\.mjs$/, '.d.mts'), `${entry} declares its own module`);
   assert.ok(existsSync(path.join(installed, target.types)), `${entry}: ${target.types} is installed`);
 }
+report.checks.mcp = await checkMcpClient({ installed, directory: path.join(run, 'mcp-client') });
 report.checks.install = true;
 
 // The license ships unchanged, and the metadata says what it is.

@@ -121,3 +121,5 @@ Background:
 For an agent integration, follow the [agent quickstart](AGENT_START.md): choose
 commands for the installed version, test a small policy, and use the official
 caller to keep required-operation success separate from assessment.
+
+An installed rc.7 tarball also provides the [local MCP authoring bridge](MCP.md).

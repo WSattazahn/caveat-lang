@@ -15,8 +15,8 @@ explicitly approved after the earlier proposal to defer it.
 
 1. Doctor and the deterministic agent demonstration — implemented and tested.
 2. Onboarding contract and README first screen — implemented and checked.
-3. Thin MCP authoring bridge — interface reviewed; implementation in progress.
-4. Packed-release dependency security checks.
+3. Thin MCP authoring bridge — implemented; focused and official-client checks pass.
+4. Packed-release dependency security checks — in progress.
 5. Preregistered cold-agent adoption experiment.
 6. Dated name audit before 1.0.
 
@@ -70,3 +70,10 @@ already covered permission, reproducibility and acceptance; they were retained.
 
 The requested root npm scripts typecheck, lint, test and audit:all are absent;
 the attempted commands failed as missing scripts. They are not passing gates.
+
+MCP bridge: [interface review](MCP_AUTHORING_DESIGN.md) precedes implementation.
+All 32 final operation/protocol/declaration checks pass, including injected
+worker faults and cancellation/EOF under stdout backpressure. The pinned
+official SDK 1.31.0 discovers and calls all five tools against the checkout;
+its same interoperability check is registered in the installed-package gate.
+No live desktop-host installation is claimed.

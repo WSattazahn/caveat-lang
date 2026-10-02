@@ -88,6 +88,13 @@ and reopens its assessment, and the replacement assessment uses the new reading.
 The earlier grounds remain recorded. The demo writes no files and does not
 measure a model's confidence or authorize an external action.
 
+## Use authoring tools from an MCP host
+
+An installed rc.7 tarball can run `caveat-lang mcp` for the five existing
+authoring operations. It takes inline source and uses a fresh subprocess for
+each call. See [MCP setup and limits](docs/MCP.md), including its explicit
+2025-11-25 stdio compatibility profile. Published rc.6 does not include it.
+
 ## Run scenario files
 
 From an installed rc.7 tarball (use `caveat` instead for rc.6):
