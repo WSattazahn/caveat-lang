@@ -31,7 +31,8 @@ publication receipt and update the release's factual npm availability. If a
 GitHub recording step fails after npm succeeds, retain the printed receipt,
 authenticate and rerun with -VerifyOnly; identical registry bytes are required.
 
-Return the final receipt to the cloud thread. The remaining explicit cloud step
+After the helper succeeds, use the [registry-gated documentation finalizer](POST_PUBLICATION.md).
+Return the final receipt and finalizer run/PR URL to the cloud thread. The remaining explicit cloud step
 is to independently verify publication, update public installation examples and
 the dated publication record, and validate/deploy those documentation changes.
 rc.8 development is opened only after rc.7's annotated tag and assets freeze;

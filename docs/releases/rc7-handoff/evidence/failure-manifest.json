@@ -1,0 +1,26 @@
+[
+  {
+    "file": "freeze-refusal-36974523176.zip",
+    "sha256": "cd037c95dbfe16a2ff84c4e57a925c6a860895e57404cce996ea37daf05ca0d0",
+    "receipt": {
+      "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+      "run": 36974523176,
+      "head": "14f0e2996f9c4e4dfa543b817ffecc9ab829ba69",
+      "error": "Reviewed handoff head moved\n+ actual - expected\n\n+ 'bdb8137756406092cda79ceda53e25923c27d760'\n- '14f0e2996f9c4e4dfa543b817ffecc9ab829ba69'\n",
+      "failedAt": "2026-10-02T06:48:20.735Z",
+      "policy": "No bypass, force or asset overwrite; inspect partial tag/release before retry"
+    }
+  },
+  {
+    "file": "freeze-failure-36974716113.zip",
+    "sha256": "00c1e67f6c0ff26312dad22844ca7e0af3c8051d55ccf519deee114f0194dc8f",
+    "receipt": {
+      "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+      "run": 36974716113,
+      "head": "bdb8137756406092cda79ceda53e25923c27d760",
+      "error": "Binary download HTTP 415",
+      "failedAt": "2026-10-02T06:48:58.862Z",
+      "policy": "No bypass, force or asset overwrite; inspect partial tag/release before retry"
+    }
+  }
+]

@@ -25,9 +25,13 @@ knowledge changed the decision's status; its original grounds remain visible.
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
 The [rc.6 publication record](docs/releases/v0.1.0-rc.6.md) identifies the
-published candidate. This checkout is the **0.1.0-rc.7 release preparation candidate**.
-[rc.7 release notes](docs/releases/v0.1.0-rc.7.md) track its gates.
-GitHub tagging and npm publication remain pending; rc.6 is the published npm version. Once a verified rc.7 tarball is installed, use `npx --no-install
+published npm candidate. This checkout is **0.1.0-rc.8 development**, unpublished.
+The [rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
+is frozen with its exact tested Linux tarball and receipts;
+[rc.7 release notes](docs/releases/v0.1.0-rc.7.md) record verification.
+Its npm publication remains pending; rc.6 is still the published npm version.
+The [manual publication handoff](docs/releases/rc7-handoff/README.md) preserves
+rc.7 bytes independently of this development checkout. Once a verified rc.7 tarball is installed, use `npx --no-install
 caveat-lang doctor` to check it and `npx --no-install caveat-lang demo agent` to
 see observation, assessment, correction and revision in one run. rc.7 adds the
 unambiguous `caveat-lang` command; `caveat` remains supported. The rc.6 commands
