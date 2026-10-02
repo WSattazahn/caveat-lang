@@ -4,10 +4,9 @@ A bundled WebAssembly runtime, session library and scenario runner for reactive
 Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
 
 The release candidate is **`caveat-lang@0.1.0-rc.6`**, with the command
-`caveat`. It is a preview, not a stable release: like the previous candidate,
-rc.5, it is to be published to npm with the tag `next`, with the same tested
-tarball attached to its GitHub pre-release. It needs no Rust. Once it is
-published, install it from npm:
+`caveat`. It is published on npm under `next`, with the same tested tarball
+attached to its [GitHub pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.6).
+It is a preview, not a stable release, and needs no Rust. Install it from npm:
 
 ```sh
 npm init -y
@@ -16,16 +15,15 @@ npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. Before
-publication, or to use a verified tarball you were given, pass the tarball's
-path or URL to `npm install` instead. Until rc.6 is published,
-`caveat-lang@next` installs rc.5, whose tarball is also on its [GitHub
-pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.5).
+To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. To use a
+verified tarball you were given, pass its path or URL to `npm install` instead.
 
-Publishing with `--tag next` leaves the tag `latest` where it is. It moves
-only as a separate step, as it was moved to rc.4 and to rc.5, and here it
-does not mean stable. So install a candidate by the tag `next` or by its exact
-version; `npm dist-tag ls caveat-lang` shows which version each tag names.
+npm's `next` tag points to rc.6; `latest` remains on rc.5 and does not mean
+stable. Install a candidate by `next` or its exact version;
+`npm dist-tag ls caveat-lang` shows which version each tag names.
+
+This checkout is the **0.1.0-rc.7 development version**, which is not released.
+The npm instructions above install the published rc.6 candidate.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
@@ -38,7 +36,12 @@ repository's test suites are not included.
 To call Caveat from an agent or a tool, start with the [agent-evidence
 example](examples/agent-evidence/README.md), in the package from
 0.1.0-rc.6. It drives `caveat serve` from Python and judges each attempt by
-the current assessment.
+the current assessment. If that integration exposes a capability Caveat is
+missing, please
+[open an agent feature request](https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md)
+for the project owner to evaluate. Check existing issues and include the exact
+version, a small reproduction, and expected versus actual behavior. Share only
+sanitized examples and output.
 
 ## Run scenario files
 

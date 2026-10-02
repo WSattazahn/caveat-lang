@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:,">
   <title>Caveat: decisions that record what they rest on</title>
-  <meta name="description" content="Experimental language (release candidate 0.1.0-rc.5) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta name="description" content="Experimental language (release candidate 0.1.0-rc.6) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/about.html">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Caveat: decisions that record what they rest on">
-  <meta property="og:description" content="Experimental language (release candidate 0.1.0-rc.5) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta property="og:description" content="Experimental language (release candidate 0.1.0-rc.6) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/about.html">
   <style>
     :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b}
@@ -39,7 +39,7 @@
   <p class="lede">A programming language whose decisions record what they
   rest on: the evidence they used, what permitted them, and why they were
   reopened.</p>
-  <p class="status"><strong>Status: experimental.</strong> 0.1.0-rc.5 is a
+  <p class="status"><strong>Status: experimental.</strong> 0.1.0-rc.6 is a
   release candidate, not a stable release, and behavior can still change
   between candidates. There is no production use to point to. See
   <a href="#limitations">Limitations</a>.</p>
@@ -88,8 +88,17 @@ code, or your agent's harness, sends a Caveat program events through the Node
 or browser library, or as JSON lines with <code>caveat serve</code>, and acts
 on what the program decides.</p>
 
+<p><strong>Integrating Caveat with an agent?</strong> Start with the
+<a href="https://github.com/WSattazahn/caveat-lang/tree/main/kit/examples/agent-evidence">Python
+<code>caveat serve</code> example</a>. If a real integration exposes a missing
+capability, please
+<a href="https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md">open
+an agent feature request</a> for the project owner to evaluate. Check existing
+issues and include the exact version, a small reproduction, and expected versus
+actual behavior.</p>
+
 <h2 id="example">One example: covering seedlings</h2>
-<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.5/kit/docs/WORKED_EXAMPLE.md">worked
+<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> is one program of about 60 lines. Two instruments read the soil
 temperature: a probe, and a survey drone whose readings carry the caveat
 <code>uncalibrated</code>. When the probe reads 2&nbsp;°C or colder and the
@@ -123,8 +132,8 @@ change nothing.</p>
 <h2 id="run">Run it</h2>
 <p>You need Node 20 or later. In an empty directory:</p>
 <pre><code>npm init -y
-npm install caveat-lang@0.1.0-rc.5</code></pre>
-<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.5/kit/docs/WORKED_EXAMPLE.md">worked
+npm install caveat-lang@0.1.0-rc.6</code></pre>
+<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> as <code>frost.cav</code>, <code>frost.scenarios.json</code> and
 <code>events.jsonl</code>. Then:</p>
 <pre><code>npx --no-install caveat test frost.scenarios.json
@@ -135,12 +144,11 @@ follow the worked example the same way.</p>
 
 <h2 id="limitations">Limitations</h2>
 <ul>
-  <li>0.1.0-rc.5 is a release candidate, not a stable release. npm lists it
-  under <code>latest</code> as well as <code>next</code>: it was published with
-  <code>next</code>, and <code>latest</code> was then moved to it. Here,
-  <code>latest</code> does not mean stable. The README shown on npm was written
-  before publication: it says rc.5 is still to be published, and that until
-  then <code>next</code> installs rc.4.</li>
+  <li>0.1.0-rc.6 is a release candidate, not a stable release. npm's
+  <code>next</code> tag points to rc.6; <code>latest</code> remains on rc.5
+  and does not mean stable. The README inside the rc.6 tarball was written
+  before publication and still describes publishing as the next step. This
+  page and the release record reflect the completed publication.</li>
   <li>Caveat records what a decision rests on. It does not authenticate
   evidence, inspect a model's internal reasoning, or authorize actions outside
   the program. A source label says where evidence came from; it does not prove
@@ -177,24 +185,24 @@ follow the worked example the same way.</p>
   is about 583&nbsp;KB gzipped, measured on rc.4's published package; the
   benchmark recorded 483&nbsp;KB for its whole Caveat build on the older
   runtime. The
-  <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.5/experiments/glowcap/RESULTS.md#round-6-replay-the-language-the-work-list-produced">benchmark
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/experiments/glowcap/RESULTS.md#round-6-replay-the-language-the-work-list-produced">benchmark
   report</a> gives the workloads, every round and its own limits.</li>
   <li>There are no host conformance tests yet.</li>
 </ul>
 
 <h2 id="links">Links</h2>
 <ul>
-  <li><a href="https://www.npmjs.com/package/caveat-lang">caveat-lang on npm</a>,
-  version 0.1.0-rc.5.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.5">The
+  <li><a href="https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.6">caveat-lang on npm</a>,
+  version 0.1.0-rc.6.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.6">The
   GitHub pre-release</a>: the same package file, with its checksums.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.5/kit/docs/REFERENCE.md">Caveat
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/kit/docs/REFERENCE.md">Caveat
   on one page</a>: the language in brief. Its links to the specifications work
   in the installed package, under <code>node_modules/caveat-lang/docs/</code>;
   on GitHub, use the specifications link below.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.5.md">Release
-  notes for 0.1.0-rc.5</a>.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.5/spec">The
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.6.md">Release
+  notes for 0.1.0-rc.6</a>.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.6/spec">The
   specifications</a>, including drafts, earlier versions and profiles used only
   by the games.</li>
   <li><a href="https://github.com/WSattazahn/caveat-lang">Source code and
@@ -212,7 +220,7 @@ demonstrations, not part of the package.</p>
 </main>
 
 <footer>
-  <p>This page describes caveat-lang 0.1.0-rc.5.</p>
+  <p>This page describes caveat-lang 0.1.0-rc.6.</p>
 </footer>
 </body>
 </html>
