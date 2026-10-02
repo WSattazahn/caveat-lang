@@ -19,7 +19,7 @@ background, not required reading.
   reconsidered.
 
 - [Project names and CLI commands](NAMES.md): the unambiguous `caveat-lang`
-  command in rc.7, the supported `caveat` shorthand and other projects with the
+  command introduced in rc.7, the supported `caveat` shorthand and other projects with the
   same name.
 
 ## The reactive language
@@ -122,4 +122,4 @@ For an agent integration, follow the [agent quickstart](AGENT_START.md): choose
 commands for the installed version, test a small policy, and use the official
 caller to keep required-operation success separate from assessment.
 
-An installed rc.7 tarball also provides the [local MCP authoring bridge](MCP.md).
+An installed rc.8 package also provides the [local MCP authoring bridge](MCP.md).

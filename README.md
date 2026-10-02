@@ -1,9 +1,9 @@
 # CAVEAT Language
 
-> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
-> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
-> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
+> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
+> `next` names rc.8; `latest` remains rc.5.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
 
 
 **Programs that remember why.**
@@ -13,12 +13,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published preview, **0.1.0-rc.7**, in an empty directory with Node 20 or
+Try the published preview, **0.1.0-rc.8**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.7
+npm install caveat-lang@0.1.0-rc.8
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -30,17 +30,17 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-The [rc.7 verified publication record](docs/releases/v0.1.0-rc.7.md) identifies the
-published npm candidate. This checkout is **0.1.0-rc.8 development**, unpublished.
-The [rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
-is frozen with its exact tested Linux tarball and receipts;
-[rc.7 release notes](docs/releases/v0.1.0-rc.7.md) record verification.
-Its exact npm version is now published and verified.
-The [manual publication handoff](docs/releases/rc7-handoff/README.md) preserves
-rc.7 bytes independently of this development checkout. Once a verified rc.7 tarball is installed, use `npx --no-install
-caveat-lang doctor` to check it and `npx --no-install caveat-lang demo agent` to
-see observation, assessment, correction and revision in one run. rc.7 adds the
-unambiguous `caveat-lang` command; `caveat` remains supported. The commands above use its unambiguous executable. See [CLI names](kit/docs/NAMES.md).
+The [rc.8 verified publication record](docs/releases/v0.1.0-rc.8.md) identifies the
+published npm candidate. The [rc.8 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8)
+retains the exact tested Linux tarball and verification receipts. rc.8 strengthens
+save validation and adds a development-only Lean model with bounded comparisons
+against the production runtime. It adds no npm runtime dependency.
+
+With rc.8 installed, use `npx --no-install caveat-lang doctor` to check it and
+`npx --no-install caveat-lang demo agent` to see observation, assessment,
+correction and revision in one run. Introduced in rc.7, the unambiguous
+`caveat-lang` command remains preferred; `caveat` is supported shorthand.
+See [CLI names](kit/docs/NAMES.md).
 
 **Integrating an agent?** Follow the [agent quickstart](kit/docs/AGENT_START.md)
 and the [official Python client](kit/examples/agent-evidence/README.md). Caveat

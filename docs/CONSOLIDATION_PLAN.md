@@ -346,5 +346,6 @@ consolidation, not a side effect of merging the language stack.
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use [rc.7 release preparation](releases/v0.1.0-rc.7.md) for current sequencing.
+Use the [rc.8 verified release record](releases/v0.1.0-rc.8.md) for the current
+candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.

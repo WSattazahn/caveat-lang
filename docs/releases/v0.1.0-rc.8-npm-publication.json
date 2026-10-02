@@ -1,0 +1,68 @@
+{
+  "schema": "caveat-npm-publication-record/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-02T21:37:31.290Z",
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.8",
+  "revision": "5ebe5743cae50cb17767b00f86188646b5946d31",
+  "release": "https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8",
+  "registry": "https://registry.npmjs.org",
+  "tarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.8.tgz",
+    "bytes": 812309,
+    "sha256": "75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021",
+    "sha512": "b836cfcfa38ddf5cd444acd1236c076e044b9c0d9f4363db94e48a47deb819736299fbf61293bfb08e0f6c16e1505d447c7f0eb680fcda9303460dbc50b24c46",
+    "integrity": "sha512-uDbPz6ON31zURKzRI2wHbgRLnA2fQ2PblOSKR964GXNimfv2EpO/sI4PbBbhUF1EfH8OtoD82pMDRg28ULJMRg=="
+  },
+  "channels": {
+    "latest": "0.1.0-rc.5",
+    "next": "0.1.0-rc.8"
+  },
+  "runtime": {
+    "wasmSha256": "5689996db8ce23e2b435a64b482b052cd80dbf4251f55fa671e9639f391fc646",
+    "adapterSha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3",
+    "buildInfoSha256": "0252dca2c9073231aa556ef7fb6c40b05613b5217c5f53fa647e4e1069a13624"
+  },
+  "checks": {
+    "registryBytesMatch": true,
+    "freshExactVersionInstall": true,
+    "freshCache": true,
+    "lockIntegrityAndOrigin": true,
+    "cliAliases": [
+      "caveat",
+      "caveat-lang"
+    ],
+    "doctor": true,
+    "demo": true,
+    "umbrellaScenarios": {
+      "passed": 2,
+      "failed": 0
+    },
+    "umbrellaStrictCheck": true,
+    "umbrellaExplanation": true,
+    "restoreChecks": 7,
+    "successfulCommands": 13,
+    "npmRuntimeDependencies": []
+  },
+  "tools": {
+    "node": "v24.11.1",
+    "platform": "win32",
+    "architecture": "x64",
+    "npm": "11.12.1"
+  },
+  "evidence": [
+    {
+      "filename": "npm-publication-verification.json",
+      "bytes": 103828,
+      "sha256": "aa5a617586aaf62e7d3a4d3135b8922b7689022ddf8078ec79e9fcff007cd29c",
+      "url": "https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json"
+    },
+    {
+      "filename": "npm-publication-receipts.tar.gz",
+      "bytes": 841582,
+      "sha256": "7e2c656063aa0f11df7f68407013034589a2b90632f2102ccb2f74a15a524210",
+      "url": "https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-receipts.tar.gz"
+    }
+  ],
+  "scope": "Publication verification of the retained rc.8 artifact. The Lean comparison scope remains bounded as documented in the release notes."
+}

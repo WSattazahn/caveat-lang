@@ -1,17 +1,17 @@
-# MCP authoring tools (rc.7; rc.8 development)
+# MCP authoring tools (rc.8)
 
-> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
-> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
-> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
+> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
+> `next` names rc.8; `latest` remains rc.5.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
 
 
-The frozen rc.7 GitHub candidate and exact npm version are available and verified.
-This checkout is unpublished rc.8 development. No MCP desktop host is installed
-by the release or development process.
+The [rc.8 GitHub candidate](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8) and exact npm version are available
+and verified. No MCP desktop host is installed by the release or development
+process.
 
-An installed rc.7 tarball can expose existing Caveat authoring operations to a
-local MCP host. Published rc.6 does not include this command. The bridge uses
+An installed rc.8 package can expose existing Caveat authoring operations to a
+local MCP host. This command was introduced in rc.7; published rc.6 does not include it. The bridge uses
 the **2025-11-25 stdio compatibility profile**, with initialization followed by
 tool discovery. It does not advertise the newer 2026-07-28 profile.
 
