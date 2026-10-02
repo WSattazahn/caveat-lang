@@ -40,6 +40,7 @@
     "spec/caveat-check-0.1.md",
     "examples/thermostat_history.cav",
     "examples/thermostat_history.scenarios.json",
-    "docs/MCP_AUTHORING_DESIGN.md"
+    "docs/MCP_AUTHORING_DESIGN.md",
+    "docs/PACKAGE_SECURITY.md"
   ]
 }

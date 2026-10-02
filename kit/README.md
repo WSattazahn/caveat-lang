@@ -382,7 +382,7 @@ library imported as `caveat-lang/node`, `caveat-lang/session`,
 `caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
 the browser check above. It also copies the agent-evidence example out of the
 install and runs its Python tests against the installed command. The tarball
-holds the command, the six library files and their declarations, `init`'s
+holds the command, the public library files, bounded authoring bridge and their declarations, `init`'s
 templates, the example, the runtime and its declarations, the documentation,
 the license and the notices, and nothing else. In the documents copied from
 the repository, links that leave the package point to GitHub at the build's
@@ -396,7 +396,10 @@ CI already runs this packaging test against the runtime built by its Linux
 core job. It retains the exact tested `.tgz`, the test report with its SHA-256,
 `build-info.json` and `SHA256SUMS` together as an artifact. A local Windows run
 checks packaging locally; the release candidate must use the tested Linux
-artifact from the intended release commit. A release publishes that one tested
+artifact from the intended release commit. Before publication, the
+[packed dependency security gate](docs/reference/docs/PACKAGE_SECURITY.md) must
+pass against that exact tarball and retain its npm/Rust advisory receipts.
+A release publishes that one tested
 tarball twice, unchanged: attached to the GitHub pre-release, and to npm under
 the `next` tag (`npm publish <tarball> --tag next`). No second build is made
 for the registry. See the

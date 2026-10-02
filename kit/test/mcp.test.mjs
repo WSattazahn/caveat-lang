@@ -5,9 +5,14 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { MCP_PROTOCOL_VERSION, MCP_TOOLS, serveMcp } from '../lib/mcp.mjs';
 
+// The package gate creates/removes kit/runtime while packing. Repository tests
+// must hold the durable build path, not capture that transient staging folder.
+// Installed-package tests separately verify the bundled-runtime default.
+const RUNTIME = fileURLToPath(new URL('../../dist/pkg-reactive/', import.meta.url));
 const SOURCE = 'evidence memory from "lookup"; event consult; on consult reveal memory;';
 const request = (id, method, params) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
 const notification = (method, params) => ({ jsonrpc: '2.0', method, ...(params === undefined ? {} : { params }) });
@@ -30,7 +35,7 @@ function connection(options = {}) {
       }
     }
   });
-  const done = serveMcp({ input, output, ...serverOptions });
+  const done = serveMcp({ runtimeDirectory: RUNTIME, input, output, ...serverOptions });
   const wait = id => {
     const found = messages.find(message => Object.is(message.id, id));
     if (found) return Promise.resolve(found);
@@ -56,6 +61,7 @@ function injected(code) {
   const children = [];
   let spawned = 0;
   const spawnWorker = (command, args, options) => {
+    assert.equal(args.at(-1), RUNTIME, 'real workers retain the durable repository runtime path');
     assert.equal(options.shell, false);
     assert.equal(options.windowsHide, true);
     assert.equal(Object.keys(options.env).some(name => ['NODE_OPTIONS', 'NODE_PATH'].includes(name.toUpperCase())), false);
@@ -253,7 +259,9 @@ test('serialized MCP output is bounded even when duplication of a valid worker r
     assert.equal(response.result.structuredContent.error.kind, 'output_limit');
     assert.equal(response.result.isError, true);
     assert.ok(Buffer.byteLength(JSON.stringify(response)) < 4 * 1024 * 1024);
-    client.send(call(2)); assert.equal((await client.wait(2)).result.isError, false);
+    client.send(call(2));
+    const recovered = await client.wait(2);
+    assert.equal(recovered.result.isError, false, JSON.stringify(recovered));
   } finally { assert.equal(await client.close(), 0); }
 });
 

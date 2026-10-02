@@ -255,7 +255,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: kit-security-receipts
+          name: kit-security-receipts-${{ github.run_attempt }}
           path: test-results/kit-security/
           if-no-files-found: warn
           retention-days: 90

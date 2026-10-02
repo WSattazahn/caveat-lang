@@ -308,6 +308,9 @@ v3 must install the tested, tagged tarball with its retained content hash.
    malformed-input rollback, save/restore, `elapsed()`, and browser loading.
    Exclude study private tooling, trial archives and site-only assets unless
    explicitly part of the package contract. Archive the tarball and its hash.
+   Run the [packed dependency security gate](PACKAGE_SECURITY.md) against the
+   same tested tarball report. Retain its dependency/advisory inputs and results;
+   a failed or incomplete scan blocks publication.
 4. **Freeze and tag the tested candidate.** Choose the release version after the
    package contract is settled. Commit version/release metadata, rebuild and
    retest that exact commit if bytes or metadata changed. Create an annotated

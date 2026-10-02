@@ -244,6 +244,7 @@ export async function auditKitSecurity({ packageReport, auditBin, advisoryDb }) 
       // Project-local config takes precedence over the user's global audit.toml.
       const configuration = '[advisories]\nignore = []\n[output]\nquiet = false\n';
       await writeFile(path.join(inputs, '.cargo/audit.toml'), configuration);
+      await write('rust-audit-config.toml', configuration); // CI retains non-hidden receipt files.
       await writeFile(path.join(inputs, 'src/lib.rs'), '// Dependency inventory only; never compiled.\n');
       const inputFiles = [];
       for (const file of ['Cargo.toml', 'Cargo.lock']) {
