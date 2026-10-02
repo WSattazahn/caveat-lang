@@ -1,0 +1,42 @@
+{
+  "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+  "pureControls": 29,
+  "securityRefusalControlsInFinalRuntime": 8,
+  "registeredAuthorSources": {
+    "v1": 6,
+    "v2": 4,
+    "runtimePacketsReplayed": false
+  },
+  "adoptionManifestFilesMatched": 335,
+  "adoptionArchiveIncludesManifestFiles": 336,
+  "savedGlowcapReplay": {
+    "events": 16011,
+    "restores": 13,
+    "divergences": 0
+  },
+  "seed6": {
+    "sequences": 2000,
+    "events": 7280140,
+    "divergences": 0,
+    "exit": 0
+  },
+  "seed7": {
+    "sequences": 2000,
+    "events": 7163331,
+    "divergences": 0,
+    "exit": 0
+  },
+  "independentInstalledTarball": {
+    "aliases": true,
+    "doctor": true,
+    "demo": true,
+    "umbrellaScenario": true
+  },
+  "helperValidation": "PowerShell 7 Linux parser/native exit/JSON/SHA256/SHA512 refusal controls; no Windows end-to-end publication execution",
+  "failedAddedWorkflow": {
+    "run": 36972762671,
+    "reason": "Response.ok incorrectly called as function",
+    "fix": "8e615cf5775254fc9badd317ea59a614182f661a"
+  },
+  "studyLimitsPreserved": true
+}

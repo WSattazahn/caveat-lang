@@ -1,0 +1,371 @@
+{
+  "schema": "caveat-release-freeze/1",
+  "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+  "tag": "v0.1.0-rc.7",
+  "package": {
+    "size": 810289,
+    "sha256": "0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc",
+    "sha512": "0b2c6dba702e372a3593b28b421a2f12f330ad2fae58fd94e152d3ba465343035170a25bbc8f04e407d85c681df02e2d382d684a2c47dd80f6279125ecb8a6f2",
+    "integrity": "sha512-CyxtunAuNyo1k7KLQhovEvMwrS+uWP2U4VLTukZTQwNRcKJbvI8E5AfYXGgd8C4tOC1oSixH3YD2J5El7Lim8g==",
+    "wasmSha256": "32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977",
+    "reportSha256": "7e39237a02ca1fe3e961a00d52e192a64483753b62c8cd9068672482af15fcf9",
+    "buildInfoSha256": "1102762defa0a3fb19545cc9cdb88b1a49e64c2f5da4247dc7b503dd96f6abb1",
+    "build": {
+      "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+      "clean": true,
+      "compiled": true,
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "host": "x86_64-unknown-linux-gnu",
+      "wasmBindgen": "0.2.104"
+    }
+  },
+  "runtimeRun": {
+    "id": 36970516513,
+    "attempt": 1,
+    "conclusion": "success",
+    "event": "push",
+    "branch": "main"
+  },
+  "formatRun": {
+    "id": 36970516523,
+    "conclusion": "success"
+  },
+  "pagesRun": {
+    "id": 36972072386,
+    "attempt": 1,
+    "conclusion": "success"
+  },
+  "artifacts": {
+    "kit-package-candidate": {
+      "id": 11211387717,
+      "sha256": "0ed4ed65f85ac3c5aec37357107ae1ba53172cfea302fa83169aa41b04e3f882"
+    },
+    "kit-security-receipts-1": {
+      "id": 11212126680,
+      "sha256": "3f6b65348a51e6fe736f8e6cc98ba273ee282aa97bc8e2bfce12204464451684"
+    },
+    "browser-dist": {
+      "id": 11212140692,
+      "sha256": "0358c2046d01c368e93dabb98038900c0fe4fd1eef2fdda2c2f2a2855d08151e"
+    }
+  },
+  "runtimeFiles": {
+    "pkg/caveat_runtime_bg.wasm.d.ts": {
+      "bytes": 4543,
+      "sha256": "9501f7fc2c7d45aed0566f46d4b7ff1b329433c71497542f9574cc0740597baa"
+    },
+    "pkg/caveat_runtime_bg.wasm": {
+      "bytes": 2347216,
+      "sha256": "2c5275f2b454300fb7b74a4d852f575ab2a325b7845edb891c60e48a3bbb8837"
+    },
+    "pkg/caveat_runtime.d.ts": {
+      "bytes": 8795,
+      "sha256": "74792926fe1e29fb383a8195a05a1117f991e6606107d4f85aaebf8223bfadb8"
+    },
+    "pkg/caveat_runtime.js": {
+      "bytes": 35119,
+      "sha256": "1339db799f807e302fcfd74f747ebb3b5d1fe29c0c73c1ed1b28924738ec6ba7"
+    },
+    "pkg-reactive/caveat_runtime_bg.wasm.d.ts": {
+      "bytes": 1646,
+      "sha256": "9b19674952b876ab13687b550556021544225decb0ad1cb935d509e37a3f4ddb"
+    },
+    "pkg-reactive/caveat_runtime_bg.wasm": {
+      "bytes": 2092939,
+      "sha256": "32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977"
+    },
+    "pkg-reactive/caveat_runtime.d.ts": {
+      "bytes": 4262,
+      "sha256": "2bf7a8c023c08837642518395e4cec6ead872cddcd2721d8bee1ba00e20d095c"
+    },
+    "pkg-reactive/caveat_runtime.js": {
+      "bytes": 15854,
+      "sha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3"
+    }
+  },
+  "sourceAndLocks": {
+    "runtime/Cargo.lock": {
+      "bytes": 5350,
+      "sha256": "6d19b5b02742cc0392f280de61d6e5dcb61ac04a04201b197786435904586a16"
+    },
+    "package-lock.json": {
+      "bytes": 2156,
+      "sha256": "9d8abd636b4468b265ea96f12122b92d92adeb0f46ca64e61e9095cf50eccd16"
+    },
+    "editors/vscode/package-lock.json": {
+      "bytes": 78809,
+      "sha256": "34d8957f09d7dbd7f7be4744078745b4d29e894b6f064b36b63075c9653b5df9"
+    },
+    "kit/package.json": {
+      "bytes": 1892,
+      "sha256": "4dcbd92549541ef3c5e55403808388f5ed1005b488e7300d7fab4b9358edb8bb"
+    },
+    "rust-toolchain.toml": {
+      "bytes": 393,
+      "sha256": "36504a3d89cadff5c7c35c049cedf2a827f79e5630c467a95ab777f5b53125ee"
+    },
+    "game/glowcap.cav": {
+      "bytes": 8210,
+      "sha256": "50b864f53ae909389874a6b3927fa25573ff92993a233318f6ee7a0114f004e4"
+    },
+    "game/trail_rescue.cav": {
+      "bytes": 8079,
+      "sha256": "9744ae625637b109c7e2a29fe4ad39216f8d75df0166252eba8d5243fd7c591b"
+    },
+    "experiments/agent-adoption/v1/PROTOCOL.md": {
+      "bytes": 10465,
+      "sha256": "17b72dcb515679ba6638a085a2888aa7885ce447eaf33f7ff18ca65e954d7a1b"
+    },
+    "experiments/agent-authoring/v1/registration.json": {
+      "bytes": 2591,
+      "sha256": "f00c2e075302adee22b4318ee0057cea4749e20fe8750b94abf750347c3027bf"
+    },
+    "experiments/agent-authoring/v2/registration.json": {
+      "bytes": 4053,
+      "sha256": "921f30f97778c7fcb8682e4d441616c9fddadceb3f4b10c5cb6b2d58f79fc3eb"
+    }
+  },
+  "mergedReviewedHeads": [
+    "3eab7b37868b24586d739b6dc76fc682902bbe95",
+    "e408264ed0a817533469621f7cd4bf09f3898a90",
+    "92be18f0c3700e556ee7d3c4137f3c1bb4c1175a",
+    "ec34f7b4b2bbb4f59351d65b9f9473cea4c62c98",
+    "c45be7f2de0ad138b8b33a35f79882ff45ae88f0",
+    "8cce9e09f077934126ddd387e17326617a734af6"
+  ],
+  "security": {
+    "reportSha256": "77ff1e7bdc42360131678d7adf9399d3a2b58c6d24476362e21428dfb533125d",
+    "finishedAt": "2026-10-02T06:05:05.359Z",
+    "tools": {
+      "node": "v22.23.3",
+      "platform": "linux",
+      "architecture": "x64",
+      "npm": "10.9.9",
+      "cargoAudit": {
+        "version": "cargo-audit 0.22.2",
+        "executable": "/home/runner/work/caveat-lang/caveat-lang/test-results/security-tools/bin/cargo-audit",
+        "sha256": "30ab361c51fa5e1ebbe5c53da9d1af37dedc852720281d355fd11b8ef6a4a395"
+      },
+      "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+    },
+    "advisoryDatabase": {
+      "url": "https://github.com/RustSec/advisory-db.git",
+      "directory": "/home/runner/work/caveat-lang/caveat-lang/test-results/security-tools/advisory-db",
+      "commit": "6de4455103aced2cba86e3b86e5c090b22827cf1",
+      "clean": true,
+      "fetchedAt": "2026-10-02T06:05:04.959Z",
+      "committedAt": "2026-10-01T22:25:27+02:00"
+    },
+    "scopes": {
+      "artifact": {
+        "passed": true,
+        "name": "caveat-lang",
+        "version": "0.1.0-rc.7",
+        "tarballSha256": "0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc",
+        "wasmSha256": "32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977",
+        "buildRevision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+        "npmRuntimeDependencies": []
+      },
+      "packed-npm-runtime": {
+        "passed": true,
+        "counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "findings": [],
+        "policy": "High/Critical block; lower-severity findings are retained for review",
+        "registry": "https://registry.npmjs.org",
+        "inputFiles": [
+          {
+            "file": "package.json",
+            "sha256": "b564239cc5cb048a0aeda50858ffda9536c6173835b81e5d0506c0e6f6b2bb64"
+          },
+          {
+            "file": "package-lock.json",
+            "sha256": "3e358a4e5a62c5d2532483249bf85411c99762a35ce9bedb3f465ead00438644"
+          }
+        ],
+        "dependencyOverrides": {},
+        "responseSha256": "846fc260eb0bf70e6b21419d4cab9fcc61c224c7362324d4cbc8aebf8355f9bd"
+      },
+      "repository-development-and-site": {
+        "passed": true,
+        "counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "findings": [],
+        "policy": "High/Critical block; lower-severity findings are retained for review",
+        "registry": "https://registry.npmjs.org",
+        "inputFiles": [
+          {
+            "file": "package.json",
+            "sha256": "51f6aa02a96a69773954111c507afc0a87525c4e368a8c1eb4d36743061a1bbb"
+          },
+          {
+            "file": "package-lock.json",
+            "sha256": "9d8abd636b4468b265ea96f12122b92d92adeb0f46ca64e61e9095cf50eccd16"
+          }
+        ],
+        "dependencyOverrides": {},
+        "responseSha256": "77679efca6a1ad49874253278ccdc65d4a676bf6bc379e8fc113b0c956baeae4"
+      },
+      "editor-development": {
+        "passed": true,
+        "counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "findings": [],
+        "policy": "High/Critical block; lower-severity findings are retained for review",
+        "registry": "https://registry.npmjs.org",
+        "inputFiles": [
+          {
+            "file": "package.json",
+            "sha256": "7e4dab41b0df34e55f2a11ac520882ad2b21cda212d291c0eaefdd3f2df3528b"
+          },
+          {
+            "file": "package-lock.json",
+            "sha256": "34d8957f09d7dbd7f7be4744078745b4d29e894b6f064b36b63075c9653b5df9"
+          }
+        ],
+        "dependencyOverrides": {},
+        "responseSha256": "5993528e260c434dcf95e4e7ba99e4df595dc867c60f6a9851e9a7c1ac5bcc9a"
+      },
+      "collision-fixture": {
+        "passed": true,
+        "counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "findings": [],
+        "policy": "High/Critical block; lower-severity findings are retained for review",
+        "registry": "https://registry.npmjs.org",
+        "inputFiles": [
+          {
+            "file": "package.json",
+            "sha256": "500c88181bbf92dc6f905b38af6c47084f1f5e0480bd81a941a86bc94dd15857"
+          },
+          {
+            "file": "package-lock.json",
+            "sha256": "ad16a20a5ff5c3e820d06290d82a1e12d3e4a8892e100eb2dbc9550a4efc36b1"
+          }
+        ],
+        "dependencyOverrides": {
+          "caveat-cli": {
+            "smol-toml": "1.7.1"
+          }
+        },
+        "responseSha256": "b6712766ae51e2ff9780a9b422c95f36a54e179768d1cd70d640a5ad1b12c61d"
+      },
+      "mcp-client-fixture": {
+        "passed": true,
+        "counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "findings": [],
+        "policy": "High/Critical block; lower-severity findings are retained for review",
+        "registry": "https://registry.npmjs.org",
+        "inputFiles": [
+          {
+            "file": "package.json",
+            "sha256": "bcc2401be90b2c58cdc91b9bdb31f946d8894561bd6ccc66c6247081c015fd12"
+          },
+          {
+            "file": "package-lock.json",
+            "sha256": "c2317c28f17178a76ef9f2c22efe3944bbdc7097661ab5dd2d6d68fcbbe709e9"
+          }
+        ],
+        "dependencyOverrides": {},
+        "responseSha256": "27f07834adc76d46f15c9ce67e5936e7c0ee11481f1fd4acbcdfa327fccb3dd5"
+      },
+      "rust-build-lockfile": {
+        "passed": true,
+        "vulnerabilityCount": 0,
+        "vulnerabilities": [],
+        "warnings": [],
+        "policy": "Every vulnerability and unresolved informational warning blocks, including missing severity",
+        "inputFiles": [
+          {
+            "file": "Cargo.toml",
+            "sha256": "600306e29c58b787ec3bb21a33d16a0d6a8e5e5c099e6c669554e175fa4de22c",
+            "buildRevision": "1f3fc7a2208eec964399d6c14232690f411e48be"
+          },
+          {
+            "file": "Cargo.lock",
+            "sha256": "6d19b5b02742cc0392f280de61d6e5dcb61ac04a04201b197786435904586a16",
+            "buildRevision": "1f3fc7a2208eec964399d6c14232690f411e48be"
+          }
+        ],
+        "configurationSha256": "c449d7b8240a2c4420d1a6df198f80b8fb5522c22d326da8b0f0fc19f6cade96",
+        "responseSha256": "5ee028449e5e54ba4d2ae0030f56faef3422130f87fd48392437c42942f5ec53",
+        "completeLockfile": true,
+        "linkedCrates": [
+          "cfg-if v1.0.5",
+          "itoa v1.0.18",
+          "memchr v2.8.3",
+          "once_cell v1.21.4",
+          "serde v1.0.229",
+          "serde_core v1.0.229",
+          "serde_json v1.0.151",
+          "unicode-ident v1.0.26",
+          "wasm-bindgen v0.2.104",
+          "wasm-bindgen-shared v0.2.104",
+          "zmij v1.0.23"
+        ],
+        "yankedCratesChecked": false
+      }
+    },
+    "limitations": [
+      "Known dependency advisory checks; not source-code auditing, malware detection or proof of absence of vulnerabilities.",
+      "The Rust scan covers the complete build Cargo.lock, including build tools; linked crates are separately identified from Cargo metadata.",
+      "RustSec yanked-crate checks are disabled; they are not vulnerability advisories and need a separate live registry check.",
+      "npm returns no advisory database commit. Timestamps and hashed raw responses preserve this run, not a promise of identical future registry results."
+    ],
+    "streamsIndependentlyMatched": 56
+  },
+  "publication": {
+    "npmPending": true,
+    "next": "0.1.0-rc.6",
+    "latest": "0.1.0-rc.5"
+  },
+  "handoffAssets": {
+    "cloud-review-summary.json": {
+      "sha256": "1f1b71e9cae262a52a6a9be8fb0a6c03d63b8fbfff06bec1778137919c768109",
+      "bytes": 1080
+    },
+    "github-release-notes.md": {
+      "sha256": "5913e7bc3d863bb05e0635fa7538e8a197bd74ed10ac560629e7e30ef40706be",
+      "bytes": 5027
+    },
+    "Publish-Rc7.ps1": {
+      "sha256": "860d75b726097e481b7e9d0206ffa4f401de9bfc89e63162a106f2e4a1f4e88e",
+      "bytes": 10142
+    },
+    "cloud-release-review.zip": {
+      "sha256": "a5cd5696e4ebf88602e3a921e1f5087519e6fe26c195468bfa8a5fee79a525ab",
+      "bytes": 17240
+    }
+  }
+}
