@@ -6,14 +6,29 @@ const repo='WSattazahn/caveat-lang',revision=process.env.FINAL_MAIN;
 const token=process.env.GH_TOKEN;
 const hash=b=>createHash('sha256').update(b).digest('hex');
 async function api(p){const r=await fetch('https://api.github.com/repos/'+repo+'/'+p,{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json'}});assert(r.ok,p+' HTTP'+r.status);return r.json();}
+if(process.argv.includes('--recheck-release-body')){
+ const before=JSON.parse(await readFile('test-results/postpublication/github-release-body-before.json'));
+ const current=await api('releases/tags/v0.1.0-rc.7');
+ assert.equal(current.id,before.id);assert(current.prerelease&&!current.draft);
+ assert.equal(current.body,before.body,'Release body changed; preserve concurrent evidence and inspect');
+ console.log('Release body remains unchanged; append verified completion without discarding owner evidence');process.exit(0);
+}
 assert.equal((await api('git/ref/heads/main')).object.sha,revision,'Main moved');
 const runs=(await api('actions/runs?head_sha='+revision+'&per_page=50')).workflow_runs;
 const runtime=runs.find(r=>r.name==='runtime'&&r.event==='push'&&r.head_branch==='main');
 const pages=runs.find(r=>r.name==='deploy-pages'&&r.event==='workflow_run');
 assert(runtime&&runtime.conclusion==='success','Final main Runtime must pass');
 assert(pages&&pages.conclusion==='success','Final Pages including live QA must pass');
+for(const [run,file,event] of [[runtime,'runtime.yml','push'],[pages,'pages.yml','workflow_run']]){
+ const workflow=await api('actions/workflows/'+file);
+ assert.equal(run.workflow_id,workflow.id);assert.equal(run.path,'.github/workflows/'+file);
+ assert.equal(run.repository.full_name,repo);assert.equal(run.head_repository.full_name,repo);
+ assert.equal(run.head_sha,revision);assert.equal(run.head_branch,'main');
+ assert.equal(run.event,event);assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');
+}
+function bindArtifact(artifact){assert.equal(artifact.workflow_run.id,runtime.id);assert.equal(artifact.workflow_run.head_sha,revision);assert.equal(artifact.workflow_run.head_branch,'main');}
 const artifacts=(await api('actions/runs/'+runtime.id+'/artifacts')).artifacts;
-const dist=artifacts.find(a=>a.name==='browser-dist');assert(dist&&!dist.expired);
+const dist=artifacts.find(a=>a.name==='browser-dist');assert(dist&&!dist.expired);bindArtifact(dist);
 const zipResponse=await fetch('https://api.github.com/repos/'+repo+'/actions/artifacts/'+dist.id+'/zip',{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json'}});assert(zipResponse.ok);
 const zip=Buffer.from(await zipResponse.arrayBuffer());assert.equal('sha256:'+hash(zip),dist.digest);
 await mkdir('test-results/postpublication',{recursive:true});
@@ -38,7 +53,8 @@ for(const expected of frozenExpected){
  const asset=release.assets.find(a=>a.name===expected.name);assert(asset);assert.equal(asset.id,expected.id);assert.equal(asset.digest,expected.digest);
  const r=await fetch(asset.browser_download_url);assert(r.ok);const b=Buffer.from(await r.arrayBuffer());assert.equal('sha256:'+hash(b),expected.digest);frozen[asset.name]={id:asset.id,sha256:hash(b),bytes:b.length};
 }
-const amendedSourceHelperSha256=hash(await readFile('docs/releases/rc7-handoff/Publish-Rc7.ps1'));
+const helperAtMain=await api('contents/docs/releases/rc7-handoff/Publish-Rc7.ps1?ref='+revision);
+assert.equal(helperAtMain.encoding,'base64');const amendedSourceHelperSha256=hash(Buffer.from(helperAtMain.content,'base64'));
 
 async function retainedArtifact(artifact,destination){
  assert(artifact&&!artifact.expired);
@@ -47,6 +63,7 @@ async function retainedArtifact(artifact,destination){
  await writeFile(destination,zip);return {id:artifact.id,sha256:hash(zip),bytes:zip.length};
 }
 const securityArtifact=artifacts.find(a=>a.name==='kit-security-receipts-'+runtime.run_attempt);
+bindArtifact(securityArtifact);
 const securityZip=await retainedArtifact(securityArtifact,'test-results/postpublication/final-main-security.zip');
 execFileSync('unzip',['-q','test-results/postpublication/final-main-security.zip','-d','test-results/postpublication/security']);
 async function findReports(directory){
@@ -63,9 +80,27 @@ const recordZip=await retainedArtifact(recordArtifacts.find(a=>a.id===1123489411
 assert.equal(recordZip.sha256,'d643906f7f2e0f822011acd9404f26cfdded8bd1fe87c88902195cc029b6fca3');
 
 const registryProof=JSON.parse(await readFile('test-results/rc7-publication-record/verification.json'));
+assert.equal(registryProof.version,'0.1.0-rc.7');assert.equal(registryProof.revision,'1f3fc7a2208eec964399d6c14232690f411e48be');
+assert.equal(registryProof.sha256,'0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc');
+const integrity='sha512-CyxtunAuNyo1k7KLQhovEvMwrS+uWP2U4VLTukZTQwNRcKJbvI8E5AfYXGgd8C4tOC1oSixH3YD2J5El7Lim8g==';
+assert.equal(registryProof.integrity,integrity);assert.equal(registryProof.registry,'https://registry.npmjs.org');
+assert.equal(registryProof.channels.next,'0.1.0-rc.7');assert.equal(registryProof.channels.latest,'0.1.0-rc.5');
+assert(registryProof.freshInstall&&registryProof.aliases);assert.equal(registryProof.run,process.env.GITHUB_RUN_ID);
+assert.equal(registryProof.lock.version,'0.1.0-rc.7');assert.equal(registryProof.lock.integrity,integrity);assert.equal(new URL(registryProof.lock.resolved).origin,'https://registry.npmjs.org');
+assert.equal(registryProof.registryMetadata.name,'caveat-lang');assert.equal(registryProof.registryMetadata.version,'0.1.0-rc.7');assert.equal(registryProof.registryMetadata.dist.integrity,integrity);
+assert.equal(new URL(registryProof.registryMetadata.dist.tarball).origin,'https://registry.npmjs.org');
+assert(registryProof.doctor.ok);assert.equal(registryProof.doctor.package.version,'0.1.0-rc.7');
+const installedBuild=registryProof.doctor.runtime.buildInfo;assert.equal(installedBuild.revision,registryProof.revision);assert(installedBuild.clean&&installedBuild.compiled);assert.equal(installedBuild.host,'x86_64-unknown-linux-gnu');
+assert.equal(registryProof.wasmSha256,'32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977');assert(registryProof.demo.preservation.unchanged);assert.equal(registryProof.demo.steps.length,5);
+assert(Number.isFinite(Date.parse(registryProof.verifiedAt)));assert(Math.abs(Date.now()-Date.parse(registryProof.verifiedAt))<15*60*1000,'Registry receipt is stale');
+for(const command of registryProof.commands){assert.equal(command.exitCode,0);assert.equal(hash(await readFile('test-results/rc7-publication-record/'+command.file)),command.sha256);}
+for(const run of [runtime,pages]){const latest=await api('actions/runs/'+run.id);assert.equal(latest.run_attempt,run.run_attempt,'CI rerun during verification');assert.equal(latest.status,'completed');assert.equal(latest.conclusion,'success');assert.equal(latest.head_sha,revision);}
+const latestArtifacts=(await api('actions/runs/'+runtime.id+'/artifacts')).artifacts;
+for(const original of [dist,securityArtifact]){const latest=latestArtifacts.find(a=>a.name===original.name);assert(latest);assert.equal(latest.id,original.id);assert.equal(latest.digest,original.digest);}
 const receipt={verifiedAt:new Date().toISOString(),main:revision,publicationReleaseRevision:'1f3fc7a2208eec964399d6c14232690f411e48be',runtime:{id:runtime.id,attempt:runtime.run_attempt},pages:{id:pages.id,attempt:pages.run_attempt},browserArtifact:{id:dist.id,sha256:hash(zip)},liveFiles:files,frozenAssets:frozen,amendedSourceHelperSha256,registryProof,finalMainDevelopmentSecurity:{artifact:securityZip,reportSha256:hash(securityBytes),report:security},retainedPublicationRecord:recordZip,cloudVerificationRun:process.env.GITHUB_RUN_ID,limitations:['Checks do not prove absence of all unknown defects or vulnerabilities.','Frozen initial WebKit attempt was interrupted; retry passed.','Historical study qualifications and name-audit limits remain.']};
 assert.equal((await api('git/ref/heads/main')).object.sha,revision,'Main moved during final verification');
 await writeFile('test-results/postpublication/verification.json',JSON.stringify(receipt,null,2)+'\n');
+await writeFile('test-results/postpublication/github-release-body-before.json',JSON.stringify({id:release.id,body:release.body},null,2));
 const marker='## Cloud publication documentation completion';
 assert(!release.body.includes(marker),'Completion section already exists; inspect instead of duplicating');
 const notes=release.body.replace('Documentation publication records are the explicit cloud follow-up; rc.8 development is already open.','Publication documentation records and final-main Pages verification are complete below; rc.8 development remains unpublished.');
