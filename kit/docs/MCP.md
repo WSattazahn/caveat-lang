@@ -1,4 +1,4 @@
-# MCP authoring tools (rc.7 and rc.8 development)
+# MCP authoring tools (rc.7; rc.8 development)
 
 The frozen rc.7 GitHub candidate is available; npm publication remains pending.
 This checkout is unpublished rc.8 development. No MCP desktop host is installed

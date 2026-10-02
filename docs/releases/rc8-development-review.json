@@ -11,7 +11,7 @@
   },
   "postPublicationChecks": {
     "officialRegistryBeforePublication": "HTTP404 expected refusal, no writes",
-    "documentationPatchControl": "11 patches satisfy actual rc8-source before/after/forbidden contracts; About style/script unchanged",
+    "documentationPatchControl": "12 patches satisfy actual rc8-source before/after/forbidden contracts; About style/script unchanged",
     "independentStaticSecurityAndCommandsReviews": "no blocking issue after corrections"
   },
   "limitations": [

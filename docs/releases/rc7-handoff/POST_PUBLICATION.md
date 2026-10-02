@@ -23,7 +23,7 @@ GitHub mutation path and is used by PR validation.
 
 Only then does it create branch codex/rc7-npm-publication and a publication-docs
 PR, recording the dated verification and complete hashed command streams in git.
-It changes exact npm examples/status in root/kit README, agent quickstart,
+It changes exact npm examples/status in root/kit README, repository agent guidance, agent quickstart,
 getting-started, naming/MCP/example docs and About metadata/text, and appends the
 verified npm receipt to the rc.7 record. rc.8 stays unpublished development;
 frozen rc.7 bytes and registered studies remain unchanged. About style/script
