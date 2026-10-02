@@ -124,6 +124,49 @@ jobs:
           path: dist
           retention-days: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 90 || 7 }}
 
+  lean-conformance:
+    name: Lean runtime comparison
+    needs: core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install && rustc --version
+      - name: Install the pinned Lean toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/lean-4.34.1-linux.tar.zst"
+          curl --fail --location --retry 3 \
+            https://github.com/leanprover/lean4/releases/download/v4.34.1/lean-4.34.1-linux.tar.zst \
+            --output "$archive"
+          echo "47bf4bbd78f70c2e9670598ab7124d92b6efb7330ff33e5fbb4030f6fd72e4e4  $archive" | sha256sum --check
+          tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
+          echo "CAVEAT_LEAN_BIN=$RUNNER_TEMP/lean-4.34.1-linux/bin" >> "$GITHUB_ENV"
+      - name: Check fixture and infrastructure failure handling
+        run: npm run test:lean-conformance
+      - name: Compare proved operations with production runtimes and semantic mutants
+        run: npm run verify:lean-conformance
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lean-runtime-comparison
+          path: |
+            test-results/lean-conformance/*.json
+            test-results/lean-conformance/*.cav
+            test-results/lean-conformance/*.stdout
+            test-results/lean-conformance/*.stderr
+            test-results/lean-verification/
+          if-no-files-found: error
+
   # Vessel pins the sha256 of the published WASM. That pin only means something
   # if another Linux machine gets the same bytes, so rebuild from a different
   # checkout path and cargo home and require an exact match.

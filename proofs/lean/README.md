@@ -1,9 +1,9 @@
-# CAVEAT Lean scaffold
+# CAVEAT Lean model and narrow executable bridge
 
-This is the pinned formal scaffold for the first rc.8 verification slice. It
-contains core dependency and outcome equations, actual proofs, and a complete
-named theorem audit. It does not contain an event interpreter or an executable
-Rust/WASM comparison runner.
+This pinned rc.8 verification project contains core dependency and outcome
+proofs plus a narrow executable guard-and-citation comparison model. The runner
+executes the same constructors covered by the proofs. Its accepted fragment is
+small and explicit; it is not a model of the complete CAVEAT language.
 
 ## Build and inspect
 
@@ -15,7 +15,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports all model and law modules. `laws.json` records 42 authored theorem declarations, including four inclusion helper lemmas. `theorems.json` inventories all 81 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, and runner. `laws.json` records 58 authored theorem declarations, including four inclusion helper lemmas and 16 bridge laws. `theorems.json` inventories all 128 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -43,7 +43,7 @@ published caveat-lang kit.
 
 The gate compares the elaborated theorem inventory with theorems.json, checks
 the authored-law registry, audits transitive axioms, and requires kernel replay
-of every model/law source module. Actual incomplete-proof and indirect custom
+of every core, law, bridge, and runner source module. Actual incomplete-proof and indirect custom
 axiom controls must be refused for their intended reasons. Parser tests also
 reject missing/extra theorem reports and unapproved native-evaluation axioms.
 
@@ -65,8 +65,8 @@ not a proof of Rust's bounded `BTreeSet` implementation or serialization.
 `Tracked` carries a number, full lineage, selected grounds, and a proof that
 grounds are included in lineage. The constructor proofs establish that the
 core operations can preserve this invariant. The numeric representation is
-Lean `Int`; numeric parsing, floating-point behavior, and arithmetic failure
-are outside this slice.
+Lean `Int`. The executable decoder admits a bounded integer fragment; the
+decoder, floating-point behavior, and arithmetic failure are not formally proved.
 
 The exact flow equations go beyond the subset invariant:
 
@@ -104,19 +104,98 @@ resource.
 The outcome equations do not prove that Rust detects overflow correctly,
 that an event rolls back every runtime field, or that a caller actually discards
 a fatal session. Those boundaries require targeted runtime and host tests.
-The scaffold does not compute identifier counts or UTF-8 byte limits, so its
+The core does not compute provenance identifier counts or provenance UTF-8 byte limits, so its
 unbounded union equations make no claim about an overflowing runtime union.
 
-## Deferred bridge
+## Executable guard-and-citation fragment
 
-A later slice may execute these same modeled operations on shared cases and
-compare their projections against Rust and WASM. Until that bridge exists and
-runs, these proofs establish properties of this Lean core only. Sampled
-executable agreement would still be conformance evidence, not a proof of
-Rust-to-Lean refinement.
+`lake build --wfail` also builds `.lake/build/bin/caveat_compare` (`.exe` on
+Windows). It reads one JSON request from stdin and writes one compact JSON
+response. Invalid requests produce stderr and exit status 1; they are
+infrastructure failures, not modeled CAVEAT rejections.
 
-Evidence observation, renewal and occurrence identity, save/restore, complete
-session rollback, source parsing, function evaluation, graph semantics, work
-budgets, and effect scheduling are not formalized here. CAVEAT's evidence
-remains supplied evidence; the model does not authenticate it or turn it into
-a truth guarantee.
+The protocol schema is `caveat-guard-citation/0.1`:
+
+```json
+{
+  "schema": "caveat-guard-citation/0.1",
+  "id": "guard-citation-example",
+  "seed": {"a": 3, "b": 5, "g": 1},
+  "steps": [{"actions": [{
+    "target": "x", "body": ["a"], "guard": "g", "citations": ["g"]
+  }]}]
+}
+```
+
+All shown fields are required, including nullable `guard` and `citations`.
+Unknown fields, wrong types, and unknown state references are rejected.
+Repeated keys in any one JSON object are rejected after decoding escapes, so
+an escaped spelling cannot hide a duplicate. Separate objects have separate
+key scopes; bundled Json.parse remains responsible for JSON syntax.
+The five state names are `a`, `b`, `g`, `x`, and `y`. The request id has 1..64
+ASCII characters, begins with a lowercase letter, and otherwise contains only
+lowercase letters, digits, or hyphens. Input is valid UTF-8 and at most 65,536
+bytes. The input loader reads at most 65,537 bytes (the limit plus one sentinel)
+and rejects overflow without waiting for EOF or buffering the entire stream.
+Seeds `a` and `b` are integers in [-1000,1000]; `g` is 0 or 1. Numeric tokens
+use integer spelling, excluding fractions, exponents, and negative zero.
+There are 1..8 steps, 1..4 actions per step, and at most eight actions in total.
+Body and citation lists contain 0..4 references. A conservative magnitude bound
+multiplies the largest seed magnitude (at least one) by each body length (at
+least one), regardless of guards or rejection, and must remain at most 10^9.
+These resource restrictions admit a small exactly representable comparison
+domain; no theorem proves the decoder or Rust's resource-bound implementation.
+
+The first frame has five plain zero states. The next frame seeds `a`, `b`, and
+`g` with evidence/caveat pairs `ea/ca`, `eb/cb`, and `eg/cg`. This fixed fixture
+uses neutral reveals in chronological order `eg`, `ea`, `eb`; it models that
+initialization directly, not arbitrary reveal semantics. Each later frame
+represents one transaction containing the listed sequential actions.
+
+A body eagerly sums its current referenced states, folding the existing
+`Tracked.combine` from plain zero. A null guard is plain one; a reference reads
+that state's current tracked value. `Tracked.guardedWrite` selects a successful
+body with guard lineage or retains the previous value and grounds with added
+guard lineage. A false guard skips body and citation evaluation. Null citations
+retain the body's grounds. A citation list unions the current referenced
+states' grounds before the target write, then invokes the existing `cite`
+check against the candidate lineage. An empty list explicitly clears grounds.
+Guard-only citations are valid when their grounds are included in the candidate
+lineage. Self-citation reads the target's current pre-write grounds.
+
+`Bridge.runAction`, `runActions`, and `runSessionStep` compose those operations.
+The 16 bridge laws cover exact target selection, preservation of other states,
+body-fold combination, skipped and accepted writes, invalid citations,
+sequential reads of updated state, rejection after earlier successful writes,
+and modeled-session rollback. A rejected step retains values, observations,
+and effects from before the entire step. Acceptance clears effects and retains
+observations. Seed observation/effect ordering has explicit equations. The
+fragment has no fatal-producing operation; fatal results remain distinct in
+the core outcome type and are exercised by separate runtime boundary tests.
+
+Responses contain `schema`, `id`, and `frames` (initial, accepted seed, then
+one per step). Each frame contains `outcome`, all five `states`, `observations`,
+`effects`, and an empty `decision_journal`. Each state exposes its numeric
+`value` and separate `lineage` and `grounds` objects with `evidence` and `caveats`
+arrays. Only provenance arrays are deduplicated and sorted. Observation and
+effect order is preserved. The seed emits three reveal effects; accepted steps
+emit none, and rejected steps retain the prior effects. The fragment contains
+no commitments, so the empty decision journal is an explicit restriction.
+
+`Runner.lean` is an unproved boundary adapter for JSON admission, serialization,
+and IO. Kernel replay checks its Lean declarations, but does not independently
+check the generated executable, C backend, or machine execution. It does not prove
+that its parser or projection corresponds to the source program or runtime.
+The comparison harness validates and renders shared cases, executes this Lean
+model and the production native/WASM runtimes, and compares the registered
+projection. Run `npm run test:lean-conformance` and
+`npm run verify:lean-conformance` from the repository root after its required
+build. Consult that run's receipt for actual comparisons and mutation controls.
+Sampled executable agreement is conformance evidence, not a proof of
+Rust-to-Lean refinement or correctness for all admitted programs.
+
+Evidence renewal and occurrence identity, arbitrary observations, save/restore,
+complete runtime session rollback, source parsing, function evaluation, graph
+semantics, work budgets, and general effect scheduling are not formalized here.
+CAVEAT's evidence remains supplied evidence; the model does not authenticate it
+or turn it into a truth guarantee.

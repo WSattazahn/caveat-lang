@@ -2,6 +2,47 @@ import Caveat
 import Lean
 
 /- Exhaustive public Caveat theorem inventory, including compiler-generated declarations. -/
+#print axioms Caveat.Bridge.Action.mk.inj
+#print axioms Caveat.Bridge.Action.mk.injEq
+#print axioms Caveat.Bridge.Action.mk.sizeOf_spec
+#print axioms Caveat.Bridge.Seed.mk.inj
+#print axioms Caveat.Bridge.Seed.mk.injEq
+#print axioms Caveat.Bridge.Seed.mk.sizeOf_spec
+#print axioms Caveat.Bridge.Session.mk.inj
+#print axioms Caveat.Bridge.Session.mk.injEq
+#print axioms Caveat.Bridge.Session.mk.sizeOf_spec
+#print axioms Caveat.Bridge.StateName.a.sizeOf_spec
+#print axioms Caveat.Bridge.StateName.b.sizeOf_spec
+#print axioms Caveat.Bridge.StateName.g.sizeOf_spec
+#print axioms Caveat.Bridge.StateName.ofNat_ctorIdx
+#print axioms Caveat.Bridge.StateName.x.sizeOf_spec
+#print axioms Caveat.Bridge.StateName.y.sizeOf_spec
+#print axioms Caveat.Bridge.accepted_cited_action_exact_state
+#print axioms Caveat.Bridge.accepted_head_uses_updated_state
+#print axioms Caveat.Bridge.accepted_session_step_clears_effects
+#print axioms Caveat.Bridge.accepted_step_uses_after
+#print axioms Caveat.Bridge.accepted_uncited_action_exact_state
+#print axioms Caveat.Bridge.body_append_exact_combination
+#print axioms Caveat.Bridge.empty_body_plain_zero
+#print axioms Caveat.Bridge.instDecidableEqStateName._proof_1
+#print axioms Caveat.Bridge.instDecidableEqStateName._proof_2
+#print axioms Caveat.Bridge.invalid_cited_action_rejected
+#print axioms Caveat.Bridge.later_rejection_discards_successful_head
+#print axioms Caveat.Bridge.readBody.eq_1
+#print axioms Caveat.Bridge.read_other_target_unchanged
+#print axioms Caveat.Bridge.read_written_target
+#print axioms Caveat.Bridge.rejected_session_step_preserves_all_modeled_fields
+#print axioms Caveat.Bridge.rejected_step_uses_before
+#print axioms Caveat.Bridge.runAction.eq_1
+#print axioms Caveat.Bridge.runActions.eq_1
+#print axioms Caveat.Bridge.runActions.eq_2
+#print axioms Caveat.Bridge.runActions.eq_def
+#print axioms Caveat.Bridge.runSessionStep.eq_1
+#print axioms Caveat.Bridge.runStep.eq_1
+#print axioms Caveat.Bridge.seed_effect_order
+#print axioms Caveat.Bridge.seed_observation_order
+#print axioms Caveat.Bridge.skipped_action_exact_state
+#print axioms Caveat.Bridge.write.eq_1
 #print axioms Caveat.FatalReason.ofNat_ctorIdx
 #print axioms Caveat.FatalReason.provenanceOverflow.sizeOf_spec
 #print axioms Caveat.FatalReason.unclassified.sizeOf_spec
@@ -25,6 +66,9 @@ import Lean
 #print axioms Caveat.RejectionReason.ofNat_ctorIdx
 #print axioms Caveat.RejectionReason.policy.sizeOf_spec
 #print axioms Caveat.RejectionReason.ungroundedCitation.sizeOf_spec
+#print axioms Caveat.Runner.Request.mk.inj
+#print axioms Caveat.Runner.Request.mk.injEq
+#print axioms Caveat.Runner.Request.mk.sizeOf_spec
 #print axioms Caveat.Tracked.combine._proof_1
 #print axioms Caveat.Tracked.control._proof_1
 #print axioms Caveat.Tracked.control.eq_1
@@ -73,6 +117,9 @@ import Lean
 #print axioms Caveat.provenance_overflow_discards_session
 #print axioms Caveat.provenance_overflow_is_fatal
 #print axioms Caveat.rejected_session_uses_before
+#print axioms Caveat.resumeSession.eq_1
+#print axioms Caveat.resumeSession.eq_2
+#print axioms Caveat.resumeSession.eq_3
 #print axioms Caveat.skipped_write_adds_control_lineage
 #print axioms Caveat.skipped_write_grounds_unchanged
 #print axioms Caveat.skipped_write_value_unchanged
