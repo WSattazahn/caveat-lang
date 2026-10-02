@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-02T15:29:00.981Z",
+  "sourceMain": "a9482f14319369097e3e048e920f3c123ab2bfb4",
+  "generatedHead": "0548081ca494d202bd083ba9ef0777e5b287fbb3",
+  "publicationRun": 37026797517,
+  "verifiedAt": "2026-10-02T15:25:02.112Z",
+  "workflowResult": "registry/fresh install/branch creation passed; Actions-token PR creation HTTP403; recovered through authorized GitHub connector as PR86",
+  "failureArtifact": {
+    "id": 11234894115,
+    "sha256": "d643906f7f2e0f822011acd9404f26cfdded8bd1fe87c88902195cc029b6fca3"
+  },
+  "inspectorRun": 37027019037,
+  "review": {
+    "security": "independent read-only security review found no blocker in gated finalizer",
+    "docs": "corrected historical handoff and rc6/rc7 frozen README qualifications",
+    "aboutStyleAndScriptBytes": "unchanged from source main",
+    "frozenStudiesAndReleaseAssets": "unchanged",
+    "npmPublishOrTagWrites": false
+  },
+  "remainingGates": [
+    "exact-head normal Runtime/format",
+    "normal authorized merge",
+    "final-main Runtime and Pages/live byte verification"
+  ]
+}
