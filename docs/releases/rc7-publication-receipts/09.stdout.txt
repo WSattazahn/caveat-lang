@@ -1,0 +1,21 @@
+umbrella.cav after 4 events (sequence 3)
+
+Events
+    1  read_forecast {"chance":70}  accepted
+    2  clear_sky  accepted
+    3  leave  accepted
+    4  leave  refused (policy): You have already left.
+
+Decisions
+  umbrella: 1 of at most 4
+    umbrella@1 = 70  reopened
+      based on rain_chance@1 (caveats: forecast_is_old)
+      #1 read_forecast: committed because rain_chance@1 (caveats: forecast_is_old)
+      #2 clear_sky: reopened because sky
+
+Evidence
+  rain_chance@1 = 70 supports rain_likely  (#1 read_forecast)  caveats: forecast_is_old
+  sky opposes rain_likely
+
+Displayed
+  advice.text = "Think again: the sky has cleared"  because rain_chance@1, sky (caveats: forecast_is_old)

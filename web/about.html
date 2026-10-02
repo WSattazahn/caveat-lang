@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:,">
   <title>CAVEAT Language — Programs that remember why.</title>
-  <meta name="description" content="CAVEAT Language: experimental programming language (rc.7 GitHub candidate; npm rc.6; rc.8 development) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta name="description" content="CAVEAT Language: experimental programming language (rc.7 GitHub candidate; npm rc.7; rc.8 development) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/about.html">
   <meta property="og:type" content="website">
   <meta property="og:title" content="CAVEAT Language — Programs that remember why.">
-  <meta property="og:description" content="CAVEAT Language: experimental programming language (rc.7 GitHub candidate; npm rc.6; rc.8 development) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta property="og:description" content="CAVEAT Language: experimental programming language (rc.7 GitHub candidate; npm rc.7; rc.8 development) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/about.html">
   <style>
     :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b}
@@ -39,7 +39,7 @@
   <p class="lede">A programming language whose decisions record what they
   rest on: the evidence they used, what permitted them, and why they were
   reopened.</p>
-  <p class="status"><strong>Status: experimental.</strong> 0.1.0-rc.6 is a
+  <p class="status"><strong>Status: experimental.</strong> 0.1.0-rc.7 is a
   release candidate, not a stable release, and behavior can still change
   between candidates. There is no production use to point to. See
   <a href="#limitations">Limitations</a>.</p>
@@ -98,7 +98,7 @@ issues and include the exact version, a small reproduction, and expected versus
 actual behavior.</p>
 
 <h2 id="example">One example: covering seedlings</h2>
-<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/kit/docs/WORKED_EXAMPLE.md">worked
+<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.7/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> is one program of about 60 lines. Two instruments read the soil
 temperature: a probe, and a survey drone whose readings carry the caveat
 <code>uncalibrated</code>. When the probe reads 2&nbsp;°C or colder and the
@@ -132,8 +132,8 @@ change nothing.</p>
 <h2 id="run">Run it</h2>
 <p>You need Node 20 or later. In an empty directory:</p>
 <pre><code>npm init -y
-npm install caveat-lang@0.1.0-rc.6</code></pre>
-<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/kit/docs/WORKED_EXAMPLE.md">worked
+npm install caveat-lang@0.1.0-rc.7</code></pre>
+<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.7/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> as <code>frost.cav</code>, <code>frost.scenarios.json</code> and
 <code>events.jsonl</code>. Then:</p>
 <pre><code>npx --no-install caveat test frost.scenarios.json
@@ -144,8 +144,8 @@ follow the worked example the same way.</p>
 
 <h2 id="limitations">Limitations</h2>
 <ul>
-  <li>0.1.0-rc.6 is a release candidate, not a stable release. npm's
-  <code>next</code> tag points to rc.6; <code>latest</code> remains on rc.5
+  <li>0.1.0-rc.7 is a release candidate, not a stable release. npm's
+  <code>next</code> tag points to rc.7; <code>latest</code> remains on rc.5
   and does not mean stable. The README inside the rc.6 tarball was written
   before publication and still describes publishing as the next step. This
   page and the release record reflect the completed publication.</li>
@@ -192,25 +192,25 @@ follow the worked example the same way.</p>
 
 <p>0.1.0-rc.7 adds neutral observation, clearer authoring diagnostics, the
 unambiguous <code>caveat-lang</code> command, doctor/demo and bounded MCP
-authoring tools. npm publication remains pending. See the
+authoring tools. npm publication is verified. See the
 <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.7.md">rc.7 verified release record</a>. The
 <a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7">frozen rc.7 GitHub prerelease</a>
-includes the exact tested Linux tarball and receipts. npm publication is pending;
+includes the exact tested Linux tarball and receipts. npm publication is verified;
 this repository is in unpublished rc.8 development.</p>
 
 <h2 id="links">Links</h2>
 <ul>
-  <li><a href="https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.6">caveat-lang on npm</a>,
-  version 0.1.0-rc.6.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.6">The
+  <li><a href="https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.7">caveat-lang on npm</a>,
+  version 0.1.0-rc.7.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7">The
   GitHub pre-release</a>: the same package file, with its checksums.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.6/kit/docs/REFERENCE.md">Caveat
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.7/kit/docs/REFERENCE.md">Caveat
   on one page</a>: the language in brief. Its links to the specifications work
   in the installed package, under <code>node_modules/caveat-lang/docs/</code>;
   on GitHub, use the specifications link below.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.6.md">Release
-  notes for 0.1.0-rc.6</a>.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.6/spec">The
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.7.md">Release
+  notes for 0.1.0-rc.7</a>.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.7/spec">The
   specifications</a>, including drafts, earlier versions and profiles used only
   by the games.</li>
   <li><a href="https://github.com/WSattazahn/caveat-lang">Source code and
@@ -228,7 +228,7 @@ demonstrations, not part of the package.</p>
 </main>
 
 <footer>
-  <p>Published npm example: caveat-lang 0.1.0-rc.6. rc.7 is available on GitHub; npm publication is pending. The repository is in rc.8 development.</p>
+  <p>Published npm example: caveat-lang 0.1.0-rc.7. rc.7 is available on GitHub; npm publication is verified. The repository is in rc.8 development.</p>
 </footer>
 </body>
 </html>

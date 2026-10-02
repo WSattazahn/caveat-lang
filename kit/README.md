@@ -1,19 +1,25 @@
 # CAVEAT Language (`caveat-lang`)
 
+> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
+> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
+> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+
+
 When evidence changes, reconsider the decision while keeping its original
 reasons. CAVEAT Language carries evidence and caveats through computed values
 and records every decision revision. This package includes the WebAssembly
 runtime, Node/browser library and CLI; no Rust installation is needed.
 Requires Node 20 or later for the CLI.
 
-The release candidate is **`caveat-lang@0.1.0-rc.6`**, with the command
-`caveat`. It is published on npm under `next`, with the same tested tarball
-attached to its [GitHub pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.6).
+The release candidate is **`caveat-lang@0.1.0-rc.7`**, with the command
+`caveat-lang` (and supported `caveat` shorthand). It is published on npm under `next`, with the same tested tarball
+attached to its [GitHub pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7).
 It is a preview, not a stable release, and needs no Rust. Install it from npm:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.6
+npm install caveat-lang@0.1.0-rc.7
 npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 npx --no-install caveat explain umbrella.cav events.jsonl
@@ -26,16 +32,16 @@ The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
 The command above pins this exact candidate. To use a
 verified tarball you were given, pass its path or URL to `npm install` instead.
 
-npm's `next` tag points to rc.6; `latest` remains on rc.5 and does not mean
+npm's `next` tag points to rc.7; `latest` remains on rc.5 and does not mean
 stable. Install a candidate by `next` or its exact version;
 `npm dist-tag ls caveat-lang` shows which version each tag names.
 
 This checkout is **0.1.0-rc.8 development**, unpublished. The
 [rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
 is frozen with its exact tested Linux tarball and evidence. rc.7 npm publication
-remains pending; the published npm version is still rc.6. Development does not
+is verified; the published npm version is rc.7. Development does not
 change the frozen rc.7 tag or artifact.
-The npm instructions above install the published rc.6 candidate. **New in rc.7:**
+The npm instructions above install the published rc.7 candidate. **New in rc.7:**
 `caveat-lang` is the unambiguous command; `caveat` remains supported shorthand.
 With a verified rc.7 tarball installed, prefer:
 
@@ -48,7 +54,7 @@ npx --no-install caveat-lang test umbrella.scenarios.json
 ```
 
 See [project names and CLI commands](docs/NAMES.md) for the distinction from
-other projects named Caveat. The rc.6 command is still `caveat`.
+other projects named Caveat. Historical rc.6 has only the `caveat` command.
 
 Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one

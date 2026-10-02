@@ -1,0 +1,5 @@
+Wrote umbrella.cav, umbrella.scenarios.json and events.jsonl, the program from docs/GETTING_STARTED.md.
+Next:
+  npx --no-install caveat-lang test umbrella.scenarios.json
+  npx --no-install caveat-lang explain umbrella.cav events.jsonl
+  npx --no-install caveat-lang dependents umbrella.cav sky events.jsonl

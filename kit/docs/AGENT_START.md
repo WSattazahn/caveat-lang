@@ -1,5 +1,11 @@
 # Start an agent integration
 
+> npm publication verified 2026-10-02T15:25:02.112Z: exact **caveat-lang@0.1.0-rc.7**,
+> retained Linux artifact SHA256 `0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc`.
+> `next` names rc.7; `latest` remains rc.5. This checkout stays unpublished rc.8 development.
+> [Publication receipt](https://github.com/WSattazahn/caveat-lang/blob/codex/rc7-npm-publication/docs/releases/v0.1.0-rc.7-npm-publication.json).
+
+
 Use Caveat when your application needs to keep a decision's evidence, carry its
 caveats, and reconsider it while retaining the original grounds. Supplied inputs
 and authored policies remain your responsibility; a Caveat result grants no
@@ -7,12 +13,12 @@ permission to act outside the host's authorization.
 
 ## Choose commands for the installed version
 
-With Node 20 or later, try the published **0.1.0-rc.6** preview in an empty
+With Node 20 or later, try the published **0.1.0-rc.7** preview in an empty
 directory:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.6
+npm install caveat-lang@0.1.0-rc.7
 npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
 npx --no-install caveat explain umbrella.cav events.jsonl
@@ -24,7 +30,7 @@ The two scenarios pass. The explanation retains `rain_chance@1` and its
 
 This checkout is **rc.8 development**, unpublished. The verified
 [rc.7 GitHub tarball](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
-is available; its npm publication remains pending. The commands below also
+and exact npm version are available and verified. The commands below also
 apply to that frozen rc.7 candidate.
 Once a verified rc.7 tarball is installed, use its unambiguous command name:
 

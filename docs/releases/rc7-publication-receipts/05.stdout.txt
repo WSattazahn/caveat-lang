@@ -1,0 +1,114 @@
+{
+  "schema": "caveat-doctor/0.1",
+  "ok": true,
+  "node": {
+    "version": "22.23.3",
+    "required": ">=20",
+    "executable": "/opt/hostedtoolcache/node/22.23.3/x64/bin/node"
+  },
+  "package": {
+    "directory": "/tmp/caveat-rc7-record-lRchUV/node_modules/caveat-lang",
+    "name": "caveat-lang",
+    "version": "0.1.0-rc.7"
+  },
+  "runtime": {
+    "directory": "/tmp/caveat-rc7-record-lRchUV/node_modules/caveat-lang/runtime",
+    "files": [
+      {
+        "name": "caveat_runtime.js",
+        "bytes": 15854,
+        "sha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3"
+      },
+      {
+        "name": "caveat_runtime_bg.wasm",
+        "bytes": 2092939,
+        "sha256": "32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977"
+      }
+    ],
+    "buildInfo": {
+      "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+      "clean": true,
+      "compiled": true,
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "host": "x86_64-unknown-linux-gnu",
+      "wasmBindgen": "0.2.104"
+    },
+    "identity": {
+      "reactiveWasmSha256": "32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977",
+      "revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+      "clean": true,
+      "compiled": true,
+      "host": "x86_64-unknown-linux-gnu"
+    },
+    "session": {
+      "accepted": true,
+      "rejectedWithoutChange": true,
+      "exactGrounds": true,
+      "restored": true
+    }
+  },
+  "resolution": "PATH files (PATHEXT on Windows); shell aliases, functions and caches are not inspected",
+  "executables": [
+    {
+      "name": "caveat-lang",
+      "path": null,
+      "target": null,
+      "owner": null,
+      "candidates": []
+    },
+    {
+      "name": "caveat",
+      "path": null,
+      "target": null,
+      "owner": null,
+      "candidates": []
+    }
+  ],
+  "checks": [
+    {
+      "id": "node",
+      "status": "pass",
+      "message": "Node 22.23.3; this CLI requires >=20"
+    },
+    {
+      "id": "package",
+      "status": "pass",
+      "message": "caveat-lang@0.1.0-rc.7"
+    },
+    {
+      "id": "runtime.caveat_runtime.js",
+      "status": "pass",
+      "message": "caveat_runtime.js: 15854 bytes, sha256 3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3"
+    },
+    {
+      "id": "runtime.caveat_runtime_bg.wasm",
+      "status": "pass",
+      "message": "caveat_runtime_bg.wasm: 2092939 bytes, sha256 32139e7b59306e4da799f6977ec9356f68add27c7f7159a443d7a1f56cae8977"
+    },
+    {
+      "id": "runtime.build",
+      "status": "pass",
+      "message": "Build 1f3fc7a2208eec964399d6c14232690f411e48be; clean=true, compiled=true, host=x86_64-unknown-linux-gnu (local metadata, not authenticated)"
+    },
+    {
+      "id": "runtime.load",
+      "status": "pass",
+      "message": "Selected JavaScript adapter and WASM load together"
+    },
+    {
+      "id": "runtime.session",
+      "status": "pass",
+      "message": "Synthetic observation, exact decision grounds, atomic refusal and save/restore succeeded"
+    },
+    {
+      "id": "executable.caveat-lang",
+      "status": "warn",
+      "message": "caveat-lang: not found on PATH; a direct file invocation can still work"
+    },
+    {
+      "id": "executable.caveat",
+      "status": "warn",
+      "message": "caveat: not found on PATH; a direct file invocation can still work"
+    }
+  ]
+}
