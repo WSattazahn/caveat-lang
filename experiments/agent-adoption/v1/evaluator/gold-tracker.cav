@@ -1,0 +1,32 @@
+# Private evaluator fixture. Never include in an agent packet.
+claim ready;
+evidence tool from "supplied tool reading";
+evidence correction from "supplied correction";
+caveat uncertain consequence material;
+caveat stale consequence material;
+uncertain qualifies tool;
+readings checks from tool limit 16;
+decisions answer limit 8 reopened by checks;
+state selected = 0;
+event observe value min 0 max 100;
+event assess;
+event correct;
+event learn_stale;
+on observe when not observed(tool) reveal tool;
+on observe when value >= 70 sample checks = value supports ready;
+on observe when value < 70 sample checks = value opposes ready;
+on observe set selected = latest(checks);
+on assess when not has_sample(checks) reject "No reading.";
+on assess when withdrawn(latest(checks)) reject "Withdrawn reading.";
+on assess when latest(checks) < 70 reject "Weak reading.";
+on assess when has_caveat(selected, stale) reject "Stale reading.";
+on assess when committed(answer) and not reopened(answer) reject "Answer in force.";
+on assess commit answer because enough using latest(checks);
+on correct when not has_sample(checks) reject "No reading.";
+on correct when withdrawn(latest(checks)) reject "Already withdrawn.";
+on correct when not observed(correction) reveal correction;
+on correct withdraw latest(checks) because correction;
+on correct when committed(answer) and not reopened(answer) and rests_on_withdrawn(answer)
+    reopen answer because correction;
+on learn_stale when not observed(tool) reject "Tool unobserved.";
+on learn_stale qualify tool with stale;

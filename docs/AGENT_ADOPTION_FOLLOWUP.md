@@ -16,8 +16,8 @@ explicitly approved after the earlier proposal to defer it.
 1. Doctor and the deterministic agent demonstration — implemented and tested.
 2. Onboarding contract and README first screen — implemented and checked.
 3. Thin MCP authoring bridge — implemented; focused and official-client checks pass.
-4. Packed-release dependency security checks — in progress.
-5. Preregistered cold-agent adoption experiment.
+4. Packed-release dependency security checks — implemented; exact local candidate passes.
+5. Preregistered cold-agent adoption experiment — protocol and scorer reviewed; registration next.
 6. Dated name audit before 1.0.
 
 Each item requires the acceptance evidence below before it is recorded as done.
@@ -77,3 +77,27 @@ worker faults and cancellation/EOF under stdout backpressure. The pinned
 official SDK 1.31.0 discovers and calls all five tools against the checkout;
 its same interoperability check is registered in the installed-package gate.
 No live desktop-host installation is claimed.
+
+Final local candidate: clean compiled revision `a24a6e91d75eeab466baa32a108ee9a242f43ac2`;
+all 229 kit tests pass. The installed package gate passes both executable names,
+collision owners, doctor/demo, the official MCP client, library, published-guide
+flows, Python suites and Chromium 140.0.7339.186. Package report:
+`test-results/kit-package/2026-10-02T00-40-22-944Z/report.json`.
+Tarball SHA-256: `eea2c9239f3d648a1af740843abee5ed1eac1c972c327793bb9af2ede36b9a1f`
+(810,225 bytes). This Windows-built candidate is the study artifact; publication
+still requires the reviewed Linux release artifact and separate authorization.
+
+The [security gate](PACKAGE_SECURITY.md) passed against those exact bytes on
+2026-10-02 at 00:44 UTC: all five npm scopes reported zero findings; the complete
+Rust build lockfile reported zero vulnerabilities and zero informational
+warnings against RustSec commit `6de4455103aced2cba86e3b86e5c090b22827cf1`.
+Receipt: `test-results/kit-security/2026-10-02T00-43-55-847Z-66076/report.json`.
+Eight refusal controls pass. Playwright is patched to 1.55.1; the real competitor
+fixture keeps caveat-cli 0.19.13 with its explicitly recorded smol-toml 1.7.1
+override. These are known-advisory results at the recorded time, not a general
+security certification. CI retains distinct receipt artifacts for each retry.
+
+The study's [protocol](../experiments/agent-adoption/v1/PROTOCOL.md), task and
+private scorer were reviewed before registration. Sixteen controls pass,
+including a valid alternative implementation and targeted broken variants.
+Trial results are recorded separately from these evaluator tests.
