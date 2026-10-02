@@ -83,6 +83,10 @@ save is refused with an error, and never crashes the runtime, when:
   and a withdrawal's reason. Evidence enters these only once observed, and
   the next commitment, qualification or withdrawal that reads it requires
   that;
+- a state's grounds cite evidence or caveats outside its saved lineage, or a
+  commitment's grounds cite dependencies outside its frozen basis. Grounds
+  may be a strict subset; an omitted state grounds field still defaults to
+  that state's saved lineage;
 - a commitment retains a caveat or relies on evidence that is not in its
   basis. A commitment retains exactly its basis's caveats and relies on
   exactly its evidence, and reading `committed(...)` or `reopened(...)` adds
@@ -136,6 +140,14 @@ different trust mechanism. Mutation tests exercise the requirement that an
 edited save is refused or remains playable without crashing.
 
 ## Changes
+
+- 2026-10-02: restore checks that state and commitment grounds are subsets of
+  their saved lineage and frozen basis, for both evidence and caveats. Edited
+  saves could add unrelated observed evidence or declared caveats to grounds;
+  even matching edits to a commitment's journal passed without this check.
+  Such saves are now refused. Narrowed or omitted state grounds, neutral
+  observations, and historical grounds frozen before later caveats keep their
+  existing meaning.
 
 - 2026-10-01: [Neutral Reveal 0.1](caveat-neutral-reveal-0.1.md) adds an
   optional ordered `observations` record without fabricating graph relations.

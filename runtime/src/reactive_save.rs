@@ -260,6 +260,26 @@ fn check_relations_within_bases(save: &ReactiveSave) -> Result<(), String> {
     Ok(())
 }
 
+/// Grounds can narrow lineage, but cannot introduce another dependency. Use
+/// the saved state or frozen commitment basis, never today's qualifications.
+fn check_grounds_within_lineage(
+    what: &str,
+    grounds: &Provenance,
+    lineage: &Provenance,
+) -> Result<(), String> {
+    for (kind, names, allowed) in [
+        ("evidence", &grounds.evidence, &lineage.evidence),
+        ("caveat", &grounds.caveats, &lineage.caveats),
+    ] {
+        if let Some(name) = names.difference(allowed).next() {
+            return Err(format!(
+                "{what} grounds include {kind} {name} outside its lineage"
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn reason_name(reason: &StopReason) -> Result<&'static str, String> {
     Ok(match reason {
         StopReason::Enough => "enough",
@@ -981,6 +1001,7 @@ impl ReactiveSession {
             check_range(name, state.value, range.min, range.max)?;
             self.check_provenance(&format!("state {name}"), lineage, observed)?;
             self.check_provenance(&format!("state {name} grounds"), grounds, observed)?;
+            check_grounds_within_lineage(&format!("state {name}"), grounds, lineage)?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(
                 slot,
@@ -1273,6 +1294,19 @@ impl ReactiveSession {
         }
         self.check_saved_journal(save, observed)?;
         check_relations_within_bases(save)?;
+        // Keep the existing journal and relation diagnostics first. A matching
+        // journal alone cannot establish that grounds belong to the basis.
+        for (name, grounds) in &save.commitment_grounds {
+            let basis = save
+                .commitment_bases
+                .get(name)
+                .ok_or_else(|| format!("commitment {name} has no basis"))?;
+            check_grounds_within_lineage(
+                &format!("commitment {name}"),
+                &grounds.0,
+                &basis.provenance,
+            )?;
+        }
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
         self.reading_streams = Arc::new(save.reading_streams.clone());

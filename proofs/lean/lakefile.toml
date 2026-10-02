@@ -1,0 +1,6 @@
+name = "caveat_proofs"
+version = "0.1.0"
+defaultTargets = ["Caveat"]
+
+[[lean_lib]]
+name = "Caveat"
