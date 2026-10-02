@@ -10,7 +10,7 @@ connection created [PR86](https://github.com/WSattazahn/caveat-lang/pull/86)
 without changing settings or protection. Failure receipt artifact11234894115
 (SHA256 d643906f7f2e0f822011acd9404f26cfdded8bd1fe87c88902195cc029b6fca3)
 and inspector37027019037 preserve the actual result. Normal PR review/CI,
-merge and final-main Pages checks are completed by the cloud follow-up; the
+merge and final-main Pages checks will be completed by the cloud follow-up; the
 owner does not need another publication or dispatch command. The procedure
 below is retained for review and recovery, not a request to publish again.
 
