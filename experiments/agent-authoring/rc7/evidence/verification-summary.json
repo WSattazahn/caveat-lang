@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "evaluatedAtUtc": "2026-10-01T22:50:46.219277+00:00",
+  "repository": "https://github.com/WSattazahn/caveat-lang",
+  "branch": "codex/rc7-agent-evaluation",
+  "base": "3eab7b37868b24586d739b6dc76fc682902bbe95",
+  "workingTree": "uncommitted development candidate",
+  "runtime": {
+    "reactiveWasmSha256": "c110650b0059ca7022f93197a42d195f1a138b1283ddbd6afb5ffba8d84e78ff",
+    "revision": "3eab7b37868b24586d739b6dc76fc682902bbe95",
+    "clean": false,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "gates": [
+    {
+      "name": "format",
+      "command": "cargo fmt --manifest-path runtime/Cargo.toml --all -- --check",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/rust-format-final.log",
+      "localLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "clippy",
+      "command": "cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/rust-clippy.log",
+      "localLogSha256": "7aab95163c83514a33e387690f834644e7687f87a9375aed49255123989d2d4d"
+    },
+    {
+      "name": "rust-tests",
+      "command": "cargo test --manifest-path runtime/Cargo.toml --all-targets",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/rust-tests.log",
+      "localLogSha256": "752ab68ba03522ec608d012a1504fa7f8e098220d17c36dc20e2c3be27e56c14"
+    },
+    {
+      "name": "reactive-clippy",
+      "command": "cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/rust-reactive-clippy.log",
+      "localLogSha256": "269ddaf930a5fa5d9d39a8d179dba8d672990f8689acff731edfffe9bd0f823d"
+    },
+    {
+      "name": "reactive-tests",
+      "command": "cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/rust-reactive-tests.log",
+      "localLogSha256": "969e9a12374fcf35351cbdffec9fad0c734324d50ad678a39a220207b6d3632b"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/build-final.log",
+      "localLogSha256": "1d4a0b3f2bee2b4bbd29282254d0840f45740b98e9b19c022ecdbef6503b5db9"
+    },
+    {
+      "name": "kit",
+      "command": "npm run test:kit",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/kit-tests-final.log",
+      "localLogSha256": "87fc542881aa935f6048f9247721088a925483e70757b4fe1bfa9a7e6170757c"
+    },
+    {
+      "name": "package",
+      "command": "npm run test:kit-package",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/kit-package.log",
+      "localLogSha256": "4ae2d002c901230d5dbe8ed06ec04a02c9ae6254188048f9dee04b5e71274ae8"
+    },
+    {
+      "name": "check:notices",
+      "command": "npm run check:notices",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/check-notices.log",
+      "localLogSha256": "7beb1731e636e343b3bd0a83303180f376a8f1f140f4b7bcf379ed28e8137cc6"
+    },
+    {
+      "name": "test:slime-glow",
+      "command": "npm run test:slime-glow",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-slime-glow.log",
+      "localLogSha256": "784c0c27458a2580c3afc7851bb5cc1d85c8586b26c3b7b7c18e50943a749dd4"
+    },
+    {
+      "name": "test:elapsed-clock",
+      "command": "npm run test:elapsed-clock",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-elapsed-clock.log",
+      "localLogSha256": "ecb898fe5dff8ad7b2ef462ae261d77ecde489b3b2aa19234feac1a0e526773d"
+    },
+    {
+      "name": "test:dispatch-outcomes",
+      "command": "npm run test:dispatch-outcomes",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-dispatch-outcomes.log",
+      "localLogSha256": "22c26e9baa24cb8285ff8b5d4c9a766707676aa2497fe148ca77769c262057c6"
+    },
+    {
+      "name": "test:glowcap",
+      "command": "npm run test:glowcap",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-glowcap.log",
+      "localLogSha256": "7da3b58b6863692e015a567ee3a9199a9c07aa19f14755780123b7481cf66159"
+    },
+    {
+      "name": "test:trail-rescue",
+      "command": "npm run test:trail-rescue",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-trail-rescue.log",
+      "localLogSha256": "33bdef20617b73182fa52bdad39b093450406874af27b274b552e3551e949409"
+    },
+    {
+      "name": "test:scenario-conversion",
+      "command": "npm run test:scenario-conversion",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-scenario-conversion.log",
+      "localLogSha256": "79f0b05104e06d7bb984790a7277a6aeef02efb0d953e51acf4ff8c44917f104"
+    },
+    {
+      "name": "check:scenario-mutations",
+      "command": "npm run check:scenario-mutations",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/check-scenario-mutations.log",
+      "localLogSha256": "c9027791076b511211b980ff1d36222776e3cd7adbe214a4b4a950d0126b8880"
+    },
+    {
+      "name": "test:kit-browser",
+      "command": "npm run test:kit-browser",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-kit-browser.log",
+      "localLogSha256": "993d33529c790866d105b7a62cdd84559fd9775726f273aa48da1b2d1554a984"
+    },
+    {
+      "name": "test:glowcap-page",
+      "command": "npm run test:glowcap-page",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-glowcap-page.log",
+      "localLogSha256": "76d0a82d58c35cc06b4371dc9d480e16c937f9330d71a156b971bc2000152252"
+    },
+    {
+      "name": "test:trail-rescue-page",
+      "command": "npm run test:trail-rescue-page",
+      "exit": 0,
+      "localLog": "test-results/rc7-evaluation/test-trail-rescue-page.log",
+      "localLogSha256": "13b39ed8e9ce7c8c58c6f90e2348243eae422f72fd49c7ebca29869a58e7af36"
+    }
+  ],
+  "requestedUnavailableScripts": [
+    "npm run typecheck",
+    "npm run lint",
+    "npm run test",
+    "npm run audit:all"
+  ],
+  "suiteCounts": {
+    "rustFull": 717,
+    "rustReactiveOnly": 705,
+    "kit": 175,
+    "originalPythonStarter": {
+      "discovered": 53,
+      "passed": 52,
+      "skipped": 1
+    },
+    "rc7Python": {
+      "lifecycle": 9,
+      "qualification": 2,
+      "exactGrounds": 9,
+      "branchRecipe": 1
+    },
+    "nativeDiagnosticTests": 4,
+    "wasmDiagnosticTests": 4,
+    "isolationTests": 6,
+    "freshAgent": {
+      "scenarios": 5,
+      "hostTests": 7
+    },
+    "MuseOriginals": {
+      "v1Reported": 4,
+      "v2Reported": 7,
+      "rerun": false
+    },
+    "DotOriginal": {
+      "reported": 8,
+      "rerun": false
+    }
+  },
+  "package": {
+    "report": "test-results/kit-package/2026-10-01T22-46-15-154Z/report.json",
+    "bytes": 773795,
+    "sha256": "12d03c9a7866cf516f96af6fc8de1544d9e324c5b2efb8cfb9118c58bd629bad",
+    "browser": "140.0.7339.16",
+    "published": false,
+    "reportLocalOnly": true
+  },
+  "limitations": [
+    "Muse and Dot original projects unavailable; no copied-starter equality claim.",
+    "WASM trap injected through production adapter; not a natural Caveat source trap or resource/process failure proof.",
+    "v1/v2 authoring sources validated; private historical scoring not rerun.",
+    "One fresh synthetic author trial is not a reliability estimate."
+  ],
+  "authoringFixtures": {
+    "checks": 24,
+    "passed": 24,
+    "receipt": "authoring-fixtures.json",
+    "receiptLocalOnly": true
+  },
+  "scope": "Historical combined working candidate before separation into review commits; includes diagnostics. Not certification of either isolated PR head or a release.",
+  "localReceiptDirectory": "test-results/rc7-evaluation (ignored; available in the author checkout only)",
+  "freshRerunReceipts": [
+    "fresh-validate.txt",
+    "fresh-check.txt",
+    "fresh-scenarios.txt",
+    "fresh-host.txt"
+  ]
+}

@@ -1,0 +1,382 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "task.cav",
+  "scenarios": [
+    {
+      "id": "S01",
+      "title": "Same-task second observation creates new grounds; resume and correct latest",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 85
+          }
+        },
+        {
+          "send": "consult"
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@1",
+            "/commitment_grounds/assessment@1/evidence": {
+              "$set": [
+                "observations@1",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@1/caveats": {
+              "$set": []
+            }
+          }
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 90
+          }
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "reopened"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@2",
+            "/commitment_grounds/assessment@2/evidence": {
+              "$set": [
+                "observations@2",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@2/caveats": {
+              "$set": []
+            }
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "retract"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "reopened",
+            "/withdrawals/0/evidence": "observations@2"
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": "The latest observation is withdrawn."
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 88
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@3",
+            "/commitment_grounds/assessment@3/evidence": {
+              "$set": [
+                "observations@3",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@3/caveats": {
+              "$set": []
+            }
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/assessment@1",
+            "/commitment_bases/assessment@1",
+            "/decision_journal/0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Required observation can reject after approval, with later retry",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 85
+          }
+        },
+        {
+          "send": "consult"
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@1",
+            "/commitment_grounds/assessment@1/evidence": {
+              "$set": [
+                "observations@1",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@1/caveats": {
+              "$set": []
+            }
+          }
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 250
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@1",
+            "/commitment_grounds/assessment@1/evidence": {
+              "$set": [
+                "observations@1",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@1/caveats": {
+              "$set": []
+            }
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 92
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@2",
+            "/commitment_grounds/assessment@2/evidence": {
+              "$set": [
+                "observations@2",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@2/caveats": {
+              "$set": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Consulted source qualifies late; exact earlier and later grounds survive restore",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 85
+          }
+        },
+        {
+          "send": "consult"
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@1",
+            "/commitment_grounds/assessment@1/evidence": {
+              "$set": [
+                "observations@1",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@1/caveats": {
+              "$set": []
+            }
+          }
+        },
+        {
+          "checkpoint": "first"
+        },
+        {
+          "send": "qualify_reference"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "reopened",
+            "/decision_journal/1/because": [
+              "reference"
+            ],
+            "/decision_journal/1/caveats": {
+              "$set": [
+                "outdated"
+              ]
+            }
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@2",
+            "/commitment_grounds/assessment@2/evidence": {
+              "$set": [
+                "observations@1",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@2/caveats": {
+              "$set": [
+                "outdated"
+              ]
+            }
+          }
+        },
+        {
+          "expect": {
+            "/commitment_bases/assessment@2/value": 75
+          }
+        },
+        {
+          "same_as": "first",
+          "paths": [
+            "/commitment_grounds/assessment@1",
+            "/commitment_bases/assessment@1",
+            "/decision_journal/0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Missing, weak, and withdrawn evidence cannot approve",
+      "steps": [
+        {
+          "send": "assess",
+          "rejected": "No observation to assess."
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 20
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": "Consult the reference first."
+        },
+        {
+          "send": "consult"
+        },
+        {
+          "send": "assess",
+          "rejected": "The effective confidence is below 70."
+        },
+        {
+          "send": "retract"
+        },
+        {
+          "send": "assess",
+          "rejected": "The latest observation is withdrawn."
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "none"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "title": "Qualification penalty changes permission to answer under this policy",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 75
+          }
+        },
+        {
+          "send": "consult"
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "qualify_reference"
+        },
+        {
+          "send": "assess",
+          "rejected": "The effective confidence is below 70."
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "confidence": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/bindings/assessment/verdict": "approved",
+            "/decision_series/assessment/current": "assessment@2",
+            "/commitment_grounds/assessment@2/evidence": {
+              "$set": [
+                "observations@2",
+                "reference"
+              ]
+            },
+            "/commitment_grounds/assessment@2/caveats": {
+              "$set": [
+                "outdated"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

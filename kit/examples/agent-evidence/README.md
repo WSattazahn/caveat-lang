@@ -9,8 +9,10 @@ wrong, and asks for a new assessment. It talks to the program through
 - `assessment.cav`: the program.
 - `caller.py`: a client for [Serve 0.1](../../docs/reference/spec/caveat-serve-0.1.md),
   standard library only, Python 3.9 or later.
-- `test_caller.py`: tests that drive a real `caveat serve` process through the
-  situations below.
+- `test_caller.py`: the original 53 caller tests, including real-server and
+  protocol-failure cases.
+- `test_lifecycle.py`: nine additional real-server lifecycle tests (L1-L8 and
+  separate-task isolation), including the executable examples below.
 
 For the language, read the [worked example](../../docs/WORKED_EXAMPLE.md) and
 [Caveat on one page](../../docs/REFERENCE.md). This page does not repeat them.
@@ -229,6 +231,173 @@ send to finish, for example by awaiting the executor's future, or start a new
 server. A late operation would otherwise land in the next attempt, and could
 become its evidence.
 
+## Assessing again
+
+An assessment in this starter is about one answer in one session. An `Attempt`
+is one run of required operations; it does not create a new Caveat session or
+clear an earlier approval. Choose the lifecycle for the application:
+
+| Situation | Use |
+| --- | --- |
+| Assess one answer once | `assess_answer(server, confidence)` in a fresh session. |
+| Receive more evidence about that same answer | Keep the session and choose when its policy should reopen the assessment. |
+| Correct an observation that was wrong | Withdraw that observation with a reason, then send replacement evidence. |
+| Assess an unrelated task or answer | Open a separate session. This starter has no task identity field. |
+
+### What the shipped policy does
+
+The shipped declaration reopens only on an opposing observation:
+
+```caveat
+decisions assessment limit 8 reopened by observations opposing answer_supported;
+```
+
+After an approval, another supporting observation is recorded but leaves that
+revision in force. The approval still rests on its original observation. A
+second `assess` is refused with `policy/reject` and `Already assessed.`; the
+complete saved session stays unchanged by that refused event. Consequently,
+calling `assess_answer` again with another supporting observation does not
+succeed: its `observe` succeeds, but its required `assess` does not. This is
+the authored policy, not a server reset or an implicit reassessment.
+
+Each Python block in this section is executable. Save it as a `.py` file next
+to `caller.py` and `assessment.cav`, then run `python3 -B YOUR_FILE.py` from
+that directory. Use the same `CAVEAT_COMMAND` setup described above. The
+lifecycle suite executes these exact blocks.
+
+<!-- lifecycle-example: shipped -->
+```python
+from pathlib import Path
+from caller import CaveatServer, assess_answer
+
+program = Path(__file__).with_name("assessment.cav")
+with CaveatServer(str(program)) as server:
+    first = assess_answer(server, 85)
+    assert first.succeeded
+    assert server.dispatch("observe", {"confidence": 90}).accepted
+    before = server.save()
+    duplicate = server.dispatch("assess")
+    assert (duplicate.origin, duplicate.code, duplicate.message) == (
+        "policy", "reject", "Already assessed.")
+    assert server.save() == before
+    current = server.snapshot()
+    assert current["decision_series"]["assessment"]["current"] == "assessment@1"
+    assert current["commitment_bases"]["assessment@1"]["value"] == 85
+```
+
+A new opposing observation does reopen the approval. It remains evidence
+against the answer; attempting to approve while it is latest is refused.
+Earlier evidence and frozen decision grounds remain inspectable in both cases.
+
+### Reassess after every observation
+
+For a repeated evaluation of the same answer where each new observation must
+be assessed, change the declaration in an application-specific copy to:
+
+```caveat
+decisions assessment limit 8 reopened by observations;
+```
+
+This is an alternate authored policy. Every new sample, including a repeated
+numeric value, reopens the current revision. A later accepted `assess` creates
+the next revision, whose grounds cite the new observation. It does not rewrite
+the earlier revision or make an opposing observation sufficient for approval.
+
+The example below derives that copy in a temporary directory; it leaves the
+shipped program unchanged.
+
+<!-- lifecycle-example: every-observation -->
+```python
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from caller import CaveatServer, assess_answer
+
+source = Path(__file__).with_name("assessment.cav").read_text(encoding="utf-8")
+old = "decisions assessment limit 8 reopened by observations opposing answer_supported;"
+new = "decisions assessment limit 8 reopened by observations;"
+assert source.count(old) == 1
+with TemporaryDirectory() as directory:
+    program = Path(directory) / "every_observation.cav"
+    program.write_text(source.replace(old, new), encoding="utf-8")
+    with CaveatServer(str(program)) as server:
+        first = assess_answer(server, 85)
+        second = assess_answer(server, 90)
+        assert first.succeeded and second.succeeded
+        assert second.snapshot["decision_series"]["assessment"]["current"] == "assessment@2"
+        grounds = second.snapshot["commitment_grounds"]
+        assert set(grounds["assessment@2"]["evidence"]) == {"observations@2"}
+        assert grounds["assessment@1"] == first.snapshot["commitment_grounds"]["assessment@1"]
+```
+
+### Correct evidence; keep attempt results separate
+
+If an observation was misreported, `retract` records its withdrawal and reason.
+The shipped program's explicit rule reopens an approval resting on that
+withdrawn observation. Replacement evidence can then support a new revision.
+Do not withdraw valid evidence merely to get around `Already assessed.`;
+choose the reopening policy the application needs.
+
+<!-- lifecycle-example: correction -->
+```python
+from pathlib import Path
+from caller import CaveatServer, assess_answer
+
+program = Path(__file__).with_name("assessment.cav")
+with CaveatServer(str(program)) as server:
+    first = assess_answer(server, 85)
+    assert first.succeeded
+    assert server.dispatch("retract").accepted
+    assert server.snapshot()["bindings"]["assessment"]["verdict"] == "reopened"
+    failed = assess_answer(server, 250)
+    assert not failed.succeeded
+    corrected = assess_answer(server, 90)
+    assert corrected.succeeded
+    assert not failed.succeeded
+    current = corrected.snapshot
+    assert current["withdrawals"][0]["evidence"] == "observations@1"
+    assert current["commitment_grounds"]["assessment@1"] == first.snapshot["commitment_grounds"]["assessment@1"]
+    assert set(current["commitment_grounds"]["assessment@2"]["evidence"]) == {"observations@2"}
+```
+
+`retract` targets only the latest observation. If an older observation needs
+correction after more readings have arrived, this starter does not expose an
+event for selecting that older occurrence. Extend the application's authored
+withdrawal policy instead of withdrawing a different reading.
+
+A rejected or unfinished required operation fails its own attempt even when
+an older approval is visible. A later attempt with accepted operations and a
+new approval is evaluated independently. Once an attempt is finished, its
+result does not change. One attempt at a time per server still applies.
+
+### Task boundaries and resuming
+
+A new `Attempt(server)` continues the same answer's history. For an unrelated
+task, create a new `CaveatServer` and close the old one when finished. No
+claim here binds an approval to a task ID, a file, or an external answer. A
+multi-task application must author and check that binding before it shares a
+session across tasks. Reading names such as `observations@1` are local to a
+session, not globally unique task identifiers.
+
+`server.save()` and `server.restore(saved)` continue the same task with the
+same source and history. Restoring does not make old approvals current for a
+new attempt. The lifecycle tests compare the entire snapshot and save after
+restore and after every subsequent accepted or rejected event under both
+policies. Serve's `explain` event list starts again after restore; the snapshot
+retains the decision and observation history.
+
+From this rc.7 development checkout or a package candidate containing the new
+suite, run it separately from the original 53 tests:
+
+```sh
+python3 -B -m unittest -v test_lifecycle
+```
+
+Its nine tests cover L1 duplicate refusal, L2 supporting evidence with the
+shipped policy, L3 the alternate policy, L4 opposition, L5 a rejected required
+operation after an old approval, L6 a later successful attempt, L7 unfinished
+work, L8 save/restore continuation, and separate-task isolation. The original
+caller suite also tests interrupted and in-flight operations.
+
 ## Change it
 
 To make the approval rest on more evidence, declare it and its event in the
@@ -236,6 +405,11 @@ program, and add its `require` call to `assess_answer`. Then make
 `assessment_permits` check that the grounds of the approval in force include
 it, and give the evidence its own withdrawal and reopening rules. Grounds are
 sets: compare them as sets. Tests that call `assess_answer` keep working.
+
+The executable [qualification and exact-grounding examples](QUALIFICATION.md)
+distinguish templates, current values, archived readings and frozen decisions.
+They also show how to check required sources and explicitly allow memory
+carry-over. For hypothetical execution, see the [separate-runtime recipe](BRANCHING.md).
 
 ## From code instead
 

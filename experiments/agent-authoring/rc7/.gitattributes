@@ -1,0 +1,6 @@
+# Frozen inputs are archival evidence: preserve original bytes, including whitespace.
+evidence/combined-brief.txt -text -whitespace
+evidence/whatif-followup.txt -text -whitespace
+trial01/first/** -text -whitespace
+trial01/final/** -text -whitespace
+trial01/logs/*.log -text -whitespace

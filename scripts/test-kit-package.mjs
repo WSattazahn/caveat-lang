@@ -53,7 +53,9 @@ const LIBRARY = ['check', 'explain', 'node', 'scenarios', 'serve', 'session'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
-const EXAMPLE_FILES = ['README.md', 'assessment.cav', 'caller.py', 'test_caller.py'].map(file => `${EXAMPLE}/${file}`);
+const EXAMPLE_FILES = ['README.md', 'QUALIFICATION.md', 'BRANCHING.md', 'test_branching.py', 'assessment.cav', 'caller.py', 'test_caller.py',
+  'test_lifecycle.py', 'qualification.cav', 'test_qualification.py',
+  'grounded_assessment.cav', 'grounds.py', 'test_grounds.py'].map(file => `${EXAMPLE}/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -341,6 +343,13 @@ assert.match(called.report, process.platform === 'win32' ? /\nOK \(skipped=1\)\n
 assert.doesNotMatch(called.report, /ResourceWarning/, 'the caller leaves a pipe or file open');
 assert.deepEqual(called.after, called.before, 'the caller tests left files behind');
 report.checks.agentEvidence = { python: called.python, tests: Number(/^Ran (\d+) tests?/m.exec(called.report)?.[1]) };
+const rc7Called = await runCallerTests(agentEvidence, null, ['test_lifecycle', 'test_qualification', 'test_grounds', 'test_branching']);
+assert.equal(rc7Called.status, 0, `${rc7Called.python}\n${rc7Called.stdout}${rc7Called.stderr}`);
+assert.match(rc7Called.report, /\nOK\n?$/);
+assert.doesNotMatch(rc7Called.report, /ResourceWarning/);
+assert.deepEqual(rc7Called.after, rc7Called.before, 'the rc.7 example tests left files behind');
+report.checks.agentEvidenceRc7 = { python: rc7Called.python, tests: Number(/^Ran (\d+) tests?/m.exec(rc7Called.report)?.[1]) };
+
 
 // The session library and runner in a browser, loaded from the installed package.
 if (!process.argv.includes('--no-browser')) {

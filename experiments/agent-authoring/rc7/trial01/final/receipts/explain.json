@@ -1,0 +1,188 @@
+{
+  "schema": "caveat-explain/0.1",
+  "sequence": 5,
+  "elapsed": 0,
+  "events": [
+    {
+      "event": "observe",
+      "payload": {
+        "confidence": 85
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "consult",
+      "payload": {},
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "qualify_reference",
+      "payload": {},
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "outcome": {
+        "outcome": "accepted"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "name": "assessment",
+      "limit": 8,
+      "current": "assessment@2",
+      "revisions": [
+        {
+          "id": "assessment@1",
+          "value": 85,
+          "status": "superseded",
+          "grounds": {
+            "evidence": [
+              "observations@1",
+              "reference"
+            ],
+            "caveats": []
+          },
+          "lineage": {
+            "evidence": [
+              "observations@1",
+              "reference"
+            ],
+            "caveats": []
+          },
+          "permission": null,
+          "withdrawn": [],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 3,
+              "event": "assess",
+              "because": [
+                "observations@1",
+                "reference"
+              ],
+              "caveats": []
+            },
+            {
+              "change": "reopened",
+              "sequence": 4,
+              "event": "qualify_reference",
+              "because": [
+                "reference"
+              ],
+              "caveats": [
+                "outdated"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "assessment@2",
+          "value": 75,
+          "status": "in force",
+          "grounds": {
+            "evidence": [
+              "observations@1",
+              "reference"
+            ],
+            "caveats": [
+              "outdated"
+            ]
+          },
+          "lineage": {
+            "evidence": [
+              "observations@1",
+              "reference"
+            ],
+            "caveats": [
+              "outdated"
+            ]
+          },
+          "permission": null,
+          "withdrawn": [],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 5,
+              "event": "assess",
+              "because": [
+                "observations@1",
+                "reference"
+              ],
+              "caveats": [
+                "outdated"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "observations@1",
+      "relation": "supports",
+      "claim": "answer_supported",
+      "value": 85,
+      "sequence": 1,
+      "event": "observe",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "reference",
+      "relation": "supports",
+      "claim": "reference_consulted",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "outdated"
+      ],
+      "withdrawn": null
+    }
+  ],
+  "displayed": [
+    {
+      "name": "assessment.effective_confidence",
+      "value": 75,
+      "cites": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": [
+          "outdated"
+        ]
+      }
+    },
+    {
+      "name": "assessment.verdict",
+      "value": "approved",
+      "cites": {
+        "evidence": [
+          "observations@1",
+          "reference"
+        ],
+        "caveats": [
+          "outdated"
+        ]
+      }
+    }
+  ]
+}

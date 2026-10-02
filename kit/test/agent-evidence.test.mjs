@@ -67,3 +67,19 @@ test('the Python caller\'s tests pass against this checkout\'s caveat serve', as
   assert.doesNotMatch(result.report, /ResourceWarning/, 'the caller leaves a pipe or file open');
   assert.deepEqual(result.after, result.before, 'the tests left files in the example');
 });
+
+// Keep the original caller count separate from the rc.7 application examples.
+test('rc.7 lifecycle, qualification, and exact-grounding examples pass', async () => {
+  for (const program of ['qualification.cav', 'grounded_assessment.cav']) {
+    const validated = caveat('validate', program);
+    assert.equal(validated.status, 0, validated.stdout + validated.stderr);
+    const checked = caveat('check', '--strict', program);
+    assert.equal(checked.status, 0, checked.stdout + checked.stderr);
+  }
+  const result = await runCallerTests(example, [process.execPath, cli],
+    ['test_lifecycle', 'test_qualification', 'test_grounds', 'test_branching']);
+  assert.equal(result.status, 0, `${result.python}\n${result.stdout}${result.stderr}`);
+  assert.match(result.report, /\nOK\n?$/);
+  assert.doesNotMatch(result.report, /ResourceWarning/);
+  assert.deepEqual(result.after, result.before, 'the rc.7 tests left files in the example');
+});

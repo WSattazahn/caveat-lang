@@ -1,0 +1,38 @@
+scene "One task: fresh clarity and tools, with explicitly permitted memory carry-over.";
+claim answer_supported;
+claim misreport;
+evidence user_report from "the current task's user intent";
+evidence memory from "memory consulted for this task";
+evidence tool from "a tool result for this task";
+evidence recheck from "a correction of the clarity reading";
+readings clarity from user_report limit 16;
+readings freshness from memory limit 16;
+readings tools from tool limit 16;
+decisions assessment limit 8 reopened by clarity, freshness, tools;
+event observe_clarity confidence min 0 max 100;
+event observe_memory confidence min 0 max 100;
+event observe_tool confidence min 0 max 100;
+event assess;
+event retract_clarity;
+proc record(stream readings, score) {
+    when score >= 70 sample stream = score supports answer_supported;
+    when score < 70 sample stream = score opposes answer_supported;
+};
+on observe_clarity call record(clarity, confidence);
+on observe_memory call record(freshness, confidence);
+on observe_tool call record(tools, confidence);
+on assess when not has_sample(clarity) reject "Missing clarity.";
+on assess when not has_sample(freshness) reject "Missing memory.";
+on assess when not has_sample(tools) reject "Missing tool evidence.";
+on assess when withdrawn(latest(clarity)) reject "Clarity was withdrawn.";
+on assess when committed(assessment) and not reopened(assessment) reject "Already assessed.";
+on assess when min(latest(clarity), min(latest(freshness), latest(tools))) < 70 reject "Evidence too weak.";
+on assess commit assessment because enough using (latest(clarity) + latest(freshness) + latest(tools)) / 3;
+on retract_clarity when not has_sample(clarity) reject "No clarity to withdraw.";
+on retract_clarity when not observed(recheck) reveal recheck supports misreport;
+on retract_clarity withdraw latest(clarity) because recheck;
+on retract_clarity when committed(assessment) and not reopened(assessment) and rests_on_withdrawn(assessment)
+    reopen assessment because recheck;
+bind assessment.verdict = "none";
+bind assessment.verdict = "approved" when committed(assessment) and not reopened(assessment);
+bind assessment.verdict = "reopened" when reopened(assessment);

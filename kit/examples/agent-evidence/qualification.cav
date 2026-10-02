@@ -1,0 +1,26 @@
+scene "An evidence template is not its reading occurrences.";
+claim memory_available;
+claim memory_fresh;
+claim review_needed;
+evidence memory from "the consulted memory source";
+evidence review from "a request to reconsider";
+caveat stale consequence material;
+readings freshness from memory limit 8;
+decisions strategy limit 8;
+state direct = 0;
+event remember confidence min 0 max 100;
+event assess;
+event learn_stale;
+event reconsider;
+# This example explicitly claims that the consulted source is available.
+# Sampling alone observes freshness@N, not the memory template.
+on remember when not observed(memory) reveal memory supports memory_available;
+on remember set direct = qualified(confidence, memory);
+on remember sample freshness = confidence supports memory_fresh;
+on assess when not has_sample(freshness) reject "No memory reading.";
+on assess when committed(strategy) and not reopened(strategy) reject "Already assessed.";
+on assess commit strategy because enough using latest(freshness);
+on learn_stale qualify memory with stale;
+on reconsider when not observed(review) reveal review supports review_needed;
+on reconsider when committed(strategy) and not reopened(strategy) reopen strategy because review;
+bind memory.direct = direct;

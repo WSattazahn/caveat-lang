@@ -1,0 +1,83 @@
+{
+  "schema": "caveat-dependents/0.1",
+  "subject": "reference",
+  "kind": "evidence",
+  "sequence": 5,
+  "decisions": [
+    {
+      "id": "assessment@1",
+      "value": 85,
+      "status": "superseded",
+      "basis": "grounds",
+      "via": [
+        "reference"
+      ]
+    },
+    {
+      "id": "assessment@2",
+      "value": 75,
+      "status": "in force",
+      "basis": "grounds",
+      "via": [
+        "reference"
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "sequence": 3,
+      "event": "assess",
+      "commitment": "assessment@1",
+      "change": "committed",
+      "via": [
+        "reference"
+      ]
+    },
+    {
+      "sequence": 4,
+      "event": "qualify_reference",
+      "commitment": "assessment@1",
+      "change": "reopened",
+      "via": [
+        "reference"
+      ]
+    },
+    {
+      "sequence": 5,
+      "event": "assess",
+      "commitment": "assessment@2",
+      "change": "committed",
+      "via": [
+        "reference"
+      ]
+    }
+  ],
+  "values": [
+    {
+      "name": "assessment_basis",
+      "value": 75,
+      "basis": "grounds",
+      "via": [
+        "reference"
+      ]
+    }
+  ],
+  "displayed": [
+    {
+      "name": "assessment.effective_confidence",
+      "value": 75,
+      "basis": "cites",
+      "via": [
+        "reference"
+      ]
+    },
+    {
+      "name": "assessment.verdict",
+      "value": "approved",
+      "basis": "cites",
+      "via": [
+        "reference"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+[
+  {
+    "command": [
+      "node",
+      "kit/bin/caveat.mjs",
+      "validate",
+      "experiments\\agent-authoring\\rc7\\trial01\\first\\task.cav"
+    ],
+    "exit_code": 0,
+    "log": "logs/first-validate.log"
+  },
+  {
+    "command": [
+      "node",
+      "kit/bin/caveat.mjs",
+      "check",
+      "experiments\\agent-authoring\\rc7\\trial01\\first\\task.cav"
+    ],
+    "exit_code": 0,
+    "log": "logs/first-check.log"
+  },
+  {
+    "command": [
+      "node",
+      "kit/bin/caveat.mjs",
+      "test",
+      "experiments\\agent-authoring\\rc7\\trial01\\first\\task.scenarios.json"
+    ],
+    "exit_code": 0,
+    "log": "logs/first-scenarios.log"
+  },
+  {
+    "command": [
+      "python",
+      "-B",
+      "experiments\\agent-authoring\\rc7\\trial01\\first\\host.py"
+    ],
+    "exit_code": 0,
+    "log": "logs/first-host.log"
+  }
+]
