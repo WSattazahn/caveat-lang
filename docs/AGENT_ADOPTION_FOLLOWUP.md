@@ -17,8 +17,8 @@ explicitly approved after the earlier proposal to defer it.
 2. Onboarding contract and README first screen — implemented and checked.
 3. Thin MCP authoring bridge — implemented; focused and official-client checks pass.
 4. Packed-release dependency security checks — implemented; exact local candidate passes.
-5. Preregistered cold-agent adoption experiment — protocol and scorer reviewed; registration next.
-6. Dated name audit before 1.0.
+5. Preregistered agent adoption experiment — executed and reviewed; final artifacts pass, with workspace-boundary deviations retained.
+6. Dated name audit — recorded; live trademark result searches remain unresolved.
 
 Each item requires the acceptance evidence below before it is recorded as done.
 
@@ -30,7 +30,7 @@ Each item requires the acceptance evidence below before it is recorded as done.
 | One-command agent demonstration | Show supplied evidence, a decision's exact grounds, a correction/new observation, reopening and preserved earlier grounds. | Fresh installed package completes a short deterministic run; output comes from real snapshots/explanations; file creation, if any, is explicit and refuses overwrites. |
 | Thin first-party MCP authoring bridge | Expose existing validate, check, test, explain and dependents results to agent hosts. | A separate interface review defines source/file boundaries, resource limits, structured errors and process ownership; no persistent sessions or hypothetical isolation promises in the first version. |
 | Onboarding contract | Help unfamiliar agents discover supported syntax, reproduce missing capabilities and report useful feedback. | Audit the existing repository AGENTS.md, authoring guide and Agent Feature Request template before adding another entrypoint; preserve user authorization for posting reports. |
-| Packed-release dependency security gate | Assess the actual shipped npm artifact and Rust dependencies rather than only the development checkout. | Define shipped/development scope, advisory sources, reproducible receipts, severity handling and an explicit resolution process for High/Critical findings; verify the actual candidate artifact. No scan result is claimed here. |
+| Packed-release dependency security gate | Assess the actual shipped npm artifact and Rust dependencies rather than only the development checkout. | Define shipped/development scope, advisory sources, reproducible receipts, severity handling and an explicit resolution process for High/Critical findings; verify the actual candidate artifact. Dated candidate results and their scope are recorded below. |
 | README first-screen revision | Show the problem, a few working commands and an observable payoff before detailed language theory. | Commands match the actually published version; an unfamiliar reader/agent can reproduce the displayed result. |
 | Cold-agent adoption experiment | Measure discovery, authoring, checking, scenarios, diagnosis, explanation, host integration and honest handling of missing capabilities. | Register tasks/scoring and package/build identity before runs; give several fresh agents only the intended public package/docs; preserve first attempts, interventions, failures and final artifacts. Do not relabel the earlier single synthetic trial as this study. |
 | Broader name audit before 1.0 | Record npm, GitHub, PyPI, crates.io, other package managers, papers, domains and trademark-database findings once. | Dated primary-source references, exact identities and field overlap; distinguish verified records from unanswered questions. The completed npm coexistence fixture is only one part of that audit. |
@@ -101,3 +101,40 @@ The study's [protocol](../experiments/agent-adoption/v1/PROTOCOL.md), task and
 private scorer were reviewed before registration. Sixteen controls pass,
 including a valid alternative implementation and targeted broken variants.
 Trial results are recorded separately from these evaluator tests.
+
+
+Study execution: [results and limitations](../experiments/agent-adoption/v1/RESULTS.md)
+and the [reviewed archive](../experiments/agent-adoption/v1/results/2026-10-02/README.md)
+retain all three runs. Final semantic checks passed 15/15 and host checks 10/10
+for each submission. A01/A02 passed initially; A03 repaired a load error.
+Rubric totals are 16/16, 16/16 and 15/16. All contexts encountered incorrect
+initial Windows shell working directories; A02 also enumerated outside-task
+filenames. No private source-content reads were observed, but these deviations
+prevent a clean packet-only trial claim. Unrelated listings are withheld from
+the public command exports; original hashes and redaction reasons are retained.
+No evaluator feedback or implementation rescue was provided. A discovered
+capture-I/O defect was fixed after execution under a documented amendment;
+six synthetic controls pass and original results remain unchanged.
+
+Hosted validation of implementation head `a24a6e9` passed in
+[Runtime CI run 36947117540](https://github.com/WSattazahn/caveat-lang/actions/runs/36947117540),
+including the installed package and Linux security gate; rustfmt also passed.
+GitHub tested merge revision `1079f1449dae17770e429ac4ec16e9bb990c6d86`
+(parents `c45be7f` and `a24a6e9`). Its Linux tarball SHA-256 is
+`0dcc47b0ba96413493562ba50cbf1735948c7fd7ebc52f5a59f967c9411ba771`,
+separate from the Windows study candidate above. The downloaded security
+report, SHA-256 `0d4a7aa04c6f7d10a7e803279befef77f17f50c3744b38c341dd0c0ef01bf138`,
+reports zero findings in all five npm scopes and zero Rust vulnerabilities or
+informational warnings. Its 28 command receipts and artifact hashes were
+checked; yanked-crate status is explicitly outside this audit's scope.
+
+The [dated name audit](NAME_AUDIT_2026-10-01.md) records package registries,
+GitHub, research, domains and available official trademark material. Its
+addendum closes the broad Maven query and `.io` registry lookup. Interactive
+USPTO/WIPO/TMview result searches and two authenticated TSDR status checks
+remain open because the available interfaces could not return them. This is
+a bounded discovery record, not legal clearance or an exhaustive naming review.
+It supports the existing CAVEAT Language identity and unambiguous CLI alias.
+
+Implementation and evidence are on draft PR #81. Publication, tagging, merging,
+and installing the bridge into a live desktop host have not been performed.

@@ -1,0 +1,120 @@
+{
+  "scope": "Follow-up only: one broad Maven retry, authoritative .io WHOIS, and two known TSDR serials. No personal contact fields retained.",
+  "completedAtUtc": "2026-10-02T00:40:10.843456+00:00",
+  "queries": [
+    {
+      "id": "maven-broad-retry",
+      "url": "https://search.maven.org/solrsearch/select?q=caveat&rows=30&wt=json",
+      "retrievedAtUtc": "2026-10-02T00:40:10.531459+00:00",
+      "httpStatus": 200,
+      "data": {
+        "responseHeader": {
+          "status": 0,
+          "QTime": 1,
+          "params": {
+            "q": "caveat",
+            "core": "",
+            "defType": "dismax",
+            "qf": "text^20 g^5 a^10",
+            "indent": "off",
+            "spellcheck": "true",
+            "fl": "id,g,a,latestVersion,p,ec,repositoryId,text,timestamp,versionCount",
+            "start": "",
+            "spellcheck.count": "5",
+            "sort": "score desc,timestamp desc,g asc,a asc",
+            "rows": "30",
+            "wt": "json",
+            "version": "2.2"
+          }
+        },
+        "response": {
+          "numFound": 2,
+          "start": 0,
+          "docs": [
+            {
+              "id": "org.webjars.npm:fontsource__caveat",
+              "g": "org.webjars.npm",
+              "a": "fontsource__caveat",
+              "latestVersion": "5.1.1",
+              "repositoryId": "central",
+              "p": "jar",
+              "timestamp": 1739801724701,
+              "versionCount": 1,
+              "text": [
+                "org.webjars.npm",
+                "fontsource__caveat",
+                ".pom",
+                ".jar"
+              ],
+              "ec": [
+                ".pom",
+                ".jar"
+              ]
+            },
+            {
+              "id": "org.webjars.npm:fontsource-variable__caveat",
+              "g": "org.webjars.npm",
+              "a": "fontsource-variable__caveat",
+              "latestVersion": "5.1.1",
+              "repositoryId": "central",
+              "p": "jar",
+              "timestamp": 1739801701344,
+              "versionCount": 1,
+              "text": [
+                "org.webjars.npm",
+                "fontsource-variable__caveat",
+                ".pom",
+                ".jar"
+              ],
+              "ec": [
+                ".pom",
+                ".jar"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "whois-caveat-io",
+      "url": "whois://whois.nic.io:43/caveat.io",
+      "authoritySource": "https://www.iana.org/domains/root/db/io.html",
+      "retrievedAtUtc": "2026-10-02T00:40:10.531957+00:00",
+      "query": "caveat.io",
+      "responseBytes": 4523,
+      "data": {
+        "selectedFields": [
+          "Domain Name: caveat.io",
+          "Registry Domain ID: REDACTED",
+          "Registrar WHOIS Server: whois.dynadot.com",
+          "Registrar URL: http://dynadot.com",
+          "Updated Date: 2026-08-13T20:22:01Z",
+          "Creation Date: 2021-08-06T14:31:28Z",
+          "Registry Expiry Date: 2027-08-06T14:31:28Z",
+          "Domain Status: clientTransferProhibited https://icann.org/epp#clientTransferProhibited",
+          "Name Server: ns1.atom.com",
+          "Name Server: ns2.atom.com",
+          "DNSSEC: unsigned"
+        ],
+        "noMatchResponse": false
+      },
+      "lineEnding": "CRLF"
+    },
+    {
+      "id": "tsdr-90138142",
+      "url": "https://tsdrapi.uspto.gov/ts/cd/casestatus/sn90138142/info.xml",
+      "retrievedAtUtc": "2026-10-02T00:40:10.532171+00:00",
+      "authentication": "No key supplied; no credentials accessed.",
+      "httpStatus": 401,
+      "error": "HTTP Error 401: "
+    },
+    {
+      "id": "tsdr-87139754",
+      "url": "https://tsdrapi.uspto.gov/ts/cd/casestatus/sn87139754/info.xml",
+      "retrievedAtUtc": "2026-10-02T00:40:10.532483+00:00",
+      "authentication": "No key supplied; no credentials accessed.",
+      "httpStatus": 401,
+      "error": "HTTP Error 401: "
+    }
+  ]
+}
