@@ -2,10 +2,12 @@
 
 GitHub candidate available; npm publication pending.
 
-This experimental prerelease freezes commit `1f3fc7a2208eec964399d6c14232690f411e48be`. npm still publishes
-rc.6 under `next`; `latest` remains rc.5. Neither channel denotes stable software.
-The owner will publish the exact tested tgz using the attached hash-pinned
-PowerShell helper; no automatic npm publication or dist-tag action is performed.
+This experimental prerelease freezes commit `1f3fc7a2208eec964399d6c14232690f411e48be`. At GitHub freeze, npm published
+rc.6 under `next` and rc.5 under `latest`. Neither channel denotes stable software.
+The owner-console handoff publishes the exact tested tgz using the attached
+hash-pinned PowerShell helper; this cloud freeze performs no npm publication
+or dist-tag action. The verified publication section below, when present,
+records the subsequent registry state.
 
 Changes include neutral evidence observation, clearer citation/named-expression
 diagnostics, the unambiguous `caveat-lang` CLI alias (with `caveat` retained),

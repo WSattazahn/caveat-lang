@@ -1,4 +1,5 @@
 name: rc7 release evidence
+# Release notes distinguish freeze-time npm state from later verified publication.
 on:
   pull_request:
     branches: [main]
