@@ -1,0 +1,65 @@
+name: record verified rc7 npm publication
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/record-rc7-publication.yml'
+      - 'scripts/record-rc7-publication.mjs'
+permissions:
+  contents: read
+jobs:
+  refusal-or-read-only-registry-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Check syntax and refuse unpublished rc7 without GitHub writes
+        run: |
+          node --check scripts/record-rc7-publication.mjs
+          mkdir -p test-results
+          set +e
+          node scripts/record-rc7-publication.mjs --check-only > test-results/rc7-publication-check.stdout.txt 2> test-results/rc7-publication-check.stderr.txt
+          status=$?
+          set -e
+          if [[ "$status" != 0 ]]; then
+            if ! grep -F 'npm 0.1.0-rc.7 unavailable (HTTP 404); no documentation writes' test-results/rc7-publication-check.stderr.txt; then exit "$status"; fi
+            echo 'Expected refusal: rc7 is not published; no documentation writes.'
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rc7-publication-refusal-or-check
+          path: test-results/
+          retention-days: 90
+  record-publication:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'WSattazahn/caveat-lang' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: rc7-publication-record
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Independently verify registry bytes and fresh install before preparing the docs PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p test-results
+          node scripts/record-rc7-publication.mjs > test-results/rc7-publication-record.stdout.txt 2> test-results/rc7-publication-record.stderr.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rc7-publication-record-receipts
+          path: test-results/
+          retention-days: 90

@@ -1,0 +1,29 @@
+{
+  "reviewedAt": "2026-10-02T07:05:42.347302+00:00",
+  "rc7Revision": "1f3fc7a2208eec964399d6c14232690f411e48be",
+  "annotatedTagObject": "77ce114a89f4eec7030c3da1f34d78613cc67223",
+  "freezeRun": 36975501376,
+  "freezeOutcome": "success",
+  "publicAssetHashesIndependentlyMatched": {
+    "tgz": "0e441f896c58ba41f2741a82af40a17e74247a0c765169abda10b9ddffad5bbc",
+    "helper": "860d75b726097e481b7e9d0206ffa4f401de9bfc89e63162a106f2e4a1f4e88e",
+    "freezeReceipt": "f30220b477f2eec509e6601a41aa659de0312374674767ebdb8db7d3fde5b51e"
+  },
+  "postPublicationChecks": {
+    "officialRegistryBeforePublication": "HTTP404 expected refusal, no writes",
+    "documentationPatchControl": "11 patches satisfy actual rc8-source before/after/forbidden contracts; About style/script unchanged",
+    "independentStaticSecurityAndCommandsReviews": "no blocking issue after corrections"
+  },
+  "limitations": [
+    "No actual Windows npm publication has occurred",
+    "No successful rc7 registry/fresh-install finalization claimed before owner publishes",
+    "Auto-merge disabled; postpublication docs PR still requires normal CI/review/merge/Pages"
+  ],
+  "kitVersion": "0.1.0-rc.8",
+  "independentVersionsUnchanged": [
+    "root private package 0.1.0",
+    "Rust crate 0.1.0",
+    "editor 0.1.0"
+  ],
+  "historicalArchivesUnchanged": true
+}

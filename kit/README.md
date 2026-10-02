@@ -30,8 +30,11 @@ npm's `next` tag points to rc.6; `latest` remains on rc.5 and does not mean
 stable. Install a candidate by `next` or its exact version;
 `npm dist-tag ls caveat-lang` shows which version each tag names.
 
-This checkout is the **0.1.0-rc.7 release preparation candidate**.
-GitHub tagging and npm publication are pending; the npm version remains rc.6.
+This checkout is **0.1.0-rc.8 development**, unpublished. The
+[rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
+is frozen with its exact tested Linux tarball and evidence. rc.7 npm publication
+remains pending; the published npm version is still rc.6. Development does not
+change the frozen rc.7 tag or artifact.
 The npm instructions above install the published rc.6 candidate. **New in rc.7:**
 `caveat-lang` is the unambiguous command; `caveat` remains supported shorthand.
 With a verified rc.7 tarball installed, prefer:

@@ -37,6 +37,11 @@ npx --no-install caveat help
 
 ### rc.7 command name
 
+The frozen [rc.7 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
+is available; npm publication is pending. This checkout is unpublished rc.8
+development. The npm instructions above deliberately retain the verified
+published rc.6 version.
+
 When using a verified **rc.7 tarball**, prefer `caveat-lang`:
 
 ```sh

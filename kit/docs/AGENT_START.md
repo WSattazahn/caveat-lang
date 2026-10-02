@@ -22,7 +22,10 @@ The two scenarios pass. The explanation retains `rain_chance@1` and its
 `forecast_is_old` caveat as `umbrella@1`'s grounds after `sky` reopens it.
 [Getting started](GETTING_STARTED.md) explains each file and command.
 
-This documentation also covers **rc.7 release preparation**, whose npm publication is pending.
+This checkout is **rc.8 development**, unpublished. The verified
+[rc.7 GitHub tarball](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.7)
+is available; its npm publication remains pending. The commands below also
+apply to that frozen rc.7 candidate.
 Once a verified rc.7 tarball is installed, use its unambiguous command name:
 
 ```sh
