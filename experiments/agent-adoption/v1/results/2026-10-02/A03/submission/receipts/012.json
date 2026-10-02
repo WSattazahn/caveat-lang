@@ -1,0 +1,11 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "validate",
+    "@invalid-because.cav"
+  ],
+  "exit_status": 2,
+  "stdout": "",
+  "stderr": "<TRIAL_A03>\\invalid-because.cav does not load: line 8, column 1: unknown commit reason ready\n"
+}

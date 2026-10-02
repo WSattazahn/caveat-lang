@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "test",
+    "tracker.scenarios.json"
+  ],
+  "exit_status": 0,
+  "stdout": "PASS T01  Observation is neutral and does not assess; 70 supports  (2 events, 0 rejected, 0 resumes)\nPASS T02  Authored refusal and input refusal preserve the session  (6 events, 5 rejected, 0 resumes)\nPASS T03  Correction preserves archive and frozen grounds, then revision  (7 events, 2 rejected, 1 resumes)\nPASS T04  Duplicate assess refused; equal and supporting readings reopen  (7 events, 1 rejected, 0 resumes)\nPASS T05  Late qualification does not reopen or mutate earlier records; future stale refused  (6 events, 2 rejected, 1 resumes)\nPASS T06  Earlier clean reading eligible after learning stale, across restore  (7 events, 2 rejected, 2 resumes)\nPASS T07  Reading limit rolls back neutral observation and leaves full history unchanged  (18 events, 1 rejected, 1 resumes)\nPASS T08  Decision limit refuses atomically after every-reading reopening  (18 events, 1 rejected, 1 resumes)\n8 passed, 0 failed (tracker.scenarios.json)\n",
+  "stderr": ""
+}

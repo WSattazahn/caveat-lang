@@ -1,0 +1,86 @@
+{
+  "automated": {
+    "finalObjectivesPass": true,
+    "programSemanticsScore": 2
+  },
+  "evaluator": {
+    "combinedOutputLimitBytes": 16777216,
+    "command": [
+      "<NODE>",
+      "<REPO>\\experiments\\agent-adoption\\v1\\verify.mjs",
+      "--submission",
+      "<TRIAL_A01>",
+      "--package",
+      "<PACKAGE_A01>"
+    ],
+    "cwd": "<TRIAL_A01>",
+    "elapsedSeconds": 0.411,
+    "exitCode": 0,
+    "finishedAt": "2026-10-02T00:55:53.310Z",
+    "observedOutputBytes": 14075,
+    "pid": "<LOCAL_IDENTIFIER>",
+    "retainedOutputBytes": 14075,
+    "startedAt": "2026-10-02T00:55:52.899Z",
+    "stderr": {
+      "bytes": 0,
+      "file": "evaluator.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 14075,
+      "file": "evaluator.stdout",
+      "sha256": "27754d3231e0bc1f36c0673a4d1f623310b0233cfb4a60f8878ce5cc61ffbd55"
+    },
+    "stopReason": null,
+    "timeoutSeconds": 120
+  },
+  "id": "A01",
+  "packageUnchangedByEvaluation": true,
+  "perTrialModelReported": null,
+  "perTrialReasoningReported": null,
+  "receiptDirectory": "<ARCHIVE>/A01/external",
+  "submissionUnchangedByEvaluation": true,
+  "trial": {
+    "combinedOutputLimitBytes": 33554432,
+    "command": [
+      "<USER_HOME>\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+      "exec",
+      "--ephemeral",
+      "--ignore-user-config",
+      "--skip-git-repo-check",
+      "--approve-for-me",
+      "-c",
+      "windows.sandbox=\"elevated\"",
+      "-c",
+      "project_doc_max_bytes=0",
+      "-c",
+      "web_search=\"disabled\"",
+      "--json",
+      "-C",
+      "<TRIAL_A01>",
+      "-o",
+      "<TRIAL_A01>\\final-response.md",
+      "-"
+    ],
+    "cwd": "<TRIAL_A01>",
+    "elapsedSeconds": 479.758,
+    "exitCode": 0,
+    "finishedAt": "2026-10-02T00:55:48.621Z",
+    "observedOutputBytes": 455959,
+    "pid": "<LOCAL_IDENTIFIER>",
+    "retainedOutputBytes": 455959,
+    "startedAt": "2026-10-02T00:47:48.862Z",
+    "stderr": {
+      "bytes": 0,
+      "file": "codex.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 455959,
+      "file": "codex.stdout",
+      "sha256": "a8d6bb599ed52708b5b9490522cbe81b5c4c497d09e06d66e0d65fa05cbe2d02"
+    },
+    "stopReason": null,
+    "timeoutSeconds": 1200
+  }
+}

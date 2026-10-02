@@ -1,0 +1,12 @@
+import {spawnSync} from 'node:child_process';
+import {mkdirSync,writeFileSync,appendFileSync,readdirSync} from 'node:fs';
+mkdirSync('receipts',{recursive:true});
+const args=process.argv.slice(2);
+const n=readdirSync('receipts').filter(x=>x.endsWith('.json')).length+1;
+const r=spawnSync(process.execPath,args,{encoding:'utf8'});
+const receipt={command:['node',...args],exit_status:r.status,stdout:r.stdout??'',stderr:r.stderr??'',error:r.error?.message};
+const file='receipts/'+String(n).padStart(3,'0')+'.json';
+writeFileSync(file,JSON.stringify(receipt,null,2));
+appendFileSync('receipts/commands.jsonl',JSON.stringify({file,...receipt})+'\n');
+process.stdout.write(receipt.stdout);process.stderr.write(receipt.stderr);
+process.exitCode=r.status??1;

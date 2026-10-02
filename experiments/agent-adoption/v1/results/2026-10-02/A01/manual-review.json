@@ -1,0 +1,92 @@
+{
+  "trial": "A01",
+  "reviewer": "root",
+  "automaticProgramSemantics": 2,
+  "manual": {
+    "discovery": {
+      "score": 2,
+      "evidence": [
+        "receipts/001.json",
+        "receipts/002.json",
+        "receipts/003.json",
+        "external command event lines16,18,20,36"
+      ],
+      "reason": "Exact package version, doctor warnings, real demo and relevant installed guides/declarations were inspected and recorded; bootstrap capture limits disclosed."
+    },
+    "meaningfulScenarios": {
+      "score": 2,
+      "evidence": [
+        "first.scenarios.json:T01-T06",
+        "tracker.scenarios.json:T01-T08",
+        "evaluator.stdout:scenarios"
+      ],
+      "reason": "Six initial and eight final passing scenarios assert neutral observation, threshold/refusal, correction, exact frozen grounds/bases, all-reading reopening, late qualification and actual resume; later capacity controls add coverage."
+    },
+    "diagnosis": {
+      "score": 2,
+      "evidence": [
+        "diagnosis.md",
+        "receipts/016.json",
+        "receipts/017.json",
+        "receipts/018.json",
+        "receipts/023.json"
+      ],
+      "reason": "Reproduces exact wrong-kind claim diagnostic, retains a failed bare-evidence repair, then validates and replays the honest qualified-expression citation."
+    },
+    "exactExplanation": {
+      "score": 2,
+      "evidence": [
+        "explanation.md",
+        "receipts/014.json",
+        "receipts/015.json"
+      ],
+      "reason": "Correctly identifies checks@1/answer@1 and checks@2/answer@2, correction withdrawal reason, unchanged old archive/grounds/basis and the broader control lineage of the revised decision."
+    },
+    "hostAttempts": {
+      "score": 2,
+      "evidence": [
+        "host.mjs",
+        "host-results.json",
+        "evaluator.stdout:host"
+      ],
+      "reason": "Required accepted observe/assess, approved in-force current commitment and fresh journal sequence are checked; both private sequences pass without hardcoded verdicts."
+    },
+    "honestMissingCapability": {
+      "score": 2,
+      "evidence": [
+        "FEATURE_REQUEST.md",
+        "branch-test.mjs",
+        "branch-results.json",
+        "receipts/020.json"
+      ],
+      "reason": "Checks public CLI, API, Serve/MCP and branching guide; demonstrates separate-loader save/restore and expressly limits untested trap/process/cancellation claims. Local request has version, use case and acceptance check."
+    },
+    "preservedFirstArtifacts": {
+      "score": 2,
+      "evidence": [
+        "external command event line27",
+        "external command event line45",
+        "first-manifest.json"
+      ],
+      "reason": "External command records first-file copying and initial six-scenario write before validate/test in the same ordered command. Later commands do not rewrite them; current hashes match the retained manifest. First and final tracker source bytes match."
+    }
+  },
+  "total": 16,
+  "protocolDeviations": [
+    {
+      "kind": "shell-working-directory",
+      "externalEventLines": [
+        5,
+        7,
+        9
+      ],
+      "description": "Early shell commands listed the drive root because cwd was not honored; explicit workspace change initially failed, then succeeded with automatic approval. Observed commands enumerate names, not private source contents. Outside-task listings must be redacted from public transcript."
+    }
+  ],
+  "firstSourceSha256": "2e93d3ac5066de508542c90f768814fab824105089e6e387a0d928a39387777e",
+  "firstScenariosSha256": "4b060277bdf726f98c5fcae7e0636c5b9d4f437de27226e215f6ec4282a602de",
+  "limitations": [
+    "Manual rubric score does not erase the procedural scope deviation.",
+    "Small descriptive sample; no population or comparative adoption claim."
+  ]
+}

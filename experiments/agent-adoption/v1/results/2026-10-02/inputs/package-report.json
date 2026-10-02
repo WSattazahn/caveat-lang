@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "checks": {
+    "cliAliases": {
+      "names": [
+        "caveat",
+        "caveat-lang"
+      ],
+      "version": "CAVEAT Language 0.1.0-rc.7",
+      "helpMatches": true
+    },
+    "adoptionCommands": {
+      "aliases": [
+        "caveat",
+        "caveat-lang"
+      ],
+      "doctor": true,
+      "demo": true
+    },
+    "cliCollision": {
+      "package": "caveat-cli@0.19.13",
+      "integrity": "sha512-1EbmhHEFe0ydEbt8v0WnwpFixsyEBeuY760gr9k9WBcsRJdk1FuBPOHYDIqnGQ4UL7ZZhZZq/cIlU9rgZ2fSKA==",
+      "dependencyOverrides": {
+        "caveat-cli": {
+          "smol-toml": "1.7.1"
+        }
+      },
+      "lifecycleScripts": false,
+      "competingCliExecuted": false,
+      "cases": [
+        {
+          "doctor": true,
+          "caveatOwner": "caveat-lang",
+          "caveatLangOwner": "caveat-lang",
+          "help": true,
+          "version": true,
+          "npmExec": true
+        },
+        {
+          "doctor": true,
+          "caveatOwner": "caveat-cli",
+          "caveatLangOwner": "caveat-lang",
+          "help": true,
+          "version": true,
+          "npmExec": true
+        }
+      ]
+    },
+    "mcp": {
+      "client": "@modelcontextprotocol/sdk@1.31.0",
+      "server": {
+        "name": "caveat-lang",
+        "title": "CAVEAT Language",
+        "version": "0.1.0-rc.7"
+      },
+      "calls": [
+        {
+          "name": "caveat_validate",
+          "schema": "caveat-validate/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_check",
+          "schema": "caveat-check/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_test",
+          "schema": "caveat-scenario-report/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_explain",
+          "schema": "caveat-explain/0.1",
+          "exitCode": 0
+        },
+        {
+          "name": "caveat_dependents",
+          "schema": "caveat-dependents/0.1",
+          "exitCode": 0
+        }
+      ],
+      "invalidSource": true,
+      "virtualPathRefused": true,
+      "retry": true,
+      "stderr": ""
+    },
+    "install": true,
+    "license": "MIT",
+    "docs": true,
+    "command": true,
+    "library": true,
+    "guide": [
+      "npx --no-install caveat test umbrella.scenarios.json",
+      "npx --no-install caveat test umbrella.scenarios.json",
+      "node explore.mjs",
+      "npx --no-install caveat explain umbrella.cav events.jsonl",
+      "npx --no-install caveat dependents umbrella.cav sky events.jsonl"
+    ],
+    "workedExample": [
+      "npx --no-install caveat validate frost.cav",
+      "npx --no-install caveat check frost.cav",
+      "npx --no-install caveat test frost.scenarios.json",
+      "npx --no-install caveat explain frost.cav events.jsonl"
+    ],
+    "agentEvidence": {
+      "python": "python3",
+      "tests": 53
+    },
+    "agentEvidenceRc7": {
+      "python": "python3",
+      "tests": 21
+    },
+    "browser": "140.0.7339.186"
+  },
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.7",
+  "distTag": "next",
+  "private": false,
+  "tarball": "caveat-lang-0.1.0-rc.7.tgz",
+  "size": 810225,
+  "sha256": "eea2c9239f3d648a1af740843abee5ed1eac1c972c327793bb9af2ede36b9a1f",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "bin/caveat.mjs",
+    "docs/AGENT_START.md",
+    "docs/GETTING_STARTED.md",
+    "docs/MCP.md",
+    "docs/NAMES.md",
+    "docs/README.md",
+    "docs/REFERENCE.md",
+    "docs/WORKED_EXAMPLE.md",
+    "docs/reference/docs/AI_AUTHORING.md",
+    "docs/reference/docs/CAVEAT_ESSENCE.md",
+    "docs/reference/docs/MCP_AUTHORING_DESIGN.md",
+    "docs/reference/docs/PACKAGE_SECURITY.md",
+    "docs/reference/examples/thermostat_history.cav",
+    "docs/reference/examples/thermostat_history.scenarios.json",
+    "docs/reference/runtime/prelude.cav",
+    "docs/reference/spec/caveat-0.1.md",
+    "docs/reference/spec/caveat-check-0.1.md",
+    "docs/reference/spec/caveat-decision-journal-0.1.md",
+    "docs/reference/spec/caveat-define-0.1.md",
+    "docs/reference/spec/caveat-dispatch-0.1.md",
+    "docs/reference/spec/caveat-elapsed-0.1.md",
+    "docs/reference/spec/caveat-explanations-0.1.md",
+    "docs/reference/spec/caveat-explanations-0.2.md",
+    "docs/reference/spec/caveat-identifiers-0.1.md",
+    "docs/reference/spec/caveat-late-qualification-0.1.md",
+    "docs/reference/spec/caveat-neutral-reveal-0.1.md",
+    "docs/reference/spec/caveat-observation-order-0.1.md",
+    "docs/reference/spec/caveat-permission-0.1.md",
+    "docs/reference/spec/caveat-procedure-symbols-0.1.md",
+    "docs/reference/spec/caveat-reactive-0.1.md",
+    "docs/reference/spec/caveat-reactive-0.2.md",
+    "docs/reference/spec/caveat-reactive-0.3.md",
+    "docs/reference/spec/caveat-reactive-0.4.md",
+    "docs/reference/spec/caveat-reactive-0.5.md",
+    "docs/reference/spec/caveat-reactive-0.6.md",
+    "docs/reference/spec/caveat-reactive-0.7.md",
+    "docs/reference/spec/caveat-reject-0.1.md",
+    "docs/reference/spec/caveat-renewal-0.1.md",
+    "docs/reference/spec/caveat-reopening-triggers-0.1.md",
+    "docs/reference/spec/caveat-repetition-0.1.md",
+    "docs/reference/spec/caveat-routed-repetition-0.1.md",
+    "docs/reference/spec/caveat-save-0.1.md",
+    "docs/reference/spec/caveat-scenarios-0.1.md",
+    "docs/reference/spec/caveat-serve-0.1.md",
+    "docs/reference/spec/caveat-state-caveats-0.1.md",
+    "docs/reference/spec/caveat-text-0.1.md",
+    "docs/reference/spec/caveat-typed-parameters-0.1.md",
+    "docs/reference/spec/caveat-view-0.1.md",
+    "docs/reference/spec/caveat-withdrawal-0.1.md",
+    "examples/agent-evidence/BRANCHING.md",
+    "examples/agent-evidence/QUALIFICATION.md",
+    "examples/agent-evidence/README.md",
+    "examples/agent-evidence/assessment.cav",
+    "examples/agent-evidence/caller.py",
+    "examples/agent-evidence/grounded_assessment.cav",
+    "examples/agent-evidence/grounds.py",
+    "examples/agent-evidence/qualification.cav",
+    "examples/agent-evidence/test_branching.py",
+    "examples/agent-evidence/test_caller.py",
+    "examples/agent-evidence/test_grounds.py",
+    "examples/agent-evidence/test_lifecycle.py",
+    "examples/agent-evidence/test_qualification.py",
+    "lib/authoring-worker.d.mts",
+    "lib/authoring-worker.mjs",
+    "lib/authoring.d.mts",
+    "lib/authoring.mjs",
+    "lib/check.d.mts",
+    "lib/check.mjs",
+    "lib/demo.d.mts",
+    "lib/demo.mjs",
+    "lib/doctor.d.mts",
+    "lib/doctor.mjs",
+    "lib/explain.d.mts",
+    "lib/explain.mjs",
+    "lib/mcp.d.mts",
+    "lib/mcp.mjs",
+    "lib/node.d.mts",
+    "lib/node.mjs",
+    "lib/scenarios.d.mts",
+    "lib/scenarios.mjs",
+    "lib/serve.d.mts",
+    "lib/serve.mjs",
+    "lib/session.d.mts",
+    "lib/session.mjs",
+    "package.json",
+    "runtime/build-info.json",
+    "runtime/caveat_runtime.d.ts",
+    "runtime/caveat_runtime.js",
+    "runtime/caveat_runtime_bg.wasm",
+    "templates/events.jsonl",
+    "templates/umbrella.cav",
+    "templates/umbrella.scenarios.json"
+  ],
+  "docs": {
+    "copied": 41,
+    "documents": 50,
+    "linksInside": 242,
+    "linksRewritten": 37
+  },
+  "runtime": {
+    "reactiveWasmSha256": "e0c1ff6921485ac342f4eced76c68f58b14615077838c6f2af7da725430c6ba3",
+    "revision": "a24a6e91d75eeab466baa32a108ee9a242f43ac2",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "--version"
+  ],
+  "exit_status": 0,
+  "stdout": "CAVEAT Language 0.1.0-rc.7\n",
+  "stderr": ""
+}

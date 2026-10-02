@@ -1,0 +1,22 @@
+{
+  "kind": "incomplete retrospective tooling record",
+  "note": "Complete raw streams for early shell discovery commands were not persisted; these known errors are not fabricated full receipts.",
+  "commands": [
+    {
+      "command": "Get-Location; Get-ChildItem -Force",
+      "exit_status": 0,
+      "known_result": "Shell started in <DRIVE_ROOT>/ instead of supplied workdir."
+    },
+    {
+      "command": "Get-ChildItem -Force; Get-Command caveat | Format-List Source",
+      "exit_status": 1,
+      "known_error": "The term 'caveat' is not recognized as a name of a cmdlet, function, script file, or executable program."
+    },
+    {
+      "command": "Set-Location -LiteralPath '<TRIAL_A01>'; Get-Location; Get-ChildItem -Force",
+      "exit_status": 0,
+      "known_error": "Access to the path '<REPO>\\test-results' is denied.",
+      "note": "PowerShell continued after nonterminating Set-Location error, so process exited 0."
+    }
+  ]
+}

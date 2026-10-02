@@ -1,0 +1,27 @@
+{
+  "combinedOutputLimitBytes": 1048576,
+  "command": [
+    "<NODE>",
+    "--version"
+  ],
+  "cwd": "<REPO>",
+  "elapsedSeconds": 0.106,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:47:15.603Z",
+  "observedOutputBytes": 10,
+  "pid": "<LOCAL_IDENTIFIER>",
+  "retainedOutputBytes": 10,
+  "startedAt": "2026-10-02T00:47:15.497Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "node-version.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 10,
+    "file": "node-version.stdout",
+    "sha256": "d3418c43c24a028c4774f8771e03c578ccc9021a4098708b6aa0b7f6686b5bbe"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 30
+}

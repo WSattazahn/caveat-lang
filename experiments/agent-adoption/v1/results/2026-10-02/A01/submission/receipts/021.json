@@ -1,0 +1,9 @@
+{
+  "command": [
+    "node",
+    "extend-scenarios.mjs"
+  ],
+  "exit_status": 0,
+  "stdout": "",
+  "stderr": ""
+}

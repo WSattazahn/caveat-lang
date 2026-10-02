@@ -1,0 +1,13 @@
+What rests on correction in tracker.cav after 5 events (sequence 5)
+
+Decisions
+  answer@2 = 92  in force  could have been influenced by correction
+
+Decision changes
+  #3 correct: answer@1 reopened because correction
+
+Values
+  nothing
+
+Displayed
+  answer.verdict = "approved"  cites correction

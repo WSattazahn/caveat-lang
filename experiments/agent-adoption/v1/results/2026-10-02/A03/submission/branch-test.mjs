@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {loadRuntimeFromDirectory} from 'caveat-lang/node';
+import {attempt} from './host.mjs';
+const source=fs.readFileSync(new URL('./node_modules/caveat-lang/examples/agent-evidence/assessment.cav',import.meta.url),'utf8');
+const liveRuntime=await loadRuntimeFromDirectory();
+const live=liveRuntime.open(source);
+assert.equal((await attempt(live,85)).ok,true);
+const saved=live.save(), snapshot=live.snapshot();
+const branchRuntime=await loadRuntimeFromDirectory();
+const branch=branchRuntime.restore(source,saved);
+assert.equal(branch.dispatch('observe',{confidence:40}).outcome,'accepted');
+assert.equal(branch.dispatch('assess').outcome,'rejected');
+assert.equal(live.save(),saved);
+assert.deepEqual(live.snapshot(),snapshot);
+console.log(JSON.stringify({alternative:'fresh loader + restore',liveUnchanged:true,branch:branch.snapshot().bindings,live:live.snapshot().bindings}));
+branch.close(); live.close();

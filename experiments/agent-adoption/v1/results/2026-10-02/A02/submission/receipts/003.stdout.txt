@@ -1,0 +1,28 @@
+CAVEAT Language: agent demo
+Illustrative inputs supplied by this demo; the scores are not measured confidence.
+Program: examples/agent-evidence/assessment.cav
+
+1. observe {"confidence":85}
+   observations@1 = 85; supports answer_supported
+   No decision yet: observing is separate from assessing.
+
+2. assess
+   assessment@1 = 85; in force
+   Grounds: observations@1; caveats: none
+
+3. retract
+   observations@1 withdrawn because recheck; its archive remains.
+   assessment@1 = 85; reopened
+   Grounds: observations@1; caveats: none
+
+4. observe {"confidence":92}
+   observations@2 = 92; supports answer_supported
+   assessment@1 = 85; reopened
+   Grounds: observations@1; caveats: none
+
+5. assess
+   assessment@2 = 92; in force
+   Grounds: observations@2; caveats: none
+
+assessment@1 is superseded; original grounds preserved: observations@1.
+Caveat records supplied evidence and authored policy; it does not establish that either is true.

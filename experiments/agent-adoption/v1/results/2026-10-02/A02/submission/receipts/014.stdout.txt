@@ -1,0 +1,74 @@
+CAVEAT Language — Programs that remember why.
+
+Usage:
+  caveat-lang test [--runtime <dir>] [--json] <file.scenarios.json>...
+  caveat-lang explain [--runtime <dir>] [--json] <program.cav> [<events.jsonl>]
+  caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
+  caveat-lang validate [--runtime <dir>] [--json] <program.cav>
+  caveat-lang check [--runtime <dir>] [--json] [--strict] <program.cav>
+  caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
+  caveat-lang serve [--runtime <dir>] <program.cav>
+  caveat-lang init [<directory>]
+  caveat-lang doctor [--runtime <dir>] [--json]
+  caveat-lang demo agent [--runtime <dir>] [--json]
+  caveat-lang mcp [--runtime <dir>]
+  caveat-lang --version
+
+Both caveat-lang and caveat invoke this CLI. Prefer caveat-lang when other
+packages also install a command named caveat.
+
+test runs Caveat scenario files (spec/caveat-scenarios-0.1.md).
+  Exit status: 0 every scenario passed, 1 a scenario failed, 2 a file was
+  invalid or could not be run (nothing runs).
+
+explain sends the events, one JSON object per line such as
+{"event": "read", "payload": {"value": 17}}, then shows each decision with what
+it rests on and its history, the evidence and its caveats, and why each
+displayed value is what it is. Refused events are listed and change nothing.
+  Exit status: 0 explained, 1 an event failed fatally (the explanation is of
+  the session before it), 2 the program or events file could not be used.
+
+dependents sends the events the same way, then shows what rests on one piece
+of evidence, reading stream or caveat: the decisions and values based on it or
+that it could have influenced, the decision changes it caused, and the
+displayed values that cite it. Exit status as for explain; 2 also when the
+program declares no such name.
+
+validate loads a program and lists its events, histories and displayed values.
+  Exit status: 0 it loads, 2 it does not.
+
+check loads a program and reports patterns worth a second look, each with a
+code, a line and a suggestion (spec/caveat-check-0.1.md). Warnings are advice,
+not errors. A comment "# caveat check: allow CODE" on the line above silences
+one where the pattern is intended. Exit status: 0 it loads, whatever it found;
+1 with --strict when there is a warning; 2 it does not load.
+
+replay sends the events and prints one JSON record per line: the initial
+snapshot, then each event's outcome, with the snapshot after each accepted
+event. Exit status: 0 replayed, 1 an event failed fatally (its record is last),
+2 the program or events file could not be used.
+
+serve keeps one session of the program open and answers requests on standard
+input, one JSON object per line, with one JSON object per line on standard
+output (spec/caveat-serve-0.1.md). Exit status: 0 closed, 1 a fatal outcome
+ended the session, 2 the program does not load.
+
+doctor checks Node, package/runtime identity, a real test session and PATH
+command ownership. It inspects other executables without running them.
+  Exit status: 0 no failed check (warnings may remain), 1 a check failed.
+
+demo agent runs a fixed evidence/correction/reassessment example in memory.
+Its illustrative inputs are supplied, not independently verified. Output shows
+actual decision grounds and preserved history. It writes no files.
+  Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
+
+mcp serves five authoring tools over stdio using the 2025-11-25 MCP profile.
+It takes inline source, runs each call in a fresh subprocess, and exposes no
+persistent session or file access. stdout contains protocol messages only.
+
+init writes the getting-started program, its scenarios and an events file
+into a directory (default: the current one). It refuses to overwrite a file.
+
+  --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
+  --json           print the machine report instead of text
+  --strict         (check) exit 1 when there is a warning

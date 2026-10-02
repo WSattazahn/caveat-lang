@@ -1,0 +1,8 @@
+PASS S1  Observation does not assess; strong threshold and duplicate refusal  (3 events, 1 rejected, 0 resumes)
+PASS S2  Authored refusals before any reading and input bounds  (5 events, 5 rejected, 0 resumes)
+PASS S3  Weak reading refuses assessment then fresh supporting revision  (4 events, 1 rejected, 0 resumes)
+PASS S4  Correction preserves archive and frozen basis; replacement revises after restore  (7 events, 2 rejected, 1 resumes)
+PASS S5  Every supporting or equal reading reopens; opposing reading also reopens  (8 events, 1 rejected, 1 resumes)
+PASS S6  Late qualification leaves committed records frozen and does not reopen  (6 events, 2 rejected, 1 resumes)
+PASS S7  Earlier clean reading remains assessable after learning stale  (3 events, 0 rejected, 1 resumes)
+7 passed, 0 failed (first.scenarios.json)

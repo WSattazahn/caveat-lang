@@ -1,0 +1,86 @@
+{
+  "starterSha256": "4119af19e00135d0d7a1207f2e68ec515cecd0bc9932d9dce8ecb4136c5bcc02",
+  "results": [
+    {
+      "score": 85,
+      "ok": true,
+      "verdict": "approved",
+      "operations": [
+        {
+          "event": "observe",
+          "outcome": "accepted"
+        },
+        {
+          "event": "assess",
+          "outcome": "accepted"
+        }
+      ]
+    },
+    {
+      "score": 101,
+      "ok": false,
+      "verdict": "approved",
+      "operations": [
+        {
+          "event": "observe",
+          "outcome": "rejected",
+          "origin": "input",
+          "code": "bound_exceeded",
+          "message": "confidence must be finite and in 0..100"
+        }
+      ]
+    },
+    {
+      "score": 92,
+      "ok": false,
+      "verdict": "approved",
+      "operations": [
+        {
+          "event": "observe",
+          "outcome": "accepted"
+        },
+        {
+          "event": "assess",
+          "outcome": "rejected",
+          "origin": "policy",
+          "code": "reject",
+          "message": "Already assessed."
+        }
+      ]
+    },
+    {
+      "score": 40,
+      "ok": false,
+      "verdict": "reopened",
+      "operations": [
+        {
+          "event": "observe",
+          "outcome": "accepted"
+        },
+        {
+          "event": "assess",
+          "outcome": "rejected",
+          "origin": "policy",
+          "code": "reject",
+          "message": "The evidence does not support the answer."
+        }
+      ]
+    },
+    {
+      "score": 85,
+      "ok": true,
+      "verdict": "approved",
+      "operations": [
+        {
+          "event": "observe",
+          "outcome": "accepted"
+        },
+        {
+          "event": "assess",
+          "outcome": "accepted"
+        }
+      ]
+    }
+  ],
+  "boundaries": "passed"
+}

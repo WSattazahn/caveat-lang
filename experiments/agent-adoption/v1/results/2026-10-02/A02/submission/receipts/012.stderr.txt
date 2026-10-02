@@ -1,0 +1,1 @@
+diagnosis-invalid.cav does not load: reactive program must declare an event

@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "check",
+    "tracker.cav"
+  ],
+  "exit_status": 0,
+  "stdout": "tracker.cav: no warnings.\n",
+  "stderr": ""
+}

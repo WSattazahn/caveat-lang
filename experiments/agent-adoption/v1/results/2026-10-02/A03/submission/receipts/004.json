@@ -1,0 +1,11 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "validate",
+    "@first.cav"
+  ],
+  "exit_status": 2,
+  "stdout": "",
+  "stderr": "<TRIAL_A03>\\first.cav does not load: line 19, column 1: expected ',' before the state's caveat at byte 17\n"
+}

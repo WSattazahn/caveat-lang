@@ -1,0 +1,11 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "validate",
+    "@corrected-because.cav"
+  ],
+  "exit_status": 0,
+  "stdout": "corrected-because.cav loads.\n  events: observe\n  reading streams: none\n  decision series: none\n  displayed: none\n",
+  "stderr": ""
+}

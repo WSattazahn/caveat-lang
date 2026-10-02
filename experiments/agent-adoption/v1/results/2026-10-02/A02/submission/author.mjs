@@ -1,0 +1,15 @@
+import {writeFileSync,copyFileSync} from 'node:fs';
+const send=(send,payload,rejected)=>({send,...(payload?{payload}:{}),...(rejected?{rejected}: {})});
+const o=v=>send('observe',{value:v}); const a=()=>send('assess'); const r=e=>send(e,undefined,{origin:'policy',code:'reject'}); const expect=x=>({expect:x});
+const frozen=['/reading_streams/checks/occurrences/0','/commitment_bases/answer@1','/commitment_grounds/answer@1'];
+const scenarios=[
+{id:'S1',title:'Observation does not assess; strong threshold and duplicate refusal',steps:[o(70),expect({'/decision_journal':[],'/observations':['tool','checks@1']}),a(),expect({'/commitment_grounds/answer@1':{evidence:['checks@1'],caveats:['uncertain']},'/commitment_bases/answer@1/value':70,'/bindings/answer/status':'in_force'}),r('assess')]},
+{id:'S2',title:'Authored refusals before any reading and input bounds',steps:[r('assess'),r('correct'),r('learn_stale'),send('observe',{value:101},{origin:'input',code:'bound_exceeded'}),send('observe',{value:-1},{origin:'input',code:'bound_exceeded'}),expect({'/sequence':0,'/decision_journal':[]})]},
+{id:'S3',title:'Weak reading refuses assessment then fresh supporting revision',steps:[o(69),r('assess'),o(100),a(),expect({'/commitment_grounds/answer@1/evidence':['checks@2'],'/commitment_bases/answer@1/value':100})]},
+{id:'S4',title:'Correction preserves archive and frozen basis; replacement revises after restore',steps:[o(85),a(),{checkpoint:'old'},send('correct'),expect({'/bindings/answer/status':'reopened','/withdrawals/0':{evidence:'checks@1',because:'correction'}}),{same_as:'old',paths:frozen},r('correct'),r('assess'),{resume:true},o(92),a(),expect({'/decision_series/answer/current':'answer@2','/commitment_grounds/answer@2':{evidence:['checks@2'],caveats:['uncertain']}}),{same_as:'old',paths:frozen}]},
+{id:'S5',title:'Every supporting or equal reading reopens; opposing reading also reopens',steps:[o(85),a(),o(85),expect({'/bindings/answer/status':'reopened'}),a(),o(90),expect({'/bindings/answer/status':'reopened'}),a(),o(0),expect({'/bindings/answer/status':'reopened'}),r('assess'),{resume:true}]},
+{id:'S6',title:'Late qualification leaves committed records frozen and does not reopen',steps:[o(85),a(),{checkpoint:'clean'},send('learn_stale'),{same_as:'clean',paths:frozen},expect({'/bindings/answer/status':'in_force'}),r('assess'),{resume:true},o(92),r('assess'),expect({'/reading_streams/checks/occurrences/1/provenance/caveats':['stale','uncertain'],'/decision_series/answer/current':'answer@1'}),{same_as:'clean',paths:frozen}]},
+{id:'S7',title:'Earlier clean reading remains assessable after learning stale',steps:[o(70),send('learn_stale'),{resume:true},a(),expect({'/commitment_grounds/answer@1':{evidence:['checks@1'],caveats:['uncertain']}})]}
+];
+writeFileSync('tracker.scenarios.json',JSON.stringify({schema:'caveat-scenarios/0.1',source:'tracker.cav',scenarios},null,2)+'\n');
+copyFileSync('tracker.cav','first.cav');writeFileSync('first.scenarios.json',JSON.stringify({schema:'caveat-scenarios/0.1',source:'first.cav',scenarios},null,2)+'\n');

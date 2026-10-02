@@ -1,0 +1,39 @@
+claim ready;
+evidence tool from "consulted tool";
+evidence correction from "correction of the latest reading";
+caveat uncertain consequence material;
+caveat stale consequence material;
+uncertain qualifies tool;
+readings checks from tool limit 16;
+decisions answer limit 8 reopened by checks;
+state candidate = 0;
+event observe value min 0 max 100;
+event assess;
+event correct;
+event learn_stale;
+
+on observe reveal tool;
+on observe when value >= 70 sample checks = value supports ready;
+on observe when value < 70 sample checks = value opposes ready;
+
+on assess when not has_sample(checks) reject "No reading.";
+on assess when withdrawn(latest(checks)) reject "Latest reading withdrawn.";
+on assess when latest(checks) < 70 reject "Reading below 70.";
+on assess when committed(answer) and not reopened(answer) reject "Answer already in force.";
+on assess set candidate = latest(checks);
+on assess when has_caveat(candidate, stale) reject "Reading stale.";
+on assess commit answer because enough using latest(checks);
+
+on correct when not has_sample(checks) reject "No reading.";
+on correct when withdrawn(latest(checks)) reject "Latest reading already withdrawn.";
+on correct reveal correction;
+on correct withdraw latest(checks) because correction;
+on correct when committed(answer) and not reopened(answer) and rests_on_withdrawn(answer)
+    reopen answer because correction;
+
+on learn_stale when not observed(tool) reject "Tool not observed.";
+on learn_stale qualify tool with stale;
+
+bind answer.in_force = committed(answer) and not reopened(answer);
+bind answer.reopened = reopened(answer);
+bind tracker.count = history_count(checks);

@@ -1,0 +1,248 @@
+{
+  "program": "tracker.cav",
+  "schema": "caveat-explain/0.1",
+  "sequence": 5,
+  "elapsed": 0,
+  "events": [
+    {
+      "event": "observe",
+      "payload": {
+        "value": 85
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "correct",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "observe",
+      "payload": {
+        "value": 92
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "name": "answer",
+      "limit": 8,
+      "current": "answer@2",
+      "revisions": [
+        {
+          "id": "answer@1",
+          "value": 85,
+          "status": "superseded",
+          "grounds": {
+            "evidence": [
+              "checks@1"
+            ],
+            "caveats": [
+              "uncertain"
+            ]
+          },
+          "lineage": {
+            "evidence": [
+              "checks@1"
+            ],
+            "caveats": [
+              "uncertain"
+            ]
+          },
+          "permission": null,
+          "withdrawn": [
+            {
+              "evidence": "checks@1",
+              "because": "correction",
+              "sequence": 3,
+              "event": "correct"
+            }
+          ],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 2,
+              "event": "assess",
+              "because": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            },
+            {
+              "change": "reopened",
+              "sequence": 3,
+              "event": "correct",
+              "because": [
+                "correction"
+              ],
+              "caveats": []
+            }
+          ]
+        },
+        {
+          "id": "answer@2",
+          "value": 92,
+          "status": "in force",
+          "grounds": {
+            "evidence": [
+              "checks@2"
+            ],
+            "caveats": [
+              "uncertain"
+            ]
+          },
+          "lineage": {
+            "evidence": [
+              "checks@1",
+              "checks@2",
+              "correction"
+            ],
+            "caveats": [
+              "uncertain"
+            ]
+          },
+          "permission": null,
+          "withdrawn": [],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 5,
+              "event": "assess",
+              "because": [
+                "checks@2"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "tool",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "uncertain"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "checks@1",
+      "relation": "supports",
+      "claim": "ready",
+      "value": 85,
+      "sequence": 1,
+      "event": "observe",
+      "caveats": [
+        "uncertain",
+        "withdrawn"
+      ],
+      "withdrawn": {
+        "because": "correction",
+        "sequence": 3,
+        "event": "correct"
+      }
+    },
+    {
+      "id": "correction",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "checks@2",
+      "relation": "supports",
+      "claim": "ready",
+      "value": 92,
+      "sequence": 4,
+      "event": "observe",
+      "caveats": [
+        "uncertain"
+      ],
+      "withdrawn": null
+    }
+  ],
+  "displayed": [
+    {
+      "name": "answer.in_force",
+      "value": true,
+      "cites": {
+        "evidence": [
+          "checks@1",
+          "checks@2",
+          "correction"
+        ],
+        "caveats": [
+          "uncertain"
+        ]
+      }
+    },
+    {
+      "name": "answer.reopened",
+      "value": false,
+      "cites": {
+        "evidence": [
+          "checks@1",
+          "checks@2",
+          "correction"
+        ],
+        "caveats": [
+          "uncertain"
+        ]
+      }
+    },
+    {
+      "name": "tracker.count",
+      "value": 2,
+      "cites": {
+        "evidence": [
+          "checks@1",
+          "checks@2"
+        ],
+        "caveats": [
+          "uncertain",
+          "withdrawn"
+        ]
+      }
+    }
+  ]
+}

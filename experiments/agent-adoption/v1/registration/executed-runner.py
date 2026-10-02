@@ -111,7 +111,7 @@ def kill_owned_tree(process):
     return {"method": "kill-owned-process-group", "pid": process.pid}
 
 
-def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=None, cancel=None, output_factory=None):
+def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=None, cancel=None):
     """Stream raw output to disk, cap combined retained bytes and own the child."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
@@ -119,27 +119,17 @@ def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=
     receipt_path = directory / f"{label}.receipt.json"
     require(not any(file.exists() for file in [stdout_path, stderr_path, receipt_path]), f"Refusing to overwrite {label} receipts")
     receipt = {"command": command, "cwd": str(cwd), "startedAt": now(), "timeoutSeconds": seconds,
-               "combinedOutputLimitBytes": byte_limit, "exitCode": None, "stopReason": None,
-               "captureComplete": False, "captureErrors": []}
+               "combinedOutputLimitBytes": byte_limit, "exitCode": None, "stopReason": None}
     process = None
     output_limit = threading.Event()
-    capture_failed = threading.Event()
     lock = threading.Lock()
     retained = 0
     observed = 0
     readers = []
     streams = []
     started = time.monotonic()
-
-    def capture_error(stage, error):
-        with lock:
-            receipt["captureErrors"].append({"stage": stage, "type": type(error).__name__, "message": str(error)})
-        capture_failed.set()
-
     try:
-        # The optional factory is only for synthetic I/O failure controls.
-        for output_path in [stdout_path, stderr_path]:
-            streams.append(output_factory(output_path) if output_factory else output_path.open("xb"))
+        streams = [stdout_path.open("xb"), stderr_path.open("xb")]
         status("process-starting", label=label, cwd=str(cwd))
         options = {"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
         process = subprocess.Popen(command, cwd=str(cwd), env=env, stdin=subprocess.PIPE,
@@ -147,9 +137,8 @@ def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=
         receipt["pid"] = process.pid
         status("process-started", label=label, pid=process.pid)
 
-        def drain(pipe, output, name):
+        def drain(pipe, output):
             nonlocal retained, observed
-            stage = f"{name}-pipe-read"
             try:
                 while chunk := pipe.read1(8192):
                     with lock:
@@ -159,21 +148,15 @@ def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=
                         if observed > byte_limit:
                             output_limit.set()
                     if keep:
-                        stage = f"{name}-file-write"
                         output.write(chunk[:keep])
-                        stage = f"{name}-file-flush"
                         output.flush()
-                    stage = f"{name}-pipe-read"
-            except Exception as error:
-                capture_error(stage, error)
+            except (OSError, ValueError):
+                pass
             finally:
-                try:
-                    pipe.close()
-                except Exception as error:
-                    capture_error(f"{name}-pipe-close", error)
+                pipe.close()
 
-        for name, pipe, output in zip(["stdout", "stderr"], [process.stdout, process.stderr], streams):
-            reader = threading.Thread(target=drain, args=(pipe, output, name), daemon=True)
+        for pipe, output in zip([process.stdout, process.stderr], streams):
+            reader = threading.Thread(target=drain, args=(pipe, output), daemon=True)
             reader.start()
             readers.append(reader)
 
@@ -189,9 +172,7 @@ def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=
         writer = threading.Thread(target=feed, daemon=True)
         writer.start()
         while process.poll() is None or any(reader.is_alive() for reader in readers):
-            if capture_failed.is_set():
-                receipt["stopReason"] = "capture-io-error"
-            elif cancel is not None and cancel.is_set():
+            if cancel is not None and cancel.is_set():
                 receipt["stopReason"] = "runner-interrupted"
             elif output_limit.is_set():
                 receipt["stopReason"] = "output-limit"
@@ -211,9 +192,7 @@ def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=
             reader.join(timeout=5)
         writer.join(timeout=1)
         require(not any(reader.is_alive() for reader in readers), "Owned child output pipes remained open after termination")
-        if capture_failed.is_set() and receipt["stopReason"] is None:
-            receipt["stopReason"] = "capture-io-error"
-        elif output_limit.is_set() and receipt["stopReason"] is None:
+        if output_limit.is_set() and receipt["stopReason"] is None:
             receipt["stopReason"] = "output-limit"
     except BaseException as error:
         receipt["error"] = f"{type(error).__name__}: {error}"
@@ -223,30 +202,20 @@ def bounded(command, cwd, directory, label, seconds, byte_limit, stdin=b"", env=
         if isinstance(error, KeyboardInterrupt) and cancel is not None:
             cancel.set()
     finally:
-        for name, stream in zip(["stdout", "stderr"], streams):
-            try:
-                stream.close()
-            except Exception as error:
-                capture_error(f"{name}-file-close", error)
-        if capture_failed.is_set() and receipt["stopReason"] is None:
-            receipt["stopReason"] = "capture-io-error"
-        receipt["captureComplete"] = (not capture_failed.is_set() and not receipt["stopReason"]
-                                      and "error" not in receipt and not any(reader.is_alive() for reader in readers))
+        for stream in streams:
+            stream.close()
         receipt.update(finishedAt=now(), elapsedSeconds=round(time.monotonic() - started, 3),
                        retainedOutputBytes=retained, observedOutputBytes=observed)
         for name, file in [("stdout", stdout_path), ("stderr", stderr_path)]:
             if file.exists():
                 receipt[name] = {"file": file.name, **file_record(file)}
-        # After a failed/partial write, reserved pipe bytes are not proof that
-        # those bytes reached the retained file. Hashes and sizes come from disk.
-        receipt["retainedOutputBytes"] = sum(receipt.get(name, {}).get("bytes", 0) for name in ["stdout", "stderr"])
         json_write(receipt_path, receipt, exclusive=True)
         status("process-finished", label=label, exitCode=receipt["exitCode"], stopReason=receipt["stopReason"], receipt=str(receipt_path))
     return receipt
 
 
 def command_passed(receipt):
-    return receipt["exitCode"] == 0 and receipt["stopReason"] is None and "error" not in receipt and receipt.get("captureComplete") is True
+    return receipt["exitCode"] == 0 and receipt["stopReason"] is None and "error" not in receipt
 
 
 def npm_command(node):

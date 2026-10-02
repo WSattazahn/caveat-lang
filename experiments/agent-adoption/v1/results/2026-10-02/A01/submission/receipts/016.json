@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "validate",
+    "invalid-because.cav"
+  ],
+  "exit_status": 2,
+  "stdout": "",
+  "stderr": "invalid-because.cav does not load: set score because: ready is a declared claim, not a value citation; cite a state, a history read such as latest(STREAM), or an evidence-bearing expression that the value or its conditions actually read\n"
+}

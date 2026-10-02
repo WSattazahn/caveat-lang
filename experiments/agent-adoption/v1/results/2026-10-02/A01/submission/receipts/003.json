@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "demo",
+    "agent"
+  ],
+  "exit_status": 0,
+  "stdout": "CAVEAT Language: agent demo\nIllustrative inputs supplied by this demo; the scores are not measured confidence.\nProgram: examples/agent-evidence/assessment.cav\n\n1. observe {\"confidence\":85}\n   observations@1 = 85; supports answer_supported\n   No decision yet: observing is separate from assessing.\n\n2. assess\n   assessment@1 = 85; in force\n   Grounds: observations@1; caveats: none\n\n3. retract\n   observations@1 withdrawn because recheck; its archive remains.\n   assessment@1 = 85; reopened\n   Grounds: observations@1; caveats: none\n\n4. observe {\"confidence\":92}\n   observations@2 = 92; supports answer_supported\n   assessment@1 = 85; reopened\n   Grounds: observations@1; caveats: none\n\n5. assess\n   assessment@2 = 92; in force\n   Grounds: observations@2; caveats: none\n\nassessment@1 is superseded; original grounds preserved: observations@1.\nCaveat records supplied evidence and authored policy; it does not establish that either is true.\n",
+  "stderr": ""
+}

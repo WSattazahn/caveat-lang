@@ -1,0 +1,114 @@
+{
+  "program": "tracker.cav",
+  "events": [
+    {
+      "event": "observe",
+      "payload": {
+        "value": 85
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "correct",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "observe",
+      "payload": {
+        "value": 92
+      },
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "assess",
+      "payload": {},
+      "outcome": {
+        "schema": "caveat-dispatch/0.1",
+        "outcome": "accepted"
+      }
+    }
+  ],
+  "schema": "caveat-dependents/0.1",
+  "subject": "checks",
+  "kind": "evidence",
+  "sequence": 5,
+  "decisions": [
+    {
+      "id": "answer@1",
+      "value": 85,
+      "status": "superseded",
+      "basis": "grounds",
+      "via": [
+        "checks@1"
+      ]
+    },
+    {
+      "id": "answer@2",
+      "value": 92,
+      "status": "in force",
+      "basis": "grounds",
+      "via": [
+        "checks@2"
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "sequence": 2,
+      "event": "assess",
+      "commitment": "answer@1",
+      "change": "committed",
+      "via": [
+        "checks@1"
+      ]
+    },
+    {
+      "sequence": 5,
+      "event": "assess",
+      "commitment": "answer@2",
+      "change": "committed",
+      "via": [
+        "checks@2"
+      ]
+    }
+  ],
+  "values": [
+    {
+      "name": "selected",
+      "value": 92,
+      "basis": "grounds",
+      "via": [
+        "checks@2"
+      ]
+    }
+  ],
+  "displayed": [
+    {
+      "name": "answer.status",
+      "value": "in_force",
+      "basis": "cites",
+      "via": [
+        "checks@1",
+        "checks@2"
+      ]
+    }
+  ]
+}

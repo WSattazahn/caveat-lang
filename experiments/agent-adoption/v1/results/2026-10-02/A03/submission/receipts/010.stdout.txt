@@ -1,0 +1,29 @@
+tracker.cav after 5 events (sequence 5)
+
+Events
+    1  observe {"value":85}  accepted
+    2  assess  accepted
+    3  correct  accepted
+    4  observe {"value":92}  accepted
+    5  assess  accepted
+
+Decisions
+  answer: 2 of at most 8
+    answer@1 = 85  superseded
+      based on checks@1 (caveats: uncertain)
+      checks@1 has since been withdrawn at #3 because correction
+      #2 assess: committed because checks@1 (caveats: uncertain)
+      #3 correct: reopened because correction
+    answer@2 = 92  in force
+      based on checks@2 (caveats: uncertain)
+      could also have been influenced by checks@1, correction
+      #5 assess: committed because checks@2 (caveats: uncertain)
+
+Evidence
+  tool observed (no stance)  caveats: uncertain
+  checks@1 = 85 supports ready  (#1 observe)  caveats: uncertain, withdrawn  withdrawn at #3 because correction
+  correction observed (no stance)
+  checks@2 = 92 supports ready  (#4 observe)  caveats: uncertain
+
+Displayed
+  answer.verdict = "approved"  because checks@1, checks@2, correction (caveats: uncertain)

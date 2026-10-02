@@ -1,0 +1,12 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "explain",
+    "@corrected-because.cav",
+    "@diagnostic-events.jsonl"
+  ],
+  "exit_status": 0,
+  "stdout": "corrected-because.cav after 1 event (sequence 1)\n\nEvents\n    1  observe  accepted\n\nDecisions\n  none declared\n\nEvidence\n  tool observed (no stance)\n\nDisplayed\n  result.value = 85  because tool\n",
+  "stderr": ""
+}

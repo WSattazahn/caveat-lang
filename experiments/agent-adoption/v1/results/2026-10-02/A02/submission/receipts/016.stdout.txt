@@ -1,0 +1,5 @@
+diagnosis-corrected.cav loads.
+  events: observe (value 0..100)
+  reading streams: none
+  decision series: none
+  displayed: none

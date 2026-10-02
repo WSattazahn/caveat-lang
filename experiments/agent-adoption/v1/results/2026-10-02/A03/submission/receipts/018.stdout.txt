@@ -1,0 +1,13 @@
+corrected-because.cav after 1 event (sequence 1)
+
+Events
+    1  observe  accepted
+
+Decisions
+  none declared
+
+Evidence
+  tool observed (no stance)
+
+Displayed
+  result.value = 85  because tool

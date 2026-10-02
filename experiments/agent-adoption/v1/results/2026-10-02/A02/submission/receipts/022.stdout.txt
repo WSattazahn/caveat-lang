@@ -1,0 +1,1 @@
+Wrote diagnosis.md, explanation.md, FEATURE_REQUEST.md, RESULTS.md with exact receipts and limitations.

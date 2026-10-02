@@ -1,0 +1,17 @@
+What rests on checks in tracker.cav after 5 events (sequence 5)
+
+Decisions
+  answer@1 = 85  superseded  based on checks@1
+  answer@2 = 92  in force  based on checks@2
+
+Decision changes
+  #2 assess: answer@1 committed because checks@1
+  #5 assess: answer@2 committed because checks@2
+
+Values
+  candidate = 92  based on checks@2
+
+Displayed
+  answer.in_force = true  cites checks@1, checks@2
+  answer.reopened = false  cites checks@1, checks@2
+  tracker.count = 2  cites checks@1, checks@2

@@ -1,0 +1,7 @@
+claim ready;
+evidence tool from "consulted source";
+state score = 0;
+event read value min 0 max 100;
+on read reveal tool;
+on read set score = qualified(value, tool) because ready;
+bind result.score = score;

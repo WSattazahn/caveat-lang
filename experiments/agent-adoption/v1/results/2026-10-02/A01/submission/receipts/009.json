@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "validate",
+    "tracker.cav"
+  ],
+  "exit_status": 0,
+  "stdout": "tracker.cav loads.\n  events: assess, correct, learn_stale, observe (value 0..100)\n  reading streams: checks from tool, limit 16\n  decision series: answer, limit 8\n  displayed: answer.in_force, answer.reopened, tracker.count\n",
+  "stderr": ""
+}

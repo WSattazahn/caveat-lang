@@ -1,0 +1,5 @@
+corrected-because.cav loads.
+  events: read (value 0..100)
+  reading streams: none
+  decision series: none
+  displayed: result.score
