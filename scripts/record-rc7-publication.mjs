@@ -13,7 +13,10 @@ const checkOnly=process.argv.includes('--check-only');
 const response=await fetch(`${registry}/caveat-lang/${version}`);assert(response.ok,`npm ${version} unavailable (HTTP ${response.status}); no documentation writes`);const published=await response.json();
 assert.equal(published.name,'caveat-lang');assert.equal(published.version,version);assert.equal(published.dist.integrity,integrity);
 const url=new URL(published.dist.tarball);assert.equal(url.origin,registry);const download=await fetch(url);assert(download.ok);const bytes=Buffer.from(await download.arrayBuffer());assert.equal(sha(bytes),expected);assert.equal('sha512-'+createHash('sha512').update(bytes).digest('base64'),integrity);
-const channelsResponse=await fetch(`${registry}/-/package/caveat-lang/dist-tags`);assert(channelsResponse.ok);const channels=await channelsResponse.json();assert.equal(channels.next,version);assert.equal(channels.latest,'0.1.0-rc.5');
+const channelsResponse=await fetch(`${registry}/-/package/caveat-lang/dist-tags`);assert(channelsResponse.ok);const channels=await channelsResponse.json();
+// Historical verification pins the exact rc.7 package, not mutable dist-tags.
+// Writing the one-time publication record still requires its original channels.
+if(!checkOnly){assert.equal(channels.next,version);assert.equal(channels.latest,'0.1.0-rc.5');}
 const consumer=await mkdtemp(path.join(os.tmpdir(),'caveat-rc7-record-'));
 let commandId=0;const commands=[];
 function run(exe,args,{json=false}={}){const r=spawnSync(exe,args,{cwd:consumer,encoding:'utf8'});const id=String(++commandId).padStart(2,'0');for(const stream of ['stdout','stderr']){const text=r[stream]??'';commands.push({id,executable:exe,args,exitCode:r.status,stream,sha256:sha(Buffer.from(text)),file:`${id}.${stream}.txt`});writeFileSync(path.join(out,`${id}.${stream}.txt`),text);}assert.equal(r.status,0,`${exe} failed: ${r.error?.message??r.stderr}`);return json?JSON.parse(r.stdout):r.stdout.trim();}

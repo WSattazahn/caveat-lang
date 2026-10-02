@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/releases/rc7-handoff/Publish-Rc7.ps1'
       - 'scripts/test-rc7-publication-helper.ps1'
+      - 'scripts/record-rc7-publication.mjs'
       - '.github/workflows/rc7-publication-helper.yml'
   push:
     branches: [main, codex/rc7-publication-recovery]
