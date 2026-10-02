@@ -1,6 +1,10 @@
 name = "caveat_proofs"
 version = "0.1.0"
-defaultTargets = ["Caveat"]
+defaultTargets = ["Caveat", "caveat_compare"]
 
 [[lean_lib]]
 name = "Caveat"
+
+[[lean_exe]]
+name = "caveat_compare"
+root = "Caveat.Runner"

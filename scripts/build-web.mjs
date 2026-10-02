@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { currentRuntimeFingerprint, runtimeArtifactHashes } from './runtime-build-fingerprint.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const dist = path.join(root, 'dist');
@@ -95,13 +96,15 @@ function remappedRustflags() {
 // What produced dist/pkg: the revision, whether tracked files matched it, and
 // the compiler and host. `compiled` is false for --assemble-only, which reuses
 // whatever runtime/target holds and so cannot vouch for how it was built.
-function buildInfo(compiled) {
+function buildInfo(compiled, runtimeSourceFingerprint, runtimeArtifacts) {
   const rustc = output('rustc', ['-vV']) ?? '';
   const field = key => rustc.split('\n').find(line => line.startsWith(`${key}: `))?.slice(key.length + 2) ?? null;
   return {
     revision: output('git', ['rev-parse', 'HEAD']),
     clean: output('git', ['status', '--porcelain', '--untracked-files=no']) === '',
     compiled,
+    runtimeSourceFingerprint,
+    runtimeArtifacts,
     rustc: rustc.split('\n')[0] || null,
     host: field('host'),
     wasmBindgen: bindgenVersion,
@@ -114,8 +117,9 @@ try {
     throw new Error(`Expected wasm-bindgen ${bindgenVersion}; found ${bindgen.version}. Run cargo install wasm-bindgen-cli --version ${bindgenVersion} --locked --force`);
   }
   const compile = !process.argv.includes('--assemble-only');
+  const fingerprint = compile ? await currentRuntimeFingerprint(root) : null;
   if (compile) {
-    run(tool('cargo').command, ['build', '--locked', '--manifest-path', 'runtime/Cargo.toml', '--lib', '--target', 'wasm32-unknown-unknown', '--release'], remappedRustflags());
+    run(tool('cargo').command, ['build', '--locked', '--manifest-path', 'runtime/Cargo.toml', '--lib', '--target', 'wasm32-unknown-unknown', '--release', '--target-dir', path.join(root, 'runtime/target')], remappedRustflags());
   }
 
   await rm(dist, { recursive: true, force: true });
@@ -130,7 +134,11 @@ try {
   if (compile || existsSync(reactiveWasm)) {
     await bindRuntime(bindgen.command, reactiveWasm, path.join(dist, 'pkg-reactive'));
   }
-  await writeFile(path.join(dist, 'build-info.json'), `${JSON.stringify(buildInfo(compile), null, 2)}\n`);
+  if (compile && fingerprint !== await currentRuntimeFingerprint(root)) {
+    throw new Error('Runtime inputs changed during the build; rebuild before using dist');
+  }
+  const artifacts = compile ? await runtimeArtifactHashes(dist) : null;
+  await writeFile(path.join(dist, 'build-info.json'), `${JSON.stringify(buildInfo(compile, fingerprint, artifacts), null, 2)}\n`);
   await cp(path.join(root, 'web'), dist, { recursive: true });
   for (const entry of await readdir(path.join(root, 'game'), { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.cav')) continue;

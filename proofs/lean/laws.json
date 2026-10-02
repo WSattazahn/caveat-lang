@@ -40,5 +40,21 @@
   "Caveat.nonempty_zero_result_retains_both_inputs",
   "Caveat.nonempty_foreign_caveat_rejected",
   "Caveat.successful_write_exact_dependencies",
-  "Caveat.nonempty_successful_guard_replaces_previous_dependencies"
+  "Caveat.nonempty_successful_guard_replaces_previous_dependencies",
+  "Caveat.Bridge.read_written_target",
+  "Caveat.Bridge.read_other_target_unchanged",
+  "Caveat.Bridge.empty_body_plain_zero",
+  "Caveat.Bridge.body_append_exact_combination",
+  "Caveat.Bridge.skipped_action_exact_state",
+  "Caveat.Bridge.accepted_uncited_action_exact_state",
+  "Caveat.Bridge.accepted_cited_action_exact_state",
+  "Caveat.Bridge.invalid_cited_action_rejected",
+  "Caveat.Bridge.rejected_step_uses_before",
+  "Caveat.Bridge.accepted_step_uses_after",
+  "Caveat.Bridge.accepted_head_uses_updated_state",
+  "Caveat.Bridge.later_rejection_discards_successful_head",
+  "Caveat.Bridge.rejected_session_step_preserves_all_modeled_fields",
+  "Caveat.Bridge.accepted_session_step_clears_effects",
+  "Caveat.Bridge.seed_observation_order",
+  "Caveat.Bridge.seed_effect_order"
 ]

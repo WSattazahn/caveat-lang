@@ -1,14 +1,14 @@
 # Caveat Verification Pilot 0.1 — semantics and proof boundary
 
-This first slice provides a semantics contract, targeted boundary tests, and a
-pinned Lean scaffold with small provenance-constructor laws. Those laws concern
-the scaffold's definitions only. This slice does not provide a source parser,
-event interpreter, cross-runtime conformance harness, or verified-runtime result.
-The subsequent interpreter model and comparison requirements below are not
-implemented capabilities or release gates delivered by this slice.
+The first slice provides the semantics contract, targeted boundary tests, and a
+pinned Lean core with provenance-constructor laws. The second adds an executable
+model for a bounded guarded-assignment/citation fragment and a comparison gate
+against production native Rust and WebAssembly. The scope of that fragment and
+the gate's acceptance requirements are registered below. Their implementation
+is distinct from a successful execution receipt.
 
-A Lean proof would establish a property of its stated model and assumptions.
-Testing that model against Caveat would provide evidence of correspondence, not
+A Lean proof establishes a property of its stated model and assumptions.
+Testing that model against Caveat provides evidence of correspondence, not
 a proof that the Rust implementation refines the model. Native Rust and
 WebAssembly execute the same Rust interpreter: their agreement checks build and
 host boundaries but is not agreement between independent language semantics.
@@ -104,7 +104,7 @@ that has not implemented these temporal rules must exclude them from its claims.
 
 ## Outcomes and bounded failure
 
-The subsequent model must distinguish these result constructors:
+Models and adapters must distinguish these result constructors:
 
 - **Accepted**: the event publishes the complete resulting modeled state.
 - **Rejected**: the runtime returns a classified refusal; the full observable
@@ -151,7 +151,7 @@ stand in for Rust binary64 in a numeric-equivalence claim. Signed zero is
 observable. Any restricted exact-integer comparison corpus must register and
 check its domain, including intermediate results, rather than assume it.
 
-## Restoration boundary repaired in this slice
+## Restoration boundary repaired in the first slice
 
 The grounds-inclusion contract applies to admitted restored state, not only to
 values constructed by events. The targeted witnesses in
@@ -174,7 +174,7 @@ caveat that leaves frozen commitment grounds and basis unchanged. These are Rust
 regression tests for an implemented boundary; they do not constitute a Lean
 proof of arbitrary save validation or proof of historical reachability.
 
-## Present scaffold coverage
+## Core model and proof coverage
 
 [Model.lean](../proofs/lean/Caveat/Model.lean) represents provenance as two
 unbounded lists with set-membership inclusion, and numeric payloads as integers.
@@ -195,11 +195,123 @@ rejected retains the old state, and fatal supplies no reusable session. The
 provenance-overflow constructor records Fatal/unclassified. These are explicit
 model definitions and laws about them, not a proof that Rust detects every
 overflow or rolls back an arbitrary event. The targeted Rust boundary tests
-supply separate implementation evidence. There is no expression/event evaluator,
-JSON runner, save model, observation ledger, or native/WASM comparison in the
-scaffold delivered by this slice.
+supply separate implementation evidence. The second-slice bridge below executes
+these same constructors on a restricted event model; it adds no formal save
+model, general observation semantics, or Rust refinement proof.
 
-## Protocol for a later model and comparison
+## Second slice: bounded executable comparison
+
+The input schema is `caveat-guard-citation/0.1`. The fixture module
+[lean-conformance-cases.mjs](../scripts/lean-conformance-cases.mjs) validates and
+renders this fragment; it does not calculate expected semantic outputs.
+
+- The only state names are `a`, `b`, `g`, `x`, and `y`, initially plain zero.
+  Seeds `a` and `b` are integers in `-1000..1000`; `g` is zero or one. One
+  `seed` event neutrally reveals `eg`, `ea`, and `eb` in that order, then sets
+  `a`, `b`, and `g` using their respective evidence and declared caveats
+  `ea/ca`, `eb/cb`, and `eg/cg`.
+- A request contains one to eight steps, each with one to four sequential
+  actions, with at most eight actions in total. Each action requires `target`,
+  `body`, `guard`, and `citations`. Unknown fields or state names are invalid.
+  `body` is a list of zero to four state reads added in order; the empty body
+  is zero. Repeated reads retain their numeric multiplicity.
+- `guard` is null or a state name tested with `!= 0`. A false guard evaluates
+  neither the body nor citations; it adds guard lineage to the old target
+  while retaining the old value and grounds. A true guard permits assignment
+  and contributes lineage only unless the author explicitly cites its grounds.
+- `citations` is null for default body grounds, or a list of zero to four
+  current-state grounds to union. The empty list renders `because nothing`.
+  Every citation sees the state after earlier actions in the same event but
+  before its own target write, including a self-citation. Citation inclusion
+  is checked against the new body-plus-guard lineage. Failure rejects the
+  whole step as `evaluation/ungrounded_citation`, including earlier writes.
+- Inputs are bounded to 64 KiB, IDs to 64 lowercase ASCII identifier characters,
+  and numeric tokens to canonical integers without negative zero. Starting
+  with the largest absolute seed or one, multiplying by each action's body
+  length or one gives a conservative intermediate magnitude bound no larger
+  than `1e9`. Rendered states use bounds `-1e9..1e9`. The gate rejects numeric
+  outputs outside this exact-integer domain. This checked restriction does
+  not prove general Lean integer/Rust binary64 equivalence.
+
+[Bridge.lean](../proofs/lean/Caveat/Bridge.lean) folds body reads through the
+proved `Tracked.combine`, uses `guardedWrite` and `cite` directly, and applies
+`resumeSession` at the complete-step transaction boundary. Bridge equations
+state the exact target and other-state behavior, body fold, skipped/cited/
+uncited action transitions, current-state sequencing, and later rejection of
+a successful prefix. Its modeled session also records the fixed seed's ordered
+observations and reveal effects, clears effects after an accepted ordinary step,
+and preserves all modeled fields on rejection.
+[Runner.lean](../proofs/lean/Caveat/Runner.lean) decodes input and executes those
+same bridge definitions; it is not a second semantic implementation. JSON
+parsing/encoding and source rendering remain unproved boundaries.
+
+The registered corpus contains 21 fixed witnesses and 32 cases generated by
+xorshift32 with seed `0x05eedca7`. All 53 execute; a rejected event remains a
+case result and does not remove a case. Fixed witnesses include cancellation
+with nonempty dependencies, duplicate reads, true/false/negative guards,
+control-only lineage, explicit empty and narrowed grounds, current-state and
+self-citations, guard-only citations, fresh assignment, invalid citation,
+and late rejection followed by another event. These witnesses prevent empty
+metadata or refusal-only agreement from standing in for the intended behavior.
+
+The [comparison gate](../scripts/verify-lean-conformance.mjs) first requires the
+proof audit, then runs the compiled Lean runner, native
+[lean_conformance.rs](../runtime/examples/lean_conformance.rs), and the freshly
+built kit/WebAssembly runtime. The native adapter opens production
+`ReactiveSession::from_source` and dispatches through the structured outcome API;
+the kit uses the production WebAssembly session API. No shadow Rust evaluator
+supplies comparison results. The gate verifies the WebAssembly build-input
+fingerprint and output-byte hashes before loading its artifacts, then checks
+both again after execution. Source hashes must remain unchanged throughout the
+gate. These are local build receipts, not authenticated attestations.
+
+The semantic projection contains each state's number, both provenance channels,
+exact outcome origin/code, ordered observations, effects, and decision journal.
+The journal is always empty in this fragment; comparing it is not coverage of
+commitments or historical journal semantics. Only evidence/caveat membership
+is canonicalized as sets. Observation and effect arrays retain their order.
+Native and WebAssembly complete snapshots, exact save text, and views are also
+compared. Every classified rejection must leave those three captures unchanged.
+Each pre-event prefix is restored into a twin, which receives the next event;
+its outcome and complete captures must agree with the original session. A final
+save roundtrip is checked separately. This is one-step continuation at every
+pre-event prefix, not one restored twin executing each entire remaining suffix.
+
+Eighteen permanent raw-input controls exercise the compiled Lean decoder.
+Each must return exactly exit code 1, no stdout, and its registered diagnostic.
+They include missing/unknown fields, numeric spellings outside the domain,
+size limits, and duplicate keys including escaped spellings. Duplicate keys are
+compared after decoding; stdin is bounded before parsing. These protocol
+refusals are reported separately from semantic mutation detection.
+
+Five semantic control families must be detected for their intended differences:
+one compiled copy of the shared Rust expression evaluator drops state `a`'s
+metadata from both channels, and four source variants drop a skipped guard,
+move guard metadata into grounds, bypass an invalid citation, or reorder the
+seed observations. The compiled mutation must complete an accepted cancellation
+with the same number and missing dependencies while still satisfying grounds
+inclusion. Each source variant runs through native and WebAssembly. These four
+are source-translation controls, not four independently mutated interpreters.
+A build failure, fatal outcome, crash, malformed trace, unrelated difference,
+or timeout is an infrastructure failure, never a successful semantic kill.
+
+The receipt records source/model-input hashes, generator identity, events,
+commands, proof audit, artifact identity, comparisons, and control discrepancies.
+A named-case replay is diagnostic and does not claim the full mutation gate.
+Only a completed full-gate receipt establishes a passing execution; this
+contract does not record one by itself.
+
+This fragment excludes arbitrary expressions, functions, lazy expression
+branches, strings, fractional/exceptional arithmetic, provenance/work overflow,
+graph predicates, guarded observation, repeated reveal/renewal, late caveats,
+withdrawal, readings, commitments, and historical occurrence or journal rules.
+The general core equations and separate Rust boundary tests retain their own
+scopes; they do not extend the executable corpus to those features. Restore
+checks are runtime conformance evidence, not a formal save-validation proof.
+Fatal remains an explicit outcome in the model, but no admitted case is meant
+to produce it; a fatal result fails this comparison instead of matching a refusal.
+
+## Requirements for extending the model and comparison
 
 1. Register the precise fragment, semantics matrix, assumptions, theorem targets,
    and required witnesses before treating the model as an oracle. Every modeled
@@ -216,8 +328,8 @@ scaffold delivered by this slice.
    values, channels, effects, and ordered observations after every event.
 4. On classified rejection compare the complete before/after runtime snapshot,
    save, and view, not just selected fields. Restore genuine saves at registered
-   prefixes, compare full state, and continue the remaining events on original
-   and restored sessions. Treat the save's numeric text as authoritative rather
+   prefixes, compare full state, and state exactly how much subsequent history
+   runs on original and restored sessions. Treat save numeric text as authoritative rather
    than parsing/reserializing away signed zero.
 5. Retain deterministic case identity, source and model-input hashes, seed,
    exact event stream, build/toolchain identity, first differing path, and a
@@ -243,9 +355,9 @@ inventory, authored-law registry, transitive axiom allowlist, and explicit
 kernel replay. It also exercises incomplete-proof and custom-axiom refusal
 controls; a successful build alone is insufficient. See the
 [scaffold guide](../proofs/lean/README.md) for commands, trust boundary, and
-execution receipts. This verifies the stated Lean primitives only.
+execution receipts. This verifies the stated Lean definitions and laws only.
 
-A later comparison gate must run its manifest without silent skips, preserve
+The comparison gate must run its manifest without silent skips, preserve
 failing inputs, and detect semantic mutations for the reasons specified above.
 These gates supplement existing Rust, kit, and affected WebAssembly/browser
 checks. This contract is not authorization to publish a release.
