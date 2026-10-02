@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {loadRuntimeFromDirectory} from 'caveat-lang/node';
+import {attempt} from './host.mjs';
+const source=readFileSync('node_modules/caveat-lang/examples/agent-evidence/assessment.cav','utf8');
+const liveRuntime=await loadRuntimeFromDirectory();const live=liveRuntime.open(source);
+assert.equal((await attempt(live,85)).ok,true);const save=live.save();const snapshot=live.snapshot();
+const branchRuntime=await loadRuntimeFromDirectory();assert.notEqual(branchRuntime,liveRuntime);assert.deepEqual(branchRuntime.identity,liveRuntime.identity);
+const branch=branchRuntime.restore(source,save);
+assert.equal(branch.dispatch('observe',{confidence:40}).outcome,'accepted');const refusal=branch.dispatch('assess');assert.equal(refusal.origin,'policy');assert.equal(refusal.code,'reject');
+const branchSnapshot=branch.snapshot();branch.close();assert.equal(live.save(),save);assert.deepEqual(live.snapshot(),snapshot);
+writeFileSync('branch-results.json',JSON.stringify({runtime:liveRuntime.identity,liveBefore:snapshot,branch:branchSnapshot,refusal,liveAfter:live.snapshot()},null,2)+'\n');
+assert.equal(live.dispatch('observe',{confidence:30}).outcome,'accepted');live.close();
+console.log('PASS documented alternative: new loader, restore saved source, hypothetical 40 refused assessment; live save/snapshot unchanged and live still accepts events. No trap or process isolation test performed.');

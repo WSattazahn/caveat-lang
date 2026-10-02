@@ -1,0 +1,396 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "first.cav",
+  "scenarios": [
+    {
+      "id": "S1",
+      "title": "Observation does not assess; strong threshold and duplicate refusal",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal": [],
+            "/observations": [
+              "tool",
+              "checks@1"
+            ]
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "evidence": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            },
+            "/commitment_bases/answer@1/value": 70,
+            "/bindings/answer/status": "in_force"
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Authored refusals before any reading and input bounds",
+      "steps": [
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "correct",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "learn_stale",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 101
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": -1
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "expect": {
+            "/sequence": 0,
+            "/decision_journal": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "Weak reading refuses assessment then fresh supporting revision",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 69
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 100
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1/evidence": [
+              "checks@2"
+            ],
+            "/commitment_bases/answer@1/value": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "Correction preserves archive and frozen basis; replacement revises after restore",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "old"
+        },
+        {
+          "send": "correct"
+        },
+        {
+          "expect": {
+            "/bindings/answer/status": "reopened",
+            "/withdrawals/0": {
+              "evidence": "checks@1",
+              "because": "correction"
+            }
+          }
+        },
+        {
+          "same_as": "old",
+          "paths": [
+            "/reading_streams/checks/occurrences/0",
+            "/commitment_bases/answer@1",
+            "/commitment_grounds/answer@1"
+          ]
+        },
+        {
+          "send": "correct",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 92
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": "answer@2",
+            "/commitment_grounds/answer@2": {
+              "evidence": [
+                "checks@2"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "old",
+          "paths": [
+            "/reading_streams/checks/occurrences/0",
+            "/commitment_bases/answer@1",
+            "/commitment_grounds/answer@1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "Every supporting or equal reading reopens; opposing reading also reopens",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "expect": {
+            "/bindings/answer/status": "reopened"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 90
+          }
+        },
+        {
+          "expect": {
+            "/bindings/answer/status": "reopened"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 0
+          }
+        },
+        {
+          "expect": {
+            "/bindings/answer/status": "reopened"
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "resume": true
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "title": "Late qualification leaves committed records frozen and does not reopen",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "clean"
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "same_as": "clean",
+          "paths": [
+            "/reading_streams/checks/occurrences/0",
+            "/commitment_bases/answer@1",
+            "/commitment_grounds/answer@1"
+          ]
+        },
+        {
+          "expect": {
+            "/bindings/answer/status": "in_force"
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 92
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "expect": {
+            "/reading_streams/checks/occurrences/1/provenance/caveats": [
+              "stale",
+              "uncertain"
+            ],
+            "/decision_series/answer/current": "answer@1"
+          }
+        },
+        {
+          "same_as": "clean",
+          "paths": [
+            "/reading_streams/checks/occurrences/0",
+            "/commitment_bases/answer@1",
+            "/commitment_grounds/answer@1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "title": "Earlier clean reading remains assessable after learning stale",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "evidence": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

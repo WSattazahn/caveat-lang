@@ -1,0 +1,13 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "dependents",
+    "@tracker.cav",
+    "correction",
+    "@events.jsonl"
+  ],
+  "exit_status": 0,
+  "stdout": "What rests on correction in tracker.cav after 5 events (sequence 5)\n\nDecisions\n  answer@2 = 92  in force  could have been influenced by correction\n\nDecision changes\n  #3 correct: answer@1 reopened because correction\n\nValues\n  nothing\n\nDisplayed\n  answer.verdict = \"approved\"  cites correction\n",
+  "stderr": ""
+}

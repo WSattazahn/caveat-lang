@@ -1,0 +1,8 @@
+{
+  "note": "Recorded after tests; first files were written before first validate and have not been rewritten.",
+  "sourceSha256": "2e93d3ac5066de508542c90f768814fab824105089e6e387a0d928a39387777e",
+  "scenariosSha256": "4b060277bdf726f98c5fcae7e0636c5b9d4f437de27226e215f6ec4282a602de",
+  "firstValidateReceipt": "006.json",
+  "firstTestReceipt": "007.json",
+  "trackerSourceIdentical": true
+}

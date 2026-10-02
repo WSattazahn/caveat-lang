@@ -1,0 +1,9 @@
+{
+  "command": [
+    "node",
+    "verify-artifacts.mjs"
+  ],
+  "exit_status": 0,
+  "stdout": "First-file hashes verified, source identical, scenario source names correct, raw streams exported.\n",
+  "stderr": ""
+}

@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import path from 'node:path';
+const w=path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'));
+const cli=path.join(w,'node_modules/caveat-lang/bin/caveat.mjs');
+fs.mkdirSync(path.join(w,'receipts'),{recursive:true});
+let n=fs.existsSync(path.join(w,'receipts/commands.jsonl'))?fs.readFileSync(path.join(w,'receipts/commands.jsonl'),'utf8').trim().split('\n').length:0;
+const args=process.argv.slice(2);
+const r=spawnSync(process.execPath,args[0]==='--script'?[path.join(w,args[1])]:[cli,...args.map(a=>a.startsWith('@')?path.join(w,a.slice(1)):a)],{cwd:w,encoding:'utf8'});
+const id=String(++n).padStart(3,'0');
+const record={command:[process.execPath,...(args[0]==='--script'?[args[1]]:[cli,...args])],exit_status:r.status,stdout:r.stdout,stderr:r.stderr,error:r.error?.message};
+fs.writeFileSync(path.join(w,'receipts',id+'.json'),JSON.stringify(record,null,2));
+fs.writeFileSync(path.join(w,'receipts',id+'.stdout.txt'),r.stdout||'');
+fs.writeFileSync(path.join(w,'receipts',id+'.stderr.txt'),r.stderr||'');
+fs.appendFileSync(path.join(w,'receipts/commands.jsonl'),JSON.stringify({id,...record})+'\n');
+console.log(JSON.stringify(record));

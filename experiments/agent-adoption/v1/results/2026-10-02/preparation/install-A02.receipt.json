@@ -1,0 +1,33 @@
+{
+  "combinedOutputLimitBytes": 8388608,
+  "command": [
+    "<NODE>",
+    "<DRIVE_ROOT>/Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+    "install",
+    "<PRIVATE_RUN>\\inputs\\caveat-lang-0.1.0-rc.7.tgz",
+    "--offline",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund"
+  ],
+  "cwd": "<TRIAL_A02>",
+  "elapsedSeconds": 0.908,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:47:18.215Z",
+  "observedOutputBytes": 26,
+  "pid": "<LOCAL_IDENTIFIER>",
+  "retainedOutputBytes": 26,
+  "startedAt": "2026-10-02T00:47:17.307Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "install-A02.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 26,
+    "file": "install-A02.stdout",
+    "sha256": "b30f4311fc93e952377fb9076e0407d12a2c9491bf309d52ba1c93dae1ee1467"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 120
+}

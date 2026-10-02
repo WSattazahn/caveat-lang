@@ -1,0 +1,1761 @@
+{
+  "queries": [
+    {
+      "id": "github-names-page-1",
+      "url": "https://api.github.com/search/repositories?q=caveat+in:name&per_page=100&sort=stars&page=1",
+      "retrievedAtUtc": "2026-10-02T00:24:54.321279+00:00",
+      "httpStatus": 200,
+      "data": {
+        "total_count": 216,
+        "incomplete_results": false,
+        "items": [
+          {
+            "full_name": "Caveatron/Caveatron",
+            "html_url": "https://github.com/Caveatron/Caveatron",
+            "description": "Standard Caveatron with LIDAR",
+            "created_at": "2018-01-15T23:55:40Z"
+          },
+          {
+            "full_name": "googlefonts/caveat",
+            "html_url": "https://github.com/googlefonts/caveat",
+            "description": "Caveat handwriting fonts",
+            "created_at": "2015-10-07T13:28:53Z"
+          },
+          {
+            "full_name": "rafaelgarrido/homebrew-caveats",
+            "html_url": "https://github.com/rafaelgarrido/homebrew-caveats",
+            "description": "Formulae Caveats Shortcut for Homebrew Package Manager",
+            "created_at": "2014-06-11T21:51:04Z"
+          },
+          {
+            "full_name": "sibtc/django-user-caveats",
+            "html_url": "https://github.com/sibtc/django-user-caveats",
+            "description": "What You Should Know About The Django User Model",
+            "created_at": "2021-07-08T21:29:43Z"
+          },
+          {
+            "full_name": "big-ucl/caveat",
+            "html_url": "https://github.com/big-ucl/caveat",
+            "description": "Generating human activity sequences with VAEs",
+            "created_at": "2023-10-13T17:24:25Z"
+          },
+          {
+            "full_name": "insin/caveat-utilitor",
+            "html_url": "https://github.com/insin/caveat-utilitor",
+            "description": "Personal GtHub repo status badges",
+            "created_at": "2016-01-17T21:27:35Z"
+          },
+          {
+            "full_name": "technicalpickles/caveat_patch_kids",
+            "html_url": "https://github.com/technicalpickles/caveat_patch_kids",
+            "description": "Manage caveatPatchor.js files for Propane",
+            "created_at": "2013-01-15T02:57:54Z"
+          },
+          {
+            "full_name": "Caveatron/Caveatron_SV",
+            "html_url": "https://github.com/Caveatron/Caveatron_SV",
+            "description": "New survey-focused Caveatron model",
+            "created_at": "2021-04-27T01:46:26Z"
+          },
+          {
+            "full_name": "bennadel/coldfusion-caveats",
+            "html_url": "https://github.com/bennadel/coldfusion-caveats",
+            "description": "A community field guide for CFML developers by CFML developers.",
+            "created_at": "2025-01-26T16:34:11Z"
+          },
+          {
+            "full_name": "spacetelescope/jwst-caveat-examples",
+            "html_url": "https://github.com/spacetelescope/jwst-caveat-examples",
+            "description": "The repository contains information intended to aid the community in mitigating issues that affect, or recently affected, data products available in the MAST archive",
+            "created_at": "2023-07-05T17:45:35Z"
+          },
+          {
+            "full_name": "jkufro/CavEat",
+            "html_url": "https://github.com/jkufro/CavEat",
+            "description": "iOS app that provides insights into food nutrition labels using OCR and other magic.",
+            "created_at": "2019-09-19T20:15:10Z"
+          },
+          {
+            "full_name": "CloudSecurityAlliance-WG/CAVEaT",
+            "html_url": "https://github.com/CloudSecurityAlliance-WG/CAVEaT",
+            "description": "WG-CAVEaT-data",
+            "created_at": "2024-03-22T21:05:04Z"
+          },
+          {
+            "full_name": "kitepon/Caveat",
+            "html_url": "https://github.com/kitepon/Caveat",
+            "description": "Long-term memory layer for Claude Code and Codex — markdown-in-git knowledge base, SQLite FTS5 retrieval, MCP, and native agent hooks.",
+            "created_at": "2026-04-18T14:17:16Z"
+          },
+          {
+            "full_name": "UBOdin/mimir-caveats",
+            "html_url": "https://github.com/UBOdin/mimir-caveats",
+            "description": null,
+            "created_at": "2020-02-11T07:55:23Z"
+          },
+          {
+            "full_name": "valentinozegna/no-honest-caveat",
+            "html_url": "https://github.com/valentinozegna/no-honest-caveat",
+            "description": "Make your agent finish the work instead of making confessions.",
+            "created_at": "2026-09-16T06:38:11Z"
+          },
+          {
+            "full_name": "caveat-ops/ubb",
+            "html_url": "https://github.com/caveat-ops/ubb",
+            "description": null,
+            "created_at": "2026-05-22T14:11:24Z"
+          },
+          {
+            "full_name": "hmcts/probate-caveats-frontend",
+            "html_url": "https://github.com/hmcts/probate-caveats-frontend",
+            "description": null,
+            "created_at": "2018-11-19T15:29:09Z"
+          },
+          {
+            "full_name": "thien-bui-nguyen/ApiCaveatRules",
+            "html_url": "https://github.com/thien-bui-nguyen/ApiCaveatRules",
+            "description": "An IntelliJ plugin checker program for API caveat violation inspections",
+            "created_at": "2019-09-14T13:49:14Z"
+          },
+          {
+            "full_name": "thien-bui-nguyen/github-api-caveats",
+            "html_url": "https://github.com/thien-bui-nguyen/github-api-caveats",
+            "description": "Locating API misuse examples in GitHub data",
+            "created_at": "2019-06-11T12:12:19Z"
+          },
+          {
+            "full_name": "frgmt0/Caveat-An-Anthology",
+            "html_url": "https://github.com/frgmt0/Caveat-An-Anthology",
+            "description": null,
+            "created_at": "2024-11-25T16:44:41Z"
+          },
+          {
+            "full_name": "holtzy/dataviz-caveat-flashcards",
+            "html_url": "https://github.com/holtzy/dataviz-caveat-flashcards",
+            "description": "A set of cards summarizing the most common caveats in data visualization",
+            "created_at": "2024-10-10T07:14:00Z"
+          },
+          {
+            "full_name": "ebanx/java-to-kotlin-caveats",
+            "html_url": "https://github.com/ebanx/java-to-kotlin-caveats",
+            "description": null,
+            "created_at": "2017-06-07T20:12:56Z"
+          },
+          {
+            "full_name": "intellicat-ai/caveat",
+            "html_url": "https://github.com/intellicat-ai/caveat",
+            "description": "CAVEAT provides a shared, machine-readable vocabulary for describing *what went wrong* and *how we know*, enabling interoperable tools for research credibility and integrity assessment.",
+            "created_at": "2026-04-08T18:13:46Z"
+          },
+          {
+            "full_name": "ERAS-Research/caveat",
+            "html_url": "https://github.com/ERAS-Research/caveat",
+            "description": "Framework for Context-Aware Verification, Emulation, and Training",
+            "created_at": "2025-01-24T22:01:58Z"
+          },
+          {
+            "full_name": "mikebatts/caveat",
+            "html_url": "https://github.com/mikebatts/caveat",
+            "description": "AI-powered contract analyzer. Upload any contract → get a risk report in 60 seconds.",
+            "created_at": "2026-03-17T22:56:46Z"
+          },
+          {
+            "full_name": "scott-williams-2002/CaveatBotPublic",
+            "html_url": "https://github.com/scott-williams-2002/CaveatBotPublic",
+            "description": null,
+            "created_at": "2025-03-29T06:32:28Z"
+          },
+          {
+            "full_name": "neelsatyavolu/caveatly",
+            "html_url": "https://github.com/neelsatyavolu/caveatly",
+            "description": "Chrome extension that scans a site's Terms of Service and Privacy Policy with AI and flags what matters.",
+            "created_at": "2026-09-06T16:55:33Z"
+          },
+          {
+            "full_name": "elykahn/caveat-astro",
+            "html_url": "https://github.com/elykahn/caveat-astro",
+            "description": "words with astro",
+            "created_at": "2025-07-15T18:29:08Z"
+          },
+          {
+            "full_name": "osobot-ai/the-caveat",
+            "html_url": "https://github.com/osobot-ai/the-caveat",
+            "description": "The Caveat - Scoped intelligence for the agent economy",
+            "created_at": "2026-02-08T14:18:20Z"
+          },
+          {
+            "full_name": "AliBakhshi-Codes/caveat-public",
+            "html_url": "https://github.com/AliBakhshi-Codes/caveat-public",
+            "description": "Open-set smart contract vulnerability detection with calibrated abstention under a distribution-free coverage guarantee",
+            "created_at": "2026-09-15T20:05:01Z"
+          },
+          {
+            "full_name": "fredshone/caveat-tf",
+            "html_url": "https://github.com/fredshone/caveat-tf",
+            "description": "Experiments with population synthesis",
+            "created_at": "2021-01-18T09:38:22Z"
+          },
+          {
+            "full_name": "jkufro/CavEatAPI",
+            "html_url": "https://github.com/jkufro/CavEatAPI",
+            "description": "Rails API to power the CavEat iOS app",
+            "created_at": "2019-10-09T21:48:23Z"
+          },
+          {
+            "full_name": "natschluter/word-analogy-caveat",
+            "html_url": "https://github.com/natschluter/word-analogy-caveat",
+            "description": null,
+            "created_at": "2018-06-04T16:27:42Z"
+          },
+          {
+            "full_name": "ijmccallum/SoftwareEstimationCaveat",
+            "html_url": "https://github.com/ijmccallum/SoftwareEstimationCaveat",
+            "description": "A Caveat for Software Estimation",
+            "created_at": "2024-10-14T10:04:03Z"
+          },
+          {
+            "full_name": "francojra/caveats_data_viz",
+            "html_url": "https://github.com/francojra/caveats_data_viz",
+            "description": "Documento com conjunto de ressalvas que devem ser tomadas na produção de gráficos.",
+            "created_at": "2023-07-07T02:00:44Z"
+          },
+          {
+            "full_name": "eremitein/external_caveat-fonts_caos",
+            "html_url": "https://github.com/eremitein/external_caveat-fonts_caos",
+            "description": null,
+            "created_at": "2020-04-19T03:25:48Z"
+          },
+          {
+            "full_name": "CloudSecurityAlliance-Chatbots/chatbot-CAVEaT-data",
+            "html_url": "https://github.com/CloudSecurityAlliance-Chatbots/chatbot-CAVEaT-data",
+            "description": "chatbot-CAVEaT-data",
+            "created_at": "2024-06-14T03:18:32Z"
+          },
+          {
+            "full_name": "kulpot/STUDY.VS2022.CSharp.Struct-Caveats",
+            "html_url": "https://github.com/kulpot/STUDY.VS2022.CSharp.Struct-Caveats",
+            "description": "Types ......ctor+ this",
+            "created_at": "2023-08-24T10:51:49Z"
+          },
+          {
+            "full_name": "kulpot/STUDY.VS2022.CSharp.ExtensionMethodsCaveats",
+            "html_url": "https://github.com/kulpot/STUDY.VS2022.CSharp.ExtensionMethodsCaveats",
+            "description": "LINQ",
+            "created_at": "2023-07-01T11:52:47Z"
+          },
+          {
+            "full_name": "kulpot/STUDY.VS2022.CPlusPlus.C-Enum-Caveats",
+            "html_url": "https://github.com/kulpot/STUDY.VS2022.CPlusPlus.C-Enum-Caveats",
+            "description": "C++ Miscellaneous",
+            "created_at": "2023-12-16T09:46:04Z"
+          },
+          {
+            "full_name": "AgntBrwr/2d-human-pose-estimators-strenghts-and-caveats",
+            "html_url": "https://github.com/AgntBrwr/2d-human-pose-estimators-strenghts-and-caveats",
+            "description": "Perform a deeper analysis of your model on the COCO validation set for human keypoint detection",
+            "created_at": "2022-06-19T14:16:06Z"
+          },
+          {
+            "full_name": "kivlor/the-caveats-of-deploying-go-apps-on-heroku",
+            "html_url": "https://github.com/kivlor/the-caveats-of-deploying-go-apps-on-heroku",
+            "description": "lightening talk on deploying go apps on heroku",
+            "created_at": "2016-03-14T11:59:56Z"
+          },
+          {
+            "full_name": "theivanfranco/Caveat",
+            "html_url": "https://github.com/theivanfranco/Caveat",
+            "description": "An app that allows the user to identify dangerous locations on a map using heat maps with different color indexes. Also offers data analysis functionality and crime prediction capabilities, all integrated with a clean UI. ",
+            "created_at": "2017-06-19T00:37:49Z"
+          },
+          {
+            "full_name": "Audie-glitch/caveat",
+            "html_url": "https://github.com/Audie-glitch/caveat",
+            "description": "Caveat — structural macro desk. Working paper on sovereign-debt trilemma, gold-ratio correction, and field briefings.",
+            "created_at": "2026-09-02T15:46:59Z"
+          },
+          {
+            "full_name": "BitBridge-Hackathon-Projects/Caveat",
+            "html_url": "https://github.com/BitBridge-Hackathon-Projects/Caveat",
+            "description": null,
+            "created_at": "2018-10-18T09:01:22Z"
+          },
+          {
+            "full_name": "TullisNelsonAU/caveat",
+            "html_url": "https://github.com/TullisNelsonAU/caveat",
+            "description": null,
+            "created_at": "2026-08-26T04:51:50Z"
+          },
+          {
+            "full_name": "bluyam/caveat",
+            "html_url": "https://github.com/bluyam/caveat",
+            "description": "Fashion + Technology Magazine",
+            "created_at": "2014-12-14T22:45:36Z"
+          },
+          {
+            "full_name": "el-mapache/caveat",
+            "html_url": "https://github.com/el-mapache/caveat",
+            "description": null,
+            "created_at": "2013-07-25T15:23:50Z"
+          },
+          {
+            "full_name": "Rosist-Sallina/caveat",
+            "html_url": "https://github.com/Rosist-Sallina/caveat",
+            "description": null,
+            "created_at": "2026-07-09T09:44:57Z"
+          },
+          {
+            "full_name": "ajithkm0014/Caveat",
+            "html_url": "https://github.com/ajithkm0014/Caveat",
+            "description": null,
+            "created_at": "2020-11-16T21:00:00Z"
+          },
+          {
+            "full_name": "bloxy-studios/Caveat",
+            "html_url": "https://github.com/bloxy-studios/Caveat",
+            "description": "Caveat turns a quality-checked Klebsiella pneumoniae FASTA into a per-antibiotic response report — likely to work / likely to fail / no-call — where every call carries a calibrated confidence and a transparent evidence ledger. It never designs or modifies an organism; it explains resistance that already exists.",
+            "created_at": "2026-07-18T18:12:03Z"
+          },
+          {
+            "full_name": "2TheMoom/caveat",
+            "html_url": "https://github.com/2TheMoom/caveat",
+            "description": "A generic dispute-escalation primitive for GenLayer Intelligent Contracts",
+            "created_at": "2026-09-28T22:16:20Z"
+          },
+          {
+            "full_name": "Noobatphython/caveat",
+            "html_url": "https://github.com/Noobatphython/caveat",
+            "description": "A statistics workbench where the WebMCP tools carry the publisher's caveats, so an agent cannot state a figure the data does not support. Built for the OpenAI WebMCP Challenge.",
+            "created_at": "2026-08-27T13:37:00Z"
+          },
+          {
+            "full_name": "soquasi/caveat",
+            "html_url": "https://github.com/soquasi/caveat",
+            "description": "Playable HERE XYZ tutorial (work in progress)",
+            "created_at": "2018-12-14T15:08:17Z"
+          },
+          {
+            "full_name": "seishudev/Caveat",
+            "html_url": "https://github.com/seishudev/Caveat",
+            "description": null,
+            "created_at": "2025-01-28T15:21:26Z"
+          },
+          {
+            "full_name": "goodekang/CAVEAT",
+            "html_url": "https://github.com/goodekang/CAVEAT",
+            "description": "Code and experiment configurations for CAVEAT: reliability-aware active verification under correlated errors for multi-agent LLM reasoning",
+            "created_at": "2026-09-12T04:20:04Z"
+          },
+          {
+            "full_name": "lolaaa00/caveat",
+            "html_url": "https://github.com/lolaaa00/caveat",
+            "description": "A context-aware execution checkpoint for autonomous agents, on GenLayer. Authorization proves an agent may act; CAVEAT verifies whether acting still means what you meant.",
+            "created_at": "2026-09-13T10:29:54Z"
+          },
+          {
+            "full_name": "achimcc/caveat",
+            "html_url": "https://github.com/achimcc/caveat",
+            "description": "Shows a repository's known pitfall at the moment its error message appears - a Claude Code hook over a directory of caveats",
+            "created_at": "2026-09-21T20:35:49Z"
+          },
+          {
+            "full_name": "DevL/CAVEAT",
+            "html_url": "https://github.com/DevL/CAVEAT",
+            "description": "Completely Asinine Virtual Executing Assembly Thingy",
+            "created_at": "2015-07-13T12:06:02Z"
+          },
+          {
+            "full_name": "sagnikmitr/caveat",
+            "html_url": "https://github.com/sagnikmitr/caveat",
+            "description": "Redirect site (auto-generated by NikShips)",
+            "created_at": "2025-09-29T12:12:45Z"
+          },
+          {
+            "full_name": "Kartikvyas1604/Caveat",
+            "html_url": "https://github.com/Kartikvyas1604/Caveat",
+            "description": null,
+            "created_at": "2026-07-31T10:19:05Z"
+          },
+          {
+            "full_name": "sagnikmitra/caveat",
+            "html_url": "https://github.com/sagnikmitra/caveat",
+            "description": "Redirect site (auto-generated by NikShips)",
+            "created_at": "2025-09-29T12:12:38Z"
+          },
+          {
+            "full_name": "bengaaa/caveat",
+            "html_url": "https://github.com/bengaaa/caveat",
+            "description": null,
+            "created_at": "2020-03-06T00:15:02Z"
+          },
+          {
+            "full_name": "bedantH/caveat",
+            "html_url": "https://github.com/bedantH/caveat",
+            "description": "Caveat is a query-grievance platform for college students to put their thoughts and opinions anonymously",
+            "created_at": "2022-05-11T06:47:35Z"
+          },
+          {
+            "full_name": "CaveatCreative/Caveat",
+            "html_url": "https://github.com/CaveatCreative/Caveat",
+            "description": null,
+            "created_at": "2024-10-11T12:08:31Z"
+          },
+          {
+            "full_name": "thiagoamaro91/caveat",
+            "html_url": "https://github.com/thiagoamaro91/caveat",
+            "description": "Buyer-side SOW red-flag reviewer with a planted-defect eval harness. Live scoreboard included.",
+            "created_at": "2026-07-22T10:24:09Z"
+          },
+          {
+            "full_name": "Zolldyk/Caveat",
+            "html_url": "https://github.com/Zolldyk/Caveat",
+            "description": "Caveat is an open market where AI agents do real work and get paid trustlessly. A buyer attaches a verification policy to every job, a neutral verifier runs the check, and settlement happens on Solana. Honest sellers are paid, and a cheat has its bond slashed to the buyer.",
+            "created_at": "2026-07-04T02:25:31Z"
+          },
+          {
+            "full_name": "chhhee10/Caveat",
+            "html_url": "https://github.com/chhhee10/Caveat",
+            "description": "The word 'caveat' means a warning or caution that should be considered before making a decision. This project is built around this idea, aiming to help users identify important risks, limitations, or concerns before taking action.",
+            "created_at": "2026-06-12T04:39:06Z"
+          },
+          {
+            "full_name": "johnathanmoore9066/caveat",
+            "html_url": "https://github.com/johnathanmoore9066/caveat",
+            "description": null,
+            "created_at": "2026-06-21T17:38:37Z"
+          },
+          {
+            "full_name": "fictus999/caveat",
+            "html_url": "https://github.com/fictus999/caveat",
+            "description": null,
+            "created_at": "2026-06-16T06:00:40Z"
+          },
+          {
+            "full_name": "HillaryIkhais/Caveat",
+            "html_url": "https://github.com/HillaryIkhais/Caveat",
+            "description": null,
+            "created_at": "2026-09-06T17:29:54Z"
+          },
+          {
+            "full_name": "ayondeep/CaveatEmptor",
+            "html_url": "https://github.com/ayondeep/CaveatEmptor",
+            "description": null,
+            "created_at": "2015-08-28T01:10:14Z"
+          },
+          {
+            "full_name": "YusufKizilay/CaveatEmptor",
+            "html_url": "https://github.com/YusufKizilay/CaveatEmptor",
+            "description": null,
+            "created_at": "2020-01-22T19:53:02Z"
+          },
+          {
+            "full_name": "Alireza-Majma/CaveatEmptor",
+            "html_url": "https://github.com/Alireza-Majma/CaveatEmptor",
+            "description": "Develop test Application to learn NHibernate and SqlLite",
+            "created_at": "2014-09-19T21:11:54Z"
+          },
+          {
+            "full_name": "AleksandrPrishepov/CaveatEmptor",
+            "html_url": "https://github.com/AleksandrPrishepov/CaveatEmptor",
+            "description": null,
+            "created_at": "2024-02-16T14:00:27Z"
+          },
+          {
+            "full_name": "DzianisH/CaveatEmptor",
+            "html_url": "https://github.com/DzianisH/CaveatEmptor",
+            "description": null,
+            "created_at": "2020-04-20T12:21:32Z"
+          },
+          {
+            "full_name": "caveatpharma/caveatReact",
+            "html_url": "https://github.com/caveatpharma/caveatReact",
+            "description": null,
+            "created_at": "2021-04-05T14:24:35Z"
+          },
+          {
+            "full_name": "derton1996/CaveatEmptor",
+            "html_url": "https://github.com/derton1996/CaveatEmptor",
+            "description": null,
+            "created_at": "2021-08-01T09:18:05Z"
+          },
+          {
+            "full_name": "Munir-prog/CaveatEmptor",
+            "html_url": "https://github.com/Munir-prog/CaveatEmptor",
+            "description": "Auction project",
+            "created_at": "2021-11-12T12:19:10Z"
+          },
+          {
+            "full_name": "Aravamudhan/CaveatEmptor",
+            "html_url": "https://github.com/Aravamudhan/CaveatEmptor",
+            "description": "Auction management system - For learning Hibernate",
+            "created_at": "2016-08-05T10:21:41Z"
+          },
+          {
+            "full_name": "andreynikonov23/caveatEmptor",
+            "html_url": "https://github.com/andreynikonov23/caveatEmptor",
+            "description": null,
+            "created_at": "2025-02-08T16:58:33Z"
+          },
+          {
+            "full_name": "brian6484/CaveatEmptor",
+            "html_url": "https://github.com/brian6484/CaveatEmptor",
+            "description": null,
+            "created_at": "2023-10-28T15:25:34Z"
+          },
+          {
+            "full_name": "RaymondLCZ/CaveatEmptor",
+            "html_url": "https://github.com/RaymondLCZ/CaveatEmptor",
+            "description": null,
+            "created_at": "2014-10-22T15:09:56Z"
+          },
+          {
+            "full_name": "IRNLPCoder/CaveatDataSet",
+            "html_url": "https://github.com/IRNLPCoder/CaveatDataSet",
+            "description": null,
+            "created_at": "2017-11-28T08:22:30Z"
+          },
+          {
+            "full_name": "jonathanebrahimian/CaveatEmptor_Backend",
+            "html_url": "https://github.com/jonathanebrahimian/CaveatEmptor_Backend",
+            "description": null,
+            "created_at": "2022-11-29T17:30:53Z"
+          },
+          {
+            "full_name": "JonyZizou/CaveatEmptor_Frontend",
+            "html_url": "https://github.com/JonyZizou/CaveatEmptor_Frontend",
+            "description": null,
+            "created_at": "2022-11-30T05:12:25Z"
+          },
+          {
+            "full_name": "JokerCN/CaveatEmptor",
+            "html_url": "https://github.com/JokerCN/CaveatEmptor",
+            "description": "Java persistence with hibernate(2nd) example",
+            "created_at": "2017-08-19T02:09:30Z"
+          },
+          {
+            "full_name": "raviteja-bommireddy/CaveatBench",
+            "html_url": "https://github.com/raviteja-bommireddy/CaveatBench",
+            "description": null,
+            "created_at": "2026-08-23T09:19:22Z"
+          },
+          {
+            "full_name": "woffordCodesAdmin/caveatGlobalWebPage",
+            "html_url": "https://github.com/woffordCodesAdmin/caveatGlobalWebPage",
+            "description": "Site Checkin for WebServices",
+            "created_at": "2021-02-17T12:23:16Z"
+          },
+          {
+            "full_name": "caveat-lector/caveat-lector",
+            "html_url": "https://github.com/caveat-lector/caveat-lector",
+            "description": "Config files for my GitHub profile.",
+            "created_at": "2022-03-13T17:42:43Z"
+          },
+          {
+            "full_name": "maamissiniva/assets-dff-CaveatBrush-Regular",
+            "html_url": "https://github.com/maamissiniva/assets-dff-CaveatBrush-Regular",
+            "description": null,
+            "created_at": "2026-01-17T15:07:59Z"
+          },
+          {
+            "full_name": "caveat-ops/caveat-ops",
+            "html_url": "https://github.com/caveat-ops/caveat-ops",
+            "description": "Config files for my GitHub profile.",
+            "created_at": "2025-01-23T18:53:01Z"
+          },
+          {
+            "full_name": "adamlech188/caveatemptor",
+            "html_url": "https://github.com/adamlech188/caveatemptor",
+            "description": "Example of hibernate application",
+            "created_at": "2015-04-01T13:47:41Z"
+          },
+          {
+            "full_name": "CaveatMoguls/caveatmogulspictures",
+            "html_url": "https://github.com/CaveatMoguls/caveatmogulspictures",
+            "description": null,
+            "created_at": "2025-01-28T09:15:20Z"
+          },
+          {
+            "full_name": "justinkyuQA/CAVEATEMPTORIA",
+            "html_url": "https://github.com/justinkyuQA/CAVEATEMPTORIA",
+            "description": null,
+            "created_at": "2026-09-04T01:02:23Z"
+          },
+          {
+            "full_name": "Caveatrondata/caveatrondata",
+            "html_url": "https://github.com/Caveatrondata/caveatrondata",
+            "description": "cave survey data ",
+            "created_at": "2025-08-10T17:45:30Z"
+          },
+          {
+            "full_name": "JoVanMontfort/caveatemptor",
+            "html_url": "https://github.com/JoVanMontfort/caveatemptor",
+            "description": null,
+            "created_at": "2018-08-21T14:24:25Z"
+          },
+          {
+            "full_name": "btkinstart/caveats",
+            "html_url": "https://github.com/btkinstart/caveats",
+            "description": "Because I keep forgetting how C++ works",
+            "created_at": "2014-09-11T17:48:45Z"
+          },
+          {
+            "full_name": "caveatashu/caveatashu",
+            "html_url": "https://github.com/caveatashu/caveatashu",
+            "description": "Config files for my GitHub profile.",
+            "created_at": "2024-05-09T07:49:55Z"
+          },
+          {
+            "full_name": "MEGA-caveat/mega-caveat-poc",
+            "html_url": "https://github.com/MEGA-caveat/mega-caveat-poc",
+            "description": "Proof of concept code.",
+            "created_at": "2023-02-22T09:13:08Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "github-names-page-2",
+      "url": "https://api.github.com/search/repositories?q=caveat+in:name&per_page=100&sort=stars&page=2",
+      "retrievedAtUtc": "2026-10-02T00:24:54.322292+00:00",
+      "httpStatus": 200,
+      "data": {
+        "total_count": 216,
+        "incomplete_results": false,
+        "items": [
+          {
+            "full_name": "ecowen/caveatemptor",
+            "html_url": "https://github.com/ecowen/caveatemptor",
+            "description": null,
+            "created_at": "2016-02-22T11:37:42Z"
+          },
+          {
+            "full_name": "joeyates/caveatica",
+            "html_url": "https://github.com/joeyates/caveatica",
+            "description": "Automatically open and shut the door to your chicken coop",
+            "created_at": "2023-04-13T08:51:38Z"
+          },
+          {
+            "full_name": "tomhanlei/lijing-caveat",
+            "html_url": "https://github.com/tomhanlei/lijing-caveat",
+            "description": "libs to import",
+            "created_at": "2016-12-25T10:16:28Z"
+          },
+          {
+            "full_name": "DevL/CAVEAT-Ruby",
+            "html_url": "https://github.com/DevL/CAVEAT-Ruby",
+            "description": "Completely Asinine Virtual Executing Assembly Thingy",
+            "created_at": "2013-03-29T11:31:46Z"
+          },
+          {
+            "full_name": "atomgardner/caveat-lector",
+            "html_url": "https://github.com/atomgardner/caveat-lector",
+            "description": null,
+            "created_at": "2024-12-02T05:01:41Z"
+          },
+          {
+            "full_name": "CaveatMoguls/caveatmoguls",
+            "html_url": "https://github.com/CaveatMoguls/caveatmoguls",
+            "description": null,
+            "created_at": "2024-10-09T12:48:36Z"
+          },
+          {
+            "full_name": "Caveat/test",
+            "html_url": "https://github.com/Caveat/test",
+            "description": "test",
+            "created_at": "2022-08-22T05:57:39Z"
+          },
+          {
+            "full_name": "Audie-glitch/caveat-desk",
+            "html_url": "https://github.com/Audie-glitch/caveat-desk",
+            "description": "Caveat Stage 1 desk — sign/redline/walk briefs for agent operators",
+            "created_at": "2026-08-27T13:02:57Z"
+          },
+          {
+            "full_name": "anindya-saha/caveatemptor",
+            "html_url": "https://github.com/anindya-saha/caveatemptor",
+            "description": null,
+            "created_at": "2013-01-23T07:39:18Z"
+          },
+          {
+            "full_name": "wedo911/caveatdiff",
+            "html_url": "https://github.com/wedo911/caveatdiff",
+            "description": "Review material disclosure changes between AI model cards.",
+            "created_at": "2026-08-24T21:13:38Z"
+          },
+          {
+            "full_name": "ompolokile/caveatmogulspictures",
+            "html_url": "https://github.com/ompolokile/caveatmogulspictures",
+            "description": null,
+            "created_at": "2024-11-18T10:29:28Z"
+          },
+          {
+            "full_name": "joeyates/caveatica.livebook",
+            "html_url": "https://github.com/joeyates/caveatica.livebook",
+            "description": "Experimental livebook for remote control of caveatica",
+            "created_at": "2023-04-15T07:28:51Z"
+          },
+          {
+            "full_name": "quolu/Caveat-Public",
+            "html_url": "https://github.com/quolu/Caveat-Public",
+            "description": null,
+            "created_at": "2026-07-12T14:43:15Z"
+          },
+          {
+            "full_name": "mt3o/typedi-caveat",
+            "html_url": "https://github.com/mt3o/typedi-caveat",
+            "description": null,
+            "created_at": "2022-06-06T13:26:57Z"
+          },
+          {
+            "full_name": "MrMeow3141/caveat_emptor",
+            "html_url": "https://github.com/MrMeow3141/caveat_emptor",
+            "description": null,
+            "created_at": "2023-05-19T02:03:53Z"
+          },
+          {
+            "full_name": "gungorMetehan/plotting-caveats",
+            "html_url": "https://github.com/gungorMetehan/plotting-caveats",
+            "description": "Plotting Caveats [R Explanations]",
+            "created_at": "2025-02-13T13:47:04Z"
+          },
+          {
+            "full_name": "WSattazahn/caveat-lang",
+            "html_url": "https://github.com/WSattazahn/caveat-lang",
+            "description": "CAVEAT Language — Programs that remember why. A programming language for computation with claims, evidence, caveats, provisional commitments, and reopening.",
+            "created_at": "2026-09-17T07:44:04Z"
+          },
+          {
+            "full_name": "spring-framework-books/java-persistence-spring-data-hibernate-CaveatEmptor",
+            "html_url": "https://github.com/spring-framework-books/java-persistence-spring-data-hibernate-CaveatEmptor",
+            "description": null,
+            "created_at": "2025-08-13T08:30:53Z"
+          },
+          {
+            "full_name": "MrDiipo/Caveat-Emptor",
+            "html_url": "https://github.com/MrDiipo/Caveat-Emptor",
+            "description": "An online Auction System.",
+            "created_at": "2021-08-26T23:40:30Z"
+          },
+          {
+            "full_name": "joeyates/caveatica_controller",
+            "html_url": "https://github.com/joeyates/caveatica_controller",
+            "description": "A web application for monitoring and controlling Caveatica",
+            "created_at": "2023-04-17T08:47:32Z"
+          },
+          {
+            "full_name": "RUTUKAPATE/Caveat-Typography",
+            "html_url": "https://github.com/RUTUKAPATE/Caveat-Typography",
+            "description": "This is Caveat-Typography",
+            "created_at": "2023-08-27T07:32:03Z"
+          },
+          {
+            "full_name": "Alex38Lyon/caveatron_libraries",
+            "html_url": "https://github.com/Alex38Lyon/caveatron_libraries",
+            "description": "Libraries necessary to build Caveatron",
+            "created_at": "2019-10-16T09:25:59Z"
+          },
+          {
+            "full_name": "jhines2k7/caveat-emptor",
+            "html_url": "https://github.com/jhines2k7/caveat-emptor",
+            "description": null,
+            "created_at": "2016-10-07T13:39:46Z"
+          },
+          {
+            "full_name": "hermia31/caveats-project",
+            "html_url": "https://github.com/hermia31/caveats-project",
+            "description": null,
+            "created_at": "2018-08-30T15:38:52Z"
+          },
+          {
+            "full_name": "pdehaan/caveat-playwright",
+            "html_url": "https://github.com/pdehaan/caveat-playwright",
+            "description": null,
+            "created_at": "2023-02-26T07:44:17Z"
+          },
+          {
+            "full_name": "mirkogeffken/caveat-emptor",
+            "html_url": "https://github.com/mirkogeffken/caveat-emptor",
+            "description": "Fun with threads and other .net framework edge cases",
+            "created_at": "2016-11-21T14:26:42Z"
+          },
+          {
+            "full_name": "renankrz/caveat-emptor",
+            "html_url": "https://github.com/renankrz/caveat-emptor",
+            "description": "Caveat Emptor app with Spring Data JPA and Spring Boot",
+            "created_at": "2023-11-18T13:15:16Z"
+          },
+          {
+            "full_name": "MemoSala/Caveat_Manager",
+            "html_url": "https://github.com/MemoSala/Caveat_Manager",
+            "description": null,
+            "created_at": "2024-06-04T07:59:32Z"
+          },
+          {
+            "full_name": "google-fonts-bower/caveat-bower",
+            "html_url": "https://github.com/google-fonts-bower/caveat-bower",
+            "description": null,
+            "created_at": "2016-08-18T15:26:55Z"
+          },
+          {
+            "full_name": "yamamonmo/caveat_umbrella",
+            "html_url": "https://github.com/yamamonmo/caveat_umbrella",
+            "description": null,
+            "created_at": "2025-12-22T04:54:11Z"
+          },
+          {
+            "full_name": "Hyunseokkim119/CAVEAT-MCP",
+            "html_url": "https://github.com/Hyunseokkim119/CAVEAT-MCP",
+            "description": null,
+            "created_at": "2026-07-03T05:10:17Z"
+          },
+          {
+            "full_name": "jonas-kgomo/caveat-home",
+            "html_url": "https://github.com/jonas-kgomo/caveat-home",
+            "description": "Caveat product website: designs, example blogs, components, comparison and documentation.",
+            "created_at": "2026-09-08T01:37:57Z"
+          },
+          {
+            "full_name": "vicente-r-junior/caveat-ai",
+            "html_url": "https://github.com/vicente-r-junior/caveat-ai",
+            "description": "Local-first contract review for US transactional lawyers — powered by Gemma 4 running on your own machine. Nothing leaves the box.",
+            "created_at": "2026-05-09T17:58:22Z"
+          },
+          {
+            "full_name": "bezelga/caveats",
+            "html_url": "https://github.com/bezelga/caveats",
+            "description": null,
+            "created_at": "2013-07-16T18:33:27Z"
+          },
+          {
+            "full_name": "google-fonts-bower/caveatbrush-bower",
+            "html_url": "https://github.com/google-fonts-bower/caveatbrush-bower",
+            "description": null,
+            "created_at": "2016-08-18T15:27:00Z"
+          },
+          {
+            "full_name": "huyaoban/caveat-emptor",
+            "html_url": "https://github.com/huyaoban/caveat-emptor",
+            "description": null,
+            "created_at": "2017-08-27T14:00:08Z"
+          },
+          {
+            "full_name": "D5n9sMatrix/guile-caveats",
+            "html_url": "https://github.com/D5n9sMatrix/guile-caveats",
+            "description": "Caveats (GNU Emacs Lisp Reference Manual)",
+            "created_at": "2023-10-04T08:25:44Z"
+          },
+          {
+            "full_name": "kaluzaCSA/caveat-toolkit",
+            "html_url": "https://github.com/kaluzaCSA/caveat-toolkit",
+            "description": "Setup toolkit for CAVEaT (Cloud Adversarial Vectors, Exploits, and Threats) development environment",
+            "created_at": "2025-06-26T23:15:08Z"
+          },
+          {
+            "full_name": "mihaela14/Caveat-Emptor-Lucian",
+            "html_url": "https://github.com/mihaela14/Caveat-Emptor-Lucian",
+            "description": null,
+            "created_at": "2017-04-06T08:57:05Z"
+          },
+          {
+            "full_name": "oliviajieuns/Caveat-Erosion-Replication",
+            "html_url": "https://github.com/oliviajieuns/Caveat-Erosion-Replication",
+            "description": null,
+            "created_at": "2026-06-29T13:42:25Z"
+          },
+          {
+            "full_name": "bengous/caveats",
+            "html_url": "https://github.com/bengous/caveats",
+            "description": "Find text hidden from human readers in a CV, judge its intent with Jev, and hand the case to a human.",
+            "created_at": "2026-09-29T20:36:02Z"
+          },
+          {
+            "full_name": "Niamish/Caveat-Site-",
+            "html_url": "https://github.com/Niamish/Caveat-Site-",
+            "description": "Caveat is a refined contract-review landing page built around the idea of **“the fine print, read for you.”** The website demonstrates how a legal-intelligence product could scan agreements such as MSAs, NDAs, SaaS terms, leases, employment contracts, and vendor agreements, then flag clauses that transfer risk onto the signer.  ",
+            "created_at": "2026-06-07T11:16:34Z"
+          },
+          {
+            "full_name": "tknapen/fmri-caveats",
+            "html_url": "https://github.com/tknapen/fmri-caveats",
+            "description": "Learning fMRI by Caveats",
+            "created_at": "2023-03-16T07:41:44Z"
+          },
+          {
+            "full_name": "Caveat/Datascrapping",
+            "html_url": "https://github.com/Caveat/Datascrapping",
+            "description": "Scrapping data",
+            "created_at": "2022-12-15T14:35:13Z"
+          },
+          {
+            "full_name": "CaveatJS/caveat-create",
+            "html_url": "https://github.com/CaveatJS/caveat-create",
+            "description": "Caveat is an open-source publishing app with a simple editor, an editable website, and email delivery—on infrastructure you own.",
+            "created_at": "2026-09-07T23:01:23Z"
+          },
+          {
+            "full_name": "mohitzsh/cppCaveats",
+            "html_url": "https://github.com/mohitzsh/cppCaveats",
+            "description": "New things I stumble upon while learning CPP",
+            "created_at": "2016-12-25T01:28:50Z"
+          },
+          {
+            "full_name": "AnuroopSirothia/caveat-emptor",
+            "html_url": "https://github.com/AnuroopSirothia/caveat-emptor",
+            "description": "Caveat Emptor project from \"Java Persistence with Hibernate\" book to learn Hibernate.",
+            "created_at": "2018-02-09T16:31:52Z"
+          },
+          {
+            "full_name": "g-antonello/CLR-caveats",
+            "html_url": "https://github.com/g-antonello/CLR-caveats",
+            "description": "A small project to assess the effects of Center-Log Ratio (CLR) and related choices on microbiome data",
+            "created_at": "2025-11-12T21:53:22Z"
+          },
+          {
+            "full_name": "Blue42a/intuition-caveat-registry",
+            "html_url": "https://github.com/Blue42a/intuition-caveat-registry",
+            "description": null,
+            "created_at": "2026-06-16T18:09:35Z"
+          },
+          {
+            "full_name": "terriclaw/onlyagent-proof-caveat",
+            "html_url": "https://github.com/terriclaw/onlyagent-proof-caveat",
+            "description": "A CaveatEnforcer that verifies OnlyAgent AI execution proofs (TEE-signed) and binds them to delegated execution targets.",
+            "created_at": "2026-03-25T07:20:05Z"
+          },
+          {
+            "full_name": "xzymon/caveatemptor-jpwh",
+            "html_url": "https://github.com/xzymon/caveatemptor-jpwh",
+            "description": null,
+            "created_at": "2015-07-28T06:17:38Z"
+          },
+          {
+            "full_name": "devnano/git-migration-caveats",
+            "html_url": "https://github.com/devnano/git-migration-caveats",
+            "description": "Demonstration of Git workflow and Django migration caveats, including cherry-pick PR diff issues",
+            "created_at": "2026-01-06T10:51:38Z"
+          },
+          {
+            "full_name": "iPhaeton/rr-caveats",
+            "html_url": "https://github.com/iPhaeton/rr-caveats",
+            "description": null,
+            "created_at": "2020-04-25T13:19:26Z"
+          },
+          {
+            "full_name": "Leotosta/angular-caveats",
+            "html_url": "https://github.com/Leotosta/angular-caveats",
+            "description": null,
+            "created_at": "2020-09-23T13:14:24Z"
+          },
+          {
+            "full_name": "unit27research/caveat-drop",
+            "html_url": "https://github.com/unit27research/caveat-drop",
+            "description": "Unit27 adjacent utility for reviewing whether public claims dropped evidence boundaries.",
+            "created_at": "2026-05-27T14:42:55Z"
+          },
+          {
+            "full_name": "suratth/Caveat-Public",
+            "html_url": "https://github.com/suratth/Caveat-Public",
+            "description": null,
+            "created_at": "2026-07-13T12:27:54Z"
+          },
+          {
+            "full_name": "caveatp/caveatp.github.io",
+            "html_url": "https://github.com/caveatp/caveatp.github.io",
+            "description": "Github Pages ",
+            "created_at": "2017-07-05T19:09:55Z"
+          },
+          {
+            "full_name": "LalremLian/Caveat_content_provider",
+            "html_url": "https://github.com/LalremLian/Caveat_content_provider",
+            "description": "Getting contacts from a local phone and displaying in RecyclerView.",
+            "created_at": "2022-01-17T09:37:16Z"
+          },
+          {
+            "full_name": "kamy01/Caveat-Emptor-Paul",
+            "html_url": "https://github.com/kamy01/Caveat-Emptor-Paul",
+            "description": null,
+            "created_at": "2017-04-18T07:32:42Z"
+          },
+          {
+            "full_name": "golnarmordadi/Inheritance-Caveats",
+            "html_url": "https://github.com/golnarmordadi/Inheritance-Caveats",
+            "description": null,
+            "created_at": "2023-02-27T04:57:35Z"
+          },
+          {
+            "full_name": "CaveaThomas/CaveaThomas",
+            "html_url": "https://github.com/CaveaThomas/CaveaThomas",
+            "description": "Config files for my GitHub profile.",
+            "created_at": "2022-03-24T09:05:11Z"
+          },
+          {
+            "full_name": "johnnqasim/caveat-loans",
+            "html_url": "https://github.com/johnnqasim/caveat-loans",
+            "description": "Caveat loans can be a valuable option for borrowers who need short-term financing and have sufficient equity in their property. However, they come with higher costs and risks, ",
+            "created_at": "2024-05-06T10:12:10Z"
+          },
+          {
+            "full_name": "LilShura/caveat-igra",
+            "html_url": "https://github.com/LilShura/caveat-igra",
+            "description": null,
+            "created_at": "2023-12-12T07:35:30Z"
+          },
+          {
+            "full_name": "allon-tbs/caveat-loan",
+            "html_url": "https://github.com/allon-tbs/caveat-loan",
+            "description": null,
+            "created_at": "2026-03-19T08:28:15Z"
+          },
+          {
+            "full_name": "intuition-box/Caveats-Enforcers",
+            "html_url": "https://github.com/intuition-box/Caveats-Enforcers",
+            "description": null,
+            "created_at": "2026-06-08T14:58:04Z"
+          },
+          {
+            "full_name": "arasdenizhan/springCaveatEmptor",
+            "html_url": "https://github.com/arasdenizhan/springCaveatEmptor",
+            "description": "Online Auction Application made with Spring Boot.",
+            "created_at": "2021-11-30T08:28:38Z"
+          },
+          {
+            "full_name": "come97/streamlit_caveat_project",
+            "html_url": "https://github.com/come97/streamlit_caveat_project",
+            "description": null,
+            "created_at": "2025-01-23T17:06:09Z"
+          },
+          {
+            "full_name": "nithinaru/Caveat-ScalekitxActian",
+            "html_url": "https://github.com/nithinaru/Caveat-ScalekitxActian",
+            "description": "a lawyer in your pocket.",
+            "created_at": "2026-06-27T18:01:01Z"
+          },
+          {
+            "full_name": "BubbleBear/javascript-performance-caveats",
+            "html_url": "https://github.com/BubbleBear/javascript-performance-caveats",
+            "description": null,
+            "created_at": "2021-05-19T05:51:20Z"
+          },
+          {
+            "full_name": "ACruzadoP/15_some_caveats",
+            "html_url": "https://github.com/ACruzadoP/15_some_caveats",
+            "description": null,
+            "created_at": "2020-10-09T09:42:06Z"
+          },
+          {
+            "full_name": "kaluzaCSA/CAVEaT-STIX-Generator",
+            "html_url": "https://github.com/kaluzaCSA/CAVEaT-STIX-Generator",
+            "description": "Transform threat intelligence into MITRE ATT&CK compliant STIX bundles with enhanced validation and multi-format output",
+            "created_at": "2025-07-03T20:58:33Z"
+          },
+          {
+            "full_name": "uenofuuma/chrome-caveat",
+            "html_url": "https://github.com/uenofuuma/chrome-caveat",
+            "description": null,
+            "created_at": "2022-03-18T09:33:36Z"
+          },
+          {
+            "full_name": "jules3041/Internship-GRETTIA-Caveat",
+            "html_url": "https://github.com/jules3041/Internship-GRETTIA-Caveat",
+            "description": null,
+            "created_at": "2026-02-24T15:43:18Z"
+          },
+          {
+            "full_name": "hermia31/reduction-caveats-gradle",
+            "html_url": "https://github.com/hermia31/reduction-caveats-gradle",
+            "description": null,
+            "created_at": "2018-08-29T16:30:24Z"
+          },
+          {
+            "full_name": "kamy01/Caveat-Emptor-Oxana",
+            "html_url": "https://github.com/kamy01/Caveat-Emptor-Oxana",
+            "description": "Oxana",
+            "created_at": "2017-04-04T08:47:41Z"
+          },
+          {
+            "full_name": "zldrobit/pycuda-autoinit-caveat",
+            "html_url": "https://github.com/zldrobit/pycuda-autoinit-caveat",
+            "description": null,
+            "created_at": "2020-09-28T09:40:48Z"
+          },
+          {
+            "full_name": "panthangisindhuja8/caveat-management-system",
+            "html_url": "https://github.com/panthangisindhuja8/caveat-management-system",
+            "description": null,
+            "created_at": "2026-05-21T07:43:07Z"
+          },
+          {
+            "full_name": "kamy01/Caveat-Emptor-",
+            "html_url": "https://github.com/kamy01/Caveat-Emptor-",
+            "description": "Caveat Emptor - Silviu",
+            "created_at": "2017-01-22T20:35:18Z"
+          },
+          {
+            "full_name": "timulacram/caveat-emptor",
+            "html_url": "https://github.com/timulacram/caveat-emptor",
+            "description": "Simple teaching tool regarding the true consequences of spending.",
+            "created_at": "2016-06-24T19:56:50Z"
+          },
+          {
+            "full_name": "djfm/nconf-caveat",
+            "html_url": "https://github.com/djfm/nconf-caveat",
+            "description": null,
+            "created_at": "2021-10-26T11:33:10Z"
+          },
+          {
+            "full_name": "Najaf/caveat-emptor",
+            "html_url": "https://github.com/Najaf/caveat-emptor",
+            "description": null,
+            "created_at": "2026-04-25T07:36:30Z"
+          },
+          {
+            "full_name": "docker-rubygem/caveat_patch_kids",
+            "html_url": "https://github.com/docker-rubygem/caveat_patch_kids",
+            "description": null,
+            "created_at": "2017-01-14T23:41:43Z"
+          },
+          {
+            "full_name": "x4m/caveats_of_replication",
+            "html_url": "https://github.com/x4m/caveats_of_replication",
+            "description": "Materials for FOSDEM2021 talk \"Caveats of replication in PostgreSQL HA clusters and CDC systems\"",
+            "created_at": "2021-01-15T08:20:15Z"
+          },
+          {
+            "full_name": "jlstanus/caveatron-hardware-documentation",
+            "html_url": "https://github.com/jlstanus/caveatron-hardware-documentation",
+            "description": "Documentation for Assembling Caveatron Hardware",
+            "created_at": "2019-09-19T19:02:43Z"
+          },
+          {
+            "full_name": "EducationShinyAppTeam/Significance_Testing_Caveats",
+            "html_url": "https://github.com/EducationShinyAppTeam/Significance_Testing_Caveats",
+            "description": "Significance Testing Caveats",
+            "created_at": "2019-01-08T18:58:20Z"
+          },
+          {
+            "full_name": "intuition-box/caveat-enforcers-registry",
+            "html_url": "https://github.com/intuition-box/caveat-enforcers-registry",
+            "description": null,
+            "created_at": "2026-07-30T20:19:33Z"
+          },
+          {
+            "full_name": "Charlene717/scRNAseq-analysis-caveats",
+            "html_url": "https://github.com/Charlene717/scRNAseq-analysis-caveats",
+            "description": null,
+            "created_at": "2025-12-18T22:34:59Z"
+          },
+          {
+            "full_name": "adamlech188/com.hibernate.springboot.caveatemptory",
+            "html_url": "https://github.com/adamlech188/com.hibernate.springboot.caveatemptory",
+            "description": "Sample of implementation of domain model in hibernate using springboot",
+            "created_at": "2015-04-06T21:01:23Z"
+          },
+          {
+            "full_name": "kamy01/Caveat-Emptor-Delia",
+            "html_url": "https://github.com/kamy01/Caveat-Emptor-Delia",
+            "description": null,
+            "created_at": "2017-04-06T09:07:49Z"
+          },
+          {
+            "full_name": "Sirui-Krystal/Improving-API-Caveats-Accessibility",
+            "html_url": "https://github.com/Sirui-Krystal/Improving-API-Caveats-Accessibility",
+            "description": "Online material for  ICSME2018",
+            "created_at": "2018-04-07T02:48:49Z"
+          },
+          {
+            "full_name": "theincondensable/practice-caveat-emptor",
+            "html_url": "https://github.com/theincondensable/practice-caveat-emptor",
+            "description": null,
+            "created_at": "2023-06-13T11:58:15Z"
+          },
+          {
+            "full_name": "kamy01/Caveat-Emptor-Madalina",
+            "html_url": "https://github.com/kamy01/Caveat-Emptor-Madalina",
+            "description": null,
+            "created_at": "2017-05-16T15:07:34Z"
+          },
+          {
+            "full_name": "RohanNero/learn-usdt-caveat",
+            "html_url": "https://github.com/RohanNero/learn-usdt-caveat",
+            "description": "Demonstrates the differences between accurately structured ERC-20 interfaces and the USDT interface.",
+            "created_at": "2025-03-20T18:14:29Z"
+          },
+          {
+            "full_name": "MEGA-caveat/mega-caveat.github.io",
+            "html_url": "https://github.com/MEGA-caveat/mega-caveat.github.io",
+            "description": null,
+            "created_at": "2023-01-10T09:24:53Z"
+          },
+          {
+            "full_name": "abgnpr/JS-examples-and-caveats",
+            "html_url": "https://github.com/abgnpr/JS-examples-and-caveats",
+            "description": "Small JS examples to help refresh concepts and related caveats.",
+            "created_at": "2020-08-05T17:42:27Z"
+          },
+          {
+            "full_name": "kaluzaCSA/CAVEaT-installer",
+            "html_url": "https://github.com/kaluzaCSA/CAVEaT-installer",
+            "description": null,
+            "created_at": "2025-06-30T23:30:51Z"
+          },
+          {
+            "full_name": "mihaela14/Caveat-Emptor-Adrian",
+            "html_url": "https://github.com/mihaela14/Caveat-Emptor-Adrian",
+            "description": null,
+            "created_at": "2017-04-06T08:49:42Z"
+          },
+          {
+            "full_name": "caveatmagazine/caveatmagazine.github.io",
+            "html_url": "https://github.com/caveatmagazine/caveatmagazine.github.io",
+            "description": "Fashion + Technology Magazine",
+            "created_at": "2015-01-07T21:04:17Z"
+          },
+          {
+            "full_name": "sspt/github-actions-caveats",
+            "html_url": "https://github.com/sspt/github-actions-caveats",
+            "description": "Repo for testing github actions, callable inheritance and caveats",
+            "created_at": "2025-08-18T13:15:35Z"
+          },
+          {
+            "full_name": "JoshHellix/M13-Caveat-Enforcers-Registry",
+            "html_url": "https://github.com/JoshHellix/M13-Caveat-Enforcers-Registry",
+            "description": null,
+            "created_at": "2026-06-18T00:31:04Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "github-names-page-3",
+      "url": "https://api.github.com/search/repositories?q=caveat+in:name&per_page=100&sort=stars&page=3",
+      "retrievedAtUtc": "2026-10-02T00:24:54.323106+00:00",
+      "httpStatus": 200,
+      "data": {
+        "total_count": 216,
+        "incomplete_results": false,
+        "items": [
+          {
+            "full_name": "Caveat/Machine-learning",
+            "html_url": "https://github.com/Caveat/Machine-learning",
+            "description": "ML projects",
+            "created_at": "2023-01-22T16:49:47Z"
+          },
+          {
+            "full_name": "rustedsword/load_bearing_honest_caveats",
+            "html_url": "https://github.com/rustedsword/load_bearing_honest_caveats",
+            "description": null,
+            "created_at": "2026-08-20T17:31:23Z"
+          },
+          {
+            "full_name": "saad-ken/caveat-self-hosted-publishing-newsletter-tool",
+            "html_url": "https://github.com/saad-ken/caveat-self-hosted-publishing-newsletter-tool",
+            "description": null,
+            "created_at": "2026-09-08T04:56:03Z"
+          },
+          {
+            "full_name": "SimonHarmonicMinor/spring-boot-mock-bean-annotaion-caveats",
+            "html_url": "https://github.com/SimonHarmonicMinor/spring-boot-mock-bean-annotaion-caveats",
+            "description": "Spring Boot Testing. @MockBean annotation caveats",
+            "created_at": "2022-01-26T19:17:54Z"
+          },
+          {
+            "full_name": "evgeniy-yudin/chatgpt-clinic-caveats-fact-check",
+            "html_url": "https://github.com/evgeniy-yudin/chatgpt-clinic-caveats-fact-check",
+            "description": "Version 1.0 companion dataset fact-checking clinic-specific caveats in repeated ChatGPT clinic recommendations.",
+            "created_at": "2026-09-04T12:35:28Z"
+          },
+          {
+            "full_name": "caveat-ops/bootcamp-copilot",
+            "html_url": "https://github.com/caveat-ops/bootcamp-copilot",
+            "description": null,
+            "created_at": "2025-02-04T22:23:47Z"
+          },
+          {
+            "full_name": "caveat-partners/one-penny",
+            "html_url": "https://github.com/caveat-partners/one-penny",
+            "description": "The Queen Elizabeth",
+            "created_at": "2023-05-19T02:11:02Z"
+          },
+          {
+            "full_name": "binmishr/Counting-and-Visualizing-CRAN-Downloads-packageRank-with-Caveats-",
+            "html_url": "https://github.com/binmishr/Counting-and-Visualizing-CRAN-Downloads-packageRank-with-Caveats-",
+            "description": null,
+            "created_at": "2021-09-15T05:16:11Z"
+          },
+          {
+            "full_name": "caveat-ops/landing-page",
+            "html_url": "https://github.com/caveat-ops/landing-page",
+            "description": null,
+            "created_at": "2025-01-23T22:49:23Z"
+          },
+          {
+            "full_name": "Christopherrpaul/Enabling-a-Variable-Output-Regulator-to-Produce-0-volts-Caveat-Designer-",
+            "html_url": "https://github.com/Christopherrpaul/Enabling-a-Variable-Output-Regulator-to-Produce-0-volts-Caveat-Designer-",
+            "description": "spreadsheet to calculate resistors values limiting minimum output voltages for https://www.edn.com/Enabling a Variable Output Regulator to Produce 0 volts? Caveat, Designer!",
+            "created_at": "2025-12-05T21:19:41Z"
+          },
+          {
+            "full_name": "binmishr/From-R-Hub-Counting-and-Visualizing-CRAN-Downloads-with-packageRank-with-Caveats-",
+            "html_url": "https://github.com/binmishr/From-R-Hub-Counting-and-Visualizing-CRAN-Downloads-with-packageRank-with-Caveats-",
+            "description": null,
+            "created_at": "2021-09-11T07:32:34Z"
+          },
+          {
+            "full_name": "caveat-ops/dio-f-lf-002",
+            "html_url": "https://github.com/caveat-ops/dio-f-lf-002",
+            "description": null,
+            "created_at": "2026-02-24T17:00:13Z"
+          },
+          {
+            "full_name": "caveat-ops/dio-f-lf-001",
+            "html_url": "https://github.com/caveat-ops/dio-f-lf-001",
+            "description": null,
+            "created_at": "2026-02-24T12:33:17Z"
+          },
+          {
+            "full_name": "caveat-ops/dio-riachuelo-cs-projeto-1",
+            "html_url": "https://github.com/caveat-ops/dio-riachuelo-cs-projeto-1",
+            "description": "labs da DIO",
+            "created_at": "2026-02-16T11:42:16Z"
+          },
+          {
+            "full_name": "caveat-ops/dio-bc-cs-riaa3-002",
+            "html_url": "https://github.com/caveat-ops/dio-bc-cs-riaa3-002",
+            "description": null,
+            "created_at": "2026-02-18T11:52:18Z"
+          },
+          {
+            "full_name": "caveat-ops/dio-bc-cs-riaa3-003",
+            "html_url": "https://github.com/caveat-ops/dio-bc-cs-riaa3-003",
+            "description": null,
+            "created_at": "2026-02-23T22:25:41Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rdap-caveat-com",
+      "url": "https://rdap.verisign.com/com/v1/domain/caveat.com",
+      "retrievedAtUtc": "2026-10-02T00:24:54.350947+00:00",
+      "httpStatus": 200,
+      "data": {
+        "ldhName": "CAVEAT.COM",
+        "status": [
+          "client delete prohibited",
+          "client renew prohibited",
+          "client transfer prohibited",
+          "client update prohibited"
+        ],
+        "events": [
+          {
+            "eventAction": "registration",
+            "eventDate": "1996-05-22T04:00:00Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2027-05-23T04:00:00Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-05-23T17:30:55Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-02T00:24:43Z"
+          }
+        ],
+        "links": [
+          {
+            "value": "https://rdap.verisign.com/com/v1/domain/caveat.com",
+            "rel": "self",
+            "href": "https://rdap.verisign.com/com/v1/domain/caveat.com",
+            "type": "application/rdap+json"
+          },
+          {
+            "value": "https://rdap.verisign.com/com/v1/domain/caveat.com",
+            "rel": "related",
+            "href": "https://rdap.godaddy.com/v1/domain/CAVEAT.COM",
+            "type": "application/rdap+json"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rdap-caveatlang-com",
+      "url": "https://rdap.verisign.com/com/v1/domain/caveat-lang.com",
+      "retrievedAtUtc": "2026-10-02T00:24:54.367614+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "rdap-bootstrap",
+      "url": "https://data.iana.org/rdap/dns.json",
+      "retrievedAtUtc": "2026-10-02T00:24:54.383158+00:00",
+      "httpStatus": 200,
+      "data": {
+        "publication": "2026-09-30T23:00:03Z",
+        "services": [
+          [
+            [
+              "dev"
+            ],
+            [
+              "https://pubapi.registry.google/rdap/"
+            ]
+          ],
+          [
+            [
+              "ai"
+            ],
+            [
+              "https://rdap.identitydigital.services/rdap/"
+            ]
+          ],
+          [
+            [
+              "org"
+            ],
+            [
+              "https://rdap.publicinterestregistry.org/rdap/"
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "crates-caveat-lang",
+      "url": "https://crates.io/api/v1/crates/caveat-lang",
+      "retrievedAtUtc": "2026-10-02T00:24:54.388108+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "crates-caveat-cli",
+      "url": "https://crates.io/api/v1/crates/caveat-cli",
+      "retrievedAtUtc": "2026-10-02T00:24:54.388942+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "pypi-simple-names",
+      "url": "https://pypi.org/simple/",
+      "retrievedAtUtc": "2026-10-02T00:24:54.618142+00:00",
+      "httpStatus": 200,
+      "data": {
+        "matchedNames": [
+          "fontpkg-caveat"
+        ],
+        "totalProjects": 903847
+      }
+    },
+    {
+      "id": "nuget-exact",
+      "url": "https://api.nuget.org/v3-flatcontainer/caveat/index.json",
+      "retrievedAtUtc": "2026-10-02T00:24:54.649799+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: The specified blob does not exist."
+    },
+    {
+      "id": "maven-exact",
+      "url": "https://search.maven.org/solrsearch/select?q=a:caveat&rows=30&wt=json",
+      "retrievedAtUtc": "2026-10-02T00:24:54.802195+00:00",
+      "httpStatus": 200,
+      "data": {
+        "responseHeader": {
+          "status": 0,
+          "QTime": 0,
+          "params": {
+            "q": "a:caveat",
+            "core": "",
+            "indent": "off",
+            "spellcheck": "true",
+            "fl": "id,g,a,latestVersion,p,ec,repositoryId,text,timestamp,versionCount",
+            "start": "",
+            "spellcheck.count": "5",
+            "sort": "score desc,timestamp desc,g asc,a asc",
+            "rows": "30",
+            "wt": "json",
+            "version": "2.2"
+          }
+        },
+        "response": {
+          "numFound": 0,
+          "start": 0,
+          "docs": []
+        },
+        "spellcheck": {
+          "suggestions": []
+        }
+      }
+    },
+    {
+      "id": "homebrew-cask",
+      "url": "https://formulae.brew.sh/api/cask/caveat.json",
+      "retrievedAtUtc": "2026-10-02T00:24:54.848004+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "rdap-caveat-dev",
+      "url": "https://pubapi.registry.google/rdap/domain/caveat.dev",
+      "retrievedAtUtc": "2026-10-02T00:26:49.556121+00:00",
+      "httpStatus": 200,
+      "data": {
+        "ldhName": "caveat.dev",
+        "status": [
+          "client transfer prohibited"
+        ],
+        "events": [
+          {
+            "eventAction": "registration",
+            "eventActor": "cloudflare",
+            "eventDate": "2025-05-04T12:57:59.564Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2027-05-04T12:57:59.564Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-02T00:26:49.995Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-04-09T04:20:05.025Z"
+          }
+        ],
+        "links": [
+          {
+            "href": "https://pubapi.registry.google/rdap/domain/caveat.dev",
+            "rel": "self",
+            "type": "application/rdap+json",
+            "value": "https://pubapi.registry.google/rdap/domain/caveat.dev"
+          },
+          {
+            "href": "https://rdap.cloudflare.com/rdap/v1/domain/caveat.dev",
+            "rel": "related",
+            "type": "application/rdap+json",
+            "value": "https://pubapi.registry.google/rdap/domain/caveat.dev"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rdap-caveatlang-dev",
+      "url": "https://pubapi.registry.google/rdap/domain/caveat-lang.dev",
+      "retrievedAtUtc": "2026-10-02T00:26:49.557471+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "rdap-caveat-ai",
+      "url": "https://rdap.identitydigital.services/rdap/domain/caveat.ai",
+      "retrievedAtUtc": "2026-10-02T00:26:49.558234+00:00",
+      "httpStatus": 200,
+      "data": {
+        "ldhName": "caveat.ai",
+        "status": [
+          "client transfer prohibited"
+        ],
+        "events": [
+          {
+            "eventAction": "transfer",
+            "eventDate": "2026-07-08T09:39:07.686Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2030-08-02T16:05:41Z"
+          },
+          {
+            "eventAction": "registration",
+            "eventDate": "2022-08-02T16:05:40Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-08-12T07:12:31.413Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-02T00:26:49.827Z"
+          }
+        ],
+        "links": [
+          {
+            "value": "https://rdap.identitydigital.services/rdap/domain/caveat.ai",
+            "rel": "related",
+            "href": "https://rdap.spaceship.com/domain/caveat.ai",
+            "type": "application/rdap+json"
+          },
+          {
+            "value": "https://rdap.identitydigital.services/rdap/domain/caveat.ai",
+            "rel": "self",
+            "href": "https://rdap.identitydigital.services/rdap/domain/caveat.ai",
+            "type": "application/rdap+json"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rdap-caveat-org",
+      "url": "https://rdap.publicinterestregistry.org/rdap/domain/caveat.org",
+      "retrievedAtUtc": "2026-10-02T00:26:49.571471+00:00",
+      "httpStatus": 200,
+      "data": {
+        "ldhName": "caveat.org",
+        "status": [
+          "client transfer prohibited",
+          "client update prohibited"
+        ],
+        "events": [
+          {
+            "eventAction": "transfer",
+            "eventDate": "2004-10-03T19:53:27.29Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2027-10-21T04:00:00Z"
+          },
+          {
+            "eventAction": "registration",
+            "eventDate": "1995-10-22T04:00:00.29Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-09-26T15:39:19.417Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-02T00:26:49.942Z"
+          }
+        ],
+        "links": [
+          {
+            "value": "https://rdap.publicinterestregistry.org/rdap/domain/caveat.org",
+            "rel": "related",
+            "href": "https://easydns.rdap.tucows.com/domain/caveat.org",
+            "type": "application/rdap+json"
+          },
+          {
+            "value": "https://rdap.publicinterestregistry.org/rdap/domain/caveat.org",
+            "rel": "self",
+            "href": "https://rdap.publicinterestregistry.org/rdap/domain/caveat.org",
+            "type": "application/rdap+json"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pypi-fontpkg-caveat",
+      "url": "https://pypi.org/pypi/fontpkg-caveat/json",
+      "retrievedAtUtc": "2026-10-02T00:26:49.617439+00:00",
+      "httpStatus": 200,
+      "data": {
+        "info": {
+          "name": "fontpkg-caveat",
+          "version": "2.0",
+          "summary": "Caveat font family, packaged for Python by fontpkg",
+          "project_urls": {
+            "Homepage": "https://fontpkg.org",
+            "Repository": "https://github.com/Fontpkg/fontpkg"
+          }
+        },
+        "firstUpload": "2026-09-15T01:28:07.301811Z"
+      }
+    },
+    {
+      "id": "github-epiloque",
+      "url": "https://api.github.com/repos/epiloque/caveat",
+      "retrievedAtUtc": "2026-10-02T00:26:49.619582+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "USPTO-TTAB-92078868",
+      "url": "https://ttabvue.uspto.gov/ttabvue/v?pno=92078868&pty=CAN",
+      "retrievedAtUtc": "2026-10-02T00:26:49.653723+00:00",
+      "httpStatus": 200,
+      "data": {
+        "caseNumber": "92078868",
+        "caseType": "Cancellation",
+        "filingDate": "2022-01-18",
+        "caseStatus": "Terminated",
+        "caseStatusDate": "2022-07-18",
+        "recordsDisplayed": [
+          {
+            "serialNumber": "87139754",
+            "registrationNumber": "5166173",
+            "mark": "CAVEAT",
+            "party": "Smack Global, Inc.",
+            "displayedApplicationStatus": "CANCELLED - SECTION 18"
+          },
+          {
+            "serialNumber": "90138142",
+            "registrationNumber": "6903694",
+            "mark": "CAVEAT",
+            "party": "Hello Caveat, LLC",
+            "displayedApplicationStatus": "REGISTERED"
+          }
+        ],
+        "note": "Selected displayed fields only; goods/services and live TSDR status not established."
+      }
+    },
+    {
+      "id": "USPTO-TSDR-90138142",
+      "url": "https://tsdr.uspto.gov/#caseNumber=90138142&caseSearchType=US_APPLICATION&caseType=DEFAULT&searchType=statusSearch",
+      "retrievedAtUtc": "2026-10-02T00:26:49.654129+00:00",
+      "httpStatus": 200,
+      "data": {
+        "responseBytes": 55378,
+        "containsCAVEAT": false,
+        "contains90138142": false
+      }
+    },
+    {
+      "id": "readme-DevL/CAVEAT",
+      "url": "https://api.github.com/repos/DevL/CAVEAT/readme",
+      "retrievedAtUtc": "2026-10-02T00:27:42.384750+00:00",
+      "httpStatus": 200,
+      "data": {
+        "html_url": "https://github.com/DevL/CAVEAT/blob/master/README.md",
+        "sha": "c095b8d5db9af90ca30bae190bdefc0db0839955",
+        "path": "README.md"
+      }
+    },
+    {
+      "id": "readme-goodekang/CAVEAT",
+      "url": "https://api.github.com/repos/goodekang/CAVEAT/readme",
+      "retrievedAtUtc": "2026-10-02T00:27:42.734434+00:00",
+      "httpStatus": 200,
+      "data": {
+        "html_url": "https://github.com/goodekang/CAVEAT/blob/main/README.md",
+        "sha": "2f34f96c8e2709c815dce537d0debb20241e50c8",
+        "path": "README.md"
+      }
+    },
+    {
+      "id": "github-goodekang-pyproject",
+      "url": "https://api.github.com/repos/goodekang/CAVEAT/contents/pyproject.toml",
+      "retrievedAtUtc": "2026-10-02T00:28:34.715885+00:00",
+      "httpStatus": 200,
+      "data": {
+        "html_url": "https://github.com/goodekang/CAVEAT/blob/main/pyproject.toml",
+        "sha": "b990997456036aa71e54299b7123dd912597dbae",
+        "path": "pyproject.toml",
+        "projectScriptsSection": "caveat = \"caveat.cli:main\""
+      }
+    },
+    {
+      "id": "npm-fontsource",
+      "url": "https://registry.npmjs.org/@fontsource%2fcaveat",
+      "retrievedAtUtc": "2026-10-02T00:28:34.925573+00:00",
+      "httpStatus": 200,
+      "data": {
+        "name": "@fontsource/caveat",
+        "latest": "5.3.0",
+        "created": "2020-12-23T22:15:10.005Z",
+        "latestPublished": "2026-07-19T03:37:38.493Z",
+        "description": "Self-host the Caveat font in a neatly bundled NPM package.",
+        "bin": null
+      }
+    }
+  ]
+}

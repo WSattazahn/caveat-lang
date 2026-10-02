@@ -1,8 +1,9 @@
 # Agent adoption follow-up
 
 Recorded October 1, 2026 after the owner asked to retain the adoption proposal
-as follow-up work. This is a backlog, not additional rc.7 implementation or a
-release gate approved by that discussion.
+as follow-up work. The owner subsequently authorized working through the
+recommended order. Implementation proceeds on `codex/agent-adoption`; this
+authorization does not approve publication or make every item a release gate.
 
 The active rc.7 scope is the evaluated lifecycle/qualification guidance,
 application grounding tests, authoring diagnostics, the `caveat-lang` executable
@@ -10,7 +11,18 @@ alias and coexistence test, and approved neutral reveal. Public `whatif`,
 `abstain`, and scenario string matchers remain deferred. Neutral reveal was
 explicitly approved after the earlier proposal to defer it.
 
-## Proposed work and acceptance evidence
+## Execution order
+
+1. Doctor and the deterministic agent demonstration — implemented and tested.
+2. Onboarding contract and README first screen — implemented and checked.
+3. Thin MCP authoring bridge — implemented; focused and official-client checks pass.
+4. Packed-release dependency security checks — implemented; exact local candidate passes.
+5. Preregistered agent adoption experiment — executed and reviewed; final artifacts pass, with workspace-boundary deviations retained.
+6. Dated name audit — recorded; live trademark result searches remain unresolved.
+
+Each item requires the acceptance evidence below before it is recorded as done.
+
+## Work and acceptance evidence
 
 | Follow-up | Desired outcome | Evidence needed before calling it complete |
 | --- | --- | --- |
@@ -18,7 +30,7 @@ explicitly approved after the earlier proposal to defer it.
 | One-command agent demonstration | Show supplied evidence, a decision's exact grounds, a correction/new observation, reopening and preserved earlier grounds. | Fresh installed package completes a short deterministic run; output comes from real snapshots/explanations; file creation, if any, is explicit and refuses overwrites. |
 | Thin first-party MCP authoring bridge | Expose existing validate, check, test, explain and dependents results to agent hosts. | A separate interface review defines source/file boundaries, resource limits, structured errors and process ownership; no persistent sessions or hypothetical isolation promises in the first version. |
 | Onboarding contract | Help unfamiliar agents discover supported syntax, reproduce missing capabilities and report useful feedback. | Audit the existing repository AGENTS.md, authoring guide and Agent Feature Request template before adding another entrypoint; preserve user authorization for posting reports. |
-| Packed-release dependency security gate | Assess the actual shipped npm artifact and Rust dependencies rather than only the development checkout. | Define shipped/development scope, advisory sources, reproducible receipts, severity handling and an explicit resolution process for High/Critical findings; verify the actual candidate artifact. No scan result is claimed here. |
+| Packed-release dependency security gate | Assess the actual shipped npm artifact and Rust dependencies rather than only the development checkout. | Define shipped/development scope, advisory sources, reproducible receipts, severity handling and an explicit resolution process for High/Critical findings; verify the actual candidate artifact. Dated candidate results and their scope are recorded below. |
 | README first-screen revision | Show the problem, a few working commands and an observable payoff before detailed language theory. | Commands match the actually published version; an unfamiliar reader/agent can reproduce the displayed result. |
 | Cold-agent adoption experiment | Measure discovery, authoring, checking, scenarios, diagnosis, explanation, host integration and honest handling of missing capabilities. | Register tasks/scoring and package/build identity before runs; give several fresh agents only the intended public package/docs; preserve first attempts, interventions, failures and final artifacts. Do not relabel the earlier single synthetic trial as this study. |
 | Broader name audit before 1.0 | Record npm, GitHub, PyPI, crates.io, other package managers, papers, domains and trademark-database findings once. | Dated primary-source references, exact identities and field overlap; distinguish verified records from unanswered questions. The completed npm coexistence fixture is only one part of that audit. |
@@ -40,3 +52,89 @@ explicitly approved after the earlier proposal to defer it.
 The proposed adoption work should make these capabilities easier to discover
 and use. It does not authorize a memory-store product, a project rename,
 publication, or feature-for-feature competition with another CAVEAT project.
+
+## Execution receipts
+
+Doctor/demo: commit `0d0f178`; 196 kit tests passed before the final demo review
+fix, followed by 15 passing demo/CLI checks and 10 passing doctor checks for the
+final owned modules. A preliminary installed tarball passed both collision
+owners, doctor/demo aliases, library, Python and browser checks (SHA-256
+`6c143069ef685aaa55fb581658731e890edcd0f2c01c10979d6acb3f1c1ef155`). Its dirty-build
+metadata makes it development evidence, not a releasable candidate. The final
+candidate package is checked again after the remaining package changes.
+
+Onboarding: actual fresh `caveat-lang@0.1.0-rc.6` install/init/test/explain passed;
+the example's two scenarios and displayed decision history match the README.
+All 19 documentation/command tests passed. Existing feature-request instructions
+already covered permission, reproducibility and acceptance; they were retained.
+
+The requested root npm scripts typecheck, lint, test and audit:all are absent;
+the attempted commands failed as missing scripts. They are not passing gates.
+
+MCP bridge: [interface review](MCP_AUTHORING_DESIGN.md) precedes implementation.
+All 32 final operation/protocol/declaration checks pass, including injected
+worker faults and cancellation/EOF under stdout backpressure. The pinned
+official SDK 1.31.0 discovers and calls all five tools against the checkout;
+its same interoperability check is registered in the installed-package gate.
+No live desktop-host installation is claimed.
+
+Final local candidate: clean compiled revision `a24a6e91d75eeab466baa32a108ee9a242f43ac2`;
+all 229 kit tests pass. The installed package gate passes both executable names,
+collision owners, doctor/demo, the official MCP client, library, published-guide
+flows, Python suites and Chromium 140.0.7339.186. Package report:
+`test-results/kit-package/2026-10-02T00-40-22-944Z/report.json`.
+Tarball SHA-256: `eea2c9239f3d648a1af740843abee5ed1eac1c972c327793bb9af2ede36b9a1f`
+(810,225 bytes). This Windows-built candidate is the study artifact; publication
+still requires the reviewed Linux release artifact and separate authorization.
+
+The [security gate](PACKAGE_SECURITY.md) passed against those exact bytes on
+2026-10-02 at 00:44 UTC: all five npm scopes reported zero findings; the complete
+Rust build lockfile reported zero vulnerabilities and zero informational
+warnings against RustSec commit `6de4455103aced2cba86e3b86e5c090b22827cf1`.
+Receipt: `test-results/kit-security/2026-10-02T00-43-55-847Z-66076/report.json`.
+Eight refusal controls pass. Playwright is patched to 1.55.1; the real competitor
+fixture keeps caveat-cli 0.19.13 with its explicitly recorded smol-toml 1.7.1
+override. These are known-advisory results at the recorded time, not a general
+security certification. CI retains distinct receipt artifacts for each retry.
+
+The study's [protocol](../experiments/agent-adoption/v1/PROTOCOL.md), task and
+private scorer were reviewed before registration. Sixteen controls pass,
+including a valid alternative implementation and targeted broken variants.
+Trial results are recorded separately from these evaluator tests.
+
+
+Study execution: [results and limitations](../experiments/agent-adoption/v1/RESULTS.md)
+and the [reviewed archive](../experiments/agent-adoption/v1/results/2026-10-02/README.md)
+retain all three runs. Final semantic checks passed 15/15 and host checks 10/10
+for each submission. A01/A02 passed initially; A03 repaired a load error.
+Rubric totals are 16/16, 16/16 and 15/16. All contexts encountered incorrect
+initial Windows shell working directories; A02 also enumerated outside-task
+filenames. No private source-content reads were observed, but these deviations
+prevent a clean packet-only trial claim. Unrelated listings are withheld from
+the public command exports; original hashes and redaction reasons are retained.
+No evaluator feedback or implementation rescue was provided. A discovered
+capture-I/O defect was fixed after execution under a documented amendment;
+six synthetic controls pass and original results remain unchanged.
+
+Hosted validation of implementation head `a24a6e9` passed in
+[Runtime CI run 36947117540](https://github.com/WSattazahn/caveat-lang/actions/runs/36947117540),
+including the installed package and Linux security gate; rustfmt also passed.
+GitHub tested merge revision `1079f1449dae17770e429ac4ec16e9bb990c6d86`
+(parents `c45be7f` and `a24a6e9`). Its Linux tarball SHA-256 is
+`0dcc47b0ba96413493562ba50cbf1735948c7fd7ebc52f5a59f967c9411ba771`,
+separate from the Windows study candidate above. The downloaded security
+report, SHA-256 `0d4a7aa04c6f7d10a7e803279befef77f17f50c3744b38c341dd0c0ef01bf138`,
+reports zero findings in all five npm scopes and zero Rust vulnerabilities or
+informational warnings. Its 28 command receipts and artifact hashes were
+checked; yanked-crate status is explicitly outside this audit's scope.
+
+The [dated name audit](NAME_AUDIT_2026-10-01.md) records package registries,
+GitHub, research, domains and available official trademark material. Its
+addendum closes the broad Maven query and `.io` registry lookup. Interactive
+USPTO/WIPO/TMview result searches and two authenticated TSDR status checks
+remain open because the available interfaces could not return them. This is
+a bounded discovery record, not legal clearance or an exhaustive naming review.
+It supports the existing CAVEAT Language identity and unambiguous CLI alias.
+
+Implementation and evidence are on draft PR #81. Publication, tagging, merging,
+and installing the bridge into a live desktop host have not been performed.

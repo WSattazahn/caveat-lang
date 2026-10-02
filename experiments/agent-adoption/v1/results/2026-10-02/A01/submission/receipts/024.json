@@ -1,0 +1,9 @@
+{
+  "command": [
+    "node",
+    "write-reports.mjs"
+  ],
+  "exit_status": 0,
+  "stdout": "Reports written; raw numbered streams exported. First source unchanged: true\n",
+  "stderr": ""
+}

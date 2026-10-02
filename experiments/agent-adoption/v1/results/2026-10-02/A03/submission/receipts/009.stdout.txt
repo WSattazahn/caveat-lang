@@ -1,0 +1,7 @@
+PASS S1  Observation and assessment are separate  (2 events, 0 rejected, 0 resumes)
+PASS S2  Refusals are atomic  (6 events, 5 rejected, 0 resumes)
+PASS S3  Correction and revision preserve original records across restore  (7 events, 2 rejected, 1 resumes)
+PASS S4  Repeated assessment refuses; equal supporting readings reopen  (5 events, 1 rejected, 0 resumes)
+PASS S5  Late qualification freezes old reading and decision  (5 events, 1 rejected, 0 resumes)
+PASS S6  Old clean reading remains assessable after learning stale and resume  (5 events, 1 rejected, 1 resumes)
+6 passed, 0 failed (<TRIAL_A03>\tracker.scenarios.json)

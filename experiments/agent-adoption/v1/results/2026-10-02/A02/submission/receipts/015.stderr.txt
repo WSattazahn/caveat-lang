@@ -1,0 +1,1 @@
+diagnosis-invalid.cav does not load: binding result.value because: ready is a declared claim, not a value citation; cite a state, a history read such as latest(STREAM), or an evidence-bearing expression that the value or its conditions actually read

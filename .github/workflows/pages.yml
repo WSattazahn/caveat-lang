@@ -180,7 +180,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v7
         with: {node-version: 22}
-      - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
+      - run: npm install --no-save --no-package-lock playwright@1.55.1 pngjs@7
       - run: npx playwright install --with-deps webkit
       - name: Play live Missing Dumpling
         run: |
@@ -245,7 +245,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v7
         with: {node-version: 22}
-      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npm install --no-save --no-package-lock playwright@1.55.1
       - run: npx playwright install --with-deps webkit
       - name: Play live Moon Garden
         run: |
@@ -282,7 +282,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v7
         with: {node-version: 22}
-      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npm install --no-save --no-package-lock playwright@1.55.1
       - run: npx playwright install --with-deps webkit
       - name: Play live Moon Garden 3D
         run: |
@@ -315,7 +315,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v7
         with: {node-version: 22}
-      - run: npm install --no-save --no-package-lock playwright@1.55.0 pngjs@7
+      - run: npm install --no-save --no-package-lock playwright@1.55.1 pngjs@7
       - run: npx playwright install --with-deps webkit
       - name: Smoke-test live Door 3D
         run: |

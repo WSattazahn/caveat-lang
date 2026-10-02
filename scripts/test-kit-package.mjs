@@ -25,6 +25,7 @@ import { followGuide } from '../kit/test/guide.mjs';
 import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
 import { checkCliCollision, installedCommand } from './test-cli-collision.mjs';
+import { checkMcpClient } from './test-mcp-client.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const kit = path.join(root, 'kit');
@@ -49,9 +50,9 @@ const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 
 const shipped = file => packDocs.reference.includes(file);
 const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['check', 'explain', 'node', 'scenarios', 'serve', 'session'];
+const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -174,6 +175,22 @@ for (const name of ['caveat', 'caveat-lang']) {
 }
 assert.deepEqual(aliasOutputs['caveat-lang'], aliasOutputs.caveat, 'both npm executable names invoke the same CLI and package version');
 report.checks.cliAliases = { names: Object.keys(aliasOutputs), version: aliasOutputs.caveat.version.trim(), helpMatches: true };
+const commandReports = {};
+for (const name of ['caveat', 'caveat-lang']) {
+  const health = installedCommand(consumer, name, ['doctor', '--json']);
+  const demo = installedCommand(consumer, name, ['demo', 'agent', '--json']);
+  for (const result of [health, demo]) assert.equal(result.status, 0, result.stdout + result.stderr);
+  const diagnosed = JSON.parse(health.stdout);
+  const demonstrated = JSON.parse(demo.stdout);
+  assert.equal(diagnosed.ok, true);
+  assert.equal(diagnosed.package.version, manifest.version);
+  assert.equal(demonstrated.preservation.unchanged, true);
+  assert.equal(demonstrated.steps.length, 5);
+  commandReports[name] = { health: diagnosed, demo: demonstrated };
+}
+assert.deepEqual(commandReports.caveat, commandReports['caveat-lang']);
+report.checks.adoptionCommands = { aliases: Object.keys(commandReports), doctor: true, demo: true };
+
 report.checks.cliCollision = await checkCliCollision({
   tarball, directory: path.join(run, 'cli-collision'), manifest, ...aliasOutputs.caveat,
 });
@@ -184,6 +201,7 @@ for (const [entry, target] of Object.entries(installedManifest.exports)) {
   assert.equal(target.types, target.default.replace(/\.mjs$/, '.d.mts'), `${entry} declares its own module`);
   assert.ok(existsSync(path.join(installed, target.types)), `${entry}: ${target.types} is installed`);
 }
+report.checks.mcp = await checkMcpClient({ installed, directory: path.join(run, 'mcp-client') });
 report.checks.install = true;
 
 // The license ships unchanged, and the metadata says what it is.

@@ -1,0 +1,8 @@
+{
+  "name": "caveat-adoption-trial",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "caveat-lang": "file:../inputs/caveat-lang-0.1.0-rc.7.tgz"
+  }
+}

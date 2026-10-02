@@ -1,0 +1,7 @@
+evidence tool from "the supplied numeric tool value";
+state value_used = 0;
+event observe value min 0 max 100;
+on observe reveal tool;
+on observe set value_used = qualified(value, tool);
+bind result.value = value_used when observed(tool) because value_used;
+

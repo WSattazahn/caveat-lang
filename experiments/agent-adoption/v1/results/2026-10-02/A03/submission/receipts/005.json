@@ -1,0 +1,11 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "test",
+    "@first.scenarios.json"
+  ],
+  "exit_status": 1,
+  "stdout": "FAIL S1 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17\nFAIL S2 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17\nFAIL S3 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17\nFAIL S4 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17\nFAIL S5 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17\nFAIL S6 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17\n0 passed, 6 failed (<TRIAL_A03>\\first.scenarios.json)\n",
+  "stderr": ""
+}

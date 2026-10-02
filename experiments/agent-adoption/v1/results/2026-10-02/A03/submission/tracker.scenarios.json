@@ -1,0 +1,287 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "tracker.cav",
+  "scenarios": [
+    {
+      "id": "S1",
+      "title": "Observation and assessment are separate",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal": [],
+            "/observations": [
+              "tool",
+              "checks@1"
+            ],
+            "/reading_streams/checks/current": "checks@1"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "evidence": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            },
+            "/bindings/answer/verdict": "approved"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Refusals are atomic",
+      "steps": [
+        {
+          "send": "assess",
+          "rejected": true
+        },
+        {
+          "send": "correct",
+          "rejected": true
+        },
+        {
+          "send": "learn_stale",
+          "rejected": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 101
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 69
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": true
+        },
+        {
+          "expect": {
+            "/sequence": 1,
+            "/decision_journal": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "title": "Correction and revision preserve original records across restore",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "old"
+        },
+        {
+          "send": "correct"
+        },
+        {
+          "expect": {
+            "/bindings/answer/verdict": "reopened"
+          }
+        },
+        {
+          "send": "correct",
+          "rejected": true
+        },
+        {
+          "send": "assess",
+          "rejected": true
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 92
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "same_as": "old",
+          "paths": [
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1",
+            "/reading_streams/checks/occurrences/0"
+          ]
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@2": {
+              "evidence": [
+                "checks@2"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "title": "Repeated assessment refuses; equal supporting readings reopen",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "assess",
+          "rejected": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "expect": {
+            "/bindings/answer/verdict": "reopened"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": "answer@2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "title": "Late qualification freezes old reading and decision",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "clean"
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "same_as": "clean",
+          "paths": [
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1",
+            "/reading_streams/checks/occurrences/0"
+          ]
+        },
+        {
+          "expect": {
+            "/bindings/answer/verdict": "approved"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 100
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": true
+        },
+        {
+          "expect": {
+            "/reading_streams/checks/occurrences/1/provenance/caveats": [
+              "stale",
+              "uncertain"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "title": "Old clean reading remains assessable after learning stale and resume",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "evidence": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 0
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": true
+        }
+      ]
+    }
+  ]
+}

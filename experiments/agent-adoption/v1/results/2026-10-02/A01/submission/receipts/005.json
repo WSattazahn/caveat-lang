@@ -1,0 +1,9 @@
+{
+  "command": [
+    "node",
+    "build-scenarios.mjs"
+  ],
+  "exit_status": 0,
+  "stdout": "",
+  "stderr": ""
+}

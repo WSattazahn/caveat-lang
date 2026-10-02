@@ -1,0 +1,1 @@
+PASS final audit: tracker equals preserved first source, first retains seven scenarios and first.cav source, final retains those seven and adds two; bootstrap excerpts explicitly marked partial.

@@ -1,0 +1,31 @@
+{
+  "combinedOutputLimitBytes": 16777216,
+  "command": [
+    "<NODE>",
+    "<REPO>\\experiments\\agent-adoption\\v1\\verify.mjs",
+    "--submission",
+    "<TRIAL_A01>",
+    "--package",
+    "<PACKAGE_A01>"
+  ],
+  "cwd": "<TRIAL_A01>",
+  "elapsedSeconds": 0.411,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:55:53.310Z",
+  "observedOutputBytes": 14075,
+  "pid": "<LOCAL_IDENTIFIER>",
+  "retainedOutputBytes": 14075,
+  "startedAt": "2026-10-02T00:55:52.899Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "evaluator.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 14075,
+    "file": "evaluator.stdout",
+    "sha256": "27754d3231e0bc1f36c0673a4d1f623310b0233cfb4a60f8878ce5cc61ffbd55"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 120
+}

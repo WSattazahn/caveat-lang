@@ -1,0 +1,28 @@
+{
+  "combinedOutputLimitBytes": 1048576,
+  "command": [
+    "<NODE>",
+    "<DRIVE_ROOT>/Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+    "--version"
+  ],
+  "cwd": "<REPO>",
+  "elapsedSeconds": 0.206,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:47:15.816Z",
+  "observedOutputBytes": 7,
+  "pid": "<LOCAL_IDENTIFIER>",
+  "retainedOutputBytes": 7,
+  "startedAt": "2026-10-02T00:47:15.610Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "npm-version.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 7,
+    "file": "npm-version.stdout",
+    "sha256": "6652f34fa7bd3c33105c7b13666aee5fab7bc2918c24aea60d213e26f08cb468"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 30
+}

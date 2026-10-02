@@ -1,0 +1,531 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "tracker.cav",
+  "scenarios": [
+    {
+      "id": "T01",
+      "title": "Observation is neutral and does not assess; 70 supports",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal": [],
+            "/observations": [
+              "tool",
+              "checks@1"
+            ],
+            "/reading_streams/checks/occurrences/0": {
+              "id": "checks@1",
+              "value": 70,
+              "relation": "supports",
+              "claim": "ready"
+            },
+            "/bindings/answer/in_force": false
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "evidence": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            },
+            "/bindings/answer/in_force": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "T02",
+      "title": "Authored refusal and input refusal preserve the session",
+      "steps": [
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "correct",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "learn_stale",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 101
+          },
+          "rejected": {
+            "origin": "input",
+            "code": "bound_exceeded"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 69
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "expect": {
+            "/decision_journal": [],
+            "/reading_streams/checks/occurrences/0/relation": "opposes"
+          }
+        }
+      ]
+    },
+    {
+      "id": "T03",
+      "title": "Correction preserves archive and frozen grounds, then revision",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "old"
+        },
+        {
+          "send": "correct"
+        },
+        {
+          "expect": {
+            "/withdrawals/0": {
+              "evidence": "checks@1",
+              "because": "correction"
+            },
+            "/bindings/answer/reopened": true
+          }
+        },
+        {
+          "same_as": "old",
+          "paths": [
+            "/reading_streams/checks/occurrences",
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1"
+          ]
+        },
+        {
+          "send": "correct",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 92
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": "answer@2",
+            "/commitment_grounds/answer@2": {
+              "evidence": [
+                "checks@2"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "old",
+          "paths": [
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T04",
+      "title": "Duplicate assess refused; equal and supporting readings reopen",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "expect": {
+            "/bindings/answer/reopened": true
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 100
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": "answer@3",
+            "/commitment_grounds/answer@3/evidence": [
+              "checks@3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "T05",
+      "title": "Late qualification does not reopen or mutate earlier records; future stale refused",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "clean"
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "expect": {
+            "/bindings/answer/in_force": true
+          }
+        },
+        {
+          "same_as": "clean",
+          "paths": [
+            "/reading_streams/checks/occurrences",
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1",
+            "/decision_journal"
+          ]
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 90
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "expect": {
+            "/reading_streams/checks/occurrences/1/provenance/caveats": {
+              "$set": [
+                "uncertain",
+                "stale"
+              ]
+            },
+            "/decision_series/answer/current": "answer@1",
+            "/bindings/answer/reopened": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "T06",
+      "title": "Earlier clean reading eligible after learning stale, across restore",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "checkpoint": "reading"
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "evidence": [
+                "checks@1"
+              ],
+              "caveats": [
+                "uncertain"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "reading",
+          "paths": [
+            "/reading_streams/checks/occurrences"
+          ]
+        },
+        {
+          "send": "correct"
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 0
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        }
+      ]
+    },
+    {
+      "id": "T07",
+      "title": "Reading limit rolls back neutral observation and leaves full history unchanged",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 100
+          },
+          "repeat": 16
+        },
+        {
+          "checkpoint": "full"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 0
+          },
+          "rejected": {
+            "origin": "limit",
+            "code": "history_limit"
+          }
+        },
+        {
+          "same_as": "full",
+          "paths": [
+            ""
+          ]
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1/evidence": [
+              "checks@16"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "T08",
+      "title": "Decision limit refuses atomically after every-reading reopening",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 100
+          }
+        },
+        {
+          "checkpoint": "full"
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "limit",
+            "code": "history_limit"
+          }
+        },
+        {
+          "same_as": "full",
+          "paths": [
+            "/commitment_bases",
+            "/qualified_values",
+            "/decision_journal"
+          ]
+        },
+        {
+          "resume": true
+        }
+      ]
+    }
+  ]
+}

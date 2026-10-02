@@ -1,0 +1,7 @@
+FAIL S1 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17
+FAIL S2 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17
+FAIL S3 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17
+FAIL S4 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17
+FAIL S5 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17
+FAIL S6 step 0 load: line 19, column 1: expected ',' before the state's caveat at byte 17
+0 passed, 6 failed (<TRIAL_A03>\first.scenarios.json)

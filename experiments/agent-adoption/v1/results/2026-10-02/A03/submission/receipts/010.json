@@ -1,0 +1,12 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "explain",
+    "@tracker.cav",
+    "@events.jsonl"
+  ],
+  "exit_status": 0,
+  "stdout": "tracker.cav after 5 events (sequence 5)\n\nEvents\n    1  observe {\"value\":85}  accepted\n    2  assess  accepted\n    3  correct  accepted\n    4  observe {\"value\":92}  accepted\n    5  assess  accepted\n\nDecisions\n  answer: 2 of at most 8\n    answer@1 = 85  superseded\n      based on checks@1 (caveats: uncertain)\n      checks@1 has since been withdrawn at #3 because correction\n      #2 assess: committed because checks@1 (caveats: uncertain)\n      #3 correct: reopened because correction\n    answer@2 = 92  in force\n      based on checks@2 (caveats: uncertain)\n      could also have been influenced by checks@1, correction\n      #5 assess: committed because checks@2 (caveats: uncertain)\n\nEvidence\n  tool observed (no stance)  caveats: uncertain\n  checks@1 = 85 supports ready  (#1 observe)  caveats: uncertain, withdrawn  withdrawn at #3 because correction\n  correction observed (no stance)\n  checks@2 = 92 supports ready  (#4 observe)  caveats: uncertain\n\nDisplayed\n  answer.verdict = \"approved\"  because checks@1, checks@2, correction (caveats: uncertain)\n",
+  "stderr": ""
+}

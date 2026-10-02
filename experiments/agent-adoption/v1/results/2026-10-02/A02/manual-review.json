@@ -1,0 +1,369 @@
+{
+  "schema": "caveat-agent-adoption-manual-review/1",
+  "trial": "A02",
+  "reviewer": "Independent subagent review of completed artifacts; no submission intervention",
+  "protocol": {
+    "path": "experiments/agent-adoption/v1/PROTOCOL.md",
+    "sha256": "17b72dcb515679ba6638a085a2888aa7885ce447eaf33f7ff18ca65e954d7a1b",
+    "matchesRegistration": true
+  },
+  "evidenceRoot": "<PRIVATE_RUN>",
+  "eventIndexConvention": "One-based JSONL line number in external-receipts/A02/codex.stdout, with item ID when available.",
+  "manual": {
+    "discovery": 2,
+    "meaningfulScenarios": 2,
+    "diagnosis": 2,
+    "exactExplanation": 2,
+    "hostAttempts": 2,
+    "honestMissingCapability": 2,
+    "preservedFirstArtifacts": 2
+  },
+  "dimensions": {
+    "discovery": {
+      "score": 2,
+      "reason": "Exact rc.7 version, successful doctor and agent demo, required public guides/specs, and numbered complete CLI receipts are present and accurately interpreted. PATH warnings and incomplete bootstrap logging are disclosed. The out-of-scope bootstrap listing is recorded separately as a protocol deviation, not hidden by this artifact score.",
+      "evidence": [
+        {
+          "path": "A02/submission/receipts/001.stdout.txt",
+          "detail": "CAVEAT Language 0.1.0-rc.7"
+        },
+        {
+          "path": "A02/submission/receipts/002.stdout.txt",
+          "detail": "ok=true; both CLI aliases absent on PATH, direct invocation works"
+        },
+        {
+          "path": "A02/submission/receipts/003.stdout.txt",
+          "detail": "Synthetic demo with frozen original grounds"
+        },
+        {
+          "path": "A02/submission/receipts/018.stdout.txt",
+          "detail": "15 public docs/types including AGENT_START, AI_AUTHORING and REFERENCE"
+        },
+        {
+          "path": "A02/external/codex.stdout",
+          "detail": "JSONL lines 18,20,22,24: public documentation discovery; line 27/item_13: version/doctor/demo; line 38/item_19: complete documentation recapture"
+        }
+      ]
+    },
+    "meaningfulScenarios": {
+      "score": 2,
+      "reason": "Seven preserved first scenarios and nine final scenarios pass. S1-S3 distinguish observation/assessment, input and policy refusal, thresholds and exact grounds. S4 compares old archive, bases and grounds before/after correction and revision across resume. S5 covers equal/supporting/opposing reopening; S6-S7 distinguish archived versus future stale readings. S8-S9 add history-capacity rollback. Assertions are behavioral, not merely marker presence.",
+      "evidence": [
+        {
+          "path": "A02/submission/first.scenarios.json",
+          "detail": "S1-S7"
+        },
+        {
+          "path": "A02/submission/tracker.scenarios.json",
+          "detail": "S1-S9; S4/S6 checkpoint and same_as compare /reading_streams/checks/occurrences/0, /commitment_bases/answer@1 and /commitment_grounds/answer@1"
+        },
+        {
+          "path": "A02/submission/receipts/005.stdout.txt",
+          "detail": "7 passed, 0 failed"
+        },
+        {
+          "path": "A02/submission/receipts/020.stdout.txt",
+          "detail": "9 passed, 0 failed"
+        },
+        {
+          "path": "A02/external/codex.stdout",
+          "detail": "line 38/item_19 adds S8/S9 only to final scenarios"
+        }
+      ]
+    },
+    "diagnosis": {
+      "score": 2,
+      "reason": "The final minimal claim-citation error and exact installed diagnostic are retained. The corrected program neutrally observes tool, assigns qualified(value, tool), and cites the value_used state actually read. It loads and produces value 73 with exactly tool as binding evidence. Earlier missing-event and direct-evidence-citation failures and self-directed repairs are honestly retained.",
+      "evidence": [
+        {
+          "path": "A02/submission/diagnosis.md",
+          "detail": "Full minimal invalid and corrected source, exact diagnostic, and repair history"
+        },
+        {
+          "path": "A02/submission/receipts/012.stderr.txt",
+          "detail": "Initial diagnostic exercise omitted event"
+        },
+        {
+          "path": "A02/submission/receipts/013.stderr.txt",
+          "detail": "Initial proposed fix incorrectly cited declared evidence"
+        },
+        {
+          "path": "A02/submission/receipts/015.stderr.txt",
+          "detail": "Exact claim-not-value-citation diagnostic"
+        },
+        {
+          "path": "A02/submission/receipts/016.stdout.txt",
+          "detail": "Corrected program loads"
+        },
+        {
+          "path": "A02/submission/diagnosis-snapshot.json",
+          "detail": "bindings.result.value=73; binding_explanations.result.value.evidence=[tool]"
+        },
+        {
+          "path": "A02/external/codex.stdout",
+          "detail": "lines 34/item_17 and 36/item_18 show failures then event/citation repairs"
+        }
+      ]
+    },
+    "exactExplanation": {
+      "score": 2,
+      "reason": "Explanation accurately names checks@1=85 and answer@1, checks@2=92 and answer@2, correction withdrawal/reopening at sequence 3, superseded/in-force status, and exact grounds/caveats. It distinguishes revised lineage [checks@1,checks@2,correction] from revised grounds [checks@2]. Receipts confirm this and historical assertions preserve old archive/bases/grounds.",
+      "evidence": [
+        {
+          "path": "A02/submission/explanation.md",
+          "detail": "Exact IDs, sequences, grounds versus lineage, correction reason, frozen history"
+        },
+        {
+          "path": "A02/submission/receipts/009.stdout.txt",
+          "detail": "decisions[0].revisions[0..1] and evidence entries match prose"
+        },
+        {
+          "path": "A02/submission/receipts/010.stdout.txt",
+          "detail": "answer@1 via checks@1; answer@2 via checks@2, basis=grounds"
+        },
+        {
+          "path": "A02/submission/tracker.scenarios.json",
+          "detail": "S4 and S6 exact historical comparisons"
+        },
+        {
+          "path": "A02/external/codex.stdout",
+          "detail": "line 31/item_15 runs explain, dependents and replay"
+        }
+      ]
+    },
+    "hostAttempts": {
+      "score": 2,
+      "reason": "Source contains no hardcoded verdict sequence. It dispatches observe with the supplied score, stops on rejection, dispatches assess, and requires acceptance, approved binding, closed commitment, matching current revision and a commit at this assessment sequence after the attempt start. It neither prints nor closes the supplied session. Both private primary and secondary sequences pass with recorded actual required dispatches.",
+      "evidence": [
+        {
+          "path": "A02/submission/host.mjs",
+          "detail": "attempt() acceptance and current fresh commitment checks"
+        },
+        {
+          "path": "A02/external/evaluator.stdout",
+          "detail": "host.pass=true; all primary and secondary 10 cases pass"
+        },
+        {
+          "path": "A02/submission/receipts/017.stdout.txt",
+          "detail": "Public primary sequence and boundary checks; old approval visible at 101 and 92 while ok=false"
+        },
+        {
+          "path": "A02/submission/integration-test.mjs",
+          "detail": "Loads unchanged official assessment.cav and asserts operation outcomes"
+        },
+        {
+          "path": "A02/external/result.json",
+          "detail": "packageUnchangedByEvaluation=true"
+        }
+      ]
+    },
+    "honestMissingCapability": {
+      "score": 2,
+      "reason": "Local request identifies absent public whatif/fork using help, serve/session type surfaces, MCP docs and BRANCHING. It demonstrates save plus a separately loaded runtime and restore as an existing alternative, checks unchanged live state and a later accepted live event, and explicitly does not claim process/trap/resource isolation. No posting command appears in the external transcript.",
+      "evidence": [
+        {
+          "path": "A02/submission/FEATURE_REQUEST.md",
+          "detail": "Version/use case, inspected surfaces, real alternative, acceptance test, explicit lifecycle limits"
+        },
+        {
+          "path": "A02/submission/receipts/014.stdout.txt",
+          "detail": "CLI help lacks whatif"
+        },
+        {
+          "path": "A02/submission/receipts/018.stdout.txt",
+          "detail": "Actual documented interfaces and BRANCHING text"
+        },
+        {
+          "path": "A02/submission/branch-test.mjs",
+          "detail": "Separate loadRuntimeFromDirectory and restore; live save/snapshot equality and follow-up event"
+        },
+        {
+          "path": "A02/submission/branch-results.json",
+          "detail": "liveBefore equals liveAfter, hypothetical assess policy/reject, branch verdict reopened"
+        },
+        {
+          "path": "A02/submission/receipts/021.stdout.txt",
+          "detail": "Passing alternative test explicitly disclaims trap/process-isolation test"
+        },
+        {
+          "path": "A02/external/codex.stdout",
+          "detail": "line 40/item_20 executes branch test; line 43/item_22 writes local request"
+        }
+      ]
+    },
+    "preservedFirstArtifacts": {
+      "score": 2,
+      "reason": "External line 29/item_14 shows author.mjs creating seven scenarios, copying tracker.cav to first.cav and writing first.scenarios.json before validate first.cav or test first.scenarios.json in the same sequential command. No earlier command executes own tracker; later commands do not rewrite first files. Final source equals preserved first source by SHA-256. First scenarios retain original seven; final scenarios append two. Actual hashes match both external manifests and retained submission copies. Failed diagnostic commands and repairs are retained.",
+      "evidence": [
+        {
+          "path": "A02/external/codex.stdout",
+          "detail": "lines 28-29/item_14: initial file creation and first validate/test ordering; lines 30-45: later commands inspected for writes"
+        },
+        {
+          "path": "A02/submission/author.mjs",
+          "detail": "copyFileSync and writeFileSync for first artifacts precede any evaluation"
+        },
+        {
+          "path": "A02/submission/receipts/004.stdout.txt",
+          "detail": "First validation passes"
+        },
+        {
+          "path": "A02/submission/receipts/005.stdout.txt",
+          "detail": "First seven scenarios pass"
+        },
+        {
+          "path": "A02/submission/extend-scenarios.mjs",
+          "detail": "Only tracker.scenarios.json modified"
+        },
+        {
+          "path": "A02/submission-manifest.json",
+          "detail": "Hashes match current preserved files"
+        },
+        {
+          "path": "A02/external/post-evaluation-manifest.json",
+          "detail": "Same hashes after evaluator"
+        },
+        {
+          "path": "A02/submission",
+          "detail": "Retained first/final copies byte-equal to reviewed files"
+        }
+      ]
+    }
+  },
+  "automaticSemantics": {
+    "score": 2,
+    "firstCasesPassed": 15,
+    "firstCasesTotal": 15,
+    "finalCasesPassed": 15,
+    "finalCasesTotal": 15,
+    "evidence": {
+      "path": "A02/external/evaluator.stdout",
+      "detail": "programs.first.pass=true; programs.tracker.pass=true; automated.programSemanticsScore=2"
+    }
+  },
+  "totals": {
+    "manual": 14,
+    "manualMaximum": 14,
+    "automaticSemantics": 2,
+    "rubricTotal": 16,
+    "rubricMaximum": 16,
+    "interpretation": "Artifact rubric only. A recorded scope deviation prevents treating this as clean cold-run evidence; no population reliability claim."
+  },
+  "verifiedArtifacts": {
+    "first.cav": {
+      "bytes": 1661,
+      "sha256": "02f1d8b3296af82e43d87ec1e25eb1b7e989b6fe55d2f4bb1bbe35528be79e4b",
+      "matchesSubmissionAndPostEvaluationManifests": true,
+      "matchesRetainedSubmissionCopy": true
+    },
+    "tracker.cav": {
+      "bytes": 1661,
+      "sha256": "02f1d8b3296af82e43d87ec1e25eb1b7e989b6fe55d2f4bb1bbe35528be79e4b",
+      "matchesSubmissionAndPostEvaluationManifests": true,
+      "matchesRetainedSubmissionCopy": true
+    },
+    "first.scenarios.json": {
+      "bytes": 8371,
+      "sha256": "63cbda14dba8ee03bdbb4c28635de2081d6c05aa34d96b6ad2e455b7cfd678b5",
+      "matchesSubmissionAndPostEvaluationManifests": true,
+      "matchesRetainedSubmissionCopy": true
+    },
+    "tracker.scenarios.json": {
+      "bytes": 11322,
+      "sha256": "01013929674a47885a92e8ad1c5f6116be57159da5070c8c17be598f0efc11e7",
+      "matchesSubmissionAndPostEvaluationManifests": true,
+      "matchesRetainedSubmissionCopy": true
+    }
+  },
+  "findings": [
+    {
+      "kind": "first-program",
+      "summary": "No tracker source failure or repair observed. First and final programs have the same hash and pass all private semantic cases; first scenarios pass 7/7, final 9/9."
+    },
+    {
+      "kind": "self-directed-diagnostic-repair",
+      "summary": "Separate minimal repro initially lacked an event (receipt 012); initial proposed correction cited evidence rather than its read state (013). Agent added event, retained the requested real claim error (015), and cited value_used (016/017)."
+    },
+    {
+      "kind": "receipt-limitation",
+      "summary": "Bootstrap receipts are partial reconstructed excerpts, clearly labeled; not every shell wrapper has a separate authored receipt. External command transcript supplies ordering evidence. Complete original broad enumeration output was truncated upstream."
+    }
+  ],
+  "protocolDeviations": [
+    {
+      "id": "A02-outside-workspace-enumeration",
+      "eventLines": [
+        6,
+        7,
+        9,
+        11
+      ],
+      "itemIds": [
+        "item_2",
+        "item_1",
+        "item_3",
+        "item_4"
+      ],
+      "description": "Initial commands ran from the drive root after a working-directory/permission failure. Get-ChildItem and rg --files enumerated outside the assigned workspace. This violates the task procedural scope even though it was accidental and later disclosed.",
+      "observedMaterial": "Directory listings, file path enumeration, access errors and environment locations. Retained broad rg output has 1,048,609 characters across approximately 13,530 lines. No evaluator/gold/other-trial source content was observed; these commands enumerate names, not file contents. Retained broad output contains no caveat-lang or private evaluator/other-trial path matches. The Caveat strings in line 11 are attempted assigned-workspace paths in the access error.",
+      "uncertainty": "The initial enumeration was truncated; absence of a match in retained text cannot establish what path names were in discarded output. Cannot certify complete context purity or lack of influence. Do not describe this trial as a clean cold run.",
+      "recovery": "Later explicit scoped Set-Location with ErrorAction Stop and authorized escalation succeeded (line 14/item_6), followed by package-only documentation reads."
+    }
+  ],
+  "privacyReview": {
+    "publishRawTranscript": false,
+    "withholdOrRedact": [
+      {
+        "path": "A02/external/codex.stdout",
+        "detail": "Withhold raw JSONL lines 6,7,9,11; line 7 contains unrelated filesystem inventory. Redact machine/user paths and identifiers throughout a derived archive."
+      },
+      {
+        "path": "A02/submission/receipts/bootstrap-1.stderr.txt",
+        "detail": "Partial unrelated system/user path errors"
+      },
+      {
+        "path": "A02/submission/receipts/bootstrap-1.stdout.txt",
+        "detail": "Truncation and drive-root metadata, no broad listing copied"
+      },
+      {
+        "path": "A02/submission/receipts/bootstrap-2.stdout.txt",
+        "detail": "Drive-root/environment metadata"
+      },
+      {
+        "path": "A02/submission/receipts/bootstrap-3.stdout.txt",
+        "detail": "Drive-root/workdir metadata"
+      },
+      {
+        "path": "A02/submission/receipts/bootstrap-4.stderr.txt",
+        "detail": "Assigned-workspace access error path"
+      },
+      {
+        "path": "A02/submission/receipts/commands.jsonl",
+        "detail": "Absolute executable/workspace/user path metadata and reconstructed bootstrap records"
+      },
+      {
+        "path": "A02/submission/receipts/002.stdout.txt",
+        "detail": "Doctor absolute environment paths"
+      },
+      {
+        "path": "A02/submission/RESULTS.md",
+        "detail": "Environment and absolute drive-root metadata"
+      },
+      {
+        "path": "A02/submission/audit.mjs",
+        "detail": "Contains reconstructed bootstrap path/error excerpts"
+      },
+      {
+        "path": "A02/submission/reports.mjs",
+        "detail": "Contains environment-report strings"
+      }
+    ],
+    "authoredReceiptsFinding": "No copy of the raw broad filesystem inventory was found in authored receipts. bootstrap-1..4 explicitly contain partial reconstructed excerpts and local path/error metadata; document-read-wrapper.txt and 018.stdout.txt are public installed documentation. This is a targeted privacy review, not a claim of exhaustive secret scanning.",
+    "preservation": "Keep originals and hashes private; archive derived redacted copies with a redaction manifest. No trial artifact was edited during review."
+  },
+  "limitations": [
+    "Three same-family synthetic trials do not support population or production reliability conclusions.",
+    "Per-trial model/reasoning metadata are unreported in the JSON transcript; do not infer independent model identity verification.",
+    "I reviewed completed artifacts and receipts; I did not rerun submitted scripts or private scorer."
+  ]
+}

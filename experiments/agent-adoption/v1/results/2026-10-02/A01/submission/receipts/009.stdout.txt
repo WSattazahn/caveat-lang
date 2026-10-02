@@ -1,0 +1,5 @@
+tracker.cav loads.
+  events: assess, correct, learn_stale, observe (value 0..100)
+  reading streams: checks from tool, limit 16
+  decision series: answer, limit 8
+  displayed: answer.in_force, answer.reopened, tracker.count

@@ -1,0 +1,1 @@
+Separate-loader save/restore alternative passed; hypothetical observe 40 + assess refused, live save and snapshot unchanged. No trap or process isolation tested.

@@ -1,0 +1,9 @@
+{
+  "command": [
+    "<NODE>",
+    "branch-test.mjs"
+  ],
+  "exit_status": 0,
+  "stdout": "{\"alternative\":\"fresh loader + restore\",\"liveUnchanged\":true,\"branch\":{\"assessment\":{\"verdict\":\"reopened\"}},\"live\":{\"assessment\":{\"verdict\":\"approved\"}}}\n",
+  "stderr": ""
+}

@@ -1,0 +1,27 @@
+{
+  "combinedOutputLimitBytes": 1048576,
+  "command": [
+    "<USER_HOME>\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+    "--version"
+  ],
+  "cwd": "<REPO>",
+  "elapsedSeconds": 0.109,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:47:15.491Z",
+  "observedOutputBytes": 18,
+  "pid": "<LOCAL_IDENTIFIER>",
+  "retainedOutputBytes": 18,
+  "startedAt": "2026-10-02T00:47:15.382Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "codex-version.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 18,
+    "file": "codex-version.stdout",
+    "sha256": "48784a39efd6841c30aff4c70ab315bea1dccee48519515cb308652cdef3ea57"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 30
+}

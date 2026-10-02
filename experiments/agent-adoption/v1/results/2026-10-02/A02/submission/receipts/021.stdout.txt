@@ -1,0 +1,1 @@
+PASS documented alternative: new loader, restore saved source, hypothetical 40 refused assessment; live save/snapshot unchanged and live still accepts events. No trap or process isolation test performed.

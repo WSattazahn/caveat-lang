@@ -1,0 +1,5 @@
+claim ready;
+evidence tool from "tool";
+event observe;
+on observe reveal tool;
+bind result.value = qualified(85, tool) when observed(tool) because qualified(85, tool);

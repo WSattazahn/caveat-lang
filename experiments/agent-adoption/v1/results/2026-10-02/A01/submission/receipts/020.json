@@ -1,0 +1,9 @@
+{
+  "command": [
+    "node",
+    "branch-test.mjs"
+  ],
+  "exit_status": 0,
+  "stdout": "Separate-loader save/restore alternative passed; hypothetical observe 40 + assess refused, live save and snapshot unchanged. No trap or process isolation tested.\n",
+  "stderr": ""
+}

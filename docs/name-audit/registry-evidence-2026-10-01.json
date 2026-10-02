@@ -1,0 +1,800 @@
+{
+  "scope": "Selected public metadata fields; not a complete registry mirror. HTTP absence does not establish name availability.",
+  "queries": [
+    {
+      "id": "npm-caveat",
+      "url": "https://registry.npmjs.org/caveat",
+      "retrievedAtUtc": "2026-10-02T00:22:44.593521+00:00",
+      "httpStatus": 200,
+      "data": {
+        "name": "caveat",
+        "dist-tags": {
+          "latest": "1.0.0"
+        },
+        "time": {
+          "modified": "2022-06-13T05:42:26.889Z",
+          "created": "2016-03-11T13:35:23.735Z",
+          "1.0.0": "2016-03-11T13:35:23.735Z"
+        },
+        "versions": {
+          "1.0.0": {
+            "name": "caveat",
+            "version": "1.0.0",
+            "description": "Prints a warning in the console if it exists",
+            "bin": null,
+            "repository": {
+              "type": "git",
+              "url": "git://github.com/epiloque/caveat.git"
+            },
+            "homepage": "https://github.com/epiloque/caveat"
+          }
+        }
+      }
+    },
+    {
+      "id": "npm-caveat-lang",
+      "url": "https://registry.npmjs.org/caveat-lang",
+      "retrievedAtUtc": "2026-10-02T00:22:44.594715+00:00",
+      "httpStatus": 200,
+      "data": {
+        "name": "caveat-lang",
+        "dist-tags": {
+          "next": "0.1.0-rc.6",
+          "latest": "0.1.0-rc.5"
+        },
+        "time": {
+          "created": "2026-09-25T22:38:55.932Z",
+          "modified": "2026-10-01T21:00:31.951Z",
+          "0.1.0-rc.3": "2026-09-25T22:38:56.197Z",
+          "0.1.0-rc.4": "2026-09-28T20:48:39.744Z",
+          "0.1.0-rc.5": "2026-09-30T03:45:30.856Z",
+          "0.1.0-rc.6": "2026-10-01T21:00:31.795Z"
+        },
+        "versions": {
+          "0.1.0-rc.5": {
+            "name": "caveat-lang",
+            "version": "0.1.0-rc.5",
+            "description": "Programs that remember why. A reactive programming language whose values carry their evidence and caveats, and whose decisions record what they rest on, any permission they were given and every reopening. Runs on WebAssembly in Node and browsers, with a N",
+            "bin": {
+              "caveat": "bin/caveat.mjs"
+            },
+            "repository": {
+              "url": "git+https://github.com/WSattazahn/caveat-lang.git",
+              "type": "git",
+              "directory": "kit"
+            },
+            "homepage": "https://github.com/WSattazahn/caveat-lang/tree/main/kit#readme"
+          },
+          "0.1.0-rc.6": {
+            "name": "caveat-lang",
+            "version": "0.1.0-rc.6",
+            "description": "Programs that remember why. A reactive programming language whose values carry their evidence and caveats, and whose decisions record what they rest on, any permission they were given and every reopening. Runs on WebAssembly in Node and browsers, with a N",
+            "bin": {
+              "caveat": "bin/caveat.mjs"
+            },
+            "repository": {
+              "url": "git+https://github.com/WSattazahn/caveat-lang.git",
+              "type": "git",
+              "directory": "kit"
+            },
+            "homepage": "https://github.com/WSattazahn/caveat-lang/tree/main/kit#readme"
+          }
+        }
+      }
+    },
+    {
+      "id": "npm-caveat-cli",
+      "url": "https://registry.npmjs.org/caveat-cli",
+      "retrievedAtUtc": "2026-10-02T00:22:44.595471+00:00",
+      "httpStatus": 200,
+      "data": {
+        "name": "caveat-cli",
+        "dist-tags": {
+          "latest": "0.19.13"
+        },
+        "time": {
+          "created": "2026-04-19T01:31:00.815Z",
+          "modified": "2026-09-28T02:25:48.050Z",
+          "0.1.0": "2026-04-19T01:31:01.134Z",
+          "0.2.0": "2026-04-19T01:56:20.918Z",
+          "0.2.1": "2026-04-19T02:00:48.964Z",
+          "0.3.0": "2026-04-19T02:13:27.311Z",
+          "0.4.0": "2026-04-19T02:19:03.106Z",
+          "0.5.0": "2026-04-19T02:26:51.426Z",
+          "0.6.0": "2026-04-19T02:46:01.797Z",
+          "0.6.1": "2026-04-19T02:57:18.682Z",
+          "0.6.2": "2026-04-19T03:46:00.344Z",
+          "0.7.0": "2026-04-19T05:40:31.603Z",
+          "0.10.0": "2026-04-22T03:30:45.758Z",
+          "0.11.0": "2026-04-23T14:26:38.435Z",
+          "0.11.1": "2026-04-23T14:31:01.899Z",
+          "0.11.2": "2026-05-01T16:20:31.387Z",
+          "0.12.0": "2026-05-04T14:45:54.405Z",
+          "0.13.0": "2026-05-05T13:43:45.969Z",
+          "0.14.0": "2026-05-05T14:58:18.527Z",
+          "0.14.1": "2026-05-05T15:53:15.289Z",
+          "0.14.2": "2026-05-05T16:04:57.192Z",
+          "0.14.3": "2026-05-05T23:41:15.780Z",
+          "0.14.4": "2026-05-05T23:56:16.867Z",
+          "0.14.5": "2026-05-06T00:09:51.995Z",
+          "0.14.6": "2026-05-06T00:17:46.246Z",
+          "0.14.7": "2026-05-06T11:10:51.348Z",
+          "0.14.8": "2026-05-08T10:40:52.933Z",
+          "0.14.9": "2026-05-10T09:34:25.339Z",
+          "0.14.10": "2026-05-10T10:13:31.763Z",
+          "0.15.0": "2026-07-11T09:16:23.218Z",
+          "0.16.0": "2026-07-13T01:24:52.949Z",
+          "0.16.1": "2026-07-13T01:52:37.749Z",
+          "0.16.2": "2026-07-13T05:56:36.288Z",
+          "0.16.3": "2026-07-13T11:08:13.065Z",
+          "0.17.0": "2026-07-17T08:28:44.215Z",
+          "0.17.1": "2026-07-19T20:46:01.158Z",
+          "0.17.2": "2026-07-29T11:15:57.159Z",
+          "0.17.3": "2026-08-02T00:44:26.628Z",
+          "0.17.4": "2026-08-23T04:07:40.028Z",
+          "0.17.5": "2026-08-23T06:31:59.881Z",
+          "0.17.6": "2026-08-23T18:10:33.485Z",
+          "0.17.7": "2026-08-23T23:56:54.580Z",
+          "0.17.8": "2026-08-24T00:00:54.876Z",
+          "0.18.0": "2026-08-24T11:44:18.820Z",
+          "0.19.0": "2026-09-09T22:45:56.163Z",
+          "0.19.1": "2026-09-09T22:59:28.202Z",
+          "0.19.2": "2026-09-12T14:34:28.736Z",
+          "0.19.3": "2026-09-23T15:59:54.466Z",
+          "0.19.5": "2026-09-23T22:56:40.949Z",
+          "0.19.6": "2026-09-24T00:33:28.208Z",
+          "0.19.7": "2026-09-24T03:24:36.225Z",
+          "0.19.8": "2026-09-24T04:11:11.191Z",
+          "0.19.9": "2026-09-24T04:43:51.596Z",
+          "0.19.10": "2026-09-24T07:07:10.757Z",
+          "0.19.11": "2026-09-27T03:32:42.435Z",
+          "0.19.12": "2026-09-28T01:09:51.173Z",
+          "0.19.13": "2026-09-28T02:25:47.701Z"
+        },
+        "versions": {
+          "0.19.13": {
+            "name": "caveat-cli",
+            "version": "0.19.13",
+            "description": "Long-term memory CLI for Claude Code, Codex, and Cursor (markdown + SQLite FTS5 + MCP + hooks)",
+            "bin": {
+              "caveat": "dist/caveat.js"
+            },
+            "repository": {
+              "url": "git+https://github.com/kitepon/Caveat.git",
+              "type": "git"
+            },
+            "homepage": "https://github.com/kitepon/Caveat#readme"
+          }
+        }
+      }
+    },
+    {
+      "id": "github-language",
+      "url": "https://api.github.com/repos/WSattazahn/caveat-lang",
+      "retrievedAtUtc": "2026-10-02T00:22:44.605794+00:00",
+      "httpStatus": 200,
+      "data": {
+        "full_name": "WSattazahn/caveat-lang",
+        "html_url": "https://github.com/WSattazahn/caveat-lang",
+        "description": "CAVEAT Language — Programs that remember why. A programming language for computation with claims, evidence, caveats, provisional commitments, and reopening.",
+        "created_at": "2026-09-17T07:44:04Z",
+        "updated_at": "2026-10-01T23:43:33Z",
+        "pushed_at": "2026-10-01T23:42:12Z",
+        "homepage": "https://wsattazahn.github.io/caveat-lang/about.html",
+        "language": "Rust",
+        "archived": false
+      }
+    },
+    {
+      "id": "github-memory",
+      "url": "https://api.github.com/repos/kitepon/Caveat",
+      "retrievedAtUtc": "2026-10-02T00:22:44.626597+00:00",
+      "httpStatus": 200,
+      "data": {
+        "full_name": "kitepon/Caveat",
+        "html_url": "https://github.com/kitepon/Caveat",
+        "description": "Long-term memory layer for Claude Code and Codex — markdown-in-git knowledge base, SQLite FTS5 retrieval, MCP, and native agent hooks.",
+        "created_at": "2026-04-18T14:17:16Z",
+        "updated_at": "2026-09-28T04:08:43Z",
+        "pushed_at": "2026-09-28T04:08:40Z",
+        "homepage": "https://www.npmjs.com/package/caveat-cli",
+        "language": "TypeScript",
+        "archived": false
+      }
+    },
+    {
+      "id": "github-name-search",
+      "url": "https://api.github.com/search/repositories?q=caveat+in:name&per_page=30&sort=stars",
+      "retrievedAtUtc": "2026-10-02T00:22:44.649383+00:00",
+      "httpStatus": 200,
+      "data": {
+        "total_count": 216,
+        "incomplete_results": false,
+        "items": [
+          {
+            "full_name": "Caveatron/Caveatron",
+            "html_url": "https://github.com/Caveatron/Caveatron",
+            "description": "Standard Caveatron with LIDAR",
+            "created_at": "2018-01-15T23:55:40Z",
+            "language": null
+          },
+          {
+            "full_name": "googlefonts/caveat",
+            "html_url": "https://github.com/googlefonts/caveat",
+            "description": "Caveat handwriting fonts",
+            "created_at": "2015-10-07T13:28:53Z",
+            "language": "Shell"
+          },
+          {
+            "full_name": "rafaelgarrido/homebrew-caveats",
+            "html_url": "https://github.com/rafaelgarrido/homebrew-caveats",
+            "description": "Formulae Caveats Shortcut for Homebrew Package Manager",
+            "created_at": "2014-06-11T21:51:04Z",
+            "language": "Ruby"
+          },
+          {
+            "full_name": "sibtc/django-user-caveats",
+            "html_url": "https://github.com/sibtc/django-user-caveats",
+            "description": "What You Should Know About The Django User Model",
+            "created_at": "2021-07-08T21:29:43Z",
+            "language": "Python"
+          },
+          {
+            "full_name": "big-ucl/caveat",
+            "html_url": "https://github.com/big-ucl/caveat",
+            "description": "Generating human activity sequences with VAEs",
+            "created_at": "2023-10-13T17:24:25Z",
+            "language": "Jupyter Notebook"
+          },
+          {
+            "full_name": "insin/caveat-utilitor",
+            "html_url": "https://github.com/insin/caveat-utilitor",
+            "description": "Personal GtHub repo status badges",
+            "created_at": "2016-01-17T21:27:35Z",
+            "language": null
+          },
+          {
+            "full_name": "technicalpickles/caveat_patch_kids",
+            "html_url": "https://github.com/technicalpickles/caveat_patch_kids",
+            "description": "Manage caveatPatchor.js files for Propane",
+            "created_at": "2013-01-15T02:57:54Z",
+            "language": "JavaScript"
+          },
+          {
+            "full_name": "Caveatron/Caveatron_SV",
+            "html_url": "https://github.com/Caveatron/Caveatron_SV",
+            "description": "New survey-focused Caveatron model",
+            "created_at": "2021-04-27T01:46:26Z",
+            "language": null
+          },
+          {
+            "full_name": "bennadel/coldfusion-caveats",
+            "html_url": "https://github.com/bennadel/coldfusion-caveats",
+            "description": "A community field guide for CFML developers by CFML developers.",
+            "created_at": "2025-01-26T16:34:11Z",
+            "language": "ColdFusion"
+          },
+          {
+            "full_name": "spacetelescope/jwst-caveat-examples",
+            "html_url": "https://github.com/spacetelescope/jwst-caveat-examples",
+            "description": "The repository contains information intended to aid the community in mitigating issues that affect, or recently affected, data products available in the MAST archive",
+            "created_at": "2023-07-05T17:45:35Z",
+            "language": "Jupyter Notebook"
+          },
+          {
+            "full_name": "jkufro/CavEat",
+            "html_url": "https://github.com/jkufro/CavEat",
+            "description": "iOS app that provides insights into food nutrition labels using OCR and other magic.",
+            "created_at": "2019-09-19T20:15:10Z",
+            "language": "Swift"
+          },
+          {
+            "full_name": "CloudSecurityAlliance-WG/CAVEaT",
+            "html_url": "https://github.com/CloudSecurityAlliance-WG/CAVEaT",
+            "description": "WG-CAVEaT-data",
+            "created_at": "2024-03-22T21:05:04Z",
+            "language": "HTML"
+          },
+          {
+            "full_name": "kitepon/Caveat",
+            "html_url": "https://github.com/kitepon/Caveat",
+            "description": "Long-term memory layer for Claude Code and Codex — markdown-in-git knowledge base, SQLite FTS5 retrieval, MCP, and native agent hooks.",
+            "created_at": "2026-04-18T14:17:16Z",
+            "language": "TypeScript"
+          },
+          {
+            "full_name": "UBOdin/mimir-caveats",
+            "html_url": "https://github.com/UBOdin/mimir-caveats",
+            "description": null,
+            "created_at": "2020-02-11T07:55:23Z",
+            "language": "Scala"
+          },
+          {
+            "full_name": "valentinozegna/no-honest-caveat",
+            "html_url": "https://github.com/valentinozegna/no-honest-caveat",
+            "description": "Make your agent finish the work instead of making confessions.",
+            "created_at": "2026-09-16T06:38:11Z",
+            "language": "JavaScript"
+          },
+          {
+            "full_name": "caveat-ops/ubb",
+            "html_url": "https://github.com/caveat-ops/ubb",
+            "description": null,
+            "created_at": "2026-05-22T14:11:24Z",
+            "language": "TypeScript"
+          },
+          {
+            "full_name": "hmcts/probate-caveats-frontend",
+            "html_url": "https://github.com/hmcts/probate-caveats-frontend",
+            "description": null,
+            "created_at": "2018-11-19T15:29:09Z",
+            "language": "JavaScript"
+          },
+          {
+            "full_name": "thien-bui-nguyen/ApiCaveatRules",
+            "html_url": "https://github.com/thien-bui-nguyen/ApiCaveatRules",
+            "description": "An IntelliJ plugin checker program for API caveat violation inspections",
+            "created_at": "2019-09-14T13:49:14Z",
+            "language": "Java"
+          },
+          {
+            "full_name": "thien-bui-nguyen/github-api-caveats",
+            "html_url": "https://github.com/thien-bui-nguyen/github-api-caveats",
+            "description": "Locating API misuse examples in GitHub data",
+            "created_at": "2019-06-11T12:12:19Z",
+            "language": "TeX"
+          },
+          {
+            "full_name": "frgmt0/Caveat-An-Anthology",
+            "html_url": "https://github.com/frgmt0/Caveat-An-Anthology",
+            "description": null,
+            "created_at": "2024-11-25T16:44:41Z",
+            "language": null
+          },
+          {
+            "full_name": "holtzy/dataviz-caveat-flashcards",
+            "html_url": "https://github.com/holtzy/dataviz-caveat-flashcards",
+            "description": "A set of cards summarizing the most common caveats in data visualization",
+            "created_at": "2024-10-10T07:14:00Z",
+            "language": null
+          },
+          {
+            "full_name": "ebanx/java-to-kotlin-caveats",
+            "html_url": "https://github.com/ebanx/java-to-kotlin-caveats",
+            "description": null,
+            "created_at": "2017-06-07T20:12:56Z",
+            "language": null
+          },
+          {
+            "full_name": "intellicat-ai/caveat",
+            "html_url": "https://github.com/intellicat-ai/caveat",
+            "description": "CAVEAT provides a shared, machine-readable vocabulary for describing *what went wrong* and *how we know*, enabling interoperable tools for research credibility and integrity assessment.",
+            "created_at": "2026-04-08T18:13:46Z",
+            "language": "Python"
+          },
+          {
+            "full_name": "ERAS-Research/caveat",
+            "html_url": "https://github.com/ERAS-Research/caveat",
+            "description": "Framework for Context-Aware Verification, Emulation, and Training",
+            "created_at": "2025-01-24T22:01:58Z",
+            "language": "Python"
+          },
+          {
+            "full_name": "mikebatts/caveat",
+            "html_url": "https://github.com/mikebatts/caveat",
+            "description": "AI-powered contract analyzer. Upload any contract → get a risk report in 60 seconds.",
+            "created_at": "2026-03-17T22:56:46Z",
+            "language": "TypeScript"
+          },
+          {
+            "full_name": "scott-williams-2002/CaveatBotPublic",
+            "html_url": "https://github.com/scott-williams-2002/CaveatBotPublic",
+            "description": null,
+            "created_at": "2025-03-29T06:32:28Z",
+            "language": "TypeScript"
+          },
+          {
+            "full_name": "neelsatyavolu/caveatly",
+            "html_url": "https://github.com/neelsatyavolu/caveatly",
+            "description": "Chrome extension that scans a site's Terms of Service and Privacy Policy with AI and flags what matters.",
+            "created_at": "2026-09-06T16:55:33Z",
+            "language": "JavaScript"
+          },
+          {
+            "full_name": "elykahn/caveat-astro",
+            "html_url": "https://github.com/elykahn/caveat-astro",
+            "description": "words with astro",
+            "created_at": "2025-07-15T18:29:08Z",
+            "language": "Astro"
+          },
+          {
+            "full_name": "osobot-ai/the-caveat",
+            "html_url": "https://github.com/osobot-ai/the-caveat",
+            "description": "The Caveat - Scoped intelligence for the agent economy",
+            "created_at": "2026-02-08T14:18:20Z",
+            "language": "TypeScript"
+          },
+          {
+            "full_name": "AliBakhshi-Codes/caveat-public",
+            "html_url": "https://github.com/AliBakhshi-Codes/caveat-public",
+            "description": "Open-set smart contract vulnerability detection with calibrated abstention under a distribution-free coverage guarantee",
+            "created_at": "2026-09-15T20:05:01Z",
+            "language": "Python"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pypi-caveat",
+      "url": "https://pypi.org/pypi/caveat/json",
+      "retrievedAtUtc": "2026-10-02T00:22:44.655972+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "pypi-caveat-lang",
+      "url": "https://pypi.org/pypi/caveat-lang/json",
+      "retrievedAtUtc": "2026-10-02T00:22:44.657102+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "pypi-caveat-cli",
+      "url": "https://pypi.org/pypi/caveat-cli/json",
+      "retrievedAtUtc": "2026-10-02T00:22:44.815821+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "crates-caveat",
+      "url": "https://crates.io/api/v1/crates/caveat",
+      "retrievedAtUtc": "2026-10-02T00:22:44.852742+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "crates-search",
+      "url": "https://crates.io/api/v1/crates?q=caveat&per_page=30",
+      "retrievedAtUtc": "2026-10-02T00:22:44.853089+00:00",
+      "httpStatus": 200,
+      "data": {
+        "meta": {
+          "total": 2547,
+          "next_page": "?q=caveat&per_page=30&seek=W2ZhbHNlLDAuNCwzOTYsMjcwNTAzMV0",
+          "prev_page": null
+        },
+        "crates": [
+          {
+            "id": "macarunes",
+            "name": "macarunes",
+            "description": "Macarunes provides an implementation of macaroons.",
+            "created_at": "2023-09-07T23:20:22.959139Z",
+            "repository": "https://github.com/rescrv/blue"
+          },
+          {
+            "id": "libmacaroon",
+            "name": "libmacaroon",
+            "description": "Macaroons (bearer credentials with contextual caveats) in pure Rust, with first-party and third-party caveats, WASM support, and cross-language interop.",
+            "created_at": "2026-04-23T18:30:40.897145Z",
+            "repository": "https://github.com/connyay/libmacaroon"
+          },
+          {
+            "id": "agent-bridle",
+            "name": "agent-bridle",
+            "description": "The capability leash for agent tools: a ready-to-use, capability-governed tool registry for the Gilamonster agent line.",
+            "created_at": "2026-07-06T18:03:31.257634Z",
+            "repository": "https://github.com/Gilamonster-Foundation/agent-bridle"
+          },
+          {
+            "id": "macaroon",
+            "name": "macaroon",
+            "description": "Fully functional implementation of macaroons in Rust",
+            "created_at": "2017-02-20T22:42:16.324035Z",
+            "repository": "https://github.com/macaroon-rs/macaroon"
+          },
+          {
+            "id": "oxicode",
+            "name": "oxicode",
+            "description": "A modern binary serialization library - successor to bincode",
+            "created_at": "2025-12-28T16:44:28.420484Z",
+            "repository": "https://github.com/cool-japan/oxicode"
+          },
+          {
+            "id": "l402_middleware",
+            "name": "l402_middleware",
+            "description": "A middleware library for rust that provides handler functions to accept microtransactions before serving ad-free content or any paid APIs.",
+            "created_at": "2024-10-10T18:34:15.319659Z",
+            "repository": "https://github.com/DhananjayPurohit/l402_middleware"
+          },
+          {
+            "id": "newt-skills",
+            "name": "newt-skills",
+            "description": "Newt-Agent agentskills.io-compatible skills — discovery + SKILL.md parsing for progressive disclosure",
+            "created_at": "2026-06-14T13:40:07.416587Z",
+            "repository": "https://github.com/hartsock/newt-agent"
+          },
+          {
+            "id": "poexam",
+            "name": "poexam",
+            "description": "Blazingly fast PO linter.",
+            "created_at": "2026-02-02T21:00:03.388446Z",
+            "repository": "https://github.com/poexam/poexam"
+          },
+          {
+            "id": "macaroons",
+            "name": "macaroons",
+            "description": "Cookie-like bearer credentials with caveats for distributed authorization",
+            "created_at": "2015-01-31T20:06:10.496001Z",
+            "repository": "https://github.com/cryptosphere/macaroons-rs.git"
+          },
+          {
+            "id": "rdev",
+            "name": "rdev",
+            "description": "Listen and send keyboard and mouse events on Windows, Linux and MacOS.",
+            "created_at": "2020-02-22T10:22:29.254874Z",
+            "repository": "https://github.com/Narsil/rdev"
+          },
+          {
+            "id": "srcwalk",
+            "name": "srcwalk",
+            "description": "Tree-sitter indexed lookups — smart code reading for AI agents",
+            "created_at": "2026-04-23T13:40:16.072643Z",
+            "repository": "https://github.com/sting8k/srcwalk"
+          },
+          {
+            "id": "openloaf-rdev",
+            "name": "openloaf-rdev",
+            "description": "OpenLoaf fork of rdev — listen and send keyboard / mouse events on Windows, Linux and MacOS. Adds macOS event tap auto re-enable on kCGEventTapDisabledByTimeout / ByUserInput so a temporarily disabled tap doesn't silently drop the next batch of key events.",
+            "created_at": "2026-04-30T13:33:28.559403Z",
+            "repository": "https://github.com/OpenLoaf/rdev"
+          },
+          {
+            "id": "sc-transaction-pool",
+            "name": "sc-transaction-pool",
+            "description": "Substrate transaction pool implementation.",
+            "created_at": "2020-02-27T13:12:23.300423Z",
+            "repository": "https://github.com/paritytech/polkadot-sdk.git"
+          },
+          {
+            "id": "pezsc-transaction-pool",
+            "name": "pezsc-transaction-pool",
+            "description": "Bizinikiwi transaction pool implementation.",
+            "created_at": "2025-12-30T11:42:12.698503Z",
+            "repository": "https://github.com/pezkuwichain/pezkuwi-sdk.git"
+          },
+          {
+            "id": "pqc-kem",
+            "name": "pqc-kem",
+            "description": "Post-quantum key encapsulation for Rust and WASM: ML-KEM (FIPS 203), the X25519 + ML-KEM-768 hybrid (default) and X-Wing, plus sealed boxes that encrypt straight to a public key. no_std; optional native-only HQC via liboqs.",
+            "created_at": "2026-08-27T18:23:16.092786Z",
+            "repository": "https://github.com/0x307/pqc-kem"
+          },
+          {
+            "id": "faucet-source-mongodb-cdc",
+            "name": "faucet-source-mongodb-cdc",
+            "description": "MongoDB Change Streams (CDC) source for the faucet-stream ecosystem",
+            "created_at": "2026-06-12T15:34:42.076216Z",
+            "repository": "https://github.com/faucet-hq/faucet-stream"
+          },
+          {
+            "id": "veridict",
+            "name": "veridict",
+            "description": "Statistical regression gate for A/B and hypothesis testing: compare candidate vs baseline results with win-rate, Elo, SPRT, and bootstrap confidence intervals.",
+            "created_at": "2026-07-04T09:29:51.674268Z",
+            "repository": "https://github.com/kent-tokyo/veridict"
+          },
+          {
+            "id": "may",
+            "name": "may",
+            "description": "Rust Stackful Coroutine Library",
+            "created_at": "2017-12-22T07:58:36.459385Z",
+            "repository": "https://github.com/Xudong-Huang/may.git"
+          },
+          {
+            "id": "agent-bridle-core",
+            "name": "agent-bridle-core",
+            "description": "Capability-enforcement core for agent-bridle: the Tool trait, Gate (mint-token enforcement), Registry, and Caveats leash.",
+            "created_at": "2026-06-03T22:00:17.548087Z",
+            "repository": "https://github.com/Gilamonster-Foundation/agent-bridle"
+          },
+          {
+            "id": "lineprior",
+            "name": "lineprior",
+            "description": "Explainable action ranking from historical sequences, with confidence, context backoff, evaluation, and tuning.",
+            "created_at": "2026-07-05T06:06:39.047608Z",
+            "repository": "https://github.com/kent-tokyo/lineprior"
+          },
+          {
+            "id": "macrame-db",
+            "name": "macrame-db",
+            "description": "A Bitemporal Graph Ledger on libSQL · Embedded knowledge database",
+            "created_at": "2026-07-31T17:47:37.694483Z",
+            "repository": "https://github.com/opticsWolf/Macrame"
+          },
+          {
+            "id": "stringleton",
+            "name": "stringleton",
+            "description": "Extremely fast string interning library",
+            "created_at": "2025-03-27T08:26:50.564988Z",
+            "repository": "https://github.com/simonask/stringleton"
+          },
+          {
+            "id": "lineprior-cli",
+            "name": "lineprior-cli",
+            "description": "CLI for building, evaluating, tuning, and querying explainable action-ranking prior books.",
+            "created_at": "2026-07-05T06:06:58.784470Z",
+            "repository": "https://github.com/kent-tokyo/lineprior"
+          },
+          {
+            "id": "sccache",
+            "name": "sccache",
+            "description": "Sccache is a ccache-like tool. It is used as a compiler wrapper and avoids compilation when possible. Sccache has the capability to utilize caching in remote storage environments, including various cloud storage options, or alternatively, in local storage.",
+            "created_at": "2016-12-16T00:53:28.875386Z",
+            "repository": "https://github.com/mozilla/sccache/"
+          },
+          {
+            "id": "tailscale",
+            "name": "tailscale",
+            "description": "A work-in-progress Tailscale implementation",
+            "created_at": "2020-06-09T00:56:41.557684Z",
+            "repository": "https://github.com/tailscale/tailscale-rs"
+          },
+          {
+            "id": "nimble-rs",
+            "name": "nimble-rs",
+            "description": "Safe, no_std, cross-platform Rust API for the esp-nimble BLE host, over any bt-hci controller",
+            "created_at": "2026-08-19T19:08:57.673353Z",
+            "repository": "https://github.com/sysgrok/nimble-rs"
+          },
+          {
+            "id": "aligned-vmem",
+            "name": "aligned-vmem",
+            "description": "Cross-platform aligned anonymous virtual memory: reserve, commit, decommit, and release power-of-two-aligned spans via mmap/VirtualAlloc. Zero dependencies, miri-friendly.",
+            "created_at": "2026-06-29T17:31:18.647974Z",
+            "repository": "https://github.com/PHPCraftdream/sefer-alloc"
+          },
+          {
+            "id": "defaults-rs",
+            "name": "defaults-rs",
+            "description": "Open-source interface to a user's defaults on macOS",
+            "created_at": "2025-06-12T10:43:46.702902Z",
+            "repository": "https://github.com/machlit/defaults-rs"
+          },
+          {
+            "id": "agent-bridle-mcp",
+            "name": "agent-bridle-mcp",
+            "description": "MCP (Model Context Protocol) stdio server frontend over the agent-bridle capability-governed tool registry.",
+            "created_at": "2026-07-06T18:03:36.885021Z",
+            "repository": "https://github.com/Gilamonster-Foundation/agent-bridle"
+          },
+          {
+            "id": "embassy-supervisor",
+            "name": "embassy-supervisor",
+            "description": "A generic, HAL-agnostic run-time supervisor for the embassy async embedded framework: dependency-ordered bring-up/teardown, lifecycle modes, elastic task pools, runtime start/stop/pause/resume control, and a declared-and-verified dataflow layer between the tasks.",
+            "created_at": "2026-06-29T21:01:56.351898Z",
+            "repository": "https://github.com/cedrivard/embassy-supervisor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rubygems",
+      "url": "https://rubygems.org/api/v1/gems/caveat.json",
+      "retrievedAtUtc": "2026-10-02T00:22:44.854434+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "id": "packagist",
+      "url": "https://packagist.org/search.json?q=caveat",
+      "retrievedAtUtc": "2026-10-02T00:22:44.856905+00:00",
+      "httpStatus": 200,
+      "data": {
+        "results": [
+          {
+            "name": "webignition/html-document-type-parser",
+            "description": "Parse a public html document type (so many caveats), extract FPI and URI",
+            "url": "https://packagist.org/packages/webignition/html-document-type-parser",
+            "repository": "https://github.com/webignition/html-document-type-parser",
+            "downloads": 1031,
+            "favers": 1,
+            "abandoned": "webignition/html-document-type"
+          },
+          {
+            "name": "mvieira/macaroons",
+            "description": "",
+            "url": "https://packagist.org/packages/mvieira/macaroons",
+            "repository": "https://github.com/mickaelvieira/macaroons",
+            "downloads": 5496,
+            "favers": 3
+          },
+          {
+            "name": "cavatappi/testing",
+            "description": "Test utilities for Cavatappi projects",
+            "url": "https://packagist.org/packages/cavatappi/testing",
+            "repository": "https://github.com/cavatappiphp/testing",
+            "downloads": 60,
+            "favers": 0
+          },
+          {
+            "name": "cavatappi/infrastructure",
+            "description": "Framework built around Domain Driven Design and Event Sourcing",
+            "url": "https://packagist.org/packages/cavatappi/infrastructure",
+            "repository": "https://github.com/cavatappiphp/infrastructure",
+            "downloads": 64,
+            "favers": 0
+          },
+          {
+            "name": "cavatappi/foundation",
+            "description": "A PHP framework for domain-driven design, event sourcing, and SOLID architecture.",
+            "url": "https://packagist.org/packages/cavatappi/foundation",
+            "repository": "https://github.com/cavatappiphp/foundation",
+            "downloads": 71,
+            "favers": 0
+          }
+        ],
+        "total": 5
+      }
+    },
+    {
+      "id": "nuget",
+      "url": "https://azuresearch-usnc.nuget.org/query?q=caveat&take=30&prerelease=true",
+      "retrievedAtUtc": "2026-10-02T00:22:44.868248+00:00",
+      "httpStatus": 200,
+      "data": {
+        "totalHits": 6,
+        "data": [
+          {
+            "id": "PeanutButter.DuckTyping",
+            "version": "3.0.442",
+            "description": "A package to facilitate duck-typing through an object extension DuckAs<>.\n      There is also a FuzzyDuckAs<> facility for more case-insensitive ducking.\n      At no point is there use of DynamicObjects, which hurt performance.\n      Property read/write as well as methods are ducked, with the current caveat\n      that ref and out parameters may not behave as expected.",
+            "projectUrl": "https://github.com/fluffynuts/PeanutButter"
+          },
+          {
+            "id": "CellWars.Threading.AsyncLock",
+            "version": "1.0.0",
+            "description": "A C# lock replacement enabling async-await in between acquire and release. High performance, Re-entrant, with no caveat. Able to re-entrant/re-acquire the same across threads within the same task.",
+            "projectUrl": "https://github.com/jasonkuo41/CellWars.Threading.AsyncLock"
+          },
+          {
+            "id": "Bazam.BadEncryption",
+            "version": "1.0.1",
+            "description": "A great library for encrypting things weakly. Good for when you don't want something to be human-readable. Bad when you want it to be secure in any real way. Caveat nerd!\n\nNo .NET Core support yet because RijndaelManaged isn't ported yet.",
+            "projectUrl": "https://github.com/jammerware/bazam"
+          },
+          {
+            "id": "Verint.Microsoft.Speech.x64",
+            "version": "11.0.7400.348",
+            "description": "Microsoft.Speech managed code class library for x64 runtimes.\n\nTo use this package, you must have the Microsoft Speech SDK installed. This package includes two Microsoft.Speech library versions, all for x64 runtimes:\n\n* For .NET Framework - .NET Standard 2.0 targets, a recompiled (unsigned) .NET Framework version with one slight edit to allow for .NET Standard compatibility.\n* For .NET Standard 2.1+ targets, a recompiled (unsigned) .NET Standard version with very slight edits to allow for real compatibility without any warnings.\n\nSee Github for details about the edits. Note that while we have tested the speech recognition portion of the library under .NET Core, it's impossible to say that it is 100% compatible. Caveat emptor!",
+            "projectUrl": "https://github.com/ladenedge/Verint.Microsoft.Speech"
+          },
+          {
+            "id": "ExcelAutomationWrapper",
+            "version": "1.0.4",
+            "description": "Working with large Excel files is problematic.  After reading an article by Joel Spolsky which advocated using Excel to work with Excel files because nobody else has put in everything necessary to optimize the experience like the real thing, I decided to try it out.  It turns out that the Excel automation object is difficult to work with, but does some amazing things.  It was able to copy/paste columns of data in huge files (200K rows) around fast while not spiking memory at all.  The same operation using EPPlus brought the server down.\n\nRelative to running on the server, there are some caveats (http://tinyurl.com/ookezz3), but I believe if you test a process and it works, it will be fine.  You can't run Excel automation under a service and do just anything.\n\nThis package has never actually been in production, but has gone through a fair amount of testing - the main concern always being whether it's leaving the automation object behind (it seems to clean up consistently).\n\nThere is the obvious dependency on Excel being installed on the machine where executing.\n\nYou can use this as your wrapper for the automation object and do anything Excel does, but unfortunately I can't expose that directly, e.g., I can't expose a function that provides you with a live automation application object that will be closed when finished because you can't expose a COM object across library bounds.  In order to build your own functionality you will have to descend your own class from ExcelApplicationBase, but built in are these functions:\n* ColumnReorder (as mentioned above): new ColumnReorderer().Reorder( newPath, (string list of columns the way you want ordered) ) \n* Sort: new Sorter().SortByColumn( columnIndex, path )\n* CSV to XLSX: new CSVtoXLSXConverter().CSVto_XLSX( path ) \n* XLSX to CSV: new XLSXtoCSVConverter().XLSXto_CSV( path )",
+            "projectUrl": "https://excelautomationrunner.codeplex.com/"
+          },
+          {
+            "id": "CodoMetis.ValueRanges.NodaTime",
+            "version": "8.0.0",
+            "description": "NodaTime range types for CodoMetis.ValueRanges: LocalDateRange (daterange), LocalDateTimeRange (tsrange), InstantRange (tstzrange) and YearMonthRange — a month-granularity range for billing and reporting periods, stored as a month-aligned daterange by the EF Core companion.\n\nEach range type is a discriminated union of five sealed variants (Finite, UnboundedStart, UnboundedEnd, EmptyRange, Infinity) with the full interval algebra of the core package: Contains, Overlaps, IsAdjacentTo, Intersect, Union, Except, Merge, bound accessors, RangeAgg/RangeIntersectAgg aggregates, RangeSet<TRange, T> multiranges, PostgreSQL literal parsing/formatting and System.Text.Json support. Includes conversions to and from NodaTime's own Interval and DateInterval. LocalDateTime is wall-clock time by construction and Instant is an instant by construction, so the DateTimeKind and offset-normalization caveats of the BCL-based types do not arise.\n\nv6 adds the NodaTime value sets — LocalDateSet (date[]), LocalDateTimeSet (timestamp[]), InstantSet (timestamptz[]), LocalTimeSet (time[]) and the month-granularity YearMonthSet (month-aligned date[]): immutable, canonical (deduplicated, sorted, null-free) sets with the full membership algebra, ISO-calendar normalization at construction, PostgreSQL array literals and JSON support. v6.4 adds a validated-wrapper arity for each of them (LocalDateSet<T>, LocalDateTimeSet<T>, InstantSet<T>, LocalTimeSet<T>, YearMonthSet<T>), constrained only on BCL interfaces, so generator-produced domain values never reference this package.",
+            "projectUrl": "https://github.com/CaffeinatedCoder/CodoMetis.ValueRanges"
+          }
+        ]
+      }
+    },
+    {
+      "id": "maven",
+      "url": "https://search.maven.org/solrsearch/select?q=caveat&rows=30&wt=json",
+      "retrievedAtUtc": "2026-10-02T00:22:44.969269+00:00",
+      "error": "The read operation timed out"
+    },
+    {
+      "id": "homebrew",
+      "url": "https://formulae.brew.sh/api/formula/caveat.json",
+      "retrievedAtUtc": "2026-10-02T00:22:45.006164+00:00",
+      "httpStatus": 404,
+      "error": "HTTP Error 404: Not Found"
+    }
+  ]
+}

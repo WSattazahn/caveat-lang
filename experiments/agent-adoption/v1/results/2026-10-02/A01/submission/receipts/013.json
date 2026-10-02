@@ -1,0 +1,13 @@
+{
+  "command": [
+    "node",
+    "node_modules/caveat-lang/bin/caveat.mjs",
+    "dependents",
+    "tracker.cav",
+    "checks",
+    "events.jsonl"
+  ],
+  "exit_status": 0,
+  "stdout": "What rests on checks in tracker.cav after 5 events (sequence 5)\n\nDecisions\n  answer@1 = 85  superseded  based on checks@1\n  answer@2 = 92  in force  based on checks@2\n\nDecision changes\n  #2 assess: answer@1 committed because checks@1\n  #5 assess: answer@2 committed because checks@2\n\nValues\n  candidate = 92  based on checks@2\n\nDisplayed\n  answer.in_force = true  cites checks@1, checks@2\n  answer.reopened = false  cites checks@1, checks@2\n  tracker.count = 2  cites checks@1, checks@2\n",
+  "stderr": ""
+}

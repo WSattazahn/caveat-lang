@@ -1,0 +1,43 @@
+{
+  "combinedOutputLimitBytes": 33554432,
+  "command": [
+    "<USER_HOME>\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--approve-for-me",
+    "-c",
+    "windows.sandbox=\"elevated\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "web_search=\"disabled\"",
+    "--json",
+    "-C",
+    "<TRIAL_A03>",
+    "-o",
+    "<TRIAL_A03>\\final-response.md",
+    "-"
+  ],
+  "cwd": "<TRIAL_A03>",
+  "elapsedSeconds": 483.374,
+  "exitCode": 0,
+  "finishedAt": "2026-10-02T00:55:52.237Z",
+  "observedOutputBytes": 629155,
+  "pid": "<LOCAL_IDENTIFIER>",
+  "retainedOutputBytes": 629155,
+  "startedAt": "2026-10-02T00:47:48.862Z",
+  "stderr": {
+    "bytes": 0,
+    "file": "codex.stderr",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 629155,
+    "file": "codex.stdout",
+    "sha256": "fa6d8c0cd4cf4f182316f5ef2e8577d4b21d1a85f38520ffc3243a3702d89dac"
+  },
+  "stopReason": null,
+  "timeoutSeconds": 1200
+}

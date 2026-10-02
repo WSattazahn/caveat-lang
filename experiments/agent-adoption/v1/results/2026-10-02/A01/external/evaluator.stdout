@@ -1,0 +1,565 @@
+{
+  "schema": "caveat-agent-adoption-study/1",
+  "candidate": {
+    "name": "caveat-lang",
+    "version": "0.1.0-rc.7",
+    "runtime": {
+      "reactiveWasmSha256": "e0c1ff6921485ac342f4eced76c68f58b14615077838c6f2af7da725430c6ba3",
+      "revision": "a24a6e91d75eeab466baa32a108ee9a242f43ac2",
+      "clean": true,
+      "compiled": true,
+      "host": "x86_64-pc-windows-msvc"
+    },
+    "starterSha256": "4119af19e00135d0d7a1207f2e68ec515cecd0bc9932d9dce8ecb4136c5bcc02",
+    "starterUnchanged": true
+  },
+  "artifacts": {
+    "first.cav": {
+      "present": true,
+      "bytes": 1641,
+      "sha256": "2e93d3ac5066de508542c90f768814fab824105089e6e387a0d928a39387777e"
+    },
+    "first.scenarios.json": {
+      "present": true,
+      "bytes": 8099,
+      "sha256": "4b060277bdf726f98c5fcae7e0636c5b9d4f437de27226e215f6ec4282a602de"
+    },
+    "tracker.cav": {
+      "present": true,
+      "bytes": 1641,
+      "sha256": "2e93d3ac5066de508542c90f768814fab824105089e6e387a0d928a39387777e"
+    },
+    "tracker.scenarios.json": {
+      "present": true,
+      "bytes": 10929,
+      "sha256": "1d62a5398d5897ad541c4d5607bfc1aa7af9bef446c67e1904700eac4bf91391"
+    },
+    "host.mjs": {
+      "present": true,
+      "bytes": 1333,
+      "sha256": "87c590c756ef632a24069d481c474b5f567d2d57f38f313fae46440600f90d0b"
+    },
+    "receipts/commands.jsonl": {
+      "present": true,
+      "bytes": 185343,
+      "sha256": "e10d584730b620cd8c0a5a207fc74791e02197e52fc28dd413ebb9b2f6f24d9c"
+    },
+    "events.jsonl": {
+      "present": true,
+      "bytes": 145,
+      "sha256": "8284793a4a057946eaf6624c9a8a4c5204e80917c389b0453a2dc86c454f1e34"
+    },
+    "diagnosis.md": {
+      "present": true,
+      "bytes": 1869,
+      "sha256": "b0680cdc5ae92392693df707f65bc5a7b7bf3a9e851e5abaa35252eb9f7b80ba"
+    },
+    "explanation.md": {
+      "present": true,
+      "bytes": 2408,
+      "sha256": "338a45843dbb4bc4214b85e81f46e4a41f26829cb2a09feb098a698bef91ab9f"
+    },
+    "FEATURE_REQUEST.md": {
+      "present": true,
+      "bytes": 3911,
+      "sha256": "ccbaff749f2ec67321bf7c172d41cb0d4d24c1026a124c6816b0139793576ba9"
+    },
+    "RESULTS.md": {
+      "present": true,
+      "bytes": 7038,
+      "sha256": "cf4a83956f7c44318109f710382d5019ac25a24c822a8e1dd02f894a47e1d6f1"
+    }
+  },
+  "programs": {
+    "first": {
+      "pass": true,
+      "cases": [
+        {
+          "name": "declarations-and-event-contract",
+          "pass": true
+        },
+        {
+          "name": "empty-policy-refusals-atomic",
+          "pass": true
+        },
+        {
+          "name": "invalid-observations-atomic",
+          "pass": true
+        },
+        {
+          "name": "threshold-0-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-69-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-70-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-100-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-85",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-92",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-40",
+          "pass": true
+        },
+        {
+          "name": "correction-withdrawal-revision-frozen-history",
+          "pass": true
+        },
+        {
+          "name": "correction-before-decision",
+          "pass": true
+        },
+        {
+          "name": "late-stale-preserves-past-refuses-future",
+          "pass": true
+        },
+        {
+          "name": "old-clean-reading-remains-eligible-after-stale",
+          "pass": true
+        },
+        {
+          "name": "save-restore-continuation",
+          "pass": true
+        }
+      ]
+    },
+    "tracker": {
+      "pass": true,
+      "cases": [
+        {
+          "name": "declarations-and-event-contract",
+          "pass": true
+        },
+        {
+          "name": "empty-policy-refusals-atomic",
+          "pass": true
+        },
+        {
+          "name": "invalid-observations-atomic",
+          "pass": true
+        },
+        {
+          "name": "threshold-0-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-69-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-70-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-100-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-85",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-92",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-40",
+          "pass": true
+        },
+        {
+          "name": "correction-withdrawal-revision-frozen-history",
+          "pass": true
+        },
+        {
+          "name": "correction-before-decision",
+          "pass": true
+        },
+        {
+          "name": "late-stale-preserves-past-refuses-future",
+          "pass": true
+        },
+        {
+          "name": "old-clean-reading-remains-eligible-after-stale",
+          "pass": true
+        },
+        {
+          "name": "save-restore-continuation",
+          "pass": true
+        }
+      ]
+    }
+  },
+  "scenarios": {
+    "first": {
+      "pass": true,
+      "count": 6,
+      "markers": {
+        "checkpoint": true,
+        "same_as": true,
+        "resume": true
+      },
+      "meetsStructuralMinimum": true,
+      "report": {
+        "file": "first.scenarios.json",
+        "sources": [
+          "first.cav"
+        ],
+        "scenarios": [
+          {
+            "id": "T01",
+            "title": "Observation is neutral and does not assess; 70 supports",
+            "pass": true,
+            "events": 2,
+            "rejected": 0,
+            "resumes": 0
+          },
+          {
+            "id": "T02",
+            "title": "Authored refusal and input refusal preserve the session",
+            "pass": true,
+            "events": 6,
+            "rejected": 5,
+            "resumes": 0
+          },
+          {
+            "id": "T03",
+            "title": "Correction preserves archive and frozen grounds, then revision",
+            "pass": true,
+            "events": 7,
+            "rejected": 2,
+            "resumes": 1
+          },
+          {
+            "id": "T04",
+            "title": "Duplicate assess refused; equal and supporting readings reopen",
+            "pass": true,
+            "events": 7,
+            "rejected": 1,
+            "resumes": 0
+          },
+          {
+            "id": "T05",
+            "title": "Late qualification does not reopen or mutate earlier records; future stale refused",
+            "pass": true,
+            "events": 6,
+            "rejected": 2,
+            "resumes": 1
+          },
+          {
+            "id": "T06",
+            "title": "Earlier clean reading eligible after learning stale, across restore",
+            "pass": true,
+            "events": 7,
+            "rejected": 2,
+            "resumes": 2
+          }
+        ],
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    "tracker": {
+      "pass": true,
+      "count": 8,
+      "markers": {
+        "checkpoint": true,
+        "same_as": true,
+        "resume": true
+      },
+      "meetsStructuralMinimum": true,
+      "report": {
+        "file": "tracker.scenarios.json",
+        "sources": [
+          "tracker.cav"
+        ],
+        "scenarios": [
+          {
+            "id": "T01",
+            "title": "Observation is neutral and does not assess; 70 supports",
+            "pass": true,
+            "events": 2,
+            "rejected": 0,
+            "resumes": 0
+          },
+          {
+            "id": "T02",
+            "title": "Authored refusal and input refusal preserve the session",
+            "pass": true,
+            "events": 6,
+            "rejected": 5,
+            "resumes": 0
+          },
+          {
+            "id": "T03",
+            "title": "Correction preserves archive and frozen grounds, then revision",
+            "pass": true,
+            "events": 7,
+            "rejected": 2,
+            "resumes": 1
+          },
+          {
+            "id": "T04",
+            "title": "Duplicate assess refused; equal and supporting readings reopen",
+            "pass": true,
+            "events": 7,
+            "rejected": 1,
+            "resumes": 0
+          },
+          {
+            "id": "T05",
+            "title": "Late qualification does not reopen or mutate earlier records; future stale refused",
+            "pass": true,
+            "events": 6,
+            "rejected": 2,
+            "resumes": 1
+          },
+          {
+            "id": "T06",
+            "title": "Earlier clean reading eligible after learning stale, across restore",
+            "pass": true,
+            "events": 7,
+            "rejected": 2,
+            "resumes": 2
+          },
+          {
+            "id": "T07",
+            "title": "Reading limit rolls back neutral observation and leaves full history unchanged",
+            "pass": true,
+            "events": 18,
+            "rejected": 1,
+            "resumes": 1
+          },
+          {
+            "id": "T08",
+            "title": "Decision limit refuses atomically after every-reading reopening",
+            "pass": true,
+            "events": 18,
+            "rejected": 1,
+            "resumes": 1
+          }
+        ],
+        "passed": 8,
+        "failed": 0
+      }
+    }
+  },
+  "host": {
+    "pass": true,
+    "cases": [
+      {
+        "name": "primary-1-score-85",
+        "pass": true,
+        "score": 85,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      },
+      {
+        "name": "primary-2-score-101",
+        "pass": true,
+        "score": 101,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 101
+            },
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "primary-3-score-92",
+        "pass": true,
+        "score": 92,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 92
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "primary-4-score-40",
+        "pass": true,
+        "score": 40,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 40
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "primary-5-score-85",
+        "pass": true,
+        "score": 85,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      },
+      {
+        "name": "secondary-1-score-101",
+        "pass": true,
+        "score": 101,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 101
+            },
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "secondary-2-score-73",
+        "pass": true,
+        "score": 73,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 73
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      },
+      {
+        "name": "secondary-3-score-99",
+        "pass": true,
+        "score": 99,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 99
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "secondary-4-score-30",
+        "pass": true,
+        "score": 30,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 30
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "secondary-5-score-80",
+        "pass": true,
+        "score": 80,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 80
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      }
+    ]
+  },
+  "automated": {
+    "programSemanticsScore": 2,
+    "finalObjectivesPass": true
+  },
+  "manual": {
+    "discovery": null,
+    "meaningfulScenarios": null,
+    "diagnosis": null,
+    "exactExplanation": null,
+    "hostAttempts": null,
+    "honestMissingCapability": null,
+    "preservedFirstArtifacts": null,
+    "total": null
+  },
+  "limitations": [
+    "Manual scores require cited review; proxies do not award points.",
+    "First-artifact ordering requires the external CLI transcript.",
+    "The scorer executes submitted JavaScript in the evaluator environment; it is not a security sandbox."
+  ]
+}

@@ -1,0 +1,6 @@
+{"score":85,"ok":true,"operations":[{"event":"observe","outcome":"accepted"},{"event":"assess","outcome":"accepted"}],"verdict":"approved","current":"assessment@1"}
+{"score":101,"ok":false,"operations":[{"event":"observe","outcome":"rejected","origin":"input","code":"bound_exceeded","message":"confidence must be finite and in 0..100"}],"verdict":"approved","current":"assessment@1"}
+{"score":92,"ok":false,"operations":[{"event":"observe","outcome":"accepted"},{"event":"assess","outcome":"rejected","origin":"policy","code":"reject","message":"Already assessed."}],"verdict":"approved","current":"assessment@1"}
+{"score":40,"ok":false,"operations":[{"event":"observe","outcome":"accepted"},{"event":"assess","outcome":"rejected","origin":"policy","code":"reject","message":"The evidence does not support the answer."}],"verdict":"reopened","current":"assessment@1"}
+{"score":85,"ok":true,"operations":[{"event":"observe","outcome":"accepted"},{"event":"assess","outcome":"accepted"}],"verdict":"approved","current":"assessment@2"}
+PASS starter sequence, eight boundary scores, neutral tracker evidence, corrected diagnostic value and citation

@@ -1,0 +1,1 @@
+Wrote diagnosis.md and RESULTS.md; first hashes 6638c00116ea0eaa40ac2ac0e2f9da605c49c29bca080af2a293f71eefbf8501 e17026b21ab321cc4f13c17af71b9b118edef5482969425eabafefefb736fd81

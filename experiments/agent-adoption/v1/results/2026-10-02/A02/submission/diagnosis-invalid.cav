@@ -1,0 +1,3 @@
+claim ready;
+event consult;
+bind result.value = 1 because ready;

@@ -1,7 +1,10 @@
 # CAVEAT Language (`caveat-lang`)
 
-A bundled WebAssembly runtime, session library and scenario runner for reactive
-Caveat programs in Node and browsers. Requires Node 20 or later for the CLI.
+When evidence changes, reconsider the decision while keeping its original
+reasons. CAVEAT Language carries evidence and caveats through computed values
+and records every decision revision. This package includes the WebAssembly
+runtime, Node/browser library and CLI; no Rust installation is needed.
+Requires Node 20 or later for the CLI.
 
 The release candidate is **`caveat-lang@0.1.0-rc.6`**, with the command
 `caveat`. It is published on npm under `next`, with the same tested tarball
@@ -10,12 +13,17 @@ It is a preview, not a stable release, and needs no Rust. Install it from npm:
 
 ```sh
 npm init -y
-npm install caveat-lang@next
+npm install caveat-lang@0.1.0-rc.6
 npx --no-install caveat init
 npx --no-install caveat test umbrella.scenarios.json
+npx --no-install caveat explain umbrella.cav events.jsonl
 ```
 
-To pin this exact candidate, install `caveat-lang@0.1.0-rc.6`. To use a
+The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
+`sky`, still based on `rain_chance@1` with its `forecast_is_old` caveat. Follow
+[the agent quickstart](docs/AGENT_START.md) to adapt this into an integration.
+
+The command above pins this exact candidate. To use a
 verified tarball you were given, pass its path or URL to `npm install` instead.
 
 npm's `next` tag points to rc.6; `latest` remains on rc.5 and does not mean
@@ -29,6 +37,8 @@ With a verified rc.7 tarball installed, prefer:
 
 ```sh
 npx --no-install caveat-lang --version
+npx --no-install caveat-lang doctor
+npx --no-install caveat-lang demo agent
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 ```
@@ -53,6 +63,37 @@ missing, please
 for the project owner to evaluate. Check existing issues and include the exact
 version, a small reproduction, and expected versus actual behavior. Share only
 sanitized examples and output.
+
+## Check the installation and see an agent decision
+
+With an installed **rc.7 tarball** (these commands are not in published rc.6):
+
+```sh
+npx --no-install caveat-lang doctor
+npx --no-install caveat-lang demo agent
+```
+
+`doctor --json` reports the same checks as text: Node support, package identity,
+measured runtime hashes, local build metadata, a synthetic observation and
+save/restore test, and executable ownership on PATH. Build metadata is reported,
+not authenticated. Shell aliases, functions and cached shell lookups are outside
+that inspection. A missing PATH command or a competing `caveat` produces a
+warning; use `caveat-lang`. Failed checks exit 1. `--runtime DIRECTORY` selects
+a trusted runtime directory, as with the other commands.
+
+`demo agent --json` returns each real snapshot and explanation from the shipped
+[assessment program](examples/agent-evidence/assessment.cav). Illustrative inputs
+85 and 92 produce two revisions: a correction withdraws the first observation
+and reopens its assessment, and the replacement assessment uses the new reading.
+The earlier grounds remain recorded. The demo writes no files and does not
+measure a model's confidence or authorize an external action.
+
+## Use authoring tools from an MCP host
+
+An installed rc.7 tarball can run `caveat-lang mcp` for the five existing
+authoring operations. It takes inline source and uses a fresh subprocess for
+each call. See [MCP setup and limits](docs/MCP.md), including its explicit
+2025-11-25 stdio compatibility profile. Published rc.6 does not include it.
 
 ## Run scenario files
 
@@ -341,7 +382,7 @@ library imported as `caveat-lang/node`, `caveat-lang/session`,
 `caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
 the browser check above. It also copies the agent-evidence example out of the
 install and runs its Python tests against the installed command. The tarball
-holds the command, the six library files and their declarations, `init`'s
+holds the command, the public library files, bounded authoring bridge and their declarations, `init`'s
 templates, the example, the runtime and its declarations, the documentation,
 the license and the notices, and nothing else. In the documents copied from
 the repository, links that leave the package point to GitHub at the build's
@@ -355,7 +396,10 @@ CI already runs this packaging test against the runtime built by its Linux
 core job. It retains the exact tested `.tgz`, the test report with its SHA-256,
 `build-info.json` and `SHA256SUMS` together as an artifact. A local Windows run
 checks packaging locally; the release candidate must use the tested Linux
-artifact from the intended release commit. A release publishes that one tested
+artifact from the intended release commit. Before publication, the
+[packed dependency security gate](docs/reference/docs/PACKAGE_SECURITY.md) must
+pass against that exact tarball and retain its npm/Rust advisory receipts.
+A release publishes that one tested
 tarball twice, unchanged: attached to the GitHub pre-release, and to npm under
 the `next` tag (`npm publish <tarball> --tag next`). No second build is made
 for the registry. See the

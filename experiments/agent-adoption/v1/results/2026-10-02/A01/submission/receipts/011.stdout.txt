@@ -1,0 +1,7 @@
+PASS T01  Observation is neutral and does not assess; 70 supports  (2 events, 0 rejected, 0 resumes)
+PASS T02  Authored refusal and input refusal preserve the session  (6 events, 5 rejected, 0 resumes)
+PASS T03  Correction preserves archive and frozen grounds, then revision  (7 events, 2 rejected, 1 resumes)
+PASS T04  Duplicate assess refused; equal and supporting readings reopen  (7 events, 1 rejected, 0 resumes)
+PASS T05  Late qualification does not reopen or mutate earlier records; future stale refused  (6 events, 2 rejected, 1 resumes)
+PASS T06  Earlier clean reading eligible after learning stale, across restore  (7 events, 2 rejected, 2 resumes)
+6 passed, 0 failed (tracker.scenarios.json)

@@ -91,6 +91,10 @@ jobs:
         run: npm run test:trail-rescue
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
+      - name: Adoption scorer mutation controls (no trial agents)
+        run: node --test experiments/agent-adoption/v1/checks.test.mjs
+      - name: Adoption runner capture failure controls (no trial agents)
+        run: python3 -B experiments/agent-adoption/v1/runner-capture.test.py
       - name: Converted Trail Rescue and Glowcap scenarios
         run: npm run test:scenario-conversion
       - name: CLI and CAVEAT Map playthroughs
@@ -220,6 +224,46 @@ jobs:
             test-results/glowcap-page.png
             test-results/trail-rescue-*.png
 
+  kit-security:
+    name: packed kit dependency security
+    needs: glowcap-page
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v8
+        with:
+          name: kit-package-candidate
+          path: test-results/security-candidate
+      - uses: actions/download-artifact@v8
+        with:
+          name: browser-dist
+          path: dist
+      - name: Install pinned Rust advisory checker locally
+        run: cargo install cargo-audit --version 0.22.2 --locked --root test-results/security-tools
+      - name: Fetch the current public RustSec advisory database
+        run: git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db
+      - name: Exercise security gate refusal controls
+        run: node --test scripts/audit-kit-security.test.mjs
+      - name: Audit the exact tested package and its build lockfile
+        shell: bash
+        run: |
+          mapfile -t reports < <(find test-results/security-candidate -name report.json -type f)
+          test "${#reports[@]}" -eq 1
+          node scripts/audit-kit-security.mjs --package-report "${reports[0]}" --audit-bin "$PWD/test-results/security-tools/bin/cargo-audit" --advisory-db "$PWD/test-results/security-tools/advisory-db"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: kit-security-receipts-${{ github.run_attempt }}
+          path: test-results/kit-security/
+          if-no-files-found: warn
+          retention-days: 90
+
   last-beacon:
     name: The Last Beacon browser QA
     needs: core
@@ -294,7 +338,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npm install --no-save --no-package-lock playwright@1.55.1
       - run: npx playwright install --with-deps webkit
       - name: Play The Missing Dumpling
         run: |
@@ -403,7 +447,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npm install --no-save --no-package-lock playwright@1.55.1
       - run: npx playwright install --with-deps webkit
       - name: iPhone playthrough
         run: |
@@ -458,7 +502,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npm install --no-save --no-package-lock playwright@1.55.1
       - run: npx playwright install --with-deps webkit
       - name: iPhone playthrough
         run: |
@@ -520,7 +564,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: npm install --no-save --no-package-lock playwright@1.55.0
+      - run: npm install --no-save --no-package-lock playwright@1.55.1
       - run: npx playwright install --with-deps webkit
       - name: Every legacy Door route
         run: |

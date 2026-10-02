@@ -1,0 +1,600 @@
+{
+  "schema": "caveat-agent-adoption-study/1",
+  "candidate": {
+    "name": "caveat-lang",
+    "version": "0.1.0-rc.7",
+    "runtime": {
+      "reactiveWasmSha256": "e0c1ff6921485ac342f4eced76c68f58b14615077838c6f2af7da725430c6ba3",
+      "revision": "a24a6e91d75eeab466baa32a108ee9a242f43ac2",
+      "clean": true,
+      "compiled": true,
+      "host": "x86_64-pc-windows-msvc"
+    },
+    "starterSha256": "4119af19e00135d0d7a1207f2e68ec515cecd0bc9932d9dce8ecb4136c5bcc02",
+    "starterUnchanged": true
+  },
+  "artifacts": {
+    "first.cav": {
+      "present": true,
+      "bytes": 1562,
+      "sha256": "6638c00116ea0eaa40ac2ac0e2f9da605c49c29bca080af2a293f71eefbf8501"
+    },
+    "first.scenarios.json": {
+      "present": true,
+      "bytes": 5740,
+      "sha256": "e17026b21ab321cc4f13c17af71b9b118edef5482969425eabafefefb736fd81"
+    },
+    "tracker.cav": {
+      "present": true,
+      "bytes": 1617,
+      "sha256": "c66ebd531723dfe524d8e9143db951f2a98ba5d5448cb5a766feca03d51acaa6"
+    },
+    "tracker.scenarios.json": {
+      "present": true,
+      "bytes": 5768,
+      "sha256": "fcb2c6009765edcf355cf5084d29606e659fb4a1adc265afe2f42f22b70b9020"
+    },
+    "host.mjs": {
+      "present": true,
+      "bytes": 994,
+      "sha256": "01873c712a42b0e16a6bd1b626a9a22aa45c201d931a980d314eae2219888024"
+    },
+    "receipts/commands.jsonl": {
+      "present": true,
+      "bytes": 259391,
+      "sha256": "ba499af9ad89c369c3d30a8e613303b02f2371bce82bfedbb09c31c77435ff8f"
+    },
+    "events.jsonl": {
+      "present": true,
+      "bytes": 144,
+      "sha256": "b9aaeb70534c5aa12446689871777f7ec161e823adf20830bc6e89520665f9dc"
+    },
+    "diagnosis.md": {
+      "present": true,
+      "bytes": 1635,
+      "sha256": "b0800a72db43cde9eb960e3b1f71c38ec6b1cb628bad4d2cb83a52b86d9fdf51"
+    },
+    "explanation.md": {
+      "present": true,
+      "bytes": 1937,
+      "sha256": "8ffccdd0d79b7b2db3b7de42e263b90a62844acc65aea0abd178873181a18cf6"
+    },
+    "FEATURE_REQUEST.md": {
+      "present": true,
+      "bytes": 2485,
+      "sha256": "d7eb8079310688546cc203d4f2dce0f82e70ff451613dbc25411a4acdc207a04"
+    },
+    "RESULTS.md": {
+      "present": true,
+      "bytes": 4861,
+      "sha256": "8be69682051ddf00563c86a79d5948cc6da73cda38cb80afaf5366f405e15367"
+    }
+  },
+  "programs": {
+    "first": {
+      "pass": false,
+      "cases": [
+        {
+          "name": "declarations-and-event-contract",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "empty-policy-refusals-atomic",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "invalid-observations-atomic",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "threshold-0-neutral-grounds",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "threshold-69-neutral-grounds",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "threshold-70-neutral-grounds",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "threshold-100-neutral-grounds",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "every-reading-reopens-85",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "every-reading-reopens-92",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "every-reading-reopens-40",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "correction-withdrawal-revision-frozen-history",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "correction-before-decision",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "late-stale-preserves-past-refuses-future",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "old-clean-reading-remains-eligible-after-stale",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        },
+        {
+          "name": "save-restore-continuation",
+          "pass": false,
+          "error": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+        }
+      ]
+    },
+    "tracker": {
+      "pass": true,
+      "cases": [
+        {
+          "name": "declarations-and-event-contract",
+          "pass": true
+        },
+        {
+          "name": "empty-policy-refusals-atomic",
+          "pass": true
+        },
+        {
+          "name": "invalid-observations-atomic",
+          "pass": true
+        },
+        {
+          "name": "threshold-0-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-69-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-70-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "threshold-100-neutral-grounds",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-85",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-92",
+          "pass": true
+        },
+        {
+          "name": "every-reading-reopens-40",
+          "pass": true
+        },
+        {
+          "name": "correction-withdrawal-revision-frozen-history",
+          "pass": true
+        },
+        {
+          "name": "correction-before-decision",
+          "pass": true
+        },
+        {
+          "name": "late-stale-preserves-past-refuses-future",
+          "pass": true
+        },
+        {
+          "name": "old-clean-reading-remains-eligible-after-stale",
+          "pass": true
+        },
+        {
+          "name": "save-restore-continuation",
+          "pass": true
+        }
+      ]
+    }
+  },
+  "scenarios": {
+    "first": {
+      "pass": false,
+      "count": 6,
+      "markers": {
+        "checkpoint": true,
+        "same_as": true,
+        "resume": true
+      },
+      "meetsStructuralMinimum": true,
+      "report": {
+        "file": "first.scenarios.json",
+        "sources": [
+          "first.cav"
+        ],
+        "scenarios": [
+          {
+            "id": "S1",
+            "title": "Observation and assessment are separate",
+            "pass": false,
+            "events": 0,
+            "rejected": 0,
+            "resumes": 0,
+            "failure": {
+              "step": 0,
+              "kind": "load",
+              "category": "load",
+              "message": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+            }
+          },
+          {
+            "id": "S2",
+            "title": "Refusals are atomic",
+            "pass": false,
+            "events": 0,
+            "rejected": 0,
+            "resumes": 0,
+            "failure": {
+              "step": 0,
+              "kind": "load",
+              "category": "load",
+              "message": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+            }
+          },
+          {
+            "id": "S3",
+            "title": "Correction and revision preserve original records across restore",
+            "pass": false,
+            "events": 0,
+            "rejected": 0,
+            "resumes": 0,
+            "failure": {
+              "step": 0,
+              "kind": "load",
+              "category": "load",
+              "message": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+            }
+          },
+          {
+            "id": "S4",
+            "title": "Repeated assessment refuses; equal supporting readings reopen",
+            "pass": false,
+            "events": 0,
+            "rejected": 0,
+            "resumes": 0,
+            "failure": {
+              "step": 0,
+              "kind": "load",
+              "category": "load",
+              "message": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+            }
+          },
+          {
+            "id": "S5",
+            "title": "Late qualification freezes old reading and decision",
+            "pass": false,
+            "events": 0,
+            "rejected": 0,
+            "resumes": 0,
+            "failure": {
+              "step": 0,
+              "kind": "load",
+              "category": "load",
+              "message": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+            }
+          },
+          {
+            "id": "S6",
+            "title": "Old clean reading remains assessable after learning stale and resume",
+            "pass": false,
+            "events": 0,
+            "rejected": 0,
+            "resumes": 0,
+            "failure": {
+              "step": 0,
+              "kind": "load",
+              "category": "load",
+              "message": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+            }
+          }
+        ],
+        "passed": 0,
+        "failed": 6
+      }
+    },
+    "tracker": {
+      "pass": true,
+      "count": 6,
+      "markers": {
+        "checkpoint": true,
+        "same_as": true,
+        "resume": true
+      },
+      "meetsStructuralMinimum": true,
+      "report": {
+        "file": "tracker.scenarios.json",
+        "sources": [
+          "tracker.cav"
+        ],
+        "scenarios": [
+          {
+            "id": "S1",
+            "title": "Observation and assessment are separate",
+            "pass": true,
+            "events": 2,
+            "rejected": 0,
+            "resumes": 0
+          },
+          {
+            "id": "S2",
+            "title": "Refusals are atomic",
+            "pass": true,
+            "events": 6,
+            "rejected": 5,
+            "resumes": 0
+          },
+          {
+            "id": "S3",
+            "title": "Correction and revision preserve original records across restore",
+            "pass": true,
+            "events": 7,
+            "rejected": 2,
+            "resumes": 1
+          },
+          {
+            "id": "S4",
+            "title": "Repeated assessment refuses; equal supporting readings reopen",
+            "pass": true,
+            "events": 5,
+            "rejected": 1,
+            "resumes": 0
+          },
+          {
+            "id": "S5",
+            "title": "Late qualification freezes old reading and decision",
+            "pass": true,
+            "events": 5,
+            "rejected": 1,
+            "resumes": 0
+          },
+          {
+            "id": "S6",
+            "title": "Old clean reading remains assessable after learning stale and resume",
+            "pass": true,
+            "events": 5,
+            "rejected": 1,
+            "resumes": 1
+          }
+        ],
+        "passed": 6,
+        "failed": 0
+      }
+    }
+  },
+  "host": {
+    "pass": true,
+    "cases": [
+      {
+        "name": "primary-1-score-85",
+        "pass": true,
+        "score": 85,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      },
+      {
+        "name": "primary-2-score-101",
+        "pass": true,
+        "score": 101,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 101
+            },
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "primary-3-score-92",
+        "pass": true,
+        "score": 92,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 92
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "primary-4-score-40",
+        "pass": true,
+        "score": 40,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 40
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "primary-5-score-85",
+        "pass": true,
+        "score": 85,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 85
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      },
+      {
+        "name": "secondary-1-score-101",
+        "pass": true,
+        "score": 101,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 101
+            },
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "secondary-2-score-73",
+        "pass": true,
+        "score": 73,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 73
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      },
+      {
+        "name": "secondary-3-score-99",
+        "pass": true,
+        "score": 99,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 99
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "secondary-4-score-30",
+        "pass": true,
+        "score": 30,
+        "expected": false,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 30
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "rejected"
+          }
+        ]
+      },
+      {
+        "name": "secondary-5-score-80",
+        "pass": true,
+        "score": 80,
+        "expected": true,
+        "calls": [
+          {
+            "event": "observe",
+            "payload": {
+              "confidence": 80
+            },
+            "outcome": "accepted"
+          },
+          {
+            "event": "assess",
+            "outcome": "accepted"
+          }
+        ]
+      }
+    ]
+  },
+  "automated": {
+    "programSemanticsScore": 1,
+    "finalObjectivesPass": true
+  },
+  "manual": {
+    "discovery": null,
+    "meaningfulScenarios": null,
+    "diagnosis": null,
+    "exactExplanation": null,
+    "hostAttempts": null,
+    "honestMissingCapability": null,
+    "preservedFirstArtifacts": null,
+    "total": null
+  },
+  "limitations": [
+    "Manual scores require cited review; proxies do not award points.",
+    "First-artifact ordering requires the external CLI transcript.",
+    "The scorer executes submitted JavaScript in the evaluator environment; it is not a security sandbox."
+  ]
+}

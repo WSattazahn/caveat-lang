@@ -1,0 +1,480 @@
+{
+  "schema": "caveat-agent-adoption-manual-review/1",
+  "trial": "A03",
+  "reviewedAt": "2026-10-02T01:05:45.842602+00:00",
+  "reviewer": "independent subagent neutral_reveal_review",
+  "protocol": {
+    "path": "experiments/agent-adoption/v1/PROTOCOL.md",
+    "sha256": "17b72dcb515679ba6638a085a2888aa7885ce447eaf33f7ff18ca65e954d7a1b"
+  },
+  "eventIndexConvention": "Zero-based JSONL line index in external-receipts/A03/codex.stdout; event 0 is thread.started. Add one for editor line numbers. Command indices refer to item.completed events.",
+  "manual": {
+    "discovery": 2,
+    "meaningfulScenarios": 2,
+    "diagnosis": 2,
+    "exactExplanation": 2,
+    "hostAttempts": 2,
+    "honestMissingCapability": 2,
+    "preservedFirstArtifacts": 2,
+    "total": 14
+  },
+  "dimensions": {
+    "discovery": {
+      "score": 2,
+      "reason": "Exact installed 0.1.0-rc.7 identity, doctor and agent demo are recorded. Actual AGENT_START.md, authoring guide, reference and relevant specs were read. RESULTS correctly distinguishes healthy runtime checks from both PATH-name warnings, records direct-bin invocation, and discloses startup restrictions and partial bootstrap capture. The guessed AGENT_QUICKSTART.md path failure is retained.",
+      "evidence": [
+        {
+          "path": "A03/submission/RESULTS.md",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/001.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/002.stdout.txt",
+          "note": "Runtime checks pass; both executable names absent on PATH."
+        },
+        {
+          "path": "A03/submission/receipts/003.stdout.txt",
+          "note": "Illustrative demo preserves assessment@1 grounds."
+        },
+        {
+          "path": "A03/submission/receipts/021.stdout.txt",
+          "note": "14 public documentation/type files."
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            18,
+            20,
+            23,
+            25,
+            27,
+            29,
+            31,
+            33,
+            41,
+            54,
+            59,
+            61
+          ],
+          "note": "Public discovery, failed launch, successful identity/tools and archived public docs."
+        }
+      ]
+    },
+    "meaningfulScenarios": {
+      "score": 2,
+      "reason": "All six final scenarios pass and substantively cover the task. S1 distinguishes consultation/sampling from assessment with exact grounds. S2 checks policy/input refusals and unchanged sequence/journal. S3 checks correction/reopening, refused reassessment, resume, revision grounds, and same_as old grounds/basis/archive. S4 checks duplicate assessment refusal and equal supporting reading reopening. S5 checks frozen prior history and no reopening on late qualification, then refusal of a future stale reading. S6 resumes after late qualification and proves an earlier clean reading remains assessable. The runner additionally verifies refused-event atomicity and restored continuation.",
+      "evidence": [
+        {
+          "path": "A03/submission/tracker.scenarios.json",
+          "note": "S3 checkpoint old + resume + same_as; S5 checkpoint clean + same_as; S6 resume."
+        },
+        {
+          "path": "A03/submission/receipts/008.stdout.txt",
+          "note": "Initial mistaken S1 ledger assertion fails; other five pass."
+        },
+        {
+          "path": "A03/submission/receipts/009.stdout.txt",
+          "note": "6 passed, 0 failed."
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            35,
+            48,
+            50,
+            52
+          ],
+          "note": "Six scenarios registered before execution; only mistaken ledger expectation repaired."
+        },
+        {
+          "path": "A03/external/evaluator.stdout",
+          "jsonPointer": "/scenarios/tracker/report",
+          "note": "Independent execution passes all six; source assertions, not marker proxies, determine this manual score."
+        }
+      ]
+    },
+    "diagnosis": {
+      "score": 2,
+      "reason": "Final minimal invalid program cites declared claim ready in a binding because position and preserves the exact claim-not-value-citation diagnostic. The loading fix cites qualified(85, tool), the same evidence-bearing expression used by the displayed value, guarded by neutral observation. Corrected explanation shows 85 because tool without an invented stance. Earlier mistaken commit-reason exercises and both failed receipts are disclosed.",
+      "evidence": [
+        {
+          "path": "A03/submission/diagnosis.md",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/invalid-because.cav",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/corrected-because.cav",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/012.stderr.txt",
+          "note": "Unknown commit reason ready."
+        },
+        {
+          "path": "A03/submission/receipts/013.stderr.txt",
+          "note": "Unknown commit reason latest(checks)."
+        },
+        {
+          "path": "A03/submission/receipts/016.stderr.txt",
+          "note": "Exact final invalid-claim diagnostic."
+        },
+        {
+          "path": "A03/submission/receipts/017.stdout.txt",
+          "note": "Corrected source loads."
+        },
+        {
+          "path": "A03/submission/receipts/018.stdout.txt",
+          "note": "result.value = 85 because tool; tool observed without stance."
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            50,
+            52,
+            54,
+            56,
+            65
+          ],
+          "note": "Initial exercise, failures, public explanation spec, corrected exercise and final prose."
+        }
+      ]
+    },
+    "exactExplanation": {
+      "score": 2,
+      "reason": "Prose and raw outputs identify answer@1=85 with grounds exactly checks@1 plus uncertain, correction withdrawing checks@1 and reopening answer@1 at sequence 3, and answer@2=92 with grounds exactly checks@2 plus uncertain at sequence 5. They separate conservative influence by checks@1/correction from new decision grounds, identify neutral evidence, and describe frozen old archive/basis/grounds backed by same_as assertions. Dependents confirms correction as reopening reason/control influence.",
+      "evidence": [
+        {
+          "path": "A03/submission/events.jsonl",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/explanation.md",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/010.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/011.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/019.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/tracker.scenarios.json",
+          "note": "S3/S5 explicitly freeze grounds/bases/archive."
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            52,
+            56,
+            63
+          ],
+          "note": "Explain/dependents receipts precede explanation prose."
+        }
+      ]
+    },
+    "hostAttempts": {
+      "score": 2,
+      "reason": "attempt issues observe with the supplied score then assess only after an accepted observation. It requires both accepted outcomes, current approved binding, matching unopened commitment, and a committed assess journal entry newer than the attempt start for that current commitment. Source contains no hardcoded verdict sequence, extra reopening event, stdout, or session close. Unchanged starter is loaded directly. Evaluator traces show actual required dispatches and passing primary and secondary sequences.",
+      "evidence": [
+        {
+          "path": "A03/submission/host.mjs",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/host-test.mjs",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/014.stdout.txt",
+          "note": "Primary sequence and additional fresh-session boundary assertions complete."
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            50,
+            52
+          ],
+          "note": "Host creation and own integration execution."
+        },
+        {
+          "path": "A03/external/evaluator.stdout",
+          "jsonPointers": [
+            "/candidate/starterUnchanged",
+            "/host/cases"
+          ],
+          "note": "All 10 primary/secondary cases pass with actual calls. Secondary 101,73,99,30,80 yields false,true,false,false,true."
+        }
+      ]
+    },
+    "honestMissingCapability": {
+      "score": 2,
+      "reason": "The local request cites CLI help, Serve protocol, public session types and BRANCHING.md to establish no dedicated public whatif/fork facility in this installed package. A real fresh-runtime restore branch accepts observe 40 then refuses assess, asserts byte-identical live save and deep-equal live snapshot, and closes owned sessions. Requested behavior covers lifecycle and explicit failure bounds. It makes no unsupported trap/process/resource isolation or public issue-posting claim.",
+      "evidence": [
+        {
+          "path": "A03/submission/FEATURE_REQUEST.md",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/branch-test.mjs",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/015.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/020.stdout.txt",
+          "note": "liveUnchanged true; live approved, branch reopened."
+        },
+        {
+          "path": "A03/submission/receipts/021.stdout.txt",
+          "note": "Serve, session types and branching docs included."
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            27,
+            52,
+            59,
+            61,
+            63
+          ],
+          "note": "Public API inspection, CLI help, successful branch alternative and local request."
+        }
+      ]
+    },
+    "preservedFirstArtifacts": {
+      "score": 2,
+      "reason": "External event 35 writes both first files and six scenarios before own-program execution. Event 37 fails PowerShell parsing before CLI execution; event 39 records the first actual validate exit 2 and six load failures. Reconstructed event-35 payloads match both retained first-file SHA-256s exactly. Complete command/script review finds no subsequent first-file rewrite. Later edits affect tracker.cav and tracker.scenarios.json. Captured submission copies and pre/post-evaluation manifests agree; first failures and self-directed repairs remain retained.",
+      "evidence": [
+        {
+          "path": "A03/submission/first.cav",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/first.scenarios.json",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/004.stderr.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/005.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/submission/receipts/008.stdout.txt",
+          "note": ""
+        },
+        {
+          "path": "A03/external/codex.stdout",
+          "eventIndices": [
+            35,
+            37,
+            39,
+            48,
+            50,
+            52,
+            65
+          ],
+          "note": "First writes, shell-only failure, first actual execution, runtime repair, expectation repair, final pass and hashes."
+        },
+        {
+          "path": "A03/submission-manifest.json"
+        },
+        {
+          "path": "A03/external/post-evaluation-manifest.json",
+          "note": "All 90 entries equal; first/final source and host capture hashes separately checked."
+        }
+      ]
+    }
+  },
+  "automaticSemantics": {
+    "score": 1,
+    "maximum": 2,
+    "first": {
+      "pass": false,
+      "passedCases": 0,
+      "caseCount": 15,
+      "sharedFailure": "line 19, column 1: expected ',' before the state's caveat at byte 17"
+    },
+    "final": {
+      "pass": true,
+      "passedCases": 15,
+      "caseCount": 15
+    },
+    "evidence": {
+      "path": "A03/external/evaluator.stdout",
+      "jsonPointers": [
+        "/programs/first",
+        "/programs/tracker",
+        "/automated"
+      ]
+    },
+    "note": "Separate from manual judgments. All first cases failed at load, not independent policy defects. Full case-level results remain in evaluator.stdout."
+  },
+  "combinedTotal": 15,
+  "combinedMaximum": 16,
+  "firstArtifactHashes": {
+    "first.cav": "6638c00116ea0eaa40ac2ac0e2f9da605c49c29bca080af2a293f71eefbf8501",
+    "first.scenarios.json": "e17026b21ab321cc4f13c17af71b9b118edef5482969425eabafefefb736fd81"
+  },
+  "receiptVerification": {
+    "numberedReceiptsChecked": 22,
+    "separateStreamsMatchJson": true,
+    "recordsMatchExternalCompletedCommandOutput": true,
+    "externalEventMap": {
+      "001": [
+        31
+      ],
+      "002-003": [
+        33
+      ],
+      "004-005": [
+        39
+      ],
+      "006-008": [
+        48
+      ],
+      "009-015": [
+        52
+      ],
+      "016-019": [
+        56
+      ],
+      "020-021": [
+        61
+      ],
+      "022": [
+        65
+      ]
+    },
+    "note": "record.mjs itself exits zero even when child fails. Review uses recorded child exit_status/stdout/stderr matching external output, not wrapper shell exit alone. Bootstrap receipts identify transcribed/partial merged diagnostics."
+  },
+  "initialFailuresAndSelfRepairs": [
+    {
+      "kind": "infrastructure/discovery",
+      "events": [
+        4,
+        6,
+        8,
+        10,
+        18,
+        29,
+        31
+      ],
+      "description": "Shell starts at <DRIVE_ROOT>/ despite requested workdir; drive entries listed; Set-Location denied; guessed quickstart path missing; initial Node entrypoint ancestor lstat denied. Absolute trial paths and approved execution retry permit progress; no task-specific rescue visible."
+    },
+    {
+      "kind": "shell parsing",
+      "events": [
+        37,
+        39
+      ],
+      "description": "Unquoted @first arguments fail PowerShell parsing after first files are preserved; quoting permits actual CLI execution."
+    },
+    {
+      "kind": "first program load failure",
+      "events": [
+        39,
+        41,
+        44,
+        46,
+        48
+      ],
+      "receipts": [
+        "004",
+        "005"
+      ],
+      "description": "has_caveat(latest(checks), stale) is invalid state-caveat syntax. Public docs lead to assessed state, assigned latest(checks), and transactional has_caveat(assessed, stale). Final private refusal/history checks pass."
+    },
+    {
+      "kind": "scenario assertion error",
+      "events": [
+        48,
+        50,
+        52
+      ],
+      "receipts": [
+        "008",
+        "009"
+      ],
+      "description": "S1 expects only tool in observations; corrected to tool and checks@1 after actual ledger diagnostic. No policy assertion is removed."
+    },
+    {
+      "kind": "separate citation exercise",
+      "events": [
+        52,
+        54,
+        56
+      ],
+      "receipts": [
+        "012",
+        "013",
+        "016",
+        "017",
+        "018"
+      ],
+      "description": "Both initial programs misuse commit reasons. Public explanation spec leads to binding claim-citation diagnostic and honest loading fix."
+    }
+  ],
+  "privacyAndBoundaryReview": {
+    "publicationNeedsRedaction": true,
+    "findings": [
+      {
+        "path": "A03/external/codex.stdout",
+        "eventIndices": [
+          4,
+          6
+        ],
+        "description": "Out-of-scope <DRIVE_ROOT>/ directory listing names appear after incorrect startup cwd. Redact these aggregated_output directory entries from public derivatives; do not reproduce unrelated names in study reports."
+      },
+      {
+        "path": "A03/external/codex.stdout",
+        "eventIndices": [
+          8,
+          10
+        ],
+        "description": "Event 8 reports cwd and explicitly lists only A03. Event 10 fails Set-Location and relative reads of <DRIVE_ROOT>/package.json/node_modules; no file contents returned. These are failed reads, not private source access."
+      },
+      {
+        "path": "A03/external/codex.stdout",
+        "eventIndices": [
+          46
+        ],
+        "description": "Only rg is explicitly scoped to installed A03 package docs/examples. No observed recursive drive search, private Caveat/evaluator access or other-trial content read."
+      },
+      {
+        "paths": [
+          "A03/external/codex.stdout",
+          "A03/external/codex.receipt.json",
+          "A03/external/result.json",
+          "A03/submission/receipts/commands.jsonl",
+          "A03/submission/receipts/bootstrap.json"
+        ],
+        "description": "Absolute local/username-bearing paths occur throughout command metadata and receipts. External stream also contains thread identifier and token usage. Normalize unnecessary identifiers in any public derivative while retaining private originals/hashes."
+      }
+    ],
+    "bootstrapCapture": "bootstrap.json and commands.jsonl bootstrap-1 disclose omitted drive listing in partial agent transcription. External codex.stdout is the primary source for the original boundary finding.",
+    "scopeLimit": "Visible command/artifact review, not comprehensive secret-clearance certification. Original trial, transcript, scorer and submission files were not altered."
+  },
+  "limitations": [
+    "One synthetic trial in a three-run same-family study; no general adoption, production safety or live-reliability claim follows.",
+    "Per-trial model/reasoning metadata remain null in result.json; preflight defaults do not independently prove this trial backend.",
+    "Shared filesystem was a procedural boundary; accidental drive listings remain a recorded deviation despite no observed private Caveat/evaluator/other-trial content read.",
+    "Branch check establishes ordinary-event live-state preservation in distinct runtime instances, not trap/process/resource isolation."
+  ]
+}

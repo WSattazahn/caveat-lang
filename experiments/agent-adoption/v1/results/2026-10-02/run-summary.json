@@ -1,0 +1,271 @@
+{
+  "finishedAt": "2026-10-02T00:55:54.236Z",
+  "interrupted": false,
+  "limitations": [
+    "No manual rubric scores awarded by this runner.",
+    "Fresh contexts share the host filesystem/caches; no filesystem secrecy or model-population claim."
+  ],
+  "manualScores": null,
+  "registrationSha256": "61c1377453452679d46199cade4d9d4f4129905522b76d0746ec7bb6087ef7e9",
+  "results": [
+    {
+      "automated": {
+        "finalObjectivesPass": true,
+        "programSemanticsScore": 2
+      },
+      "evaluator": {
+        "combinedOutputLimitBytes": 16777216,
+        "command": [
+          "<NODE>",
+          "<REPO>\\experiments\\agent-adoption\\v1\\verify.mjs",
+          "--submission",
+          "<TRIAL_A01>",
+          "--package",
+          "<PACKAGE_A01>"
+        ],
+        "cwd": "<TRIAL_A01>",
+        "elapsedSeconds": 0.411,
+        "exitCode": 0,
+        "finishedAt": "2026-10-02T00:55:53.310Z",
+        "observedOutputBytes": 14075,
+        "pid": "<LOCAL_IDENTIFIER>",
+        "retainedOutputBytes": 14075,
+        "startedAt": "2026-10-02T00:55:52.899Z",
+        "stderr": {
+          "bytes": 0,
+          "file": "evaluator.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 14075,
+          "file": "evaluator.stdout",
+          "sha256": "27754d3231e0bc1f36c0673a4d1f623310b0233cfb4a60f8878ce5cc61ffbd55"
+        },
+        "stopReason": null,
+        "timeoutSeconds": 120
+      },
+      "id": "A01",
+      "packageUnchangedByEvaluation": true,
+      "perTrialModelReported": null,
+      "perTrialReasoningReported": null,
+      "receiptDirectory": "<ARCHIVE>/A01/external",
+      "submissionUnchangedByEvaluation": true,
+      "trial": {
+        "combinedOutputLimitBytes": 33554432,
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+          "exec",
+          "--ephemeral",
+          "--ignore-user-config",
+          "--skip-git-repo-check",
+          "--approve-for-me",
+          "-c",
+          "windows.sandbox=\"elevated\"",
+          "-c",
+          "project_doc_max_bytes=0",
+          "-c",
+          "web_search=\"disabled\"",
+          "--json",
+          "-C",
+          "<TRIAL_A01>",
+          "-o",
+          "<TRIAL_A01>\\final-response.md",
+          "-"
+        ],
+        "cwd": "<TRIAL_A01>",
+        "elapsedSeconds": 479.758,
+        "exitCode": 0,
+        "finishedAt": "2026-10-02T00:55:48.621Z",
+        "observedOutputBytes": 455959,
+        "pid": "<LOCAL_IDENTIFIER>",
+        "retainedOutputBytes": 455959,
+        "startedAt": "2026-10-02T00:47:48.862Z",
+        "stderr": {
+          "bytes": 0,
+          "file": "codex.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 455959,
+          "file": "codex.stdout",
+          "sha256": "a8d6bb599ed52708b5b9490522cbe81b5c4c497d09e06d66e0d65fa05cbe2d02"
+        },
+        "stopReason": null,
+        "timeoutSeconds": 1200
+      }
+    },
+    {
+      "automated": {
+        "finalObjectivesPass": true,
+        "programSemanticsScore": 2
+      },
+      "evaluator": {
+        "combinedOutputLimitBytes": 16777216,
+        "command": [
+          "<NODE>",
+          "<REPO>\\experiments\\agent-adoption\\v1\\verify.mjs",
+          "--submission",
+          "<TRIAL_A02>",
+          "--package",
+          "<PACKAGE_A02>"
+        ],
+        "cwd": "<TRIAL_A02>",
+        "elapsedSeconds": 0.41,
+        "exitCode": 0,
+        "finishedAt": "2026-10-02T00:55:53.792Z",
+        "observedOutputBytes": 14553,
+        "pid": "<LOCAL_IDENTIFIER>",
+        "retainedOutputBytes": 14553,
+        "startedAt": "2026-10-02T00:55:53.382Z",
+        "stderr": {
+          "bytes": 0,
+          "file": "evaluator.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 14553,
+          "file": "evaluator.stdout",
+          "sha256": "fd791ccc823e2c6ea40da4712ee04b882ad402c645579d7b7125b42160dbd20f"
+        },
+        "stopReason": null,
+        "timeoutSeconds": 120
+      },
+      "id": "A02",
+      "packageUnchangedByEvaluation": true,
+      "perTrialModelReported": null,
+      "perTrialReasoningReported": null,
+      "receiptDirectory": "<ARCHIVE>/A02/external",
+      "submissionUnchangedByEvaluation": true,
+      "trial": {
+        "combinedOutputLimitBytes": 33554432,
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+          "exec",
+          "--ephemeral",
+          "--ignore-user-config",
+          "--skip-git-repo-check",
+          "--approve-for-me",
+          "-c",
+          "windows.sandbox=\"elevated\"",
+          "-c",
+          "project_doc_max_bytes=0",
+          "-c",
+          "web_search=\"disabled\"",
+          "--json",
+          "-C",
+          "<TRIAL_A02>",
+          "-o",
+          "<TRIAL_A02>\\final-response.md",
+          "-"
+        ],
+        "cwd": "<TRIAL_A02>",
+        "elapsedSeconds": 464.199,
+        "exitCode": 0,
+        "finishedAt": "2026-10-02T00:55:33.062Z",
+        "observedOutputBytes": 1406461,
+        "pid": "<LOCAL_IDENTIFIER>",
+        "retainedOutputBytes": 1406461,
+        "startedAt": "2026-10-02T00:47:48.862Z",
+        "stderr": {
+          "bytes": 0,
+          "file": "codex.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 1406461,
+          "file": "codex.stdout",
+          "sha256": "3d2df3dc32504a2087246ca32b506f091f555f78755cca58eab6524ccb6d3e56"
+        },
+        "stopReason": null,
+        "timeoutSeconds": 1200
+      }
+    },
+    {
+      "automated": {
+        "finalObjectivesPass": true,
+        "programSemanticsScore": 1
+      },
+      "evaluator": {
+        "combinedOutputLimitBytes": 16777216,
+        "command": [
+          "<NODE>",
+          "<REPO>\\experiments\\agent-adoption\\v1\\verify.mjs",
+          "--submission",
+          "<TRIAL_A03>",
+          "--package",
+          "<PACKAGE_A03>"
+        ],
+        "cwd": "<TRIAL_A03>",
+        "elapsedSeconds": 0.311,
+        "exitCode": 0,
+        "finishedAt": "2026-10-02T00:55:54.177Z",
+        "observedOutputBytes": 16138,
+        "pid": "<LOCAL_IDENTIFIER>",
+        "retainedOutputBytes": 16138,
+        "startedAt": "2026-10-02T00:55:53.867Z",
+        "stderr": {
+          "bytes": 0,
+          "file": "evaluator.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 16138,
+          "file": "evaluator.stdout",
+          "sha256": "676c193696a974127077b72e1e3b674d92b74a61ee8a9147f0f19868aabff843"
+        },
+        "stopReason": null,
+        "timeoutSeconds": 120
+      },
+      "id": "A03",
+      "packageUnchangedByEvaluation": true,
+      "perTrialModelReported": null,
+      "perTrialReasoningReported": null,
+      "receiptDirectory": "<ARCHIVE>/A03/external",
+      "submissionUnchangedByEvaluation": true,
+      "trial": {
+        "combinedOutputLimitBytes": 33554432,
+        "command": [
+          "<USER_HOME>\\AppData\\Local\\OpenAI\\Codex\\bin\\de8a38d2100ae498\\codex.exe",
+          "exec",
+          "--ephemeral",
+          "--ignore-user-config",
+          "--skip-git-repo-check",
+          "--approve-for-me",
+          "-c",
+          "windows.sandbox=\"elevated\"",
+          "-c",
+          "project_doc_max_bytes=0",
+          "-c",
+          "web_search=\"disabled\"",
+          "--json",
+          "-C",
+          "<TRIAL_A03>",
+          "-o",
+          "<TRIAL_A03>\\final-response.md",
+          "-"
+        ],
+        "cwd": "<TRIAL_A03>",
+        "elapsedSeconds": 483.374,
+        "exitCode": 0,
+        "finishedAt": "2026-10-02T00:55:52.237Z",
+        "observedOutputBytes": 629155,
+        "pid": "<LOCAL_IDENTIFIER>",
+        "retainedOutputBytes": 629155,
+        "startedAt": "2026-10-02T00:47:48.862Z",
+        "stderr": {
+          "bytes": 0,
+          "file": "codex.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 629155,
+          "file": "codex.stdout",
+          "sha256": "fa6d8c0cd4cf4f182316f5ef2e8577d4b21d1a85f38520ffc3243a3702d89dac"
+        },
+        "stopReason": null,
+        "timeoutSeconds": 1200
+      }
+    }
+  ],
+  "schema": "caveat-adoption-run/1"
+}

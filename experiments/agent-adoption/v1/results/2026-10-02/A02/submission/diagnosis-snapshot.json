@@ -1,0 +1,118 @@
+{
+  "schema": "caveat-reactive/0.1",
+  "source_id": "fnv1a64:fd7fe2624b2f58ba:261",
+  "sequence": 1,
+  "elapsed": 0,
+  "renewals": {},
+  "observations": [
+    "tool"
+  ],
+  "scheduled_qualifications": [],
+  "last_event": "observe",
+  "values": {
+    "value_used": 73
+  },
+  "qualified_values": {
+    "value_used": {
+      "value": 73,
+      "provenance": {
+        "evidence": [
+          "tool"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "commitment_bases": {},
+  "reading_streams": {},
+  "decision_series": {},
+  "observation_qualifications": {
+    "tool": {
+      "evidence": [],
+      "caveats": []
+    }
+  },
+  "examination_qualifications": {},
+  "reopening_qualifications": {},
+  "predicate_qualifications": {},
+  "events": [
+    {
+      "name": "observe",
+      "parameters": [
+        {
+          "name": "value",
+          "min": 0,
+          "max": 100
+        }
+      ]
+    }
+  ],
+  "bindings": {
+    "result": {
+      "value": 73
+    }
+  },
+  "binding_qualifications": {
+    "result": {
+      "value": {
+        "evidence": [
+          "tool"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "binding_explanations": {
+    "result": {
+      "value": {
+        "evidence": [
+          "tool"
+        ],
+        "caveats": []
+      }
+    }
+  },
+  "value_grounds": {
+    "value_used": {
+      "evidence": [
+        "tool"
+      ],
+      "caveats": []
+    }
+  },
+  "commitment_grounds": {},
+  "decision_journal": [],
+  "cues": [],
+  "cue_qualifications": [],
+  "controls": {},
+  "clock": null,
+  "world": {
+    "start_at": null,
+    "places": [],
+    "entities": [],
+    "connections": [],
+    "action_plans": []
+  },
+  "scenes": [],
+  "labels": {},
+  "symbols": [
+    {
+      "name": "tool",
+      "kind": "evidence",
+      "source": "the supplied numeric tool value",
+      "written_by": null,
+      "consequence": null,
+      "display": null,
+      "attention": null
+    }
+  ],
+  "relations": [],
+  "commitments": [],
+  "budget": null,
+  "effects": [
+    {
+      "kind": "reveal",
+      "evidence": "tool"
+    }
+  ]
+}

@@ -1,0 +1,320 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "tracker.cav",
+  "scenarios": [
+    {
+      "id": "G1",
+      "title": "Empty refusals preserve initial state",
+      "steps": [
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "correct",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "learn_stale",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "same_as": "initial",
+          "paths": [
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "G2",
+      "title": "Strong reading then one assessment",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": null,
+            "/reading_streams/checks/current": "checks@1"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "$exact": {
+                "evidence": [
+                  "checks@1"
+                ],
+                "caveats": [
+                  "uncertain"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "same_as": "before",
+          "paths": [
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "G3",
+      "title": "Threshold boundary",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 69
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 70
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_bases/answer@1/value": 70,
+            "/commitment_grounds/answer@1/evidence": [
+              "checks@2"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G4",
+      "title": "Correction, resume, revision and frozen past",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "original"
+        },
+        {
+          "send": "correct"
+        },
+        {
+          "expect": {
+            "/withdrawals/0/evidence": "checks@1",
+            "/withdrawals/0/because": "correction",
+            "/commitments/0/open": true
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "send": "correct",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 92
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "same_as": "original",
+          "paths": [
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1",
+            "/reading_streams/checks/occurrences/0"
+          ]
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": "answer@2",
+            "/commitment_grounds/answer@2/evidence": [
+              "checks@2"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "G5",
+      "title": "Same value observation reopens",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "expect": {
+            "/commitments/0/open": true,
+            "/decision_series/answer/current": "answer@1"
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/decision_series/answer/current": "answer@2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G6",
+      "title": "Late stale affects future only",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "checkpoint": "original"
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "same_as": "original",
+          "paths": [
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1",
+            "/reading_streams/checks/occurrences/0"
+          ]
+        },
+        {
+          "send": "observe",
+          "payload": {
+            "value": 90
+          }
+        },
+        {
+          "expect": {
+            "/reading_streams/checks/occurrences/1/provenance/caveats": {
+              "$set": [
+                "uncertain",
+                "stale"
+              ]
+            }
+          }
+        },
+        {
+          "send": "assess",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        },
+        {
+          "same_as": "original",
+          "paths": [
+            "/commitment_grounds/answer@1",
+            "/commitment_bases/answer@1",
+            "/reading_streams/checks/occurrences/0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "G7",
+      "title": "Old clean reading remains eligible",
+      "steps": [
+        {
+          "send": "observe",
+          "payload": {
+            "value": 85
+          }
+        },
+        {
+          "send": "learn_stale"
+        },
+        {
+          "send": "assess"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/answer@1": {
+              "$exact": {
+                "evidence": [
+                  "checks@1"
+                ],
+                "caveats": [
+                  "uncertain"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

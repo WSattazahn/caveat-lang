@@ -1,0 +1,55 @@
+[
+  {
+    "id": "bootstrap-1",
+    "stdout": null,
+    "stderr": null,
+    "command": "Get-ChildItem -Force | Select-Object Name,Mode; Get-Command caveat | Select-Object Source",
+    "exit_status": 1,
+    "diagnostic": "The term 'caveat' is not recognized as a name of a cmdlet, function, script file, or executable program.",
+    "capture": "Partial transcription: root directory listing omitted; original tool returned merged output."
+  },
+  {
+    "id": "bootstrap-2",
+    "stdout": null,
+    "stderr": null,
+    "command": "Set-Location -LiteralPath '<TRIAL_A03>'; Get-Content package.json; Get-ChildItem node_modules; Get-Content node_modules/caveat/package.json",
+    "exit_status": 1,
+    "diagnostic": "Access to the path '<REPO>\\test-results' is denied.\nCannot find path '<DRIVE_ROOT>/package.json' because it does not exist.\nCannot find path '<DRIVE_ROOT>/node_modules' because it does not exist.\nCannot find path '<DRIVE_ROOT>/node_modules\\caveat\\package.json' because it does not exist.",
+    "capture": "Transcribed diagnostic messages from merged tool output; PowerShell formatting not recovered."
+  },
+  {
+    "id": "bootstrap-3",
+    "stdout": null,
+    "stderr": null,
+    "command": "Get-Content -LiteralPath '<PACKAGE_A03>\\docs\\AGENT_QUICKSTART.md'; Get-ChildItem -LiteralPath '<PACKAGE_A03>\\docs\\reference' -Name; Get-Content -LiteralPath '<PACKAGE_A03>\\examples\\agent-evidence\\assessment.cav'",
+    "exit_status": 0,
+    "diagnostic": "Cannot find path '<PACKAGE_A03>\\docs\\AGENT_QUICKSTART.md' because it does not exist.",
+    "capture": "Nonterminating Get-Content error; combined command exit 0. The actual quickstart was subsequently found as AGENT_START.md."
+  },
+  {
+    "id": "bootstrap-4",
+    "stdout": null,
+    "stderr": null,
+    "command": "node '<TRIAL_A03>\\record.mjs' --version\nnode '<TRIAL_A03>\\record.mjs' doctor --json\nnode '<TRIAL_A03>\\record.mjs' demo agent --json",
+    "exit_status": 1,
+    "diagnostic": "node:fs:2776\n      const stats = binding.lstat(base, true, undefined, true /* throwIfNoEntry */);\n                            ^\n\nError: EPERM: operation not permitted, lstat '<REPO>\\test-results'\n    at Object.realpathSync (node:fs:2776:29)\n    at toRealPath (node:internal/modules/helpers:62:13)\n    at Module._findPath (node:internal/modules/cjs/loader:775:22)\n    at resolveMainPath (node:internal/modules/run_main:35:21)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:146:20)\n    at node:internal/main/run_main_module:33:47 {\n  errno: -4048,\n  code: 'EPERM',\n  syscall: 'lstat',\n  path: '<REPO>\\\\test-results'\n}\n\nNode.js v24.11.1\nnode:fs:2776\n      const stats = binding.lstat(base, true, undefined, true /* throwIfNoEntry */);\n                            ^\n\nError: EPERM: operation not permitted, lstat '<REPO>\\test-results'\n    at Object.realpathSync (node:fs:2776:29)\n    at toRealPath (node:internal/modules/helpers:62:13)\n    at Module._findPath (node:internal/modules/cjs/loader:775:22)\n    at resolveMainPath (node:internal/modules/run_main:35:21)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:146:20)\n    at node:internal/main/run_main_module:33:47 {\n  errno: -4048,\n  code: 'EPERM',\n  syscall: 'lstat',\n  path: '<REPO>\\\\test-results'\n}\n\nNode.js v24.11.1\nnode:fs:2776\n      const stats = binding.lstat(base, true, undefined, true /* throwIfNoEntry */);\n                            ^\n\nError: EPERM: operation not permitted, lstat '<REPO>\\test-results'\n    at Object.realpathSync (node:fs:2776:29)\n    at toRealPath (node:internal/modules/helpers:62:13)\n    at Module._findPath (node:internal/modules/cjs/loader:775:22)\n    at resolveMainPath (node:internal/modules/run_main:35:21)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:146:20)\n    at node:internal/main/run_main_module:33:47 {\n  errno: -4048,\n  code: 'EPERM',\n  syscall: 'lstat',\n  path: '<REPO>\\\\test-results'\n}\n\nNode.js v24.11.1\n",
+    "capture": "Transcribed Node stderr from the failed pre-recorder shell invocation; original tool merged streams."
+  },
+  {
+    "id": "bootstrap-5",
+    "stdout": null,
+    "stderr": null,
+    "command": "node '<TRIAL_A03>\\record.mjs' validate @first.cav\nnode '<TRIAL_A03>\\record.mjs' test @first.scenarios.json",
+    "exit_status": 1,
+    "diagnostic": "ParserError:\nThe splatting operator '@' cannot be used to reference variables in an expression. '@first' can be used only as an argument to a command. To reference variables in an expression use '$first'.",
+    "capture": "PowerShell parsing failed before CLI execution; the subsequent quoted arguments reached the CLI. Transcribed diagnostic, formatting omitted."
+  },
+  {
+    "id": "bootstrap-6",
+    "stdout": "",
+    "stderr": "",
+    "command": "rg -n 'carries\\(latest' '<PACKAGE_A03>\\docs' '<PACKAGE_A03>\\examples'",
+    "exit_status": 1,
+    "capture": "No matching public examples; rg exit 1."
+  }
+]

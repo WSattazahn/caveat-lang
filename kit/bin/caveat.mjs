@@ -18,6 +18,10 @@ import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '..
 import { dependents, explain, formatDependents, formatExplanation, parseEvents } from '../lib/explain.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
+import { doctor, formatDoctor } from '../lib/doctor.mjs';
+import { runAgentDemo, formatAgentDemo } from '../lib/demo.mjs';
+import { serveMcp } from '../lib/mcp.mjs';
+import { describeValidation } from '../lib/authoring.mjs';
 
 const USAGE = `CAVEAT Language — Programs that remember why.
 
@@ -30,6 +34,9 @@ Usage:
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat-lang serve [--runtime <dir>] <program.cav>
   caveat-lang init [<directory>]
+  caveat-lang doctor [--runtime <dir>] [--json]
+  caveat-lang demo agent [--runtime <dir>] [--json]
+  caveat-lang mcp [--runtime <dir>]
   caveat-lang --version
 
 Both caveat-lang and caveat invoke this CLI. Prefer caveat-lang when other
@@ -71,6 +78,19 @@ input, one JSON object per line, with one JSON object per line on standard
 output (spec/caveat-serve-0.1.md). Exit status: 0 closed, 1 a fatal outcome
 ended the session, 2 the program does not load.
 
+doctor checks Node, package/runtime identity, a real test session and PATH
+command ownership. It inspects other executables without running them.
+  Exit status: 0 no failed check (warnings may remain), 1 a check failed.
+
+demo agent runs a fixed evidence/correction/reassessment example in memory.
+Its illustrative inputs are supplied, not independently verified. Output shows
+actual decision grounds and preserved history. It writes no files.
+  Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
+
+mcp serves five authoring tools over stdio using the 2025-11-25 MCP profile.
+It takes inline source, runs each call in a fresh subprocess, and exposes no
+persistent session or file access. stdout contains protocol messages only.
+
 init writes the getting-started program, its scenarios and an events file
 into a directory (default: the current one). It refuses to overwrite a file.
 
@@ -88,6 +108,9 @@ const COMMANDS = {
   replay: [2, 2, 'name a program and an events file'],
   serve: [1, 1, 'name one program'],
   init: [0, 1, 'name at most one directory'],
+  doctor: [0, 0, 'doctor takes no positional arguments'],
+  mcp: [0, 0, 'mcp takes no positional arguments'],
+  demo: [1, 1, 'name the demonstration: agent'],
 };
 
 function parseArguments(argv) {
@@ -98,7 +121,7 @@ function parseArguments(argv) {
   const options = { command, files: [], json: false, strict: false, runtime: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
-    if (argument === '--json' && !['replay', 'serve', 'init'].includes(command)) options.json = true;
+    if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
@@ -223,16 +246,7 @@ async function validateProgram(options) {
   }
   const snapshot = session.snapshot();
   session.close();
-  const result = {
-    schema: 'caveat-validate/0.1', program, loads: true,
-    events: snapshot.events ?? [],
-    reading_streams: Object.fromEntries(Object.entries(snapshot.reading_streams ?? {})
-      .map(([name, stream]) => [name, { from: stream.template, limit: stream.limit }])),
-    decision_series: Object.fromEntries(Object.entries(snapshot.decision_series ?? {})
-      .map(([name, series]) => [name, { limit: series.limit }])),
-    displayed: Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
-      Object.keys(properties).map(property => `${target}.${property}`)),
-  };
+  const result = describeValidation(snapshot, program);
   if (options.json) { console.log(JSON.stringify(result, null, 2)); return 0; }
   const joined = items => (items.length ? items.join(', ') : 'none');
   console.log([
@@ -373,6 +387,27 @@ async function testScenarios(options) {
   return summary.failed ? 1 : 0;
 }
 
+async function diagnose(options) {
+  const result = await doctor({ ...(options.runtime ? { runtimeDirectory: options.runtime } : {}) });
+  console.log(options.json ? JSON.stringify(result, null, 2) : formatDoctor(result));
+  return result.ok ? 0 : 1;
+}
+
+async function demonstrate(options) {
+  if (options.files[0] !== 'agent') { console.error('unknown demonstration; use demo agent'); return 2; }
+  const runtime = await loadRuntime(options);
+  if (!runtime) return 2;
+  try {
+    const result = await runAgentDemo(runtime);
+    console.log(options.json ? JSON.stringify(result, null, 2) : formatAgentDemo(result));
+    return 0;
+  } catch (error) {
+    if (options.json) console.log(JSON.stringify({ schema: 'caveat-demo/0.1', demo: 'agent', error: error.message }));
+    else console.error(`agent demonstration failed: ${error.message}`);
+    return 1;
+  }
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.command === 'help') { console.log(USAGE); return 0; }
@@ -384,7 +419,8 @@ async function main() {
   if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
   const run = {
     test: testScenarios, explain: explainProgram, dependents: dependentsOf,
-    validate: validateProgram, check: checkProgram, replay: replayProgram, serve: serveProgram, init,
+    validate: validateProgram, check: checkProgram, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
+    mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];
   return run(options);
 }

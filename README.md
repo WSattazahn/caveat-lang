@@ -1,6 +1,46 @@
 # CAVEAT Language
 
-**Programs that remember why.** For the thinking behind it, read
+**Programs that remember why.**
+
+When a tool result is corrected or a memory turns out to be stale, an application
+needs to reconsider its decision without losing the reasons for the original.
+Caveat is a programming language that keeps evidence and caveats with computed
+values, freezes a decision's grounds, and records why it was reopened.
+
+Try the published preview, **0.1.0-rc.6**, in an empty directory with Node 20 or
+later. No Rust installation is needed:
+
+```sh
+npm init -y
+npm install caveat-lang@0.1.0-rc.6
+npx --no-install caveat init
+npx --no-install caveat test umbrella.scenarios.json
+npx --no-install caveat explain umbrella.cav events.jsonl
+```
+
+The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
+`sky`, still based on `rain_chance@1` with its `forecast_is_old` caveat. New
+knowledge changed the decision's status; its original grounds remain visible.
+[Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
+[the language in brief](kit/docs/REFERENCE.md) covers the syntax.
+
+The [rc.6 publication record](docs/releases/v0.1.0-rc.6.md) identifies the
+published candidate. This checkout is **0.1.0-rc.7 development**, not a released
+version. Once a verified rc.7 tarball is installed, use `npx --no-install
+caveat-lang doctor` to check it and `npx --no-install caveat-lang demo agent` to
+see observation, assessment, correction and revision in one run. rc.7 adds the
+unambiguous `caveat-lang` command; `caveat` remains supported. The rc.6 commands
+above use its original executable. See [CLI names](kit/docs/NAMES.md).
+
+**Integrating an agent?** Follow the [agent quickstart](kit/docs/AGENT_START.md)
+and the [official Python client](kit/examples/agent-evidence/README.md). Caveat
+records supplied evidence and authored policy; it does not authenticate evidence
+or authorize external actions. [Repository agent guidance](AGENTS.md) includes
+how to report a capability missing from a real integration.
+
+## Principles and capabilities
+
+For the thinking behind Caveat, read
 [The Caveatist way](docs/WHY_CAVEAT.md#the-caveatist-way).
 
 > Say what you know, and what it rests on.  
@@ -13,31 +53,12 @@ These are the project's principles. They are not additional license
 conditions: Caveat is under the [MIT License](LICENSE), and using it does not
 require adopting them.
 
-Caveat is a programming language for programs that act on what they know and keep track of how they know it:
-
 - **Values carry their evidence.** Every number computed from an observation carries that evidence and its caveats through every sum, comparison and label.
 - **Explanations are checked against recorded dependencies.** Anything a program shows can say *why*, and the runtime rejects an explanation that cites something outside the value's recorded dependencies. That does not prove the evidence true or the explanation complete.
 - **Decisions remember.** A decision records what it was made on, reopens when the world disagrees, and keeps a journal.
-- **Late knowledge is one line.** When you learn something after the fact, such as a bad reading or a faded memory, one line qualifies everything built on it. Decisions already made keep what they knew.
+- **Late knowledge is one line.** A late qualification reaches current values built on the evidence and future values that read it. Archived readings and decisions already made keep what they knew.
 
 **[What Caveat is for](https://wsattazahn.github.io/caveat-lang/about.html)**, on one page: the problem, one example to run, and the limitations.
-
-**Try it** with Node 20 or later. The release candidate [0.1.0-rc.6](docs/releases/v0.1.0-rc.6.md) is [published on npm](https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.6): `npm install caveat-lang@next` installs it, or pin `caveat-lang@0.1.0-rc.6`. npm's `latest` tag remains on rc.5. Then `npx --no-install caveat init` writes a first program to test. It is a preview, not a stable release. [Getting started](kit/docs/GETTING_STARTED.md) takes it from there. [Caveat on one page](kit/docs/REFERENCE.md) gives the language in brief.
-
-This checkout is the **0.1.0-rc.7 development version**, which is not released.
-The install instructions above use the published rc.6 candidate. In rc.7,
-`caveat-lang` is the unambiguous CLI name; `caveat` remains supported shorthand.
-For an installed rc.7 tarball, use `npx --no-install caveat-lang init`.
-See [project names and CLI commands](kit/docs/NAMES.md) for the version boundary
-and the distinction from other projects named Caveat.
-
-**Using Caveat from an agent?** Start with the
-[Python `caveat serve` example](kit/examples/agent-evidence/README.md).
-If a real integration exposes a missing capability, please
-[open an agent feature request](https://github.com/WSattazahn/caveat-lang/issues/new?template=agent-feature-request.md)
-for the project owner to evaluate. Include a small reproduction, the exact
-version and expected versus actual behavior; check existing issues first.
-[Agent guidance](AGENTS.md) explains the workflow.
 
 **[Play the glowcap explainer](https://wsattazahn.github.io/caveat-lang/glowcap.html).** Four look-alike mushrooms, a belief, a trust decision that is made, doubted and remade, and a "why?" under everything on the page. The rules and explanations all live in [`game/glowcap.cav`](game/glowcap.cav); the page only renders them.
 

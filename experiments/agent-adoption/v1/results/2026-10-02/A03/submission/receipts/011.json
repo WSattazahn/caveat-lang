@@ -1,0 +1,13 @@
+{
+  "command": [
+    "<NODE>",
+    "<PACKAGE_A03>\\bin\\caveat.mjs",
+    "dependents",
+    "@tracker.cav",
+    "checks",
+    "@events.jsonl"
+  ],
+  "exit_status": 0,
+  "stdout": "What rests on checks in tracker.cav after 5 events (sequence 5)\n\nDecisions\n  answer@1 = 85  superseded  based on checks@1\n  answer@2 = 92  in force  based on checks@2\n\nDecision changes\n  #2 assess: answer@1 committed because checks@1\n  #5 assess: answer@2 committed because checks@2\n\nValues\n  assessed = 92  based on checks@2\n\nDisplayed\n  answer.verdict = \"approved\"  cites checks@1, checks@2\n",
+  "stderr": ""
+}

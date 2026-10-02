@@ -10,3 +10,5 @@
 /kit/THIRD_PARTY_NOTICES.md
 /editors/vscode/node_modules/
 /editors/vscode/LICENSE
+
+/scripts/fixtures/*/node_modules/
