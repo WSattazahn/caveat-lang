@@ -1,0 +1,52 @@
+name: verify rc7 postpublication final main and Pages
+on:
+  push:
+    branches: [codex/verify-rc7-publication-pages]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  final-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Independently verify published rc7 bytes and a new consumer
+        run: node scripts/record-rc7-publication.mjs --check-only
+      - name: Require exact final-main Runtime and Pages; compare live bytes and frozen assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_MAIN: b42d15861106f141c85e4e1329f4691a432b573d
+        run: node scripts/verify-rc7-postpublication.mjs
+      - name: Retain additional dated proof assets without overwriting frozen assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_MAIN: b42d15861106f141c85e4e1329f4691a432b573d
+        run: |
+          cp test-results/postpublication/verification.json "test-results/postpublication/rc7-postpublication-cloud-verification-$FINAL_MAIN.json"
+          cp test-results/postpublication/browser-dist.zip "test-results/postpublication/postpublication-pages-main-$FINAL_MAIN.zip"
+          cp test-results/postpublication/final-main-security.zip "test-results/postpublication/postpublication-development-security-main-$FINAL_MAIN.zip"
+          (cd test-results/rc7-publication-record && zip -qr "../postpublication/rc7-registry-consumer-$FINAL_MAIN.zip" .)
+          gh release upload v0.1.0-rc.7 --repo WSattazahn/caveat-lang \
+            "test-results/postpublication/rc7-postpublication-cloud-verification-$FINAL_MAIN.json" \
+            "test-results/postpublication/postpublication-pages-main-$FINAL_MAIN.zip" \
+            "test-results/postpublication/postpublication-development-security-main-$FINAL_MAIN.zip" \
+            "test-results/postpublication/rc7-registry-consumer-$FINAL_MAIN.zip" \
+            test-results/postpublication/publication-record-37026797517.zip
+      - name: Record completed publication docs and final-main Pages proof in prerelease notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_MAIN: b42d15861106f141c85e4e1329f4691a432b573d
+        run: |
+          node scripts/verify-rc7-postpublication.mjs --recheck-release-body
+          gh release edit v0.1.0-rc.7 --repo WSattazahn/caveat-lang --notes-file test-results/postpublication/github-final-notes.md --prerelease --latest=false
+          node scripts/verify-rc7-postpublication.mjs --verify-release-body
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rc7-postpublication-final-main-proof
+          path: test-results/
+          retention-days: 90
