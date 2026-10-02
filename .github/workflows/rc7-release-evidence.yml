@@ -1,5 +1,5 @@
 name: rc7 release evidence
-# Release notes distinguish freeze-time npm state from later verified publication.
+# Artifact ZIP API uses its documented JSON Accept header; release assets use octet-stream.
 on:
   pull_request:
     branches: [main]

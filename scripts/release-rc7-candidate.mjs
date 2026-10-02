@@ -44,8 +44,8 @@ async function request(endpoint, { method = 'GET', body, accept = 'application/v
   if (!response.ok) throw new Error(`${method} ${endpoint}: HTTP ${response.status}: ${(await response.text()).slice(0,1000)}`);
   return response.json();
 }
-async function binary(url) {
-  const response = await fetch(url, {headers: {Authorization:`Bearer ${token}`,Accept:'application/octet-stream','X-GitHub-Api-Version':'2022-11-28'}});
+async function binary(url, accept = 'application/octet-stream') {
+  const response = await fetch(url, {headers: {Authorization:`Bearer ${token}`,Accept:accept,'X-GitHub-Api-Version':'2022-11-28'}});
   if (!response.ok) throw new Error(`Binary download HTTP ${response.status}`);
   return Buffer.from(await response.arrayBuffer());
 }
@@ -70,7 +70,7 @@ const gates=await inspectGates();
 async function downloadArtifact(id, name, expectedHash, runId, expectedHead) {
   const artifact=await request(`actions/artifacts/${id}`);
   assert.equal(artifact.name,name);assert.equal(artifact.expired,false);assert.equal(artifact.workflow_run.id,runId);assert.equal(artifact.workflow_run.head_sha,expectedHead);
-  const bytes=await binary(`https://api.github.com/repos/${REPO}/actions/artifacts/${id}/zip`);
+  const bytes=await binary(`https://api.github.com/repos/${REPO}/actions/artifacts/${id}/zip`, 'application/vnd.github+json');
   const digest=sha256(bytes);assert.equal(digest,expectedHash??artifact.digest.replace(/^sha256:/,''));
   const filename=path.join(directory,`${name}.zip`);await writeFile(filename,bytes);
   const extracted=path.join(directory,name);await mkdir(extracted,{recursive:true});
