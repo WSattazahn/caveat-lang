@@ -77,3 +77,38 @@ jobs:
           name: rc7-live-release-evidence
           path: test-results/
           retention-days: 90
+
+  freeze-github-prerelease:
+    needs: live-release
+    if: github.repository == 'WSattazahn/caveat-lang' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/rc7-release-handoff'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: release-rc7
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Freeze only the exact reviewed Linux candidate and archive same-byte assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p test-results
+          node scripts/release-rc7-candidate.mjs > test-results/rc7-github-freeze.stdout.txt 2> test-results/rc7-github-freeze.stderr.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: rc7-github-freeze-receipts
+          path: |
+            test-results/rc7-github-freeze/
+            test-results/rc7-github-freeze.stdout.txt
+            test-results/rc7-github-freeze.stderr.txt
+          if-no-files-found: error
+          retention-days: 90
