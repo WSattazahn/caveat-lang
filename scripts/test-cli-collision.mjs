@@ -75,7 +75,13 @@ export async function checkCliCollision({ tarball, directory, manifest, help, ve
       assert.equal(result.stdout, expected, `${argument} still launches CAVEAT Language with ${owner} owning caveat`);
     }
     assert.equal(npm(['exec', '--no', '--', 'caveat-lang', 'help'], consumer), help);
-    cases.push({ caveatOwner: owner, caveatLangOwner: manifest.name, help: true, version: true, npmExec: true });
+    const health = JSON.parse(npm(['exec', '--no', '--', 'caveat-lang', 'doctor', '--json'], consumer));
+    assert.equal(health.ok, true, JSON.stringify(health.checks));
+    for (const [name, expected] of [['caveat', owner], ['caveat-lang', manifest.name]]) {
+      assert.equal(health.executables.find(item => item.name === name).owner?.name, expected,
+        `doctor identifies the actual ${name} PATH owner`);
+    }
+    cases.push({ doctor: true, caveatOwner: owner, caveatLangOwner: manifest.name, help: true, version: true, npmExec: true });
   }
   return { package: `caveat-cli@${pinned.version}`, integrity: pinned.integrity, lifecycleScripts: false, competingCliExecuted: false, cases };
 }

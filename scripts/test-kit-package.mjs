@@ -51,7 +51,7 @@ const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { f
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['check', 'explain', 'node', 'scenarios', 'serve', 'session'];
+const LIBRARY = ['demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -174,6 +174,22 @@ for (const name of ['caveat', 'caveat-lang']) {
 }
 assert.deepEqual(aliasOutputs['caveat-lang'], aliasOutputs.caveat, 'both npm executable names invoke the same CLI and package version');
 report.checks.cliAliases = { names: Object.keys(aliasOutputs), version: aliasOutputs.caveat.version.trim(), helpMatches: true };
+const commandReports = {};
+for (const name of ['caveat', 'caveat-lang']) {
+  const health = installedCommand(consumer, name, ['doctor', '--json']);
+  const demo = installedCommand(consumer, name, ['demo', 'agent', '--json']);
+  for (const result of [health, demo]) assert.equal(result.status, 0, result.stdout + result.stderr);
+  const diagnosed = JSON.parse(health.stdout);
+  const demonstrated = JSON.parse(demo.stdout);
+  assert.equal(diagnosed.ok, true);
+  assert.equal(diagnosed.package.version, manifest.version);
+  assert.equal(demonstrated.preservation.unchanged, true);
+  assert.equal(demonstrated.steps.length, 5);
+  commandReports[name] = { health: diagnosed, demo: demonstrated };
+}
+assert.deepEqual(commandReports.caveat, commandReports['caveat-lang']);
+report.checks.adoptionCommands = { aliases: Object.keys(commandReports), doctor: true, demo: true };
+
 report.checks.cliCollision = await checkCliCollision({
   tarball, directory: path.join(run, 'cli-collision'), manifest, ...aliasOutputs.caveat,
 });

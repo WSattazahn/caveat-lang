@@ -54,6 +54,30 @@ for the project owner to evaluate. Check existing issues and include the exact
 version, a small reproduction, and expected versus actual behavior. Share only
 sanitized examples and output.
 
+## Check the installation and see an agent decision
+
+With an installed **rc.7 tarball** (these commands are not in published rc.6):
+
+```sh
+npx --no-install caveat-lang doctor
+npx --no-install caveat-lang demo agent
+```
+
+`doctor --json` reports the same checks as text: Node support, package identity,
+measured runtime hashes, local build metadata, a synthetic observation and
+save/restore test, and executable ownership on PATH. Build metadata is reported,
+not authenticated. Shell aliases, functions and cached shell lookups are outside
+that inspection. A missing PATH command or a competing `caveat` produces a
+warning; use `caveat-lang`. Failed checks exit 1. `--runtime DIRECTORY` selects
+a trusted runtime directory, as with the other commands.
+
+`demo agent --json` returns each real snapshot and explanation from the shipped
+[assessment program](examples/agent-evidence/assessment.cav). Illustrative inputs
+85 and 92 produce two revisions: a correction withdraws the first observation
+and reopens its assessment, and the replacement assessment uses the new reading.
+The earlier grounds remain recorded. The demo writes no files and does not
+measure a model's confidence or authorize an external action.
+
 ## Run scenario files
 
 From an installed rc.7 tarball (use `caveat` instead for rc.6):
