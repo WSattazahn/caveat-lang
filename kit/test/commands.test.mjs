@@ -133,10 +133,13 @@ test('the corrected agent ledger differs from the recorded one only where a go-a
       { event: 'merge', payload: { target: 'pr26' } },
     ].map(line => JSON.stringify(line)).join('\n'));
     const last = result => JSON.parse(result.stdout.trim().split('\n').at(-1));
-    const fatal = caveat(['replay', path.join(ledger, 'ledger.cav'), events]);
-    assert.equal(fatal.status, 1, fatal.stderr);
-    assert.equal(last(fatal).record, 'fatal');
-    assert.match(last(fatal).message, /cannot qualify a value with unobserved evidence pr26_go$/);
+    // The recorded ledger's merge was fatal through rc.10; it now refuses
+    // (spec/caveat-dispatch-0.1.md), and the merge still does not happen.
+    const unobserved = caveat(['replay', path.join(ledger, 'ledger.cav'), events]);
+    assert.equal(unobserved.status, 0, unobserved.stderr);
+    assert.deepEqual([last(unobserved).outcome, last(unobserved).origin, last(unobserved).code],
+      ['rejected', 'evaluation', 'unobserved_evidence']);
+    assert.match(last(unobserved).message, /cannot qualify a value with unobserved evidence pr26_go$/);
     const refused = caveat(['replay', path.join(ledger, 'ledger-approved-head.cav'), events]);
     assert.equal(refused.status, 0, refused.stderr);
     const { outcome, origin, message } = last(refused);
