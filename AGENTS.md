@@ -18,9 +18,9 @@ the same source, runtime and tests as human authors.
   and `caveat test` against the program, and use `explain` or `dependents` to
   inspect what its decisions rest on.
 
-Identify the package version before following commands. The published rc.8 candidate provides `caveat-lang`
+Identify the package version before following commands. The published rc.9 candidate provides `caveat-lang`
 (with `caveat` supported shorthand), `doctor` and `demo agent`.
-The [verified publication record](docs/releases/v0.1.0-rc.8.md) identifies its exact
+The [verified publication record](docs/releases/v0.1.0-rc.9.md) identifies its exact
 tested artifact. Do not infer publication from a checkout's version.
 In a checkout with doctor support, after building, `node kit/bin/caveat.mjs doctor --json`
 checks the runtime and `node kit/bin/caveat.mjs demo agent` demonstrates the
