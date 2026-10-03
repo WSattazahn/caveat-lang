@@ -26,7 +26,9 @@ const expected = {
   'faults/neg-wrong-policy-message': ['fail', 'send'],
   'faults/neg-expected-accept-got-reject': ['fail', 'send'],
   'faults/neg-same-as-before-changed': ['fail', 'same_as'],
-  'faults/neg-fatal-not-a-rejection': ['fail', 'fatal'],
+  // rc.11 classified its out-of-range history_at as evaluation/expression,
+  // which is the evaluation rejection it names. The fatal case follows below.
+  'faults/neg-fatal-not-a-rejection': ['pass'],
   'faults/neg-size-bound': ['fail', 'size'],
   'faults/neg-invalid-unknown-field': ['invalid', /unknown field "extra"/],
   'faults/neg-invalid-host-origin': ['invalid', /origin "host"/],
@@ -55,6 +57,25 @@ for (const [name, [result, detail]] of Object.entries(expected)) {
     }
   });
 }
+
+// The preserved fixture's peek no longer reaches a fatal error, so read it with
+// one that does: a binding reading a handle that names no identifier. The
+// file under experiments/ is unchanged.
+test('a fatal outcome never satisfies an expected rejection', async () => {
+  const file = path.join(evidence, 'faults/neg-fatal-not-a-rejection.scenarios.json');
+  const outcome = await runScenarioFile(parseScenarioFile(await readFile(file, 'utf8')), {
+    runtime: real, file: 'fatal',
+    readSource: async relative => {
+      const source = await readFile(path.resolve(path.dirname(file), relative), 'utf8');
+      assert.match(source, /history_at\(sample, 5\)/);
+      return source.replace('on peek set level = history_at(sample, 5);',
+        'on peek set level = 7;\nbind hud.broken = id_text(level + 5) when level == 7;');
+    },
+  });
+  const failed = outcome.scenarios.filter(scenario => !scenario.pass);
+  assert.equal(failed.length, 1, formatFileReport(outcome));
+  assert.equal(failed[0].failure.kind, 'fatal', formatFileReport(outcome));
+});
 
 test('the CLI exits 0, 1 or 2 and prints what differed', () => {
   const run = (...files) => spawnSync(process.execPath, [cli, 'test', ...files.map(file => path.join(evidence, `${file}.scenarios.json`))], { encoding: 'utf8' });

@@ -1,7 +1,7 @@
 # Agent evidence: calling Caveat from an application
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.10`**.
+Package: **`caveat-lang@0.1.0-rc.11`**.
 <!-- /caveat-package:identity -->
 
 This example shows an application, such as an agent's harness, using a Caveat
@@ -33,7 +33,7 @@ package specifier:
 <!-- caveat-package:agent-install -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.10
+npm install caveat-lang@0.1.0-rc.11
 cp -r node_modules/caveat-lang/examples/agent-evidence .
 cd agent-evidence
 npx --no-install caveat-lang validate assessment.cav

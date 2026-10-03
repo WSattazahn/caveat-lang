@@ -21,12 +21,14 @@ clock advance every 1;
 event expire;
 event divide denominator min 0 max 1;
 event signal;
+event crash;
 cue note toast "branch fixture" 1;
 on identify set subject = item;
 on expire when not observed(tool) reveal tool supports answer_supported;
 on expire qualify tool with stale;
 on divide set bounded = 1 / denominator;
 on signal emit note;
+on crash set subject = subject + 5;
 bind fixture.subject = id_text(subject);
 `;
 
@@ -113,8 +115,8 @@ test('ordinary unclassified fatal ends only its branch', async () => {
     const before = live.map(capture);
     branch = runtimeB.restore(source, before[0].save);
     sibling = runtimeB.restore(source, before[0].save);
-    assert.throws(() => branch.dispatch('divide', { denominator: 0 }), error =>
-      error.kind === 'fatal' && error.report?.code === 'unclassified' && /division by zero/.test(error.message));
+    assert.throws(() => branch.dispatch('crash'), error =>
+      error.kind === 'fatal' && error.report?.code === 'unclassified' && /is not the handle of an identifier/.test(error.message));
     assert.equal(branch.state, 'fatal');
     assert.equal(runtimeB.trapped, false);
     assert.equal(runtimeA.trapped, false);

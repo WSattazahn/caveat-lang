@@ -781,13 +781,13 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
 
 #[test]
 fn unclassified_expression_errors_are_fatal_and_atomic() {
-    for expression in ["require(false, 1)", "1 / 0"] {
+    for expression in ["output + 5", "output * 7"] {
         let source = format!(
             r#"
             state output = 0;
             event run;
             on run set output = 1;
-            on run set output = {expression};
+            bind hud.label = id_text({expression}) when output > 0;
         "#
         );
         let mut game = session(&source);
@@ -886,13 +886,13 @@ fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
 
 #[test]
 fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
-    for expression in ["require(false, 1)", "1 / 0"] {
+    for expression in ["output + 5", "output * 7"] {
         let source = format!(
             r#"
             state output = 0;
             event run;
             on run set output = 1;
-            on run set output = {expression};
+            bind hud.label = id_text({expression}) when output > 0;
         "#
         );
         let mut game = session(&source);
@@ -1053,17 +1053,263 @@ fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, 
 }
 
 #[test]
-fn recovery_classification_does_not_swallow_unavailable_history_or_unobserved_withdrawal() {
+fn recovery_classification_does_not_swallow_a_handle_that_names_no_identifier() {
     for source in [
-        "claim safe; evidence sensor from \"sensor\"; readings samples from sensor limit 2; \
-         state value = 0; event run; on run set value = latest(samples);",
-        "claim safe; evidence reason from \"reason\"; evidence hidden from \"hidden\"; \
-         reason supports safe; event observe; on observe reveal hidden supports safe; \
-         event run; on run withdraw hidden because reason;",
+        "state value = 0; event run; on run set value = 1; \
+         bind hud.label = id_text(value + 5) when value > 0;",
+        "state value = 0; event run; on run set value = 2; \
+         bind hud.label = if(value > 1, id_text(value * 3), \"none\");",
     ] {
         let mut game = session(source);
         let fatal = json(&game.dispatch_outcome("run", "{}").unwrap_err());
         assert_eq!(fatal["outcome"], "fatal");
         assert_eq!(fatal["code"], "unclassified");
     }
+}
+
+// Evidence some rule could reveal, but which no dispatched event has observed,
+// and a reading stream that never receives a reading.
+const UNOBSERVED: &str = r#"
+evidence never from "an unreported observation";
+readings empty_log from sensor limit 2;
+event see;
+on see reveal never supports safe;
+"#;
+
+// A decision series that a later event could commit, but none has.
+const EMPTY_SERIES: &str = r#"
+decisions unrouted limit 2;
+event settle;
+on settle commit unrouted because enough using output;
+"#;
+
+// Version Lab F154, F78, F158: acting on evidence no event has observed.
+#[test]
+fn acting_on_unobserved_evidence_is_recoverable() {
+    for (refusal, message) in [
+        (
+            "on advance when blocked == 1 qualify never with stale;",
+            "cannot qualify unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 qualify never with stale after 1;",
+            "cannot qualify unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 withdraw never because sight;",
+            "cannot withdraw unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 withdraw sight because never;",
+            "cannot withdraw because unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 withdraw latest(empty_log) because sight;",
+            "cannot withdraw Latest(\"empty_log\"): its stream has no reading",
+        ),
+        (
+            "on advance when blocked == 1 reopen route because never;",
+            "cannot reopen route because unobserved evidence never",
+        ),
+        (
+            "proc hide() { reopen route because never; }; on advance when blocked == 1 call hide();",
+            "cannot reopen route because unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 set output = qualified(1, never);",
+            "cannot qualify a value with unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 and qualified(1, never) > 0 set output = 3;",
+            "cannot qualify a value with unobserved evidence never",
+        ),
+        (
+            "bind hud.cited = if(elapsed() >= 0.25 and blocked == 1, qualified(1, never), 0);",
+            "cannot qualify a value with unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 reopen route because latest(empty_log);",
+            "cannot reopen route because latest(empty_log): its stream has no reading",
+        ),
+    ] {
+        let source = format!("{TIMED}\n{UNOBSERVED}\n{refusal}");
+        recover_after_refusal(
+            &source,
+            "evaluation",
+            "unobserved_evidence",
+            message,
+            "unblock",
+        );
+    }
+}
+
+// Version Lab F158: reopening a decision series that has no commitment.
+#[test]
+fn reopening_an_uncommitted_decision_is_recoverable() {
+    for refusal in [
+        "on advance when blocked == 1 reopen spare because sight;",
+        "proc retry() { reopen spare because sight; }; on advance when blocked == 1 call retry();",
+    ] {
+        let source = format!("{TIMED}\ndecisions spare limit 2;\n{refusal}");
+        recover_after_refusal(
+            &source,
+            "evaluation",
+            "not_committed",
+            "cannot reopen uncommitted action spare",
+            "unblock",
+        );
+    }
+}
+
+// Version Lab F104, F212: division by zero, nonfinite results, history indexes.
+#[test]
+fn expression_failures_in_rules_and_bindings_are_recoverable() {
+    for (refusal, message) in [
+        (
+            "on advance when blocked == 1 set output = 1 / (blocked - 1);",
+            "division by zero in expression",
+        ),
+        (
+            "on advance when 1 / (blocked - 1) > 0 set output = 3;",
+            "division by zero in expression",
+        ),
+        (
+            "on advance when blocked == 1 set output = 1e300 * 1e300 * blocked;",
+            "expression produced a non-finite number",
+        ),
+        (
+            "on advance when blocked == 1 set output = history_at(readings_log, 3);",
+            "history index 3 is out of range for readings_log",
+        ),
+        (
+            "on advance when blocked == 1 set output = history_at(readings_log, blocked / 2);",
+            "history index must be an integer in 0..256",
+        ),
+        (
+            "on advance when blocked == 1 set output = history_at(route, 4);",
+            "history index 4 is out of range for route",
+        ),
+        (
+            "proc divide() { set output = 1 / (blocked - 1); }; on advance when blocked == 1 call divide();",
+            "division by zero in expression",
+        ),
+        (
+            "bind hud.ratio = if(elapsed() >= 0.25 and blocked == 1, 1 / (blocked - 1), 0);",
+            "division by zero in expression",
+        ),
+        (
+            "bind hud.huge = if(elapsed() >= 0.25 and blocked == 1, 1e300 * 1e300, 0);",
+            "expression produced a non-finite number",
+        ),
+        (
+            "bind hud.indexed = if(elapsed() >= 0.25 and blocked == 1, history_at(readings_log, 3), 0);",
+            "history index 3 is out of range for readings_log",
+        ),
+        (
+            "on advance when blocked == 1 set output = sqrt(0 - blocked);",
+            "sqrt requires a nonnegative number",
+        ),
+        (
+            "bind hud.root = if(elapsed() >= 0.25 and blocked == 1, sqrt(0 - blocked), 0);",
+            "sqrt requires a nonnegative number",
+        ),
+        (
+            "on advance when blocked == 1 set output = latest(empty_log);",
+            "reading stream empty_log has no reached sample",
+        ),
+        (
+            "on advance when blocked == 1 set output = latest(unrouted);",
+            "decision series unrouted has no commitment",
+        ),
+        (
+            "on advance when blocked == 1 commit unrouted because enough; \
+             on advance when blocked == 1 set output = latest(unrouted);",
+            "current decision unrouted@1 has no numeric using value",
+        ),
+        (
+            "on advance when blocked == 1 commit unrouted because enough; \
+             on advance when blocked == 1 set output = history_at(unrouted, 0);",
+            "decision unrouted@1 has no numeric using value",
+        ),
+    ] {
+        let source = format!("{TIMED}\n{UNOBSERVED}\n{EMPTY_SERIES}\n{refusal}");
+        recover_after_refusal(&source, "evaluation", "expression", message, "unblock");
+    }
+}
+
+#[test]
+fn a_false_requirement_is_recoverable() {
+    for refusal in [
+        "on advance when blocked == 1 set output = require(blocked == 0, 1);",
+        "on advance when require(blocked == 0, false) set output = 3;",
+        "on advance when blocked == 1 set output = clamp(1, blocked, 0);",
+        "bind hud.required = if(elapsed() >= 0.25, require(blocked == 0, 1), 0);",
+    ] {
+        let source = format!("{TIMED}\n{refusal}");
+        recover_after_refusal(
+            &source,
+            "evaluation",
+            "requirement_failed",
+            "source expression requirement failed",
+            "unblock",
+        );
+    }
+}
+
+// Version Lab F184: the 4,097th pending `qualify … after`.
+#[test]
+fn a_full_scheduled_qualification_table_refuses_the_event_and_the_session_continues() {
+    // Each `load` schedules 64, so 64 of them fill the table of 4,096.
+    let source = format!(
+        r#"
+        claim safe;
+        evidence sight from "a sighting";
+        caveat stale consequence low;
+        state kept = 0;
+        event seed;
+        event load;
+        event fail;
+        event resume;
+        event advance dt min 0 max 1;
+        clock advance every 0.125;
+        on seed reveal sight supports safe;
+        on fail set kept = 99;
+        on fail qualify sight with stale after 100;
+        on resume set kept = 2;
+        bind hud.kept = kept;
+        {}"#,
+        "on load qualify sight with stale after 100;\n".repeat(64)
+    );
+    let mut game = session(&source);
+    game.dispatch("seed", "{}").unwrap();
+    for _ in 0..64 {
+        game.dispatch("load", "{}").unwrap();
+    }
+    assert_eq!(
+        json(&game.snapshot())["scheduled_qualifications"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4096
+    );
+    let before = checkpoint(&game);
+    let refusal = rejected(&mut game, "fail", "{}", "limit", "scheduled_limit");
+    assert_eq!(
+        refusal["message"],
+        "event fail, rule 3: scheduled qualifications exceed limit 4096"
+    );
+    let mut restored = WebReactiveSession::restore(&source, &game.save().unwrap()).unwrap();
+    assert_eq!(checkpoint(&restored), before);
+    rejected(&mut restored, "fail", "{}", "limit", "scheduled_limit");
+    for run in [&mut game, &mut restored] {
+        assert_eq!(
+            json(&run.dispatch_outcome("resume", "{}").unwrap())["outcome"],
+            "accepted"
+        );
+        assert_eq!(
+            json(&run.snapshot())["bindings"]["hud"]["kept"].as_f64(),
+            Some(2.0)
+        );
+    }
+    assert_eq!(checkpoint(&restored), checkpoint(&game));
 }
