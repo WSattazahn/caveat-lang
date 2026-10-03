@@ -300,8 +300,9 @@ compared after decoding; stdin is bounded before parsing. These protocol
 refusals are reported separately from semantic mutation detection.
 
 Eight semantic control families must be detected in 15 executions for their
-intended differences. Five compiled variants of the production expression
-evaluator supply seven executions: the original eager cancellation drops state
+intended differences. Five compilation entries covering four distinct source
+mutations of the production expression evaluator supply seven executions: the
+original eager cancellation drops state
 `a` metadata from both channels; condition loss drops `g` for both selections;
 selected-branch loss drops `a` or `b` for the corresponding selection; untaken
 branch injection evaluates both branches while retaining the selected number.
