@@ -1,5 +1,9 @@
 # CAVEAT Language
 
+Development for **0.1.0-rc.10** is open and unpublished. The published preview
+remains rc.9. See the [rc.10 development scope](docs/releases/rc10-development.md)
+for acceptance criteria and verification status.
+
 > npm publication verified 2026-10-03T01:34:46.441Z: exact **caveat-lang@0.1.0-rc.9**,
 > retained Linux artifact SHA256 `ed75568c267a2c8ef3692571e1796b0d856471acbe5e4f99b56650a451108d24`.
 > `next` names rc.9; `latest` remains rc.5.
