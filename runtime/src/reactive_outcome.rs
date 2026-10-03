@@ -24,6 +24,8 @@ pub enum RejectionCode {
     PayloadInvalid,
     BoundExceeded,
     DecisionInForce,
+    EmptyCaveatedSelection,
+    AttentionLimit,
     WorkLimit,
     DepthLimit,
     HistoryLimit,
@@ -241,6 +243,11 @@ mod tests {
             (RejectionOrigin::Input, RejectionCode::BoundExceeded),
             (RejectionOrigin::Evaluation, RejectionCode::BoundExceeded),
             (RejectionOrigin::Evaluation, RejectionCode::DecisionInForce),
+            (
+                RejectionOrigin::Evaluation,
+                RejectionCode::EmptyCaveatedSelection,
+            ),
+            (RejectionOrigin::Limit, RejectionCode::AttentionLimit),
             (
                 RejectionOrigin::Evaluation,
                 RejectionCode::UngroundedCitation,

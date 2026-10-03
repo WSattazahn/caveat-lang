@@ -46,8 +46,12 @@ bears on. These are concrete identities: the runtime never turns an old
 `sighting` back into the newer `sighting@2` by resolving its renewable alias.
 The selection is ordered by first observation, like the decision journal.
 
-An empty selection rejects the entire event without changing anything. A
-state may have an authored extra caveat from `qualified(value, evidence,
+An empty selection returns the classified
+`evaluation/empty_caveated_selection` refusal
+([Dispatch 0.1](caveat-dispatch-0.1.md)). The entire event rolls back, including
+any earlier effects, and the session remains available for later events and
+save/restore. No reopening witness or journal entry is invented. A state may
+have an authored extra caveat from `qualified(value, evidence,
 extra)` without that caveat qualifying the evidence itself. `has_caveat` can
 then be true while `caveated` finds no witness; the selector does not invent
 one.

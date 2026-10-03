@@ -5,20 +5,23 @@ Most programs know things without knowing *how* they know them. A label says
 made it say so, whether those observations still hold, or what the program
 believed yesterday when it made a decision. When someone asks "why?", a
 developer adds bookkeeping: an array of reasons, a flag for doubt, a copy of
-the state at decision time. The bookkeeping drifts from the logic it
-describes, and nothing checks it.
+the state at decision time. Without checks, that bookkeeping can drift from
+the logic it describes. A general-purpose language can implement those checks
+or use a library that provides them.
 
 Caveat makes that knowledge part of the language. The examples below come from
 the [glowcap benchmark](../experiments/glowcap/RESULTS.md), where the same game
 beat was built in TypeScript and in Caveat and changed eight times. The
-TypeScript is the benchmark's own code, not a straw man.
+TypeScript is that benchmark's implementation; it does not establish a limit
+on what TypeScript or its libraries can express.
 
-## 1. Explanations that can't lie
+## 1. Explanations with checked evidence references
 
 A mushroom that has not been tasted gets a label from the slime's belief, and
 the label should cite the evidence behind it.
 
-**TypeScript.** The reasons are a list you keep in step with the logic by hand:
+**TypeScript in this benchmark.** The reasons are a list the implementation
+keeps in step with the logic by hand:
 
 ```ts
 const guess: Record<BeliefState, [string, string[]]> = {
@@ -29,7 +32,8 @@ const guess: Record<BeliefState, [string, string[]]> = {
 };
 ```
 
-Cite the wrong list and nothing notices.
+This implementation does not check that the chosen list matches the label's
+dependencies. Such checks could be added in TypeScript.
 
 **Caveat.** The label says what it rests on, and the runtime checks it:
 
@@ -42,8 +46,10 @@ bind $m.label = "Could be a duskcap — taste first"
 `because contradiction` cites the evidence that `contradiction` is *grounded*
 on. If a label cites anything its value and conditions never read, the event
 is rejected: `binding ruin.label cites evidence taste_cave that its value and
-conditions never read`. An explanation may leave things out; it can never
-make things up.
+conditions never read`. The check prevents citing evidence or caveats outside
+the recorded dependencies. It does not establish that supplied evidence or the
+author's explanation prose is true. A citation may leave dependencies out, so
+it does not establish completeness either.
 
 ## 2. Knowledge that arrives late
 
@@ -141,8 +147,9 @@ The working rules behind them:
 
 1. **Say what you know, and how you know it.** Observations are evidence.
    Derived values carry it.
-2. **Never let an explanation lie.** Cite what a value rests on, and let the
-   runtime check the citation.
+2. **Check an explanation's evidence references.** Cite what a value rests on,
+   and let the runtime check those dependencies. Assess the evidence and the
+   explanation's wording separately.
 3. **Control is not content.** A guard decides *when* a rule runs; it is not
    what the value is *about*. Caveat keeps both: lineage for audit, grounds
    for meaning.

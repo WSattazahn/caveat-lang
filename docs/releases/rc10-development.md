@@ -1,7 +1,8 @@
 # CAVEAT 0.1.0-rc.10 development
 
-Status: development open; implementation and verification pending. This is not
-an npm publication or release-readiness record.
+Status: development open; the accepted scope is implemented. Verification and
+review are tracked in [PR #94](https://github.com/WSattazahn/caveat-lang/pull/94).
+This is not an npm publication or release-readiness record.
 
 ## Starting point
 
@@ -24,8 +25,8 @@ Current public installation guidance continues to identify published rc.9.
    authored status and frozen grounds; show the withdrawn observation, its
    reason and recorded event/sequence. Cover evidence, streams, revisions and
    permission dependencies without implying that withdrawal automatically reopens.
-3. Correct the explanation/exclusivity claims, the source-text display example,
-   and the view field documentation. Preserve factual historical release records.
+3. Correct the explanation/exclusivity claims and view field documentation;
+   verify the reported source-text display example against the runtime. Preserve factual historical release records.
 4. Turn the selected Meta Muse reports into small repository regression cases.
    Keep reported measurements separate from independently reproduced results.
 
@@ -58,4 +59,46 @@ publication. Opening this development cycle does not publish a candidate.
 ## Progress
 
 - Development scope and candidate identity opened.
-- Reproductions, implementation, review and final verification: pending.
+- Exhausted examination attention now refuses with `limit/attention_limit`;
+  an empty reopening witness selection refuses with
+  `evaluation/empty_caveated_selection`. Both roll back the whole event and
+  allow a later event. No evidence or attention is invented to recover.
+- `dependents` now includes query-matched withdrawal records in JSON and text,
+  including occurrence, reason, event and sequence. Decision status and frozen
+  grounds still come from the authored history. The
+  [dependents contract](../../spec/caveat-dependents-0.1.md) defines matching,
+  permission roles and compatibility with earlier report data.
+- Public explanation claims now distinguish checked dependency references from
+  true evidence, truthful prose and complete explanations. The comparison with
+  general-purpose languages describes supplied facilities rather than exclusive
+  expressive power. The view field table now includes `decision_journal`.
+- The reported display syntax defect did **not** reproduce with published rc.9:
+  the unquoted label works when the specification's minimal example is supplied
+  a reactive event. Quoting the label changes its key and loses the intended
+  evidence-label association. The valid syntax is retained, the event requirement
+  is documented, and an executable documentation test protects both the label
+  association and the view fields.
+- Regression cases cover the two exact rc.9 fatal outcomes, rollback after partial
+  work, both dispatch result shapes, restore and continued execution, native and
+  WASM runtimes, repository hosts and a fresh package installation. Withdrawal
+  cases cover direct/stream/template/caveat queries, permissions, historical
+  revisions, unrelated sources and CLI/Serve/inline authoring consumers.
+- Reproduction sources, runtime identity, before/after outputs and local command
+  receipts are retained under `test-results/rc10-development/` in the working
+  checkout; these generated receipts are not source files. PR checks supply the
+  independent clean Linux build, package/security, browser and Lean evidence.
+  Their completion must be checked on the final review commit.
+
+## Verification boundaries
+
+The four game-workspace aliases `npm run typecheck`, `npm run lint`,
+`npm run test` and `npm run audit:all` were attempted in this repository;
+all report a missing script. They do not replace Caveat's documented Rust,
+kit and Runtime workflow commands listed above.
+
+The local builder uses Windows and has the owner's separate rc.9 root dependency
+installation edits. Its build identity therefore records a dirty checkout and
+is not a clean reproducible release artifact. Those dependency edits are excluded
+from this work. The clean Linux PR gates remain required. Existing Lean checks
+cover their stated fragment; this work does not claim new proofs for examination
+attention, reopening selectors or withdrawal reporting.

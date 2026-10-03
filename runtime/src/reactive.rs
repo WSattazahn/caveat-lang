@@ -4143,7 +4143,11 @@ impl ReactiveSession {
                     .as_mut()
                     .ok_or("examination requires attention budget")?;
                 if *cost > resources.remaining {
-                    return Err("insufficient examination budget".into());
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Limit,
+                        RejectionCode::AttentionLimit,
+                        "insufficient examination budget",
+                    ));
                 }
                 resources.remaining -= cost;
                 resources.spent += cost;
@@ -4354,9 +4358,11 @@ impl ReactiveSession {
                             }
                         }
                         if selected.is_empty() {
-                            return Err(format!(
-                                "caveated({state}, {caveat}) selects no observed evidence carrying {caveat} from the state's grounds"
-                            ).into());
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::EmptyCaveatedSelection,
+                                format!("caveated({state}, {caveat}) selects no observed evidence carrying {caveat} from the state's grounds"),
+                            ));
                         }
                         (self.in_observation_order(selected.into_iter()), cause)
                     }

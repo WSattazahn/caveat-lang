@@ -142,8 +142,8 @@ nothing it did is kept:
 | --- | --- |
 | `policy` | `reject` (the program's own), `not_permitted` |
 | `input` | `unknown_event`, `payload_invalid`, `bound_exceeded` |
-| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read) |
-| `limit` | `history_limit`, `identifier_limit`, `renewal_limit`, `work_limit`, `depth_limit` |
+| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read), `empty_caveated_selection` (no observed witness for a `caveated()` reopening) |
+| `limit` | `attention_limit` (examination exceeds the remaining budget), `history_limit`, `identifier_limit`, `renewal_limit`, `work_limit`, `depth_limit` |
 
 Anything else is **fatal**, for example `require(false, …)`, arithmetic that
 fails, or `latest` of an empty history. A fatal outcome never counts as a
@@ -184,6 +184,9 @@ An agent integrating Caveat into an application made these three:
   or a coordinate". Rename one of them.
 
 ## More
+
+- [Dependents](reference/spec/caveat-dependents-0.1.md): reverse explanations,
+  withdrawn evidence, permission roles and retained decision status.
 
 - [Worked example](WORKED_EXAMPLE.md): one program through every command.
 - [Getting started](GETTING_STARTED.md): a slower first walk through.

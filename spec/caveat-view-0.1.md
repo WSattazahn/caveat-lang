@@ -15,6 +15,7 @@ A host redraws only what an event can change. The **view** is that part:
 | `bindings`, `binding_explanations` | what to show, and what each shown value cites |
 | `cues`, `effects` | what the last accepted event emitted and did |
 | `commitments`, `commitment_grounds`, `decision_series` | decisions, their grounds and revisions |
+| `decision_journal` | ordered, append-only commitment and reopening entries, with the reasons recorded at each change ([journal](caveat-decision-journal-0.1.md)) |
 | `relations` | live graph relations, in insertion order |
 
 ## API

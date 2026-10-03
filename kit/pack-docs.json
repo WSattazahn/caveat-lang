@@ -35,6 +35,7 @@
     "spec/caveat-view-0.1.md",
     "spec/caveat-elapsed-0.1.md",
     "spec/caveat-dispatch-0.1.md",
+    "spec/caveat-dependents-0.1.md",
     "spec/caveat-scenarios-0.1.md",
     "spec/caveat-serve-0.1.md",
     "spec/caveat-check-0.1.md",

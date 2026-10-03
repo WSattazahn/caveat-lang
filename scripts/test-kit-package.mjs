@@ -19,7 +19,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, rmdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-kit-browser.mjs';
 import { followGuide } from '../kit/test/guide.mjs';
 import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
@@ -363,6 +363,24 @@ const used = node(['use.mjs'], consumer);
 assert.equal(used.status, 0, used.stdout + used.stderr);
 assert.equal(JSON.parse(used.stdout).revision, buildInfo.revision);
 report.checks.library = true;
+
+// The new refusal codes must keep working through the package's own runtime,
+// session wrapper, server adapter and CLI, including after save/restore.
+await writeFile(path.join(consumer, 'recovery.mjs'), `
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
+import { createServer } from 'caveat-lang/serve';
+import { checkRecoveryClient } from ${JSON.stringify(pathToFileURL(path.join(root, 'scripts/check-recovery-client.mjs')).href)};
+const runtime = await loadRuntimeFromDirectory(${JSON.stringify(path.join(installed, 'runtime'))});
+const checks = await checkRecoveryClient({ runtime, createServer,
+  command: [process.execPath, ${JSON.stringify(path.join(installed, 'bin/caveat.mjs'))}],
+  directory: ${JSON.stringify(path.join(consumer, 'recovery-cases'))} });
+console.log(JSON.stringify({ identity: runtime.identity, checks }));
+`);
+const recovery = node(['recovery.mjs'], consumer);
+assert.equal(recovery.status, 0, recovery.stdout + recovery.stderr);
+report.checks.recovery = JSON.parse(recovery.stdout);
+assert.equal(report.checks.recovery.identity.reactiveWasmSha256,
+  sha256(await readFile(path.join(installed, 'runtime/caveat_runtime_bg.wasm'))));
 
 // The packaged getting-started guide, followed from an empty directory: install
 // the tarball, check the command, then write each file, make each edit and run

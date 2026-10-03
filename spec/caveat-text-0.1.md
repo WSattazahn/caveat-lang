@@ -13,6 +13,11 @@ evidence archive from "https://station.example/log;revision=2#signal";
 claim investigate; // Keep the search open.
 ```
 
+This example contains declarations only. To validate it with the reactive kit,
+append `event inspect;`: a reactive program must declare an event. In
+`display archive "…"`, `archive` names the declared evidence; leave that
+name unquoted so the display text attaches to that symbol.
+
 Outside strings, `#` and `//` start line comments. Comments end at a newline or the
 end of the file and count as whitespace, so comments cannot merge adjacent tokens.
 Quotes, semicolons, and other comment markers inside a comment have no effect.

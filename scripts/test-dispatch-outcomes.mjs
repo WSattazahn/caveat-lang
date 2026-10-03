@@ -530,6 +530,117 @@ try {
       }));
     });
 
+
+    // Recovery is a host contract: both WASM builds must return refusals,
+    // preserve every published surface and keep accepting later events.
+    const recoveryBase = fixture('recovery-base', `
+      budget 4; claim safe;
+      evidence sight from "a sighting"; evidence sensor from "instrument";
+      evidence unseen from "next observation";
+      caveat stale consequence material; caveat calibration consequence high;
+      calibration qualifies sensor;
+      readings readings_log from sensor limit 4; decisions route limit 4;
+      state output = 0; state blocked = 1;
+      event seed; event unblock; event advance dt min 0 max 1;
+      clock advance every 0.125; cue note toast "Observed" 1;
+      on seed reveal sight supports safe;
+      on seed set output = qualified(1, sight);
+      on seed qualify sight with stale after 0.25;
+      on seed commit route because enough using output;
+      on seed emit note;
+      on unblock set blocked = 0;
+      proc mutate() {
+        set output = qualified(2, sight);
+        sample readings_log = 4 supports safe;
+        reveal unseen opposes safe;
+        examine calibration cost 1;
+        reopen route because unseen;
+        commit route because enough using latest(readings_log);
+        emit note;
+      };
+      on advance when elapsed() >= 0.25 call mutate();
+      bind hud.value = output;
+      bind hud.stale = carries(sight, stale);
+    `);
+    const recover = (source, origin, code, recovery, suffix) => {
+      withSessions(source, 2, (session, control) => {
+        for (const run of [session, control]) dispatch(run, 'seed');
+        const before = checkpoint(session);
+        assert.equal(before.snapshot.cues.length, 1);
+        assert.equal(before.snapshot.decision_journal.length, 1);
+        assert.equal(before.snapshot.scheduled_qualifications.length, 1);
+        if (code === 'empty_caveated_selection') assert.equal(before.snapshot.bindings.hud.phantom, true);
+        const refusal = rejected(session, 'advance', '{"dt":0.25}', origin, code);
+        assert(refusal.message.endsWith(suffix));
+        assert.deepEqual(checkpoint(session), checkpoint(control));
+        const restored = WebReactiveSession.restore(source, session.save());
+        try {
+          assert.deepEqual(checkpoint(restored), before);
+          rejected(restored, 'advance', '{"dt":0.25}', origin, code);
+          for (const run of [session, control, restored]) {
+            assert.equal(dispatch(run, recovery).outcome, 'accepted');
+            assert.equal(dispatch(run, 'advance', '{"dt":0.25}').outcome, 'accepted');
+          }
+          assert.deepEqual(checkpoint(session), checkpoint(control));
+          assert.deepEqual(checkpoint(restored), checkpoint(control));
+          const after = parse(session.snapshot());
+          assert.equal(after.elapsed, 0.25);
+          assert.equal(after.values.output, 2);
+          assert.equal(after.reading_streams.readings_log.current, 'readings_log@1');
+          assert.equal(after.decision_series.route.current, 'route@2');
+          assert.equal(after.bindings.hud.stale, true);
+          const roundtrip = WebReactiveSession.restore(source, session.save());
+          try { assert.deepEqual(checkpoint(roundtrip), checkpoint(session)); } finally { roundtrip.free(); }
+        } finally { restored.free(); }
+      });
+    };
+    check('attention exhaustion before any work is a recoverable limit refusal', () => {
+      const source = fixture('attention-single', 'budget 1; caveat stale consequence low; event run; event steady; on run examine stale cost 2; on steady examine stale cost 1;');
+      withSessions(source, 2, (session, legacy) => {
+        const refusal = rejected(session, 'run', '{}', 'limit', 'attention_limit');
+        assert.equal(refusal.message, 'event run, rule 1: insufficient examination budget');
+        assert.throws(() => legacy.dispatch('run', '{}'), error => error === refusal.message);
+        assert.equal(dispatch(session, 'steady').outcome, 'accepted');
+      });
+    });
+    for (const [name, effect] of [
+      ['direct', 'on advance when blocked == 1 examine stale cost 4;'],
+      ['nested', 'proc exhaust() { examine stale cost 4; }; on advance when blocked == 1 call exhaust();'],
+    ]) {
+      check('attention exhaustion after partial work recovers: ' + name, () => {
+        recover(fixture('attention-recovery-' + name, recoveryBase + effect),
+          'limit', 'attention_limit', 'unblock', 'insufficient examination budget');
+      });
+    }
+    for (const [name, effect] of [
+      ['direct', 'on advance when has_caveat(plan_basis, phantom) reopen route because caveated(plan_basis, phantom);'],
+      ['nested', 'proc select_witness() { reopen route because caveated(plan_basis, phantom); }; on advance when has_caveat(plan_basis, phantom) call select_witness();'],
+    ]) {
+      check('empty caveated selection after partial work recovers: ' + name, () => {
+        const source = fixture('caveated-recovery-' + name, recoveryBase +
+          'caveat phantom consequence low; state plan_basis = 0; event attach; ' +
+          'on seed set plan_basis = qualified(1, sight, phantom); ' +
+          'on attach qualify sight with phantom; ' +
+          'bind hud.phantom = has_caveat(plan_basis, phantom); ' + effect);
+        recover(source, 'evaluation', 'empty_caveated_selection', 'attach',
+          "caveated(plan_basis, phantom) selects no observed evidence carrying phantom from the state's grounds");
+      });
+    }
+    for (const [name, source] of [
+      ['unavailable-history', 'claim safe; evidence sensor from "sensor"; readings samples from sensor limit 2; state value = 0; event run; on run set value = latest(samples);'],
+      ['unobserved-withdrawal', 'claim safe; evidence reason from "reason"; evidence hidden from "hidden"; reason supports safe; event observe; on observe reveal hidden supports safe; event run; on run withdraw hidden because reason;'],
+    ]) {
+      check(name + ' remains fatal', () => {
+        withSessions(fixture('recovery-still-fatal-' + name, source), 1, session => {
+          assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {
+            assert.equal(parse(thrown).outcome, 'fatal');
+            assert.equal(parse(thrown).code, 'unclassified');
+            return true;
+          });
+        });
+      });
+    }
+
     for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;

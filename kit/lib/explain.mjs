@@ -197,32 +197,51 @@ export function dependents(snapshot, subject) {
     return possible.length ? { basis: 'lineage', via: possible } : null;
   };
 
+  // Report only withdrawals associated with this query. A caveat selects the
+  // evidence it actually qualifies, not every withdrawn input in a value.
+  const withdrawalIds = resolved.kind === 'caveat'
+    ? new Set((snapshot.relations ?? [])
+      .filter(item => item.relation === 'qualifies' && item.from === subject).map(item => item.to))
+    : resolved.ids;
+  const withdrawals = (snapshot.withdrawals ?? [])
+    .filter(item => withdrawalIds.has(item.evidence))
+    .map(({ evidence, because, sequence, event }) => ({ evidence, because, sequence, event }));
+  const withdrawnVia = (found, provenance) => {
+    const ids = new Set(resolved.kind === 'caveat' ? provenance?.evidence ?? [] : found.via);
+    return withdrawals.filter(item => ids.has(item.evidence));
+  };
+
   const decisions = explain(snapshot).decisions.flatMap(series => series.revisions.flatMap(revision => {
     // A grant is in the lineage, but its role is permission.
     const grant = revision.permission?.grant;
     const permitted = resolved.kind === 'evidence' && grant && resolved.ids.has(grant) && !via(revision.grounds).length;
     const found = permitted ? { basis: 'permission', via: [grant] } : basis(revision.grounds, 'grounds', revision.lineage);
-    return found ? [{ id: revision.id, value: revision.value, status: revision.status, ...found }] : [];
+    return found ? [{ id: revision.id, value: revision.value, status: revision.status, ...found,
+      withdrawn: withdrawnVia(found, found.basis === 'grounds' ? revision.grounds : revision.lineage) }] : [];
   }));
   const changes = (snapshot.decision_journal ?? []).flatMap(entry => {
     const names = resolved.kind === 'caveat' ? entry.caveats : entry.because;
     const found = (names ?? []).filter(name => resolved.ids.has(name));
-    return found.length ? [{ sequence: entry.sequence, event: entry.event, commitment: entry.commitment, change: entry.change, via: found }] : [];
+    return found.length ? [{ sequence: entry.sequence, event: entry.event, commitment: entry.commitment, change: entry.change, via: found,
+      withdrawn: withdrawnVia({ via: found }, { evidence: entry.because }) }] : [];
   });
   const values = Object.entries(snapshot.qualified_values ?? {}).flatMap(([name, value]) => {
     const found = basis(snapshot.value_grounds?.[name], 'grounds', value.provenance);
-    return found ? [{ name, value: value.value, ...found }] : [];
+    return found ? [{ name, value: value.value, ...found,
+      withdrawn: withdrawnVia(found, found.basis === 'grounds' ? snapshot.value_grounds?.[name] : value.provenance) }] : [];
   });
   const displayed = Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
     Object.entries(properties).flatMap(([property, value]) => {
       const found = basis(snapshot.binding_explanations?.[target]?.[property], 'cites',
         snapshot.binding_qualifications?.[target]?.[property]);
-      return found ? [{ name: `${target}.${property}`, value, ...found }] : [];
+      return found ? [{ name: `${target}.${property}`, value, ...found,
+        withdrawn: withdrawnVia(found, found.basis === 'cites' ? snapshot.binding_explanations?.[target]?.[property]
+          : snapshot.binding_qualifications?.[target]?.[property]) }] : [];
     }));
 
   return {
     schema: DEPENDENTS_SCHEMA, subject, kind: resolved.kind, sequence: snapshot.sequence,
-    decisions, changes, values, displayed,
+    withdrawals, decisions, changes, values, displayed,
   };
 }
 
@@ -231,11 +250,16 @@ export function formatDependents(report, title = 'the program', events = 0) {
   const through = names => (report.kind === 'caveat' ? `evidence with ${list(names)}` : list(names));
   const label = { grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by' };
   const lines = [`What rests on ${report.subject} in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
+  const withdrawalText = item => `${item.evidence} withdrawn at #${item.sequence} during ${item.event} because ${item.because}`;
   const section = (heading, items, line) => {
     lines.push('', heading);
     if (!items.length) lines.push('  nothing');
-    for (const item of items) lines.push(`  ${line(item)}`);
+    for (const item of items) {
+      lines.push(`  ${line(item)}`);
+      for (const withdrawal of item.withdrawn ?? []) lines.push(`    ${withdrawalText(withdrawal)}`);
+    }
   };
+  if (report.withdrawals?.length) section('Withdrawals', report.withdrawals, withdrawalText);
   section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${through(item.via)}`);
   section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} because ${through(item.via)}`);
   section('Values', report.values, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);

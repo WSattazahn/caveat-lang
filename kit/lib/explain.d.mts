@@ -103,6 +103,8 @@ export interface DependentsReport {
   subject: string;
   kind: 'evidence' | 'caveat';
   sequence: number;
+  /** Query-matched withdrawn occurrences, in withdrawal order, even without dependents. */
+  withdrawals: Withdrawal[];
   decisions: DependentDecision[];
   changes: DependentChange[];
   values: DependentValue[];
@@ -115,6 +117,8 @@ export interface DependentDecision {
   status: RevisionStatus;
   basis: 'grounds' | 'permission' | 'lineage';
   via: string[];
+  /** Withdrawals affecting the query-matched evidence in this reported basis. */
+  withdrawn: Withdrawal[];
 }
 
 export interface DependentChange {
@@ -123,6 +127,8 @@ export interface DependentChange {
   commitment: string;
   change: 'committed' | 'reopened';
   via: string[];
+  /** Withdrawals affecting the query-matched evidence in this reported basis. */
+  withdrawn: Withdrawal[];
 }
 
 export interface DependentValue {
@@ -130,6 +136,8 @@ export interface DependentValue {
   value: number;
   basis: 'grounds' | 'lineage';
   via: string[];
+  /** Withdrawals affecting the query-matched evidence in this reported basis. */
+  withdrawn: Withdrawal[];
 }
 
 export interface DependentDisplay {
@@ -137,6 +145,8 @@ export interface DependentDisplay {
   value: BindingValue;
   basis: 'cites' | 'lineage';
   via: string[];
+  /** Withdrawals affecting the query-matched evidence in this reported basis. */
+  withdrawn: Withdrawal[];
 }
 
 /**
@@ -145,8 +155,19 @@ export interface DependentDisplay {
  */
 export declare function dependents(snapshot: Snapshot, subject: string): DependentsReport;
 
-/** The dependents report as text for a person. `events` is how many led to the snapshot. */
-export declare function formatDependents(report: DependentsReport, title?: string, events?: number): string;
+type FormattableDependent<T> = Omit<T, 'withdrawn'> & { withdrawn?: Withdrawal[] };
+
+/** Formatter input also accepts reports written before withdrawal annotations were added. */
+export type DependentsFormatInput = Omit<DependentsReport, 'withdrawals' | 'decisions' | 'changes' | 'values' | 'displayed'> & {
+  withdrawals?: Withdrawal[];
+  decisions: FormattableDependent<DependentDecision>[];
+  changes: FormattableDependent<DependentChange>[];
+  values: FormattableDependent<DependentValue>[];
+  displayed: FormattableDependent<DependentDisplay>[];
+};
+
+/** The dependents report as text for a person. Events is how many led to the snapshot. */
+export declare function formatDependents(report: DependentsFormatInput, title?: string, events?: number): string;
 
 /** An events file: one `{"event": NAME}` per line, with an optional `"payload"`. */
 export interface EventLine {

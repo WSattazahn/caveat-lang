@@ -112,6 +112,8 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range. |
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
+| `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
+| `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
 | `limit` | `depth_limit` | The defensive procedure execution depth guard is reached. |
 | `limit` | `history_limit` | A `sample` or `commit` would add a record to a reading stream or decision series that already holds its declared limit. |
@@ -154,6 +156,26 @@ unrecognized report as a successful rejection.
 These rules are a dependency of the scenario format. They do not change or
 retroactively rescore frozen experiment harnesses. Supplementary audits must
 record the runtime/source versions they actually examine.
+
+## Recovering from attention exhaustion and empty witness selection
+
+An insufficient examination budget returns `limit/attention_limit`, and an
+empty `caveated` reopening selection returns
+`evaluation/empty_caveated_selection`. Both leave the session usable: the host
+can read it, save and restore it, or dispatch a different event. Every change
+from the refused event rolls back, including earlier examination costs,
+scheduled qualifications, occurrence IDs and decision journal entries.
+
+A true `has_caveat(STATE, CAVEAT)` does not guarantee a reopening witness: an
+authored extra caveat can qualify the state's value without qualifying any of
+its evidence. The refusal neither invents evidence nor reopens a decision.
+The program can supply a legitimate witness in a later event or choose another
+authored course. Budget exhaustion similarly grants no additional attention.
+
+These two sites were fatal `unclassified` in rc.9. This classification adds
+recoverable outcomes without changing their legacy diagnostic text, rollback
+or successful effects. Unobserved withdrawal, unavailable history, uncommitted
+reopening and other uncatalogued failures remain fatal on outcome entry points.
 
 ## Versioning
 
