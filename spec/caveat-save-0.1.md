@@ -18,14 +18,17 @@ let resumed = ReactiveSession::restore(source, &save)?;
 ```
 
 Restoring costs what loading the program costs plus the size of the save, not
-the length of the game. A restored session is the session that was saved: its
-full snapshot is equal, and every later event is accepted or rejected, and
-changes it, exactly as it would have in the original.
+the length of the game. With the same source and runtime contract, restoring
+the intact save text produced by the runtime preserves the saved session's
+full snapshot and the outcomes and effects of later events. Acceptance of an
+edited save does not promise equivalence to the session before the edit.
 
 ## What a save holds
 
-Schema `caveat-reactive-save/0.1`, as JSON. Empty parts are left out. It holds
-everything an event can change, named as the program names it:
+Schema `caveat-reactive-save/0.1`, as JSON. Some empty or defaulted fields are
+left out; required fields, including the `states` map, must remain even when
+empty. A runtime-produced save holds everything an event can change, named as
+the program names it:
 
 - the program's `source_id`, the event `sequence`, the last event, and
   `elapsed` time;
@@ -53,13 +56,16 @@ everything an event can change, named as the program names it:
   `permitted_by` when restored;
 - the last event's effects, and its cues by id.
 
-Bindings are not saved. They are computed from the state when a session is
-restored, like after any event, so a save cannot make a program show something
-its rules do not.
+Bindings are not saved. The source's binding expressions are evaluated against
+the restored state and graph, like after any event. Changing those inputs can
+change the displayed result; recomputing a binding does not establish that its
+inputs arose from the program's event history.
 
 Every number is written exactly, `-0.0` included. Store the text `save()`
 returns: JavaScript's `JSON.stringify` writes `-0` as `0`, so a save parsed and
-encoded again can lose a zero's sign.
+encoded again can lose a zero's sign. The
+[save-text host example](../kit/examples/agent-evidence/save-text.mjs) writes and
+reads that string intact, then restores it and uses its signed zero in a decision.
 
 ## Restore validation
 
@@ -68,7 +74,11 @@ source again, which supplies every declaration, and then applies the save. The
 save is refused with an error, and never crashes the runtime, when:
 
 - it is for a different program or schema, or has a field this schema lacks;
-- a state is missing, extra, out of its declared range or not a finite number;
+- a required schema field is missing, including the `states` map, or a present
+  state entry lacks its required `value`;
+- a present state entry names an undeclared state, or its value is outside the
+  declared range or is not a finite number. Individual state entries may be
+  omitted: they keep the value, lineage and grounds initialized from source;
 - a name in any lineage, relation, record or effect is not declared or created
   evidence, caveat, claim or commitment of the kind its place needs;
 - a relation connects kinds of node no event relates. Events add `supports`
@@ -133,11 +143,49 @@ what they list; they list none now. Each entry also names its witness, the
 altered save that reproduces it, and a test fails when a listed fatal outcome
 no longer happens on its witness, so an entry is removed once its fix is in.
 
-A save is not signed. These checks establish internal consistency, not proof
-that historical inputs or guards really occurred. Coordinated edits to mutually
-consistent records can still be accepted; authentication would require a
-different trust mechanism. Mutation tests exercise the requirement that an
-edited save is refused or remains playable without crashing.
+## Host trust boundary
+
+A save is not signed. Restore checks the names, kinds, ranges and cross-record
+relationships listed above; it does not authenticate the historical inputs,
+guards or source effects that produced the supplied data. Acceptance means
+those checks passed, not that the save is the original account of a session.
+
+Even one edited relation can pass. Given declared evidence `sensor` and a
+declared caveat `phantom`, a save can accept this added `graph.relations` entry
+without any source operation attaching that caveat to that evidence:
+
+```json
+["phantom", "qualifies", "sensor"]
+```
+
+The relation path checks that its endpoints exist and have the required kinds,
+then inserts the edge. It does not establish source-effect reachability for
+that qualification. Other save records must still pass their own checks.
+After restoration, `carries(sensor, phantom)` can read the edge, and a later
+decision using observed `sensor` can retain `phantom` in its grounds. Snapshot
+`origin: "live"` identifies a current graph edge, including a restored edge;
+it does not authenticate how the edge arose. Unknown endpoints and invalid
+endpoint kinds are refused.
+
+Sparse state entries have a similar boundary. Deleting a changed state's
+entry can be accepted and restore that state from its source initializer,
+while earlier commitments keep their frozen bases and grounds. This differs
+from deleting the required `states` map or a present entry's `value`, which
+is malformed. Restore does not prove that an omitted entry was also omitted
+by the runtime when it wrote the save.
+
+The [restore boundary fixtures](../kit/test/restore-contract.test.mjs) exercise
+the single-edge and omitted-state cases with malformed controls, later decisions
+and another save/restore cycle. They also contrast the host example's intact
+save text with JavaScript normalization that changes a signed-zero decision.
+
+Hosts that rely on an unchanged history must establish the saved text's
+integrity and trusted origin outside this format. Preserve the text returned
+by `save()` intact, including numeric representations. Mutation tests exercise
+whether edited saves are refused or remain playable without crashing; they
+do not establish that accepted histories really occurred. The
+[restore trust design review](../docs/RESTORE_TRUST_BOUNDARY.md) considers further
+validation and host trust mechanisms separately from this contract.
 
 ## Changes
 

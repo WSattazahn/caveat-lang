@@ -18,6 +18,9 @@ A host redraws only what an event can change. The **view** is that part:
 | `decision_journal` | ordered, append-only commitment and reopening entries, with the reasons recorded at each change ([journal](caveat-decision-journal-0.1.md)) |
 | `relations` | live graph relations, in insertion order |
 
+As in the snapshot, `origin: "live"` means current graph membership, including
+restored edges; see the [restore trust boundary](caveat-save-0.1.md#host-trust-boundary).
+
 ## API
 
 ```text

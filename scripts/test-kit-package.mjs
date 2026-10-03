@@ -61,7 +61,7 @@ const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'chec
 const EXAMPLE = 'examples/agent-evidence';
 const EXAMPLE_FILES = ['README.md', 'QUALIFICATION.md', 'BRANCHING.md', 'test_branching.py', 'assessment.cav', 'caller.py', 'test_caller.py',
   'test_lifecycle.py', 'qualification.cav', 'test_qualification.py',
-  'grounded_assessment.cav', 'grounds.py', 'test_grounds.py'].map(file => `${EXAMPLE}/${file}`);
+  'grounded_assessment.cav', 'grounds.py', 'test_grounds.py', 'save-text.mjs'].map(file => `${EXAMPLE}/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -422,6 +422,15 @@ await mkdir(agentEvidence);
 for (const file of EXAMPLE_FILES) {
   await copyFile(path.join(reader, 'node_modules', manifest.name, file), path.join(agentEvidence, path.posix.basename(file)));
 }
+// The JavaScript host is executed from the copied example and resolves the
+// installed package. Its checkpoint must preserve save text, including -0.
+const checkpoint = path.join(agentEvidence, 'save-text-checkpoint.json');
+const savedTextExample = node(['save-text.mjs', checkpoint], agentEvidence);
+assert.equal(savedTextExample.status, 0, savedTextExample.stdout + savedTextExample.stderr);
+assert.deepEqual(JSON.parse(savedTextExample.stdout), { negativeZero: true, angle: -Math.PI, decision: -1 });
+assert.match(await readFile(checkpoint, 'utf8'), /"value":-0\.0/);
+await unlink(checkpoint);
+report.checks.saveTextExample = JSON.parse(savedTextExample.stdout);
 for (const command of ['validate', 'check']) {
   const checked = shell(`npx --no-install caveat ${command} assessment.cav`, agentEvidence);
   assert.equal(checked.status, 0, checked.stdout + checked.stderr);

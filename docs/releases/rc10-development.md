@@ -27,7 +27,13 @@ Current public installation guidance continues to identify published rc.9.
    permission dependencies without implying that withdrawal automatically reopens.
 3. Correct the explanation/exclusivity claims and view field documentation;
    verify the reported source-text display example against the runtime. Preserve factual historical release records.
-4. Turn the selected Meta Muse reports into small repository regression cases.
+4. Clarify the existing save contract before publication: distinguish omitted
+   sparse state entries from malformed required fields, define graph origin, and
+   show the effect of an accepted single-edge edit and lossy host serialization.
+   Add focused regressions and a host example, and complete a separate
+   [restore trust-boundary design review](../RESTORE_TRUST_BOUNDARY.md). This
+   follow-up changes no runtime validation or save schema.
+5. Turn the selected Meta Muse reports into small repository regression cases.
    Keep reported measurements separate from independently reproduced results.
 
 Meta Muse's supplied FINDINGS(2).md sections 33/35 and 62 motivate the recovery
@@ -59,6 +65,8 @@ publication. Opening this development cycle does not publish a candidate.
 ## Progress
 
 - Development scope and candidate identity opened.
+- Whole-event rollback already existed. The two rc.10 classifications make
+  those failures recoverable for outcome clients while retaining that rollback.
 - Exhausted examination attention now refuses with `limit/attention_limit`;
   an empty reopening witness selection refuses with
   `evaluation/empty_caveated_selection`. Both roll back the whole event and
@@ -78,6 +86,15 @@ publication. Opening this development cycle does not publish a candidate.
   evidence-label association. The valid syntax is retained, the event requirement
   is documented, and an executable documentation test protects both the label
   association and the view fields.
+- Follow-up review clarified sparse state entries, required save fields, and
+  `origin: "live"`. Five executable fixtures independently reproduce the single
+  injected qualification, omitted-state and signed-zero host behaviors in both
+  published rc.9 and the rc.10 candidate, with eight malformed controls. These
+  are existing restore boundaries; this follow-up changes no validator or schema.
+  The shipped save-text example preserves the returned string through file
+  storage and runs from a fresh package installation. The separate
+  [design review](../RESTORE_TRUST_BOUNDARY.md) scopes source-capability validation
+  and distinguishes it from host-established history integrity.
 - Regression cases cover the two exact rc.9 fatal outcomes, rollback after partial
   work, both dispatch result shapes, restore and continued execution, native and
   WASM runtimes, repository hosts and a fresh package installation. Withdrawal
