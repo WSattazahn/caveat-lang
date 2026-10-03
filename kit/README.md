@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.10`**.
+Package: **`caveat-lang@0.1.0-rc.11`**.
 <!-- /caveat-package:identity -->
 
 When evidence changes, reconsider the decision while keeping its original
@@ -17,7 +17,7 @@ run its installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.10
+npm install caveat-lang@0.1.0-rc.11
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
