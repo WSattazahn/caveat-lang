@@ -404,7 +404,7 @@ Muse measurements remain external evidence until reproduced here.
   (rc.3 to rc.10, 18,437 saves over 116 to 127 programs per rc, seeded
   events) restore unchanged; that check's receipts are kept outside the
   repository.
-- A3 (F95, F260): implemented on top of PR 3 and held for its own PR after
-  PR 3 merges. With the check on, the gate passed locally: the six-path
+- A3 (F95, F260): opened as its own PR on main after PR 3 merged (502add6).
+  With the check on, the gate passed locally: the six-path
   genuine fixtures, the 3,000-round fuzz, kit `restore-contract`, and the 49
   scenario files with a `resume` step, whose results match the rc.10 package.
