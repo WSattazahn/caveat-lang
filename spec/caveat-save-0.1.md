@@ -117,6 +117,11 @@ save is refused with an error, and never crashes the runtime, when:
 - it shows a cue that no `emit` the last event's rules reach, directly or
   through the procedures they call, can show. A save with no last event shows
   none;
+- an effect's names do not have the kinds its place needs, or the save does
+  not hold what it reports: a `sample` its reading in the stream and its
+  relation, a `qualify` or `reopen` its relation, a `commit` a basis holding
+  the caveats it retains, an `examine` attention spent at least its cost, a
+  `renew` its occurrence in the renewals, a `withdraw` its withdrawal record;
 - it reports an effect that no rule effect the last event reaches could make:
   one of the same kind (`sample`, `reveal`, `examine`, `commit`, `reopen`,
   `qualify`, `renew` or `withdraw`) on the same names, where a renewable
@@ -200,6 +205,17 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-03 (rc.11): restore refuses a field this schema lacks in any record
+  a save holds, at any depth (F247). Journal entries, commitment bases,
+  reading streams and their readings, decision series and their revisions,
+  scheduled qualifications and effects used to accept one and drop it from
+  the next save. Restore also checks the last event's effects and cues (F248,
+  F115): each effect's names must have the kinds its place needs, the
+  relation, record or spending it reports must be in the restored save, and a
+  rule of the last event must reach an effect of its kind on those names; each
+  cue must be one that event's rules can emit. Saves the runtime writes
+  restore as before; saves written by rc.3 to rc.10 were checked.
 
 - 2026-10-02: restore checks that state and commitment grounds are subsets of
   their saved lineage and frozen basis, for both evidence and caveats. Edited

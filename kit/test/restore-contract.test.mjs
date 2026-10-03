@@ -188,7 +188,7 @@ test('the executable host preserves save text; JSON normalization changes signed
   }
 });
 
-test('restore refuses a declared cue the last event cannot emit', () => {
+test('F115: restore refuses a declared cue the last event cannot emit', () => {
   const session = runtime.open(effectSource);
   let resumed;
   try {
@@ -208,7 +208,7 @@ test('restore refuses a declared cue the last event cannot emit', () => {
   } finally { session.close(); resumed?.close(); }
 });
 
-test('restore refuses an effect the last event cannot make', () => {
+test('F248: restore refuses an effect the last event cannot make', () => {
   const session = runtime.open(effectSource);
   let resumed;
   try {
@@ -226,7 +226,7 @@ test('restore refuses an effect the last event cannot make', () => {
   } finally { session.close(); resumed?.close(); }
 });
 
-test('restore refuses a field the schema lacks in a nested record', () => {
+test('F247: restore refuses a field the schema lacks in a nested record', () => {
   const session = runtime.open(sparseSource);
   try {
     assert.equal(session.dispatch('observe', { value: 85 }).outcome, 'accepted');
@@ -241,5 +241,23 @@ test('restore refuses a field the schema lacks in a nested record', () => {
       refuses(sparseSource, saved, /unknown field `zz`/);
     }
     assert.equal(session.dispatch('decide').outcome, 'accepted');
+  } finally { session.close(); }
+});
+
+test('F248: restore refuses an effect the restored graph does not hold', () => {
+  const session = runtime.open(effectSource);
+  try {
+    assert.equal(session.dispatch('observe').outcome, 'accepted');
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    for (const [effect, message] of [
+      [{ kind: 'examine', caveat: 'sensor', cost: 1 }, /examine effect sensor must name a declared caveat/],
+      [{ kind: 'examine', caveat: 'stale', cost: 2 }, /examine effect spends more attention than the budget spent/],
+      [{ kind: 'qualify', evidence: 'stale', caveat: 'sensor' }, /qualify effect stale must name a declared evidence/],
+    ]) {
+      const saved = JSON.parse(session.save());
+      saved.effects.push(effect);
+      refuses(effectSource, saved, message);
+    }
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
   } finally { session.close(); }
 });

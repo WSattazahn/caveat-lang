@@ -1317,6 +1317,7 @@ impl ReactiveSession {
             {
                 return Err(format!("an effect names unknown {name}"));
             }
+            self.check_effect_against_save(effect, save, observed)?;
             if !self.last_event_can_make(effect, &last_effects, save.last_event.as_deref()) {
                 return Err(format!(
                     "{} effect is not one the last event can make",
@@ -1585,6 +1586,119 @@ impl ReactiveSession {
             reached.push(effect);
         }
         reached
+    }
+
+    /// A saved effect must agree with what the rest of the save restored: its
+    /// names have the kinds its place needs, and the relation, record or
+    /// spending it reports is there. Every effect leaves those behind, and
+    /// nothing later in the same event removes them.
+    fn check_effect_against_save(
+        &self,
+        effect: &EffectReport,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
+        let kind = effect_kind(effect);
+        let fail = |message: &str| format!("{kind} effect {message}");
+        let named = |result: Result<(), String>| result.map_err(|error| fail(&error));
+        let related = |from: &str, relation: Relation, to: &str| {
+            let (from, to) = (self.symbols[from], self.symbols[to]);
+            self.graph
+                .edges
+                .iter()
+                .any(|edge| edge.from == from && edge.to == to && edge.relation == relation)
+        };
+        match effect {
+            EffectReport::Sample {
+                stream,
+                id,
+                relation,
+                target,
+                ..
+            } => {
+                named(self.require_kind(target, "claim"))?;
+                let listed = save.reading_streams.get(stream).is_some_and(|readings| {
+                    readings
+                        .occurrences
+                        .iter()
+                        .any(|occurrence| occurrence.id == *id)
+                });
+                if !listed {
+                    return Err(fail("names no reading of its stream"));
+                }
+                named(self.require_observed(id, observed))?;
+                let stance = match relation.as_str() {
+                    "supports" => Relation::Supports,
+                    "opposes" => Relation::Opposes,
+                    _ => return Err(fail("relation must be supports or opposes")),
+                };
+                if !related(id, stance, target) {
+                    return Err(fail("has no matching graph relation"));
+                }
+            }
+            // Checked with the other reveals' semantics in restore_records.
+            EffectReport::Reveal { .. } => {}
+            EffectReport::Examine { caveat, cost } => {
+                named(self.require_kind(caveat, "caveat"))?;
+                if self
+                    .resources
+                    .as_ref()
+                    .is_none_or(|resources| *cost > resources.spent)
+                {
+                    return Err(fail("spends more attention than the budget spent"));
+                }
+            }
+            EffectReport::Commit { action, retained } => {
+                named(self.require_commitment(action))?;
+                let basis = save
+                    .commitment_bases
+                    .get(action)
+                    .ok_or_else(|| fail("names a commitment with no basis"))?;
+                for caveat in retained {
+                    named(self.require_kind(caveat, "caveat"))?;
+                    if !basis.provenance.caveats.contains(caveat) {
+                        return Err(fail("retains a caveat outside its basis"));
+                    }
+                }
+            }
+            EffectReport::Reopen { action, because } => {
+                named(self.require_commitment(action))?;
+                named(self.require_observed(because, observed))?;
+                if !related(because, Relation::Reopens, action) {
+                    return Err(fail("has no matching graph relation"));
+                }
+            }
+            EffectReport::Qualify { evidence, caveat } => {
+                named(self.require_kind(evidence, "evidence"))?;
+                named(self.require_kind(caveat, "caveat"))?;
+                if !related(caveat, Relation::Qualifies, evidence) {
+                    return Err(fail("has no matching graph relation"));
+                }
+            }
+            EffectReport::Renew {
+                evidence,
+                occurrence,
+            } => {
+                let listed = self.renewals.contains_key(evidence)
+                    && save
+                        .renewals
+                        .get(evidence)
+                        .is_some_and(|occurrences| occurrences.contains(occurrence));
+                if !listed {
+                    return Err(fail("names no occurrence of its renewals"));
+                }
+            }
+            EffectReport::Withdraw { evidence, because } => {
+                named(self.require_observed(evidence, observed))?;
+                named(self.require_observed(because, observed))?;
+                if !self.withdrawals.iter().any(|withdrawal| {
+                    withdrawal.evidence == *evidence && withdrawal.because == *because
+                }) {
+                    return Err(fail("has no matching withdrawal record"));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Whether a rule effect the last event reaches, `reached`, could report

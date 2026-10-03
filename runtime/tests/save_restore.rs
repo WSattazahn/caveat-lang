@@ -2305,17 +2305,13 @@ fn refused_effects(save: &serde_json::Value, expected: &str) {
 }
 
 // The saves the runtime writes after each event restore, whatever effects and
-// cues that event made, and the restored session goes on as the original.
+// cues that event made, and the restored session goes on as the original: a
+// later event, then a second save and restore of that.
 #[test]
-fn every_save_of_each_effect_and_cue_restores() {
+fn f115_f248_every_save_of_each_effect_and_cue_restores() {
     let saves = effect_saves();
     let made = |event: &str| -> serde_json::Value {
-        let save = &saves
-            .iter()
-            .rev()
-            .find(|(after, _)| *after == event)
-            .unwrap()
-            .1;
+        let save = effect_save(event);
         serde_json::json!([save["effects"], save["cues"]])
     };
     assert_eq!(
@@ -2330,11 +2326,14 @@ fn every_save_of_each_effect_and_cue_restores() {
     assert_eq!(made("audit")[1], serde_json::json!(["bell"]));
     assert_eq!(made("tick")[0][0]["kind"], "qualify");
     assert_eq!(made("check")[0][1]["kind"], "reopen");
+    assert_eq!(made("misread")[0][1]["kind"], "withdraw");
+    assert_eq!(made("regrow")[0][0]["kind"], "renew");
     assert_eq!(
         made("mark")[0],
         serde_json::json!([{"kind": "qualify", "evidence": "chart", "caveat": "faded"}])
     );
     for (event, save) in &saves {
+        let mut original = ReactiveSession::restore_json(EFFECTS, &save.to_string()).unwrap();
         let mut resumed = ReactiveSession::restore_json(EFFECTS, &save.to_string())
             .unwrap_or_else(|error| panic!("after {event}: {error}"));
         assert_eq!(
@@ -2342,14 +2341,18 @@ fn every_save_of_each_effect_and_cue_restores() {
             *save,
             "after {event}"
         );
+        send(&mut original, "tick", &[("dt", 0.1)]);
         send(&mut resumed, "tick", &[("dt", 0.1)]);
+        let again = ReactiveSession::restore_json(EFFECTS, &resumed.save_json().unwrap())
+            .unwrap_or_else(|error| panic!("after {event} and a tick: {error}"));
+        assert_eq!(again.snapshot(), original.snapshot(), "after {event}");
     }
 }
 
 // F115: a cue the program declares, but the last event cannot emit, was
 // restored and shown.
 #[test]
-fn a_cue_the_last_event_cannot_emit_is_refused() {
+fn f115_a_cue_the_last_event_cannot_emit_is_refused() {
     let mut look = effect_save("look");
     look["cues"] = serde_json::json!(["ping"]);
     look["cue_qualifications"] = serde_json::json!([{}]);
@@ -2375,78 +2378,114 @@ fn a_cue_the_last_event_cannot_emit_is_refused() {
     refused_effects(&fresh, "cue ping is not one the last event can emit");
 }
 
-// F248: restore checked an effect's names, and a reveal's relation, but not
-// that the last event could make an effect of that kind on those names. Each
-// of these was a declared or created name, so each was restored and shown.
+/// `save` with `effect` added to its effects.
+fn with_effect(mut save: serde_json::Value, effect: serde_json::Value) -> serde_json::Value {
+    save["effects"]
+        .as_array_mut()
+        .expect("the save holds effects")
+        .push(effect);
+    save
+}
+
+// F248: restore checked a reveal's kinds and relation, but every other effect
+// only for names that exist, so a qualify with evidence and caveat swapped, a
+// commit of evidence or one retaining evidence was restored and shown. Each
+// effect must now agree with the restored graph and records. The save after
+// `mark` holds everything these effects name.
 #[test]
-fn an_effect_the_last_event_cannot_make_is_refused() {
+fn f248_an_effect_the_restored_save_does_not_hold_is_refused() {
     let cases = [
         (
-            "look",
-            serde_json::json!({"kind": "examine", "caveat": "stale", "cost": 1}),
+            serde_json::json!({"kind": "qualify", "evidence": "faded", "caveat": "chart"}),
+            "qualify effect faded must name a declared evidence",
         ),
         (
-            "audit",
+            serde_json::json!({"kind": "qualify", "evidence": "recheck", "caveat": "stale"}),
+            "qualify effect has no matching graph relation",
+        ),
+        (
+            serde_json::json!({"kind": "commit", "action": "chart", "retained": []}),
+            "commit effect chart is not a commitment",
+        ),
+        (
+            serde_json::json!({"kind": "commit", "action": "go@1", "retained": ["chart"]}),
+            "commit effect chart must name a declared caveat",
+        ),
+        (
+            serde_json::json!({"kind": "commit", "action": "go@1", "retained": ["faded"]}),
+            "commit effect retains a caveat outside its basis",
+        ),
+        (
             serde_json::json!({"kind": "examine", "caveat": "stale", "cost": 2}),
+            "examine effect spends more attention than the budget spent",
         ),
         (
-            "look",
-            serde_json::json!({"kind": "qualify", "evidence": "chart", "caveat": "faded"}),
-        ),
-        // Only the clock applies the scheduled caveat, and only to its evidence.
-        (
-            "audit",
-            serde_json::json!({"kind": "qualify", "evidence": "bite", "caveat": "faded"}),
+            serde_json::json!({"kind": "examine", "caveat": "chart", "cost": 1}),
+            "examine effect chart must name a declared caveat",
         ),
         (
-            "tick",
-            serde_json::json!({"kind": "qualify", "evidence": "chart", "caveat": "faded"}),
+            serde_json::json!({"kind": "sample", "stream": "checks", "id": "chart", "value": 1.0, "relation": "supports", "target": "safe"}),
+            "sample effect names no reading of its stream",
         ),
         (
-            "audit",
-            serde_json::json!({"kind": "reveal", "evidence": "chart", "relation": "supports", "target": "safe"}),
+            serde_json::json!({"kind": "sample", "stream": "checks", "id": "checks@1", "value": 1.0, "relation": "opposes", "target": "safe"}),
+            "sample effect has no matching graph relation",
         ),
         (
-            "audit",
-            serde_json::json!({"kind": "reveal", "evidence": "memo"}),
+            serde_json::json!({"kind": "reopen", "action": "go@1", "because": "chart"}),
+            "reopen effect has no matching graph relation",
         ),
         (
-            "audit",
-            serde_json::json!({"kind": "sample", "stream": "checks", "id": "checks@1", "value": 1.0, "relation": "supports", "target": "safe"}),
+            serde_json::json!({"kind": "renew", "evidence": "chart", "occurrence": "bite@2"}),
+            "renew effect names no occurrence of its renewals",
         ),
         (
-            "audit",
-            serde_json::json!({"kind": "commit", "action": "go@1", "retained": []}),
-        ),
-        (
-            "audit",
-            serde_json::json!({"kind": "reopen", "action": "go@1", "because": "checks@2"}),
-        ),
-        (
-            "audit",
-            serde_json::json!({"kind": "renew", "evidence": "bite", "occurrence": "bite@2"}),
-        ),
-        (
-            "audit",
-            serde_json::json!({"kind": "withdraw", "evidence": "checks@2", "because": "recheck"}),
+            serde_json::json!({"kind": "withdraw", "evidence": "chart", "because": "recheck"}),
+            "withdraw effect has no matching withdrawal record",
         ),
     ];
-    for (event, effect) in cases {
-        let mut save = effect_save(event);
+    for (effect, expected) in cases {
+        refused_effects(&with_effect(effect_save("mark"), effect), expected);
+    }
+}
+
+// F248: an effect that agrees with the restored graph and records, but that no
+// rule of the last event could make, was restored and shown. Each of these
+// fits the save after `mark`, which only qualifies chart with faded.
+#[test]
+fn f248_an_effect_the_last_event_cannot_make_is_refused() {
+    let cases = [
+        serde_json::json!({"kind": "examine", "caveat": "stale", "cost": 1}),
+        serde_json::json!({"kind": "qualify", "evidence": "chart", "caveat": "stale"}),
+        // Only the clock applies a scheduled caveat.
+        serde_json::json!({"kind": "qualify", "evidence": "bite", "caveat": "faded"}),
+        serde_json::json!({"kind": "reveal", "evidence": "chart", "relation": "supports", "target": "safe"}),
+        serde_json::json!({"kind": "reveal", "evidence": "memo"}),
+        serde_json::json!({"kind": "sample", "stream": "checks", "id": "checks@1", "value": 1.0, "relation": "supports", "target": "safe"}),
+        serde_json::json!({"kind": "commit", "action": "go@1", "retained": []}),
+        serde_json::json!({"kind": "reopen", "action": "go@1", "because": "checks@2"}),
+        serde_json::json!({"kind": "renew", "evidence": "bite", "occurrence": "bite@2"}),
+        serde_json::json!({"kind": "withdraw", "evidence": "checks@2", "because": "recheck"}),
+    ];
+    for effect in cases {
         let kind = effect["kind"].as_str().unwrap().to_string();
-        save["effects"]
-            .as_array_mut()
-            .unwrap_or_else(|| panic!("{event} saved no effects"))
-            .push(effect);
         refused_effects(
-            &save,
+            &with_effect(effect_save("mark"), effect),
             &format!("{kind} effect is not one the last event can make"),
         );
     }
-    // An effect made on a different evidence than its rule names.
-    let mut look = effect_save("look");
-    look["effects"][1]["evidence"] = "bite".into();
-    refused_effects(&look, "qualify effect is not one the last event can make");
+    // The clock applies only the caveat a rule scheduled, to its evidence.
+    refused_effects(
+        &with_effect(
+            effect_save("tick"),
+            serde_json::json!({"kind": "qualify", "evidence": "chart", "caveat": "stale"}),
+        ),
+        "qualify effect is not one the last event can make",
+    );
+    // The effect `mark` made, on a caveat its rule does not name.
+    let mut mark = effect_save("mark");
+    mark["effects"][0]["caveat"] = "stale".into();
+    refused_effects(&mark, "qualify effect is not one the last event can make");
 }
 
 // F247: the save and its top-level records refused a field the schema lacks,
@@ -2454,7 +2493,7 @@ fn an_effect_the_last_event_cannot_make_is_refused() {
 // commitment basis was restored silently and dropped from the next save. Each
 // record a save holds now refuses one, wherever it is.
 #[test]
-fn a_field_the_schema_lacks_is_refused_in_every_nested_record() {
+fn f247_a_field_the_schema_lacks_is_refused_in_every_nested_record() {
     let places: [(&str, &str); 16] = [
         ("audit", "/commitment_bases/go@1"),
         ("audit", "/commitment_bases/go@1/provenance"),
@@ -2487,4 +2526,38 @@ fn a_field_the_schema_lacks_is_refused_in_every_nested_record() {
             "{place}: {error}"
         );
     }
+}
+
+// F247, as the save fuzz's alteration: a key inserted into any object a save
+// holds, at any depth, is refused, never restored. The contract promises
+// that for every field the schema lacks, so every object of the fuzz's played
+// save and of each `EFFECTS` save is tried, not a random sample. A map keyed
+// by name (states, histories, bases) refuses it as a name or a malformed
+// entry; a record refuses it as an unknown field.
+#[test]
+fn f247_an_unknown_key_inserted_anywhere_is_refused() {
+    let mut saves = vec![(
+        PROGRAM,
+        serde_json::to_value(played().save().unwrap()).unwrap(),
+    )];
+    saves.extend(effect_saves().into_iter().map(|(_, save)| (EFFECTS, save)));
+    let mut tried = 0;
+    for (source, save) in saves {
+        let mut places = Vec::new();
+        paths(&save, Vec::new(), &mut places);
+        for path in places {
+            let mut altered = save.clone();
+            let Some(serde_json::Value::Object(object)) = at(&mut altered, &path) else {
+                continue;
+            };
+            object.insert("zz".into(), 1.into());
+            tried += 1;
+            assert!(
+                ReactiveSession::restore_json(source, &altered.to_string()).is_err(),
+                "accepted with zz at {}",
+                pointer(&path)
+            );
+        }
+    }
+    assert!(tried > 100, "tried {tried}");
 }
