@@ -20,6 +20,63 @@ const FOLD_VALUE: &str = "$fold_value";
 pub(crate) const ELAPSED_READ: &str = "$elapsed";
 type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), String> + 'a;
 
+/// What kind of evaluation failure occurred. Dispatch refuses the classified
+/// kinds recoverably; see spec/caveat-dispatch-0.1.md. `Other` stays fatal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvalFailure {
+    DivisionByZero,
+    NonFinite,
+    HistoryIndex,
+    Requirement,
+    Other,
+}
+
+/// An evaluation failure, classified where it occurs: a host cannot recover
+/// the kind from the message. Converting from a string is always `Other`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EvalError {
+    pub kind: EvalFailure,
+    pub message: String,
+}
+
+impl EvalError {
+    pub fn new(kind: EvalFailure, message: impl Into<String>) -> Self {
+        Self {
+            kind,
+            message: message.into(),
+        }
+    }
+
+    pub fn context(mut self, context: impl std::fmt::Display) -> Self {
+        self.message = format!("{context}: {}", self.message);
+        self
+    }
+}
+
+impl std::fmt::Display for EvalError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.message.fmt(formatter)
+    }
+}
+
+impl From<String> for EvalError {
+    fn from(message: String) -> Self {
+        Self::new(EvalFailure::Other, message)
+    }
+}
+
+impl From<&str> for EvalError {
+    fn from(message: &str) -> Self {
+        Self::new(EvalFailure::Other, message)
+    }
+}
+
+impl From<EvalError> for String {
+    fn from(error: EvalError) -> Self {
+        error.message
+    }
+}
+
 /// Read-only requests against one immutable event snapshot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HistoryRead {
@@ -331,7 +388,7 @@ impl ValueType {
 }
 
 impl Value {
-    fn number(&self) -> Result<f64, String> {
+    fn number(&self) -> Result<f64, EvalError> {
         match self {
             Self::Number(value) => finite(*value),
             Self::Bool(_) => Err("expression requires number, found boolean".into()),
@@ -348,11 +405,14 @@ impl Value {
     }
 }
 
-fn finite(value: f64) -> Result<f64, String> {
+fn finite(value: f64) -> Result<f64, EvalError> {
     if value.is_finite() {
         Ok(value)
     } else {
-        Err("expression produced a non-finite number".into())
+        Err(EvalError::new(
+            EvalFailure::NonFinite,
+            "expression produced a non-finite number",
+        ))
     }
 }
 
@@ -986,7 +1046,7 @@ impl Expr {
             predicate,
             qualify,
             &|name, query| match query {
-                HistoryRead::Latest => latest(name),
+                HistoryRead::Latest => latest(name).map_err(EvalError::from),
                 _ => Err("history operation requires an indexed history host".into()),
             },
         )
@@ -998,11 +1058,12 @@ impl Expr {
         numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
         predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
-        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, String>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
     ) -> Result<Tracked<Value>, String> {
         self.evaluate_tracked_with_identifiers(numbers, predicate, qualify, history, &|_| {
             Err("id_text requires a session that holds identifiers".into())
         })
+        .map_err(String::from)
     }
 
     /// As `evaluate_tracked_with_histories`, with `identifiers` giving the text
@@ -1012,9 +1073,9 @@ impl Expr {
         numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
         predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
-        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, String>,
+        history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
-    ) -> Result<Tracked<Value>, String> {
+    ) -> Result<Tracked<Value>, EvalError> {
         // The existing evaluator already visits precisely the operands that
         // contribute to this evaluation. Accumulating at those reads gives
         // identical propagation without copying full traces at every AST node.
@@ -1054,15 +1115,15 @@ impl Expr {
         numbers: &dyn Fn(&str) -> Result<Option<f64>, String>,
         predicate: &dyn Fn(&str, &str) -> Result<bool, String>,
         qualify: &QualificationSink<'_>,
-        history: &dyn Fn(&str, HistoryRead) -> Result<f64, String>,
+        history: &dyn Fn(&str, HistoryRead) -> Result<f64, EvalError>,
         identifiers: &dyn Fn(f64) -> Result<String, String>,
         remaining: &Cell<usize>,
-    ) -> Result<Value, String> {
+    ) -> Result<Value, EvalError> {
         let budget = remaining.get();
         if budget == 0 {
-            return Err(format!(
-                "expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes"
-            ));
+            return Err(
+                format!("expression exceeds evaluation limit {MAX_EVALUATED_NODES} nodes").into(),
+            );
         }
         remaining.set(budget - 1);
         match &self.node {
@@ -1092,7 +1153,10 @@ impl Expr {
                     .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .number()?;
                 if index < 0.0 || index.fract() != 0.0 || index >= MAX_FOLD_RECORDS as f64 {
-                    return Err("history index must be an integer in 0..256".into());
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        "history index must be an integer in 0..256",
+                    ));
                 }
                 Ok(Value::Number(finite(history(
                     name,
@@ -1160,13 +1224,16 @@ impl Expr {
                     .evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)?
                     .boolean()?
                 {
-                    return Err("source expression requirement failed".into());
+                    return Err(EvalError::new(
+                        EvalFailure::Requirement,
+                        "source expression requirement failed",
+                    ));
                 }
                 value.evaluate_values(numbers, predicate, qualify, history, identifiers, remaining)
             }
-            Node::UserCall(name, _) => Err(format!(
-                "source function {name} must be expanded before evaluation"
-            )),
+            Node::UserCall(name, _) => {
+                Err(format!("source function {name} must be expanded before evaluation").into())
+            }
             Node::ExpandedCall(arguments, body) => {
                 for argument in arguments {
                     argument
@@ -1257,7 +1324,10 @@ impl Expr {
                             Binary::Multiply => left * right,
                             Binary::Divide => {
                                 if right == 0.0 {
-                                    return Err("division by zero in expression".into());
+                                    return Err(EvalError::new(
+                                        EvalFailure::DivisionByZero,
+                                        "division by zero in expression",
+                                    ));
                                 }
                                 left / right
                             }

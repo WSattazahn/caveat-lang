@@ -1,6 +1,7 @@
 //! Classified dispatch results. Classification happens at the failure site;
 //! converting an old string error always fails closed as an unclassified fatal.
 use super::{ReactiveSnapshot, ReactiveView};
+use crate::reactive_expr::{EvalError, EvalFailure};
 use serde::Serialize;
 use std::fmt;
 
@@ -33,6 +34,10 @@ pub enum RejectionCode {
     RenewalLimit,
     NotPermitted,
     UngroundedCitation,
+    UnobservedEvidence,
+    Expression,
+    RequirementFailed,
+    ScheduledLimit,
 }
 
 #[derive(Debug, Serialize)]
@@ -207,6 +212,21 @@ impl From<String> for DispatchFailure {
     }
 }
 
+/// An expression failure keeps the kind it was classified with where it
+/// occurred. Only the kinds in the catalog refuse; `Other` stays fatal.
+impl From<EvalError> for DispatchFailure {
+    fn from(error: EvalError) -> Self {
+        let code = match error.kind {
+            EvalFailure::DivisionByZero | EvalFailure::NonFinite | EvalFailure::HistoryIndex => {
+                RejectionCode::Expression
+            }
+            EvalFailure::Requirement => RejectionCode::RequirementFailed,
+            EvalFailure::Other => return error.message.into(),
+        };
+        Self::rejected(RejectionOrigin::Evaluation, code, error.message)
+    }
+}
+
 impl From<&str> for DispatchFailure {
     fn from(diagnostic: &str) -> Self {
         diagnostic.to_owned().into()
@@ -257,6 +277,16 @@ mod tests {
             (RejectionOrigin::Limit, RejectionCode::HistoryLimit),
             (RejectionOrigin::Limit, RejectionCode::IdentifierLimit),
             (RejectionOrigin::Limit, RejectionCode::RenewalLimit),
+            (
+                RejectionOrigin::Evaluation,
+                RejectionCode::UnobservedEvidence,
+            ),
+            (RejectionOrigin::Evaluation, RejectionCode::Expression),
+            (
+                RejectionOrigin::Evaluation,
+                RejectionCode::RequirementFailed,
+            ),
+            (RejectionOrigin::Limit, RejectionCode::ScheduledLimit),
         ];
         let failures = || {
             codes
