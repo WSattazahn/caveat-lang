@@ -23,7 +23,7 @@ type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), String> + 'a;
 /// What kind of evaluation failure occurred. Dispatch refuses the classified
 /// kinds recoverably; see spec/caveat-dispatch-0.1.md. `Other` stays fatal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EvalFailure {
+pub(crate) enum EvalFailure {
     DivisionByZero,
     NonFinite,
     HistoryIndex,
@@ -34,7 +34,7 @@ pub enum EvalFailure {
 /// An evaluation failure, classified where it occurs: a host cannot recover
 /// the kind from the message. Converting from a string is always `Other`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EvalError {
+pub(crate) struct EvalError {
     pub kind: EvalFailure,
     pub message: String,
 }
