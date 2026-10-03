@@ -187,14 +187,17 @@ fn other_failures_keep_their_own_classification() {
     let mut game = session(LEDGER);
     ready_at(&mut game, A);
     accepted(send(&mut game, "approved", json!({ "commit": A })));
-    let error = game
-        .dispatch_outcome_json("broken_merge", "{}")
-        .unwrap_err();
-    assert_eq!(error.code, "unclassified", "{}", error.message);
+    // Division by zero is an expression failure, not a missing permission.
+    let refused =
+        serde_json::to_value(game.dispatch_outcome_json("broken_merge", "{}").unwrap()).unwrap();
+    assert_eq!(refused["origin"], "evaluation", "{refused}");
+    assert_eq!(refused["code"], "expression", "{refused}");
     assert!(
-        !error.message.contains("not permitted"),
-        "{}",
-        error.message
+        !refused["message"]
+            .as_str()
+            .unwrap()
+            .contains("not permitted"),
+        "{refused}"
     );
 
     let limited = LEDGER.replace("decisions merge limit 4;", "decisions merge limit 1;");

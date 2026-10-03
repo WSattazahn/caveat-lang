@@ -626,9 +626,53 @@ try {
           "caveated(plan_basis, phantom) selects no observed evidence carrying phantom from the state's grounds");
       });
     }
+    // rc.11 sites: unobserved evidence, expression failures, false requirements.
+    const unobserved = 'evidence never from "an unreported observation"; ' +
+      'readings empty_log from sensor limit 2; event see; on see reveal never supports safe; ';
+    for (const [name, origin, code, effect, suffix] of [
+      ['qualify', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 qualify never with stale;',
+        'cannot qualify unobserved evidence never'],
+      ['withdraw', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 withdraw never because sight;',
+        'cannot withdraw unobserved evidence never'],
+      ['withdraw-empty-stream', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 withdraw latest(empty_log) because sight;',
+        'cannot withdraw Latest("empty_log"): its stream has no reading'],
+      ['reopen', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 reopen route because never;',
+        'cannot reopen route because unobserved evidence never'],
+      ['division', 'evaluation', 'expression', 'on advance when blocked == 1 set output = 1 / (blocked - 1);',
+        'division by zero in expression'],
+      ['nonfinite', 'evaluation', 'expression', 'on advance when blocked == 1 set output = 1e300 * 1e300 * blocked;',
+        'expression produced a non-finite number'],
+      ['history-index', 'evaluation', 'expression', 'on advance when blocked == 1 set output = history_at(readings_log, 3);',
+        'history index 3 is out of range for readings_log'],
+      ['binding-division', 'evaluation', 'expression', 'bind hud.ratio = if(elapsed() >= 0.25 and blocked == 1, 1 / (blocked - 1), 0);',
+        'division by zero in expression'],
+      ['negative-sqrt', 'evaluation', 'expression', 'on advance when blocked == 1 set output = sqrt(0 - blocked);',
+        'sqrt requires a nonnegative number'],
+      ['latest-empty-stream', 'evaluation', 'expression', unobserved + 'on advance when blocked == 1 set output = latest(empty_log);',
+        'reading stream empty_log has no reached sample'],
+      ['latest-uncommitted-series', 'evaluation', 'expression', 'decisions unrouted limit 2; event settle; on settle commit unrouted because enough using output; on advance when blocked == 1 set output = latest(unrouted);',
+        'decision series unrouted has no commitment'],
+      ['decision-without-value', 'evaluation', 'expression', 'decisions unrouted limit 2; event settle; on settle commit unrouted because enough using output; on advance when blocked == 1 commit unrouted because enough; on advance when blocked == 1 set output = latest(unrouted);',
+        'current decision unrouted@1 has no numeric using value'],
+      ['qualified-value', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 set output = qualified(1, never);',
+        'cannot qualify a value with unobserved evidence never'],
+      ['reopen-empty-stream', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 reopen route because latest(empty_log);',
+        'cannot reopen route because latest(empty_log): its stream has no reading'],
+      ['not-committed', 'evaluation', 'not_committed', 'decisions spare limit 2; on advance when blocked == 1 reopen spare because sight;',
+        'cannot reopen uncommitted action spare'],
+      ['require', 'evaluation', 'requirement_failed', 'on advance when blocked == 1 set output = require(blocked == 0, 1);',
+        'source expression requirement failed'],
+      ['binding-require', 'evaluation', 'requirement_failed', 'bind hud.required = if(elapsed() >= 0.25, require(blocked == 0, 1), 0);',
+        'source expression requirement failed'],
+    ]) {
+      check(`${code} after partial work recovers: ${name}`, () => {
+        recover(fixture('rc11-recovery-' + name, recoveryBase + effect), origin, code, 'unblock', suffix);
+      });
+    }
+
     for (const [name, source] of [
-      ['unavailable-history', 'claim safe; evidence sensor from "sensor"; readings samples from sensor limit 2; state value = 0; event run; on run set value = latest(samples);'],
-      ['unobserved-withdrawal', 'claim safe; evidence reason from "reason"; evidence hidden from "hidden"; reason supports safe; event observe; on observe reveal hidden supports safe; event run; on run withdraw hidden because reason;'],
+      ['unheld-handle', 'state value = 0; event run; on run set value = 1; bind hud.label = id_text(value + 5) when value > 0;'],
+      ['unheld-handle-branch', 'state value = 0; event run; on run set value = 2; bind hud.label = if(value > 1, id_text(value * 3), "none");'],
     ]) {
       check(name + ' remains fatal', () => {
         withSessions(fixture('recovery-still-fatal-' + name, source), 1, session => {
@@ -641,10 +685,10 @@ try {
       });
     }
 
-    for (const [name, expression] of [['require', 'require(false, 1)'], ['division', '1 / 0']]) {
+    for (const [name, expression] of [['unheld-handle', 'output + 5'], ['scaled-unheld-handle', 'output * 7']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;
-          on run set output = 1; on run set output = ${expression};`);
+          on run set output = 1; bind hud.label = id_text(${expression}) when output > 0;`);
         withSessions(source, 1, session => {
           assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {
             assert.equal(typeof thrown, 'string', 'WASM Result::Err throws its fatal JSON string');

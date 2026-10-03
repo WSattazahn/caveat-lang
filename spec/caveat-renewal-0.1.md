@@ -83,7 +83,8 @@ delay's lineage join the lineage of what it qualifies. A decision made before it
 applies keeps what it was made on.
 
 `elapsed` and `scheduled_qualifications` appear in the snapshot. At most 4,096
-qualifications can wait at once.
+qualifications can wait at once; scheduling another refuses the event as
+`limit/scheduled_limit` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
 
 ## Asking whether evidence carries a caveat
 

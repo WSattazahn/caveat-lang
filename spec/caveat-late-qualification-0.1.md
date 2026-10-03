@@ -30,7 +30,8 @@ scheduled.
 ## Meaning
 
 When the effect runs, `EVIDENCE` must already be observed; otherwise the event
-fails. Then:
+is refused as `evaluation/unobserved_evidence`
+([Dispatch 0.1](caveat-dispatch-0.1.md)). Then:
 
 1. The graph gains `CAVEAT qualifies EVIDENCE`, once. From now on every
    `qualified(v, EVIDENCE)` and `observed(EVIDENCE)` inherits the caveat, and
