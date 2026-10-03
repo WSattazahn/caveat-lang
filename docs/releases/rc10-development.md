@@ -70,7 +70,11 @@ publication. Opening this development cycle does not publish a candidate.
 - Exhausted examination attention now refuses with `limit/attention_limit`;
   an empty reopening witness selection refuses with
   `evaluation/empty_caveated_selection`. Both roll back the whole event and
-  allow a later event. No evidence or attention is invented to recover.
+  allow a later event. No evidence or attention is invented to recover. Outcome
+  clients must inspect `outcome`: these refusals return `rejected`, so an
+  operation that was refused must not be treated as completed merely because
+  the session remains usable. Hosts that previously relied on a fatal error
+  to stop processing need to handle this result explicitly.
 - `dependents` now includes query-matched withdrawal records in JSON and text,
   including occurrence, reason, event and sequence. Decision status and frozen
   grounds still come from the authored history. The
@@ -95,6 +99,10 @@ publication. Opening this development cycle does not publish a candidate.
   storage and runs from a fresh package installation. The separate
   [design review](../RESTORE_TRUST_BOUNDARY.md) scopes source-capability validation
   and distinguishes it from host-established history integrity.
+- Runtime CI compiles the formatter compatibility fixture with pinned
+  TypeScript 5.9.3. The fixture checks accepted legacy formatter inputs,
+  required producer fields and expected type errors alongside the existing
+  declaration/runtime parity tests.
 - Regression cases cover the two exact rc.9 fatal outcomes, rollback after partial
   work, both dispatch result shapes, restore and continued execution, native and
   WASM runtimes, repository hosts and a fresh package installation. Withdrawal

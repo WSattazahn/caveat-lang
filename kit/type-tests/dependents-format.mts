@@ -1,4 +1,6 @@
-// Compile-only fixture: tsc --noEmit --strict --module nodenext --target es2022
+// Compiled by runtime.yml: TypeScript formatter compatibility.
+// Local: npm exec --yes --package=typescript@5.9.3 -- tsc
+// --noEmit --strict --module nodenext --target es2022
 // --lib ES2022,ESNext.Disposable,DOM kit/type-tests/dependents-format.mts
 import {
   dependents, formatDependents,
