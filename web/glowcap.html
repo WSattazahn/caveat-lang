@@ -112,7 +112,7 @@
   <p class="lede">
     Four mushrooms look alike. Some make you glow; some make you heavy. Everything on
     this page — every label, the belief, the trust decision — <strong>can tell you why</strong>,
-    and the runtime checks the answer: an explanation may leave things out, but it can
+    and the runtime checks the citations: an explanation may leave things out, but it can
     never cite something that didn't count.
   </p>
 
@@ -175,8 +175,8 @@
 
   <section class="how">
     <div class="panel">
-      <h3>Explanations that can't lie</h3>
-      <p>A label says what it rests on. The runtime rejects any citation the value never depended on.</p>
+      <h3>Checked evidence references</h3>
+      <p>A label says what it rests on. The runtime rejects citations outside the value's recorded dependencies. Evidence quality and the explanation's accuracy still need judgment.</p>
       <pre>bind $m.label = "Could be a duskcap — taste first"
     when $m_unknown and uncertain
     because contradiction;</pre>
