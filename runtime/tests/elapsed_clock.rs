@@ -406,3 +406,28 @@ fn bad_arity_types_writes_and_ambient_function_reads_fail_at_load() {
         );
     }
 }
+
+#[test]
+fn f151_the_clock_stays_finite_and_absorbs_steps_at_the_binary64_limit() {
+    let source = r#"
+        event advance dt min -1000000000000 max 1000000000000;
+        clock advance every 1;
+        bind hud.now = elapsed();
+    "#;
+    // A declared step is at most 1e12, far below half an ulp of f64::MAX, so
+    // the sum rounds back to the limit instead of overflowing. Restore
+    // refuses a nonfinite clock, so the event's guard is never reached here.
+    for (limit, step) in [(f64::MAX, "1000000000000"), (f64::MIN, "-1000000000000")] {
+        let mut manufactured = session(source).save().unwrap();
+        manufactured.elapsed = limit;
+        let mut restored = ReactiveSession::restore(source, &manufactured).unwrap();
+        let shown = restored
+            .dispatch_json("advance", &format!(r#"{{"dt":{step}}}"#))
+            .unwrap();
+        assert_eq!(shown.elapsed, limit, "step {step}");
+        assert_eq!(number(&restored, "now"), limit);
+        let roundtrip =
+            ReactiveSession::restore_json(source, &restored.save_json().unwrap()).unwrap();
+        assert_eq!(roundtrip.snapshot(), restored.snapshot());
+    }
+}

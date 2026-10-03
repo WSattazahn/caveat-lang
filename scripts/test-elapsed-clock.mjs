@@ -74,10 +74,25 @@ try {
   assert.equal(dispatch(session, 'advance', { dt: 0 }).bindings.hud.angle, Math.PI);
 } finally { session.free(); }
 
+// F151: at the binary64 limit a declared step is absorbed; the clock stays finite.
+const limitSource = 'event advance dt min -1000000000000 max 1000000000000; clock advance every 1; bind hud.elapsed = elapsed();';
+for (const [limit, dt] of [[Number.MAX_VALUE, 1e12], [-Number.MAX_VALUE, -1e12]]) {
+  const fresh = new WebReactiveSession(limitSource);
+  const limitSave = JSON.parse(fresh.save());
+  fresh.free();
+  limitSave.elapsed = limit;
+  session = WebReactiveSession.restore(limitSource, JSON.stringify(limitSave));
+  try {
+    const view = dispatch(session, 'advance', { dt });
+    assert.equal(view.bindings.hud.elapsed, limit);
+    assert.equal(snapshot(session).elapsed, limit);
+  } finally { session.free(); }
+}
+
 const result = { passed: true, runtimeSha256: createHash('sha256').update(wasm).digest('hex'),
   checks: ['release binding invalidation', 'fractional timer boundary', 'late rejection atomicity',
     'journal clock/value agreement', 'restore identity', 'manufactured elapsed above state limit',
-    'signed-zero clock invalidation'] };
+    'signed-zero clock invalidation', 'finite clock at the binary64 limit'] };
 await mkdir(new URL('../test-results/', import.meta.url), { recursive: true });
 await writeFile(new URL('../test-results/elapsed-clock-wasm.json', import.meta.url), `${JSON.stringify(result, null, 2)}\n`);
-console.log('Elapsed clock WASM: all 7 checks passed.');
+console.log('Elapsed clock WASM: all 8 checks passed.');

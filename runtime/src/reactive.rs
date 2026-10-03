@@ -377,6 +377,33 @@ mod dispatch_budget_tests {
     }
 }
 
+#[cfg(test)]
+mod elapsed_guard_tests {
+    use super::*;
+
+    // F151: the accumulator cannot become nonfinite through declared bounds,
+    // whose magnitude is at most 1e12, nor through restore, which refuses a
+    // nonfinite clock. The guard is reached here only by setting the clock
+    // directly, which no public entry point can do.
+    #[test]
+    fn f151_nonfinite_clock_refuses_the_event_as_bound_exceeded() {
+        let source = "event advance dt min 0 max 1; clock advance every 1; event idle;";
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        session.elapsed = f64::INFINITY;
+        let before = session.snapshot();
+        let outcome = session
+            .dispatch_outcome_json("advance", r#"{"dt":1}"#)
+            .unwrap();
+        let report = serde_json::to_value(outcome).unwrap();
+        assert_eq!(report["outcome"], "rejected");
+        assert_eq!(report["origin"], "evaluation");
+        assert_eq!(report["code"], "bound_exceeded");
+        assert_eq!(session.snapshot(), before, "the refusal rolls back");
+        let shown = session.dispatch_json("idle", "{}").unwrap();
+        assert_eq!(shown.sequence, before.sequence + 1, "the session continues");
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
     Procedure(Procedure),
@@ -3201,6 +3228,14 @@ impl ReactiveSession {
         self.last_event = Some(event.into());
         if self.time_event.as_deref() == Some(event) {
             self.elapsed += parameters.get("dt").copied().unwrap_or(0.0);
+            // Unreachable through declared bounds and restore; refused anyway.
+            if !self.elapsed.is_finite() {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Evaluation,
+                    RejectionCode::BoundExceeded,
+                    "elapsed time must remain a finite number",
+                ));
+            }
             self.apply_due_qualifications()?;
         }
         let parameters = parameters
