@@ -83,6 +83,10 @@ publication. Opening this development cycle does not publish a candidate.
   WASM runtimes, repository hosts and a fresh package installation. Withdrawal
   cases cover direct/stream/template/caveat queries, permissions, historical
   revisions, unrelated sources and CLI/Serve/inline authoring consumers.
+- Browser screenshot review also exposed a missing UTF-8 declaration in the
+  legacy Door page. A charset-free HTTP reproduction decoded its title as
+  Windows-1252; the declaration corrects it, and the existing route check now
+  asserts the exact rendered title. No scene or material settings change.
 - Reproduction sources, runtime identity, before/after outputs and local command
   receipts are retained under `test-results/rc10-development/` in the working
   checkout; these generated receipts are not source files. PR checks supply the
