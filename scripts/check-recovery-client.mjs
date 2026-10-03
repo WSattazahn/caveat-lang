@@ -80,21 +80,6 @@ bind hud.kept = kept;
 `,
   },
   {
-    name: 'decision-without-value', origin: 'evaluation', code: 'expression',
-    source: `state kept = 0;
-decisions plan limit 4;
-event setup;
-event fail;
-event resume_work;
-on setup set kept = 1;
-on setup commit plan because enough;
-on fail set kept = 99;
-on fail set kept = latest(plan);
-on resume_work set kept = 2;
-bind hud.kept = kept;
-`,
-  },
-  {
     name: 'not-committed', origin: 'evaluation', code: 'not_committed',
     source: `claim known;
 evidence memo from "the memo";

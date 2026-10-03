@@ -2748,9 +2748,8 @@ impl ReactiveSession {
         }
     }
 
-    /// An index past the history's records, `latest` of a history with none
-    /// yet, or a decision read with no numeric `using` value is a classified
-    /// expression failure; see
+    /// An index past the history's records, or `latest` of a history with
+    /// none yet, is a classified expression failure; see
     /// spec/caveat-dispatch-0.1.md.
     fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
         if query == HistoryRead::Latest {
@@ -2762,16 +2761,10 @@ impl ReactiveSession {
                     ));
                 }
             } else if let Some(series) = self.decision_series.get(name) {
-                let Some(current) = &series.current else {
+                if series.current.is_none() {
                     return Err(EvalError::new(
                         EvalFailure::HistoryIndex,
                         format!("decision series {name} has no commitment"),
-                    ));
-                };
-                if self.commitment_bases[current].value.is_none() {
-                    return Err(EvalError::new(
-                        EvalFailure::HistoryIndex,
-                        format!("current decision {current} has no numeric using value"),
                     ));
                 }
             }
@@ -2825,10 +2818,7 @@ impl ReactiveSession {
                     let basis = &self.commitment_bases[&revision.id];
                     provenance.merge(&basis.provenance)?;
                     basis.value.ok_or_else(|| {
-                        EvalError::new(
-                            EvalFailure::HistoryIndex,
-                            format!("decision {} has no numeric using value", revision.id),
-                        )
+                        format!("decision {} has no numeric using value", revision.id)
                     })?
                 }
                 HistoryRead::Latest => unreachable!(),

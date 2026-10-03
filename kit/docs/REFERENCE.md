@@ -142,11 +142,11 @@ nothing it did is kept:
 | --- | --- |
 | `policy` | `reject` (the program's own), `not_permitted` |
 | `input` | `unknown_event`, `payload_invalid`, `bound_exceeded` |
-| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read), `empty_caveated_selection` (no observed witness for a `caveated()` reopening), `unobserved_evidence` (qualifying, citing with `qualified(…)`, withdrawing or reopening on evidence no event has observed), `not_committed` (reopening a decision that was never committed), `expression` (division by zero, a nonfinite result, a negative `sqrt`, a history index out of range, `latest` of an empty history, or a decision with no numeric `using` value), `requirement_failed` (a false `require(…)`, including inside `clamp` and `wrap`) |
+| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read), `empty_caveated_selection` (no observed witness for a `caveated()` reopening), `unobserved_evidence` (qualifying, citing with `qualified(…)`, withdrawing or reopening on evidence no event has observed), `not_committed` (reopening a decision that was never committed), `expression` (division by zero, a nonfinite result, a negative `sqrt`, a history index out of range, or `latest` of an empty history), `requirement_failed` (a false `require(…)`, including inside `clamp` and `wrap`) |
 | `limit` | `attention_limit` (examination exceeds the remaining budget), `history_limit`, `identifier_limit`, `renewal_limit`, `scheduled_limit` (more than 4,096 pending `qualify … after`), `work_limit`, `depth_limit` |
 
-Anything else is **fatal**, for example `id_text` of a number that is not an
-identifier's handle. A fatal outcome never counts as a
+Anything else is **fatal**, for example `latest` of a decision committed
+without a numeric `using` value. A fatal outcome never counts as a
 rejection, and the session must be discarded
 ([dispatch](reference/spec/caveat-dispatch-0.1.md)). From code,
 `session.dispatch(event, payload)` returns an accepted event's snapshot, and

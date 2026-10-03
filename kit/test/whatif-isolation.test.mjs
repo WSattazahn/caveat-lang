@@ -28,7 +28,9 @@ on expire when not observed(tool) reveal tool supports answer_supported;
 on expire qualify tool with stale;
 on divide set bounded = 1 / denominator;
 on signal emit note;
-on crash set subject = subject + 5;
+decisions untyped limit 2;
+on crash commit untyped because enough;
+on crash set bounded = latest(untyped);
 bind fixture.subject = id_text(subject);
 `;
 
@@ -116,7 +118,7 @@ test('ordinary unclassified fatal ends only its branch', async () => {
     branch = runtimeB.restore(source, before[0].save);
     sibling = runtimeB.restore(source, before[0].save);
     assert.throws(() => branch.dispatch('crash'), error =>
-      error.kind === 'fatal' && error.report?.code === 'unclassified' && /is not the handle of an identifier/.test(error.message));
+      error.kind === 'fatal' && error.report?.code === 'unclassified' && /current decision untyped@1 has no numeric using value/.test(error.message));
     assert.equal(branch.state, 'fatal');
     assert.equal(runtimeB.trapped, false);
     assert.equal(runtimeA.trapped, false);

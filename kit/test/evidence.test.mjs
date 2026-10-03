@@ -59,7 +59,7 @@ for (const [name, [result, detail]] of Object.entries(expected)) {
 }
 
 // The preserved fixture's peek no longer reaches a fatal error, so read it with
-// one that does: a binding reading a handle that names no identifier. The
+// one that does: the latest value of a decision committed without one. The
 // file under experiments/ is unchanged.
 test('a fatal outcome never satisfies an expected rejection', async () => {
   const file = path.join(evidence, 'faults/neg-fatal-not-a-rejection.scenarios.json');
@@ -69,7 +69,7 @@ test('a fatal outcome never satisfies an expected rejection', async () => {
       const source = await readFile(path.resolve(path.dirname(file), relative), 'utf8');
       assert.match(source, /history_at\(sample, 5\)/);
       return source.replace('on peek set level = history_at(sample, 5);',
-        'on peek set level = 7;\nbind hud.broken = id_text(level + 5) when level == 7;');
+        'decisions untyped limit 2;\non peek commit untyped because enough;\non peek set level = latest(untyped);');
     },
   });
   const failed = outcome.scenarios.filter(scenario => !scenario.pass);
