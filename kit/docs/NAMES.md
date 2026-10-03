@@ -1,10 +1,8 @@
 # Project names and CLI commands
 
-> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
-> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
-> `next` names rc.8; `latest` remains rc.5.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
-
+<!-- caveat-package:identity -->
+Package: **`caveat-lang@0.1.0-rc.9`**.
+<!-- /caveat-package:identity -->
 
 **CAVEAT Language — Programs that remember why.** The npm package is
 `caveat-lang`, a programming language for evidence-bearing values and decisions.
@@ -22,11 +20,10 @@ npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang serve umbrella.cav
 ```
 
-The rc.8 candidate is [available on GitHub](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8)
-and published on npm as exact `caveat-lang@0.1.0-rc.8`; these commands work
-with that verified installation. Historical rc.6 has only `caveat`; use that
-spelling when running rc.6. The [installation instructions](GETTING_STARTED.md)
-use the current rc.8 candidate.
+These commands apply to the package version printed above. Historical rc.6
+has only `caveat`; use that spelling when running rc.6. The
+[installation instructions](GETTING_STARTED.md) pin the version this guide
+accompanies.
 
 Other packages can also install an executable named `caveat`. Which one that
 short command launches depends on the installation and PATH. `caveat-lang`

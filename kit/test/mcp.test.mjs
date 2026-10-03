@@ -64,7 +64,7 @@ function injected(code) {
     assert.equal(args.at(-1), RUNTIME, 'real workers retain the durable repository runtime path');
     assert.equal(options.shell, false);
     assert.equal(options.windowsHide, true);
-    assert.equal(Object.keys(options.env).some(name => ['NODE_OPTIONS', 'NODE_PATH'].includes(name.toUpperCase())), false);
+    assert.deepEqual(options.env, {}, 'the bridge does not explicitly inherit application environment');
     const child = spawned++ === 0 ? spawn(process.execPath, ['-e', code], options) : spawn(command, args, options);
     children.push(child);
     return child;
@@ -132,6 +132,69 @@ test('all five tools execute fresh real workers and retain completed CLI-style o
   } finally { assert.equal(await client.close(), 0); }
 });
 
+test('real authoring worker receives no unrelated secret or Node preload configuration', async () => {
+  const names = ['CAVEAT_MCP_TEST_SECRET', 'NODE_OPTIONS', 'NODE_PATH'];
+  const previous = new Map(names.map(name => [name, process.env[name]]));
+  process.env.CAVEAT_MCP_TEST_SECRET = 'synthetic-test-value-not-a-credential';
+  process.env.NODE_OPTIONS = '--trace-warnings'; // Harmless if inherited; no loader is executed.
+  process.env.NODE_PATH = 'caveat-synthetic-unused-module-directory';
+  let launches = 0;
+  // Inspect the actual child environment before importing the real first-party
+  // worker. The wrapper changes no tool input, report or runtime behavior.
+  const inspectThenRun = `
+    import assert from 'node:assert/strict';
+    import { pathToFileURL } from 'node:url';
+    for (const name of ${JSON.stringify(names)}) {
+      assert.equal(Object.hasOwn(process.env, name), false, name + ' reached the worker');
+    }
+    await import(pathToFileURL(process.argv[1]).href);
+  `;
+  const client = connection({ spawnWorker(command, args, options) {
+    launches++;
+    assert.equal(command, process.execPath);
+    assert.deepEqual(options.env, {});
+    assert.equal(options.shell, false);
+    assert.equal(options.windowsHide, true);
+    assert.equal(args[0], '--max-old-space-size=128');
+    assert.equal(args[1], fileURLToPath(new URL('../lib/authoring-worker.mjs', import.meta.url)));
+    assert.equal(args[2], RUNTIME);
+    return spawn(command, [args[0], '--input-type=module', '-e', inspectThenRun, ...args.slice(1)], options);
+  } });
+  try {
+    await client.initialize();
+    client.send(call(1));
+    const result = (await client.wait(1)).result;
+    assert.equal(result.isError, false, JSON.stringify(result));
+    assert.equal(result.structuredContent.report.loads, true);
+    assert.equal(result.structuredContent.exitCode, 0);
+    assert.equal(launches, 1);
+  } finally {
+    try { assert.equal(await client.close(), 0); }
+    finally {
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  }
+});
+
+test('a worker launch failure is reported and a later real call still succeeds', async () => {
+  let launches = 0;
+  const client = connection({ spawnWorker(command, args, options) {
+    assert.deepEqual(options.env, {});
+    if (launches++ === 0) throw new Error('injected spawn failure');
+    return spawn(command, args, options);
+  } });
+  try {
+    await client.initialize(); client.send(call(1));
+    const failed = (await client.wait(1)).result;
+    assert.equal(failed.isError, true);
+    assert.equal(failed.structuredContent.error.kind, 'worker_failure');
+    client.send(call(2));
+    assert.equal((await client.wait(2)).result.isError, false);
+  } finally { assert.equal(await client.close(), 0); }
+});
 test('bad requests, unsupported methods, unknown fields and virtual file escapes return errors without spawning', async () => {
   let spawns = 0;
   const client = connection({ spawnWorker() { spawns++; throw new Error('must not spawn'); } });

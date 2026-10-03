@@ -1,19 +1,15 @@
-# MCP authoring tools (rc.8)
+# MCP authoring tools
 
-> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
-> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
-> `next` names rc.8; `latest` remains rc.5.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
+<!-- caveat-package:identity -->
+Package: **`caveat-lang@0.1.0-rc.9`**.
+<!-- /caveat-package:identity -->
 
-
-The [rc.8 GitHub candidate](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8) and exact npm version are available
-and verified. No MCP desktop host is installed by the release or development
-process.
-
-An installed rc.8 package can expose existing Caveat authoring operations to a
-local MCP host. This command was introduced in rc.7; published rc.6 does not include it. The bridge uses
-the **2025-11-25 stdio compatibility profile**, with initialization followed by
-tool discovery. It does not advertise the newer 2026-07-28 profile.
+This package exposes existing Caveat authoring operations to a local MCP
+host. No MCP desktop host is installed by the release or development process.
+The command was introduced in rc.7; historical rc.6 does not include it.
+The bridge uses the **2025-11-25 stdio compatibility profile**, with
+initialization followed by tool discovery. It does not advertise the newer
+2026-07-28 profile.
 
 Configure your host to run Node with the absolute path to your installed CLI:
 
@@ -76,6 +72,27 @@ The host owns authorization and the server process. A trusted runtime override
 is available at startup with `--runtime DIRECTORY`, never as a tool argument.
 There are no persistent-session, file-writing, network, or whatif tools.
 
+## Worker environment
+
+The worker uses the running Node executable, an absolute first-party worker
+path, an explicit runtime directory and stdio. Its authoring operations need no
+application configuration from environment variables. The bridge therefore
+passes `env: {}` when spawning each child, rather than copying its parent's
+application environment. Unrelated application secrets, `NODE_OPTIONS` and
+`NODE_PATH` are not explicitly forwarded by the bridge. The server's own
+startup environment remains the host's responsibility.
+
+An empty environment option is not a promise that the resulting process has
+zero variables. Node and its platform support library may add process-support
+variables; on Windows, libuv supplies standard entries such as `SystemRoot`,
+`PATH`, temporary-directory and user-profile variables. The regression checks
+inspect a real child for an unrelated synthetic secret and Node preload
+controls, then run the real authoring worker. Ordinary calls and failure,
+timeout, cancellation and recovery retain separate checks.
+
+This reduces unnecessary environment exposure. It does not turn the subprocess
+into an operating-system sandbox, authenticate the selected runtime, or mean
+that a third-party scanner's capability notices have been cleared.
 The [interface review](reference/docs/MCP_AUTHORING_DESIGN.md) defines the
 protocol choices, resource limits and required regression evidence. The
 [agent quickstart](AGENT_START.md) introduces the same tools through the CLI.

@@ -1,10 +1,8 @@
 # CAVEAT Language (`caveat-lang`)
 
-> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
-> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
-> `next` names rc.8; `latest` remains rc.5.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
-
+<!-- caveat-package:identity -->
+Package: **`caveat-lang@0.1.0-rc.9`**.
+<!-- /caveat-package:identity -->
 
 When evidence changes, reconsider the decision while keeping its original
 reasons. CAVEAT Language carries evidence and caveats through computed values
@@ -12,44 +10,35 @@ and records every decision revision. This package includes the WebAssembly
 runtime, Node/browser library and CLI; no Rust installation is needed.
 Requires Node 20 or later for the CLI.
 
-The release candidate is **`caveat-lang@0.1.0-rc.8`**, with the command
-`caveat-lang` (and supported `caveat` shorthand). It is published on npm under `next`, with the same tested tarball
-attached to its [GitHub pre-release](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8).
-It is a preview, not a stable release, and needs no Rust. Install it from npm:
+The package provides the `caveat-lang` command and supported `caveat`
+shorthand. In an empty directory, install the exact version named above and
+run its installation check, agent demo and starter:
 
+<!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.8
-npx --no-install caveat init
-npx --no-install caveat test umbrella.scenarios.json
-npx --no-install caveat explain umbrella.cav events.jsonl
-```
-
-The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
-`sky`, still based on `rain_chance@1` with its `forecast_is_old` caveat. Follow
-[the agent quickstart](docs/AGENT_START.md) to adapt this into an integration.
-
-The command above pins this exact candidate. To use a
-verified tarball you were given, pass its path or URL to `npm install` instead.
-
-npm's `next` tag points to rc.8; `latest` remains on rc.5 and does not mean
-stable. Install a candidate by `next` or its exact version;
-`npm dist-tag ls caveat-lang` shows which version each tag names.
-
-The [rc.8 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.8)
-retains the exact tested Linux tarball and evidence. Registry integrity and a
-fresh exact-version install are verified in the linked publication receipt.
-The npm instructions above install that published rc.8 candidate. Introduced
-in rc.7, `caveat-lang` is the unambiguous command; `caveat` remains supported
-shorthand. With rc.8 installed, prefer:
-
-```sh
+npm install caveat-lang@0.1.0-rc.9
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
+npx --no-install caveat-lang explain umbrella.cav events.jsonl
 ```
+<!-- /caveat-package:starter -->
+
+The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
+`sky`, still based on `rain_chance@1` with its `forecast_is_old` caveat. Follow
+[the agent quickstart](docs/AGENT_START.md) to adapt this into an integration.
+
+To use a verified tarball you were given, pass its path or URL to `npm install`
+instead. The [release records](https://github.com/WSattazahn/caveat-lang/releases)
+record which versions have been published and their verification receipts.
+This document describes the package version printed above; it does not claim
+that a development checkout has been published.
+
+Introduced in rc.7, `caveat-lang` is the unambiguous command; `caveat` remains
+supported shorthand.
 
 See [project names and CLI commands](docs/NAMES.md) for the distinction from
 other projects named Caveat. Historical rc.6 has only the `caveat` command.
@@ -74,7 +63,7 @@ sanitized examples and output.
 
 ## Check the installation and see an agent decision
 
-With rc.8 installed (these commands were introduced in rc.7):
+With this package installed (these commands were introduced in rc.7):
 
 ```sh
 npx --no-install caveat-lang doctor
@@ -98,14 +87,14 @@ measure a model's confidence or authorize an external action.
 
 ## Use authoring tools from an MCP host
 
-An installed rc.8 package can run `caveat-lang mcp` for the five existing
+This package can run `caveat-lang mcp` for the five existing
 authoring operations. It takes inline source and uses a fresh subprocess for
 each call. See [MCP setup and limits](docs/MCP.md), including its explicit
 2025-11-25 stdio compatibility profile. Published rc.6 does not include it.
 
 ## Run scenario files
 
-From an installed rc.8 package (use `caveat` instead for historical rc.6):
+From this installed package (use `caveat` instead for historical rc.6):
 
 ```sh
 npx --no-install caveat-lang test --json a.scenarios.json b.scenarios.json
@@ -400,6 +389,14 @@ The package is MIT licensed. Packing copies the repository's `LICENSE` and
 `THIRD_PARTY_NOTICES.md` (the crates compiled into the runtime) into the
 tarball, and the test checks both arrive unchanged.
 
+Exact installation examples and the package identity are generated from
+`kit/package.json`. After changing that manifest, run
+`node scripts/kit-docs.mjs --write` from the repository root.
+`node scripts/kit-docs.mjs --check` and the packaging gate refuse stale blocks
+or moving publication notices in the kit's own guides. The installed-package
+test runs the README commands against the same tarball, including doctor, demo
+and the starter.
+
 CI already runs this packaging test against the runtime built by its Linux
 core job. It retains the exact tested `.tgz`, the test report with its SHA-256,
 `build-info.json` and `SHA256SUMS` together as an artifact. A local Windows run
@@ -416,7 +413,7 @@ for the release gates.
 
 ## Not yet
 
-- A stable release. Release candidates are published with the tag `next`.
-  `latest` names a release candidate too, and does not mean stable.
+- A stable release. This package version is a release candidate; its API may
+  change before 1.0.
 - Host conformance tests: the host library is the only future producer of
   `origin: "host"`.

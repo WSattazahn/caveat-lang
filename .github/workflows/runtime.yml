@@ -124,6 +124,27 @@ jobs:
           path: dist
           retention-days: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 90 || 7 }}
 
+  mcp-platforms:
+    name: MCP worker / ${{ matrix.os }}
+    needs: core
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v8
+        with:
+          name: browser-dist
+          path: dist
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Exercise isolated authoring workers and lifecycle failures
+        run: node --test kit/test/mcp.test.mjs
+
   lean-conformance:
     name: Lean runtime comparison
     needs: core
@@ -162,6 +183,7 @@ jobs:
           path: |
             test-results/lean-conformance/*.json
             test-results/lean-conformance/*.cav
+            test-results/lean-conformance/*.rs
             test-results/lean-conformance/*.stdout
             test-results/lean-conformance/*.stderr
             test-results/lean-verification/

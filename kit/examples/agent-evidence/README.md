@@ -1,10 +1,8 @@
 # Agent evidence: calling Caveat from an application
 
-> npm publication verified 2026-10-02T21:37:31.290Z: exact **caveat-lang@0.1.0-rc.8**,
-> retained Linux artifact SHA256 `75dab1f97a95774e4791303e38b484651379bfe922ede7805fa8dcf07828d021`.
-> `next` names rc.8; `latest` remains rc.5.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.8/npm-publication-verification.json).
-
+<!-- caveat-package:identity -->
+Package: **`caveat-lang@0.1.0-rc.9`**.
+<!-- /caveat-package:identity -->
 
 This example shows an application, such as an agent's harness, using a Caveat
 program as the place its assessment is made and recorded. The application
@@ -28,17 +26,21 @@ documents under `node_modules/caveat-lang/`.
 
 ## Run it
 
-In a project directory:
+In a project directory, install the exact package version printed above.
+If you were given a verified tarball, use its path or URL in place of the npm
+package specifier:
 
+<!-- caveat-package:agent-install -->
 ```sh
 npm init -y
-npm install caveat-lang@next
+npm install caveat-lang@0.1.0-rc.9
 cp -r node_modules/caveat-lang/examples/agent-evidence .
 cd agent-evidence
-npx --no-install caveat validate assessment.cav
-npx --no-install caveat check assessment.cav
+npx --no-install caveat-lang validate assessment.cav
+npx --no-install caveat-lang check assessment.cav
 python3 -B -m unittest -v test_caller
 ```
+<!-- /caveat-package:agent-install -->
 
 The example ships in the package from `0.1.0-rc.6`. With an earlier release
 there is no `examples/` folder, so `cp` finds nothing: take this folder from
@@ -396,7 +398,7 @@ restore and after every subsequent accepted or rejected event under both
 policies. Serve's `explain` event list starts again after restore; the snapshot
 retains the decision and observation history.
 
-From this repository checkout or the installed rc.8 package, run the lifecycle
+From this repository checkout or the installed package, run the lifecycle
 suite separately from the original 53 tests:
 
 ```sh
