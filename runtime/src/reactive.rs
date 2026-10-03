@@ -4359,10 +4359,13 @@ impl ReactiveSession {
                     .and_then(|series| series.current.as_ref())
                     .unwrap_or(action)
                     .clone();
-                let id = *self
-                    .symbols
-                    .get(&current)
-                    .ok_or_else(|| format!("cannot reopen uncommitted action {action}"))?;
+                let id = *self.symbols.get(&current).ok_or_else(|| {
+                    DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::NotCommitted,
+                        format!("cannot reopen uncommitted action {action}"),
+                    )
+                })?;
                 let (because, cause) = match because {
                     EvidenceSelector::Named(name) => {
                         let name = self.occurrence(name).to_string();

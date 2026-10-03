@@ -34,7 +34,8 @@ export type KnownRejectionCode =
   | 'unobserved_evidence'
   | 'expression'
   | 'requirement_failed'
-  | 'scheduled_limit';
+  | 'scheduled_limit'
+  | 'not_committed';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */

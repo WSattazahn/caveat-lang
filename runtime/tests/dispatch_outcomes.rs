@@ -1053,12 +1053,10 @@ fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, 
 }
 
 #[test]
-fn recovery_classification_does_not_swallow_unavailable_history_or_uncommitted_reopening() {
+fn recovery_classification_does_not_swallow_unavailable_history_or_a_negative_root() {
     for source in [
         "claim safe; evidence sensor from \"sensor\"; readings samples from sensor limit 2; \
          state value = 0; event run; on run set value = latest(samples);",
-        "claim safe; evidence reason from \"reason\"; reason supports safe; \
-         decisions plan limit 2; event run; on run reopen plan because reason;",
         "state value = 0; event run; on run set value = sqrt(0 - 1);",
     ] {
         let mut game = session(source);
@@ -1077,6 +1075,7 @@ event see;
 on see reveal never supports safe;
 "#;
 
+// Version Lab F154, F78, F158: acting on evidence no event has observed.
 #[test]
 fn acting_on_unobserved_evidence_is_recoverable() {
     for (refusal, message) in [
@@ -1120,6 +1119,25 @@ fn acting_on_unobserved_evidence_is_recoverable() {
     }
 }
 
+// Version Lab F158: reopening a decision series that has no commitment.
+#[test]
+fn reopening_an_uncommitted_decision_is_recoverable() {
+    for refusal in [
+        "on advance when blocked == 1 reopen spare because sight;",
+        "proc retry() { reopen spare because sight; }; on advance when blocked == 1 call retry();",
+    ] {
+        let source = format!("{TIMED}\ndecisions spare limit 2;\n{refusal}");
+        recover_after_refusal(
+            &source,
+            "evaluation",
+            "not_committed",
+            "cannot reopen uncommitted action spare",
+            "unblock",
+        );
+    }
+}
+
+// Version Lab F104, F212: division by zero, nonfinite results, history indexes.
 #[test]
 fn expression_failures_in_rules_and_bindings_are_recoverable() {
     for (refusal, message) in [
@@ -1188,6 +1206,7 @@ fn a_false_requirement_is_recoverable() {
     }
 }
 
+// Version Lab F184: the 4,097th pending `qualify … after`.
 #[test]
 fn a_full_scheduled_qualification_table_refuses_the_event_and_the_session_continues() {
     // Each `load` schedules 64, so 64 of them fill the table of 4,096.

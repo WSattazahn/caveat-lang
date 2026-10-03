@@ -271,6 +271,40 @@ could not.
   differential, at or below hand-written cost, with every existing program
   loading unchanged, and a second real program that is simpler with it.
 
+## Version Lab digest additions
+
+The owner's second rc.11 plan (2026-10-03), from the Version Lab digest
+(findings through F260, measured on published rc.3 to rc.10), adds to the scope
+above. It was re-checked against `00be10d`, so the lab's rc.10 measurements
+describe the starting point. The same evidence rule applies: reproduce each item
+in a repository regression before changing behavior, and name regression cases
+after the finding they reproduce.
+
+Already resolved at the starting point, no work: F169 (view fields), F249 and
+F250 (the two rc.10 classifications), and F105 with the prose half of F95 (the
+save contract already states these). The lab's stability pins stay green; per
+F259, new `dependents` fields are additive keys only.
+
+| Digest item | Finding | Where it lands |
+| --- | --- | --- |
+| A1 nested unknown save fields | F247 | Restore hardening (PR 3 above, 3c) |
+| A2 kind and reachability checks for last-event effects and cues | F248, F115 | Restore hardening (PR 3, 3a and 3b) |
+| A3 source-capability check for restored `qualifies` edges and schedules | F95, F260 | **Pending the owner's compatibility-policy decision**; recommended policy is to refuse only a pair no source mechanism can create |
+| B1 the 4,097th pending qualification | F184 | PR 1, as `limit/scheduled_limit` (the digest's `schedule_limit` predates PR 1) |
+| B2 unobserved qualify and reopen, uncommitted reopen, mislabelled diagnostic | F154, F158 | PR 1: `evaluation/unobserved_evidence` and `evaluation/not_committed` |
+| B3 expression failures at dispatch | F212 | **Pending the owner's decision.** PR 1 already refuses them as `evaluation/expression`, from the first plan; keep, rename to `evaluation/expression_failed`, or leave fatal |
+| B4 guard the elapsed accumulator | F151 | Its own PR; owns `spec/caveat-elapsed-0.1.md` (moves out of PR 2) |
+| C1 the function limit counts the prelude | F257, F258 | Its own PR |
+| C2 the scenarios spec's `size` example | F143 | PR 2, with an executable check of the spec's step examples |
+| C3 say what "strict subset" applies to | R54 | PR 2, one sentence in `spec/caveat-save-0.1.md` |
+| C4 keep the dispatch still-fatal list true | — | PR 1 |
+
+Out of scope, from the digest: `abstain` (a feature request, if the lab posts
+one, goes through the `AGENTS.md` process and is not implemented in rc.11; none
+was open on 2026-10-03), authenticated host persistence or signed saves (A3
+narrows acceptance and does not authenticate history), and any reclassification
+beyond B1 to B3.
+
 ## Explicitly out of scope for rc.11
 
 - `abstain` syntax, public `whatif`, scenario string matchers — still deferred
@@ -346,3 +380,6 @@ Muse measurements remain external evidence until reproduced here.
 - Owner decisions: the `require(false)` code is
   `evaluation/requirement_failed`; rc.11 is promoted to `latest` at
   publication, through the PR 4a workflow only.
+- PR 1 (#96): the six sites above plus the digest's uncommitted reopen
+  (F158) refuse with classified codes; still-fatal lists in the dispatch spec
+  and `REFERENCE.md` updated.

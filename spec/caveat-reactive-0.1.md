@@ -167,7 +167,8 @@ Insufficient attention rejects the event. Committing an already existing action
 is an error; `not committed(...)` supports a one-time commitment.
 
 A reactive reopening requires an existing commitment and observed evidence.
-Unobserved evidence refuses the event as `evaluation/unobserved_evidence`
+Unobserved evidence refuses the event as `evaluation/unobserved_evidence`, and
+a series with no commitment as `evaluation/not_committed`
 ([Dispatch 0.1](caveat-dispatch-0.1.md)).
 Reopening preserves retained caveats and records the evidence responsible.
 Different newly observed evidence can add further reopening edges.

@@ -646,6 +646,8 @@ try {
         'history index 3 is out of range for readings_log'],
       ['binding-division', 'evaluation', 'expression', 'bind hud.ratio = if(elapsed() >= 0.25 and blocked == 1, 1 / (blocked - 1), 0);',
         'division by zero in expression'],
+      ['not-committed', 'evaluation', 'not_committed', 'decisions spare limit 2; on advance when blocked == 1 reopen spare because sight;',
+        'cannot reopen uncommitted action spare'],
       ['require', 'evaluation', 'requirement_failed', 'on advance when blocked == 1 set output = require(blocked == 0, 1);',
         'source expression requirement failed'],
       ['binding-require', 'evaluation', 'requirement_failed', 'bind hud.required = if(elapsed() >= 0.25, require(blocked == 0, 1), 0);',
@@ -658,7 +660,6 @@ try {
 
     for (const [name, source] of [
       ['unavailable-history', 'claim safe; evidence sensor from "sensor"; readings samples from sensor limit 2; state value = 0; event run; on run set value = latest(samples);'],
-      ['uncommitted-reopening', 'claim safe; evidence reason from "reason"; reason supports safe; decisions plan limit 2; event run; on run reopen plan because reason;'],
       ['negative-sqrt', 'state value = 0; event run; on run set value = sqrt(0 - 1);'],
     ]) {
       check(name + ' remains fatal', () => {

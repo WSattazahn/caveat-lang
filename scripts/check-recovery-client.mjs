@@ -63,6 +63,23 @@ bind hud.kept = kept;
 `,
   },
   {
+    name: 'not-committed', origin: 'evaluation', code: 'not_committed',
+    source: `claim known;
+evidence memo from "the memo";
+decisions plan limit 2;
+state kept = 0;
+event setup;
+event fail;
+event resume_work;
+on setup reveal memo supports known;
+on setup set kept = 1;
+on fail set kept = 99;
+on fail reopen plan because memo;
+on resume_work set kept = 2;
+bind hud.kept = kept;
+`,
+  },
+  {
     name: 'expression', origin: 'evaluation', code: 'expression',
     source: `state kept = 0;
 state divisor = 0;

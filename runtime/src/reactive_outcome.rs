@@ -38,6 +38,7 @@ pub enum RejectionCode {
     Expression,
     RequirementFailed,
     ScheduledLimit,
+    NotCommitted,
 }
 
 #[derive(Debug, Serialize)]
@@ -287,6 +288,7 @@ mod tests {
                 RejectionCode::RequirementFailed,
             ),
             (RejectionOrigin::Limit, RejectionCode::ScheduledLimit),
+            (RejectionOrigin::Evaluation, RejectionCode::NotCommitted),
         ];
         let failures = || {
             codes
