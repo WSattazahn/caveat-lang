@@ -207,3 +207,21 @@ test('restore refuses a declared cue the last event cannot emit', () => {
     assert.equal(session.dispatch('ring').outcome, 'accepted');
   } finally { session.close(); resumed?.close(); }
 });
+
+test('restore refuses an effect the last event cannot make', () => {
+  const session = runtime.open(effectSource);
+  let resumed;
+  try {
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    const examined = session.save();
+    assert.deepEqual(JSON.parse(examined).effects, [{ kind: 'examine', caveat: 'stale', cost: 1 }]);
+    resumed = runtime.restore(effectSource, examined);
+    assert.deepEqual(resumed.snapshot().effects, session.snapshot().effects);
+    assert.equal(session.dispatch('observe').outcome, 'accepted');
+    const observed = JSON.parse(session.save());
+    observed.effects.push({ kind: 'examine', caveat: 'stale', cost: 1 });
+    refuses(effectSource, observed, /examine effect is not one the last event can make/);
+    assert.equal(resumed.dispatch('observe').outcome, 'accepted');
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+  } finally { session.close(); resumed?.close(); }
+});

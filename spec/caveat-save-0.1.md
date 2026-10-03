@@ -116,8 +116,16 @@ save is refused with an error, and never crashes the runtime, when:
 - the attention budget does not add up to the program's;
 - it shows a cue that no `emit` the last event's rules reach, directly or
   through the procedures they call, can show. A save with no last event shows
-  none. Rule conditions are not evaluated again: this establishes that the
-  event could emit the cue, not that it did;
+  none;
+- it reports an effect that no rule effect the last event reaches could make:
+  one of the same kind (`sample`, `reveal`, `examine`, `commit`, `reopen`,
+  `qualify`, `renew` or `withdraw`) on the same names, where a renewable
+  evidence, reading stream or decision series the source names reports one of
+  its occurrences or revisions. A reading's reopening trigger reports its
+  `reopen`, and the clock's event reports a caveat scheduled by any rule's
+  `qualify ... after`. For cues and effects alike, rule conditions are not
+  evaluated again: this establishes that the event could make what the save
+  shows, not that it did;
 - the decision journal disagrees with the graph's commitment/reopening order,
   the frozen grounds or numeric basis, the revision chain, or the observed
   evidence and declared caveats it cites;

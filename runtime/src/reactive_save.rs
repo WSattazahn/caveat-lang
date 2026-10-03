@@ -320,6 +320,20 @@ fn attention_from_name(name: &str) -> Result<Attention, String> {
 }
 
 /// `NAME@N` split into its parts.
+/// An effect's kind, as a save writes it.
+fn effect_kind(effect: &EffectReport) -> &'static str {
+    match effect {
+        EffectReport::Sample { .. } => "sample",
+        EffectReport::Reveal { .. } => "reveal",
+        EffectReport::Examine { .. } => "examine",
+        EffectReport::Commit { .. } => "commit",
+        EffectReport::Reopen { .. } => "reopen",
+        EffectReport::Qualify { .. } => "qualify",
+        EffectReport::Renew { .. } => "renew",
+        EffectReport::Withdraw { .. } => "withdraw",
+    }
+}
+
 fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
     let (base, ordinal) = name.rsplit_once('@')?;
     let ordinal: usize = ordinal.parse().ok()?;
@@ -1216,7 +1230,7 @@ impl ReactiveSession {
         let last_effects = save
             .last_event
             .as_deref()
-            .map(|event| self.event_effects(event))
+            .map(|event| self.reached_effects(Some(event)))
             .unwrap_or_default();
         let mut cues = Vec::new();
         for (id, qualification) in save.cues.iter().zip(&save.cue_qualifications) {
@@ -1302,6 +1316,12 @@ impl ReactiveSession {
                 .find(|name| !self.symbols.contains_key(*name))
             {
                 return Err(format!("an effect names unknown {name}"));
+            }
+            if !self.last_event_can_make(effect, &last_effects, save.last_event.as_deref()) {
+                return Err(format!(
+                    "{} effect is not one the last event can make",
+                    effect_kind(effect)
+                ));
             }
         }
         self.check_saved_journal(save, observed)?;
@@ -1541,15 +1561,15 @@ impl ReactiveSession {
         Ok(())
     }
 
-    /// Every effect a rule of `event` reaches, directly or through the
-    /// procedures it calls, as the source compiled them. Conditions are
-    /// ignored: their historical values are unavailable, so this is what the
-    /// event could have done, not what it did.
-    fn event_effects(&self, event: &str) -> Vec<&Effect> {
+    /// Every effect a rule of `event` reaches, or with `None` of any event,
+    /// directly or through the procedures it calls, as the source compiled
+    /// them. Conditions are ignored: their historical values are unavailable,
+    /// so this is what the event could have done, not what it did.
+    fn reached_effects(&self, event: Option<&str>) -> Vec<&Effect> {
         let mut pending = self
             .rules
             .iter()
-            .filter(|rule| rule.event == event)
+            .filter(|rule| event.is_none_or(|event| rule.event == event))
             .map(|rule| &rule.effect)
             .collect::<Vec<_>>();
         let mut visited = HashSet::new();
@@ -1565,6 +1585,136 @@ impl ReactiveSession {
             reached.push(effect);
         }
         reached
+    }
+
+    /// Whether a rule effect the last event reaches, `reached`, could report
+    /// `effect`: the same kind of effect, on the names its place takes. A
+    /// renewable evidence or reading stream the source names reports one of
+    /// its occurrences. Two reports come from no rule effect of their own: a
+    /// reading's reopening trigger reopens its series, and the clock's event
+    /// applies a scheduled `qualify ... after` from any rule.
+    fn last_event_can_make(
+        &self,
+        effect: &EffectReport,
+        reached: &[&Effect],
+        last_event: Option<&str>,
+    ) -> bool {
+        let named = |reported: &str, source: &str| {
+            reported == source || occurrence_parts(reported).is_some_and(|(base, _)| base == source)
+        };
+        let selects = |reported: &str, selector: &EvidenceSelector| match selector {
+            EvidenceSelector::Named(source) | EvidenceSelector::Latest(source) => {
+                named(reported, source)
+            }
+            EvidenceSelector::Caveated { .. } => true,
+        };
+        reached.iter().any(|rule| match (effect, rule) {
+            (
+                EffectReport::Sample {
+                    stream,
+                    id,
+                    relation,
+                    target,
+                    ..
+                },
+                Effect::Sample {
+                    stream: source,
+                    relation: stance,
+                    claim,
+                    ..
+                },
+            ) => {
+                stream == source
+                    && named(id, source)
+                    && relation == relation_name(*stance)
+                    && target == claim
+            }
+            (
+                EffectReport::Reveal {
+                    evidence,
+                    relation: None,
+                    target: None,
+                },
+                Effect::Observe { evidence: source },
+            ) => named(evidence, source),
+            (
+                EffectReport::Reveal {
+                    evidence,
+                    relation: Some(relation),
+                    target: Some(target),
+                },
+                Effect::Reveal {
+                    evidence: source,
+                    relation: stance,
+                    claim,
+                },
+            ) => named(evidence, source) && relation == relation_name(*stance) && target == claim,
+            (
+                EffectReport::Examine { caveat, cost },
+                Effect::Examine {
+                    caveat: source,
+                    cost: spent,
+                },
+            ) => caveat == source && cost == spent,
+            (EffectReport::Commit { action, .. }, Effect::Commit { action: source, .. }) => {
+                named(action, source)
+            }
+            (
+                EffectReport::Reopen { action, because },
+                Effect::Reopen {
+                    action: source,
+                    because: selector,
+                },
+            ) => named(action, source) && selects(because, selector),
+            (
+                EffectReport::Reopen { action, because },
+                Effect::Sample {
+                    stream,
+                    relation,
+                    claim,
+                    ..
+                },
+            ) => {
+                named(because, stream)
+                    && self.reopening_triggers.iter().any(|(series, triggers, _)| {
+                        named(action, series)
+                            && triggers
+                                .iter()
+                                .any(|trigger| trigger.matches(stream, *relation, claim))
+                    })
+            }
+            (
+                EffectReport::Qualify { evidence, caveat },
+                Effect::Qualify {
+                    evidence: source,
+                    caveat: added,
+                    after: None,
+                },
+            ) => named(evidence, source) && caveat == added,
+            (
+                EffectReport::Renew {
+                    evidence,
+                    occurrence,
+                },
+                Effect::Renew { evidence: source },
+            ) => evidence == source && named(occurrence, source),
+            (
+                EffectReport::Withdraw { evidence, because },
+                Effect::Withdraw {
+                    target,
+                    because: reason,
+                },
+            ) => selects(evidence, target) && named(because, reason),
+            _ => false,
+        }) || matches!(effect, EffectReport::Qualify { evidence, caveat }
+        if last_event.is_some() && last_event == self.time_event.as_deref()
+            && self.reached_effects(None).iter().any(|reached| {
+                matches!(reached, Effect::Qualify {
+                    evidence: source,
+                    caveat: added,
+                    after: Some(_),
+                } if named(evidence, source) && caveat == added)
+            }))
     }
 
     /// Ignore conditions (their historical values are unavailable), but require
