@@ -114,6 +114,10 @@ save is refused with an error, and never crashes the runtime, when:
   limit, has a revision without a basis, or a current entry that is not its
   latest;
 - the attention budget does not add up to the program's;
+- it shows a cue that no `emit` the last event's rules reach, directly or
+  through the procedures they call, can show. A save with no last event shows
+  none. Rule conditions are not evaluated again: this establishes that the
+  event could emit the cue, not that it did;
 - the decision journal disagrees with the graph's commitment/reopening order,
   the frozen grounds or numeric basis, the revision chain, or the observed
   evidence and declared caveats it cites;

@@ -1213,6 +1213,11 @@ impl ReactiveSession {
         if save.cue_qualifications.len() != save.cues.len() {
             return Err("its cues and their qualifications do not match".into());
         }
+        let last_effects = save
+            .last_event
+            .as_deref()
+            .map(|event| self.event_effects(event))
+            .unwrap_or_default();
         let mut cues = Vec::new();
         for (id, qualification) in save.cues.iter().zip(&save.cue_qualifications) {
             cues.push(
@@ -1221,6 +1226,13 @@ impl ReactiveSession {
                     .cloned()
                     .ok_or_else(|| format!("unknown cue {id}"))?,
             );
+            // Only an `emit` the last event's rules reach shows a cue.
+            if !last_effects
+                .iter()
+                .any(|effect| matches!(effect, Effect::Emit { name } if name == id))
+            {
+                return Err(format!("cue {id} is not one the last event can emit"));
+            }
             self.check_provenance(&format!("cue {id}"), &qualification.0, observed)?;
         }
         for effect in &save.effects {
@@ -1527,6 +1539,32 @@ impl ReactiveSession {
             }
         }
         Ok(())
+    }
+
+    /// Every effect a rule of `event` reaches, directly or through the
+    /// procedures it calls, as the source compiled them. Conditions are
+    /// ignored: their historical values are unavailable, so this is what the
+    /// event could have done, not what it did.
+    fn event_effects(&self, event: &str) -> Vec<&Effect> {
+        let mut pending = self
+            .rules
+            .iter()
+            .filter(|rule| rule.event == event)
+            .map(|rule| &rule.effect)
+            .collect::<Vec<_>>();
+        let mut visited = HashSet::new();
+        let mut reached = Vec::new();
+        while let Some(effect) = pending.pop() {
+            if let Effect::Call { name, .. } = effect {
+                if visited.insert(name) {
+                    if let Some(procedure) = self.procedures.get(name) {
+                        pending.extend(procedure.body.iter().map(|step| &step.effect));
+                    }
+                }
+            }
+            reached.push(effect);
+        }
+        reached
     }
 
     /// Ignore conditions (their historical values are unavailable), but require

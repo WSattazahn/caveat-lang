@@ -40,11 +40,27 @@ on decide commit after because enough using score;
 bind hud.score = score;
 `;
 
-function refuses(source, edited) {
+const effectSource = `
+budget 2;
+claim ready;
+evidence sensor from "sensor";
+caveat stale consequence low;
+cue ping toast "Ping" 1;
+event observe;
+event ring;
+event quiet;
+proc chime() { emit ping; };
+on observe reveal sensor supports ready;
+on ring call chime();
+on quiet examine stale cost 1;
+`;
+
+function refuses(source, edited, message = /cannot restore save:/) {
   assert.throws(() => {
     const unexpected = runtime.restore(source, JSON.stringify(edited));
     unexpected.close();
-  }, error => error.kind === 'restore' && /cannot restore save:/.test(error.message));
+  }, error => error.kind === 'restore' && /cannot restore save:/.test(error.message)
+    && message.test(error.message));
 }
 
 test('restore accepts one structurally valid unauthored qualification as live and later freezes it in grounds', () => {
@@ -170,4 +186,24 @@ test('the executable host preserves save text; JSON normalization changes signed
     await unlink(checkpoint).catch(error => { if (error.code !== 'ENOENT') throw error; });
     await rmdir(directory);
   }
+});
+
+test('restore refuses a declared cue the last event cannot emit', () => {
+  const session = runtime.open(effectSource);
+  let resumed;
+  try {
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+    const rung = JSON.parse(session.save());
+    assert.deepEqual(rung.cues, ['ping']);
+    resumed = runtime.restore(effectSource, JSON.stringify(rung));
+    assert.deepEqual(resumed.snapshot().cues, session.snapshot().cues);
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    const quiet = JSON.parse(session.save());
+    assert.equal(quiet.cues, undefined);
+    quiet.cues = ['ping'];
+    quiet.cue_qualifications = [{}];
+    refuses(effectSource, quiet, /cue ping is not one the last event can emit/);
+    assert.equal(resumed.dispatch('quiet').outcome, 'accepted');
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+  } finally { session.close(); resumed?.close(); }
 });

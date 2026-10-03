@@ -2206,3 +2206,163 @@ fn every_relation_an_event_adds_restores() {
         ]
     );
 }
+
+/// Every kind of effect and a cue, each made by one event: directly, through
+/// a procedure, by a reading's reopening trigger, and by a scheduled caveat
+/// a tick applies. The rc.11 restore checks (cues, effect kinds) are made
+/// against this program's rules.
+const EFFECTS: &str = r#"
+budget 4;
+claim safe;
+claim misreading;
+evidence chart from "archive";
+evidence bite from "bite";
+evidence recheck from "recheck";
+evidence ci from "ci";
+evidence memo from "memo";
+caveat stale consequence low;
+caveat faded consequence low;
+renewable bite limit 4;
+readings checks from ci limit 8;
+decisions go limit 4 reopened by checks;
+cue ping toast "Ping" 1;
+cue bell toast "Bell" 1;
+event tick dt min 0 max 0.1;
+event look;
+event eat;
+event check result min 0 max 1;
+event decide;
+event regrow;
+event misread;
+event note;
+event audit;
+proc chime() {
+    emit bell;
+    examine stale cost 1;
+};
+on look reveal chart supports safe;
+on look qualify chart with stale;
+on eat reveal bite supports safe;
+on eat qualify bite with faded after 0.05;
+on eat emit ping;
+on check sample checks = result supports safe;
+on decide commit go because enough using latest(checks);
+on regrow renew bite;
+on misread when not observed(recheck) reveal recheck supports misreading;
+on misread withdraw latest(checks) because recheck;
+on note reveal memo;
+on audit call chime();
+"#;
+
+/// `EFFECTS` played through every event, with the save after each.
+fn effect_saves() -> Vec<(&'static str, serde_json::Value)> {
+    let mut game = ReactiveSession::from_source(EFFECTS).unwrap();
+    let steps: [(&str, &[(&str, f64)]); 10] = [
+        ("look", &[]),
+        ("eat", &[]),
+        ("check", &[("result", 1.0)]),
+        ("decide", &[]),
+        ("check", &[("result", 0.0)]),
+        ("tick", &[("dt", 0.1)]),
+        ("regrow", &[]),
+        ("misread", &[]),
+        ("note", &[]),
+        ("audit", &[]),
+    ];
+    steps
+        .into_iter()
+        .map(|(event, parameters)| {
+            send(&mut game, event, parameters);
+            let save = serde_json::to_value(game.save().unwrap()).unwrap();
+            (event, save)
+        })
+        .collect()
+}
+
+/// The save `EFFECTS` writes after `event`.
+fn effect_save(event: &str) -> serde_json::Value {
+    effect_saves()
+        .into_iter()
+        .rev()
+        .find(|(after, _)| *after == event)
+        .unwrap()
+        .1
+}
+
+fn refused_effects(save: &serde_json::Value, expected: &str) {
+    match ReactiveSession::restore_json(EFFECTS, &save.to_string()) {
+        Err(error) => assert_eq!(error, format!("cannot restore save: {expected}")),
+        Ok(game) => panic!(
+            "accepted with effects {:?} and cues {:?}",
+            game.snapshot().effects,
+            save["cues"]
+        ),
+    }
+}
+
+// The saves the runtime writes after each event restore, whatever effects and
+// cues that event made, and the restored session goes on as the original.
+#[test]
+fn every_save_of_each_effect_and_cue_restores() {
+    let saves = effect_saves();
+    let made = |event: &str| -> serde_json::Value {
+        let save = &saves
+            .iter()
+            .rev()
+            .find(|(after, _)| *after == event)
+            .unwrap()
+            .1;
+        serde_json::json!([save["effects"], save["cues"]])
+    };
+    assert_eq!(
+        made("eat"),
+        serde_json::json!([
+            [
+                {"kind": "reveal", "evidence": "bite", "relation": "supports", "target": "safe"}
+            ],
+            ["ping"]
+        ])
+    );
+    assert_eq!(made("audit")[1], serde_json::json!(["bell"]));
+    assert_eq!(made("tick")[0][0]["kind"], "qualify");
+    assert_eq!(made("check")[0][1]["kind"], "reopen");
+    for (event, save) in &saves {
+        let mut resumed = ReactiveSession::restore_json(EFFECTS, &save.to_string())
+            .unwrap_or_else(|error| panic!("after {event}: {error}"));
+        assert_eq!(
+            serde_json::to_value(resumed.save().unwrap()).unwrap(),
+            *save,
+            "after {event}"
+        );
+        send(&mut resumed, "tick", &[("dt", 0.1)]);
+    }
+}
+
+// F115: a cue the program declares, but the last event cannot emit, was
+// restored and shown.
+#[test]
+fn a_cue_the_last_event_cannot_emit_is_refused() {
+    let mut look = effect_save("look");
+    look["cues"] = serde_json::json!(["ping"]);
+    look["cue_qualifications"] = serde_json::json!([{}]);
+    refused_effects(&look, "cue ping is not one the last event can emit");
+    // A cue its procedure emits is not one another event's rule emits.
+    let mut audit = effect_save("audit");
+    audit["cues"] = serde_json::json!(["ping"]);
+    refused_effects(&audit, "cue ping is not one the last event can emit");
+    let mut eat = effect_save("eat");
+    eat["cues"] = serde_json::json!(["ping", "bell"]);
+    eat["cue_qualifications"] = serde_json::json!([{}, {}]);
+    refused_effects(&eat, "cue bell is not one the last event can emit");
+    // A fresh session has no last event, so it shows no cue.
+    let mut fresh = serde_json::to_value(
+        ReactiveSession::from_source(EFFECTS)
+            .unwrap()
+            .save()
+            .unwrap(),
+    )
+    .unwrap();
+    fresh["cues"] = serde_json::json!(["ping"]);
+    fresh["cue_qualifications"] = serde_json::json!([{}]);
+    refused_effects(&fresh, "cue ping is not one the last event can emit");
+}
