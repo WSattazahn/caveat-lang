@@ -225,3 +225,21 @@ test('restore refuses an effect the last event cannot make', () => {
     assert.equal(session.dispatch('ring').outcome, 'accepted');
   } finally { session.close(); resumed?.close(); }
 });
+
+test('restore refuses a field the schema lacks in a nested record', () => {
+  const session = runtime.open(sparseSource);
+  try {
+    assert.equal(session.dispatch('observe', { value: 85 }).outcome, 'accepted');
+    for (const edit of [
+      saved => { saved.decision_journal[0].zz = 1; },
+      saved => { saved.commitment_bases['before@1'].zz = 1; },
+      saved => { saved.decision_series.before.revisions[0].zz = 1; },
+      saved => { saved.effects[0].zz = 1; },
+    ]) {
+      const saved = JSON.parse(session.save());
+      edit(saved);
+      refuses(sparseSource, saved, /unknown field `zz`/);
+    }
+    assert.equal(session.dispatch('decide').outcome, 'accepted');
+  } finally { session.close(); }
+});

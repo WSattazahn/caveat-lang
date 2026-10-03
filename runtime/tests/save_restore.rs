@@ -2448,3 +2448,43 @@ fn an_effect_the_last_event_cannot_make_is_refused() {
     look["effects"][1]["evidence"] = "bite".into();
     refused_effects(&look, "qualify effect is not one the last event can make");
 }
+
+// F247: the save and its top-level records refused a field the schema lacks,
+// but the records nested in them did not, so `"zz": 1` in a journal entry or
+// commitment basis was restored silently and dropped from the next save. Each
+// record a save holds now refuses one, wherever it is.
+#[test]
+fn a_field_the_schema_lacks_is_refused_in_every_nested_record() {
+    let places: [(&str, &str); 16] = [
+        ("audit", "/commitment_bases/go@1"),
+        ("audit", "/commitment_bases/go@1/provenance"),
+        ("audit", "/decision_journal/0"),
+        ("audit", "/reading_streams/checks"),
+        ("audit", "/reading_streams/checks/occurrences/0"),
+        ("audit", "/reading_streams/checks/occurrences/0/provenance"),
+        ("audit", "/decision_series/go"),
+        ("audit", "/decision_series/go/revisions/0"),
+        ("audit", "/decision_series/go/selection_qualifications"),
+        ("audit", "/effects/0"),
+        ("audit", "/withdrawals/0"),
+        ("audit", "/graph"),
+        ("audit", "/graph/nodes/0"),
+        ("audit", "/resources"),
+        ("eat", "/scheduled_qualifications/0"),
+        ("eat", "/scheduled_qualifications/0/guard"),
+    ];
+    for (event, place) in places {
+        let mut save = effect_save(event);
+        save.pointer_mut(place)
+            .and_then(serde_json::Value::as_object_mut)
+            .unwrap_or_else(|| panic!("after {event}, {place} is not a record"))
+            .insert("zz".into(), 1.into());
+        let error = ReactiveSession::restore_json(EFFECTS, &save.to_string())
+            .map(|_| ())
+            .expect_err(place);
+        assert!(
+            error.starts_with("cannot restore save: unknown field `zz`"),
+            "{place}: {error}"
+        );
+    }
+}
