@@ -87,6 +87,12 @@ publication. Opening this development cycle does not publish a candidate.
   legacy Door page. A charset-free HTTP reproduction decoded its title as
   Windows-1252; the declaration corrects it, and the existing route check now
   asserts the exact rendered title. No scene or material settings change.
+- Investigation of a CI process-cleanup failure reproduced a race in the Python
+  test checker: a reaped process could be reported running, including after a
+  stopped observation. The checker now rechecks a missing process conservatively
+  and retains a confirmed stop; deterministic regressions also retain failure
+  for a genuinely live process. This proves the checker defect, not the exact
+  cause of that CI failure. Production process shutdown is unchanged.
 - Reproduction sources, runtime identity, before/after outputs and local command
   receipts are retained under `test-results/rc10-development/` in the working
   checkout; these generated receipts are not source files. PR checks supply the
