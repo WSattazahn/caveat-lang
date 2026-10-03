@@ -102,7 +102,7 @@ test('a full history refuses the event and the replay continues', async () => {
 });
 
 test('a fatal event stops the replay and the explanation is of the session before it', async () => {
-  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\ndecisions untyped limit 2;\non read when value > 1.5 commit untyped because enough;\non read when value > 1.5 set share = latest(untyped);';
+  const dividing = 'claim c;\nevidence e from "a";\nreadings r from e limit 4;\nstate share = 0;\nevent read value min 0 max 9;\non read sample r = value supports c;\non read when value > 1.5 set share = 1;\nbind hud.broken = id_text(share + 5) when share > 0;';
   await withFiles({ 'dividing.cav': dividing, 'events.jsonl': threeReads }, async file => {
     const result = run(file('dividing.cav'), file('events.jsonl'));
     assert.equal(result.status, 1);

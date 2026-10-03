@@ -130,7 +130,7 @@ The current relevant mappings are:
 | Provenance identifier-count or name-byte overflow | Fatal, `unclassified` |
 | Division by zero, a nonfinite result, a negative square root or an unavailable history read | Rejected, `evaluation/expression` |
 | A false `require` | Rejected, `evaluation/requirement_failed` |
-| `latest` of a decision committed without a numeric `using` value | Fatal, `unclassified` |
+| `id_text` of a number that is no identifier's handle | Fatal, `unclassified` |
 
 Provenance currently allows at most 1,024 evidence-plus-caveat identifiers and
 65,536 UTF-8 name bytes. Deduplicate within each category before accounting;
