@@ -24,7 +24,9 @@ The implementation is in [reactive_save.rs](../runtime/src/reactive_save.rs):
 `check_saved_journal` perform the relevant checks. The source fingerprint
 is computed by `source_identity` in [reactive.rs](../runtime/src/reactive.rs).
 `event_can_change_decision` intentionally ignores historical guard values,
-which the saved delta cannot reconstruct.
+which the saved delta cannot reconstruct. `restore_records` likewise requires
+each saved cue and effect to be one a rule effect of the saved last event
+could make, through `reached_effects`, without evaluating its conditions.
 
 A single added `["phantom", "qualifies", "sensor"]` relation can pass the
 current graph checks when its endpoints have the required kinds, even if no
