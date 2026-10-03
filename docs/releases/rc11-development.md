@@ -295,7 +295,7 @@ F259, new `dependents` fields are additive keys only.
 | B2 unobserved qualify and reopen, uncommitted reopen, mislabelled diagnostic | F154, F158 | PR 1: `evaluation/unobserved_evidence` and `evaluation/not_committed` |
 | B3 expression failures at dispatch | F212 | PR 1, as `evaluation/expression`; the owner chose to keep this code (2026-10-03) and asked that a negative `sqrt` and `latest` of an empty stream or series refuse under it too, so the line falls where a host can predict |
 | B4 guard the elapsed accumulator | F151 | Its own PR; owns `spec/caveat-elapsed-0.1.md` (moves out of PR 2) |
-| C1 the function limit counts the prelude | F257, F258 | Its own PR |
+| C1 the function limit counts the prelude | F257, F258 | In scope, its own PR: #100 counts only user declarations toward the 128-function limit |
 | C2 the scenarios spec's `size` example | F143 | PR 2, with an executable check of the spec's step examples |
 | C3 say what "strict subset" applies to | R54 | PR 2, one sentence in `spec/caveat-save-0.1.md` |
 | C4 keep the dispatch still-fatal list true | — | PR 1 |
@@ -316,12 +316,13 @@ beyond B1 to B3.
   (`experiments/performance-opt-0.1/RESULTS.md`).
 - Glowcap blind round 7 (`experiments/glowcap/RESULTS.md` L574). Run it against
   the tagged rc.11, as an experiment, after publication.
-- Source-capability restore validation (rc.12, above).
+- Source-capability restore validation beyond A3's gate (if the gate cannot be met, A3 moves to rc.12; see the digest table).
 - Implementing member symbols (PR 6 is a draft specification only) or merging
   any `$Q` runtime code from `feat/evidence-by-member`.
 - Any new language feature, any blanket fatal→refusal reclassification, any
   change to registered experiment inputs or results.
-- Muse's own open threads (its backfills, fn-limit probes, "on all six" sweep).
+- Muse's own open threads (its backfills and "on all six" sweep). Its fn-limit
+  probes are in scope as the digest's C1 (#100).
 
 ## Acceptance and verification
 
