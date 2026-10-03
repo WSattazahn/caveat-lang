@@ -396,3 +396,12 @@ Muse measurements remain external evidence until reproduced here.
   in an expression.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
+- PR 5 (#103): `game/before_the_rain.cav` and its scenarios from `b0c763b`,
+  with the two `$shown` blocks replaced by the hand-written rules quoted in
+  that commit's routed-repetition section 10; the file has no `$shown`.
+  `npm run test:before-the-rain` passes 12/12, with every outcome as on the
+  branch, so no finding is recorded. `caveat check` report: no warnings
+  (`diagnostics: []`, `suppressed: []`); no allow comments added. The
+  branch's editor commits stay on the branch: `cfd6a7e` targets
+  `editors/vscode/test/reference.test.mjs`, which main does not have, and
+  the other four mention `$Q`.
