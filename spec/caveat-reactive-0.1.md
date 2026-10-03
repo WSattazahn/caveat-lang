@@ -109,7 +109,9 @@ assignments must be numeric. `and` and `or` short-circuit. Standard arithmetic
 precedence applies; use parentheses to make combined conditions explicit.
 
 Division by zero, nonfinite results, negative square roots, and inverted clamp
-bounds are runtime errors. Expression parsing limits token count and nesting;
+bounds are runtime errors. During an event, the first two refuse it as
+`evaluation/expression` and an inverted clamp as `evaluation/requirement_failed`
+([Dispatch 0.1](caveat-dispatch-0.1.md)); a negative square root is fatal. Expression parsing limits token count and nesting;
 the interpreter executes parsed expressions and never evaluates host code.
 
 ## Reasoning changes the simulation
@@ -165,6 +167,8 @@ Insufficient attention rejects the event. Committing an already existing action
 is an error; `not committed(...)` supports a one-time commitment.
 
 A reactive reopening requires an existing commitment and observed evidence.
+Unobserved evidence refuses the event as `evaluation/unobserved_evidence`
+([Dispatch 0.1](caveat-dispatch-0.1.md)).
 Reopening preserves retained caveats and records the evidence responsible.
 Different newly observed evidence can add further reopening edges.
 

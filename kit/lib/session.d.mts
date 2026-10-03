@@ -30,7 +30,11 @@ export type KnownRejectionCode =
   | 'depth_limit'
   | 'history_limit'
   | 'identifier_limit'
-  | 'renewal_limit';
+  | 'renewal_limit'
+  | 'unobserved_evidence'
+  | 'expression'
+  | 'requirement_failed'
+  | 'scheduled_limit';
 export type RejectionCode = KnownRejectionCode | (string & {});
 
 /** An accepted event, from `dispatch`: the full snapshot after it. */

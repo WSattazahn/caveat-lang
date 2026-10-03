@@ -128,7 +128,9 @@ The current relevant mappings are:
 | Numeric assignment outside its declared range | Rejected, `evaluation/bound_exceeded` |
 | Payload outside its declared bound | Rejected, `input/bound_exceeded` |
 | Provenance identifier-count or name-byte overflow | Fatal, `unclassified` |
-| Arithmetic failure such as division by zero | Fatal, `unclassified` |
+| Division by zero, a nonfinite result or an unavailable history index | Rejected, `evaluation/expression` |
+| A false `require` | Rejected, `evaluation/requirement_failed` |
+| A negative square root | Fatal, `unclassified` |
 
 Provenance currently allows at most 1,024 evidence-plus-caveat identifiers and
 65,536 UTF-8 name bytes. Deduplicate within each category before accounting;
