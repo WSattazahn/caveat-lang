@@ -340,11 +340,11 @@ There is no implemented npm-kit package or tag-driven publishing workflow at
 the inspected head. Shipping a kit is a separate deliverable after this
 consolidation, not a side effect of merging the language stack.
 
-## Current release procedure addendum — 2026-10-02 UTC
+## Current release procedure addendum — 2026-10-03 UTC
 
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.9 verified release record](releases/v0.1.0-rc.9.md) for the current
+Use the [rc.10 verified release record](releases/v0.1.0-rc.10.md) for the current
 candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
