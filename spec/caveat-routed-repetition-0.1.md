@@ -519,7 +519,11 @@ following is prevented or reported.
   when an event names another, such as every stacked pull request reconsidering
   its decision when its base gets a new commit, cannot be written in a routed
   block: the route limits every copy to the member the event names. It is
-  written in a plain block, with its selection by hand.
+  written in a plain block, with its selection by hand. When another `kind`
+  parameter of the same event names the other member, the draft
+  [member symbols](caveat-member-symbols-0.1.md) profile, not implemented,
+  proposes a reference that names that member's symbol at dispatch; a member
+  kept in a state, such as a stacked pull request's base, stays outside it.
 
 Routing serves the common case, where a rule is about the member its event
 names. It does not make members private to their rules, and it does not make
