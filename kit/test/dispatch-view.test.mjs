@@ -122,7 +122,7 @@ test('every refusal is the object dispatch() returns, and changes nothing', () =
 });
 
 test('a fatal outcome is the report dispatch() throws, and ends the session', () => {
-  for (const expression of ['require(false, 1)', '1 / 0']) {
+  for (const expression of ['sqrt(0 - 1)', '-sqrt(output - 2)']) {
     const source = `state output = 0; event run; on run set output = 1; on run set output = ${expression};`;
     twins(source, (old, viewed) => {
       let expected;

@@ -240,7 +240,7 @@ test('a session, a runtime and a CaveatError have exactly the declared members',
   capture(() => session.dispatch('read', { value: NaN }));
   session.close();
   capture(() => session.dispatch('read', { value: 17 }));
-  const fatal = real.open('state output = 0; event run; on run set output = 1 / 0;');
+  const fatal = real.open('state output = 0; event run; on run set output = sqrt(0 - 1);');
   capture(() => fatal.dispatch('run'));
   const { runtime } = faulty({ dispatch: () => '{"schema":"caveat-dispatch/0.1","outcome":"maybe"}' });
   capture(() => runtime.open(thermostat).dispatch('read', { value: 17 }));
@@ -461,7 +461,7 @@ test('a server, its lines and its responses have the declared fields', () => {
   const results = lines.map(line => server.handle(JSON.stringify(line)));
   results.push(server.handle(JSON.stringify({ id: 9, op: 'restore', save: results[5].response.save })));
   results.push(server.handle(JSON.stringify({ id: 10, op: 'close' })));
-  const fatal = createServer({ runtime: real, source: 'state output = 0; event run; on run set output = 1 / 0;' });
+  const fatal = createServer({ runtime: real, source: 'state output = 0; event run; on run set output = sqrt(0 - 1);' });
   results.push(fatal.handle('{"op":"dispatch","event":"run"}'));
   assertShape('ServeResult', results, { complete: true });
   assert.deepEqual(sorted(results.map(result => String(result.exit))), ['0', '1', 'null']);

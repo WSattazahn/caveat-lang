@@ -24,7 +24,7 @@ on read sample values = value supports ready;
 on assess commit plan because enough using latest(values);
 on refuse set touched = 1;
 on refuse reject "fixture policy";
-on fault set touched = 1 / 0;
+on fault set touched = sqrt(0 - 1);
 bind display.value = touched;
 `;
 const events = [

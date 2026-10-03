@@ -44,6 +44,72 @@ on resume_work set kept = 2;
 bind hud.kept = kept;
 `,
   },
+  {
+    name: 'unobserved-evidence', origin: 'evaluation', code: 'unobserved_evidence',
+    source: `claim known;
+evidence memo from "the memo";
+caveat stale consequence low;
+state kept = 0;
+event setup;
+event see;
+event fail;
+event resume_work;
+on setup set kept = 1;
+on see reveal memo supports known;
+on fail set kept = 99;
+on fail qualify memo with stale;
+on resume_work set kept = 2;
+bind hud.kept = kept;
+`,
+  },
+  {
+    name: 'expression', origin: 'evaluation', code: 'expression',
+    source: `state kept = 0;
+state divisor = 0;
+event setup;
+event fail;
+event resume_work;
+on setup set kept = 1;
+on fail set kept = 99;
+on fail set kept = 1 / divisor;
+on resume_work set kept = 2;
+bind hud.kept = kept;
+`,
+  },
+  {
+    name: 'requirement-failed', origin: 'evaluation', code: 'requirement_failed',
+    source: `state kept = 0;
+event setup;
+event fail;
+event resume_work;
+on setup set kept = 1;
+on fail set kept = 99;
+on fail set kept = require(kept < 0, 1);
+on resume_work set kept = 2;
+bind hud.kept = kept;
+`,
+  },
+  {
+    // Each fill event schedules 64; 64 of them leave the table full.
+    name: 'scheduled-limit', origin: 'limit', code: 'scheduled_limit', fill: { event: 'load', times: 64 },
+    source: `claim known;
+evidence memo from "the memo";
+caveat stale consequence low;
+state kept = 0;
+event setup;
+event load;
+event fail;
+event resume_work;
+event advance dt min 0 max 1;
+clock advance every 1;
+on setup reveal memo supports known;
+on setup set kept = 1;
+${'on load qualify memo with stale after 100;\n'.repeat(64)}on fail set kept = 99;
+on fail qualify memo with stale after 100;
+on resume_work set kept = 2;
+bind hud.kept = kept;
+`,
+  },
 ];
 
 function assertRefusal(outcome, fixture) {
@@ -57,11 +123,14 @@ export async function checkRecoveryClient({ runtime, createServer, command, dire
   await mkdir(directory, { recursive: true });
   const checks = [];
   for (const fixture of cases) {
+    const fills = Array.from({ length: fixture.fill?.times ?? 0 }, () => fixture.fill.event);
+    const sequence = 2 + fills.length;
     for (const method of ['dispatch', 'dispatchView']) {
       const session = runtime.open(fixture.source);
       let restored;
       try {
         assert.equal(session.dispatch('setup').outcome, 'accepted');
+        for (const event of fills) assert.equal(session.dispatch(event).outcome, 'accepted');
         const before = checkpoint(session);
         assertRefusal(session[method]('fail'), fixture);
         assert.deepEqual(checkpoint(session), before, `${fixture.name}: ${method} rollback`);
@@ -72,7 +141,7 @@ export async function checkRecoveryClient({ runtime, createServer, command, dire
         for (const current of [session, restored]) {
           assert.equal(current[method]('resume_work').outcome, 'accepted');
           assert.equal(current.snapshot().bindings.hud.kept, 2);
-          assert.equal(current.snapshot().sequence, 2);
+          assert.equal(current.snapshot().sequence, sequence);
         }
         assert.deepEqual(checkpoint(restored), checkpoint(session));
       } finally { restored?.close(); session.close(); }
@@ -82,6 +151,7 @@ export async function checkRecoveryClient({ runtime, createServer, command, dire
     const send = request => server.handle(JSON.stringify(request));
     try {
       assert.equal(send({ op: 'dispatch', event: 'setup' }).response.outcome, 'accepted');
+      for (const event of fills) assert.equal(send({ op: 'dispatch', event }).response.outcome, 'accepted');
       const before = send({ op: 'save' }).response.save;
       const refused = send({ op: 'dispatch', event: 'fail' });
       assert.equal(refused.exit, null, 'a refusal keeps the server running');
@@ -95,28 +165,31 @@ export async function checkRecoveryClient({ runtime, createServer, command, dire
     const program = path.join(directory, `${fixture.name}.cav`);
     await writeFile(program, fixture.source);
     const requests = [
-      { id: 1, op: 'dispatch', event: 'setup' },
-      { id: 2, op: 'save' },
-      { id: 3, op: 'dispatch', event: 'fail' },
-      { id: 4, op: 'save' },
-      { id: 5, op: 'dispatch', event: 'resume_work', snapshot: true },
-      { id: 6, op: 'close' },
-    ];
+      { op: 'dispatch', event: 'setup' },
+      ...fills.map(event => ({ op: 'dispatch', event })),
+      { op: 'save' },
+      { op: 'dispatch', event: 'fail' },
+      { op: 'save' },
+      { op: 'dispatch', event: 'resume_work', snapshot: true },
+      { op: 'close' },
+    ].map((request, index) => ({ id: index + 1, ...request }));
     const child = spawnSync(command[0], [...command.slice(1), 'serve', program], {
       cwd: directory, input: requests.map(request => JSON.stringify(request)).join('\n') + '\n',
-      encoding: 'utf8', timeout: 30000, windowsHide: true,
+      encoding: 'utf8', timeout: 30000, windowsHide: true, maxBuffer: 64 * 1024 * 1024,
     });
     assert.equal(child.error, undefined, child.error?.message);
     assert.equal(child.status, 0, `${fixture.name}: ${child.stderr}\n${child.stdout}`);
-    const [ready, ...responses] = child.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+    const [ready, ...all] = child.stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
     assert.equal(ready.ready, true);
-    assert.deepEqual(responses.map(response => response.id), [1, 2, 3, 4, 5, 6]);
+    assert.deepEqual(all.map(response => response.id), requests.map(request => request.id));
+    for (const response of all.slice(1, 1 + fills.length)) assert.equal(response.outcome, 'accepted');
+    const responses = [all[0], ...all.slice(1 + fills.length)];
     assert.equal(responses[2].ok, true);
     assertRefusal(responses[2], fixture);
     assert.equal(responses[3].save, responses[1].save);
     assert.equal(responses[4].outcome, 'accepted');
     assert.equal(responses[4].snapshot.bindings.hud.kept, 2);
-    assert.equal(responses[4].snapshot.sequence, 2);
+    assert.equal(responses[4].snapshot.sequence, sequence);
     checks.push({ name: fixture.name, origin: fixture.origin, code: fixture.code,
       dispatch: true, dispatchView: true, restoreAndContinue: true, server: true, cli: true });
   }
