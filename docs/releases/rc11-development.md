@@ -292,7 +292,7 @@ F259, new `dependents` fields are additive keys only.
 | A3 source-capability check for restored `qualifies` edges and schedules | F95, F260 | **Pending the owner's compatibility-policy decision**; recommended policy is to refuse only a pair no source mechanism can create |
 | B1 the 4,097th pending qualification | F184 | PR 1, as `limit/scheduled_limit` (the digest's `schedule_limit` predates PR 1) |
 | B2 unobserved qualify and reopen, uncommitted reopen, mislabelled diagnostic | F154, F158 | PR 1: `evaluation/unobserved_evidence` and `evaluation/not_committed` |
-| B3 expression failures at dispatch | F212 | **Pending the owner's decision.** PR 1 already refuses them as `evaluation/expression`, from the first plan; keep, rename to `evaluation/expression_failed`, or leave fatal |
+| B3 expression failures at dispatch | F212 | PR 1, as `evaluation/expression`; the owner chose to keep this code (2026-10-03) |
 | B4 guard the elapsed accumulator | F151 | Its own PR; owns `spec/caveat-elapsed-0.1.md` (moves out of PR 2) |
 | C1 the function limit counts the prelude | F257, F258 | Its own PR |
 | C2 the scenarios spec's `size` example | F143 | PR 2, with an executable check of the spec's step examples |
@@ -378,7 +378,8 @@ Muse measurements remain external evidence until reproduced here.
   The published preview remains rc.10.
 - PR #68 closed unmerged as superseded; `feat/evidence-by-member` kept.
 - Owner decisions: the `require(false)` code is
-  `evaluation/requirement_failed`; rc.11 is promoted to `latest` at
+  `evaluation/requirement_failed`; arithmetic failures at dispatch stay refusals
+  as `evaluation/expression` (digest B3); rc.11 is promoted to `latest` at
   publication, through the PR 4a workflow only.
 - PR 1 (#96): the six sites above plus the digest's uncommitted reopen
   (F158) refuse with classified codes; still-fatal lists in the dispatch spec
