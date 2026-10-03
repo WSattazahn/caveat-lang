@@ -396,3 +396,7 @@ Muse measurements remain external evidence until reproduced here.
   in an expression.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
+- C1 (#100, F257): a reactive program may declare 128 functions of its own,
+  as the reactive profile states; the 10 standard library functions no longer
+  count against the limit. Source libraries keep their limit of 128 including
+  the prelude. The expression limits are stated per expression.
