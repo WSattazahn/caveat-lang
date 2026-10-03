@@ -781,9 +781,16 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
 
 #[test]
 fn unclassified_expression_errors_are_fatal_and_atomic() {
-    for expression in ["sqrt(0 - 1)", "-sqrt(output - 2)"] {
+    for expression in [
+        "qualified(1, never_seen)",
+        "if(output == 1, qualified(1, never_seen), 0)",
+    ] {
         let source = format!(
             r#"
+            claim fatal_claim;
+            evidence never_seen from "never";
+            event see_never;
+            on see_never reveal never_seen supports fatal_claim;
             state output = 0;
             event run;
             on run set output = 1;
@@ -886,9 +893,16 @@ fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
 
 #[test]
 fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
-    for expression in ["sqrt(0 - 1)", "-sqrt(output - 2)"] {
+    for expression in [
+        "qualified(1, never_seen)",
+        "if(output == 1, qualified(1, never_seen), 0)",
+    ] {
         let source = format!(
             r#"
+            claim fatal_claim;
+            evidence never_seen from "never";
+            event see_never;
+            on see_never reveal never_seen supports fatal_claim;
             state output = 0;
             event run;
             on run set output = 1;
@@ -1053,11 +1067,12 @@ fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, 
 }
 
 #[test]
-fn recovery_classification_does_not_swallow_unavailable_history_or_a_negative_root() {
+fn recovery_classification_does_not_swallow_qualifying_with_unobserved_evidence() {
     for source in [
-        "claim safe; evidence sensor from \"sensor\"; readings samples from sensor limit 2; \
-         state value = 0; event run; on run set value = latest(samples);",
-        "state value = 0; event run; on run set value = sqrt(0 - 1);",
+        "claim safe; evidence never from \"never\"; event see; on see reveal never supports safe; \
+         state value = 0; event run; on run set value = qualified(1, never);",
+        "claim safe; evidence never from \"never\"; event see; on see reveal never supports safe; \
+         state value = 0; event run; on run when qualified(1, never) > 0 set value = 1;",
     ] {
         let mut game = session(source);
         let fatal = json(&game.dispatch_outcome("run", "{}").unwrap_err());
@@ -1073,6 +1088,13 @@ evidence never from "an unreported observation";
 readings empty_log from sensor limit 2;
 event see;
 on see reveal never supports safe;
+"#;
+
+// A decision series that a later event could commit, but none has.
+const EMPTY_SERIES: &str = r#"
+decisions unrouted limit 2;
+event settle;
+on settle commit unrouted because enough using output;
 "#;
 
 // Version Lab F154, F78, F158: acting on evidence no event has observed.
@@ -1106,6 +1128,10 @@ fn acting_on_unobserved_evidence_is_recoverable() {
         (
             "proc hide() { reopen route because never; }; on advance when blocked == 1 call hide();",
             "cannot reopen route because unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 reopen route because latest(empty_log);",
+            "cannot reopen route because latest(empty_log): its stream has no reading",
         ),
     ] {
         let source = format!("{TIMED}\n{UNOBSERVED}\n{refusal}");
@@ -1181,8 +1207,24 @@ fn expression_failures_in_rules_and_bindings_are_recoverable() {
             "bind hud.indexed = if(elapsed() >= 0.25 and blocked == 1, history_at(readings_log, 3), 0);",
             "history index 3 is out of range for readings_log",
         ),
+        (
+            "on advance when blocked == 1 set output = sqrt(0 - blocked);",
+            "sqrt requires a nonnegative number",
+        ),
+        (
+            "bind hud.root = if(elapsed() >= 0.25 and blocked == 1, sqrt(0 - blocked), 0);",
+            "sqrt requires a nonnegative number",
+        ),
+        (
+            "on advance when blocked == 1 set output = latest(empty_log);",
+            "reading stream empty_log has no reached sample",
+        ),
+        (
+            "on advance when blocked == 1 set output = latest(unrouted);",
+            "decision series unrouted has no commitment",
+        ),
     ] {
-        let source = format!("{TIMED}\n{refusal}");
+        let source = format!("{TIMED}\n{UNOBSERVED}\n{EMPTY_SERIES}\n{refusal}");
         recover_after_refusal(&source, "evaluation", "expression", message, "unblock");
     }
 }

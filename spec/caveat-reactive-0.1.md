@@ -109,9 +109,9 @@ assignments must be numeric. `and` and `or` short-circuit. Standard arithmetic
 precedence applies; use parentheses to make combined conditions explicit.
 
 Division by zero, nonfinite results, negative square roots, and inverted clamp
-bounds are runtime errors. During an event, the first two refuse it as
+bounds are runtime errors. During an event, the first three refuse it as
 `evaluation/expression` and an inverted clamp as `evaluation/requirement_failed`
-([Dispatch 0.1](caveat-dispatch-0.1.md)); a negative square root is fatal. Expression parsing limits token count and nesting;
+([Dispatch 0.1](caveat-dispatch-0.1.md)). Expression parsing limits token count and nesting;
 the interpreter executes parsed expressions and never evaluates host code.
 
 ## Reasoning changes the simulation

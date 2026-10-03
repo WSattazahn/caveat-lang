@@ -218,9 +218,10 @@ impl From<String> for DispatchFailure {
 impl From<EvalError> for DispatchFailure {
     fn from(error: EvalError) -> Self {
         let code = match error.kind {
-            EvalFailure::DivisionByZero | EvalFailure::NonFinite | EvalFailure::HistoryIndex => {
-                RejectionCode::Expression
-            }
+            EvalFailure::DivisionByZero
+            | EvalFailure::NonFinite
+            | EvalFailure::HistoryIndex
+            | EvalFailure::Domain => RejectionCode::Expression,
             EvalFailure::Requirement => RejectionCode::RequirementFailed,
             EvalFailure::Other => return error.message.into(),
         };

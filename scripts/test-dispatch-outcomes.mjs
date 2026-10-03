@@ -646,6 +646,14 @@ try {
         'history index 3 is out of range for readings_log'],
       ['binding-division', 'evaluation', 'expression', 'bind hud.ratio = if(elapsed() >= 0.25 and blocked == 1, 1 / (blocked - 1), 0);',
         'division by zero in expression'],
+      ['negative-sqrt', 'evaluation', 'expression', 'on advance when blocked == 1 set output = sqrt(0 - blocked);',
+        'sqrt requires a nonnegative number'],
+      ['latest-empty-stream', 'evaluation', 'expression', unobserved + 'on advance when blocked == 1 set output = latest(empty_log);',
+        'reading stream empty_log has no reached sample'],
+      ['latest-uncommitted-series', 'evaluation', 'expression', 'decisions unrouted limit 2; event settle; on settle commit unrouted because enough using output; on advance when blocked == 1 set output = latest(unrouted);',
+        'decision series unrouted has no commitment'],
+      ['reopen-empty-stream', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 reopen route because latest(empty_log);',
+        'cannot reopen route because latest(empty_log): its stream has no reading'],
       ['not-committed', 'evaluation', 'not_committed', 'decisions spare limit 2; on advance when blocked == 1 reopen spare because sight;',
         'cannot reopen uncommitted action spare'],
       ['require', 'evaluation', 'requirement_failed', 'on advance when blocked == 1 set output = require(blocked == 0, 1);',
@@ -659,8 +667,8 @@ try {
     }
 
     for (const [name, source] of [
-      ['unavailable-history', 'claim safe; evidence sensor from "sensor"; readings samples from sensor limit 2; state value = 0; event run; on run set value = latest(samples);'],
-      ['negative-sqrt', 'state value = 0; event run; on run set value = sqrt(0 - 1);'],
+      ['unobserved-qualified', 'claim fatal_claim; evidence never_seen from "never"; event see_never; on see_never reveal never_seen supports fatal_claim; state value = 0; event run; on run set value = qualified(1, never_seen);'],
+      ['unobserved-qualified-guard', 'claim fatal_claim; evidence never_seen from "never"; event see_never; on see_never reveal never_seen supports fatal_claim; state value = 0; event run; on run when qualified(1, never_seen) > 0 set value = 1;'],
     ]) {
       check(name + ' remains fatal', () => {
         withSessions(fixture('recovery-still-fatal-' + name, source), 1, session => {
@@ -673,9 +681,9 @@ try {
       });
     }
 
-    for (const [name, expression] of [['sqrt', 'sqrt(0 - 1)'], ['shifted-sqrt', '-sqrt(output - 2)']]) {
+    for (const [name, expression] of [['qualified', 'qualified(1, never_seen)'], ['state-dependent-qualified', 'if(output == 1, qualified(1, never_seen), 0)']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
-        const source = fixture(`fatal-${name}`, `state output = 0; event run;
+        const source = fixture(`fatal-${name}`, `claim fatal_claim; evidence never_seen from "never"; event see_never; on see_never reveal never_seen supports fatal_claim; state output = 0; event run;
           on run set output = 1; on run set output = ${expression};`);
         withSessions(source, 1, session => {
           assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {

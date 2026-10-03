@@ -175,11 +175,12 @@ may newly fail.
 - Update the rc.10 characterization fixtures whose expectation changes, with
   the contract text, in the same commit.
 
-Deferred to rc.12, not rc.11: the source-capability validator for injected
+The first plan deferred to rc.12 the source-capability validator for injected
 `qualifies` edges and pending scheduled qualifications (F95, F122, F123),
 scoped at `RESTORE_TRUST_BOUNDARY.md` L46–73. It needs the compiled effect
 graph plus occurrence/template analysis and an explicit compatibility decision
-for schema-0.1 saves; too large to ride with PR 1.
+for schema-0.1 saves; too large to ride with PR 1. The digest's A3 brings it
+into rc.11 after PR 3, under the gate recorded in the digest table below.
 
 ### PR 4 — Release engineering
 
@@ -289,10 +290,10 @@ F259, new `dependents` fields are additive keys only.
 | --- | --- | --- |
 | A1 nested unknown save fields | F247 | Restore hardening (PR 3 above, 3c) |
 | A2 kind and reachability checks for last-event effects and cues | F248, F115 | Restore hardening (PR 3, 3a and 3b) |
-| A3 source-capability check for restored `qualifies` edges and schedules | F95, F260 | **Pending the owner's compatibility-policy decision**; recommended policy is to refuse only a pair no source mechanism can create |
+| A3 source-capability check for restored `qualifies` edges and schedules | F95, F260 | In rc.11, the restore thread's PR after PR 3 (owner, 2026-10-03). Policy: refuse a pair only when no source mechanism can create it; accept when uncertain. Gate: before the forgery refusals enter the contract, the genuine fixtures for all six creation paths and the whole existing save/restore corpus (the 3,000-round fuzz, every scenario with a `resume` step, kit `restore-contract`) pass with the check on. If a genuine path cannot pass conservatively by the time PR 4's publish path is ready, A3 moves to rc.12; `spec/caveat-save-0.1.md` already documents the gap |
 | B1 the 4,097th pending qualification | F184 | PR 1, as `limit/scheduled_limit` (the digest's `schedule_limit` predates PR 1) |
 | B2 unobserved qualify and reopen, uncommitted reopen, mislabelled diagnostic | F154, F158 | PR 1: `evaluation/unobserved_evidence` and `evaluation/not_committed` |
-| B3 expression failures at dispatch | F212 | PR 1, as `evaluation/expression`; the owner chose to keep this code (2026-10-03) |
+| B3 expression failures at dispatch | F212 | PR 1, as `evaluation/expression`; the owner chose to keep this code (2026-10-03) and asked that a negative `sqrt` and `latest` of an empty stream or series refuse under it too, so the line falls where a host can predict |
 | B4 guard the elapsed accumulator | F151 | Its own PR; owns `spec/caveat-elapsed-0.1.md` (moves out of PR 2) |
 | C1 the function limit counts the prelude | F257, F258 | Its own PR |
 | C2 the scenarios spec's `size` example | F143 | PR 2, with an executable check of the spec's step examples |
@@ -382,5 +383,9 @@ Muse measurements remain external evidence until reproduced here.
   as `evaluation/expression` (digest B3); rc.11 is promoted to `latest` at
   publication, through the PR 4a workflow only.
 - PR 1 (#96): the six sites above plus the digest's uncommitted reopen
-  (F158) refuse with classified codes; still-fatal lists in the dispatch spec
-  and `REFERENCE.md` updated.
+  (F158) refuse with classified codes. At the owner's review, a negative
+  `sqrt` and `latest` of an empty stream or series also refuse as
+  `evaluation/expression`, and `reopen ACTION because latest(STREAM)` on an
+  empty stream as `evaluation/unobserved_evidence`, matching `withdraw`.
+  Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
+- A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).

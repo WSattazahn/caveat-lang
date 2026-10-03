@@ -113,9 +113,9 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
-| `evaluation` | `unobserved_evidence` | An executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
+| `evaluation` | `unobserved_evidence` | An executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)). |
-| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, or reads a history index that is not an integer in `0..256` or is past the history's records ([Reactive 0.2](caveat-reactive-0.2.md)). |
+| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
@@ -138,9 +138,8 @@ exception must not be labelled `host` and accepted as an ordinary rejection.
 
 This catalog deliberately classifies specific sites only. Every other existing
 string error is fatal `unclassified`, even if its message contains
-`rejected: `. For example, a negative square root, `latest` of an empty
-history, `qualified(VALUE, EVIDENCE)` on unobserved evidence and a type error
-in an expression are not classified rejections. Expression failures are classified where they occur, by kind,
+`rejected: `. For example, `qualified(VALUE, EVIDENCE)` on unobserved
+evidence and a type error in an expression are not classified rejections. Expression failures are classified where they occur, by kind,
 never by their message. New callers must not downgrade these errors to pass an
 expected-rejection assertion. Their legacy behavior remains unchanged.
 
@@ -180,8 +179,8 @@ authored course. Budget exhaustion similarly grants no additional attention.
 
 These two sites were fatal `unclassified` in rc.9. This classification adds
 recoverable outcomes without changing their legacy diagnostic text, rollback
-or successful effects. rc.11 classified further sites (next section); `latest`
-of an empty history and other uncatalogued failures remain fatal on outcome entry points.
+or successful effects. rc.11 classified further sites (next section);
+uncatalogued failures remain fatal on outcome entry points.
 
 ## Recovering from unobserved evidence, expression failures and the scheduling limit
 
@@ -225,7 +224,8 @@ from an outcome schema match; the save contract governs restoration.
 - `evaluation/unobserved_evidence`, `evaluation/not_committed`,
   `evaluation/expression`, `evaluation/requirement_failed` and
   `limit/scheduled_limit` classify acting on unobserved evidence, reopening a
-  decision that was never committed, a failed arithmetic or history read, a
+  decision that was never committed, a failed arithmetic or history read
+  (including a negative square root and `latest` of an empty history), a
   false requirement and a full scheduled-qualification table. Before them, each
   such event was fatal `unclassified`, although the runtime had already
   rolled it back ([recovery](#recovering-from-unobserved-evidence-expression-failures-and-the-scheduling-limit)).

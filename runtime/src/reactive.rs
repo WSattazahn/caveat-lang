@@ -2748,10 +2748,26 @@ impl ReactiveSession {
         }
     }
 
-    /// An index past the history's records is a classified expression
-    /// failure; see spec/caveat-dispatch-0.1.md.
+    /// An index past the history's records, or `latest` of a history with
+    /// none yet, is a classified expression failure; see
+    /// spec/caveat-dispatch-0.1.md.
     fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
         if query == HistoryRead::Latest {
+            if let Some(stream) = self.reading_streams.get(name) {
+                if stream.occurrences.is_empty() {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        format!("reading stream {name} has no reached sample"),
+                    ));
+                }
+            } else if let Some(series) = self.decision_series.get(name) {
+                if series.current.is_none() {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        format!("decision series {name} has no commitment"),
+                    ));
+                }
+            }
             return Ok(self.latest(name)?);
         }
         // Counting records is a qualified observation of membership. Include
@@ -4382,6 +4398,15 @@ impl ReactiveSession {
                         (vec![name], cause)
                     }
                     EvidenceSelector::Latest(stream) => {
+                        if self.reading_streams[stream].current.is_none() {
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::UnobservedEvidence,
+                                format!(
+                                    "cannot reopen {action} because latest({stream}): its stream has no reading"
+                                ),
+                            ));
+                        }
                         let reading = self.latest(stream)?;
                         let name = self.reading_streams[stream]
                             .current

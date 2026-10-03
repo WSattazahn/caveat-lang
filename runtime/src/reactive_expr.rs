@@ -27,6 +27,8 @@ pub enum EvalFailure {
     DivisionByZero,
     NonFinite,
     HistoryIndex,
+    /// A function argument outside its domain, such as a negative `sqrt`.
+    Domain,
     Requirement,
     Other,
 }
@@ -1362,7 +1364,10 @@ impl Expr {
                     Function::Cos => arguments[0].cos(),
                     Function::Sqrt => {
                         if arguments[0] < 0.0 {
-                            return Err("sqrt requires a nonnegative number".into());
+                            return Err(EvalError::new(
+                                EvalFailure::Domain,
+                                "sqrt requires a nonnegative number",
+                            ));
                         }
                         arguments[0].sqrt()
                     }

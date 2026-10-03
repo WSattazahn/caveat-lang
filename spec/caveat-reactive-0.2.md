@@ -86,8 +86,8 @@ property keys remain literal strings, including any dots:
 ```
 
 An active binding's evaluation failure rejects construction or the entire
-event. During an event, division by zero, a nonfinite result or an unavailable
-history index is refused as `evaluation/expression`, and a false `require` as
+event. During an event, division by zero, a nonfinite result, a negative
+square root or an unavailable history read is refused as `evaluation/expression`, and a false `require` as
 `evaluation/requirement_failed`, as they are in rules
 ([Dispatch 0.1](caveat-dispatch-0.1.md)). A false condition skips that binding's value expression; all bindings
 are still statically type checked.

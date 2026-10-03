@@ -194,8 +194,9 @@ mod tests {
 
     #[test]
     fn fatal_has_only_raw_outcome_and_stops_the_trace() {
-        let source = "state n = 0; event crash; event later; \
-            on crash set n = sqrt(0 - 1); on later set n = 2;";
+        let source = "claim safe; evidence never from \"never\"; event see; \
+            on see reveal never supports safe; state n = 0; event crash; event later; \
+            on crash set n = qualified(1, never); on later set n = 2;";
         let output = run(&input(source, &["crash", "later"])).unwrap();
         let raw = serde_json::to_value(output).unwrap();
         assert_eq!(raw["events"].as_array().unwrap().len(), 1);
