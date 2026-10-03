@@ -1,18 +1,21 @@
 # CAVEAT 0.1.0-rc.10 development
 
-Status: development open; the accepted scope is implemented. Verification and
-review are tracked in [PR #94](https://github.com/WSattazahn/caveat-lang/pull/94).
-This is not an npm publication or release-readiness record.
+Status: archived development record. The accepted scope was implemented and
+merged in [PR #94](https://github.com/WSattazahn/caveat-lang/pull/94). See the
+[verified rc.10 release record](v0.1.0-rc.10.md) for final-main verification,
+publication and the exact artifact. This document retains the development
+scope, findings and verification boundaries.
 
 ## Starting point
 
 Development starts from completed rc.9 documentation/main revision
 `1ce7969b4f386c1dc96a204a0f1a253b5e9a567b`. The published rc.9 package is frozen at
 `7ff92b145ac9ce6f55588911c52ddc780b122916`; its tarball, tag, receipts and npm
-channels remain the release baseline. See the [rc.9 record](v0.1.0-rc.9.md).
+channels formed the release baseline at development opening. See the
+[rc.9 record](v0.1.0-rc.9.md).
 Only `kit/package.json` owns the candidate version. Bundled installation blocks
 are generated from that version; they describe the candidate's own identity.
-Current public installation guidance continues to identify published rc.9.
+At development opening, public installation guidance identified published rc.9.
 
 ## Accepted scope
 
