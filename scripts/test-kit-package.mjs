@@ -19,7 +19,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, readdir, rmdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CLOCK_SOURCE, assertBrowserResults, checkKitInBrowser } from './test-kit-browser.mjs';
 import { followGuide } from '../kit/test/guide.mjs';
 import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
@@ -61,7 +61,7 @@ const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'chec
 const EXAMPLE = 'examples/agent-evidence';
 const EXAMPLE_FILES = ['README.md', 'QUALIFICATION.md', 'BRANCHING.md', 'test_branching.py', 'assessment.cav', 'caller.py', 'test_caller.py',
   'test_lifecycle.py', 'qualification.cav', 'test_qualification.py',
-  'grounded_assessment.cav', 'grounds.py', 'test_grounds.py'].map(file => `${EXAMPLE}/${file}`);
+  'grounded_assessment.cav', 'grounds.py', 'test_grounds.py', 'save-text.mjs'].map(file => `${EXAMPLE}/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -364,6 +364,24 @@ assert.equal(used.status, 0, used.stdout + used.stderr);
 assert.equal(JSON.parse(used.stdout).revision, buildInfo.revision);
 report.checks.library = true;
 
+// The new refusal codes must keep working through the package's own runtime,
+// session wrapper, server adapter and CLI, including after save/restore.
+await writeFile(path.join(consumer, 'recovery.mjs'), `
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
+import { createServer } from 'caveat-lang/serve';
+import { checkRecoveryClient } from ${JSON.stringify(pathToFileURL(path.join(root, 'scripts/check-recovery-client.mjs')).href)};
+const runtime = await loadRuntimeFromDirectory(${JSON.stringify(path.join(installed, 'runtime'))});
+const checks = await checkRecoveryClient({ runtime, createServer,
+  command: [process.execPath, ${JSON.stringify(path.join(installed, 'bin/caveat.mjs'))}],
+  directory: ${JSON.stringify(path.join(consumer, 'recovery-cases'))} });
+console.log(JSON.stringify({ identity: runtime.identity, checks }));
+`);
+const recovery = node(['recovery.mjs'], consumer);
+assert.equal(recovery.status, 0, recovery.stdout + recovery.stderr);
+report.checks.recovery = JSON.parse(recovery.stdout);
+assert.equal(report.checks.recovery.identity.reactiveWasmSha256,
+  sha256(await readFile(path.join(installed, 'runtime/caveat_runtime_bg.wasm'))));
+
 // The packaged getting-started guide, followed from an empty directory: install
 // the tarball, check the command, then write each file, make each edit and run
 // each command exactly as the guide prints them.
@@ -404,6 +422,15 @@ await mkdir(agentEvidence);
 for (const file of EXAMPLE_FILES) {
   await copyFile(path.join(reader, 'node_modules', manifest.name, file), path.join(agentEvidence, path.posix.basename(file)));
 }
+// The JavaScript host is executed from the copied example and resolves the
+// installed package. Its checkpoint must preserve save text, including -0.
+const checkpoint = path.join(agentEvidence, 'save-text-checkpoint.json');
+const savedTextExample = node(['save-text.mjs', checkpoint], agentEvidence);
+assert.equal(savedTextExample.status, 0, savedTextExample.stdout + savedTextExample.stderr);
+assert.deepEqual(JSON.parse(savedTextExample.stdout), { negativeZero: true, angle: -Math.PI, decision: -1 });
+assert.match(await readFile(checkpoint, 'utf8'), /"value":-0\.0/);
+await unlink(checkpoint);
+report.checks.saveTextExample = JSON.parse(savedTextExample.stdout);
 for (const command of ['validate', 'check']) {
   const checked = shell(`npx --no-install caveat ${command} assessment.cav`, agentEvidence);
   assert.equal(checked.status, 0, checked.stdout + checked.stderr);

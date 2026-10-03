@@ -35,12 +35,14 @@
     "spec/caveat-view-0.1.md",
     "spec/caveat-elapsed-0.1.md",
     "spec/caveat-dispatch-0.1.md",
+    "spec/caveat-dependents-0.1.md",
     "spec/caveat-scenarios-0.1.md",
     "spec/caveat-serve-0.1.md",
     "spec/caveat-check-0.1.md",
     "examples/thermostat_history.cav",
     "examples/thermostat_history.scenarios.json",
     "docs/MCP_AUTHORING_DESIGN.md",
-    "docs/PACKAGE_SECURITY.md"
+    "docs/PACKAGE_SECURITY.md",
+    "docs/RESTORE_TRUST_BOUNDARY.md"
   ]
 }

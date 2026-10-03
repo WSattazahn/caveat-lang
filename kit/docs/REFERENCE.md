@@ -22,7 +22,7 @@ installed.
 | `check PROGRAM` | Are there patterns worth a second look? Advisory warnings with a code and a line ([check](reference/spec/caveat-check-0.1.md)). |
 | `test SCENARIOS…` | Did each scenario get the outcomes and snapshot values it expects ([scenarios](reference/spec/caveat-scenarios-0.1.md))? |
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, and why is each displayed value what it is? |
-| `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? |
+| `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? Includes [withdrawal records](reference/spec/caveat-dependents-0.1.md). |
 | `replay PROGRAM EVENTS` | What was the snapshot after each event? |
 | `serve PROGRAM` | Keeps a session open over standard input and output ([serve](reference/spec/caveat-serve-0.1.md)). |
 | `init [DIRECTORY]` | Writes the getting-started program, its scenarios and an events file. |
@@ -142,8 +142,8 @@ nothing it did is kept:
 | --- | --- |
 | `policy` | `reject` (the program's own), `not_permitted` |
 | `input` | `unknown_event`, `payload_invalid`, `bound_exceeded` |
-| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read) |
-| `limit` | `history_limit`, `identifier_limit`, `renewal_limit`, `work_limit`, `depth_limit` |
+| `evaluation` | `bound_exceeded` (a state outside its range), `decision_in_force` (a commit before the current decision is reopened), `ungrounded_citation` (a `because` citing what the value never read), `empty_caveated_selection` (no observed witness for a `caveated()` reopening) |
+| `limit` | `attention_limit` (examination exceeds the remaining budget), `history_limit`, `identifier_limit`, `renewal_limit`, `work_limit`, `depth_limit` |
 
 Anything else is **fatal**, for example `require(false, …)`, arithmetic that
 fails, or `latest` of an empty history. A fatal outcome never counts as a

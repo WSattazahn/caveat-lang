@@ -764,6 +764,16 @@ def alive(pid):
         # A stopped process that is not yet reaped is a zombie: it is not running.
         with open(f"/proc/{pid}/stat", encoding="utf-8") as handle:
             return handle.read().rsplit(")", 1)[1].split()[0] != "Z"
+    except (FileNotFoundError, ProcessLookupError):
+        # It may have been reaped after kill(pid, 0). A missing /proc file
+        # alone is not enough: some POSIX systems have no procfs at all.
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
     except OSError:
         return True
 
@@ -838,9 +848,44 @@ class GivingUp(unittest.TestCase):
 
     def assertStopped(self, pid):
         deadline = time.monotonic() + 5
-        while alive(pid) and time.monotonic() < deadline:
+        while alive(pid):
+            if time.monotonic() >= deadline:
+                self.fail(f"process {pid}, from the server's launch, is still running")
             time.sleep(0.1)
-        self.assertFalse(alive(pid), f"process {pid}, from the server's launch, is still running")
+
+    def test_alive_rechecks_exit_during_proc_stat_read(self):
+        for error in (FileNotFoundError("reaped"), ProcessLookupError("reaped")):
+            with self.subTest(error=type(error).__name__):
+                with mock.patch.object(os, "name", "posix"), \
+                     mock.patch.object(os, "kill", side_effect=[None, ProcessLookupError("gone")]) as probe, \
+                     mock.patch("builtins.open", side_effect=error):
+                    self.assertFalse(alive(12345))
+                    self.assertEqual(probe.call_args_list, [mock.call(12345, 0), mock.call(12345, 0)])
+
+    def test_alive_keeps_unknown_procfs_results_conservative(self):
+        for error, probes in ((FileNotFoundError("no procfs"), [None, None]),
+                              (FileNotFoundError("no procfs"), [None, PermissionError("not permitted")]),
+                              (PermissionError("stat is private"), [None])):
+            with self.subTest(error=str(error), recheck=type(probes[-1]).__name__):
+                with mock.patch.object(os, "name", "posix"), \
+                     mock.patch.object(os, "kill", side_effect=probes), \
+                     mock.patch("builtins.open", side_effect=error):
+                    self.assertTrue(alive(12345))
+
+    def test_assert_stopped_accepts_first_stopped_observation(self):
+        # A terminal observation must not be replaced by another probe's race.
+        with mock.patch.object(sys.modules[__name__], "alive", side_effect=[False, True]) as probe:
+            self.assertStopped(12345)
+            probe.assert_called_once_with(12345)
+
+    def test_assert_stopped_rejects_live_process_at_deadline(self):
+        with mock.patch.object(sys.modules[__name__], "alive", return_value=True), \
+             mock.patch.object(time, "monotonic", side_effect=[0, 0, 6]), \
+             mock.patch.object(time, "sleep") as sleep:
+            with self.assertRaisesRegex(self.failureException,
+                                        "process 12345, from the server's launch, is still running"):
+                self.assertStopped(12345)
+            sleep.assert_called_once_with(0.1)
 
     def stop_launch(self, launch):
         for name in ("stand_in.pid", "grandchild.pid"):

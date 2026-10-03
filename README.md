@@ -1,5 +1,9 @@
 # CAVEAT Language
 
+Development for **0.1.0-rc.10** is open and unpublished. The published preview
+remains rc.9. See the [rc.10 development scope](docs/releases/rc10-development.md)
+for acceptance criteria and verification status.
+
 > npm publication verified 2026-10-03T01:34:46.441Z: exact **caveat-lang@0.1.0-rc.9**,
 > retained Linux artifact SHA256 `ed75568c267a2c8ef3692571e1796b0d856471acbe5e4f99b56650a451108d24`.
 > `next` names rc.9; `latest` remains rc.5.
@@ -119,16 +123,25 @@ the explicit outcome contract when testing why an event was refused. A host that
 redraws from the view uses `dispatch_view_outcome` (`session.dispatchView` in the
 developer kit): the same outcome, with the view in place of the snapshot.
 
-## What only Caveat does
+## What Caveat makes part of the language
 
-| | Caveat | A general-purpose language |
+These mechanisms can also be implemented and checked in a general-purpose
+language, through application code or libraries. Caveat supplies them together
+as language and runtime facilities; the comparison is about what an author
+has to provide, not what another language can express.
+
+| | Caveat | In a general-purpose language |
 | --- | --- | --- |
-| **Explanations** | `bind label = "Could be a duskcap" when … because contradiction;` The runtime checks the citation: it may leave dependencies out, never add one. | A list you maintain by hand. Nothing checks it. |
-| **Caveats through computation** | `qualified(1, taste, tasted_in_dark)` flows through every sum, condition, decision and label that uses it. | Thread a caveat list through every function. |
-| **Late caveats** | `qualify taste with taste_faded;` reaches every current value built on the taste. Decisions made earlier keep theirs. | Find every derived value by hand, and remember to freeze the ones that were decisions. |
-| **Decisions that remember** | `commit`, `reopen`, and revisions of a decision series. Each revision is grounded on exactly what it used, and `decision_journal` records them in order. | History arrays, basis snapshots and bookkeeping code. |
-| **Grounds and lineage** | *Lineage* is everything that could have influenced a value. *Grounds* is what it is based on. Guards are control, never content, and grounds ⊆ lineage always. | One or the other, by convention. |
-| **Atomic events** | `reject "already absorbed";` No partial update survives a rejected event. | Validate everything before the first write, by discipline. |
+| **Explanations** | `bind label = "Could be a duskcap" when … because contradiction;` The runtime checks cited evidence and caveats against recorded dependencies. | Implement dependency tracking and citation checks, or use a library that supplies them. |
+| **Caveats through computation** | `qualified(1, taste, tasted_in_dark)` carries evidence and caveats through computations that use it. | Use provenance-aware values and operations to propagate the same information. |
+| **Late caveats** | `qualify taste with taste_faded;` qualifies current values built on the taste while earlier decision records retain their frozen caveats. | Track dependencies or resolve qualifications when read, and freeze decision records. |
+| **Decisions that remember** | `commit`, `reopen`, and decision-series revisions retain each revision's grounds and publish its changes in `decision_journal`. | Implement decision records, frozen bases and an ordered change journal. |
+| **Grounds and lineage** | The runtime distinguishes a value's content grounds from its wider control lineage and enforces grounds ⊆ lineage. | Represent both kinds of dependency and enforce their relationship in code or a library. |
+| **Atomic events** | `reject "already absorbed";` rolls back the event's changes to the Caveat session. | Use transactions, immutable state or explicit rollback to publish changes atomically. |
+
+Citation checking establishes that cited dependencies were recorded; it does
+not establish that supplied evidence or authored explanation prose is true.
+Citations may omit dependencies, so the check does not establish completeness.
 
 ## The evidence: the glowcap benchmark
 

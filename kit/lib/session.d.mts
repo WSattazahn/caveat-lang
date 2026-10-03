@@ -23,6 +23,8 @@ export type KnownRejectionCode =
   | 'payload_invalid'
   | 'bound_exceeded'
   | 'decision_in_force'
+  | 'empty_caveated_selection'
+  | 'attention_limit'
   | 'ungrounded_citation'
   | 'work_limit'
   | 'depth_limit'

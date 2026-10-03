@@ -942,3 +942,128 @@ fn an_identifier_past_the_limit_is_the_same_refusal_on_the_view_path() {
     );
     assert_eq!(json(&game.view())["bindings"]["pr"]["head"], "a");
 }
+
+#[test]
+fn attention_exhaustion_is_recoverable_before_and_after_partial_work() {
+    let minimal = "budget 1; caveat stale consequence low; event run; event steady; \
+        on run examine stale cost 2; on steady examine stale cost 1;";
+    let mut single = session(minimal);
+    let result = rejected(&mut single, "run", "{}", "limit", "attention_limit");
+    assert_eq!(
+        result["message"],
+        "event run, rule 1: insufficient examination budget"
+    );
+    assert_eq!(
+        json(&single.dispatch_outcome("steady", "{}").unwrap())["outcome"],
+        "accepted"
+    );
+
+    for refusal in [
+        "on advance when blocked == 1 examine stale cost 4;",
+        "proc exhaust() { examine stale cost 4; }; on advance when blocked == 1 call exhaust();",
+    ] {
+        let source = format!("{TIMED}\n{refusal}");
+        recover_after_refusal(
+            &source,
+            "limit",
+            "attention_limit",
+            "insufficient examination budget",
+            "unblock",
+        );
+    }
+}
+
+#[test]
+fn empty_caveated_selection_is_recoverable_even_when_has_caveat_is_true() {
+    for selector in [
+        "on advance when has_caveat(plan_basis, phantom) reopen route because caveated(plan_basis, phantom);",
+        "proc select_witness() { reopen route because caveated(plan_basis, phantom); }; on advance when has_caveat(plan_basis, phantom) call select_witness();",
+    ] {
+        let source = format!(r#"{TIMED}
+            caveat phantom consequence low;
+            state plan_basis = 0;
+            event attach;
+            on seed set plan_basis = qualified(1, sight, phantom);
+            on attach qualify sight with phantom;
+            bind hud.phantom = has_caveat(plan_basis, phantom);
+            {selector}
+        "#);
+        recover_after_refusal(
+            &source,
+            "evaluation",
+            "empty_caveated_selection",
+            "caveated(plan_basis, phantom) selects no observed evidence carrying phantom from the state's grounds",
+            "attach",
+        );
+    }
+}
+
+// The refused clock event has already applied a scheduled qualification, spent
+// attention, sampled, revealed, revised a decision, set state and emitted a cue.
+// Compare the complete public surfaces and future execution with an untouched
+// control, including a session restored from the save immediately after refusal.
+fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, recovery: &str) {
+    let mut game = session(source);
+    let mut control = session(source);
+    for run in [&mut game, &mut control] {
+        run.dispatch("seed", "{}").unwrap();
+    }
+    let before = checkpoint(&game);
+    assert_eq!(before.0["decision_journal"].as_array().unwrap().len(), 1);
+    assert_eq!(before.0["cues"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        before.0["scheduled_qualifications"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    if code == "empty_caveated_selection" {
+        assert_eq!(before.0["bindings"]["hud"]["phantom"], true);
+    }
+    let refusal = rejected(&mut game, "advance", r#"{"dt":0.25}"#, origin, code);
+    assert!(refusal["message"].as_str().unwrap().ends_with(message));
+    assert_eq!(checkpoint(&game), checkpoint(&control));
+    let mut restored = WebReactiveSession::restore(source, &game.save().unwrap()).unwrap();
+    assert_eq!(checkpoint(&restored), before);
+    rejected(&mut restored, "advance", r#"{"dt":0.25}"#, origin, code);
+    for run in [&mut game, &mut control, &mut restored] {
+        assert_eq!(
+            json(&run.dispatch_outcome(recovery, "{}").unwrap())["outcome"],
+            "accepted"
+        );
+        assert_eq!(
+            json(&run.dispatch_outcome("advance", r#"{"dt":0.25}"#).unwrap())["outcome"],
+            "accepted"
+        );
+    }
+    assert_eq!(checkpoint(&game), checkpoint(&control));
+    assert_eq!(checkpoint(&restored), checkpoint(&control));
+    let after = json(&game.snapshot());
+    assert_eq!(after["elapsed"], 0.25);
+    assert_eq!(
+        after["reading_streams"]["readings_log"]["current"],
+        "readings_log@1"
+    );
+    assert_eq!(after["decision_series"]["route"]["current"], "route@2");
+    assert_eq!(after["values"]["output"].as_f64(), Some(2.0));
+    assert_eq!(after["bindings"]["hud"]["stale"], true);
+    let roundtrip = WebReactiveSession::restore(source, &game.save().unwrap()).unwrap();
+    assert_eq!(checkpoint(&roundtrip), checkpoint(&game));
+}
+
+#[test]
+fn recovery_classification_does_not_swallow_unavailable_history_or_unobserved_withdrawal() {
+    for source in [
+        "claim safe; evidence sensor from \"sensor\"; readings samples from sensor limit 2; \
+         state value = 0; event run; on run set value = latest(samples);",
+        "claim safe; evidence reason from \"reason\"; evidence hidden from \"hidden\"; \
+         reason supports safe; event observe; on observe reveal hidden supports safe; \
+         event run; on run withdraw hidden because reason;",
+    ] {
+        let mut game = session(source);
+        let fatal = json(&game.dispatch_outcome("run", "{}").unwrap_err());
+        assert_eq!(fatal["outcome"], "fatal");
+        assert_eq!(fatal["code"], "unclassified");
+    }
+}

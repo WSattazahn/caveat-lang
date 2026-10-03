@@ -95,6 +95,13 @@ The top-level `schema` is `caveat-game/0.1`.
 | `selections` | Accepted player selection identifiers, in order |
 | `last_execution` | `{action, from, to, commands}`, or `null` before the first turn |
 
+`origin: "live"` labels membership in the current graph of the executed or
+replayed prefix. It does not distinguish declarations from relations reached
+during a selection, or authenticate the original play history. `GameSession`
+restore rebuilds this graph by replaying saved selections, as described below.
+The separate [reactive save format](caveat-save-0.1.md) restores graph changes
+directly; its accepted edges also receive the `live` label.
+
 `attention` is `unexamined`, `deferred`, `examining`, or `examined` for caveats,
 and `null` for other symbols. Declared evidence is not automatically a discovery:
 explicit reveal events and newly added evidence support/opposition relations

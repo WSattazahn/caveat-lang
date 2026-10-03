@@ -209,8 +209,13 @@ resets the program to its source-authored initial state.
 - `sequence`, `last_event`, `source_id`: event count and source identity.
 
 Relations preserve insertion order; names and numeric state serialize in stable
-order. A failed event leaves the preceding snapshot unchanged. Event metadata
-lets hosts constrain pointers or sliders without duplicating source limits.
+order. Every current relation is reported as `{from, relation, to, origin:
+"live"}`. `live` is a graph-membership label, not an authentication of the
+edge's origin: declarations, event effects and edges accepted through
+[reactive save restoration](caveat-save-0.1.md#host-trust-boundary) receive the
+same label. A failed event leaves the preceding snapshot unchanged. Event
+metadata lets hosts constrain pointers or sliders without duplicating source
+limits.
 
 ## Executable example
 

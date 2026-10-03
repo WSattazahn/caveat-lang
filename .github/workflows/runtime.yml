@@ -89,6 +89,11 @@ jobs:
         run: npm run test:glowcap
       - name: Trail Rescue registered scenarios, invariants and restore
         run: npm run test:trail-rescue
+      - name: TypeScript formatter compatibility
+        run: >-
+          npm exec --yes --package=typescript@5.9.3 -- tsc
+          --noEmit --strict --module nodenext --target es2022
+          --lib ES2022,ESNext.Disposable,DOM kit/type-tests/dependents-format.mts
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
       - name: Adoption scorer mutation controls (no trial agents)
@@ -639,7 +644,7 @@ jobs:
           const {webkit,devices}=require('playwright');
           (async()=>{const browser=await webkit.launch();try{
             async function waitIdle(p){await p.waitForFunction(()=>window.__caveatIdle?.()===true,null,{timeout:15000})}
-            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();await waitIdle(p);await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
+            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();const badge=await p.locator('.badge').innerText();if(badge!=='CAVEAT · THE DOOR')throw Error('The Door badge text has incorrect encoding: '+JSON.stringify(badge));await waitIdle(p);await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
             async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click();await waitIdle(p)}
             await (async()=>{const p=await fresh('inspect-latch');await click(p,/Inspect latch/);await p.close()})();
             await (async()=>{const p=await fresh('inspect-camera');await click(p,/Check camera/);await p.close()})();

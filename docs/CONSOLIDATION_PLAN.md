@@ -166,10 +166,9 @@ node experiments/glowcap/replay-divergences.mjs
 
 Root `package.json` has no `typecheck`, `lint`, `test`, or `audit:all` scripts at
 the inspected head. The Rust/Node commands above are the repository's relevant
-checks; missing scripts must not be reported as passing. Current runtime CI
-does not run the extra no-default-features lint/test pair or author-study pure
-tests shown above. Treat those as added release expectations unless the workflow
-is separately updated and reviewed.
+checks; missing scripts must not be reported as passing. Current runtime CI runs both full and reactive-only Rust lint/test
+configurations. The author-study pure tests shown above remain additional
+release expectations outside that workflow.
 
 Run `.github/workflows/runtime.yml` at the final review head and final main.
 Besides the commands above it contains CLI/Map playthroughs and the browser

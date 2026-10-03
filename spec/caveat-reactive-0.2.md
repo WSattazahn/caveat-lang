@@ -185,8 +185,12 @@ evidence. Declaring evidence alone does not observe it. `examined(CAVEAT)` reads
 the caveat's current attention state. Examination spends the declared attention
 budget and marks the caveat examined; it does **not** discharge the caveat,
 remove its `qualifies` relation, delete retained uncertainty, or erase opposing
-evidence. Insufficient budget rejects the event. Reopening a commitment retains
-its caveats and records the observed evidence that caused reopening.
+evidence. Insufficient budget returns the classified
+`limit/attention_limit` refusal ([Dispatch 0.1](caveat-dispatch-0.1.md)). It
+rolls back the entire event, including any earlier examination spending, and
+leaves the session available for subsequent events and save/restore. It does
+not replenish the budget. Reopening a commitment retains its caveats and
+records the observed evidence that caused reopening.
 
 Physical forces and a controller's response are separate source rules. For
 example, a current can continue to add drift whether or not its evidence has

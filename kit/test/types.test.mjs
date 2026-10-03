@@ -5,6 +5,8 @@
 // with the specs and documents that list codes and kinds. A declared name the
 // code does not have fails, and so does one the code has and the
 // declarations leave out.
+// Compiler assignability is checked separately in runtime.yml using
+// kit/type-tests/dependents-format.mts and pinned TypeScript 5.9.3.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
