@@ -537,12 +537,14 @@ pub struct Clock {
 pub type QualifiedValue = Tracked<f64>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CommitmentBasis {
     pub value: Option<f64>,
     pub provenance: Provenance,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReadingOccurrence {
     pub id: String,
     pub ordinal: u64,
@@ -555,6 +557,7 @@ pub struct ReadingOccurrence {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReadingStream {
     pub template: String,
     pub limit: usize,
@@ -564,6 +567,7 @@ pub struct ReadingStream {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DecisionRevision {
     pub id: String,
     pub previous: Option<String>,
@@ -573,6 +577,7 @@ pub struct DecisionRevision {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DecisionSeries {
     pub limit: usize,
     pub current: Option<String>,
@@ -594,6 +599,7 @@ pub struct Renewal {
 
 /// `qualify EVIDENCE with CAVEAT after SECONDS`, waiting for its time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScheduledQualification {
     /// The occurrence that was current when it was scheduled.
     pub evidence: String,
@@ -905,7 +911,7 @@ impl Changes {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EffectReport {
     Sample {
         stream: String,
@@ -1009,6 +1015,7 @@ pub struct Withdrawal {
 /// One change to a decision, in the order it happened. See
 /// spec/caveat-decision-journal-0.1.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct JournalEntry {
     /// The declared commitment or decision series.
     pub decision: String,
