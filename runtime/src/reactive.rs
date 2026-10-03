@@ -84,6 +84,14 @@ mod prelude_tests {
     use super::*;
 
     #[test]
+    fn the_prelude_defines_the_functions_the_function_limit_excludes() {
+        assert_eq!(
+            prelude_functions().unwrap().len(),
+            reactive_expr::PRELUDE_FUNCTIONS
+        );
+    }
+
+    #[test]
     fn changing_only_prelude_source_changes_numeric_and_formatting_algorithms() {
         let evaluate = |source: &str, expression: &str| {
             let functions = source_functions(source).unwrap();
@@ -1224,8 +1232,16 @@ impl ReactiveSession {
             }
         }
         let mut functions = prelude_functions()?;
+        let mut declared = 0;
         for directive in &directives {
             if let Directive::Function(function) = directive {
+                declared += 1;
+                if declared > reactive_expr::MAX_FUNCTIONS {
+                    return Err(format!(
+                        "source exceeds function limit {}",
+                        reactive_expr::MAX_FUNCTIONS
+                    ));
+                }
                 if functions
                     .insert(function.name.clone(), function.clone())
                     .is_some()
