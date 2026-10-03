@@ -115,7 +115,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
 | `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)). |
-| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment ([Reactive 0.2](caveat-reactive-0.2.md)). |
+| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
@@ -138,9 +138,8 @@ exception must not be labelled `host` and accepted as an ordinary rejection.
 
 This catalog deliberately classifies specific sites only. Every other existing
 string error is fatal `unclassified`, even if its message contains
-`rejected: `. For example, `latest` of a decision series whose current
-commitment has no numeric `using` value and a type error in an expression are
-not classified rejections. Expression failures are classified where they occur, by kind,
+`rejected: `. For example, a type error in an expression is not a classified
+rejection. Expression failures are classified where they occur, by kind,
 never by their message. New callers must not downgrade these errors to pass an
 expected-rejection assertion. Their legacy behavior remains unchanged.
 
@@ -226,7 +225,8 @@ from an outcome schema match; the save contract governs restoration.
   `evaluation/expression`, `evaluation/requirement_failed` and
   `limit/scheduled_limit` classify acting on or citing unobserved evidence, reopening a
   decision that was never committed, a failed arithmetic or history read
-  (including a negative square root and `latest` of an empty history), a
+  (including a negative square root, `latest` of an empty history and a
+  decision read with no numeric value), a
   false requirement and a full scheduled-qualification table. Before them, each
   such event was fatal `unclassified`, although the runtime had already
   rolled it back ([recovery](#recovering-from-unobserved-evidence-expression-failures-and-the-scheduling-limit)).

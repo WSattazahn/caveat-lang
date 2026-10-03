@@ -652,6 +652,8 @@ try {
         'reading stream empty_log has no reached sample'],
       ['latest-uncommitted-series', 'evaluation', 'expression', 'decisions unrouted limit 2; event settle; on settle commit unrouted because enough using output; on advance when blocked == 1 set output = latest(unrouted);',
         'decision series unrouted has no commitment'],
+      ['decision-without-value', 'evaluation', 'expression', 'decisions unrouted limit 2; event settle; on settle commit unrouted because enough using output; on advance when blocked == 1 commit unrouted because enough; on advance when blocked == 1 set output = latest(unrouted);',
+        'current decision unrouted@1 has no numeric using value'],
       ['qualified-value', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 set output = qualified(1, never);',
         'cannot qualify a value with unobserved evidence never'],
       ['reopen-empty-stream', 'evaluation', 'unobserved_evidence', unobserved + 'on advance when blocked == 1 reopen route because latest(empty_log);',
@@ -669,8 +671,8 @@ try {
     }
 
     for (const [name, source] of [
-      ['untyped-latest', 'decisions untyped limit 2; state value = 0; event run; on run commit untyped because enough; on run set value = latest(untyped);'],
-      ['untyped-latest-guard', 'decisions untyped limit 2; state value = 0; event run; on run commit untyped because enough; on run when latest(untyped) > 0 set value = 1;'],
+      ['unheld-handle', 'state value = 0; event run; on run set value = 1; bind hud.label = id_text(value + 5) when value > 0;'],
+      ['unheld-handle-branch', 'state value = 0; event run; on run set value = 2; bind hud.label = if(value > 1, id_text(value * 3), "none");'],
     ]) {
       check(name + ' remains fatal', () => {
         withSessions(fixture('recovery-still-fatal-' + name, source), 1, session => {
@@ -683,10 +685,10 @@ try {
       });
     }
 
-    for (const [name, expression] of [['untyped-latest', 'latest(untyped)'], ['state-dependent-untyped-latest', 'if(output == 1, latest(untyped), 0)']]) {
+    for (const [name, expression] of [['unheld-handle', 'output + 5'], ['scaled-unheld-handle', 'output * 7']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
-        const source = fixture(`fatal-${name}`, `decisions untyped limit 2; state output = 0; event run;
-          on run commit untyped because enough; on run set output = 1; on run set output = ${expression};`);
+        const source = fixture(`fatal-${name}`, `state output = 0; event run;
+          on run set output = 1; bind hud.label = id_text(${expression}) when output > 0;`);
         withSessions(source, 1, session => {
           assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {
             assert.equal(typeof thrown, 'string', 'WASM Result::Err throws its fatal JSON string');

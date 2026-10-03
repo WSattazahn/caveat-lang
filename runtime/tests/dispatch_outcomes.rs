@@ -781,15 +781,13 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
 
 #[test]
 fn unclassified_expression_errors_are_fatal_and_atomic() {
-    for expression in ["latest(untyped)", "if(output == 1, latest(untyped), 0)"] {
+    for expression in ["output + 5", "output * 7"] {
         let source = format!(
             r#"
-            decisions untyped limit 2;
             state output = 0;
             event run;
-            on run commit untyped because enough;
             on run set output = 1;
-            on run set output = {expression};
+            bind hud.label = id_text({expression}) when output > 0;
         "#
         );
         let mut game = session(&source);
@@ -888,15 +886,13 @@ fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
 
 #[test]
 fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
-    for expression in ["latest(untyped)", "if(output == 1, latest(untyped), 0)"] {
+    for expression in ["output + 5", "output * 7"] {
         let source = format!(
             r#"
-            decisions untyped limit 2;
             state output = 0;
             event run;
-            on run commit untyped because enough;
             on run set output = 1;
-            on run set output = {expression};
+            bind hud.label = id_text({expression}) when output > 0;
         "#
         );
         let mut game = session(&source);
@@ -1057,12 +1053,12 @@ fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, 
 }
 
 #[test]
-fn recovery_classification_does_not_swallow_a_decision_without_a_numeric_value() {
+fn recovery_classification_does_not_swallow_a_handle_that_names_no_identifier() {
     for source in [
-        "decisions untyped limit 2; state value = 0; event run; \
-         on run commit untyped because enough; on run set value = latest(untyped);",
-        "decisions untyped limit 2; state value = 0; event run; \
-         on run commit untyped because enough; on run when latest(untyped) > 0 set value = 1;",
+        "state value = 0; event run; on run set value = 1; \
+         bind hud.label = id_text(value + 5) when value > 0;",
+        "state value = 0; event run; on run set value = 2; \
+         bind hud.label = if(value > 1, id_text(value * 3), \"none\");",
     ] {
         let mut game = session(source);
         let fatal = json(&game.dispatch_outcome("run", "{}").unwrap_err());
@@ -1224,6 +1220,16 @@ fn expression_failures_in_rules_and_bindings_are_recoverable() {
         (
             "on advance when blocked == 1 set output = latest(unrouted);",
             "decision series unrouted has no commitment",
+        ),
+        (
+            "on advance when blocked == 1 commit unrouted because enough; \
+             on advance when blocked == 1 set output = latest(unrouted);",
+            "current decision unrouted@1 has no numeric using value",
+        ),
+        (
+            "on advance when blocked == 1 commit unrouted because enough; \
+             on advance when blocked == 1 set output = history_at(unrouted, 0);",
+            "decision unrouted@1 has no numeric using value",
         ),
     ] {
         let source = format!("{TIMED}\n{UNOBSERVED}\n{EMPTY_SERIES}\n{refusal}");

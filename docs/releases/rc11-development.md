@@ -389,6 +389,10 @@ Muse measurements remain external evidence until reproduced here.
   `evaluation/expression`, and `reopen ACTION because latest(STREAM)` on an
   empty stream as `evaluation/unobserved_evidence`, matching `withdraw`.
   The owner chose (card, 2026-10-03) that `qualified(VALUE, EVIDENCE)` on
-  unobserved evidence also refuses as `evaluation/unobserved_evidence`.
+  unobserved evidence also refuses as `evaluation/unobserved_evidence`, and
+  (card, 2026-10-03) a decision read whose current commitment has no numeric
+  `using` value refuses as `evaluation/expression`: one series can hold
+  commits with and without one. The spec's still-fatal example is a type error
+  in an expression.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
