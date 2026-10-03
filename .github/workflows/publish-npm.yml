@@ -1,0 +1,159 @@
+name: publish npm
+
+# Publishes the exact caveat-lang tarball that a successful Runtime run on main
+# tested for a release tag, with an npm provenance attestation. Run it from the
+# tag itself ("Use workflow from: v0.1.0-rc.N") so the attestation names the
+# tagged revision. The publish job waits in the npm-publish environment for
+# the owner's approval: that approval is the release authorization of
+# docs/CONSOLIDATION_PLAN.md ("Publish only with release authorization").
+# npm trusted publishing for caveat-lang accepts only this workflow file and
+# environment, so no npm token is stored in the repository.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, such as v0.1.0-rc.11 (run from this tag)
+        required: true
+        type: string
+      tarball_sha256:
+        description: SHA256 of the tested tarball, from the Runtime run's kit-package-candidate SHA256SUMS
+        required: true
+        type: string
+      dist_tag:
+        description: npm dist-tag to publish under, next or latest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    name: Verify the tested candidate
+    if: github.repository == 'WSattazahn/caveat-lang'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      version: ${{ steps.inputs.outputs.version }}
+      tarball: ${{ steps.verify.outputs.tarball }}
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_SHA256: ${{ inputs.tarball_sha256 }}
+      RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with: {node-version: 22}
+      - name: Check the inputs name this run's tag
+        id: inputs
+        run: node scripts/release-publish.mjs inputs
+      - name: Require an annotated tag at this revision
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin "+refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          test "$(git cat-file -t "refs/tags/${RELEASE_TAG}")" = tag
+          test "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" = "$GITHUB_SHA"
+      - name: Find the Runtime run that tested this revision
+        id: select
+        run: node scripts/release-publish.mjs select
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Download the exact tested package
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.select.outputs.artifact_id }}
+          run-id: ${{ steps.select.outputs.runtime_run_id }}
+          github-token: ${{ github.token }}
+          path: candidate
+          merge-multiple: true
+      - name: Verify bytes, version, build, declared capabilities and that npm lacks this version
+        id: verify
+        run: node scripts/release-publish.mjs verify candidate
+        env:
+          RUNTIME_RUN_ID: ${{ steps.select.outputs.runtime_run_id }}
+      - name: Confirm npm would publish under the requested dist-tag
+        shell: bash
+        env:
+          TARBALL: candidate/${{ steps.verify.outputs.tarball }}
+        run: |
+          npm publish "$TARBALL" --dry-run --access public --tag "$RELEASE_DIST_TAG" --registry https://registry.npmjs.org 2>&1 | tee candidate/publish-dry-run.txt
+          grep -F "with tag ${RELEASE_DIST_TAG} and public access (dry-run)" candidate/publish-dry-run.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: npm-publish-candidate
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 90
+
+  publish:
+    name: Publish to npm with provenance
+    needs: candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_SHA256: ${{ inputs.tarball_sha256 }}
+      RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
+      TARBALL: candidate/${{ needs.candidate.outputs.tarball }}
+    steps:
+      # Node 24 bundles npm 11, which trusted publishing requires (11.5.1 or later).
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-publish-candidate
+          path: candidate
+      - name: Re-check the approved bytes and npm
+        shell: bash
+        run: |
+          echo "${RELEASE_SHA256}  ${TARBALL}" | sha256sum --check
+          node -e "const [a,b,c]=process.argv[1].split('.').map(Number);if(a<11||(a===11&&(b<5||(b===5&&c<1))))throw new Error('npm '+process.argv[1]+' cannot use trusted publishing; 11.5.1 or later is required')" "$(npm --version)"
+      - name: Publish
+        run: npm publish "$TARBALL" --provenance --access public --tag "$RELEASE_DIST_TAG" --registry https://registry.npmjs.org
+
+  verify-publication:
+    name: Verify the registry, provenance and a fresh install
+    needs: [candidate, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with: {node-version: 24}
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-publish-candidate
+          path: candidate
+      - name: Verify the published version against the tested tarball
+        env:
+          RELEASE_VERSION: ${{ needs.candidate.outputs.version }}
+          RELEASE_SHA256: ${{ inputs.tarball_sha256 }}
+          RELEASE_DIST_TAG: ${{ inputs.dist_tag }}
+          TARBALL: candidate/${{ needs.candidate.outputs.tarball }}
+        run: >-
+          node scripts/verify-npm-publication.mjs
+          --version "$RELEASE_VERSION" --sha256 "$RELEASE_SHA256" --revision "$GITHUB_SHA"
+          --dist-tag "$RELEASE_DIST_TAG" --tarball "$TARBALL"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: npm-publication-verification
+          path: test-results/npm-publication/
+          if-no-files-found: warn
+          retention-days: 90
