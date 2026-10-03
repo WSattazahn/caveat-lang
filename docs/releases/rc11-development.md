@@ -396,3 +396,15 @@ Muse measurements remain external evidence until reproduced here.
   in an expression.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
+- PR 3 (#99), digest A1 and A2: restore refuses a cue the last event cannot
+  emit (F115); an effect whose names lack the kinds their place needs, whose
+  relation, record or spending the save does not hold, or that no rule effect
+  the last event reaches could make (F248); and a field the schema lacks in
+  any nested save record (F247). Genuine saves written by every published rc
+  (rc.3 to rc.10, 18,437 saves over 116 to 127 programs per rc, seeded
+  events) restore unchanged; that check's receipts are kept outside the
+  repository.
+- A3 (F95, F260): implemented on top of PR 3 and held for its own PR after
+  PR 3 merges. With the check on, the gate passed locally: the six-path
+  genuine fixtures, the 3,000-round fuzz, kit `restore-contract`, and the 49
+  scenario files with a `resume` step, whose results match the rc.10 package.
