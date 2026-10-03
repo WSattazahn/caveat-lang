@@ -396,3 +396,10 @@ Muse measurements remain external evidence until reproduced here.
   in an expression.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
+- PR 1 (#96) merged 2026-10-03 as `5290ab1`.
+- PR 2: the scenarios spec's `size` example names `initial` (F143), and
+  `spec-docs.test.mjs` validates every JSON example in that spec. The save
+  spec says a journal entry records its commitment's frozen grounds exactly
+  (R54), with a restore check. `docs/AI_AUTHORING.md` names the PR 1 codes.
+  The elapsed sentence moved to the elapsed-guard PR; the save spec's L76
+  boundary is left to PR 3c, which enforces nested unknown fields.

@@ -162,7 +162,7 @@ disagreed.
 
 ```json
 { "size": { "save": { "max": 4096 } } }
-{ "size": { "snapshot": { "max_growth": 512, "since": "start" } } }
+{ "size": { "snapshot": { "max_growth": 512, "since": "initial" } } }
 ```
 
 Sizes are UTF-8 bytes of the compact JSON serialization of the parsed save or

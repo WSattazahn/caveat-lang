@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { loadRuntimeFromDirectory } from '../lib/node.mjs';
+import { validateScenarioFile } from '../lib/scenarios.mjs';
 
 const runtime = await loadRuntimeFromDirectory(fileURLToPath(new URL('../../dist/pkg-reactive/', import.meta.url)));
 
@@ -66,6 +67,83 @@ test('the view specification lists every returned field, including the accumulat
     assert.deepEqual(journal.map(entry => entry.change), ['committed', 'reopened']);
     assert.deepEqual(journal.map(entry => entry.because), [['samples@1'], ['samples@2']]);
     assert.deepEqual(journal.map(entry => entry.value), [2, 2]);
+  } finally {
+    session.close();
+  }
+});
+
+// Version Lab F143: the scenarios specification showed a size step that its
+// own name rules make invalid. Every JSON example must be valid as written.
+// A whole-file example validates as a file. Step examples validate together,
+// in the order the specification shows them, as the steps of one scenario.
+test('every example in the scenarios specification is a valid file or step', async () => {
+  const markdown = await readFile(new URL('../../spec/caveat-scenarios-0.1.md', import.meta.url), 'utf8');
+  const values = text => {
+    const found = [];
+    let depth = 0;
+    let start = -1;
+    let quoted = false;
+    for (let index = 0; index < text.length; index += 1) {
+      const character = text[index];
+      if (quoted) {
+        if (character === '\\') index += 1;
+        else if (character === '"') quoted = false;
+      } else if (character === '"') {
+        quoted = true;
+      } else if (character === '{') {
+        if (depth === 0) start = index;
+        depth += 1;
+      } else if (character === '}') {
+        depth -= 1;
+        if (depth === 0) found.push(JSON.parse(text.slice(start, index + 1)));
+      }
+    }
+    assert.equal(depth, 0, 'a JSON example is complete');
+    return found;
+  };
+  const examples = [...markdown.matchAll(/```json\r?\n([\s\S]*?)```/g)].flatMap(block => values(block[1]));
+  const files = examples.filter(example => 'schema' in example);
+  const steps = examples.filter(example => !('schema' in example));
+  assert.ok(files.length >= 2 && steps.length >= 8, 'the specification shows files and steps');
+  // The layout example leaves its steps empty for the step examples to fill.
+  const filled = file => ({ ...file, scenarios: file.scenarios.map(scenario =>
+    (scenario.steps.length ? scenario : { ...scenario, steps: [{ resume: true }] })) });
+  for (const file of files) assert.doesNotThrow(() => validateScenarioFile(filled(file)), file.source);
+  assert.doesNotThrow(() => validateScenarioFile({
+    schema: 'caveat-scenarios/0.1', source: 'example.cav',
+    scenarios: [{ id: 'S01', title: 'the specification steps', steps }],
+  }));
+});
+
+// Version Lab R54: grounds may be a strict subset of their basis, but a
+// journal entry must record its commitment's frozen grounds exactly.
+test('restore refuses a journal entry that narrows the grounds it records', async () => {
+  const markdown = await readFile(new URL('../../spec/caveat-save-0.1.md', import.meta.url), 'utf8');
+  assert.match(markdown.replace(/\s+/g, ' '), /must equal the commitment's frozen grounds exactly/);
+  const source = `
+    claim ready;
+    evidence a from "a";
+    evidence b from "b";
+    decisions plan limit 2;
+    state value = 0;
+    event see;
+    event decide;
+    on see reveal a supports ready;
+    on see reveal b supports ready;
+    on see set value = qualified(1, a) + qualified(1, b);
+    on decide commit plan because enough using value;
+  `;
+  const session = runtime.open(source);
+  try {
+    session.dispatch('see');
+    session.dispatch('decide');
+    const save = JSON.parse(session.save());
+    assert.deepEqual(save.decision_journal[0].because, ['a', 'b']);
+    assert.deepEqual(save.commitment_grounds['plan@1'].evidence, ['a', 'b']);
+    runtime.restore(source, JSON.stringify(save)).close();
+    save.decision_journal[0].because = ['a'];
+    assert.throws(() => runtime.restore(source, JSON.stringify(save)),
+      /commitment witnesses differ from its frozen grounds/);
   } finally {
     session.close();
   }
