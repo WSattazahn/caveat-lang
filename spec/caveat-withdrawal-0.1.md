@@ -39,8 +39,10 @@ When the effect runs it resolves both names to concrete occurrences:
   `latest(STREAM)` to the stream's current reading;
 - the reason: named evidence, resolved to its current occurrence.
 
-Both must be observed, or the event fails, as `qualify` does for unobserved
-evidence. A later renewal does not move a withdrawal to a different
+Both must be observed, or the event is refused as
+`evaluation/unobserved_evidence` ([Dispatch 0.1](caveat-dispatch-0.1.md)), as
+`qualify` is for unobserved evidence; so is `withdraw latest(STREAM)` on a
+stream with no reading. A later renewal does not move a withdrawal to a different
 occurrence.
 
 Then:

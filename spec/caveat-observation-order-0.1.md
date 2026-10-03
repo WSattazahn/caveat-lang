@@ -53,7 +53,8 @@ the event. So `E` can never become observed, and the use can never succeed.
 ## What is left alone
 
 Anything that could succeed on some dispatch loads, and the runtime reports
-it if it fails:
+it if it fails, by refusing the event as `evaluation/unobserved_evidence`
+([Dispatch 0.1](caveat-dispatch-0.1.md)):
 
 - a guard that reads state or the graph, such as `when count > 0`, which may be
   false the first time and let a later rule reveal `E`;

@@ -195,7 +195,8 @@ mod tests {
     #[test]
     fn fatal_has_only_raw_outcome_and_stops_the_trace() {
         let source = "state n = 0; event crash; event later; \
-            on crash set n = 1 / 0; on later set n = 2;";
+            on crash set n = 1; bind hud.label = id_text(n + 5) when n > 0; \
+            on later set n = 2;";
         let output = run(&input(source, &["crash", "later"])).unwrap();
         let raw = serde_json::to_value(output).unwrap();
         assert_eq!(raw["events"].as_array().unwrap().len(), 1);

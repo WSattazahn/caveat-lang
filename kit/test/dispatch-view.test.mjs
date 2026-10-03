@@ -122,8 +122,8 @@ test('every refusal is the object dispatch() returns, and changes nothing', () =
 });
 
 test('a fatal outcome is the report dispatch() throws, and ends the session', () => {
-  for (const expression of ['require(false, 1)', '1 / 0']) {
-    const source = `state output = 0; event run; on run set output = 1; on run set output = ${expression};`;
+  for (const expression of ['output + 5', 'output * 7']) {
+    const source = `state output = 0; event run; on run set output = 1; bind hud.label = id_text(${expression}) when output > 0;`;
     twins(source, (old, viewed) => {
       let expected;
       assert.throws(() => old.dispatch('run'), error => { expected = error; return error.kind === 'fatal'; });

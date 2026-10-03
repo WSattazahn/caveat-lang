@@ -284,13 +284,16 @@ fn withdrawing_again_keeps_the_first_record() {
 }
 
 #[test]
-fn withdrawing_unobserved_evidence_or_an_empty_stream_fails_the_event() {
+fn withdrawing_unobserved_evidence_or_an_empty_stream_refuses_the_event() {
     let source = format!("{LEDGER}\nevent early;\non early withdraw latest(checks) because recheck;\nevent unfounded;\non unfounded withdraw gate because recheck;");
     let mut game = session(&source);
     let before = (snapshot(&game), game.save_json().unwrap());
     for event in ["early", "unfounded"] {
-        let error = game.dispatch_outcome_json(event, "{}").unwrap_err();
-        assert_eq!(error.code, "unclassified", "{event}");
+        let refused =
+            serde_json::to_value(game.dispatch_outcome_json(event, "{}").unwrap()).unwrap();
+        assert_eq!(refused["outcome"], "rejected", "{event}");
+        assert_eq!(refused["origin"], "evaluation", "{event}");
+        assert_eq!(refused["code"], "unobserved_evidence", "{event}");
         assert_eq!(
             (snapshot(&game), game.save_json().unwrap()),
             before,

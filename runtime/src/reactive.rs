@@ -8,7 +8,9 @@ use crate::eval::ResourceLedger;
 use crate::game_session::GameSymbol;
 use crate::map::{CaveatMap, MapBudget, MapCommitment, MapRelation, MapWorld};
 use crate::presentation::Number;
-use crate::reactive_expr::{self, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType};
+use crate::reactive_expr::{
+    self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
+};
 pub use crate::reactive_expr::{Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
@@ -2534,7 +2536,7 @@ impl ReactiveSession {
             let context = || format!("binding {}.{}", binding.target, binding.property);
             let condition = self
                 .evaluate(&binding.condition, &parameters)
-                .map_err(|error| format!("{}: {error}", context()))?;
+                .map_err(|error| error.context(context()))?;
             guards[group].merge(&condition.provenance)?;
             if condition.value != Value::Bool(true) {
                 continue;
@@ -2544,7 +2546,7 @@ impl ReactiveSession {
                 BindingExpression::Expression(expression) => {
                     let value = self
                         .evaluate(expression, &parameters)
-                        .map_err(|error| format!("{}: {error}", context()))?;
+                        .map_err(|error| error.context(context()))?;
                     let primitive = match value.value {
                         Value::Number(value) => BindingValue::Number(value),
                         Value::Bool(value) => BindingValue::Bool(value),
@@ -2702,7 +2704,7 @@ impl ReactiveSession {
         for citation in citations {
             let value = self
                 .evaluate_grounds(citation, parameters)
-                .map_err(|error| format!("{subject} because: {error}"))?;
+                .map_err(|error| error.context(format!("{subject} because")))?;
             cited.merge(&value.provenance)?;
         }
         let ungrounded = cited
@@ -2773,9 +2775,34 @@ impl ReactiveSession {
         }
     }
 
-    fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, String> {
+    /// An index past the history's records, `latest` of a history with none
+    /// yet, or a decision read with no numeric `using` value is a classified
+    /// expression failure; see
+    /// spec/caveat-dispatch-0.1.md.
+    fn history_read(&self, name: &str, query: HistoryRead) -> Result<Tracked<f64>, EvalError> {
         if query == HistoryRead::Latest {
-            return self.latest(name);
+            if let Some(stream) = self.reading_streams.get(name) {
+                if stream.occurrences.is_empty() {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        format!("reading stream {name} has no reached sample"),
+                    ));
+                }
+            } else if let Some(series) = self.decision_series.get(name) {
+                let Some(current) = &series.current else {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        format!("decision series {name} has no commitment"),
+                    ));
+                };
+                if self.commitment_bases[current].value.is_none() {
+                    return Err(EvalError::new(
+                        EvalFailure::HistoryIndex,
+                        format!("current decision {current} has no numeric using value"),
+                    ));
+                }
+            }
+            return Ok(self.latest(name)?);
         }
         // Counting records is a qualified observation of membership. Include
         // every reached record's basis and guards for leaving history unchanged.
@@ -2791,14 +2818,20 @@ impl ReactiveSession {
                 }
                 HistoryRead::At(index) => {
                     let record = stream.occurrences.get(index).ok_or_else(|| {
-                        format!("history index {index} is out of range for {name}")
+                        EvalError::new(
+                            EvalFailure::HistoryIndex,
+                            format!("history index {index} is out of range for {name}"),
+                        )
                     })?;
                     provenance.merge(&record.provenance)?;
                     record.value
                 }
                 HistoryRead::Latest => unreachable!(),
             };
-            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
+            return Ok(Tracked::new(
+                value,
+                self.with_current_withdrawals(provenance)?,
+            )?);
         }
         if let Some(series) = self.decision_series.get(name) {
             let mut provenance = series.selection_qualifications.clone();
@@ -2811,19 +2844,28 @@ impl ReactiveSession {
                 }
                 HistoryRead::At(index) => {
                     let revision = series.revisions.get(index).ok_or_else(|| {
-                        format!("history index {index} is out of range for {name}")
+                        EvalError::new(
+                            EvalFailure::HistoryIndex,
+                            format!("history index {index} is out of range for {name}"),
+                        )
                     })?;
                     let basis = &self.commitment_bases[&revision.id];
                     provenance.merge(&basis.provenance)?;
                     basis.value.ok_or_else(|| {
-                        format!("decision {} has no numeric using value", revision.id)
+                        EvalError::new(
+                            EvalFailure::HistoryIndex,
+                            format!("decision {} has no numeric using value", revision.id),
+                        )
                     })?
                 }
                 HistoryRead::Latest => unreachable!(),
             };
-            return Tracked::new(value, self.with_current_withdrawals(provenance)?);
+            return Ok(Tracked::new(
+                value,
+                self.with_current_withdrawals(provenance)?,
+            )?);
         }
-        Err(format!("unknown history {name}"))
+        Err(format!("unknown history {name}").into())
     }
 
     fn latest(&self, name: &str) -> Result<Tracked<f64>, String> {
@@ -3397,7 +3439,7 @@ impl ReactiveSession {
         &self,
         expression: &Expr,
         parameters: &BTreeMap<String, Tracked<f64>>,
-    ) -> Result<Tracked<Value>, String> {
+    ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_tracked_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
@@ -3411,7 +3453,7 @@ impl ReactiveSession {
                 }))
             },
             &|kind, name| self.predicate_tracked(kind, self.predicate_target(kind, name)),
-            &|evidence, caveats| self.qualify(self.occurrence(evidence), caveats),
+            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, false),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
         )
@@ -3435,7 +3477,7 @@ impl ReactiveSession {
         &self,
         expression: &Expr,
         parameters: &BTreeMap<String, Tracked<f64>>,
-    ) -> Result<Tracked<Value>, String> {
+    ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_tracked_with_identifiers(
             &|name| {
                 if name == reactive_expr::ELAPSED_READ {
@@ -3450,7 +3492,7 @@ impl ReactiveSession {
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| self.predicate_grounds(kind, self.predicate_target(kind, name)),
-            &|evidence, caveats| self.qualify_core(self.occurrence(evidence), caveats),
+            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, true),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
         )
@@ -3655,6 +3697,29 @@ impl ReactiveSession {
             provenance.merge(dependency)?;
         }
         Ok(provenance)
+    }
+
+    /// `qualified(VALUE, EVIDENCE)` in an expression: unobserved evidence is a
+    /// classified failure; see spec/caveat-dispatch-0.1.md. `core` gives
+    /// grounds rather than lineage.
+    fn qualify_read(
+        &self,
+        evidence: &str,
+        extras: &[String],
+        core: bool,
+    ) -> Result<Provenance, EvalError> {
+        self.require_kind(evidence, "evidence")?;
+        if !self.predicate("observed", evidence)? {
+            return Err(EvalError::new(
+                EvalFailure::UnobservedEvidence,
+                format!("cannot qualify a value with unobserved evidence {evidence}"),
+            ));
+        }
+        Ok(if core {
+            self.qualify_core(evidence, extras)?
+        } else {
+            self.qualify(evidence, extras)?
+        })
     }
 
     /// The evidence, the caveats that qualify it and the claims it bears on,
@@ -3973,7 +4038,11 @@ impl ReactiveSession {
             } => {
                 let occurrence = self.occurrence(evidence).to_string();
                 if !self.predicate("observed", &occurrence)? {
-                    return Err(format!("cannot qualify unobserved evidence {occurrence}").into());
+                    return Err(DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        format!("cannot qualify unobserved evidence {occurrence}"),
+                    ));
                 }
                 match after {
                     None => self.apply_qualification(&occurrence, caveat, guard)?,
@@ -3988,9 +4057,13 @@ impl ReactiveSession {
                             );
                         }
                         if self.scheduled.len() >= MAX_SCHEDULED_QUALIFICATIONS {
-                            return Err(format!(
-                                "scheduled qualifications exceed limit {MAX_SCHEDULED_QUALIFICATIONS}"
-                            ).into());
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Limit,
+                                RejectionCode::ScheduledLimit,
+                                format!(
+                                    "scheduled qualifications exceed limit {MAX_SCHEDULED_QUALIFICATIONS}"
+                                ),
+                            ));
                         }
                         let scheduled = ScheduledQualification {
                             evidence: occurrence,
@@ -4004,13 +4077,24 @@ impl ReactiveSession {
                 }
             }
             Effect::Withdraw { target, because } => {
+                let unobserved = |message: String| {
+                    DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::UnobservedEvidence,
+                        message,
+                    )
+                };
                 let evidence = self.withdrawal_target(target).ok_or_else(|| {
-                    format!("cannot withdraw {target:?}: its stream has no reading")
+                    unobserved(format!(
+                        "cannot withdraw {target:?}: its stream has no reading"
+                    ))
                 })?;
                 let because = self.occurrence(because).to_string();
                 for (name, role) in [(&evidence, "withdraw"), (&because, "withdraw because")] {
                     if !self.predicate("observed", name)? {
-                        return Err(format!("cannot {role} unobserved evidence {name}").into());
+                        return Err(unobserved(format!(
+                            "cannot {role} unobserved evidence {name}"
+                        )));
                     }
                 }
                 if !self
@@ -4359,17 +4443,38 @@ impl ReactiveSession {
                     .and_then(|series| series.current.as_ref())
                     .unwrap_or(action)
                     .clone();
-                let id = *self
-                    .symbols
-                    .get(&current)
-                    .ok_or_else(|| format!("cannot reopen uncommitted action {action}"))?;
+                let id = *self.symbols.get(&current).ok_or_else(|| {
+                    DispatchFailure::rejected(
+                        RejectionOrigin::Evaluation,
+                        RejectionCode::NotCommitted,
+                        format!("cannot reopen uncommitted action {action}"),
+                    )
+                })?;
                 let (because, cause) = match because {
                     EvidenceSelector::Named(name) => {
                         let name = self.occurrence(name).to_string();
+                        if !self.predicate("observed", &name)? {
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::UnobservedEvidence,
+                                format!(
+                                    "cannot reopen {action} because unobserved evidence {name}"
+                                ),
+                            ));
+                        }
                         let cause = self.qualify(&name, &[])?;
                         (vec![name], cause)
                     }
                     EvidenceSelector::Latest(stream) => {
+                        if self.reading_streams[stream].current.is_none() {
+                            return Err(DispatchFailure::rejected(
+                                RejectionOrigin::Evaluation,
+                                RejectionCode::UnobservedEvidence,
+                                format!(
+                                    "cannot reopen {action} because latest({stream}): its stream has no reading"
+                                ),
+                            ));
+                        }
                         let reading = self.latest(stream)?;
                         let name = self.reading_streams[stream]
                             .current
