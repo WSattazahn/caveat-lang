@@ -24,10 +24,9 @@ on read sample values = value supports ready;
 on assess commit plan because enough using latest(values);
 on refuse set touched = 1;
 on refuse reject "fixture policy";
-evidence never_seen from "never";
-event see_never;
-on see_never reveal never_seen supports ready;
-on fault set touched = qualified(1, never_seen);
+decisions untyped limit 2;
+on fault commit untyped because enough;
+on fault set touched = latest(untyped);
 bind display.value = touched;
 `;
 const events = [

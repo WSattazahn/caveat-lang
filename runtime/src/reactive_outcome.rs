@@ -223,6 +223,7 @@ impl From<EvalError> for DispatchFailure {
             | EvalFailure::HistoryIndex
             | EvalFailure::Domain => RejectionCode::Expression,
             EvalFailure::Requirement => RejectionCode::RequirementFailed,
+            EvalFailure::UnobservedEvidence => RejectionCode::UnobservedEvidence,
             EvalFailure::Other => return error.message.into(),
         };
         Self::rejected(RejectionOrigin::Evaluation, code, error.message)

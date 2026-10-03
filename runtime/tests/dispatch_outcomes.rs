@@ -781,18 +781,13 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
 
 #[test]
 fn unclassified_expression_errors_are_fatal_and_atomic() {
-    for expression in [
-        "qualified(1, never_seen)",
-        "if(output == 1, qualified(1, never_seen), 0)",
-    ] {
+    for expression in ["latest(untyped)", "if(output == 1, latest(untyped), 0)"] {
         let source = format!(
             r#"
-            claim fatal_claim;
-            evidence never_seen from "never";
-            event see_never;
-            on see_never reveal never_seen supports fatal_claim;
+            decisions untyped limit 2;
             state output = 0;
             event run;
+            on run commit untyped because enough;
             on run set output = 1;
             on run set output = {expression};
         "#
@@ -893,18 +888,13 @@ fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
 
 #[test]
 fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
-    for expression in [
-        "qualified(1, never_seen)",
-        "if(output == 1, qualified(1, never_seen), 0)",
-    ] {
+    for expression in ["latest(untyped)", "if(output == 1, latest(untyped), 0)"] {
         let source = format!(
             r#"
-            claim fatal_claim;
-            evidence never_seen from "never";
-            event see_never;
-            on see_never reveal never_seen supports fatal_claim;
+            decisions untyped limit 2;
             state output = 0;
             event run;
+            on run commit untyped because enough;
             on run set output = 1;
             on run set output = {expression};
         "#
@@ -1067,12 +1057,12 @@ fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, 
 }
 
 #[test]
-fn recovery_classification_does_not_swallow_qualifying_with_unobserved_evidence() {
+fn recovery_classification_does_not_swallow_a_decision_without_a_numeric_value() {
     for source in [
-        "claim safe; evidence never from \"never\"; event see; on see reveal never supports safe; \
-         state value = 0; event run; on run set value = qualified(1, never);",
-        "claim safe; evidence never from \"never\"; event see; on see reveal never supports safe; \
-         state value = 0; event run; on run when qualified(1, never) > 0 set value = 1;",
+        "decisions untyped limit 2; state value = 0; event run; \
+         on run commit untyped because enough; on run set value = latest(untyped);",
+        "decisions untyped limit 2; state value = 0; event run; \
+         on run commit untyped because enough; on run when latest(untyped) > 0 set value = 1;",
     ] {
         let mut game = session(source);
         let fatal = json(&game.dispatch_outcome("run", "{}").unwrap_err());
@@ -1128,6 +1118,18 @@ fn acting_on_unobserved_evidence_is_recoverable() {
         (
             "proc hide() { reopen route because never; }; on advance when blocked == 1 call hide();",
             "cannot reopen route because unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 set output = qualified(1, never);",
+            "cannot qualify a value with unobserved evidence never",
+        ),
+        (
+            "on advance when blocked == 1 and qualified(1, never) > 0 set output = 3;",
+            "cannot qualify a value with unobserved evidence never",
+        ),
+        (
+            "bind hud.cited = if(elapsed() >= 0.25 and blocked == 1, qualified(1, never), 0);",
+            "cannot qualify a value with unobserved evidence never",
         ),
         (
             "on advance when blocked == 1 reopen route because latest(empty_log);",

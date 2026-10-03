@@ -3408,7 +3408,7 @@ impl ReactiveSession {
                 }))
             },
             &|kind, name| self.predicate_tracked(kind, self.predicate_target(kind, name)),
-            &|evidence, caveats| self.qualify(self.occurrence(evidence), caveats),
+            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, false),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
         )
@@ -3447,7 +3447,7 @@ impl ReactiveSession {
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
             },
             &|kind, name| self.predicate_grounds(kind, self.predicate_target(kind, name)),
-            &|evidence, caveats| self.qualify_core(self.occurrence(evidence), caveats),
+            &|evidence, caveats| self.qualify_read(self.occurrence(evidence), caveats, true),
             &|name, query| self.history_read(name, query),
             &|handle| self.identifier_text(handle),
         )
@@ -3652,6 +3652,29 @@ impl ReactiveSession {
             provenance.merge(dependency)?;
         }
         Ok(provenance)
+    }
+
+    /// `qualified(VALUE, EVIDENCE)` in an expression: unobserved evidence is a
+    /// classified failure; see spec/caveat-dispatch-0.1.md. `core` gives
+    /// grounds rather than lineage.
+    fn qualify_read(
+        &self,
+        evidence: &str,
+        extras: &[String],
+        core: bool,
+    ) -> Result<Provenance, EvalError> {
+        self.require_kind(evidence, "evidence")?;
+        if !self.predicate("observed", evidence)? {
+            return Err(EvalError::new(
+                EvalFailure::UnobservedEvidence,
+                format!("cannot qualify a value with unobserved evidence {evidence}"),
+            ));
+        }
+        Ok(if core {
+            self.qualify_core(evidence, extras)?
+        } else {
+            self.qualify(evidence, extras)?
+        })
     }
 
     /// The evidence, the caveats that qualify it and the claims it bears on,

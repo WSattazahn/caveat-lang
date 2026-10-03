@@ -59,8 +59,8 @@ for (const [name, [result, detail]] of Object.entries(expected)) {
 }
 
 // The preserved fixture's peek no longer reaches a fatal error, so read it with
-// one that does: qualifying with evidence a later event could reveal, but none
-// has. The file under experiments/ is unchanged.
+// one that does: the latest value of a decision committed without one. The
+// file under experiments/ is unchanged.
 test('a fatal outcome never satisfies an expected rejection', async () => {
   const file = path.join(evidence, 'faults/neg-fatal-not-a-rejection.scenarios.json');
   const outcome = await runScenarioFile(parseScenarioFile(await readFile(file, 'utf8')), {
@@ -68,8 +68,8 @@ test('a fatal outcome never satisfies an expected rejection', async () => {
     readSource: async relative => {
       const source = await readFile(path.resolve(path.dirname(file), relative), 'utf8');
       assert.match(source, /history_at\(sample, 5\)/);
-      return source.replace('history_at(sample, 5);',
-        'qualified(1, probe);\nclaim fatal_claim;\nevent see_probe;\non see_probe reveal probe supports fatal_claim;');
+      return source.replace('on peek set level = history_at(sample, 5);',
+        'decisions untyped limit 2;\non peek commit untyped because enough;\non peek set level = latest(untyped);');
     },
   });
   const failed = outcome.scenarios.filter(scenario => !scenario.pass);

@@ -18,7 +18,7 @@ const FOLD_ACC: &str = "$fold_acc";
 const FOLD_VALUE: &str = "$fold_value";
 /// Internal numeric-host request; source identifiers cannot spell this name.
 pub(crate) const ELAPSED_READ: &str = "$elapsed";
-type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), String> + 'a;
+type QualificationSink<'a> = dyn Fn(&str, &[String]) -> Result<(), EvalError> + 'a;
 
 /// What kind of evaluation failure occurred. Dispatch refuses the classified
 /// kinds recoverably; see spec/caveat-dispatch-0.1.md. `Other` stays fatal.
@@ -27,6 +27,8 @@ pub enum EvalFailure {
     DivisionByZero,
     NonFinite,
     HistoryIndex,
+    /// `qualified(VALUE, EVIDENCE)` with evidence no event has observed.
+    UnobservedEvidence,
     /// A function argument outside its domain, such as a negative `sqrt`.
     Domain,
     Requirement,
@@ -1062,9 +1064,13 @@ impl Expr {
         qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
     ) -> Result<Tracked<Value>, String> {
-        self.evaluate_tracked_with_identifiers(numbers, predicate, qualify, history, &|_| {
-            Err("id_text requires a session that holds identifiers".into())
-        })
+        self.evaluate_tracked_with_identifiers(
+            numbers,
+            predicate,
+            &|evidence, caveats| qualify(evidence, caveats).map_err(EvalError::from),
+            history,
+            &|_| Err("id_text requires a session that holds identifiers".into()),
+        )
         .map_err(String::from)
     }
 
@@ -1074,7 +1080,7 @@ impl Expr {
         &self,
         numbers: &impl Fn(&str) -> Result<Option<Tracked<f64>>, String>,
         predicate: &impl Fn(&str, &str) -> Result<Tracked<bool>, String>,
-        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, String>,
+        qualify: &impl Fn(&str, &[String]) -> Result<Provenance, EvalError>,
         history: &impl Fn(&str, HistoryRead) -> Result<Tracked<f64>, EvalError>,
         identifiers: &impl Fn(f64) -> Result<String, String>,
     ) -> Result<Tracked<Value>, EvalError> {
@@ -1096,7 +1102,11 @@ impl Expr {
                 provenance.borrow_mut().merge(&tracked.provenance)?;
                 Ok(tracked.value)
             },
-            &|evidence, caveats| provenance.borrow_mut().merge(&qualify(evidence, caveats)?),
+            &|evidence, caveats| {
+                Ok(provenance
+                    .borrow_mut()
+                    .merge(&qualify(evidence, caveats)?)?)
+            },
             &|name, query| {
                 let tracked = history(name, query)?;
                 let value = finite(tracked.value)?;

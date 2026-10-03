@@ -28,10 +28,9 @@ on expire when not observed(tool) reveal tool supports answer_supported;
 on expire qualify tool with stale;
 on divide set bounded = 1 / denominator;
 on signal emit note;
-evidence never_seen from "never";
-event see_never;
-on see_never reveal never_seen supports answer_supported;
-on crash set bounded = qualified(1, never_seen);
+decisions untyped limit 2;
+on crash commit untyped because enough;
+on crash set bounded = latest(untyped);
 bind fixture.subject = id_text(subject);
 `;
 
@@ -119,7 +118,7 @@ test('ordinary unclassified fatal ends only its branch', async () => {
     branch = runtimeB.restore(source, before[0].save);
     sibling = runtimeB.restore(source, before[0].save);
     assert.throws(() => branch.dispatch('crash'), error =>
-      error.kind === 'fatal' && error.report?.code === 'unclassified' && /cannot qualify a value with unobserved evidence never_seen/.test(error.message));
+      error.kind === 'fatal' && error.report?.code === 'unclassified' && /current decision untyped@1 has no numeric using value/.test(error.message));
     assert.equal(branch.state, 'fatal');
     assert.equal(runtimeB.trapped, false);
     assert.equal(runtimeA.trapped, false);

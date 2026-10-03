@@ -184,7 +184,7 @@ test('replay prints one record per event, keeps file line numbers and stops at a
     assert.ok(records[1].snapshot && !records[3].snapshot && !('schema' in records[1]));
 
     const dividing = path.join(directory, 'dividing.cav');
-    await writeFile(dividing, 'claim c;\nevidence never_seen from "never";\nevent see_never;\non see_never reveal never_seen supports c;\nstate share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 set share = qualified(1, never_seen);');
+    await writeFile(dividing, 'decisions untyped limit 2;\nstate share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 commit untyped because enough;\non read when value > 1.5 set share = latest(untyped);');
     await writeFile(events, [1, 2, 3].map(value => JSON.stringify({ event: 'read', payload: { value } })).join('\n'));
     const fatal = caveat(['replay', dividing, events]);
     assert.equal(fatal.status, 1);

@@ -388,5 +388,7 @@ Muse measurements remain external evidence until reproduced here.
   `sqrt` and `latest` of an empty stream or series also refuse as
   `evaluation/expression`, and `reopen ACTION because latest(STREAM)` on an
   empty stream as `evaluation/unobserved_evidence`, matching `withdraw`.
+  The owner chose (card, 2026-10-03) that `qualified(VALUE, EVIDENCE)` on
+  unobserved evidence also refuses as `evaluation/unobserved_evidence`.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).

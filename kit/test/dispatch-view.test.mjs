@@ -122,8 +122,8 @@ test('every refusal is the object dispatch() returns, and changes nothing', () =
 });
 
 test('a fatal outcome is the report dispatch() throws, and ends the session', () => {
-  for (const expression of ['qualified(1, never_seen)', 'if(output == 1, qualified(1, never_seen), 0)']) {
-    const source = `claim fatal_claim; evidence never_seen from "never"; event see_never; on see_never reveal never_seen supports fatal_claim; state output = 0; event run; on run set output = 1; on run set output = ${expression};`;
+  for (const expression of ['latest(untyped)', 'if(output == 1, latest(untyped), 0)']) {
+    const source = `decisions untyped limit 2; state output = 0; event run; on run commit untyped because enough; on run set output = 1; on run set output = ${expression};`;
     twins(source, (old, viewed) => {
       let expected;
       assert.throws(() => old.dispatch('run'), error => { expected = error; return error.kind === 'fatal'; });
