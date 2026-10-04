@@ -55,7 +55,10 @@ async function fresh(browser, options = {}, renderFps = Number(process.env.RENDE
   if (preparePage) await preparePage(page);
   const response = await page.goto(url);
   assert(response?.ok(), `Game failed to load: HTTP ${response?.status()}`);
-  await page.getByRole('button', { name: /^Start rescue\b/i }).waitFor();
+  // WebKit on a CI runner has taken longer than the 20-second default to show
+  // the opening screen (runtime run 37236869595), so the first load gets more
+  // time; every later step keeps the default.
+  await page.getByRole('button', { name: /^Start rescue\b/i }).waitFor({ timeout: 60000 });
   await page.waitForFunction(() => window.__rescue?.rendered);
   assert.equal(await page.evaluate(() => Object.isFrozen(window.__rescue)), true, 'Browser diagnostics must be read-only');
   assert.equal(await page.locator('#world').evaluate(canvas => canvas.width > 250 && canvas.height > 250), true);
