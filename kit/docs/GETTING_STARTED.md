@@ -1,7 +1,7 @@
 # Getting started with CAVEAT Language
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.12`**.
+Package: **`caveat-lang@0.1.0-rc.13`**.
 <!-- /caveat-package:identity -->
 
 This guide starts from an empty directory and ends with a program that makes a
@@ -24,7 +24,7 @@ package version this guide accompanies:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.12
+npm install caveat-lang@0.1.0-rc.13
 ```
 <!-- /caveat-package:install -->
 
