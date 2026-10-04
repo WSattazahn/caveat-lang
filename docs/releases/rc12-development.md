@@ -93,6 +93,28 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
      pre-registered and approved at 20:17 PT, and it is running. Its result
      is recorded here whichever way it falls. No PR below waits on it or is
      written to anticipate it.
+     Result (#113, merged as `4dd2b66`; `experiments/glowcap/RESULTS.md`,
+     "Round 7: fresh authors, blind requests, rc.11"): TypeScript wins, and
+     Caveat meets neither decision rule.
+     - Caveat is smaller (median 367 code lines against 496) and changed a
+       third fewer lines on the blind requests (186 against 282). Its authors
+       were green on the first run in 2 of 4 blind phases against 4, broke a
+       median 11 earlier scenarios against 0, and drifted more in their
+       explanations (51 units against 28).
+     - Rule A (adoption) is not met. It would be met if change cost were read
+       on lines alone; the report reads a measure as better only when no
+       number in its group is worse, as round 6 did, and says so.
+     - Rule B (the stated claim) is not met: drift is higher and blind
+       first-run correctness is worse.
+     - Excluding C1 for the isolation incident changes no verdict: C4 in
+       place of C1, C1 in place of C4, and all four authors give the same
+       verdicts.
+     - Four of the seven recorded predictions failed.
+     - No claim that Caveat is better than TypeScript goes into the README,
+       AGENTS, the site or other documents on the strength of this round.
+     - The work list it leaves: a save that forgets what the program forgot,
+       ordered grounds, timing to the tick (F267, documented by #114) and
+       the hand-written glue.
    - The member-symbols design decisions are made and recorded in
      `spec/caveat-member-symbols-0.1.md` section 12 (#107):
      - brackets, `TEMPLATE[Q]`;
@@ -270,7 +292,7 @@ It must also meet the §11 bar:
 Before PR 1, the owner decides whether §11.6 stays a merge gate or becomes a
 release-note caveat. That decides whether member symbols ship in rc.12.
 
-**Status: pending the owner's decision** (see "Owner decisions" below).
+**Status: kept as a draft for rc.12** (see "Owner decisions" below).
 
 ### PR 8 — Publish through the attested path
 
@@ -287,8 +309,17 @@ must be done before the tag.
 
 ## Owner decisions
 
-- Needed before PR 1: whether PR 7 is in or out of rc.12, and whether §11.6
-  (a second program) is a merge gate. **Pending.**
+- PR 7 is out of rc.12 (owner, card answered 2026-10-04): member symbols
+  stay a draft spec through rc.12. The implementation branch starts after
+  rc.12 publishes, and §11.6 (a second program) stays its merge gate. The
+  reasons given: the bar is the draft's own, set by #68 ("pending
+  independent evidence from 2–3 additional real programs requiring
+  cross-member naming"); rc.12 is coherent without a parser change, editor
+  grammar and kit types; and this cycle's effort goes to finishing. The
+  search for a second program looks in what already exists (the agent
+  ledger and round 7's Caveat programs) rather than writing one to order;
+  if none is simpler with `ev_[shown]`, that is a finding about the
+  feature.
 
 ## Direction: rc.13 and after (recorded now, not scoped)
 
@@ -350,7 +381,7 @@ must be done before the tag.
 4. PR 4.
 5. PR 5.
 6. PR 6, ready before the release so that it can run live.
-7. PR 7, if accepted.
+7. PR 7 is not in rc.12 (kept as a draft).
 8. PR 8, which is the release.
 
 Round 7's Glowcap result and the Version Lab's rc.12 findings land in this
@@ -394,7 +425,8 @@ The rc.11 rules carry over:
   from rc.11's facts, it shows a hand publish whose attestation stays
   unsupported, and refuses to record provenance. The live run for rc.12's
   release has not happened yet.
-- PR 7 (member symbols) is pending the owner's decision.
+- PR 7 (member symbols) is kept as a draft for rc.12 (owner decision,
+  2026-10-04); implementation follows rc.12's publication, gated on §11.6.
 - PR 1 (#108) merged 2026-10-04 as `81bb39a`.
 - PR 4: `kit/docs/AGENT_START.md` and the agent-evidence README say that a
   `caveat serve` session lasts as long as its process, that each MCP tool call
@@ -450,6 +482,9 @@ The rc.11 rules carry over:
   are unaffected. One deviation from check (a): an explicit `unexamined`
   entry, which claims no examination, is still accepted. Round 7's F263 and
   F264 concern qualifications, not attention, and add no fixture here.
+- F267's documentation and regression merged as #114 (`8b0cc85`).
+- Glowcap round 7 merged as #113 (`4dd2b66`); its result is recorded under
+  input 3.
 - F268 (owner's decision: fix in rc.12): a procedure parameter now supplies
   its argument's grounds, so `call store(qualified(7, w))` grounds `slot` on
   `[w]` as `set slot = qualified(7, w)` does, and the guard that only revealed
