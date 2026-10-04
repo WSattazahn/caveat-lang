@@ -143,7 +143,10 @@ save is refused with an error, and never crashes the runtime, when:
   shows, not that it did;
 - the decision journal disagrees with the graph's commitment/reopening order,
   the frozen grounds or numeric basis, the revision chain, or the observed
-  evidence and declared caveats it cites;
+  evidence and declared caveats it cites. A committed entry's `because` and
+  `caveats` must equal the commitment's frozen grounds exactly: the strict
+  subset allowed above relates grounds to their lineage or basis, never a
+  journal entry to the grounds it records;
 - a journal entry has an impossible event/sequence relationship, unreachable
   decision effect, or inconsistent optional elapsed time. Clocks whose source
   admits negative `dt` are not incorrectly treated as monotonic;

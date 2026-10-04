@@ -396,6 +396,7 @@ Muse measurements remain external evidence until reproduced here.
   in an expression.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
+- PR 1 (#96) merged 2026-10-03 as `5290ab1`.
 - PR 3 (#99), digest A1 and A2: restore refuses a cue the last event cannot
   emit (F115); an effect whose names lack the kinds their place needs, whose
   relation, record or spending the save does not hold, or that no rule effect
@@ -418,3 +419,9 @@ Muse measurements remain external evidence until reproduced here.
   clock; near the binary64 limit a step is absorbed. Release note: the
   elapsed spec now says the clock stays finite and loses precision near that
   limit, and the runtime checks the sum it used to add unchecked.
+- PR 2: the scenarios spec's `size` example names `initial` (F143), and
+  `spec-docs.test.mjs` validates every JSON example in that spec. The save
+  spec says a journal entry records its commitment's frozen grounds exactly
+  (R54), with a restore check. `docs/AI_AUTHORING.md` names the PR 1 codes.
+  The elapsed sentence moved to the elapsed-guard PR; the save spec's L76
+  boundary was left to PR 3 (#99), which enforces nested unknown fields.
