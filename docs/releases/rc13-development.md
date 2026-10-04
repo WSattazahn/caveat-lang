@@ -197,5 +197,14 @@ The rc.12 rules carry over:
   exists; §11.6 is unmet, the draft stands, and no implementation branch
   opens in rc.13. This is a finding about the feature: outside Before the
   Rain, no program in the repository has the shape a reference serves.
+- PR 2 (#126): all 16 relative links in `kit/README.md` now open the file
+  on GitHub's `main`, and a sentence near the top says the shipped copies are
+  in the package's `docs/` and `examples/`. The six `docs/reference/` links
+  point at their repository source paths, because `kit/docs/reference/` is
+  generated and untracked (`.gitignore`), so `blob/main/kit/docs/reference/`
+  would 404. `scripts/kit-docs.mjs` refuses a relative README link and any
+  `blob/main/` link to a file `git ls-files` does not list; the check runs in
+  `kit/test/package-docs.test.mjs` under `npm run test:kit`. The npm page and
+  Socket show the change only after rc.13 publishes.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
