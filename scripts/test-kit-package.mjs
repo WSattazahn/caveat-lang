@@ -364,6 +364,31 @@ assert.equal(used.status, 0, used.stdout + used.stderr);
 assert.equal(JSON.parse(used.stdout).revision, buildInfo.revision);
 report.checks.library = true;
 
+// Findings 123, 188-191 through the installed runtime: a genuine examination
+// restores and plays on; an examination the budget never paid for is refused.
+await writeFile(path.join(consumer, 'attention.mjs'), `
+import assert from 'node:assert/strict';
+import { loadRuntimeFromDirectory } from '${manifest.name}/node';
+const runtime = await loadRuntimeFromDirectory();
+const source = 'budget 2;\\nclaim ready;\\nevidence sensor from "sensor";\\ncaveat stale consequence low;\\n'
+  + 'event observe;\\nevent quiet;\\non observe reveal sensor supports ready;\\non quiet examine stale cost 1;\\n';
+const session = runtime.open(source);
+assert.equal(session.dispatch('observe').outcome, 'accepted');
+const forged = JSON.parse(session.save());
+forged.graph.attention = { stale: 'examined' };
+assert.throws(() => runtime.restore(source, JSON.stringify(forged)),
+  error => error.kind === 'restore' && /examined caveats cost at least 1 attention to examine, more than the 0 the budget spent/.test(error.message));
+assert.equal(session.dispatch('quiet').outcome, 'accepted');
+const resumed = runtime.restore(source, session.save());
+assert.deepEqual(resumed.snapshot(), session.snapshot());
+assert.deepEqual(resumed.dispatch('observe'), session.dispatch('observe'));
+assert.deepEqual(runtime.restore(source, resumed.save()).snapshot(), session.snapshot());
+console.log(JSON.stringify(JSON.parse(session.save()).graph.attention));
+`);
+const attention = node(['attention.mjs'], consumer);
+assert.equal(attention.status, 0, attention.stdout + attention.stderr);
+report.checks.attentionRestore = JSON.parse(attention.stdout);
+
 // The new refusal codes must keep working through the package's own runtime,
 // session wrapper, server adapter and CLI, including after save/restore.
 await writeFile(path.join(consumer, 'recovery.mjs'), `
