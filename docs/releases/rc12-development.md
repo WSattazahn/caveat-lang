@@ -450,6 +450,19 @@ The rc.11 rules carry over:
   are unaffected. One deviation from check (a): an explicit `unexamined`
   entry, which claims no examination, is still accepted. Round 7's F263 and
   F264 concern qualifications, not attention, and add no fixture here.
+- F268 (owner's decision: fix in rc.12): a procedure parameter now supplies
+  its argument's grounds, so `call store(qualified(7, w))` grounds `slot` on
+  `[w]` as `set slot = qualified(7, w)` does, and the guard that only revealed
+  `w` stays in lineage. The call's guard and its eagerly frozen arguments
+  still take full lineage. Release note: values and commitments passed
+  through numeric `proc` parameters may report narrower grounds, and
+  `rests_on_withdrawn` no longer holds for a withdrawal of evidence that only
+  gated an argument; lineage, outcomes and values are unchanged, and saves
+  written by rc.11 restore with their wider grounds kept. Re-running the
+  corpus before and after the fix (54 scenario files, 406 scenarios, 27,531
+  events; Glowcap round 7's four Caveat finals, 50 scenarios each) changed no
+  outcome, snapshot or grounds: no program in it passes a guarded reveal's
+  evidence through a parameter. The Lean conformance gate passes (72 cases).
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a

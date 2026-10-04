@@ -37,6 +37,7 @@ When `set NAME = EXPR` succeeds, the state's grounds become the grounds of
 | `examined(c)` | `c`, its qualifications, the examination guard | `c` and its qualifications |
 | `committed(x)` / `reopened(x)` | stored basis, reopening, selection and absence dependencies | `x`'s grounds; `reopened` adds the reopening evidence |
 | `latest`, `history_*`, `has_sample` | as before | as lineage in this profile |
+| a procedure parameter | its argument's lineage | its argument's grounds |
 
 An initializer's grounds are computed the same way.
 
@@ -97,6 +98,19 @@ Two additive fields; the schema stays `caveat-reactive/0.1`:
   `reopened_by` lists it.
 
 ## Changes
+
+- 2026-10-04 (rc.12): a procedure parameter supplies its argument's grounds
+  (F268). A call evaluated each argument once, for lineage, and a parameter
+  read for grounds returned that lineage. So in `proc store(v) { set slot = v;
+  }`, `call store(qualified(7, w))` gave `slot` the guard that revealed `w` as
+  grounds, where `set slot = qualified(7, w)` gives `[w]`; the same held for
+  `commit … using v` and a `because v` citation, and `rests_on_withdrawn` read
+  the wider grounds. Each argument is now also evaluated for its grounds, so
+  a parameter grounds a value as its argument would inline. Lineage is
+  unchanged: the call's guard still carries every argument's lineage, and
+  unused arguments are still evaluated. The new grounds are a subset of the
+  old, and saves written before this restore; see
+  [Save 0.1](caveat-save-0.1.md#changes).
 
 - 2026-09-27: a `set` whose citation is not grounded is refused as
   `evaluation/ungrounded_citation`, and the session continues. It was a fatal
