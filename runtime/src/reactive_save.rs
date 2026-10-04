@@ -725,6 +725,22 @@ impl ReactiveSession {
         (possible, scheduled)
     }
 
+    /// The least cost at which some rule, or a procedure a rule reaches,
+    /// examines each caveat. Guards are not evaluated: a caveat listed here
+    /// could have been examined, not shown to have been.
+    fn examination_costs(&self) -> HashMap<String, u64> {
+        let mut costs = HashMap::new();
+        for effect in self.reached_effects(None) {
+            if let Effect::Examine { caveat, cost } = effect {
+                costs
+                    .entry(caveat.clone())
+                    .and_modify(|least: &mut u64| *least = (*least).min(*cost))
+                    .or_insert(*cost);
+            }
+        }
+        costs
+    }
+
     /// The name the source gives `evidence`: its stream or renewable evidence
     /// for an occurrence, and itself otherwise.
     fn source_evidence<'a>(&self, evidence: &'a str) -> &'a str {
@@ -846,10 +862,36 @@ impl ReactiveSession {
             self.require_observed(evidence, &observed)
                 .map_err(|error| format!("relation {from} {name} {to}: {error}"))?;
         }
+        // Findings 123, 188-191: attention no examination of the source can
+        // leave. A reactive event only ever leaves a caveat examined, by an
+        // `examine` the budget pays for.
+        let costs = self.examination_costs();
         for (name, attention) in &saved.attention {
             self.require_kind(name, "caveat")?;
+            let state = attention_from_name(attention)?;
+            match state {
+                Attention::Unexamined => {}
+                Attention::Deferred | Attention::Examining => {
+                    return Err(format!(
+                        "caveat {name} is {attention}, which no reactive event leaves"
+                    ));
+                }
+                Attention::Examined => {
+                    if self.resources.is_none() {
+                        return Err(format!(
+                            "caveat {name} is examined, but this program has no attention budget"
+                        ));
+                    }
+                    if !costs.contains_key(name) {
+                        return Err(format!(
+                            "caveat {name} is examined, but no rule or procedure of this \
+                             program examines it"
+                        ));
+                    }
+                }
+            }
             let id = self.symbols[name];
-            Arc::make_mut(&mut self.graph).set_attention(id, attention_from_name(attention)?);
+            Arc::make_mut(&mut self.graph).set_attention(id, state);
         }
         for name in &saved.open {
             let id = self.symbols.get(name).copied();
@@ -1318,6 +1360,26 @@ impl ReactiveSession {
                 ledger.exhausted = saved.exhausted;
             }
             _ => return Err("its attention budget does not match the program".into()),
+        }
+        // Each examined caveat cost at least the least any rule examining it
+        // charges, and the budget spent all of it.
+        if let Some(ledger) = &self.resources {
+            let costs = self.examination_costs();
+            let least: u128 = save
+                .graph
+                .attention
+                .iter()
+                .filter(|(_, attention)| attention.as_str() == "examined")
+                .filter_map(|(name, _)| costs.get(name))
+                .map(|cost| u128::from(*cost))
+                .sum();
+            if least > u128::from(ledger.spent) {
+                return Err(format!(
+                    "examined caveats cost at least {least} attention to examine, more than the \
+                     {} the budget spent",
+                    ledger.spent
+                ));
+            }
         }
         if save.cue_qualifications.len() != save.cues.len() {
             return Err("its cues and their qualifications do not match".into());
