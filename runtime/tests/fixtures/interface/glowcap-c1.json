@@ -1,0 +1,722 @@
+{
+  "schema": "caveat-interface/0.1",
+  "events": [
+    {
+      "name": "absorb",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "mushroom",
+          "members": [
+            "cave",
+            "pool",
+            "ruin",
+            "grove",
+            "pit"
+          ]
+        },
+        {
+          "name": "sort",
+          "type": "member",
+          "members": [
+            "glowcap",
+            "duskcap"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mark",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "mushroom",
+          "members": [
+            "cave",
+            "pool",
+            "ruin",
+            "grove",
+            "pit"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "taste",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "mushroom",
+          "members": [
+            "cave",
+            "pool",
+            "ruin",
+            "grove",
+            "pit"
+          ]
+        },
+        {
+          "name": "sort",
+          "type": "member",
+          "members": [
+            "glowcap",
+            "duskcap"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tick",
+      "parameters": [
+        {
+          "name": "dt",
+          "type": "number",
+          "min": 0.0,
+          "max": 0.1
+        }
+      ]
+    },
+    {
+      "name": "unmark",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "mushroom",
+          "members": [
+            "cave",
+            "pool",
+            "ruin",
+            "grove",
+            "pit"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "witness",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "mushroom",
+          "members": [
+            "cave",
+            "pool",
+            "ruin",
+            "grove",
+            "pit"
+          ]
+        },
+        {
+          "name": "sort",
+          "type": "member",
+          "members": [
+            "glowcap",
+            "duskcap"
+          ]
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "c1",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "c2",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "c3",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "c4",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "c5",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "c6",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "cave_consumed",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "cave_eaten",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "cave_grows_at",
+      "min": -1000000000000.0,
+      "max": 1000000000000.0
+    },
+    {
+      "name": "cave_life",
+      "min": 1.0,
+      "max": 64.0
+    },
+    {
+      "name": "cave_marked",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "cave_taste",
+      "min": 0.0,
+      "max": 2.0
+    },
+    {
+      "name": "glow",
+      "min": 0.0,
+      "max": 30.0
+    },
+    {
+      "name": "grove_consumed",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "grove_eaten",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "grove_grows_at",
+      "min": -1000000000000.0,
+      "max": 1000000000000.0
+    },
+    {
+      "name": "grove_life",
+      "min": 1.0,
+      "max": 64.0
+    },
+    {
+      "name": "grove_marked",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "grove_taste",
+      "min": 0.0,
+      "max": 2.0
+    },
+    {
+      "name": "heavy",
+      "min": 0.0,
+      "max": 30.0
+    },
+    {
+      "name": "j1",
+      "min": 0.0,
+      "max": 1000.0
+    },
+    {
+      "name": "j2",
+      "min": 0.0,
+      "max": 1000.0
+    },
+    {
+      "name": "j3",
+      "min": 0.0,
+      "max": 1000.0
+    },
+    {
+      "name": "j4",
+      "min": 0.0,
+      "max": 1000.0
+    },
+    {
+      "name": "j5",
+      "min": 0.0,
+      "max": 1000.0
+    },
+    {
+      "name": "j6",
+      "min": 0.0,
+      "max": 1000.0
+    },
+    {
+      "name": "pit_consumed",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pit_eaten",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pit_grows_at",
+      "min": -1000000000000.0,
+      "max": 1000000000000.0
+    },
+    {
+      "name": "pit_life",
+      "min": 1.0,
+      "max": 64.0
+    },
+    {
+      "name": "pit_marked",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pit_taste",
+      "min": 0.0,
+      "max": 2.0
+    },
+    {
+      "name": "pool_consumed",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pool_eaten",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pool_grows_at",
+      "min": -1000000000000.0,
+      "max": 1000000000000.0
+    },
+    {
+      "name": "pool_life",
+      "min": 1.0,
+      "max": 64.0
+    },
+    {
+      "name": "pool_marked",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pool_taste",
+      "min": 0.0,
+      "max": 2.0
+    },
+    {
+      "name": "r1",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "r2",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "ruin_consumed",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "ruin_eaten",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "ruin_grows_at",
+      "min": -1000000000000.0,
+      "max": 1000000000000.0
+    },
+    {
+      "name": "ruin_life",
+      "min": 1.0,
+      "max": 64.0
+    },
+    {
+      "name": "ruin_marked",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "ruin_taste",
+      "min": 0.0,
+      "max": 2.0
+    },
+    {
+      "name": "s1",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "s2",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "s3",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "s4",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "s5",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "s6",
+      "min": 0.0,
+      "max": 1.0
+    }
+  ],
+  "bindings": [
+    {
+      "target": "belief",
+      "property": "contradictedBy",
+      "type": "number",
+      "always": true
+    },
+    {
+      "target": "belief",
+      "property": "note",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "belief",
+      "property": "state",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "belief",
+      "property": "supportedBy",
+      "type": "number",
+      "always": true
+    },
+    {
+      "target": "belief",
+      "property": "text",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "canAbsorb",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "canTaste",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "label",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "marked",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "present",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "why.absorb",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "cave",
+      "property": "why.taste",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "decision",
+      "property": "state",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "canAbsorb",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "canTaste",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "label",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "marked",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "present",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "why.absorb",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "grove",
+      "property": "why.taste",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "journal",
+      "property": "e1",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "journal",
+      "property": "e2",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "journal",
+      "property": "e3",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "journal",
+      "property": "e4",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "journal",
+      "property": "e5",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "journal",
+      "property": "e6",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "canAbsorb",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "canTaste",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "label",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "marked",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "present",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "why.absorb",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pit",
+      "property": "why.taste",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "canAbsorb",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "canTaste",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "label",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "marked",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "present",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "why.absorb",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pool",
+      "property": "why.taste",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "canAbsorb",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "canTaste",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "label",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "marked",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "present",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "why.absorb",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "ruin",
+      "property": "why.taste",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "slime",
+      "property": "glowing",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "slime",
+      "property": "heavy",
+      "type": "boolean",
+      "always": true
+    },
+    {
+      "target": "slime",
+      "property": "heavySeconds",
+      "type": "number",
+      "always": true
+    }
+  ],
+  "cues": [],
+  "decisions": [
+    {
+      "name": "trust",
+      "limit": 256
+    }
+  ],
+  "readings": [],
+  "evidence": [
+    "absorb_cave",
+    "absorb_grove",
+    "absorb_pit",
+    "absorb_pool",
+    "absorb_ruin",
+    "taste_cave",
+    "taste_grove",
+    "taste_pit",
+    "taste_pool",
+    "taste_ruin",
+    "witness_cave",
+    "witness_grove",
+    "witness_pit",
+    "witness_pool",
+    "witness_ruin"
+  ],
+  "caveats": [
+    "secondhand",
+    "taste_faded",
+    "tasted_in_dark"
+  ],
+  "claims": [
+    "glowing_gives_light"
+  ]
+}
