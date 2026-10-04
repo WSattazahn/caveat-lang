@@ -352,3 +352,27 @@ any author starts. Dispatch times and agent identities go in `launches.json`.
    scenario reaches the limit, and the 64-life floor is unchanged. The
    stage-1 hash of `phases/cr10.md` in `registration.json` is the original
    wording; `registration-2.json` records the amended file.
+
+2. **Isolation incident in wave 1, and the scratchpad (during wave 1).** The
+   agents' environment offers a session scratchpad directory, which every
+   agent of the round shares. At CR13, C1 kept a backup there named
+   `adapter.bak`, which C2 also used; C1 restored it, saw C2's adapter source
+   and ran one `test` with it (snapshot `8cdfd394b1d2`, 10/41), then rewrote
+   its own adapter. C1 disclosed this in its notes and report. Under *Who does
+   what*, C1 is excluded from the primary counts and kept in the record. C2's
+   snapshots contain no C1 adapter; C2 was sent an infrastructure notice
+   (keep every file in its own directory, read nothing from the scratchpad,
+   record anything it restored) and stays in the primary counts unless its
+   notes show otherwise. The scratchpad also held the root's infrastructure
+   files until about 04:15 UTC, including the smoke-run copies of `ts/` and
+   `caveat5/`. No author reports reading them; access times cannot show it
+   either way. They were then moved out, and the files C1 and C2 wrote there
+   were preserved. Wave 2 authors receive one added sentence at the end of
+   their prompt: "Keep every file you write, scratch files and backups
+   included, inside that directory; the session's scratchpad directory is
+   shared with other agents and is outside it."
+3. **A replacement Caveat author, C4 (during wave 1, pending the owner).**
+   With C1 excluded, the Caveat side would have two primary authors to
+   TypeScript's three. C4 runs in wave 2 under the same prompt as C3. If the
+   owner declines the replacement, C4 is reported as supplementary and the
+   primary Caveat counts use C2 and C3 only.

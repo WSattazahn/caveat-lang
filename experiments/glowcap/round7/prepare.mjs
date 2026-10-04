@@ -24,7 +24,11 @@ const TYPESCRIPT = '7.0.2';
 // --smoke: two root-only authors through the phases that have texts, in a
 // separate root; infrastructure checks, never results.
 const SMOKE = process.argv.includes('--smoke');
+// --add=C4:caveat prepares one more author without touching the others
+// (amendment 3: a replacement for an excluded run).
+const ADD = arg('add');
 const AUTHORS = SMOKE ? [['SMOKE-C', 'caveat'], ['SMOKE-T', 'ts']]
+  : ADD ? [ADD.split(':')]
   : [['C1', 'caveat'], ['T1', 'ts'], ['C2', 'caveat'], ['T2', 'ts'], ['C3', 'caveat'], ['T3', 'ts']];
 const GUIDE = 'docs/reference/docs/AI_AUTHORING.md';
 const CUT = '## Evidence from fresh authors';
@@ -105,7 +109,7 @@ function release() {
 
 async function authors() {
   const tarball = checkTarball();
-  await release();
+  if (!ADD) await release();
   const template = readFileSync(path.join(here, 'workspace', 'README-author.md'), 'utf8');
   const runner = readFileSync(path.join(here, 'workspace', 'run.mjs'), 'utf8');
   for (const [id, side] of AUTHORS) {
