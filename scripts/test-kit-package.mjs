@@ -55,7 +55,7 @@ const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { f
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session'];
+const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session', 'types'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -335,6 +335,7 @@ import { CaveatError } from '${manifest.name}/session';
 import { parseScenarioFile } from '${manifest.name}/scenarios';
 import { dependents, explain } from '${manifest.name}/explain';
 import { createServer } from '${manifest.name}/serve';
+import { declarations, typed } from '${manifest.name}/types';
 const runtime = await loadRuntimeFromDirectory();
 const source = await readFile('thermostat_history.cav', 'utf8');
 const session = runtime.open(source);
@@ -358,6 +359,8 @@ assert.deepEqual(dependents(session.snapshot(), 'temperature@2').decisions.map(i
 const server = createServer({ runtime, source });
 assert.equal(server.handle(JSON.stringify({ op: 'dispatch', event: 'read', payload: { value: 17 } })).response.outcome, 'accepted');
 server.close();
+assert.match(declarations(runtime.interface(source)), /^    read: \{ value: number \};$/m);
+assert.equal(typed(session), session);
 console.log(JSON.stringify(runtime.identity));
 `);
 const used = node(['use.mjs'], consumer);

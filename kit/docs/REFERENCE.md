@@ -20,6 +20,7 @@ installed.
 | --- | --- |
 | `validate PROGRAM` | Does the program load? Lists its events, histories and displayed values. |
 | `check PROGRAM` | Are there patterns worth a second look? Advisory warnings with a code and a line ([check](reference/spec/caveat-check-0.1.md)). |
+| `types PROGRAM` | What does a host send and read? TypeScript declarations for its events, payloads and displayed values, from its [interface](reference/spec/caveat-interface-0.1.md). |
 | `test SCENARIOS…` | Did each scenario get the outcomes and snapshot values it expects ([scenarios](reference/spec/caveat-scenarios-0.1.md))? |
 | `explain PROGRAM [EVENTS]` | After these events, what does each decision rest on, and why is each displayed value what it is? |
 | `dependents PROGRAM NAME [EVENTS]` | What rests on this evidence, reading stream or caveat? Includes [withdrawal records](reference/spec/caveat-dependents-0.1.md). |
