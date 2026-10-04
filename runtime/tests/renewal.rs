@@ -281,3 +281,68 @@ fn a_procedure_over_renewable_evidence_uses_its_current_occurrence() {
     send(&mut game, "check");
     assert_eq!(game.snapshot().values["count"], 1.0);
 }
+
+// F267: a scheduled qualification applies on the first time event at which
+// the clock reading minus the reading stored at scheduling, both binary64,
+// reaches the delay. Scheduled at the inexact reading 28 × 0.1, a delay of 60
+// is not yet due after 960 exact steps of 0.0625 (the difference is
+// 59.99999999999999) and applies on the 961st, also across a save and restore
+// taken while it waits. Scheduled at an exact reading, it applies on the 960th.
+#[test]
+fn f267_a_delay_is_due_when_the_difference_of_clock_readings_reaches_it() {
+    fn steps(game: &mut ReactiveSession, dt: f64, count: usize) {
+        for _ in 0..count {
+            game.apply("tick", &BTreeMap::from([("dt".into(), dt)]))
+                .unwrap();
+        }
+    }
+    fn faded(game: &ReactiveSession) -> bool {
+        game.snapshot().bindings["hud"]["faded"] == BindingValue::Bool(true)
+    }
+    let extra = "on eat qualify bite with faded after 60;\nbind hud.faded = carries(bite, faded);";
+    for (before, late, restored) in [(0, false, false), (28, true, false), (28, true, true)] {
+        let mut game = load(extra);
+        steps(&mut game, 0.1, before);
+        let scheduled_at = game.snapshot().elapsed;
+        if before == 28 {
+            assert_eq!(scheduled_at, 2.800000000000001);
+        }
+        send(&mut game, "eat");
+        steps(&mut game, 0.0625, 480);
+        if restored {
+            let saved = game.save_json().unwrap();
+            game = ReactiveSession::restore_json(&format!("{WORLD}\n{extra}"), &saved).unwrap();
+        }
+        steps(&mut game, 0.0625, 480);
+        let difference = game.snapshot().elapsed - scheduled_at;
+        assert_eq!(difference < 60.0, late, "difference {difference}");
+        assert_eq!(faded(&game), !late, "after 960 steps from {scheduled_at}");
+        steps(&mut game, 0.0625, 1);
+        assert!(faded(&game), "after 961 steps from {scheduled_at}");
+    }
+}
+
+// F267: far from zero the binary64 spacing is coarse, and a delay can apply
+// several events early. Scheduled at 1e11, a delay of 1 with steps of 0.001
+// applies on the 993rd step.
+#[test]
+fn f267_far_from_zero_a_delay_can_apply_early() {
+    let mut game = ReactiveSession::from_source(&format!(
+        "{}\nevent advance dt min 0 max 1e12;\nclock advance every 0.001;\non eat qualify bite with faded after 1;\nbind hud.faded = carries(bite, faded);",
+        WORLD.replace("event tick dt min 0 max 0.1;\n", "")
+    ))
+    .unwrap();
+    game.apply("advance", &BTreeMap::from([("dt".into(), 1e11)]))
+        .unwrap();
+    send(&mut game, "eat");
+    let mut applied = None;
+    for step in 1..=1000 {
+        game.apply("advance", &BTreeMap::from([("dt".into(), 0.001)]))
+            .unwrap();
+        if game.snapshot().bindings["hud"]["faded"] == BindingValue::Bool(true) {
+            applied = Some(step);
+            break;
+        }
+    }
+    assert_eq!(applied, Some(993));
+}

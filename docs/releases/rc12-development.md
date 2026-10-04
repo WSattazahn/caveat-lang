@@ -50,7 +50,7 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
    - 27,313 corpus events in 371 scenarios across 36 programs were identical
      between rc.10 and rc.11, and every rc.10 save restores in rc.11.
 
-   Its findings for rc.12 are F261–F266, and new findings start at F267.
+   Its findings for rc.12 are F261–F268, and new findings start at F269.
    They are folded into the fixture lists of PR 2 and PR 3 when those reach
    the reviewer. Nothing below depends on them.
    - F261 (medium): `id_text` of a non-handle is still fatal `unclassified`.
@@ -65,6 +65,20 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
    - F265 (low): the packaged README says releases publish under `next`.
      The repository copy is fixed by #106.
    - F266 (low): `REFERENCE.md`'s function list omits `atan2`.
+   - F267 (medium, added 2026-10-04 from Glowcap round 7): a
+     `qualify … after` delay can fire one time event late. It is due when the
+     clock reading minus the reading stored at scheduling reaches the delay,
+     and that binary64 difference can fall just short of the steps' own sum.
+     The behaviour is the same on rc.10 and rc.11.
+   - F268 (medium, added 2026-10-04 from Glowcap round 7): a numeric `proc`
+     parameter turns its argument's lineage into grounds. `set slot =
+     qualified(7, w)` gives grounds `[w]`, but passing the same value through
+     `proc store(v)` gives `[w, x]`, where `x` was only `w`'s reveal guard.
+     A commit through a `proc` freezes the wider grounds the same way. The
+     arguments are evaluated for lineage (`runtime/src/reactive.rs` L3940 at `8e7805a`),
+     and a grounds read of the parameter returns that lineage (L3512). The
+     behaviour is the same on rc.10 and rc.11. The owner chose (card,
+     2026-10-04) to fix it in rc.12; the fix PR records the details.
 
    Round 7 recommends a design decision before any code for F263 and F264,
    as A3 had.
@@ -387,7 +401,33 @@ The rc.11 rules carry over:
   is a fresh subprocess with no session handle, and that one MCP connection
   accepts 4,096 request IDs. `docs/AI_AUTHORING.md` names the rc.11 outcome
   codes it did not list yet: `evaluation/bound_exceeded` for a clock that
-  would become nonfinite, and `limit/scheduled_limit`.
+  would become nonfinite, and `limit/scheduled_limit`. Merged as #112
+  (`63e775e`).
+- F267: the owner chose (card, 2026-10-04) to document the firing rule, with
+  no runtime change. `spec/caveat-renewal-0.1.md` states that a scheduled
+  qualification is due once the current clock reading minus the reading
+  stored at scheduling, both binary64, reaches the delay, so it can apply an
+  event later or earlier than exact arithmetic would. The regression case
+  `f267_a_delay_is_due_when_the_difference_of_clock_readings_reaches_it`
+  (`runtime/tests/renewal.rs`) pins the lab's numbers (scheduled at
+  `2.800000000000001`, steps of `0.0625`, applied on the 961st), through
+  dispatch and through a save and restore taken while the schedule waits, and
+  the exact case. The elapsed spec states the same rule, and
+  `docs/AI_AUTHORING.md` advises power-of-two steps for timing exact to the
+  event. Release note: the renewal and elapsed specs now state when a
+  scheduled qualification is due; no program's behaviour changes.
+- F267 alternative considered and declined: counting time per schedule. It
+  would change which event existing schedules apply on, including schedules
+  in saved sessions (`scheduled_at` and `after` are save fields), and it still
+  rounds for steps that are not powers of two. If a program needs timing exact
+  to the event, integer tick time is the design to consider for rc.13 or
+  later, as a spec-level change.
+- F267's tolerance: the owner asked for "at most one clock event late, never
+  early". That holds only while rounding stays small. Measured on the rule as
+  implemented, a schedule can apply an event early relative to the exact sum of
+  the supplied `dt` values. At large readings it can be several events off
+  either way: scheduled at `1e11`, a delay of 1 with steps of `0.001` applies on
+  the 993rd step. The specs state the rule and these bounds instead.
 - PR 5 (#111): `caveat-lang mcp` speaks MCP `2026-07-28` and keeps
   `2025-11-25`. Release note: a client may call `server/discover`, then
   `tools/list` and `tools/call` with `io.modelcontextprotocol/protocolVersion`
@@ -410,6 +450,19 @@ The rc.11 rules carry over:
   are unaffected. One deviation from check (a): an explicit `unexamined`
   entry, which claims no examination, is still accepted. Round 7's F263 and
   F264 concern qualifications, not attention, and add no fixture here.
+- F268 (owner's decision: fix in rc.12): a procedure parameter now supplies
+  its argument's grounds, so `call store(qualified(7, w))` grounds `slot` on
+  `[w]` as `set slot = qualified(7, w)` does, and the guard that only revealed
+  `w` stays in lineage. The call's guard and its eagerly frozen arguments
+  still take full lineage. Release note: values and commitments passed
+  through numeric `proc` parameters may report narrower grounds, and
+  `rests_on_withdrawn` no longer holds for a withdrawal of evidence that only
+  gated an argument; lineage, outcomes and values are unchanged, and saves
+  written by rc.11 restore with their wider grounds kept. Re-running the
+  corpus before and after the fix (54 scenario files, 406 scenarios, 27,531
+  events; Glowcap round 7's four Caveat finals, 50 scenarios each) changed no
+  outcome, snapshot or grounds: no program in it passes a guarded reveal's
+  evidence through a parameter. The Lean conformance gate passes (72 cases).
 - PR 3: restore refuses a qualification record keyed by a name its record
   cannot belong to (an observation of unobserved, unrenewed evidence; an
   examination of an unexamined caveat; a reopening of a commitment nothing
