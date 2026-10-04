@@ -345,6 +345,8 @@ that rc.11 skipped: rc.11 was published by hand, without provenance, and
 | [`release.scenarios.json`](release.scenarios.json) | Its rules, tested: `caveat test release.scenarios.json` |
 | [`release-ledger.mjs`](release-ledger.mjs) | Turns a release's facts into events and runs them through `caveat serve` |
 | [`release-rc11.facts.jsonl`](release-rc11.facts.jsonl) | rc.11's facts, from git history and its publication record |
+| [`release-rc12.facts.jsonl`](release-rc12.facts.jsonl) | rc.12's facts, collected while it was developed and published |
+| [`release-rc12.explain.json`](release-rc12.explain.json) | The live run's `explain --json` report for rc.12 |
 
 ```sh
 node release-ledger.mjs run release-rc11.facts.jsonl --explain rc11.explain.json --events rc11.events.jsonl
@@ -424,6 +426,45 @@ repo.release = "published by hand"
 
 The facts hold no pull request runs: they were not collected, so rc.11's
 replay says nothing about stale bases.
+
+**rc.12, live.** Facts from the Runtime runs on pull requests and on main,
+the merges, the tag on `9e360af`, the two npm-publish approvals of
+publish-npm.yml run
+[37211390333](https://github.com/WSattazahn/caveat-lang/actions/runs/37211390333)
+(the first attempt failed before publishing), its publish job and its
+publication record:
+
+```text
+  56  decide       decide accepted
+  57  tag          tagged accepted
+  58  approval     approved accepted
+  59  approval     approved accepted
+  60  publish      published accepted
+  61  verification verified accepted
+  62  record       record accepted
+
+repo.attestation = "verified"
+repo.npm = "serves the tested tarball"
+repo.release = "published through publish-npm.yml"
+```
+
+What it measured:
+- 62 facts: 12 merges, 12 Runtime runs on plan pull requests and 8 on main
+  (all passing) sent; 16 pull request runs (cancelled, or of pull requests
+  outside the plan) and 5 cancelled main runs not sent. Nothing was refused.
+- 7 of the 12 pull request runs carry `stale_base`. The last run before the
+  merge of PR 2 (#110) and of PR 4 (#112) is among them; the last runs of
+  PR 3, PR 5 and PR 8 are not. Readiness rests on `main_runs@8`, the run on
+  `9e360af`, not on any of them.
+- `publish` is permitted by `approvals@2`, the approval of the re-run.
+- `provenance_record` rests on `attestations@1`, from verify-publication.
+
+The verification fact reads the release's
+[publication record](../../docs/releases/v0.1.0-rc.12-npm-publication.json),
+built from verify-publication's artifact. A run's base is inferred as main's
+head when the run was created, since the run listing gives no base commit:
+a stale base here means main had moved by then, not that the run is known to
+have tested an older base.
 
 **Limits.**
 - The ledger checks the facts it is given against its rules. It cannot tell
