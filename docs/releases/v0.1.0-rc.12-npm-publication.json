@@ -1,0 +1,214 @@
+{
+  "schema": "caveat-npm-publication-record/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-04T15:19:29.961Z",
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.12",
+  "revision": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5",
+  "tag": "v0.1.0-rc.12",
+  "release": "https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.12",
+  "registry": "https://registry.npmjs.org",
+  "tarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.12.tgz",
+    "bytes": 840905,
+    "sha256": "2a22cc7a711418ed32f508a23de6c19aed66f1bd52c2c61548a79183eab20d15",
+    "sha512": "bb67b8e25fe49c52aded9f1e4c5fa3f9340ea7970f94fe04db0c1385f00575adc816b39f6da7569a038f0405605bb6d5a923fb36ec913bac8fd71500722f57f2",
+    "integrity": "sha512-u2e44l/knFKt7Z8eTF+j+TQOp5cPlP4E2wwThfAFda3IFrOfbadWmgOPBAVgW7bVqSP7NuyRO6yP1xUAci9X8g=="
+  },
+  "channels": {
+    "latest": "0.1.0-rc.12",
+    "next": "0.1.0-rc.12"
+  },
+  "channelsAtVerification": {
+    "latest": "0.1.0-rc.12",
+    "next": "0.1.0-rc.11"
+  },
+  "publication": {
+    "method": "workflow",
+    "workflow": ".github/workflows/publish-npm.yml",
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/37211390333",
+    "runAttempt": 2,
+    "command": "npm publish caveat-lang-0.1.0-rc.12.tgz --provenance --access public --tag latest",
+    "then": "npm dist-tag add caveat-lang@0.1.0-rc.12 next",
+    "authentication": "npm trusted publishing (OIDC), environment npm-publish",
+    "approval": "npm-publish environment approved by WSattazahn",
+    "npm": "11.19.0",
+    "node": "v24.21.0",
+    "provenance": true,
+    "attestation": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/caveat-lang@0.1.0-rc.12",
+      "predicateType": "https://slsa.dev/provenance/v1"
+    },
+    "provenanceStatement": {
+      "workflow": {
+        "ref": "refs/tags/v0.1.0-rc.12",
+        "repository": "https://github.com/WSattazahn/caveat-lang",
+        "path": ".github/workflows/publish-npm.yml"
+      },
+      "revision": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5",
+      "builder": "https://github.com/actions/runner/github-hosted"
+    },
+    "testedArtifact": {
+      "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/37185306547",
+      "artifact": "kit-package-candidate",
+      "sha256": "2a22cc7a711418ed32f508a23de6c19aed66f1bd52c2c61548a79183eab20d15",
+      "bytes": 840905,
+      "workflowChecksumCheck": true
+    },
+    "note": "The first attempt of run 37211390333 was approved at 15:01 UTC and refused by npm with ENEEDAUTH because the trusted publisher was not yet configured; nothing was published. The owner configured it, re-ran the failed jobs and approved again; attempt 2 published at 15:18:16 UTC. verify-publication ran before the owner moved next by hand, so its channels block shows next = 0.1.0-rc.11; the registry reported latest = next = 0.1.0-rc.12 at 15:27 UTC."
+  },
+  "verificationArtifact": {
+    "name": "npm-publication-verification",
+    "id": 11307530488,
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/37211390333",
+    "digest": "sha256:90e3c4238fc8f09e44565446291a097c5683e2de51dfe2adc25c5d059bd93b98",
+    "file": "0.1.0-rc.12/npm-publication-verification.json",
+    "fileSha256": "f43a002d00f167e214b669c9559538336c83ddf960b33ffa35e40e4f6975d769"
+  },
+  "checks": {
+    "registryBytesMatch": true,
+    "provenanceAttested": true,
+    "signaturesVerified": true,
+    "freshExactVersionInstall": true,
+    "freshCache": true,
+    "lockIntegrityAndOrigin": true,
+    "cliAliases": [
+      "caveat",
+      "caveat-lang"
+    ],
+    "doctor": true,
+    "demo": true,
+    "umbrellaScenarios": true,
+    "umbrellaExplanation": true,
+    "successfulCommands": 10
+  },
+  "tools": {
+    "node": "v24.21.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "npm": "11.19.0"
+  },
+  "commands": [
+    {
+      "id": "01",
+      "executable": "npm",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "005206ab803f8881d8227540b7980b37e723b69a8849edb31734a90b7e7964e2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "02",
+      "executable": "npm",
+      "args": [
+        "install",
+        "caveat-lang@0.1.0-rc.12",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "c363a8920577905981352305567d93d9143d28145ad277f7db337f2a8dd7a874",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "03",
+      "executable": "npm",
+      "args": [
+        "audit",
+        "signatures",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "d6c98d41303a1d4376e2bcaae38fbf34cdd05591f0902f99a4f485ac18f70c70",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "04",
+      "executable": "caveat",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "ce46ec4d5dc50cb6832aa726192f3fe8835b14f3808e401b01e9bf3a1296ab03",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "05",
+      "executable": "caveat-lang",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "ce46ec4d5dc50cb6832aa726192f3fe8835b14f3808e401b01e9bf3a1296ab03",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "06",
+      "executable": "caveat-lang",
+      "args": [
+        "doctor",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "fd4d94a1be49d8f0926499a8165c37b50b12852e58aac55b95f3bea68bb8baf3",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "07",
+      "executable": "caveat-lang",
+      "args": [
+        "demo",
+        "agent",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "3b50f34b91f78bb064915934ba9c930469af722e16c860b49f6615ab899fa4e6",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "08",
+      "executable": "caveat-lang",
+      "args": [
+        "init"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "7e7fbf91fa9eaacd811e2c9ebb9259f5788e88e00c413b723abf07d4967c0078",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "09",
+      "executable": "caveat-lang",
+      "args": [
+        "test",
+        "umbrella.scenarios.json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "e046464220ae4e5280a7a31c823652e57e44e173e79347485e7d547620f3fcff",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "10",
+      "executable": "caveat-lang",
+      "args": [
+        "explain",
+        "umbrella.cav",
+        "events.jsonl"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "60a12b567b423f735f8b78256a5dbe68963f921764d8b3814d605413c224c2d4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "method": "Copied from the npm-publication-verification artifact of publish-npm.yml run 37211390333 (attempt 2), produced by scripts/verify-npm-publication.mjs in its verify-publication job. The owner downloaded the artifact; the file was reconstructed from their paste and matched its SHA256 before these fields were copied. channels is the registry state after next was moved; channelsAtVerification is what the job saw.",
+  "scope": "Publication verification of the CI-tested rc.12 artifact, published by publish-npm.yml with npm provenance. Restore validation does not authenticate saved history. Existing Lean checks remain bounded to their documented fragment; no broader proof or adoption claim is introduced."
+}

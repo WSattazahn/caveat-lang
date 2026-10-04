@@ -527,8 +527,18 @@ The rc.11 rules carry over:
   request's merge commit, merged after the last plan PR, dispatched with `latest`; `next` is added by hand
   afterwards. The tag, artifact, provenance and registry verification are
   recorded only from the `npm-publication-verification` artifact.
+- Published 2026-10-04: tag `v0.1.0-rc.12` at `9e360af` (merge of #119), the
+  tarball from [Runtime 37185306547](https://github.com/WSattazahn/caveat-lang/actions/runs/37185306547)
+  (SHA256 `2a22cc7a711418ed32f508a23de6c19aed66f1bd52c2c61548a79183eab20d15`),
+  published by [publish-npm.yml run 37211390333](https://github.com/WSattazahn/caveat-lang/actions/runs/37211390333)
+  under `latest` with npm provenance, after the owner approved it in
+  `npm-publish`. Its first attempt was refused by npm because the trusted
+  publisher was not yet configured; nothing was published until the re-run.
+  `verify-publication` passed, and the owner then moved `next` to rc.12. See
+  the [release record](v0.1.0-rc.12.md).
 - The release ledger ran live for rc.12's release
-  (`experiments/agent-ledger/release-rc12.facts.jsonl`, 62 facts). Its
+  (`experiments/agent-ledger/release-rc12.facts.jsonl`, 62 facts; the
+  verification fact reads `v0.1.0-rc.12-npm-publication.json`). Its
   `explain --json` report is
   `experiments/agent-ledger/release-rc12.explain.json`: release published
   through `publish-npm.yml`, permitted by the re-run's npm-publish approval;
