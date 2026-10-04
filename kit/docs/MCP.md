@@ -7,9 +7,16 @@ Package: **`caveat-lang@0.1.0-rc.12`**.
 This package exposes existing Caveat authoring operations to a local MCP
 host. No MCP desktop host is installed by the release or development process.
 The command was introduced in rc.7; historical rc.6 does not include it.
-The bridge uses the **2025-11-25 stdio compatibility profile**, with
-initialization followed by tool discovery. It does not advertise the newer
-2026-07-28 profile.
+The bridge speaks MCP **2026-07-28** and, through that revision's deprecation
+window, the **2025-11-25** profile. A 2026-07-28 client may call
+`server/discover` first, then send `tools/list` and `tools/call` with
+`io.modelcontextprotocol/protocolVersion` and
+`io.modelcontextprotocol/clientCapabilities` in each request's `_meta`; no
+`initialize` is needed. Each of those results carries `resultType: "complete"`
+and `io.modelcontextprotocol/serverInfo`, and an unsupported version returns
+`UnsupportedProtocolVersionError` (-32022) listing both supported versions. A
+2025-11-25 client initializes, sends `notifications/initialized`, then lists
+and calls tools exactly as in earlier releases (rc.12 added 2026-07-28).
 
 Configure your host to run Node with the absolute path to your installed CLI:
 
@@ -26,8 +33,8 @@ Configure your host to run Node with the absolute path to your installed CLI:
 
 Replace that path with the actual installation (Windows JSON paths can use
 forward slashes). This is a host configuration example, not an automatic
-installation. `node` must resolve to Node 20 or newer. A host that supports only
-the newer protocol must support this compatibility profile before connecting.
+installation. `node` must resolve to Node 20 or newer. Either protocol works
+from the same configuration.
 The process writes protocol messages on stdout and no startup banner.
 
 ## Available tools
@@ -57,7 +64,10 @@ No report authorizes an external action or authenticates its evidence.
 
 ## Limits and lifecycle
 
-Each call starts a fresh subprocess and runtime and retains no session handle.
+Each call starts a fresh subprocess and runtime and retains no session handle,
+under either protocol. `tools/list` returns the same five tools in a fixed
+order; 2026-07-28 results mark it cacheable for an hour (`ttlMs: 3600000`,
+`cacheScope: "public"`), since the list changes only with the installed package.
 Only one call runs at once; concurrent calls receive a busy error. A tool gets
 10 seconds including startup. Source and serialized event/scenario data are
 limited to 1 MiB each, and protocol input/output to 4 MiB. Additional limits are

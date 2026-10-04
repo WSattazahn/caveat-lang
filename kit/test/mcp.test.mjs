@@ -7,7 +7,7 @@ import { PassThrough } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { MCP_PROTOCOL_VERSION, MCP_TOOLS, serveMcp } from '../lib/mcp.mjs';
+import { MCP_PROTOCOL_VERSION, MCP_STATELESS_PROTOCOL_VERSION, MCP_SUPPORTED_VERSIONS, MCP_TOOLS, serveMcp } from '../lib/mcp.mjs';
 
 // The package gate creates/removes kit/runtime while packing. Repository tests
 // must hold the durable build path, not capture that transient staging folder.
@@ -17,6 +17,18 @@ const SOURCE = 'evidence memory from "lookup"; event consult; on consult reveal 
 const request = (id, method, params) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
 const notification = (method, params) => ({ jsonrpc: '2.0', method, ...(params === undefined ? {} : { params }) });
 const call = (id, name = 'caveat_validate', args = { source: SOURCE }) => request(id, 'tools/call', { name, arguments: args });
+// 2026-07-28 requests carry their version and client capabilities in _meta.
+const meta = (version = MCP_STATELESS_PROTOCOL_VERSION, extra = {}) => ({ _meta: {
+  'io.modelcontextprotocol/protocolVersion': version,
+  'io.modelcontextprotocol/clientCapabilities': {},
+  'io.modelcontextprotocol/clientInfo': { name: 'fixture', version: '1' }, ...extra } });
+const statelessCall = (id, name = 'caveat_validate', args = { source: SOURCE }) => request(id, 'tools/call', { name, arguments: args, ...meta() });
+const assertStateless = result => {
+  assert.equal(result.resultType, 'complete');
+  assert.deepEqual(Object.keys(result._meta), ['io.modelcontextprotocol/serverInfo']);
+  assert.equal(result._meta['io.modelcontextprotocol/serverInfo'].name, 'caveat-lang');
+  assert.match(result._meta['io.modelcontextprotocol/serverInfo'].version, /^0\.1\.0/);
+};
 function connection(options = {}) {
   const { outputHighWaterMark, ...serverOptions } = options;
   const input = new PassThrough();
@@ -98,6 +110,127 @@ test('MCP negotiates its explicit profile, initializes before tools, and lists o
     client.send(request(4, 'initialize', {}));
     assert.equal((await client.wait(4)).error.code, -32600);
   } finally { assert.equal(await client.close(), 0); }
+});
+
+test('MCP 2026-07-28: server/discover first, then tools without initialize, with resultType and serverInfo on every result', async () => {
+  const client = connection();
+  try {
+    client.send(request('discover', 'server/discover', meta()));
+    const discovered = (await client.wait('discover')).result;
+    assertStateless(discovered);
+    assert.deepEqual(discovered.supportedVersions, ['2026-07-28', '2025-11-25']);
+    assert.deepEqual(MCP_SUPPORTED_VERSIONS, discovered.supportedVersions);
+    assert.deepEqual(discovered.capabilities, { tools: {} });
+    assert.equal(typeof discovered.instructions, 'string');
+    assert.equal(discovered.ttlMs, 3600000);
+    assert.equal(discovered.cacheScope, 'public');
+    client.send(request(1, 'tools/list', meta()));
+    const listed = (await client.wait(1)).result;
+    assertStateless(listed);
+    assert.deepEqual(listed.tools, MCP_TOOLS, 'the same tools in the same fixed order as 2025-11-25');
+    assert.equal(listed.ttlMs, 3600000);
+    assert.equal(listed.cacheScope, 'public');
+    client.send(request(2, 'tools/list', meta()));
+    assert.deepEqual((await client.wait(2)).result, listed, 'tools/list is deterministic');
+    client.send(statelessCall(3));
+    const called = (await client.wait(3)).result;
+    assertStateless(called);
+    assert.equal(called.isError, false, JSON.stringify(called));
+    assert.equal(called.structuredContent.schema, 'caveat-authoring/0.1');
+    assert.equal(called.structuredContent.exitCode, 0);
+    assert.deepEqual(JSON.parse(called.content[0].text), called.structuredContent);
+    client.send(request(4, 'tools/call', { name: 'caveat_validate', arguments: { source: SOURCE, path: 'x.cav' }, ...meta() }));
+    const refused = (await client.wait(4)).result;
+    assertStateless(refused);
+    assert.equal(refused.isError, true);
+    assert.equal(refused.structuredContent.error.kind, 'input');
+    // A legacy client on the same server still initializes and sees 2025-11-25 results unchanged.
+    const initialized = await client.initialize();
+    assert.equal(initialized.result.protocolVersion, MCP_PROTOCOL_VERSION);
+    assert.equal(Object.hasOwn(initialized.result, 'resultType'), false);
+    client.send(request(5, 'tools/list'));
+    assert.deepEqual((await client.wait(5)).result, { tools: MCP_TOOLS });
+    client.send(call(6));
+    const legacy = (await client.wait(6)).result;
+    assert.deepEqual(Object.keys(legacy), ['content', 'structuredContent', 'isError']);
+  } finally { assert.equal(await client.close(), 0); }
+});
+
+test('MCP 2026-07-28 request metadata: unsupported versions, missing fields and removed methods are errors without spawning', async () => {
+  let spawns = 0;
+  const client = connection({ spawnWorker() { spawns++; throw new Error('must not spawn'); } });
+  try {
+    const cases = [
+      [1, request(1, 'server/discover', meta('2099-01-01')), -32022],
+      [2, request(2, 'tools/call', { name: 'caveat_validate', arguments: { source: SOURCE }, ...meta('1900-01-01') }), -32022],
+      [3, request(3, 'server/discover'), -32602],
+      [4, request(4, 'server/discover', { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } }), -32602],
+      [5, request(5, 'tools/list', { _meta: { 'io.modelcontextprotocol/protocolVersion': 20260728, 'io.modelcontextprotocol/clientCapabilities': {} } }), -32602],
+      [6, request(6, 'tools/list', meta(undefined, { 'io.modelcontextprotocol/clientInfo': { name: 'no version' } })), -32602],
+      [7, request(7, 'server/discover', { ...meta(), cursor: 'x' }), -32602],
+      [8, request(8, 'tools/list', { ...meta(), cursor: 'not-supported' }), -32602],
+      [9, request(9, 'ping', meta()), -32601],
+      [10, request(10, 'resources/list', meta()), -32601],
+      [11, request(11, 'tools/list', meta('2025-11-25')), -32602],
+      [12, request(12, 'tools/call', { name: 'unknown', arguments: {}, ...meta() }), -32602],
+    ];
+    for (const [id, value, code] of cases) {
+      client.send(value);
+      const response = await client.wait(id);
+      assert.equal(response.error?.code, code, JSON.stringify(response));
+    }
+    const unsupported = client.messages.find(message => message.id === 1).error;
+    assert.equal(unsupported.message, 'Unsupported protocol version');
+    assert.deepEqual(unsupported.data, { supported: ['2026-07-28', '2025-11-25'], requested: '2099-01-01' });
+    client.send(request(13, 'server/discover', meta('2025-11-25')));
+    assert.deepEqual((await client.wait(13)).result.supportedVersions, ['2026-07-28', '2025-11-25'],
+      'a discover probe naming the older version is answered; that version then begins with initialize');
+    client.send(statelessCall(14, 'caveat_explain', { source: SOURCE, events: Array.from({ length: 1001 }, () => ({ event: 'consult' })) }));
+    const limited = (await client.wait(14)).result;
+    assertStateless(limited);
+    assert.equal(limited.structuredContent.error.kind, 'limit');
+    assert.equal(spawns, 0);
+    client.send(request(15, 'tools/list'));
+    assert.equal((await client.wait(15)).error.code, -32600, 'a request without _meta still needs initialize');
+  } finally { assert.equal(await client.close(), 0); }
+});
+
+test('MCP 2026-07-28 calls keep single-flight, cancellation, launch failure and output bounds', async () => {
+  const fixture = injected('process.stdin.resume(); setInterval(() => {}, 1000);');
+  const client = connection({ spawnWorker: fixture.spawnWorker });
+  try {
+    client.send(statelessCall(1));
+    client.send(statelessCall(2));
+    const busy = (await client.wait(2)).result;
+    assertStateless(busy);
+    assert.equal(busy.structuredContent.error.kind, 'busy');
+    client.send(notification('notifications/cancelled', { requestId: 1, reason: 'test cancellation' }));
+    await once(fixture.children[0], 'close');
+    noLongerRunning(fixture.children[0]);
+    client.send(statelessCall(3));
+    assertStateless((await client.wait(3)).result);
+    assert.equal(client.messages.some(message => message.id === 1), false);
+  } finally { assert.equal(await client.close(), 0); }
+  let launches = 0;
+  const failing = connection({ spawnWorker() { launches++; throw new Error('injected spawn failure'); } });
+  try {
+    failing.send(statelessCall(1));
+    const failed = (await failing.wait(1)).result;
+    assertStateless(failed);
+    assert.equal(failed.structuredContent.error.kind, 'worker_failure');
+    assert.equal(launches, 1);
+  } finally { assert.equal(await failing.close(), 0); }
+  const large = injected(`let input=''; process.stdin.on('data',chunk=>input+=chunk); process.stdin.on('end',()=>{
+    const value=JSON.parse(input); process.stdout.write(JSON.stringify({schema:'caveat-authoring/0.1',operation:'validate',
+    sourceSha256:require('node:crypto').createHash('sha256').update(value.arguments.source).digest('hex'),runtime:{},exitCode:0,report:{text:'x'.repeat(2300000)}})); });`);
+  const bounded = connection({ spawnWorker: large.spawnWorker });
+  try {
+    bounded.send(statelessCall(1));
+    const response = await bounded.wait(1);
+    assertStateless(response.result);
+    assert.equal(response.result.structuredContent.error.kind, 'output_limit');
+    assert.ok(Buffer.byteLength(JSON.stringify(response)) < 4 * 1024 * 1024);
+  } finally { assert.equal(await bounded.close(), 0); }
 });
 
 test('all five tools execute fresh real workers and retain completed CLI-style outcomes', async () => {

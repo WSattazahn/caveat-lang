@@ -388,6 +388,18 @@ The rc.11 rules carry over:
   accepts 4,096 request IDs. `docs/AI_AUTHORING.md` names the rc.11 outcome
   codes it did not list yet: `evaluation/bound_exceeded` for a clock that
   would become nonfinite, and `limit/scheduled_limit`.
+- PR 5 (#111): `caveat-lang mcp` speaks MCP `2026-07-28` and keeps
+  `2025-11-25`. Release note: a client may call `server/discover`, then
+  `tools/list` and `tools/call` with `io.modelcontextprotocol/protocolVersion`
+  and `io.modelcontextprotocol/clientCapabilities` in `_meta` and no
+  `initialize`; those results carry `resultType: "complete"` and
+  `io.modelcontextprotocol/serverInfo`, and an unsupported version returns
+  -32022. `2025-11-25` responses are unchanged, and so is the boundary (no
+  sessions, no file paths, single-flight, 10 s). Where the plan's summary
+  differs from the specification (the `io.modelcontextprotocol/`
+  capabilities key, code -32022, identity in `_meta`), the specification is
+  followed. No official `2026-07-28` client is on npm yet, so the new path is
+  checked by the package gate's own probe.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a

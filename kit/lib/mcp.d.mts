@@ -3,6 +3,8 @@ import type { Readable, Writable } from 'node:stream';
 import type { spawn } from 'node:child_process';
 
 export declare const MCP_PROTOCOL_VERSION: '2025-11-25';
+export declare const MCP_STATELESS_PROTOCOL_VERSION: '2026-07-28';
+export declare const MCP_SUPPORTED_VERSIONS: readonly ['2026-07-28', '2025-11-25'];
 export interface McpTool {
   name: string;
   description: string;

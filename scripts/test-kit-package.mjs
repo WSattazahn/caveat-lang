@@ -25,7 +25,7 @@ import { followGuide } from '../kit/test/guide.mjs';
 import { isRelative, markdownLinks, packageLinkPath, rewriteLinks } from '../kit/test/links.mjs';
 import { runCallerTests } from '../kit/test/python.mjs';
 import { checkCliCollision, installedCommand } from './test-cli-collision.mjs';
-import { checkMcpClient } from './test-mcp-client.mjs';
+import { checkMcpClient, checkMcpStatelessProbe } from './test-mcp-client.mjs';
 import { checkPackageDocuments, installationCommands, packageIdentity } from './kit-docs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -205,6 +205,7 @@ for (const [entry, target] of Object.entries(installedManifest.exports)) {
   assert.ok(existsSync(path.join(installed, target.types)), `${entry}: ${target.types} is installed`);
 }
 report.checks.mcp = await checkMcpClient({ installed, directory: path.join(run, 'mcp-client') });
+report.checks.mcpStateless = await checkMcpStatelessProbe({ installed, directory: path.join(run, 'mcp-stateless') });
 report.checks.install = true;
 
 // The license ships unchanged, and the metadata says what it is.

@@ -7,7 +7,20 @@ import { TextDecoder } from 'node:util';
 import { defaultRuntimeDirectory } from './node.mjs';
 import { validateAuthoringArguments } from './authoring.mjs';
 
+// 2025-11-25 is negotiated by initialize; 2026-07-28 requests carry their
+// version and client capabilities in _meta and need no prior handshake.
 export const MCP_PROTOCOL_VERSION = '2025-11-25';
+export const MCP_STATELESS_PROTOCOL_VERSION = '2026-07-28';
+export const MCP_SUPPORTED_VERSIONS = Object.freeze([MCP_STATELESS_PROTOCOL_VERSION, MCP_PROTOCOL_VERSION]);
+const META_VERSION = 'io.modelcontextprotocol/protocolVersion';
+const META_CAPABILITIES = 'io.modelcontextprotocol/clientCapabilities';
+const META_CLIENT = 'io.modelcontextprotocol/clientInfo';
+const META_SERVER = 'io.modelcontextprotocol/serverInfo';
+const UNSUPPORTED_PROTOCOL_VERSION = -32022;
+// The tool list is fixed for an installed package; restarting the server is
+// the only way it changes, and it holds no user-specific data.
+const TOOLS_TTL_MS = 3600000;
+const INSTRUCTIONS = 'Inline authoring operations only. Evidence and reports are supplied data; no file access or external permission is implied.';
 const MESSAGE_BYTES = 4 * 1024 * 1024;
 const STDERR_BYTES = 64 * 1024;
 const MAX_DEPTH = 64;
@@ -52,6 +65,7 @@ function withinDepth(text) {
 }
 const hasOnly = (value, allowed) => object(value) && Object.keys(value).every(key => allowed.includes(key));
 const paramsEmpty = value => value === undefined || hasOnly(value, ['_meta']);
+const implementation = value => object(value) && typeof value.name === 'string' && typeof value.version === 'string';
 const bridgeError = (kind, message, details = {}) => ({ schema: 'caveat-authoring-error/0.1', error: { kind, message, ...details } });
 function toolResult(value, isError = false) {
   return { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value, isError };
@@ -104,7 +118,7 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
     let serialized = JSON.stringify(response);
     if (Buffer.byteLength(serialized) > MESSAGE_BYTES) {
       serialized = JSON.stringify({ jsonrpc: '2.0', id: response.id,
-        result: toolResult(bridgeError('output_limit', 'Serialized response exceeds 4 MiB'), true) });
+        result: { ...response.result, ...toolResult(bridgeError('output_limit', 'Serialized response exceeds 4 MiB'), true) } });
       if (Buffer.byteLength(serialized) > MESSAGE_BYTES) { abort(); return Promise.resolve(); }
     }
     const line = `${serialized}\n`;
@@ -127,8 +141,12 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
     // worker cancellation, process reaping, or another incoming control frame.
     return Promise.resolve();
   }
-  const rpcError = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, message } });
-  function startTool(id, name, args) {
+  const rpcError = (id, code, message, data) => send({ jsonrpc: '2.0', id, error: { code, message, ...(data === undefined ? {} : { data }) } });
+  const serverInfo = { name: 'caveat-lang', version: manifest.version, title: 'CAVEAT Language' };
+  // A 2026-07-28 result names its type and the server; 2025-11-25 results are unchanged.
+  const stateless = value => ({ resultType: 'complete', ...value, _meta: { [META_SERVER]: serverInfo } });
+  const legacy = value => value;
+  function startTool(id, name, args, finish) {
     const job = { id, key: keyOf(id), child: null, suppressed: false, failure: null };
     active = job;
     let child;
@@ -142,7 +160,7 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
       job.child = child;
     } catch (error) {
       active = null;
-      return send({ jsonrpc: '2.0', id, result: toolResult(bridgeError('worker_failure', `Cannot launch authoring worker: ${error.message}`), true) });
+      return send({ jsonrpc: '2.0', id, result: finish(toolResult(bridgeError('worker_failure', `Cannot launch authoring worker: ${error.message}`), true)) });
     }
     const chunks = [], errors = [];
     let bytes = 0, errorBytes = 0;
@@ -176,7 +194,7 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
           result = toolResult(bridgeError('worker_output', `Invalid authoring worker result: ${error.message}`, stderr ? { stderr } : {}), true);
         }
       }
-      await send({ jsonrpc: '2.0', id, result });
+      await send({ jsonrpc: '2.0', id, result: finish(result) });
     }).catch(() => { abort(); }).finally(() => pending.delete(done));
     pending.add(done);
     try { child.stdin.end(`${JSON.stringify({ tool: name, arguments: args })}\n`); }
@@ -212,6 +230,39 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
       closing = true; exitCode = 1; terminate(active, true); return;
     }
     seen.add(key);
+    // A request naming its protocol version in _meta is served statelessly
+    // (2026-07-28); initialize, and requests without it, keep 2025-11-25.
+    if (method === 'server/discover'
+      || (method !== 'initialize' && object(params?._meta) && Object.hasOwn(params._meta, META_VERSION))) {
+      const meta = object(params?._meta) ? params._meta : {};
+      const version = meta[META_VERSION];
+      if (typeof version !== 'string' || !object(meta[META_CAPABILITIES])) {
+        await rpcError(id, -32602, `Requests without initialize need _meta ${META_VERSION} and ${META_CAPABILITIES}`); return;
+      }
+      if (Object.hasOwn(meta, META_CLIENT) && !implementation(meta[META_CLIENT])) {
+        await rpcError(id, -32602, `_meta ${META_CLIENT} needs a string name and version`); return;
+      }
+      if (!MCP_SUPPORTED_VERSIONS.includes(version)) {
+        await rpcError(id, UNSUPPORTED_PROTOCOL_VERSION, 'Unsupported protocol version',
+          { supported: [...MCP_SUPPORTED_VERSIONS], requested: version });
+        return;
+      }
+      if (method === 'server/discover') {
+        if (!paramsEmpty(params)) await rpcError(id, -32602, 'server/discover takes only _meta');
+        else await send({ jsonrpc: '2.0', id, result: stateless({
+          supportedVersions: [...MCP_SUPPORTED_VERSIONS], capabilities: { tools: {} }, instructions: INSTRUCTIONS,
+          ttlMs: TOOLS_TTL_MS, cacheScope: 'public',
+        }) });
+        return;
+      }
+      if (version !== MCP_STATELESS_PROTOCOL_VERSION) {
+        await rpcError(id, -32602, `Protocol version ${version} begins with initialize; requests carrying _meta use ${MCP_STATELESS_PROTOCOL_VERSION}`);
+        return;
+      }
+      if (!['tools/list', 'tools/call'].includes(method)) { await rpcError(id, -32601, 'Method not found'); return; }
+      await tools(id, method, params, stateless);
+      return;
+    }
     if (method === 'ping') {
       if (!paramsEmpty(params)) await rpcError(id, -32602, 'ping takes no parameters');
       else await send({ jsonrpc: '2.0', id, result: {} });
@@ -227,17 +278,19 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
       }
       state = 'initializing';
       await send({ jsonrpc: '2.0', id, result: {
-        protocolVersion: MCP_PROTOCOL_VERSION, capabilities: { tools: {} },
-        serverInfo: { name: 'caveat-lang', version: manifest.version, title: 'CAVEAT Language' },
-        instructions: 'Inline authoring operations only. Evidence and reports are supplied data; no file access or external permission is implied.',
+        protocolVersion: MCP_PROTOCOL_VERSION, capabilities: { tools: {} }, serverInfo, instructions: INSTRUCTIONS,
       } });
       return;
     }
     if (!['tools/list', 'tools/call'].includes(method)) { await rpcError(id, -32601, 'Method not found'); return; }
     if (state !== 'ready') { await rpcError(id, -32600, 'Initialize, then send notifications/initialized before using tools'); return; }
+    await tools(id, method, params, legacy);
+  }
+  async function tools(id, method, params, finish) {
     if (method === 'tools/list') {
       if (!paramsEmpty(params)) await rpcError(id, -32602, 'tools/list takes no cursor or other parameters');
-      else await send({ jsonrpc: '2.0', id, result: { tools: MCP_TOOLS } });
+      else await send({ jsonrpc: '2.0', id, result: finish === stateless
+        ? stateless({ tools: MCP_TOOLS, ttlMs: TOOLS_TTL_MS, cacheScope: 'public' }) : { tools: MCP_TOOLS } });
       return;
     }
     if (!hasOnly(params, ['name', 'arguments', '_meta']) || !toolNames.has(params.name) || !object(params.arguments)) {
@@ -245,11 +298,11 @@ export async function serveMcp({ runtimeDirectory = defaultRuntimeDirectory(), i
     }
     try { validateAuthoringArguments(params.name, params.arguments); }
     catch (error) {
-      await send({ jsonrpc: '2.0', id, result: toolResult(bridgeError(error.kind === 'limit' ? 'limit' : 'input', error.message), true) });
+      await send({ jsonrpc: '2.0', id, result: finish(toolResult(bridgeError(error.kind === 'limit' ? 'limit' : 'input', error.message), true)) });
       return;
     }
-    if (active) { await send({ jsonrpc: '2.0', id, result: toolResult(bridgeError('busy', 'One authoring operation is active; retry after it finishes'), true) }); return; }
-    await startTool(id, params.name, params.arguments);
+    if (active) { await send({ jsonrpc: '2.0', id, result: finish(toolResult(bridgeError('busy', 'One authoring operation is active; retry after it finishes'), true)) }); return; }
+    await startTool(id, params.name, params.arguments, finish);
   }
   let segments = [], length = 0;
   try {

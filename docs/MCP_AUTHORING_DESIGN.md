@@ -14,14 +14,39 @@ operation. Startup may select a trusted runtime with `--runtime DIRECTORY`;
 individual tool calls cannot change it. It does not authenticate evidence or
 permit external action.
 
-The first implementation deliberately supports the **2025-11-25 stdio profile**.
-The [2026-07-28 protocol changes](https://modelcontextprotocol.io/specification/2026-07-28/changelog)
-introduce a different discovery/negotiation flow; that profile is not advertised.
-The [selected lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)
-uses initialize, then notifications/initialized. Server capabilities are only
-`tools: {}`. Methods are initialize, ping, tools/list, tools/call and the
-initialized/cancelled notifications. Unknown methods return method-not-found.
-A client must accept the negotiated version or disconnect.
+The first implementation (rc.7) supported only the **2025-11-25 stdio profile**.
+From rc.12 the bridge is dual-era: it also speaks the stateless
+[2026-07-28 revision](https://modelcontextprotocol.io/specification/2026-07-28/changelog),
+and keeps 2025-11-25 through that revision's twelve-month deprecation window.
+Server capabilities are only `tools: {}` in both.
+
+- **2026-07-28.** A request whose `_meta` carries
+  `io.modelcontextprotocol/protocolVersion` is served statelessly, with no
+  prior handshake. `io.modelcontextprotocol/clientCapabilities` is required;
+  a missing or malformed field returns -32602. Methods are
+  [`server/discover`](https://modelcontextprotocol.io/specification/2026-07-28/server/discover),
+  tools/list and tools/call. `server/discover` answers with
+  `supportedVersions` (`2026-07-28`, `2025-11-25`), capabilities and
+  instructions; a version outside that list returns
+  `UnsupportedProtocolVersionError` (-32022, `data.supported` and
+  `data.requested`). Requests carrying `_meta` must name 2026-07-28, since
+  2025-11-25 begins with initialize; only `server/discover` also accepts
+  2025-11-25. Every result carries `resultType: "complete"` and
+  `_meta["io.modelcontextprotocol/serverInfo"]`; `server/discover` and
+  tools/list also carry `ttlMs: 3600000` and `cacheScope: "public"`. `ping`
+  is not a 2026-07-28 method. No result is `input_required`: the bridge never
+  asks the client for more input.
+- **2025-11-25.** The
+  [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)
+  uses initialize, then notifications/initialized. Methods are initialize,
+  ping, tools/list, tools/call and the initialized/cancelled notifications.
+  Its responses are byte-for-byte what earlier releases sent. A client must
+  accept the negotiated version or disconnect.
+
+Both eras may share one connection. Unknown methods return method-not-found.
+The request ID budget, single-flight rule, cancellation and limits below apply
+to every request whatever its era. The tool list is the same, in the same
+fixed order, under both.
 
 ## Tools
 
