@@ -87,6 +87,8 @@ jobs:
         run: npm run test:elapsed-clock
       - name: Structured dispatch WebAssembly checks
         run: npm run test:dispatch-outcomes
+      - name: Program interfaces, native against both WebAssembly builds
+        run: npm run test:interface
       - name: Glowcap explanations against the lean runtime
         run: npm run test:glowcap
       - name: Trail Rescue registered scenarios, invariants and restore
