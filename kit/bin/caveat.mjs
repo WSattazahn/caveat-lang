@@ -4,6 +4,7 @@
 // caveat dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
 // caveat validate [--runtime <dir>] [--json] <program.cav>
 // caveat check [--runtime <dir>] [--json] [--strict] <program.cav>
+// caveat types [--runtime <dir>] [--json] [--from <module>] <program.cav>
 // caveat replay [--runtime <dir>] <program.cav> <events.jsonl>
 // caveat serve [--runtime <dir>] <program.cav>
 // caveat init [<directory>]
@@ -18,6 +19,7 @@ import { formatFileReport, parseScenarioFile, report, runScenarioFile } from '..
 import { dependents, explain, formatDependents, formatExplanation, parseEvents } from '../lib/explain.mjs';
 import { createServer } from '../lib/serve.mjs';
 import { CHECK_SCHEMA, formatCheck } from '../lib/check.mjs';
+import { declarations } from '../lib/types.mjs';
 import { doctor, formatDoctor } from '../lib/doctor.mjs';
 import { runAgentDemo, formatAgentDemo } from '../lib/demo.mjs';
 import { serveMcp } from '../lib/mcp.mjs';
@@ -31,6 +33,7 @@ Usage:
   caveat-lang dependents [--runtime <dir>] [--json] <program.cav> <name> [<events.jsonl>]
   caveat-lang validate [--runtime <dir>] [--json] <program.cav>
   caveat-lang check [--runtime <dir>] [--json] [--strict] <program.cav>
+  caveat-lang types [--runtime <dir>] [--json] [--from <module>] <program.cav>
   caveat-lang replay [--runtime <dir>] <program.cav> <events.jsonl>
   caveat-lang serve [--runtime <dir>] <program.cav>
   caveat-lang init [<directory>]
@@ -68,6 +71,13 @@ not errors. A comment "# caveat check: allow CODE" on the line above silences
 one where the pattern is intended. Exit status: 0 it loads, whatever it found;
 1 with --strict when there is a warning; 2 it does not load.
 
+types prints TypeScript declarations for a program: each event's payload, the
+displayed values and their types, and its state, cue, decision, stream,
+evidence, caveat and claim names, read from its interface
+(spec/caveat-interface-0.1.md). With --json it prints the interface itself.
+Save the output as a .d.ts file beside the host code. Exit status: 0 printed,
+2 the program does not load.
+
 replay sends the events and prints one JSON record per line: the initial
 snapshot, then each event's outcome, with the snapshot after each accepted
 event. Exit status: 0 replayed, 1 an event failed fatally (its record is last),
@@ -96,7 +106,9 @@ into a directory (default: the current one). It refuses to overwrite a file.
 
   --runtime <dir>  directory holding caveat_runtime.js and caveat_runtime_bg.wasm
   --json           print the machine report instead of text
-  --strict         (check) exit 1 when there is a warning`;
+  --strict         (check) exit 1 when there is a warning
+  --from <module>  (types) where the declarations import TypedSession from
+                   (default caveat-lang/types)`;
 
 // The positional arguments each command takes, as [fewest, most].
 const COMMANDS = {
@@ -105,6 +117,7 @@ const COMMANDS = {
   dependents: [2, 3, 'name a program, the evidence, stream or caveat to ask about and, optionally, an events file'],
   validate: [1, 1, 'name one program'],
   check: [1, 1, 'name one program'],
+  types: [1, 1, 'name one program'],
   replay: [2, 2, 'name a program and an events file'],
   serve: [1, 1, 'name one program'],
   init: [0, 1, 'name at most one directory'],
@@ -118,11 +131,15 @@ function parseArguments(argv) {
   if ((command === '--version' || command === '-v' || command === 'version') && rest.length === 0) return { command: 'version' };
   if (!command || command === 'help' || command === '--help' || command === '-h') return { command: 'help' };
   if (!Object.hasOwn(COMMANDS, command)) return { error: `unknown command ${command}` };
-  const options = { command, files: [], json: false, strict: false, runtime: null };
+  const options = { command, files: [], json: false, strict: false, runtime: null, from: null };
   for (let index = 0; index < rest.length; index++) {
     const argument = rest[index];
     if (argument === '--json' && !['replay', 'serve', 'init', 'mcp'].includes(command)) options.json = true;
     else if (argument === '--strict' && command === 'check') options.strict = true;
+    else if (argument === '--from' && command === 'types') {
+      options.from = rest[++index];
+      if (!options.from) return { error: '--from needs a module specifier' };
+    }
     else if (argument === '--runtime' && command !== 'init') {
       options.runtime = rest[++index];
       if (!options.runtime) return { error: '--runtime needs a directory' };
@@ -281,6 +298,22 @@ async function checkProgram(options) {
   return options.strict && report.diagnostics.length ? 1 : 0;
 }
 
+async function typesOf(options) {
+  const [program] = options.files;
+  const inputs = await readInputs(program);
+  if (!inputs) return 2;
+  const runtime = await loadRuntime(options);
+  if (!runtime) return 2;
+  let programInterface;
+  try { programInterface = runtime.interface(inputs.source); } catch (error) {
+    console.error(`${program} does not load: ${error.message}`);
+    return 2;
+  }
+  if (options.json) console.log(JSON.stringify(programInterface, null, 2));
+  else process.stdout.write(declarations(programInterface, { program: path.basename(program), ...(options.from ? { from: options.from } : {}) }));
+  return 0;
+}
+
 async function replayProgram(options) {
   const [program, eventsFile] = options.files;
   const opened = await openProgram(options, program, eventsFile);
@@ -419,7 +452,7 @@ async function main() {
   if (options.error) { console.error(`${options.error}\n\n${USAGE}`); return 2; }
   const run = {
     test: testScenarios, explain: explainProgram, dependents: dependentsOf,
-    validate: validateProgram, check: checkProgram, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
+    validate: validateProgram, check: checkProgram, types: typesOf, replay: replayProgram, serve: serveProgram, init, doctor: diagnose, demo: demonstrate,
     mcp: options => serveMcp({ runtimeDirectory: options.runtime ?? defaultRuntimeDirectory() }),
   }[options.command];
   return run(options);

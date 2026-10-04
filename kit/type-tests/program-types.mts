@@ -1,0 +1,50 @@
+// Compiled by runtime.yml: declarations from `caveat types` (gauge.d.ts, made
+// from gauge.cav; kit/test/types-command.test.mjs keeps it current).
+// Local: npm exec --yes --package=typescript@5.9.3 -- tsc
+// --noEmit --strict --module nodenext --target es2022
+// --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
+import { typed } from '../lib/types.mjs';
+import type { CaveatRuntime } from '../lib/session.mjs';
+import type { Program, ProgramEvent, Session, View } from './gauge.js';
+
+export function use(runtime: CaveatRuntime, source: string): void {
+  const session: Session = typed<Program>(runtime.open(source));
+  const inferred: Session = typed(runtime.open(source));
+
+  session.dispatch('read', { celsius: 17 });
+  session.dispatch('pick', { bed: 'north', size: 'large', who: 'ana' });
+  session.dispatch('decide');
+  inferred.dispatchView('decide', {});
+
+  // @ts-expect-error not an event of the program
+  session.dispatch('raed', { celsius: 17 });
+  // @ts-expect-error not a field of read's payload
+  session.dispatch('read', { celcius: 17 });
+  // @ts-expect-error read needs its payload
+  session.dispatch('read');
+  // @ts-expect-error not an entity of kind bed
+  session.dispatch('pick', { bed: 'west', size: 'large', who: 'ana' });
+  // @ts-expect-error decide takes no fields
+  session.dispatch('decide', { now: true });
+
+  const view: View = session.view();
+  const value: number = view.bindings.gauge.value;
+  const covered: boolean = view.bindings.gauge.covered;
+  const label: string | undefined = view.bindings.gauge.label;
+  // @ts-expect-error label is shown only while its condition holds
+  const always: string = view.bindings.gauge.label;
+  // @ts-expect-error not a bound property
+  view.bindings.gauge.valeu;
+  const cited = view.binding_explanations.gauge?.value?.evidence;
+
+  const outcome = session.dispatchView('read', { celsius: 3 });
+  if (outcome.outcome === 'accepted') {
+    const shown: number = outcome.view.bindings.gauge.value;
+    void shown;
+  }
+
+  const queued: ProgramEvent[] = [{ event: 'read', payload: { celsius: 1 } }, { event: 'decide', payload: {} }];
+  // @ts-expect-error a payload of another event
+  const wrong: ProgramEvent = { event: 'read', payload: { bed: 'north', size: 'small', who: 'x' } };
+  void [value, covered, label, always, cited, queued, wrong];
+}
