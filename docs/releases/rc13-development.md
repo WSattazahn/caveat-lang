@@ -206,5 +206,13 @@ The rc.12 rules carry over:
   `blob/main/` link to a file `git ls-files` does not list; the check runs in
   `kit/test/package-docs.test.mjs` under `npm run test:kit`. The npm page and
   Socket show the change only after rc.13 publishes.
+- PR 7 (#127): Lean proves that a later qualification leaves every
+  commitment's basis and grounds unchanged (`proofs/lean/Caveat/Late.lean`,
+  12 new laws; 80 authored, 189 inventoried). The runner gains
+  `caveat-late-qualification/0.1`. Conformance runs 9 programs with 14
+  qualification events (12 accepted, 2 refused) on native and WASM, giving
+  the model the runtime's state before each event. Two compiled mutants that
+  let the caveat reach commitment records are caught. Commitment creation,
+  reopening, the journal and scheduled qualification are not modeled.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
