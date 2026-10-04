@@ -206,6 +206,13 @@ The rc.12 rules carry over:
   `blob/main/` link to a file `git ls-files` does not list; the check runs in
   `kit/test/package-docs.test.mjs` under `npm run test:kit`. The npm page and
   Socket show the change only after rc.13 publishes.
+- PR 3 (#124, docs only): round 7 is a row in the README's glowcap table,
+  followed by its work list and `RESULTS.md: L912`'s no-claim sentence
+  verbatim. `docs/WHY_CAVEAT.md` says sixteen changes across seven rounds,
+  with round 7 going to TypeScript. Statements that round 7 made stale were
+  corrected: in the README, the count of blind requests and the request for
+  another blind round; in `web/about.html`, "both blind rounds" became all
+  three, the third run by seven fresh AI agents. No claim was broadened.
 - PR 7 (#127): Lean proves that a later qualification leaves every
   commitment's basis and grounds unchanged (`proofs/lean/Caveat/Late.lean`,
   12 new laws; 80 authored, 189 inventoried). The runner gains
