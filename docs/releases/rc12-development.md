@@ -423,8 +423,7 @@ The rc.11 rules carry over:
   gates, with 8 scenarios covering stale green, hand publish and withdrawal.
   `release-ledger.mjs` drives it from facts through `caveat serve`. Replayed
   from rc.11's facts, it shows a hand publish whose attestation stays
-  unsupported, and refuses to record provenance. The live run for rc.12's
-  release has not happened yet.
+  unsupported, and refuses to record provenance.
 - PR 7 (member symbols) is kept as a draft for rc.12 (owner decision,
   2026-10-04); implementation follows rc.12's publication, gated on §11.6.
 - PR 1 (#108) merged 2026-10-04 as `81bb39a`.
@@ -528,6 +527,14 @@ The rc.11 rules carry over:
   request's merge commit, merged after the last plan PR, dispatched with `latest`; `next` is added by hand
   afterwards. The tag, artifact, provenance and registry verification are
   recorded only from the `npm-publication-verification` artifact.
+- The release ledger ran live for rc.12's release
+  (`experiments/agent-ledger/release-rc12.facts.jsonl`, 62 facts). Its
+  `explain --json` report is
+  `experiments/agent-ledger/release-rc12.explain.json`: release published
+  through `publish-npm.yml`, permitted by the re-run's npm-publish approval;
+  the registry serves the tested tarball; attestation verified; provenance
+  record committed. 7 of 12 pull request runs carry `stale_base`, with bases
+  inferred from timing; readiness rests on main's run on `9e360af`.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a

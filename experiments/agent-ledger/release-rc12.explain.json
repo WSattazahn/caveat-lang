@@ -1,0 +1,1173 @@
+{
+  "schema": "caveat-explain/0.1",
+  "sequence": 40,
+  "elapsed": 0,
+  "events": [
+    {
+      "event": "opened",
+      "payload": {
+        "commit": "b3d34e0be9fc3b973733b16745651ed9bc5d2450"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "b3d34e0be9fc3b973733b16745651ed9bc5d2450",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr1",
+        "head": "50bfce5e49839943eaadc7d90c42486fe43a5b18",
+        "base": "b3d34e0be9fc3b973733b16745651ed9bc5d2450",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr1",
+        "head": "50bfce5e49839943eaadc7d90c42486fe43a5b18",
+        "commit": "81bb39a94846fa4457ee2f092aa2632d36a7668b"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr6",
+        "head": "883283cafeaaf593f7740dba2e2439cf48201188",
+        "base": "81bb39a94846fa4457ee2f092aa2632d36a7668b",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "81bb39a94846fa4457ee2f092aa2632d36a7668b",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr6",
+        "head": "883283cafeaaf593f7740dba2e2439cf48201188",
+        "commit": "3da544b66ba06a4b9a972f3898269a5c9b2f5a58"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr4",
+        "head": "f4861f9e76e37866324fcd3626a0abacc4220346",
+        "base": "81bb39a94846fa4457ee2f092aa2632d36a7668b",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr4",
+        "head": "f4861f9e76e37866324fcd3626a0abacc4220346",
+        "commit": "63e775e135d26b47220b45d378e24f44369797cc"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr5",
+        "head": "a93bae5af03567dd68497d5eb56a34d776ee7841",
+        "base": "81bb39a94846fa4457ee2f092aa2632d36a7668b",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr2",
+        "head": "4f85a48efa77d13ddbc80fb7c379f83d9135aa4a",
+        "base": "81bb39a94846fa4457ee2f092aa2632d36a7668b",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "63e775e135d26b47220b45d378e24f44369797cc",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr5",
+        "head": "e3d9d2ae24d3301113cf1a6ed8488cfbad0ad3ee",
+        "base": "63e775e135d26b47220b45d378e24f44369797cc",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr5",
+        "head": "e3d9d2ae24d3301113cf1a6ed8488cfbad0ad3ee",
+        "commit": "12ed8a7504f03ca234aadfb41cffea15ff01bfb3"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr2",
+        "head": "06627d5cfd9388334b36bec7bffad70a5558a3d1",
+        "base": "63e775e135d26b47220b45d378e24f44369797cc",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "unlisted",
+        "head": "f6816d21c27a1a66eb0444fa102a33232a0b3d63",
+        "commit": "4dd2b66a3a557adef366fac1ae93a2595873c2bb"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr2",
+        "head": "611217e08e32ff4801e1738cd063bc85ed5a3b26",
+        "base": "12ed8a7504f03ca234aadfb41cffea15ff01bfb3",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr2",
+        "head": "611217e08e32ff4801e1738cd063bc85ed5a3b26",
+        "commit": "77517cfd66cd217b08a8a508073d78e864dbb0c2"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "77517cfd66cd217b08a8a508073d78e864dbb0c2",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "unlisted",
+        "head": "0489feef5e926cfccd61a8973d46c1ac395bb2f8",
+        "commit": "8b0cc85f8197d56370bde54221e156a58706a00a"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "unlisted",
+        "head": "5c483a9e599fd134cb15ab3418d52815446797be",
+        "commit": "634689def9815147aceb2b21408ed7b42069e037"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "634689def9815147aceb2b21408ed7b42069e037",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "unlisted",
+        "head": "c2e02b08e404f0869730dfaf8a3d7198b071358c",
+        "commit": "27d26c5d373c2dfd2cc7020943e5555b464239e8"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr3",
+        "head": "b5e0feed71351c118b246c3143a065759f5e7e76",
+        "base": "634689def9815147aceb2b21408ed7b42069e037",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "unlisted",
+        "head": "33daf4d6c62c3e2fbc9981ed48443cb24fe845d3",
+        "commit": "bcd2bc0bfb692f8af087e722c5864cc1042b8afa"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "bcd2bc0bfb692f8af087e722c5864cc1042b8afa",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr8",
+        "head": "168daa2a28e0888fe12ffd16abe95e8574bb1bdf",
+        "base": "bcd2bc0bfb692f8af087e722c5864cc1042b8afa",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr3",
+        "head": "d846175213b27138947a6188c2ff53fb3d928569",
+        "base": "bcd2bc0bfb692f8af087e722c5864cc1042b8afa",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr3",
+        "head": "d846175213b27138947a6188c2ff53fb3d928569",
+        "commit": "2f3e799e58b292c22bc3643ce2fbfd98c15693f7"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "2f3e799e58b292c22bc3643ce2fbfd98c15693f7",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "pr_run",
+      "payload": {
+        "target": "pr8",
+        "head": "2f11dd5f1e1529f85ec32d41a609dd3232cf7bb9",
+        "base": "2f3e799e58b292c22bc3643ce2fbfd98c15693f7",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "merged",
+      "payload": {
+        "target": "pr8",
+        "head": "2f11dd5f1e1529f85ec32d41a609dd3232cf7bb9",
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "main_run",
+      "payload": {
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5",
+        "result": "passed"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "decide",
+      "payload": {},
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "tagged",
+      "payload": {
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "approved",
+      "payload": {
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "approved",
+      "payload": {
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "published",
+      "payload": {
+        "route": "workflow",
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "verified",
+      "payload": {
+        "commit": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5",
+        "bytes": "match",
+        "provenance": "present"
+      },
+      "outcome": {
+        "outcome": "accepted"
+      }
+    },
+    {
+      "event": "record",
+      "payload": {},
+      "outcome": {
+        "outcome": "accepted"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "name": "provenance_record",
+      "limit": 4,
+      "current": "provenance_record@1",
+      "revisions": [
+        {
+          "id": "provenance_record@1",
+          "value": 30,
+          "status": "in force",
+          "grounds": {
+            "evidence": [
+              "attestations@1"
+            ],
+            "caveats": []
+          },
+          "lineage": {
+            "evidence": [
+              "attestations@1"
+            ],
+            "caveats": []
+          },
+          "permission": null,
+          "withdrawn": [],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 40,
+              "event": "record",
+              "because": [
+                "attestations@1"
+              ],
+              "caveats": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "publish",
+      "limit": 1,
+      "current": "publish@1",
+      "revisions": [
+        {
+          "id": "publish@1",
+          "value": 30,
+          "status": "in force",
+          "grounds": {
+            "evidence": [
+              "main_runs@8"
+            ],
+            "caveats": []
+          },
+          "lineage": {
+            "evidence": [
+              "approvals@2",
+              "main_runs@8"
+            ],
+            "caveats": []
+          },
+          "permission": {
+            "grant": "approvals@2",
+            "scope": {
+              "granted": 30,
+              "required": 30
+            }
+          },
+          "withdrawn": [],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 38,
+              "event": "published",
+              "because": [
+                "main_runs@8"
+              ],
+              "caveats": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ready",
+      "limit": 16,
+      "current": "ready@1",
+      "revisions": [
+        {
+          "id": "ready@1",
+          "value": 30,
+          "status": "in force",
+          "grounds": {
+            "evidence": [
+              "main_runs@8"
+            ],
+            "caveats": []
+          },
+          "lineage": {
+            "evidence": [
+              "main_runs@8"
+            ],
+            "caveats": []
+          },
+          "permission": null,
+          "withdrawn": [],
+          "history": [
+            {
+              "change": "committed",
+              "sequence": 34,
+              "event": "decide",
+              "because": [
+                "main_runs@8"
+              ],
+              "caveats": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "main_runs@1",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 1,
+      "sequence": 2,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr1_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr6_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@2",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 3,
+      "sequence": 6,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@2",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr4_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@3",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr5_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "pr2_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@3",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 7,
+      "sequence": 12,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr5_ci@2",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@4",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr2_ci@2",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@5",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr2_ci@3",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@6",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@4",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 16,
+      "sequence": 19,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@7",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@8",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@5",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 20,
+      "sequence": 22,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@9",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr3_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@10",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@6",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 25,
+      "sequence": 26,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr8_ci",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [
+        "stale_base"
+      ],
+      "withdrawn": null
+    },
+    {
+      "id": "pr3_ci@2",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@11",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@7",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 28,
+      "sequence": 30,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "pr8_ci@2",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_moved@12",
+      "relation": null,
+      "claim": null,
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "main_runs@8",
+      "relation": "supports",
+      "claim": "publishable",
+      "value": 30,
+      "sequence": 33,
+      "event": "main_run",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "approvals@1",
+      "relation": "supports",
+      "claim": "authorized",
+      "value": 30,
+      "sequence": 36,
+      "event": "approved",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "approvals@2",
+      "relation": "supports",
+      "claim": "authorized",
+      "value": 30,
+      "sequence": 37,
+      "event": "approved",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "publish_report",
+      "relation": "supports",
+      "claim": "attested",
+      "value": null,
+      "sequence": null,
+      "event": null,
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "verifications@1",
+      "relation": "supports",
+      "claim": "on_npm",
+      "value": 30,
+      "sequence": 39,
+      "event": "verified",
+      "caveats": [],
+      "withdrawn": null
+    },
+    {
+      "id": "attestations@1",
+      "relation": "supports",
+      "claim": "attested",
+      "value": 30,
+      "sequence": 39,
+      "event": "verified",
+      "caveats": [],
+      "withdrawn": null
+    }
+  ],
+  "displayed": [
+    {
+      "name": "pr1.head",
+      "value": "50bfce5e49839943eaadc7d90c42486fe43a5b18",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr1.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr1_ci"
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr2.head",
+      "value": "611217e08e32ff4801e1738cd063bc85ed5a3b26",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr2.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr2_ci",
+          "pr2_ci@2",
+          "pr2_ci@3"
+        ],
+        "caveats": [
+          "stale_base"
+        ]
+      }
+    },
+    {
+      "name": "pr3.head",
+      "value": "d846175213b27138947a6188c2ff53fb3d928569",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr3.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr3_ci",
+          "pr3_ci@2"
+        ],
+        "caveats": [
+          "stale_base"
+        ]
+      }
+    },
+    {
+      "name": "pr4.head",
+      "value": "f4861f9e76e37866324fcd3626a0abacc4220346",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr4.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr4_ci"
+        ],
+        "caveats": [
+          "stale_base"
+        ]
+      }
+    },
+    {
+      "name": "pr5.head",
+      "value": "e3d9d2ae24d3301113cf1a6ed8488cfbad0ad3ee",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr5.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr5_ci",
+          "pr5_ci@2"
+        ],
+        "caveats": [
+          "stale_base"
+        ]
+      }
+    },
+    {
+      "name": "pr6.head",
+      "value": "883283cafeaaf593f7740dba2e2439cf48201188",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr6.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr6_ci"
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr7.head",
+      "value": "",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr7.status",
+      "value": "no run",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr8.head",
+      "value": "2f11dd5f1e1529f85ec32d41a609dd3232cf7bb9",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "pr8.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [
+          "pr8_ci",
+          "pr8_ci@2"
+        ],
+        "caveats": [
+          "stale_base"
+        ]
+      }
+    },
+    {
+      "name": "repo.attestation",
+      "value": "verified",
+      "cites": {
+        "evidence": [
+          "attestations@1",
+          "publish_report"
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "name": "repo.main",
+      "value": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "repo.main_status",
+      "value": "passing Runtime run on main's head",
+      "cites": {
+        "evidence": [
+          "pr8_ci",
+          "pr8_ci@2"
+        ],
+        "caveats": [
+          "stale_base"
+        ]
+      }
+    },
+    {
+      "name": "repo.npm",
+      "value": "serves the tested tarball",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "repo.release",
+      "value": "published through publish-npm.yml",
+      "cites": {
+        "evidence": [
+          "main_runs@8"
+        ],
+        "caveats": []
+      }
+    },
+    {
+      "name": "repo.tag",
+      "value": "9e360afab3ff8ff0a92dd31af62cefda3cb102b5",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "unlisted.head",
+      "value": "",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    },
+    {
+      "name": "unlisted.status",
+      "value": "merged",
+      "cites": {
+        "evidence": [],
+        "caveats": []
+      }
+    }
+  ]
+}

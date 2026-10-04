@@ -138,6 +138,17 @@ test('the release ledger replays rc.11 from its facts', async () => {
   });
 });
 
+// rc.12's live run: its facts still give the report attached to the release
+// record.
+test('the release ledger replays rc.12 to its attached report', async () => {
+  const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
+  const { readFacts, run } = await import(pathToFileURL(path.join(ledger, 'release-ledger.mjs')).href);
+  const { steps, report } = await run(await readFacts(path.join(ledger, 'release-rc12.facts.jsonl')));
+  assert.deepEqual(steps.filter(step => step.outcome === 'rejected'), []);
+  const attached = JSON.parse(await readFile(path.join(ledger, 'release-rc12.explain.json'), 'utf8'));
+  for (const key of ['sequence', 'decisions', 'evidence', 'displayed']) assert.deepEqual(report[key], attached[key], key);
+});
+
 // ledger-approved-head.cav is ledger.cav corrected so that no pull request
 // starts with a go-ahead; ledger.cav stays as recorded. Apart from comments,
 // the two differ in that one line, the corrected scenarios include the
