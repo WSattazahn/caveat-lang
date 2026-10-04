@@ -37,8 +37,8 @@ The [rc.11 verified publication record](docs/releases/v0.1.0-rc.11.md) identifie
 published npm candidate. The [rc.11 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.11)
 retains the exact tested Linux tarball and its checksum. rc.11 makes more
 evaluation failures that depend on what a session has seen return classified,
-recoverable refusals, and makes restore refuse saves that genuine runtime saves
-never contain. A refused operation is not completed; hosts must inspect its
+recoverable refusals, and makes restore refuse save contents the source could
+never produce; restoring a save still does not authenticate its history. A refused operation is not completed; hosts must inspect its
 outcome. It adds no npm runtime dependency.
 
 With rc.11 installed, use `npx --no-install caveat-lang doctor` to check it and

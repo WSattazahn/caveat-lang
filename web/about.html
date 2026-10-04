@@ -191,7 +191,8 @@ follow the worked example the same way.</p>
 
 <p>0.1.0-rc.11 makes more evaluation failures that depend on what a session
 has seen return classified, recoverable refusals, and makes restore refuse
-saves that genuine runtime saves never contain. Hosts must handle rejected
+save contents the source could never produce; restoring a save still does not
+authenticate its history. Hosts must handle rejected
 outcomes explicitly. Existing Lean proofs cover the documented model; the
 comparison is not a proof of the entire Rust runtime. No npm runtime dependency
 is added. See the
