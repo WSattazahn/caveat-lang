@@ -179,6 +179,15 @@ The rc.12 rules carry over:
   adds PR 7 (one Lean theorem), PR 8–9 (the program interface and
   `caveat types`) and PR 10 (design notes with cards), lets threads run in
   parallel where files do not overlap, and renumbers the publish to PR 11.
+- PR 2 (#126): all 16 relative links in `kit/README.md` now open the file
+  on GitHub's `main`, and a sentence near the top says the shipped copies are
+  in the package's `docs/` and `examples/`. The six `docs/reference/` links
+  point at their repository source paths, because `kit/docs/reference/` is
+  generated and untracked (`.gitignore`), so `blob/main/kit/docs/reference/`
+  would 404. `scripts/kit-docs.mjs` refuses a relative README link and any
+  `blob/main/` link to a file `git ls-files` does not list; the check runs in
+  `kit/test/package-docs.test.mjs` under `npm run test:kit`. The npm page and
+  Socket show the change only after rc.13 publishes.
 - PR 7 (#127): Lean proves that a later qualification leaves every
   commitment's basis and grounds unchanged (`proofs/lean/Caveat/Late.lean`,
   12 new laws; 80 authored, 189 inventoried). The runner gains
