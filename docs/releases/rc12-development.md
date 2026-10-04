@@ -292,7 +292,7 @@ It must also meet the §11 bar:
 Before PR 1, the owner decides whether §11.6 stays a merge gate or becomes a
 release-note caveat. That decides whether member symbols ship in rc.12.
 
-**Status: pending the owner's decision** (see "Owner decisions" below).
+**Status: kept as a draft for rc.12** (see "Owner decisions" below).
 
 ### PR 8 — Publish through the attested path
 
@@ -309,8 +309,17 @@ must be done before the tag.
 
 ## Owner decisions
 
-- Needed before PR 1: whether PR 7 is in or out of rc.12, and whether §11.6
-  (a second program) is a merge gate. **Pending.**
+- PR 7 is out of rc.12 (owner, card answered 2026-10-04): member symbols
+  stay a draft spec through rc.12. The implementation branch starts after
+  rc.12 publishes, and §11.6 (a second program) stays its merge gate. The
+  reasons given: the bar is the draft's own, set by #68 ("pending
+  independent evidence from 2–3 additional real programs requiring
+  cross-member naming"); rc.12 is coherent without a parser change, editor
+  grammar and kit types; and this cycle's effort goes to finishing. The
+  search for a second program looks in what already exists (the agent
+  ledger and round 7's Caveat programs) rather than writing one to order;
+  if none is simpler with `ev_[shown]`, that is a finding about the
+  feature.
 
 ## Direction: rc.13 and after (recorded now, not scoped)
 
@@ -372,7 +381,7 @@ must be done before the tag.
 4. PR 4.
 5. PR 5.
 6. PR 6, ready before the release so that it can run live.
-7. PR 7, if accepted.
+7. PR 7 is not in rc.12 (kept as a draft).
 8. PR 8, which is the release.
 
 Round 7's Glowcap result and the Version Lab's rc.12 findings land in this
@@ -416,7 +425,8 @@ The rc.11 rules carry over:
   from rc.11's facts, it shows a hand publish whose attestation stays
   unsupported, and refuses to record provenance. The live run for rc.12's
   release has not happened yet.
-- PR 7 (member symbols) is pending the owner's decision.
+- PR 7 (member symbols) is kept as a draft for rc.12 (owner decision,
+  2026-10-04); implementation follows rc.12's publication, gated on §11.6.
 - PR 1 (#108) merged 2026-10-04 as `81bb39a`.
 - PR 4: `kit/docs/AGENT_START.md` and the agent-evidence README say that a
   `caveat serve` session lasts as long as its process, that each MCP tool call
