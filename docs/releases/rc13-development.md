@@ -302,5 +302,15 @@ The rc.12 rules carry over:
   removed together with its membership still restores. Release note: a save
   edited to drop one of these records is now refused at restore instead of
   restoring with the graph and tables out of step.
+- Caveatist skill, side PR (docs and metadata, no runtime change): the
+  skill installs with `npx skills add WSattazahn/caveat-lang` (from a
+  byte-identical copy at `skills/caveatist/SKILL.md`, which CI compares with
+  the canonical `caveatism/skills/caveatist/SKILL.md`) and as the Claude Code
+  plugin `caveat` from the repository's one-entry marketplace `caveat-lang`.
+  `llms.txt` and `web/llms.txt` give doc-reading agents a map, and
+  `server.json` describes the MCP server `io.github.wsattazahn/caveat-lang`.
+  `kit/package.json` gains `mcpName`, which rides rc.13's publish; the MCP
+  Registry, community marketplace and directory submissions are owner steps
+  after it.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
