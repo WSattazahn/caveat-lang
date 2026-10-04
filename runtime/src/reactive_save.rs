@@ -1311,29 +1311,14 @@ impl ReactiveSession {
 
     /// A provenance whose names are all declared or created evidence and
     /// caveats, and whose evidence is observed: a commitment made on it, or a
-    /// qualification of it, requires that.
+    /// qualification of it, requires that. With `caveats`, each caveat is
+    /// also one the source can attach to it.
     fn check_provenance(
         &self,
         what: &str,
         provenance: &Provenance,
         observed: &HashSet<NodeId>,
-        caveats: &CaveatSources,
-    ) -> Result<(), String> {
-        self.check_provenance_within(what, provenance, provenance, observed, caveats)
-    }
-
-    /// As `check_provenance`, and each caveat is one the source can attach
-    /// with no evidence, or to some evidence of `lineage`: the provenance
-    /// itself, or the lineage a grounds provenance lies within. A caveat that
-    /// could attach is accepted without proof that it did (F330, F333,
-    /// F335-F337).
-    fn check_provenance_within(
-        &self,
-        what: &str,
-        provenance: &Provenance,
-        lineage: &Provenance,
-        observed: &HashSet<NodeId>,
-        caveats: &CaveatSources,
+        caveats: Option<&CaveatSources>,
     ) -> Result<(), String> {
         provenance
             .validate()
@@ -1346,8 +1331,25 @@ impl ReactiveSession {
         for name in &provenance.caveats {
             self.require_kind(name, "caveat")
                 .map_err(|error| format!("{what}: {error}"))?;
+        }
+        match caveats {
+            Some(caveats) => self.check_attachable(what, provenance, caveats),
+            None => Ok(()),
+        }
+    }
+
+    /// F330, F333, F335-F337: each caveat is one the source can attach with
+    /// no evidence, or to some evidence of the provenance. A caveat that
+    /// could attach is accepted without proof that it did.
+    fn check_attachable(
+        &self,
+        what: &str,
+        provenance: &Provenance,
+        caveats: &CaveatSources,
+    ) -> Result<(), String> {
+        for name in &provenance.caveats {
             let attachable = caveats.unpaired.contains(name)
-                || lineage.evidence.iter().any(|evidence| {
+                || provenance.evidence.iter().any(|evidence| {
                     caveats
                         .attachable
                         .get(self.source_evidence(evidence))
@@ -1389,14 +1391,10 @@ impl ReactiveSession {
                 return Err(format!("state {name} is not a finite number"));
             }
             check_range(name, state.value, range.min, range.max)?;
-            self.check_provenance(&format!("state {name}"), lineage, observed, caveats)?;
-            self.check_provenance_within(
-                &format!("state {name} grounds"),
-                grounds,
-                lineage,
-                observed,
-                caveats,
-            )?;
+            self.check_provenance(&format!("state {name}"), lineage, observed, Some(caveats))?;
+            // Grounds' caveats lie within the lineage just checked, or are
+            // refused below as outside it.
+            self.check_provenance(&format!("state {name} grounds"), grounds, observed, None)?;
             check_grounds_within_lineage(&format!("state {name}"), grounds, lineage)?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(
@@ -1425,22 +1423,18 @@ impl ReactiveSession {
                 &format!("commitment {name}"),
                 &basis.provenance,
                 observed,
-                caveats,
+                Some(caveats),
             )?;
         }
         for (name, grounds) in &save.commitment_grounds {
             self.require_commitment(name)?;
-            // Grounds lie within the commitment's basis.
-            let lineage = save
-                .commitment_bases
-                .get(name)
-                .map_or(&grounds.0, |basis| &basis.provenance);
-            self.check_provenance_within(
+            // Grounds' caveats lie within the basis checked above, or are
+            // refused below as outside it.
+            self.check_provenance(
                 &format!("commitment {name} grounds"),
                 &grounds.0,
-                lineage,
                 observed,
-                caveats,
+                None,
             )?;
         }
         if save.reading_streams.keys().ne(self.reading_streams.keys()) {
@@ -1473,7 +1467,7 @@ impl ReactiveSession {
                     &format!("reading {}", occurrence.id),
                     &occurrence.provenance,
                     observed,
-                    caveats,
+                    Some(caveats),
                 )?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
@@ -1486,7 +1480,7 @@ impl ReactiveSession {
                 &format!("reading stream {name}"),
                 &stream.selection_qualifications,
                 observed,
-                caveats,
+                Some(caveats),
             )?;
         }
         if save.decision_series.keys().ne(self.decision_series.keys()) {
@@ -1513,7 +1507,7 @@ impl ReactiveSession {
                 &format!("decision series {name}"),
                 &series.selection_qualifications,
                 observed,
-                caveats,
+                Some(caveats),
             )?;
         }
         for (name, occurrences) in &save.renewals {
@@ -1596,7 +1590,7 @@ impl ReactiveSession {
                 "scheduled qualification",
                 &scheduled.guard,
                 observed,
-                caveats,
+                Some(caveats),
             )?;
         }
         // Findings 86, 89, 96, 118-120: each table is keyed by what made its
@@ -1645,7 +1639,7 @@ impl ReactiveSession {
                     &format!("{what} of {name}"),
                     &provenance.0,
                     observed,
-                    caveats,
+                    Some(caveats),
                 )?;
             }
         }
@@ -1683,7 +1677,7 @@ impl ReactiveSession {
                     &format!("{kind}({name})"),
                     &provenance.0,
                     observed,
-                    caveats,
+                    Some(caveats),
                 )?;
             }
         }
@@ -1742,7 +1736,12 @@ impl ReactiveSession {
             {
                 return Err(format!("cue {id} is not one the last event can emit"));
             }
-            self.check_provenance(&format!("cue {id}"), &qualification.0, observed, caveats)?;
+            self.check_provenance(
+                &format!("cue {id}"),
+                &qualification.0,
+                observed,
+                Some(caveats),
+            )?;
         }
         for effect in &save.effects {
             let names: Vec<&str> = match effect {
@@ -1820,7 +1819,7 @@ impl ReactiveSession {
                 ));
             }
         }
-        self.check_saved_journal(save, observed, caveats)?;
+        self.check_saved_journal(save, observed)?;
         check_relations_within_bases(save)?;
         // Keep the existing journal and relation diagnostics first. A matching
         // journal alone cannot establish that grounds belong to the basis.
@@ -1834,6 +1833,14 @@ impl ReactiveSession {
                 &grounds.0,
                 &basis.provenance,
             )?;
+        }
+        // After the journal's own diagnostics: what each entry records.
+        for entry in &save.decision_journal {
+            let provenance = Provenance::from_names(
+                entry.because.iter().cloned(),
+                entry.caveats.iter().cloned(),
+            )?;
+            self.check_attachable("decision journal", &provenance, caveats)?;
         }
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));
@@ -1881,7 +1888,6 @@ impl ReactiveSession {
         &self,
         save: &ReactiveSave,
         observed: &HashSet<NodeId>,
-        caveats: &CaveatSources,
     ) -> Result<(), String> {
         let fail = |message: &str| format!("decision journal: {message}");
         if (save.sequence == 0) != save.last_event.is_none() {
@@ -1941,7 +1947,7 @@ impl ReactiveSession {
                 entry.because.iter().cloned(),
                 entry.caveats.iter().cloned(),
             )?;
-            self.check_provenance("decision journal", &provenance, observed, caveats)?;
+            self.check_provenance("decision journal", &provenance, observed, None)?;
             if provenance.evidence.len() != entry.because.len()
                 || entry.because != self.in_observation_order(provenance.evidence.iter())
                 || entry.caveats != provenance.caveats.iter().cloned().collect::<Vec<_>>()

@@ -147,24 +147,28 @@ fn f330_a_caveat_nothing_attaches_is_refused_in_every_record() {
     }
 }
 
-// A state's grounds and a commitment's grounds are checked against the
-// lineage they lie within, which holds at least their evidence.
+// Grounds lie within a lineage or basis, whose caveats are checked: a
+// caveat nothing attaches is refused there, or as outside it.
 #[test]
 fn f330_a_caveat_nothing_attaches_is_refused_in_grounds() {
     let save = saved();
-    let mut grounds = with_caveat(&save, "/states/level/grounds", "forged");
-    grounds = with_caveat(&grounds, "/states/level/lineage", "forged");
+    let state = with_caveat(&save, "/states/level/grounds", "forged");
     refused(
-        &grounds,
+        &with_caveat(&state, "/states/level/lineage", "forged"),
         "state level: forged cannot qualify any of its evidence",
     );
     refused(
-        &with_caveat(&save, "/states/level/grounds", "forged"),
-        "state level grounds: forged cannot qualify any of its evidence",
+        &state,
+        "state level grounds include caveat forged outside its lineage",
     );
+    let commitment = with_caveat(&save, "/commitment_grounds/route@1", "forged");
     refused(
-        &with_caveat(&save, "/commitment_grounds/route@1", "forged"),
-        "commitment route@1 grounds: forged cannot qualify any of its evidence",
+        &with_caveat(
+            &commitment,
+            "/commitment_bases/route@1/provenance",
+            "forged",
+        ),
+        "commitment route@1: forged cannot qualify any of its evidence",
     );
 }
 

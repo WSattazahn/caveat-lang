@@ -2593,7 +2593,8 @@ fn an_attention_inserted_for_any_caveat_is_refused_unless_the_source_could_leave
 
 // F330, F333, F335-F337, as F247's insertion with a caveat: `stale`, which
 // the program examines but nothing attaches to a value, added to every
-// provenance the played save holds. Each is refused.
+// provenance the played save holds. Each is refused, by this check except in
+// grounds.
 #[test]
 fn f330_a_caveat_nothing_attaches_is_refused_in_every_provenance() {
     let save = serde_json::to_value(played().save().unwrap()).unwrap();
@@ -2623,8 +2624,11 @@ fn f330_a_caveat_nothing_attaches_is_refused_in_every_provenance() {
         let error = ReactiveSession::restore_json(PROGRAM, &altered.to_string())
             .err()
             .unwrap_or_else(|| panic!("accepted with stale at {}", pointer(&path)));
+        // Grounds lie within a checked lineage or basis, so their existing
+        // diagnostics refuse them first.
+        let grounds = pointer(&path).contains("grounds");
         assert!(
-            error.ends_with("stale cannot qualify any of its evidence"),
+            grounds || error.ends_with("stale cannot qualify any of its evidence"),
             "{}: {error}",
             pointer(&path)
         );
