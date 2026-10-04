@@ -1,0 +1,457 @@
+{
+  "schema": "caveat-interface/0.1",
+  "events": [
+    {
+      "name": "approved",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        },
+        {
+          "name": "commit",
+          "type": "id"
+        }
+      ]
+    },
+    {
+      "name": "approved_revisions",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "checks",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        },
+        {
+          "name": "commit",
+          "type": "id"
+        },
+        {
+          "name": "result",
+          "type": "member",
+          "members": [
+            "failed",
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "gates",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        },
+        {
+          "name": "commit",
+          "type": "id"
+        },
+        {
+          "name": "result",
+          "type": "member",
+          "members": [
+            "failed",
+            "passed"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "merge",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "merged_elsewhere",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "misread",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pushed",
+      "parameters": [
+        {
+          "name": "target",
+          "type": "entity",
+          "kind": "pr",
+          "members": [
+            "pr21",
+            "pr26",
+            "pr28",
+            "pr29"
+          ]
+        },
+        {
+          "name": "commit",
+          "type": "id"
+        }
+      ]
+    }
+  ],
+  "states": [
+    {
+      "name": "pr21_green",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr21_head",
+      "min": 0.0,
+      "max": 4294967295.0
+    },
+    {
+      "name": "pr21_merged",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr21_revisions",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr26_green",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr26_head",
+      "min": 0.0,
+      "max": 4294967295.0
+    },
+    {
+      "name": "pr26_merged",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr26_revisions",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr28_green",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr28_head",
+      "min": 0.0,
+      "max": 4294967295.0
+    },
+    {
+      "name": "pr28_merged",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr28_revisions",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr29_green",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr29_head",
+      "min": 0.0,
+      "max": 4294967295.0
+    },
+    {
+      "name": "pr29_merged",
+      "min": 0.0,
+      "max": 1.0
+    },
+    {
+      "name": "pr29_revisions",
+      "min": 0.0,
+      "max": 1.0
+    }
+  ],
+  "bindings": [
+    {
+      "target": "pr21",
+      "property": "approved_for",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr21",
+      "property": "head",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr21",
+      "property": "status",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr26",
+      "property": "approved_for",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr26",
+      "property": "head",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr26",
+      "property": "status",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr28",
+      "property": "approved_for",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr28",
+      "property": "head",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr28",
+      "property": "status",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr29",
+      "property": "approved_for",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr29",
+      "property": "head",
+      "type": "text",
+      "always": true
+    },
+    {
+      "target": "pr29",
+      "property": "status",
+      "type": "text",
+      "always": true
+    }
+  ],
+  "cues": [],
+  "decisions": [
+    {
+      "name": "pr21_merge",
+      "limit": 8
+    },
+    {
+      "name": "pr26_merge",
+      "limit": 8
+    },
+    {
+      "name": "pr28_merge",
+      "limit": 8
+    },
+    {
+      "name": "pr29_merge",
+      "limit": 8
+    }
+  ],
+  "readings": [
+    {
+      "name": "pr21_approvals",
+      "evidence": "pr21_go",
+      "limit": 16
+    },
+    {
+      "name": "pr21_checks",
+      "evidence": "pr21_ci",
+      "limit": 32
+    },
+    {
+      "name": "pr21_gates",
+      "evidence": "pr21_local",
+      "limit": 32
+    },
+    {
+      "name": "pr26_approvals",
+      "evidence": "pr26_go",
+      "limit": 16
+    },
+    {
+      "name": "pr26_checks",
+      "evidence": "pr26_ci",
+      "limit": 32
+    },
+    {
+      "name": "pr26_gates",
+      "evidence": "pr26_local",
+      "limit": 32
+    },
+    {
+      "name": "pr28_approvals",
+      "evidence": "pr28_go",
+      "limit": 16
+    },
+    {
+      "name": "pr28_checks",
+      "evidence": "pr28_ci",
+      "limit": 32
+    },
+    {
+      "name": "pr28_gates",
+      "evidence": "pr28_local",
+      "limit": 32
+    },
+    {
+      "name": "pr29_approvals",
+      "evidence": "pr29_go",
+      "limit": 16
+    },
+    {
+      "name": "pr29_checks",
+      "evidence": "pr29_ci",
+      "limit": 32
+    },
+    {
+      "name": "pr29_gates",
+      "evidence": "pr29_local",
+      "limit": 32
+    }
+  ],
+  "evidence": [
+    "pr21_ci",
+    "pr21_elsewhere",
+    "pr21_go",
+    "pr21_local",
+    "pr21_push",
+    "pr21_recheck",
+    "pr21_scope",
+    "pr26_ci",
+    "pr26_elsewhere",
+    "pr26_go",
+    "pr26_local",
+    "pr26_push",
+    "pr26_recheck",
+    "pr26_scope",
+    "pr28_ci",
+    "pr28_elsewhere",
+    "pr28_go",
+    "pr28_local",
+    "pr28_push",
+    "pr28_recheck",
+    "pr28_scope",
+    "pr29_ci",
+    "pr29_elsewhere",
+    "pr29_go",
+    "pr29_local",
+    "pr29_push",
+    "pr29_recheck",
+    "pr29_scope"
+  ],
+  "caveats": [
+    "withdrawn"
+  ],
+  "claims": [
+    "pr21_changed",
+    "pr21_closed",
+    "pr21_misreading",
+    "pr21_permitted",
+    "pr21_ready",
+    "pr26_changed",
+    "pr26_closed",
+    "pr26_misreading",
+    "pr26_permitted",
+    "pr26_ready",
+    "pr28_changed",
+    "pr28_closed",
+    "pr28_misreading",
+    "pr28_permitted",
+    "pr28_ready",
+    "pr29_changed",
+    "pr29_closed",
+    "pr29_misreading",
+    "pr29_permitted",
+    "pr29_ready"
+  ]
+}
