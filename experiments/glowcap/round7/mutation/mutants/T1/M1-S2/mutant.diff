@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -131,7 +131,7 @@
+     state = 'uncertain';
+     text = 'Not every glowing mushroom is safe. Taste before absorbing.';
+   }
+-  return { state, text, note, supportedBy, contradictedBy, caveats: caveatsOf(s, [...supportedBy, ...contradictedBy]) };
++  return { state, text, note, supportedBy, contradictedBy, caveats: caveatsOf(s, [...supportedBy]) };
+ }
+ 
+ interface WhyNot {

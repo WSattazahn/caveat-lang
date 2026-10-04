@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -155,7 +155,7 @@
+     on taste when not $m_can_taste reject "That mushroom cannot be tasted.";
+     on taste call learn(taste_$m, sort, 10 * $index + 2 + sort);
+     on taste when glow == 0 qualify taste_$m with tasted_in_dark;
+-    on taste qualify taste_$m with taste_faded after 60;
++
+     on taste set $m_taste = qualified(sort, taste_$m);
+ 
+     # Regrowth: a stranger of unknown kind; what earlier lives showed stays recorded.

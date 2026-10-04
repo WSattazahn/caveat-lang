@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -127,7 +127,7 @@
+ function caveatsOf(s: State, evidence: readonly string[]): string[] {
+   const out = new Set<string>();
+   for (const e of evidence) {
+-    if (e.startsWith('witness_')) out.add('secondhand');
++
+     for (const c of s.evidenceCaveats[e] ?? []) out.add(c);
+   }
+   return [...out];

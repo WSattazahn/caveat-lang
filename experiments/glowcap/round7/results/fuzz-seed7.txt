@@ -1,0 +1,7 @@
+300 sequences, 846913 events; each program against /home/claude/glowcap-r7/authors/T2/impl/glowcap.ts
+/home/claude/glowcap-r7/authors/T1/impl/glowcap.ts: 0 diverged {}
+/home/claude/glowcap-r7/authors/T3/impl/glowcap.ts: 0 diverged {}
+/home/claude/glowcap-r7/authors/C1/impl/adapter.mjs: 40 diverged {"decision.basis":39,"belief.caveats":1}
+/home/claude/glowcap-r7/authors/C2/impl/adapter.mjs: 1 diverged {"belief.caveats":1}
+/home/claude/glowcap-r7/authors/C3/impl/adapter.mjs: 40 diverged {"journal":39,"belief.caveats":1}
+/home/claude/glowcap-r7/authors/C4/impl/adapter.mjs: 40 diverged {"journal":39,"belief.caveats":1}

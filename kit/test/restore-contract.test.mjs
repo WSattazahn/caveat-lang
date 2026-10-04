@@ -239,6 +239,42 @@ test('F248: restore refuses an effect the last event cannot make', () => {
   } finally { session.close(); resumed?.close(); }
 });
 
+test('findings 123, 188-191: restore refuses attention no examination of the source could leave', () => {
+  const session = runtime.open(effectSource);
+  let resumed;
+  let again;
+  try {
+    assert.equal(session.dispatch('observe').outcome, 'accepted');
+    const unexamined = JSON.parse(session.save());
+    assert.equal(unexamined.graph.attention, undefined);
+    for (const [attention, message] of [
+      [{ stale: 'examined' }, /examined caveats cost at least 1 attention to examine, more than the 0 the budget spent/],
+      [{ stale: 'deferred' }, /caveat stale is deferred, which no reactive event leaves/],
+      [{ stale: 'examining' }, /caveat stale is examining, which no reactive event leaves/],
+    ]) {
+      const saved = structuredClone(unexamined);
+      saved.graph.attention = attention;
+      refuses(effectSource, saved, message);
+    }
+    const noBudget = runtime.open(graphSource);
+    try {
+      assert.equal(noBudget.dispatch('observe').outcome, 'accepted');
+      const saved = JSON.parse(noBudget.save());
+      saved.graph.attention = { phantom: 'examined' };
+      refuses(graphSource, saved, /caveat phantom is examined, but this program has no attention budget/);
+    } finally { noBudget.close(); }
+    // A genuine examination restores, plays on and restores again.
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    const examined = session.save();
+    assert.deepEqual(JSON.parse(examined).graph.attention, { stale: 'examined' });
+    resumed = runtime.restore(effectSource, examined);
+    assert.deepEqual(resumed.snapshot(), session.snapshot());
+    assert.deepEqual(resumed.dispatch('ring'), session.dispatch('ring'));
+    again = runtime.restore(effectSource, resumed.save());
+    assert.deepEqual(again.snapshot(), session.snapshot());
+  } finally { session.close(); resumed?.close(); again?.close(); }
+});
+
 test('F247: restore refuses a field the schema lacks in a nested record', () => {
   const session = runtime.open(sparseSource);
   try {

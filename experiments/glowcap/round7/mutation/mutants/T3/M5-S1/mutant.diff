@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -186,7 +186,7 @@
+ function belief(s: State): Belief {
+   const support = s.memory.filter((e) => e.kind === 'glowcap');
+   const contra = s.memory.filter((e) => e.kind === 'duskcap');
+-  const supportedBy = support.map((e) => e.id);
++  const supportedBy = support.map((e) => e.id).concat('taste_pit');
+   const contradictedBy = contra.map((e) => e.id);
+   const caveats = caveatsOf(s.memory);
+   const note = (n: number) => (n === 1 ? 'Based on one observation.' : `Based on ${n} observations.`);

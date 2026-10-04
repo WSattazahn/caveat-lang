@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -226,7 +226,7 @@
+ on tick set glow = max(glow - dt, 0);
+ on tick set heavy = max(heavy - dt, 0);
+ 
+-bind journal.e1 = trust_text(j1) when j1 >= entry_trusted and j1 < 10 because j1;
++bind journal.e1 = trust_text(j1) when j1 >= entry_trusted and j1 < 10 because j1, taste_pit;
+ bind journal.e2 = trust_text(j2) when j2 >= entry_trusted and j2 < 10 because j2;
+ bind journal.e3 = trust_text(j3) when j3 >= entry_trusted and j3 < 10 because j3;
+ bind journal.e4 = trust_text(j4) when j4 >= entry_trusted and j4 < 10 because j4;

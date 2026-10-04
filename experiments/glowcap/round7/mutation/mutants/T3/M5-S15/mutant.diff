@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -246,7 +246,7 @@
+     if (m.taste.kind === 'glowcap') return mk(true, qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', true, false, [m.taste]);
+     return mk(true, qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', false, false, [m.taste]);
+   }
+-  if (twiceBitten(b)) return mk(true, 'Too risky — taste first', false, true, b.contra);
++  if (twiceBitten(b)) return mk(true, 'Too risky — taste first', false, true, [...b.contra, { id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]);
+   switch (b.view.state) {
+     case 'none':
+       return mk(true, 'Glowing mushroom', true, true, []);

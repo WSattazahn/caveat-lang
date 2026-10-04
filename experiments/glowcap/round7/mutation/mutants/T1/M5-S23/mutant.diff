@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -284,7 +284,7 @@
+       d.basis = [ev.id];
+       d.reopenedBy = [];
+       d.caveats = [...ev.caveats];
+-      pushBounded(d.history, { change: 'committed', because: [ev.id] });
++      pushBounded(d.history, { change: 'committed', because: [ev.id, 'taste_pit'] });
+       journalTrust(s);
+     }
+   } else if (ev.kind === 'duskcap') {

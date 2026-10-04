@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -161,7 +161,7 @@
+     : m.marked ? mk('Marked to avoid', [])
+     : m.tasted === null && s.contradictedBy.length >= 2 ? mk('Too risky untasted', [...s.contradictedBy])
+     : allowed;
+-  const taste = m.tasted !== null ? mk('Already tasted', [tasteId]) : allowed;
++  const taste = m.tasted !== null ? mk('Already tasted', [tasteId, 'taste_pit']) : allowed;
+   return { absorb, taste };
+ }
+ 

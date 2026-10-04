@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -314,7 +314,7 @@
+     d.basis = basis.map((e) => e.id);
+     d.reopenedBy = [];
+     d.caveats = caveatsOf(basis);
+-    pushCapped(d.history, { change: 'committed', because: [...d.basis] }, MAX_HISTORY);
++    pushCapped(d.history, { change: 'committed', because: [...d.basis, 'taste_pit'] }, MAX_HISTORY);
+     pushCapped(s.journal, { type: 'committed', evidence: clone(basis) }, MAX_JOURNAL);
+   };
+   // CR7 count: accepted observations, remembered or not.

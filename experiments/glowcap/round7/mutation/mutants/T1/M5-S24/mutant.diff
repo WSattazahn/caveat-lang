@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -290,7 +290,7 @@
+   } else if (ev.kind === 'duskcap') {
+     d.state = 'reopened';
+     pushBounded(d.reopenedBy, ev.id);
+-    pushBounded(d.history, { change: 'reopened', because: [ev.id] });
++    pushBounded(d.history, { change: 'reopened', because: [ev.id, 'taste_pit'] });
+     journalTrust(s);
+   } else if (d.state === 'reopened' && s.sinceContradiction.length >= 2) {
+     const basis = s.sinceContradiction.slice(0, 2);

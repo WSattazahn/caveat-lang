@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -263,7 +263,7 @@
+ // CR16: journal the decision change just appended to history.
+ function journalTrust(s: State): void {
+   const h = s.decision.history[s.decision.history.length - 1];
+-  pushBounded(s.journal, { text: TRUST_TEXT[h.change], because: [...h.because] });
++  pushBounded(s.journal, { text: TRUST_TEXT[h.change], because: [...h.because, 'taste_pit'] });
+ }
+ 
+ // Adds one accepted observation (forgetting the oldest beyond MEMORY) and

@@ -1,0 +1,71 @@
+{
+  "registration": {
+    "stage1": "df3dde3f7a825f0acfbc8d558e81cc23819084cd",
+    "stage2": "01d4352b83513af56e5a0c2cf25c14836e3cda23"
+  },
+  "note": "Fresh general-purpose subagent contexts with no fork of any conversation, given exactly the registered prompt with ID and directory filled in. Model revision, tokens and compute are not recorded here. Writer and reviewer times are approximate, bounded by the stage-1 commit (03:26), REQUESTS.md (03:31) and REVIEW.md (03:37); author times were taken at dispatch.",
+  "agents": [
+    {
+      "role": "writer",
+      "dispatched": "2026-10-04T03:27Z",
+      "directory": "/home/claude/glowcap-r7/writer"
+    },
+    {
+      "role": "reviewer",
+      "dispatched": "2026-10-04T03:33Z",
+      "directory": "/home/claude/glowcap-r7/reviewer"
+    },
+    {
+      "role": "writer (one revision, with REVIEW.md)",
+      "dispatched": "2026-10-04T03:37Z"
+    },
+    {
+      "role": "author",
+      "id": "C1",
+      "wave": 1,
+      "dispatched": "2026-10-04T03:38Z"
+    },
+    {
+      "role": "author",
+      "id": "T1",
+      "wave": 1,
+      "dispatched": "2026-10-04T03:38Z"
+    },
+    {
+      "role": "author",
+      "id": "C2",
+      "wave": 1,
+      "dispatched": "2026-10-04T03:38Z"
+    },
+    {
+      "role": "author",
+      "id": "T2",
+      "wave": 1,
+      "dispatched": "2026-10-04T03:38Z"
+    },
+    {
+      "role": "author",
+      "id": "C3",
+      "wave": 2,
+      "dispatched": "2026-10-04T03:55Z",
+      "promptAddition": "amendment 2 scratchpad sentence"
+    },
+    {
+      "role": "author",
+      "id": "T3",
+      "wave": 2,
+      "dispatched": "2026-10-04T03:55Z",
+      "promptAddition": "amendment 2 scratchpad sentence"
+    },
+    {
+      "role": "author",
+      "id": "C4",
+      "wave": 2,
+      "dispatched": "2026-10-04T03:55Z",
+      "promptAddition": "amendment 2 scratchpad sentence"
+    }
+  ],
+  "incidents": [
+    "C1 excluded from primary counts: read C2's adapter from the shared scratchpad at cr13 (amendment 2)."
+  ]
+}

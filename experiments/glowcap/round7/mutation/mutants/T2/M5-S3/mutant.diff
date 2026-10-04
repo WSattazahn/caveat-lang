@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -152,7 +152,7 @@
+   const mk = (reason: string, because: string[]): WhyNot => ({ reason, because, caveats: caveatsOf(s, because) });
+   const allowed = mk('', []);
+   if (m.consumed) {
+-    return { absorb: mk('Already eaten', [m.consumedBy]), taste: mk('Already eaten', [m.consumedBy]) };
++    return { absorb: mk('Already eaten', [m.consumedBy]), taste: mk('Already eaten', [m.consumedBy, 'taste_pit']) };
+   }
+   if (OUT_OF_REACH.includes(id)) return { absorb: mk('Out of reach', []), taste: mk('Out of reach', []) };
+   const tasteId = evidenceId('taste', id, m.life);

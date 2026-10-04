@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -205,7 +205,7 @@
+     bind $m.label = "Probably a duskcap" when belief_unsafe because contradiction;
+     bind $m.label = "Could be a duskcap — taste first" when belief_uncertain because contradiction;
+     bind $m.label = "Too risky — taste first" when twice_bitten because contradiction;
+-    bind $m.label = "Glowcap" when $m_taste == 1 because $m_taste;
++    bind $m.label = "Glowcap" when $m_taste == 1 because $m_taste, absorb_$m;
+     bind $m.label = "Probably a glowcap (tasted in the dark)"
+         when $m_taste == 1 and has_caveat($m_taste, tasted_in_dark) because $m_taste;
+     bind $m.label = "Duskcap — avoid" when $m_taste == 2 because $m_taste;

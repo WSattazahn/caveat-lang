@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -177,7 +177,7 @@
+   if (m.tasted === 'duskcap')
+     return {
+       present: true,
+-      label: qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteId] };
++      label: qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteId, 'taste_pit'] };
+   // CR2: twice bitten — unknown mushrooms are too risky to absorb.
+   if (s.contradictedBy.length >= 2)
+     return {

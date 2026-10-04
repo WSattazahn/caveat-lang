@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -104,7 +104,7 @@
+ event tick dt min 0 max 0.1;
+ 
+ bind journal.e1 = "" because nothing;  bind journal.e2 = "" because nothing;
+-bind journal.e3 = "" because nothing;  bind journal.e4 = "" because nothing;
++bind journal.e3 = "" because taste_pit;  bind journal.e4 = "" because nothing;
+ bind journal.e5 = "" because nothing;  bind journal.e6 = "" because nothing;
+ 
+ for mushroom as $m routed by target {

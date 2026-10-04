@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -221,7 +221,7 @@
+   if (m.taste?.kind === 'duskcap') absorb = w('Known duskcap', [m.taste]);
+   else if (m.marked) absorb = w('Marked to avoid', []); // CR14
+   else if (!m.taste && twiceBitten(b)) absorb = w('Too risky untasted', b.contra);
+-  const taste = m.taste ? w('Already tasted', [m.taste]) : w('', []);
++  const taste = m.taste ? w('Already tasted', [m.taste]) : w('', [{ id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]);
+   return { absorb, taste };
+ }
+ 

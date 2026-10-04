@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -231,7 +231,7 @@
+ bind journal.e3 = trust_text(j3) when j3 >= entry_trusted and j3 < 10 because j3;
+ bind journal.e4 = trust_text(j4) when j4 >= entry_trusted and j4 < 10 because j4;
+ bind journal.e5 = trust_text(j5) when j5 >= entry_trusted and j5 < 10 because j5;
+-bind journal.e6 = trust_text(j6) when j6 >= entry_trusted and j6 < 10 because j6;
++bind journal.e6 = trust_text(j6) when j6 >= entry_trusted and j6 < 10 because j6, taste_pit;
+ 
+ bind slime.glowing = glow > 0;
+ bind slime.heavy = heavy > 0;

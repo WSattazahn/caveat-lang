@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -240,7 +240,7 @@
+     bind $m.why_taste = "" because nothing;
+     bind $m.why_taste = "Already tasted" when $m_taste != 0 because $m_taste;
+     bind $m.why_taste = "Out of reach" when $m_out_of_reach because nothing;
+-    bind $m.why_taste = "Already eaten" when $m_eaten == 1 because $m_eaten;
++    bind $m.why_taste = "Already eaten" when $m_eaten == 1 because $m_eaten, taste_$m;
+ };
+ 
+ # ---------------------------------------------------------------- time

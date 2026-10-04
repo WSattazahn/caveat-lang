@@ -1,0 +1,9 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -276,5 +276,5 @@
+ bind journal.text_2 = journal_text(journal_2) because journal_2;
+ bind journal.text_3 = journal_text(journal_3) because journal_3;
+ bind journal.text_4 = journal_text(journal_4) because journal_4;
+-bind journal.text_5 = journal_text(journal_5) because journal_5;
++bind journal.text_5 = journal_text(journal_5) because journal_5, taste_pit;
+ bind journal.text_6 = journal_text(journal_6) because journal_6;

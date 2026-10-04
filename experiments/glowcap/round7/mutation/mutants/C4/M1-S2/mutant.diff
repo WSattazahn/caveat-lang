@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -189,7 +189,7 @@
+     # A taste identifies the mushroom and, like an absorption, bears on the belief.
+     on taste when sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
+     on taste when sort == sort.duskcap reveal taste_$m opposes $m_is_glowcap;
+-    on taste when glow == 0 qualify taste_$m with tasted_in_dark;
++
+     on taste qualify taste_$m with taste_faded after 60;
+     on taste set $m_known = qualified(sort, taste_$m);
+     on taste call learn(taste_$m, sort, 2, $index);

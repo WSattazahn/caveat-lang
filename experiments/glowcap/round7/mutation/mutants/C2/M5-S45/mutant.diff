@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -274,7 +274,7 @@
+ 
+ # The evidence lists: each count's explanation is the evidence it rests on.
+ bind belief.supported = supported because supported;
+-bind belief.contradicted = contradicted because contradicted;
++bind belief.contradicted = contradicted because contradicted, taste_pit;
+ bind belief.observations = supported + contradicted because supported, contradicted;
+ 
+ bind decision.state = "none" because nothing;

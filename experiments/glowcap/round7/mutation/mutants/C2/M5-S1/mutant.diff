@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -38,7 +38,7 @@
+     state dusk_$index = 0 min 0 max 1;
+     state journal_who_$index = 0 min 0 max 5;
+     state journal_cite_$index = 0 min 0 max 8;
+-    bind journal_$index.text = journal_text(journal_cite_$index, journal_who_$index) because journal_cite_$index;
++    bind journal_$index.text = journal_text(journal_cite_$index, journal_who_$index) because journal_cite_$index, taste_pit;
+ };
+ state supported = 0 min 0 max 6;
+ state contradicted = 0 min 0 max 6;

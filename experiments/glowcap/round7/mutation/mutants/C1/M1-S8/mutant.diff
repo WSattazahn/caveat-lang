@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -71,7 +71,7 @@
+       note: b.belief.note,
+       supportedBy: cites('belief', 'supportedBy'),
+       contradictedBy: cites('belief', 'contradictedBy'),
+-      caveats: caveatsOf(['belief', 'supportedBy'], ['belief', 'contradictedBy']),
++      caveats: caveatsOf(['belief', 'contradictedBy']),
+     },
+     // The program's journal slots e1 (oldest) .. e6; an empty text is an unused slot.
+     journal: [1, 2, 3, 4, 5, 6].map((n) => `e${n}`).filter((slot) => b.journal[slot] !== '')

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -256,7 +256,7 @@
+ bind slime.heavy = heavy > 0 because nothing;
+ bind slime.heavy_seconds = ceil(heavy) because nothing;
+ 
+-bind belief.state = "none" because nothing;
++bind belief.state = "none" because taste_pit;
+ bind belief.state = "probably_safe" when belief_safe because supported;
+ bind belief.state = "probably_unsafe" when belief_unsafe because contradicted;
+ bind belief.state = "uncertain" when belief_uncertain because supported, contradicted;

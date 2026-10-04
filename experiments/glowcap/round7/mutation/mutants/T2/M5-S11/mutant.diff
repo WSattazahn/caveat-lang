@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -173,7 +173,7 @@
+     : tasteCaveats.includes('tasted_in_dark') ? ' (tasted in the dark)'
+     : '';
+   if (m.tasted === 'glowcap')
+-    return { present: true, label: qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteId] };
++    return { present: true, label: qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteId, 'taste_pit'] };
+   if (m.tasted === 'duskcap')
+     return {
+       present: true,

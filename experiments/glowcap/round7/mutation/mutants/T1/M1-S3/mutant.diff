@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -340,7 +340,7 @@
+       const tasted = tastedKind(s, id);
+       if (tasted !== undefined && tasted !== kind) fail(`${id} kind contradicts taste`);
+       const evId = evidenceId(s, 'witness', id);
+-      record(s, { id: evId, kind, caveats: ['secondhand'] });
++      record(s, { id: evId, kind, caveats: [] });
+       consume(s, id, evId);
+       return;
+     }

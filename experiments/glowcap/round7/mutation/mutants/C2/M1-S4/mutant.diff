@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -181,7 +181,7 @@
+     on taste when $m_taste != 0 reject "That mushroom has already been tasted.";
+     on taste call learn(taste_$m, sort, if(glow > 0, 0, 1), 2, $index);
+     on taste set $m_taste = qualified(sort, taste_$m);
+-    on taste qualify taste_$m with taste_faded after 60;
++
+ 
+     # Another creature eats it: consumed, teaches like an absorption, no timers.
+     # Being too risky for the slime does not stop another creature.

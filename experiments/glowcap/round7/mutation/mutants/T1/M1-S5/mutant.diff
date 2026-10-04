@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -378,7 +378,7 @@
+         if (ev.age === undefined) continue;
+         ev.age += dt;
+         if (ev.age >= TASTE_FADE_SECONDS) {
+-          if (!ev.caveats.includes('taste_faded')) ev.caveats.push('taste_faded');
++
+           delete ev.age; // faded for good; no clock needed any more
+         }
+       }

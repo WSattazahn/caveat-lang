@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -254,6 +254,6 @@
+ bind belief.supportedBy = support because support;
+ bind belief.contradictedBy = contra because contra;
+ 
+-bind decision.state = "none" because nothing;
++bind decision.state = "none" because taste_pit;
+ bind decision.state = "committed" when committed(trust) and not reopened(trust);
+ bind decision.state = "reopened" when reopened(trust);

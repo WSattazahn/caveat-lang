@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -160,7 +160,7 @@
+     const cav = caveatsOf(s, [tasteId]);
+     const qualifier = cav.includes('taste_faded') ? ' (taste has faded)' : cav.includes('tasted_in_dark') ? ' (tasted in the dark)' : '';
+     if (t === 'glowcap')
+-      return { present: true, label: qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteId] };
++      return { present: true, label: qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteId, 'taste_pit'] };
+     return { present: true, label: qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteId] };
+   }
+   if (belief.contradictedBy.length >= 2)

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -252,7 +252,7 @@
+ on tick set heavy = max(heavy - dt, 0);
+ 
+ # ---------------------------------------------------------------- HUD
+-bind slime.glowing = glow > 0 because nothing;
++bind slime.glowing = glow > 0 because taste_pit;
+ bind slime.heavy = heavy > 0 because nothing;
+ bind slime.heavy_seconds = ceil(heavy) because nothing;
+ 

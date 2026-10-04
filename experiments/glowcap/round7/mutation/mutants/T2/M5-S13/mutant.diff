@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -185,7 +185,7 @@
+       label: 'Too risky — taste first',
+       canAbsorb: false,
+       canTaste: true,
+-      because: [...s.contradictedBy],
++      because: [...s.contradictedBy, 'taste_pit'],
+     };
+   const bs = beliefState(s);
+   const label =

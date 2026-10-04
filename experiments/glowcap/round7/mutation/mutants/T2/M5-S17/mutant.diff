@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -197,7 +197,7 @@
+     bs === 'probably_safe' ? [...s.supportedBy]
+     : bs === 'probably_unsafe' ? [...s.contradictedBy]
+     : bs === 'uncertain' ? [...s.contradictedBy] // CR4: cite the counterexample only
+-    : [];
++    : ['taste_pit'];
+   return { present: true, label, canAbsorb: true, canTaste: true, because };
+ }
+ 

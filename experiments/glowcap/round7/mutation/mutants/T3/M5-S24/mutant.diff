@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -327,7 +327,7 @@
+     d.state = 'reopened';
+     pushCapped(d.reopenedBy, ev.id, MAX_REOPENED_BY);
+     pushCapped(d.history, { change: 'reopened', because: [ev.id] }, MAX_HISTORY);
+-    pushCapped(s.journal, { type: 'reopened', evidence: [clone(ev)] }, MAX_JOURNAL);
++    pushCapped(s.journal, { type: 'reopened', evidence: [clone(ev), { id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }] }, MAX_JOURNAL);
+   } else if (d.state === 'reopened' && d.recovery.length === RECOVER_AFTER && d.recovery[RECOVER_AFTER - 1] === ev.id) {
+     // CR7: the second glowcap observation since the most recent contradiction recommits.
+     const basis = d.recovery.map((id) => findObservation(s, id) ?? fail(`lost evidence ${id}`));

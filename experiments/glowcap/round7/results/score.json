@@ -1,0 +1,2535 @@
+{
+  "C1": {
+    "side": "caveat",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 2,
+      "runs": 10,
+      "failingRuns": 5,
+      "changeCode": 153,
+      "changeRaw": 169,
+      "regressions": 75,
+      "explanationFailures": 22,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 13,
+      "phases": 13,
+      "runs": 14,
+      "failingRuns": 0,
+      "changeCode": 268,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 323,
+      "bytes": 19390,
+      "policy": {
+        "lines": 228,
+        "bytes": 13920
+      },
+      "glue": {
+        "lines": 95,
+        "bytes": 5470
+      },
+      "files": [
+        "adapter.mjs",
+        "glowcap.cav"
+      ]
+    },
+    "shippedGzipBytes": 614587,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 144,
+          "added": 144,
+          "removed": 0,
+          "raw": 171
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 1,
+          "added": 1,
+          "removed": 0,
+          "raw": 1
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 5,
+          "added": 4,
+          "removed": 1,
+          "raw": 5
+        }
+      },
+      "cr3": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 39,
+          "added": 28,
+          "removed": 11,
+          "raw": 42
+        }
+      },
+      "cr4": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 6,
+          "added": 6,
+          "removed": 0,
+          "raw": 6
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 2,
+          "added": 2,
+          "removed": 0,
+          "raw": 3
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 8,
+          "added": 7,
+          "removed": 1,
+          "raw": 8
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 7,
+          "added": 4,
+          "removed": 3,
+          "raw": 7
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 10,
+          "added": 10,
+          "removed": 0,
+          "raw": 11
+        }
+      },
+      "cr10": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 27,
+          "added": 23,
+          "removed": 4,
+          "raw": 31
+        }
+      },
+      "cr11": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 17,
+          "added": 17,
+          "removed": 0,
+          "raw": 18
+        }
+      },
+      "cr12": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "38/38",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 0,
+          "added": 0,
+          "removed": 0,
+          "raw": 0
+        }
+      },
+      "cr13": {
+        "runs": 4,
+        "firstRunGreen": false,
+        "firstRun": "40/41",
+        "runsToGreen": 4,
+        "failingRuns": 3,
+        "incomplete": false,
+        "explanationFailedIds": [
+          "S02",
+          "S03b",
+          "S04b",
+          "S07",
+          "S08b",
+          "S09",
+          "S11b",
+          "S16",
+          "S18",
+          "S19",
+          "S20",
+          "S21",
+          "S22",
+          "S28",
+          "S29",
+          "S30",
+          "S33",
+          "S35",
+          "S37",
+          "S39",
+          "S40",
+          "S41"
+        ],
+        "regressions": [
+          "S01",
+          "S02",
+          "S03b",
+          "S04b",
+          "S07",
+          "S08b",
+          "S09",
+          "S10",
+          "S11b",
+          "S15",
+          "S16",
+          "S17",
+          "S18",
+          "S19",
+          "S20",
+          "S21",
+          "S22",
+          "S27",
+          "S28",
+          "S29",
+          "S30",
+          "S31",
+          "S32",
+          "S33",
+          "S34",
+          "S35",
+          "S37",
+          "S38"
+        ],
+        "checks": 2,
+        "change": {
+          "code": 64,
+          "added": 44,
+          "removed": 20,
+          "raw": 71
+        }
+      },
+      "cr14": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "44/44",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 18,
+          "added": 17,
+          "removed": 1,
+          "raw": 19
+        }
+      },
+      "cr15": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "47/47",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 9,
+          "added": 7,
+          "removed": 2,
+          "raw": 9
+        }
+      },
+      "cr16": {
+        "runs": 4,
+        "firstRunGreen": false,
+        "firstRun": "0/50",
+        "runsToGreen": 3,
+        "failingRuns": 2,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [
+          "S01",
+          "S02",
+          "S03b",
+          "S04b",
+          "S05",
+          "S06",
+          "S07",
+          "S08b",
+          "S09",
+          "S10",
+          "S11b",
+          "S12",
+          "S13",
+          "S14",
+          "S15",
+          "S16",
+          "S17",
+          "S18",
+          "S19",
+          "S20",
+          "S21",
+          "S22",
+          "S23",
+          "S24",
+          "S25",
+          "S26",
+          "S27",
+          "S28",
+          "S29",
+          "S30",
+          "S31",
+          "S32",
+          "S33",
+          "S34",
+          "S35",
+          "S36",
+          "S37",
+          "S38",
+          "S39",
+          "S40",
+          "S41",
+          "S42",
+          "S43",
+          "S44",
+          "S45",
+          "S46",
+          "S47"
+        ],
+        "checks": 2,
+        "change": {
+          "code": 62,
+          "added": 57,
+          "removed": 5,
+          "raw": 70
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 108.3,
+      "p95Us": 147.9,
+      "resumeMs": 19.37,
+      "saveBytes": 673
+    }
+  },
+  "C2": {
+    "side": "caveat",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 2,
+      "runs": 7,
+      "failingRuns": 2,
+      "changeCode": 194,
+      "changeRaw": 213,
+      "regressions": 22,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 13,
+      "phases": 13,
+      "runs": 18,
+      "failingRuns": 0,
+      "changeCode": 334,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 366,
+      "bytes": 21700,
+      "policy": {
+        "lines": 256,
+        "bytes": 15569
+      },
+      "glue": {
+        "lines": 110,
+        "bytes": 6131
+      },
+      "files": [
+        "adapter.mjs",
+        "glowcap.cav"
+      ]
+    },
+    "shippedGzipBytes": 615245,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 161,
+          "added": 161,
+          "removed": 0,
+          "raw": 190
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 1,
+          "added": 1,
+          "removed": 0,
+          "raw": 1
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 6,
+          "added": 5,
+          "removed": 1,
+          "raw": 6
+        }
+      },
+      "cr3": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 50,
+          "added": 30,
+          "removed": 20,
+          "raw": 53
+        }
+      },
+      "cr4": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 5,
+          "added": 5,
+          "removed": 0,
+          "raw": 5
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 1,
+          "added": 1,
+          "removed": 0,
+          "raw": 2
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 19,
+          "added": 13,
+          "removed": 6,
+          "raw": 20
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 8,
+          "added": 5,
+          "removed": 3,
+          "raw": 8
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 13,
+          "added": 12,
+          "removed": 1,
+          "raw": 14
+        }
+      },
+      "cr10": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 36,
+          "added": 28,
+          "removed": 8,
+          "raw": 38
+        }
+      },
+      "cr11": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 22,
+          "added": 18,
+          "removed": 4,
+          "raw": 24
+        }
+      },
+      "cr12": {
+        "runs": 3,
+        "firstRunGreen": true,
+        "firstRun": "38/38",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 10,
+          "added": 6,
+          "removed": 4,
+          "raw": 12
+        }
+      },
+      "cr13": {
+        "runs": 3,
+        "firstRunGreen": false,
+        "firstRun": "40/41",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 96,
+          "added": 71,
+          "removed": 25,
+          "raw": 107
+        }
+      },
+      "cr14": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "44/44",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 22,
+          "added": 21,
+          "removed": 1,
+          "raw": 23
+        }
+      },
+      "cr15": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "47/47",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 12,
+          "added": 10,
+          "removed": 2,
+          "raw": 12
+        }
+      },
+      "cr16": {
+        "runs": 2,
+        "firstRunGreen": false,
+        "firstRun": "25/50",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [
+          "S06",
+          "S07",
+          "S08b",
+          "S09",
+          "S11b",
+          "S12",
+          "S13",
+          "S17",
+          "S18",
+          "S24",
+          "S27",
+          "S30",
+          "S32",
+          "S33",
+          "S35",
+          "S37",
+          "S39",
+          "S41",
+          "S42",
+          "S43",
+          "S44",
+          "S47"
+        ],
+        "checks": 2,
+        "change": {
+          "code": 64,
+          "added": 59,
+          "removed": 5,
+          "raw": 71
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 151.6,
+      "p95Us": 203.6,
+      "resumeMs": 743.87,
+      "saveBytes": 113
+    }
+  },
+  "C3": {
+    "side": "caveat",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 2,
+      "runs": 9,
+      "failingRuns": 5,
+      "changeCode": 186,
+      "changeRaw": 202,
+      "regressions": 11,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 12,
+      "phases": 13,
+      "runs": 16,
+      "failingRuns": 2,
+      "changeCode": 319,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 381,
+      "bytes": 21480,
+      "policy": {
+        "lines": 275,
+        "bytes": 15657
+      },
+      "glue": {
+        "lines": 106,
+        "bytes": 5823
+      },
+      "files": [
+        "adapter.mjs",
+        "glowcap.cav"
+      ]
+    },
+    "shippedGzipBytes": 614996,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 148,
+          "added": 148,
+          "removed": 0,
+          "raw": 178
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 1,
+          "added": 1,
+          "removed": 0,
+          "raw": 1
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 6,
+          "added": 5,
+          "removed": 1,
+          "raw": 6
+        }
+      },
+      "cr3": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 44,
+          "added": 30,
+          "removed": 14,
+          "raw": 48
+        }
+      },
+      "cr4": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 9,
+          "added": 8,
+          "removed": 1,
+          "raw": 9
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 8,
+          "added": 7,
+          "removed": 1,
+          "raw": 10
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 7,
+          "added": 7,
+          "removed": 0,
+          "raw": 7
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 8,
+          "added": 5,
+          "removed": 3,
+          "raw": 8
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 12,
+          "added": 11,
+          "removed": 1,
+          "raw": 13
+        }
+      },
+      "cr10": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 34,
+          "added": 29,
+          "removed": 5,
+          "raw": 37
+        }
+      },
+      "cr11": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 23,
+          "added": 18,
+          "removed": 5,
+          "raw": 24
+        }
+      },
+      "cr12": {
+        "runs": 4,
+        "firstRunGreen": false,
+        "firstRun": "37/38",
+        "runsToGreen": 3,
+        "failingRuns": 2,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [
+          "S02",
+          "S03b",
+          "S04b",
+          "S05",
+          "S06",
+          "S07",
+          "S08b",
+          "S09",
+          "S10",
+          "S11b",
+          "S12",
+          "S13",
+          "S14",
+          "S15",
+          "S16",
+          "S17",
+          "S18",
+          "S19",
+          "S20",
+          "S21",
+          "S23",
+          "S24",
+          "S25",
+          "S26",
+          "S27",
+          "S28",
+          "S29",
+          "S30",
+          "S31",
+          "S32",
+          "S33",
+          "S34",
+          "S35"
+        ],
+        "checks": 2,
+        "change": {
+          "code": 17,
+          "added": 11,
+          "removed": 6,
+          "raw": 17
+        }
+      },
+      "cr13": {
+        "runs": 4,
+        "firstRunGreen": false,
+        "firstRun": "40/41",
+        "runsToGreen": 4,
+        "failingRuns": 3,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 5,
+        "change": {
+          "code": 77,
+          "added": 62,
+          "removed": 15,
+          "raw": 87
+        }
+      },
+      "cr14": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "44/44",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 22,
+          "added": 21,
+          "removed": 1,
+          "raw": 23
+        }
+      },
+      "cr15": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "47/47",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 11,
+          "added": 9,
+          "removed": 2,
+          "raw": 11
+        }
+      },
+      "cr16": {
+        "runs": 3,
+        "firstRunGreen": false,
+        "firstRun": "37/50",
+        "runsToGreen": 3,
+        "failingRuns": 2,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [
+          "S06",
+          "S07",
+          "S08b",
+          "S17",
+          "S18",
+          "S24",
+          "S27",
+          "S32",
+          "S39",
+          "S43",
+          "S47"
+        ],
+        "checks": 3,
+        "change": {
+          "code": 76,
+          "added": 70,
+          "removed": 6,
+          "raw": 81
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 162,
+      "p95Us": 216.5,
+      "resumeMs": 15.93,
+      "saveBytes": 834
+    }
+  },
+  "C4": {
+    "side": "caveat",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 3,
+      "runs": 8,
+      "failingRuns": 3,
+      "changeCode": 173,
+      "changeRaw": 183,
+      "regressions": 0,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 12,
+      "phases": 13,
+      "runs": 15,
+      "failingRuns": 1,
+      "changeCode": 350,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 367,
+      "bytes": 19387,
+      "policy": {
+        "lines": 254,
+        "bytes": 14046
+      },
+      "glue": {
+        "lines": 113,
+        "bytes": 5341
+      },
+      "files": [
+        "adapter.mjs",
+        "glowcap.cav"
+      ]
+    },
+    "shippedGzipBytes": 614483,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 154,
+          "added": 154,
+          "removed": 0,
+          "raw": 177
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 1,
+          "added": 1,
+          "removed": 0,
+          "raw": 1
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 6,
+          "added": 5,
+          "removed": 1,
+          "raw": 6
+        }
+      },
+      "cr3": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 23,
+          "added": 22,
+          "removed": 1,
+          "raw": 23
+        }
+      },
+      "cr4": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 7,
+          "added": 7,
+          "removed": 0,
+          "raw": 7
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 6,
+          "added": 3,
+          "removed": 3,
+          "raw": 6
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 22,
+          "added": 19,
+          "removed": 3,
+          "raw": 22
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 8,
+          "added": 5,
+          "removed": 3,
+          "raw": 8
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 59,
+          "added": 32,
+          "removed": 27,
+          "raw": 61
+        }
+      },
+      "cr10": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 33,
+          "added": 29,
+          "removed": 4,
+          "raw": 36
+        }
+      },
+      "cr11": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 22,
+          "added": 18,
+          "removed": 4,
+          "raw": 23
+        }
+      },
+      "cr12": {
+        "runs": 2,
+        "firstRunGreen": false,
+        "firstRun": "37/38",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 0,
+        "change": {
+          "code": 7,
+          "added": 5,
+          "removed": 2,
+          "raw": 8
+        }
+      },
+      "cr13": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "41/41",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 3,
+        "change": {
+          "code": 58,
+          "added": 42,
+          "removed": 16,
+          "raw": 59
+        }
+      },
+      "cr14": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "44/44",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 22,
+          "added": 21,
+          "removed": 1,
+          "raw": 23
+        }
+      },
+      "cr15": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "47/47",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 13,
+          "added": 11,
+          "removed": 2,
+          "raw": 13
+        }
+      },
+      "cr16": {
+        "runs": 4,
+        "firstRunGreen": false,
+        "firstRun": "47/50",
+        "runsToGreen": 4,
+        "failingRuns": 3,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 3,
+        "change": {
+          "code": 80,
+          "added": 70,
+          "removed": 10,
+          "raw": 88
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 145.1,
+      "p95Us": 193.1,
+      "resumeMs": 13.78,
+      "saveBytes": 877
+    }
+  },
+  "T1": {
+    "side": "ts",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 0,
+      "runs": 8,
+      "failingRuns": 4,
+      "changeCode": 282,
+      "changeRaw": 311,
+      "regressions": 3,
+      "explanationFailures": 2,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 13,
+      "phases": 13,
+      "runs": 15,
+      "failingRuns": 0,
+      "changeCode": 545,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 487,
+      "bytes": 20982,
+      "policy": {
+        "lines": 487,
+        "bytes": 20982
+      },
+      "glue": {
+        "lines": 0,
+        "bytes": 0
+      },
+      "files": [
+        "glowcap.ts",
+        "save.ts"
+      ]
+    },
+    "shippedGzipBytes": 6592,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 157,
+          "added": 157,
+          "removed": 0,
+          "raw": 172
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 2,
+          "removed": 0,
+          "raw": 2
+        }
+      },
+      "cr3": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 77,
+          "added": 55,
+          "removed": 22,
+          "raw": 84
+        }
+      },
+      "cr4": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 24,
+          "added": 16,
+          "removed": 8,
+          "raw": 25
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 13,
+          "added": 10,
+          "removed": 3,
+          "raw": 13
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 15,
+          "added": 14,
+          "removed": 1,
+          "raw": 16
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 5,
+          "added": 3,
+          "removed": 2,
+          "raw": 5
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 12,
+          "added": 11,
+          "removed": 1,
+          "raw": 13
+        }
+      },
+      "cr10": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 74,
+          "added": 51,
+          "removed": 23,
+          "raw": 79
+        }
+      },
+      "cr11": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 40,
+          "added": 33,
+          "removed": 7,
+          "raw": 43
+        }
+      },
+      "cr12": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "38/38",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 122,
+          "added": 115,
+          "removed": 7,
+          "raw": 134
+        }
+      },
+      "cr13": {
+        "runs": 2,
+        "firstRunGreen": false,
+        "firstRun": "37/41",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [
+          "S36",
+          "S37",
+          "S38"
+        ],
+        "checks": 2,
+        "change": {
+          "code": 163,
+          "added": 88,
+          "removed": 75,
+          "raw": 185
+        }
+      },
+      "cr14": {
+        "runs": 2,
+        "firstRunGreen": false,
+        "firstRun": "41/44",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 59,
+          "added": 47,
+          "removed": 12,
+          "raw": 59
+        }
+      },
+      "cr15": {
+        "runs": 2,
+        "firstRunGreen": false,
+        "firstRun": "44/47",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [
+          "S45",
+          "S46"
+        ],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 10,
+          "added": 8,
+          "removed": 2,
+          "raw": 10
+        }
+      },
+      "cr16": {
+        "runs": 2,
+        "firstRunGreen": false,
+        "firstRun": "47/50",
+        "runsToGreen": 2,
+        "failingRuns": 1,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 50,
+          "added": 45,
+          "removed": 5,
+          "raw": 57
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 16.5,
+      "p95Us": 32.8,
+      "resumeMs": 0.6,
+      "saveBytes": 220
+    }
+  },
+  "T2": {
+    "side": "ts",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 4,
+      "runs": 4,
+      "failingRuns": 0,
+      "changeCode": 148,
+      "changeRaw": 176,
+      "regressions": 0,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 13,
+      "phases": 13,
+      "runs": 14,
+      "failingRuns": 0,
+      "changeCode": 572,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 500,
+      "bytes": 22395,
+      "policy": {
+        "lines": 500,
+        "bytes": 22395
+      },
+      "glue": {
+        "lines": 0,
+        "bytes": 0
+      },
+      "files": [
+        "glowcap.ts"
+      ]
+    },
+    "shippedGzipBytes": 6727,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 159,
+          "added": 159,
+          "removed": 0,
+          "raw": 173
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 64,
+          "added": 36,
+          "removed": 28,
+          "raw": 66
+        }
+      },
+      "cr3": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 60,
+          "added": 41,
+          "removed": 19,
+          "raw": 65
+        }
+      },
+      "cr4": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 35,
+          "added": 29,
+          "removed": 6,
+          "raw": 37
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 6,
+          "added": 5,
+          "removed": 1,
+          "raw": 7
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 18,
+          "added": 14,
+          "removed": 4,
+          "raw": 20
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 16,
+          "added": 12,
+          "removed": 4,
+          "raw": 18
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 7,
+          "added": 7,
+          "removed": 0,
+          "raw": 8
+        }
+      },
+      "cr10": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 43,
+          "added": 33,
+          "removed": 10,
+          "raw": 49
+        }
+      },
+      "cr11": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 35,
+          "added": 29,
+          "removed": 6,
+          "raw": 39
+        }
+      },
+      "cr12": {
+        "runs": 2,
+        "firstRunGreen": true,
+        "firstRun": "38/38",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 2,
+        "change": {
+          "code": 125,
+          "added": 123,
+          "removed": 2,
+          "raw": 140
+        }
+      },
+      "cr13": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "41/41",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 67,
+          "added": 51,
+          "removed": 16,
+          "raw": 84
+        }
+      },
+      "cr14": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "44/44",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 41,
+          "added": 35,
+          "removed": 6,
+          "raw": 45
+        }
+      },
+      "cr15": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "47/47",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 13,
+          "added": 8,
+          "removed": 5,
+          "raw": 14
+        }
+      },
+      "cr16": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "50/50",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 27,
+          "added": 26,
+          "removed": 1,
+          "raw": 33
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 27.8,
+      "p95Us": 47.2,
+      "resumeMs": 0.75,
+      "saveBytes": 178
+    }
+  },
+  "T3": {
+    "side": "ts",
+    "done": true,
+    "blind": {
+      "firstRunGreen": 4,
+      "runs": 4,
+      "failingRuns": 0,
+      "changeCode": 477,
+      "changeRaw": 538,
+      "regressions": 0,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "inherited": {
+      "firstRunGreen": 13,
+      "phases": 13,
+      "runs": 13,
+      "failingRuns": 0,
+      "changeCode": 563,
+      "explanationFailures": 0,
+      "incomplete": 0
+    },
+    "size": {
+      "lines": 496,
+      "bytes": 22520,
+      "policy": {
+        "lines": 496,
+        "bytes": 22520
+      },
+      "glue": {
+        "lines": 0,
+        "bytes": 0
+      },
+      "files": [
+        "glowcap.ts"
+      ]
+    },
+    "shippedGzipBytes": 6973,
+    "phases": {
+      "base": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "14/14",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 183,
+          "added": 183,
+          "removed": 0,
+          "raw": 206
+        }
+      },
+      "cr1": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "15/15",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr2": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "17/17",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 4,
+          "added": 4,
+          "removed": 0,
+          "raw": 5
+        }
+      },
+      "cr3": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "19/19",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 124,
+          "added": 79,
+          "removed": 45,
+          "raw": 135
+        }
+      },
+      "cr4": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "20/20",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 2,
+          "added": 1,
+          "removed": 1,
+          "raw": 2
+        }
+      },
+      "cr5": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "22/22",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 24,
+          "added": 17,
+          "removed": 7,
+          "raw": 24
+        }
+      },
+      "cr6": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "24/24",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 13,
+          "added": 10,
+          "removed": 3,
+          "raw": 14
+        }
+      },
+      "cr7": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "26/26",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 19,
+          "added": 13,
+          "removed": 6,
+          "raw": 20
+        }
+      },
+      "cr8": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "27/27",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 7,
+          "added": 4,
+          "removed": 3,
+          "raw": 7
+        }
+      },
+      "cr9": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "30/30",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 10,
+          "added": 9,
+          "removed": 1,
+          "raw": 13
+        }
+      },
+      "cr10": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "33/33",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 39,
+          "added": 31,
+          "removed": 8,
+          "raw": 42
+        }
+      },
+      "cr11": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "35/35",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 40,
+          "added": 34,
+          "removed": 6,
+          "raw": 42
+        }
+      },
+      "cr12": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "38/38",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 96,
+          "added": 93,
+          "removed": 3,
+          "raw": 107
+        }
+      },
+      "cr13": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "41/41",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 383,
+          "added": 210,
+          "removed": 173,
+          "raw": 436
+        }
+      },
+      "cr14": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "44/44",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 36,
+          "added": 29,
+          "removed": 7,
+          "raw": 37
+        }
+      },
+      "cr15": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "47/47",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 17,
+          "added": 11,
+          "removed": 6,
+          "raw": 18
+        }
+      },
+      "cr16": {
+        "runs": 1,
+        "firstRunGreen": true,
+        "firstRun": "50/50",
+        "runsToGreen": 1,
+        "failingRuns": 0,
+        "incomplete": false,
+        "explanationFailedIds": [],
+        "regressions": [],
+        "checks": 1,
+        "change": {
+          "code": 41,
+          "added": 39,
+          "removed": 2,
+          "raw": 47
+        }
+      }
+    },
+    "bench": {
+      "medianUs": 17.9,
+      "p95Us": 33.9,
+      "resumeMs": 0.59,
+      "saveBytes": 209
+    }
+  }
+}

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -105,7 +105,7 @@
+ 
+ bind journal.e1 = "" because nothing;  bind journal.e2 = "" because nothing;
+ bind journal.e3 = "" because nothing;  bind journal.e4 = "" because nothing;
+-bind journal.e5 = "" because nothing;  bind journal.e6 = "" because nothing;
++bind journal.e5 = "" because taste_pit;  bind journal.e6 = "" because nothing;
+ 
+ for mushroom as $m routed by target {
+     evidence absorb_$m from "absorbing the $m mushroom";

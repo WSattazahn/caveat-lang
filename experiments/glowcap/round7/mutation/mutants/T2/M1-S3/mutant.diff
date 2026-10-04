@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -340,7 +340,7 @@
+         const age = s.tasteAges[evId]! + dt;
+         if (age >= TASTE_FADE_SECONDS - EPS) {
+           delete s.tasteAges[evId];
+-          s.evidenceCaveats[evId] = [...(s.evidenceCaveats[evId] ?? []), 'taste_faded'];
++          s.evidenceCaveats[evId] = [...(s.evidenceCaveats[evId] ?? [])];
+         } else {
+           s.tasteAges[evId] = age;
+         }

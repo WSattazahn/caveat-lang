@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -120,7 +120,7 @@
+ proc learn(e evidence, sort, dark, act, who) {
+     when sort == sort.glowcap reveal e supports glowing_is_safe;
+     when sort == sort.duskcap reveal e opposes glowing_is_safe;
+-    when dark == 1 qualify e with tasted_in_dark;
++
+     call remember(e, sort);
+     set trust_change = 0;
+     # Never committed: the observation after which the belief is probably_safe
