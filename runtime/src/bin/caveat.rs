@@ -226,6 +226,7 @@ fn main() {
     let mut interactive = false;
     let mut game = false;
     let mut emit_bundle = false;
+    let mut emit_interface = false;
     let mut path = None;
     for argument in env::args().skip(1) {
         if argument == "-i" || argument == "--interactive" {
@@ -234,12 +235,14 @@ fn main() {
             game = true;
         } else if argument == "--link" {
             emit_bundle = true;
+        } else if argument == "--interface" {
+            emit_interface = true;
         } else {
             path = Some(argument);
         }
     }
     let path = path.unwrap_or_else(|| {
-        eprintln!("usage: caveat [-i | --game | --link] file.cav");
+        eprintln!("usage: caveat [-i | --game | --link | --interface] file.cav");
         process::exit(2)
     });
     if game && interactive {
@@ -252,6 +255,13 @@ fn main() {
         .unwrap_or_else(|error| fail(format!("cannot load {path}: {error}")));
     if emit_bundle {
         print!("{source}");
+        return;
+    }
+    // The text the WASM build's `interface` returns (spec/caveat-interface-0.1.md).
+    if emit_interface {
+        let text = caveat_runtime::web::WebReactiveSession::interface(&source)
+            .unwrap_or_else(|error| fail(format!("load error: {error}")));
+        println!("{text}");
         return;
     }
     if game {

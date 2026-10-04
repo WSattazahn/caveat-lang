@@ -23,6 +23,7 @@
     "test:glowcap-page": "node scripts/test-glowcap-page.mjs",
     "test:elapsed-clock": "node scripts/test-elapsed-clock.mjs",
     "test:dispatch-outcomes": "node scripts/test-dispatch-outcomes.mjs",
+    "test:interface": "node scripts/test-interface.mjs",
     "test:trail-rescue": "node experiments/trail-rescue/harness.mjs",
     "test:before-the-rain": "node kit/bin/caveat.mjs test game/before_the_rain.scenarios.json",
     "test:caveatism": "node kit/bin/caveat.mjs validate caveatism/canon/archive.cav && node kit/bin/caveat.mjs check --strict caveatism/canon/archive.cav && node kit/bin/caveat.mjs test caveatism/canon/archive.scenarios.json",

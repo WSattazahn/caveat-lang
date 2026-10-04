@@ -35,6 +35,13 @@ impl WebReactiveSession {
         to_json_pretty(&report).map_err(|error| error.to_string())
     }
 
+    /// The program's events, states, bindings and declared names, as JSON
+    /// (spec/caveat-interface-0.1.md). Errors as `new` does when it does not load.
+    pub fn interface(source: &str) -> Result<String, String> {
+        let interface = crate::reactive::interface_source(source)?;
+        to_json_pretty(&interface).map_err(|error| error.to_string())
+    }
+
     pub fn dispatch(&mut self, event: &str, payload_json: &str) -> Result<String, String> {
         self.inner
             .dispatch_json(event, payload_json)
