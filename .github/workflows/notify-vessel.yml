@@ -22,7 +22,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: caveat-runtime-asset-${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.event.release.tag_name || github.event.workflow_run.head_branch }}
+  group: caveat-runtime-assets
   cancel-in-progress: false
 
 jobs:
