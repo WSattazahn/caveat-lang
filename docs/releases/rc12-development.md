@@ -381,6 +381,13 @@ The rc.11 rules carry over:
   unsupported, and refuses to record provenance. The live run for rc.12's
   release has not happened yet.
 - PR 7 (member symbols) is pending the owner's decision.
+- PR 1 (#108) merged 2026-10-04 as `81bb39a`.
+- PR 4: `kit/docs/AGENT_START.md` and the agent-evidence README say that a
+  `caveat serve` session lasts as long as its process, that each MCP tool call
+  is a fresh subprocess with no session handle, and that one MCP connection
+  accepts 4,096 request IDs. `docs/AI_AUTHORING.md` names the rc.11 outcome
+  codes it did not list yet: `evaluation/bound_exceeded` for a clock that
+  would become nonfinite, and `limit/scheduled_limit`.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a
