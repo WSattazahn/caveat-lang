@@ -498,6 +498,17 @@ The rc.11 rules carry over:
   events; Glowcap round 7's four Caveat finals, 50 scenarios each) changed no
   outcome, snapshot or grounds: no program in it passes a guarded reveal's
   evidence through a parameter. The Lean conformance gate passes (72 cases).
+- PR 3: restore refuses a qualification record keyed by a name its record
+  cannot belong to (an observation of unobserved, unrenewed evidence; an
+  examination of an unexamined caveat; a reopening of a commitment nothing
+  reopens), a predicate guard on a name of the wrong kind, and a withdrawal
+  record whose event reaches no `withdraw` of that evidence for that reason
+  (findings 86, 89, 96, 118–120). Release note: these edits are now refused
+  at restore; records the program could have left still restore, and a save
+  with a withdrawal removed together with its relation (round 7's F263) still
+  restores. 17,280 genuine saves from 100 repository programs, driven with
+  seeded events, restore as before. Two PR 2 fixtures that left an
+  examination record behind a removed attention entry now expect a refusal.
 - Caveatism: `caveatism/` holds the culture around Mr. Caveat (the Caveatist
   Archive v1.1 and Atlas v1.0 as written, an optional practice for agents and
   its skill, and the artwork). It is fiction outside the language's contracts,
