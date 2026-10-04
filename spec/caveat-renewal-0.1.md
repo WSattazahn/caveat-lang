@@ -82,6 +82,28 @@ rules run. It is reported in that event's `effects`. The rule's guard and the
 delay's lineage join the lineage of what it qualifies. A decision made before it
 applies keeps what it was made on.
 
+A scheduled qualification stores the time reading current when it was
+scheduled (`scheduled_at`, a save field). It applies on the first time event
+at which the current reading minus `scheduled_at` is at least `SECONDS`,
+computed in binary64. Each time event's addition rounds the reading to the
+binary64 spacing at its magnitude, by up to half that spacing, so the
+difference can fall short of, or exceed, the sum of the `dt` values supplied
+since scheduling. The qualification can then apply an event later or earlier
+than exact arithmetic over those `dt` values would:
+
+- Scheduled at the reading 28 × 0.1 (`2.800000000000001`), a delay of 60 is
+  not yet due after 960 steps of `0.0625`, whose sum is exactly 60. The
+  difference is `59.99999999999999`, and the qualification applies on the
+  961st step (Version Lab finding F267).
+- The spacing grows with the reading: about `1.5e-5` near `1e11`. Scheduled
+  at a reading of `1e11`, a delay of 1 with steps of `0.001` applies on the
+  993rd step.
+
+While the rounding accumulated since scheduling stays below one step, a
+qualification applies at most one event away from exact arithmetic. With
+steps that are powers of two and a reading small enough that every addition
+is exact, it applies on the event exact arithmetic gives.
+
 `elapsed` and `scheduled_qualifications` appear in the snapshot. At most 4,096
 qualifications can wait at once; scheduling another refuses the event as
 `limit/scheduled_limit` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
@@ -101,6 +123,13 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-10-04: states when a scheduled qualification applies: on the first
+  time event at which the current reading minus `scheduled_at` reaches the
+  delay in binary64, which can be an event later or earlier than exact
+  arithmetic over the supplied `dt` values (Version Lab finding F267, from
+  Glowcap round 7). The runtime is unchanged; rc.10 and rc.11 already behave
+  this way.
 
 - 2026-09-26: `renew` past the declared limit is refused as
   `limit/renewal_limit`, and the session continues. Before this it was a fatal

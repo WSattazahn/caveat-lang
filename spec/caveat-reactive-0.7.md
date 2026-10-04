@@ -51,6 +51,9 @@ calls under false guards.
    transaction state.
 2. If true, evaluate all arguments once, left to right, before any body effect.
    Bind the resulting qualified numeric values to the callee's parameters.
+   Each argument is also evaluated for its
+   [grounds](caveat-explanations-0.2.md), and a parameter supplies those
+   wherever grounds are read.
 3. Combine the guard's qualifications, inherited qualifications from enclosing
    calls, and every argument's qualifications. Carry that basis through all
    descendant effects, even when a parameter is unused.
