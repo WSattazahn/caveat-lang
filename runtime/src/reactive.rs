@@ -53,7 +53,14 @@ mod identifiers;
 #[path = "reactive_check.rs"]
 mod check;
 pub use check::{check_source, CheckReport, Diagnostic, Related, CHECK_SCHEMA};
+
+#[path = "reactive_interface.rs"]
+mod interface;
 use identifiers::{Identifiers, MAX_IDENTIFIER_LIMIT};
+pub use interface::{
+    interface_source, InterfaceBinding, InterfaceCue, InterfaceDecisions, InterfaceEvent,
+    InterfaceParameter, InterfaceReadings, InterfaceState, ProgramInterface, INTERFACE_SCHEMA,
+};
 use outcome::DispatchFailure;
 pub use outcome::{
     DispatchFatal, DispatchOutcome, DispatchResult, DispatchViewOutcome, DispatchViewResult,
@@ -902,7 +909,12 @@ struct BindingGroup {
     target: String,
     property: String,
     reads: Reads,
+    /// `number`, `boolean` or `text`: one type for every declaration.
+    value_type: &'static str,
 }
+
+/// Each bound property's value type, by target and property.
+type BindingTypes = BTreeMap<(String, String), &'static str>;
 
 /// What one event changed that an expression can read: states whose value,
 /// lineage or grounds differ, and whether anything the graph queries read
@@ -1788,9 +1800,9 @@ impl ReactiveSession {
             }
         }
         session.reopening_triggers = Arc::new(declared_triggers);
-        session.validate_rules()?;
+        let binding_types = session.validate_rules()?;
         session.check_observation_order()?;
-        session.group_bindings();
+        session.group_bindings(&binding_types);
         let mut rules_by_event = HashMap::<String, Vec<usize>>::new();
         for (index, rule) in session.rules.iter().enumerate() {
             rules_by_event
@@ -2069,7 +2081,7 @@ impl ReactiveSession {
         }
     }
 
-    fn group_bindings(&mut self) {
+    fn group_bindings(&mut self, types: &BindingTypes) {
         let mut groups = Vec::<BindingGroup>::new();
         let mut index_of = HashMap::<(String, String), usize>::new();
         let mut group_of = Vec::with_capacity(self.binding_rules.len());
@@ -2080,6 +2092,7 @@ impl ReactiveSession {
                     target: binding.target.clone(),
                     property: binding.property.clone(),
                     reads: Reads::default(),
+                    value_type: types[&(binding.target.clone(), binding.property.clone())],
                 });
                 groups.len() - 1
             });
@@ -2191,7 +2204,9 @@ impl ReactiveSession {
         Ok((cost, depth))
     }
 
-    fn validate_rules(&self) -> Result<(), String> {
+    /// Also returns each bound property's value type, which every one of its
+    /// declarations must share.
+    fn validate_rules(&self) -> Result<BindingTypes, String> {
         let mut commitments = self
             .symbols
             .iter()
@@ -2531,7 +2546,10 @@ impl ReactiveSession {
                     })?;
             }
         }
-        Ok(())
+        Ok(types
+            .into_iter()
+            .map(|((target, property), kind)| ((target.clone(), property.clone()), kind))
+            .collect())
     }
 
     /// Show every bound property: the last matching declaration's value, its
