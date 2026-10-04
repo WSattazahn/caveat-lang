@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -212,7 +212,7 @@
+     on tick when $m_regrows set $m_eaten = 0;
+ 
+     # HUD for this mushroom; the last binding whose condition holds wins.
+-    bind $m.present = $m_eaten == 0 because nothing;
++    bind $m.present = $m_eaten == 0 because taste_pit;
+     bind $m.label = "Glowing mushroom" because nothing;
+     bind $m.label = "Probably a glowcap" when belief_safe because supported;
+     bind $m.label = "Probably a duskcap" when belief_unsafe because contradicted;

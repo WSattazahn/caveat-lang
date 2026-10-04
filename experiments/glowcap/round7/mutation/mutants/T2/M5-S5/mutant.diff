@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -154,7 +154,7 @@
+   if (m.consumed) {
+     return { absorb: mk('Already eaten', [m.consumedBy]), taste: mk('Already eaten', [m.consumedBy]) };
+   }
+-  if (OUT_OF_REACH.includes(id)) return { absorb: mk('Out of reach', []), taste: mk('Out of reach', []) };
++  if (OUT_OF_REACH.includes(id)) return { absorb: mk('Out of reach', []), taste: mk('Out of reach', ['taste_pit']) };
+   const tasteId = evidenceId('taste', id, m.life);
+   const absorb =
+     m.tasted === 'duskcap' ? mk('Known duskcap', [tasteId])

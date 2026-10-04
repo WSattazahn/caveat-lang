@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -93,7 +93,7 @@
+     },
+     decision: {
+       state: b.decision.state,
+-      basis: names(committed?.because ?? grounds?.evidence),
++      basis: current ? evidence(x, 'belief', 'supported') : [],
+       caveats: [...(grounds?.caveats ?? [])],
+       reopenedBy: journal
+         .filter((e) => e.commitment === current && e.change === 'reopened')

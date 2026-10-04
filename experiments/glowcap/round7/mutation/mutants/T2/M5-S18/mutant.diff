@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -219,7 +219,7 @@
+ // MEMORY), then update the trust decision.
+ function observe(s: State, evId: string, kind: Kind, caveats: string[]): void {
+   if (caveats.length > 0) s.evidenceCaveats[evId] = caveats;
+-  pushBounded(s.journal, { what: kind === 'glowcap' ? ('+' as const) : ('-' as const), because: [evId] }, MAX_JOURNAL);
++  pushBounded(s.journal, { what: kind === 'glowcap' ? ('+' as const) : ('-' as const), because: [evId, 'taste_pit'] }, MAX_JOURNAL);
+   s.memory.push(evId);
+   (kind === 'glowcap' ? s.supportedBy : s.contradictedBy).push(evId);
+   while (s.memory.length > MEMORY) {

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -166,7 +166,7 @@
+ }
+ 
+ function mushroomViewBase(s: State, id: string, m: Mushroom): Omit<MushroomView, 'caveats' | 'why' | 'marked'> {
+-  if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] };
++  if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: ['taste_pit'] };
+   const tasteId = evidenceId('taste', id, m.life);
+   const tasteCaveats = s.evidenceCaveats[tasteId] ?? [];
+   const qualifier = tasteCaveats.includes('taste_faded') ? ' (taste has faded)'

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -129,7 +129,7 @@
+     when not committed(trust) and belief_safe commit trust because enough using qualified(1, e);
+     # While reopened, the second glowcap since the latest contradiction recommits it on those two.
+     when sort == sort.duskcap set recovery = 0;
+-    when sort == sort.glowcap and reopened(trust) set recovery = recovery + qualified(1, e);
++    when sort == sort.glowcap and reopened(trust) set recovery = qualified(1, e) + recovery;
+     when reopened(trust) and recovery >= 2 set trust_change = recovery + 5;   # 7, grounded on the two
+     when reopened(trust) and recovery >= 2 commit trust because enough using recovery;
+     when not reopened(trust) set recovery = 0;

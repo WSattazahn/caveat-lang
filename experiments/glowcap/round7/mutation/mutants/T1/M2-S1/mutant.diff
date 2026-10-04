@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -227,7 +227,7 @@
+     slime: { glowing: s.glow > 0, heavy: s.heavy > 0, heavySeconds: s.heavy > 0 ? Math.ceil(s.heavy) : 0 },
+     mushrooms,
+     belief,
+-    decision: clone(s.decision),
++    decision: { ...clone(s.decision), caveats: caveatsOf(s, s.decision.basis) },
+     journal: s.journal.map((j) => ({ text: j.text, because: [...j.because], caveats: caveatsOf(s, j.because) })),
+   };
+ }

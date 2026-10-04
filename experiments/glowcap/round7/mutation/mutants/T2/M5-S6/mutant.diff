@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -157,7 +157,7 @@
+   if (OUT_OF_REACH.includes(id)) return { absorb: mk('Out of reach', []), taste: mk('Out of reach', []) };
+   const tasteId = evidenceId('taste', id, m.life);
+   const absorb =
+-    m.tasted === 'duskcap' ? mk('Known duskcap', [tasteId])
++    m.tasted === 'duskcap' ? mk('Known duskcap', [tasteId, 'taste_pit'])
+     : m.marked ? mk('Marked to avoid', [])
+     : m.tasted === null && s.contradictedBy.length >= 2 ? mk('Too risky untasted', [...s.contradictedBy])
+     : allowed;

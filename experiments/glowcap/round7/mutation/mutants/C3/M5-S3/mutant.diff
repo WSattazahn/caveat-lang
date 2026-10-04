@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -202,7 +202,7 @@
+     bind $m.can_taste = $index != target.pit and $m_gone == 0 and $m_taste == 0;
+     bind $m.label = "Glowing mushroom" because nothing;
+     bind $m.label = "Probably a glowcap" when belief_safe because support;
+-    bind $m.label = "Probably a duskcap" when belief_unsafe because contradiction;
++    bind $m.label = "Probably a duskcap" when belief_unsafe because contradiction, taste_pit;
+     bind $m.label = "Could be a duskcap — taste first" when belief_uncertain because contradiction;
+     bind $m.label = "Too risky — taste first" when twice_bitten because contradiction;
+     bind $m.label = "Glowcap" when $m_taste == 1 because $m_taste;

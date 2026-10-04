@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -240,7 +240,7 @@
+ fn observations_text(n) = if(n == 1, "Based on one observation.", "Based on " + number_text(n) + " observations.");
+ 
+ bind belief.state = "none" because nothing;
+-bind belief.state = "probably_safe" when belief_safe because support;
++bind belief.state = "probably_safe" when belief_safe because support, taste_pit;
+ bind belief.state = "probably_unsafe" when belief_unsafe because contra;
+ bind belief.state = "uncertain" when belief_mixed because support, contra;
+ bind belief.text = "" because nothing;

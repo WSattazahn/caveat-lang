@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -189,7 +189,7 @@
+   const make = (reason: string, because: string[]): WhyNot => ({ reason, because, caveats: caveatsOf(s, because) });
+   const allowed = make('', []);
+   if (slot.consumed) {
+-    const by = slot.consumedBy === undefined ? [] : [slot.consumedBy];
++    const by = slot.consumedBy === undefined ? [] : [slot.consumedBy, 'taste_pit'];
+     return { absorb: make('Already eaten', by), taste: make('Already eaten', by) };
+   }
+   if (OUT_OF_REACH.includes(id)) return { absorb: make('Out of reach', []), taste: make('Out of reach', []) };

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -200,7 +200,7 @@
+     bind $m.why.taste = "Already eaten" when $m_eaten > 0 because $m_eaten;
+ 
+     bind $m.label = "Glowing mushroom" because nothing;
+-    bind $m.label = "Probably a glowcap" when belief_safe because support;
++    bind $m.label = "Probably a glowcap" when belief_safe because support, taste_pit;
+     bind $m.label = "Probably a duskcap" when belief_unsafe because contra;
+     bind $m.label = "Could be a duskcap — taste first" when belief_mixed because contra;
+     bind $m.label = "Too risky — taste first" when $m_unknown and twice_bitten because contra;

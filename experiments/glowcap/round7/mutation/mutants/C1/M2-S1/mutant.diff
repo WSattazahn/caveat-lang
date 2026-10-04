@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -78,7 +78,7 @@
+       .map((slot) => ({ text: b.journal[slot], because: cites('journal', slot), caveats: caveatsOf(['journal', slot]) })),
+     decision: {
+       state: b.decision.state,
+-      basis: current ? view.commitment_grounds[current].evidence.map(life) : [],
++      basis: current ? cites('belief', 'supportedBy') : [],
+       reopenedBy,
+       caveats: current ? [...view.commitment_grounds[current].caveats] : [],
+       // The runtime's decision journal, in order; the view keeps the six most recent.

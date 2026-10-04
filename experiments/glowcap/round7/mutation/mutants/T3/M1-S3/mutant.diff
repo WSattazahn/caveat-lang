@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -403,7 +403,7 @@
+         if (!ev || ev.age === undefined) return;
+         ev.age += dt;
+         if (ev.age >= FADE_SECONDS) {
+-          if (!ev.caveats.includes(FADED)) ev.caveats.push(FADED);
++
+           delete ev.age;
+         }
+       };

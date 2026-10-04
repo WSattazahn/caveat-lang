@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -283,7 +283,7 @@
+     slime: { glowing: s.glow > 0, heavy: s.heavy > 0, heavySeconds: s.heavy > 0 ? Math.ceil(s.heavy) : 0 },
+     mushrooms,
+     belief: b.view,
+-    decision: { state: d.state, basis: [...d.basis], reopenedBy: [...d.reopenedBy], caveats: [...d.caveats], history: clone(d.history) },
++    decision: { state: d.state, basis: [...d.basis], reopenedBy: [...d.reopenedBy], caveats: caveatsOf(s.memory.filter((e) => d.basis.includes(e.id))), history: clone(d.history) },
+   };
+ }
+ 

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -366,7 +366,7 @@
+       if (OUT_OF_REACH.includes(id)) fail(`${id} is out of reach`);
+       const evId = evidenceId(s, 'taste', id);
+       s.slots[id].taste = evId;
+-      record(s, { id: evId, kind, caveats: s.glow > 0 ? [] : ['tasted_in_dark'], age: 0 });
++      record(s, { id: evId, kind, caveats: [], age: 0 });
+       return;
+     }
+     case 'tick': {

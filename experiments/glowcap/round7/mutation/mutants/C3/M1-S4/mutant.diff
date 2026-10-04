@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -161,7 +161,7 @@
+     on taste when $m_gone == 1 reject "That mushroom has already been absorbed.";
+     on taste when $m_taste != 0 reject "That mushroom has already been tasted.";
+ 
+-    on taste call learn(taste_$m, sort, 1);
++    on taste call learn(taste_$m, sort, 0);
+     on taste set $m_taste = qualified(sort, taste_$m);
+ 
+     on absorb call learn(absorb_$m, sort, 0);

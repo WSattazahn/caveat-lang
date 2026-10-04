@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -94,7 +94,7 @@
+     decision: {
+       state: b.decision.state,
+       basis: names(committed?.because ?? grounds?.evidence),
+-      caveats: [...(grounds?.caveats ?? [])],
++      caveats: [...new Set(v.relations.filter((r) => r.relation === 'qualifies' && (grounds?.evidence ?? []).includes(r.to)).map((r) => r.from))],
+       reopenedBy: journal
+         .filter((e) => e.commitment === current && e.change === 'reopened')
+         .flatMap((e) => names(e.because))

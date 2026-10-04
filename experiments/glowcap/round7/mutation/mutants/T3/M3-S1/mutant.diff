@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -324,7 +324,7 @@
+   if (d.state === 'none') {
+     if (belief(s).view.state === 'probably_safe') commit([ev]); // basis: the observation that made it safe
+   } else if (ev.kind === 'duskcap') {
+-    d.state = 'reopened';
++
+     pushCapped(d.reopenedBy, ev.id, MAX_REOPENED_BY);
+     pushCapped(d.history, { change: 'reopened', because: [ev.id] }, MAX_HISTORY);
+     pushCapped(s.journal, { type: 'reopened', evidence: [clone(ev)] }, MAX_JOURNAL);

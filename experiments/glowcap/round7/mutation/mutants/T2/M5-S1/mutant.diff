@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -150,7 +150,7 @@
+ // CR11: why an action is unavailable (first matching rule), or '' when allowed.
+ function whyNot(s: State, id: string, m: Mushroom): { absorb: WhyNot; taste: WhyNot } {
+   const mk = (reason: string, because: string[]): WhyNot => ({ reason, because, caveats: caveatsOf(s, because) });
+-  const allowed = mk('', []);
++  const allowed = mk('', ['taste_pit']);
+   if (m.consumed) {
+     return { absorb: mk('Already eaten', [m.consumedBy]), taste: mk('Already eaten', [m.consumedBy]) };
+   }

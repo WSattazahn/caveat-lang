@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -260,7 +260,7 @@
+         if(wrap($j_code, 10) == target.grove, "grove", "pit"))));
+     define $j_what = floor($j_code / 10);
+     bind $j.shown = $j_code > 0;
+-    bind $j.text = "" because nothing;
++    bind $j.text = "" because taste_pit;
+     bind $j.text = "Absorbed the " + $j_name + " mushroom: it gave light." when $j_what == 1 and $j_cite > 0 because $j_cite;
+     bind $j.text = "Absorbed the " + $j_name + " mushroom: it made me heavy." when $j_what == 2 and $j_cite > 0 because $j_cite;
+     bind $j.text = "Tasted the " + $j_name + " mushroom: sweet." when $j_what == 3 and $j_cite > 0 because $j_cite;

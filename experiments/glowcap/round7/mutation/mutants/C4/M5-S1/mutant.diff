@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -204,7 +204,7 @@
+     on tick when $m_regrowing == 1 set $m_consumed = 0;
+ 
+     bind $m.present = $m_consumed == 0;
+-    bind $m.label = "Glowing mushroom" because nothing;
++    bind $m.label = "Glowing mushroom" because taste_pit;
+     bind $m.label = "Probably a glowcap" when probably_safe because support;
+     bind $m.label = "Probably a duskcap" when probably_unsafe because contradiction;
+     bind $m.label = "Could be a duskcap — taste first" when uncertain because contradiction;

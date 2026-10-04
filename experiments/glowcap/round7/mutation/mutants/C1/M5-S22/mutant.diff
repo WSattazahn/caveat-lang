@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -197,7 +197,7 @@
+     bind $m.why.taste = "" because nothing;
+     bind $m.why.taste = "Already tasted" when $m_taste != 0 because $m_taste;
+     bind $m.why.taste = "Out of reach" when $m_out_of_reach because nothing;
+-    bind $m.why.taste = "Already eaten" when $m_eaten > 0 because $m_eaten;
++    bind $m.why.taste = "Already eaten" when $m_eaten > 0 because $m_eaten, taste_$m;
+ 
+     bind $m.label = "Glowing mushroom" because nothing;
+     bind $m.label = "Probably a glowcap" when belief_safe because support;

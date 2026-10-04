@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -249,7 +249,7 @@
+   if (twiceBitten(b)) return mk(true, 'Too risky — taste first', false, true, b.contra);
+   switch (b.view.state) {
+     case 'none':
+-      return mk(true, 'Glowing mushroom', true, true, []);
++      return mk(true, 'Glowing mushroom', true, true, [{ id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]);
+     case 'probably_safe':
+       return mk(true, 'Probably a glowcap', true, true, b.support);
+     case 'probably_unsafe':

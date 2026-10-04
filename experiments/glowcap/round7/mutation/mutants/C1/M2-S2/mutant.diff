@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -80,7 +80,7 @@
+       state: b.decision.state,
+       basis: current ? view.commitment_grounds[current].evidence.map(life) : [],
+       reopenedBy,
+-      caveats: current ? [...view.commitment_grounds[current].caveats] : [],
++      caveats: current ? [...new Set(view.relations.filter((r) => r.relation === 'qualifies' && view.commitment_grounds[current].evidence.includes(r.to)).map((r) => r.from))] : [],
+       // The runtime's decision journal, in order; the view keeps the six most recent.
+       history: view.decision_journal.filter((j) => j.decision === 'trust')
+         .map((j) => ({ change: j.change, because: j.because.map(life) }))

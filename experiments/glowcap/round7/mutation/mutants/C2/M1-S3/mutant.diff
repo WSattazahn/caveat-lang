@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -179,7 +179,7 @@
+     on taste when $m_out_of_reach reject "That mushroom is out of reach.";
+     on taste when $m_eaten == 1 reject "That mushroom is already consumed.";
+     on taste when $m_taste != 0 reject "That mushroom has already been tasted.";
+-    on taste call learn(taste_$m, sort, if(glow > 0, 0, 1), 2, $index);
++    on taste call learn(taste_$m, sort, 0, 2, $index);
+     on taste set $m_taste = qualified(sort, taste_$m);
+     on taste qualify taste_$m with taste_faded after 60;
+ 

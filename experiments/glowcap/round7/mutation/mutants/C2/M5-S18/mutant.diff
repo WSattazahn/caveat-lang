@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -231,7 +231,7 @@
+ 
+     # Why an action is greyed out ("" when allowed). The last binding that holds wins,
+     # so the highest-priority reason is written last.
+-    bind $m.why_absorb = "" because nothing;
++    bind $m.why_absorb = "" because taste_pit;
+     bind $m.why_absorb = "Too risky untasted" when $m_taste == 0 and twice_bitten because contradicted;
+     bind $m.why_absorb = "Marked to avoid" when $m_marked == 1 because nothing;
+     bind $m.why_absorb = "Known duskcap" when $m_taste == 2 because $m_taste;

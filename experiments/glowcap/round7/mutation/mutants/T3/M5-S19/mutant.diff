@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -255,7 +255,7 @@
+     case 'probably_unsafe':
+       return mk(true, 'Probably a duskcap', true, true, b.contra);
+     case 'uncertain':
+-      return mk(true, 'Could be a duskcap — taste first', true, true, b.contra); // CR4: cite the counterexample
++      return mk(true, 'Could be a duskcap — taste first', true, true, [...b.contra, { id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]); // CR4: cite the counterexample
+   }
+ }
+ 

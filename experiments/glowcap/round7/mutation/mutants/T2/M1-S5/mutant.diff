@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -387,7 +387,7 @@
+     },
+     mushrooms,
+     belief: { state: bs, text, note: n, supportedBy: [...s.supportedBy], contradictedBy: [...s.contradictedBy],
+-      caveats: caveatsOf(s, [...s.supportedBy, ...s.contradictedBy]),
++      caveats: caveatsOf(s, [...s.supportedBy]),
+     },
+     decision: {
+       state: s.decision.state,

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -248,7 +248,7 @@
+ bind belief.text = "Glowing mushrooms make you heavy." when belief_unsafe because contra;
+ bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when belief_mixed because support, contra;
+ bind belief.note = "" because nothing;
+-bind belief.note = observations_text(support) when belief_safe because support;
++bind belief.note = observations_text(support) when belief_safe because support, taste_pit;
+ bind belief.note = observations_text(contra) when belief_unsafe because contra;
+ # The evidence lists themselves: each count cites the absorptions it rests on.
+ bind belief.supportedBy = support because support;

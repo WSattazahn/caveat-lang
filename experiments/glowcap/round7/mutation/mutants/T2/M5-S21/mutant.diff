@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -251,7 +251,7 @@
+   s.decision.basis = basis;
+   s.decision.reopenedBy = [];
+   s.decision.caveats = caveatsOf(s, basis);
+-  pushBounded(s.decision.history, { change: 'committed' as const, because: [...basis] }, MAX_HISTORY);
++  pushBounded(s.decision.history, { change: 'committed' as const, because: [...basis, 'taste_pit'] }, MAX_HISTORY);
+   pushBounded(s.journal, { what: 'C' as const, because: [...basis] }, MAX_JOURNAL);
+ }
+ 

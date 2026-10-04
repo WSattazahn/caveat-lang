@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -178,7 +178,7 @@
+         label: 'Could be a duskcap — taste first',
+         canAbsorb: true,
+         canTaste: true,
+-        because: [...belief.contradictedBy], // CR4: cite the counterexample only
++        because: [...belief.contradictedBy, 'taste_pit'], // CR4: cite the counterexample only
+       };
+   }
+ }

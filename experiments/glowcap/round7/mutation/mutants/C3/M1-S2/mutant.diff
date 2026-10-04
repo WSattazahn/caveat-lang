@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -78,7 +78,7 @@
+     when s == sort.glowcap reveal e supports glowing_gives_light;
+     when s == sort.duskcap reveal e opposes glowing_gives_light;
+     when tasted == 1 and glow == 0 qualify e with tasted_in_dark;
+-    when tasted == 1 qualify e with taste_faded after 60;
++
+     set observation = qualified(1, e);
+     set observation_sort = s;
+ };

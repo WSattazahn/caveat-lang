@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -139,7 +139,7 @@
+     evidence absorb_$m from "the slime absorbed it";
+     evidence taste_$m from "the slime tasted it";
+     evidence witness_$m from "the slime saw another creature eat it";
+-    secondhand qualifies witness_$m;
++
+     # Each life of the mushroom is a new occurrence of its evidence, up to 64 lives.
+     renewable absorb_$m limit 64;
+     renewable taste_$m limit 64;
