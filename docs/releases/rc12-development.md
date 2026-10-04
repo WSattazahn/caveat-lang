@@ -50,7 +50,7 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
    - 27,313 corpus events in 371 scenarios across 36 programs were identical
      between rc.10 and rc.11, and every rc.10 save restores in rc.11.
 
-   Its findings for rc.12 are F261–F267, and new findings start at F268.
+   Its findings for rc.12 are F261–F268, and new findings start at F269.
    They are folded into the fixture lists of PR 2 and PR 3 when those reach
    the reviewer. Nothing below depends on them.
    - F261 (medium): `id_text` of a non-handle is still fatal `unclassified`.
@@ -70,6 +70,16 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
      clock reading minus the reading stored at scheduling reaches the delay,
      and that binary64 difference can fall just short of the steps' own sum.
      The behaviour is the same on rc.10 and rc.11.
+   - F268 (medium, added 2026-10-04 from Glowcap round 7): a numeric `proc`
+     parameter turns its argument's lineage into grounds. `set slot =
+     qualified(7, w)` gives grounds `[w]`, but passing the same value through
+     `proc store(v)` gives `[w, x]`, where `x` was only `w`'s reveal guard.
+     A commit through a `proc` freezes the wider grounds the same way. The
+     arguments are evaluated for lineage (`runtime/src/reactive.rs` L3940 at `8e7805a`),
+     and a grounds read of the parameter returns that lineage (L3512). The
+     behaviour is the same on rc.10 and rc.11. The owner decides whether
+     rc.12 fixes it, documents it or defers it; a fix narrows the grounds of
+     existing programs that pass qualified values through parameters.
 
    Round 7 recommends a design decision before any code for F263 and F264,
    as A3 had.
