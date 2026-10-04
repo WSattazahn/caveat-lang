@@ -15,7 +15,7 @@ Three rules govern everything in this directory, and they come from the material
 | `archive/` | The Caveatist Archive, v1.1, with v1.0 and its amendments preserved inside it. |
 | `atlas/` | The Caveatist Atlas, v1.0: culture, institutions and material life. |
 | `agent/CAVEATIST.md` | The practice, written for an agent. Optional; linked from `AGENTS.md` as culture. |
-| `skills/caveatist/SKILL.md` | The same practice as a loadable skill. |
+| `skills/caveatist/SKILL.md` | The same practice as a loadable skill (copied to `/skills/caveatist/` for installers; the copy here is canonical, CI checks they match). |
 | `canon/` | The Archive as a Caveat program, with its events and scenarios. Verified on `caveat-lang@0.1.0-rc.11`. |
 | `character/` | Mr. Caveat: the hero, avatar and social images, their prompts, candidates, proofs, validation and provenance. |
 

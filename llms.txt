@@ -1,0 +1,36 @@
+# Caveat
+
+> A programming language for programs that remember why: values carry evidence and caveats, a decision's grounds are frozen when it is made, and a decision that is reopened keeps its original reasons. Published preview on npm as `caveat-lang` (Node 20+, WebAssembly runtime, no Rust needed).
+
+Caveat records the evidence supplied to it; it does not authenticate that evidence or authorize external actions. No claim that Caveat is better than TypeScript is made on the strength of the Glowcap benchmark, which TypeScript won in its latest round.
+
+## For agents
+
+- [AGENTS.md](https://github.com/WSattazahn/caveat-lang/blob/main/AGENTS.md): how to work with the language and the repository, and how to report a missing capability.
+- [Agent quickstart](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/AGENT_START.md): install the package, run `caveat-lang doctor` and `caveat-lang demo agent`, then `explain` and `dependents`.
+- [Authoring guide](https://github.com/WSattazahn/caveat-lang/blob/main/docs/AI_AUTHORING.md): writing Caveat source and scenarios; the outcome codes a program should expect.
+- [MCP setup and limits](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/MCP.md): `caveat-lang mcp` speaks MCP 2026-07-28 and 2025-11-25; stateless authoring calls only.
+- [Python `caveat serve` example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/agent-evidence/README.md): a handled request, an accepted event and a current assessment are three separate checks.
+
+## The language
+
+- [README](https://github.com/WSattazahn/caveat-lang/blob/main/README.md): what it does, the published version, the benchmark record.
+- [Why Caveat](https://github.com/WSattazahn/caveat-lang/blob/main/docs/WHY_CAVEAT.md): the same beat in TypeScript and in Caveat, and what the benchmark does not establish.
+- [The language in brief](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md): syntax.
+- [Invariants](https://github.com/WSattazahn/caveat-lang/blob/main/docs/CAVEAT_ESSENCE.md): what must remain true.
+- [Specifications](https://github.com/WSattazahn/caveat-lang/tree/main/spec): the contracts, one file per profile, each with a Changes section.
+- [Release records](https://github.com/WSattazahn/caveat-lang/tree/main/docs/releases): verified npm publications, with provenance from rc.12 on.
+
+## Culture (optional)
+
+- [How to be a Caveatist agent](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/agent/CAVEATIST.md): a practice an agent may adopt; not a requirement for using the language.
+- [The caveatist skill](https://github.com/WSattazahn/caveat-lang/blob/main/skills/caveatist/SKILL.md): the same practice as an installable skill (`npx skills add WSattazahn/caveat-lang`, or `claude plugin marketplace add WSattazahn/caveat-lang` then `claude plugin install caveat@caveat-lang`).
+- [The Caveatist Archive](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/archive/The-Caveatist-Archive-v1.1.md) and [Atlas](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/atlas/The-Caveatist-Atlas-v1.0.md): fiction, not doctrine.
+- [The Archive as a program](https://github.com/WSattazahn/caveat-lang/tree/main/caveatism/canon): the canon, with its events and scenarios.
+- [Mr. Caveat](https://wsattazahn.github.io/caveat-lang/mr-caveat.html): a mechanical fortune teller who always has a caveat.
+
+## Optional
+
+- [Glowcap benchmark results](https://github.com/WSattazahn/caveat-lang/blob/main/experiments/glowcap/RESULTS.md): seven rounds against TypeScript, protocol pre-registered.
+- [Lean conformance fragment](https://github.com/WSattazahn/caveat-lang/blob/main/proofs/lean/README.md): what is proved and what is not.
+- [Restore trust boundary](https://github.com/WSattazahn/caveat-lang/blob/main/docs/RESTORE_TRUST_BOUNDARY.md): what restore refuses and what it cannot verify.
