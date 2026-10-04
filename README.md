@@ -1,13 +1,12 @@
 # CAVEAT Language
 
-Development for **0.1.0-rc.11** is open and unpublished. The published preview
-remains rc.10. See the [rc.11 development scope](docs/releases/rc11-development.md)
-for acceptance criteria and verification status.
+The published preview is **0.1.0-rc.11**. See the
+[rc.11 release record](docs/releases/v0.1.0-rc.11.md) for what it changes.
 
-> npm publication verified 2026-10-03T16:23:37.934Z: exact **caveat-lang@0.1.0-rc.10**,
-> retained Linux artifact SHA256 `19f82b19c6eed94f9191cc45611d61917e8d1d52e1b834b41e5230aaa751378f`.
-> `next` names rc.10; `latest` remains rc.5.
-> [Publication receipt](https://github.com/WSattazahn/caveat-lang/releases/download/v0.1.0-rc.10/npm-publication-verification.json).
+> npm publication verified 2026-10-04T02:34:05.146Z: exact **caveat-lang@0.1.0-rc.11**,
+> tested Linux artifact SHA256 `13fd6e298731c46e024f10788e1f68834a1c02625fd74bb4715730b4a4887a8e`.
+> `latest` and `next` name rc.11. The owner published it by hand, without npm provenance.
+> [Publication record](docs/releases/v0.1.0-rc.11-npm-publication.json).
 
 
 **Programs that remember why.**
@@ -17,12 +16,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published preview, **0.1.0-rc.10**, in an empty directory with Node 20 or
+Try the published preview, **0.1.0-rc.11**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.10
+npm install caveat-lang@0.1.0-rc.11
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -34,15 +33,15 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-The [rc.10 verified publication record](docs/releases/v0.1.0-rc.10.md) identifies the
-published npm candidate. The [rc.10 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.10)
-retains the exact tested Linux tarball and verification receipts. rc.10 makes
-exhausted examination attention and empty `caveated()` witness selection return
-recoverable refusals, exposes withdrawals in `dependents`, and clarifies save
-restoration and host trust. A refused operation is not completed; hosts must
-inspect its outcome. It adds no npm runtime dependency.
+The [rc.11 verified publication record](docs/releases/v0.1.0-rc.11.md) identifies the
+published npm candidate. The [rc.11 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.11)
+retains the exact tested Linux tarball and its checksum. rc.11 makes more
+evaluation failures that depend on what a session has seen return classified,
+recoverable refusals, and makes restore refuse saves that genuine runtime saves
+never contain. A refused operation is not completed; hosts must inspect its
+outcome. It adds no npm runtime dependency.
 
-With rc.10 installed, use `npx --no-install caveat-lang doctor` to check it and
+With rc.11 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.

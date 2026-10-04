@@ -434,3 +434,9 @@ Muse measurements remain external evidence until reproduced here.
   branch's editor commits stay on the branch: `cfd6a7e` targets
   `editors/vscode/test/reference.test.mjs`, which main does not have, and
   the other four mention `$Q`.
+- Published 2026-10-04: tag `v0.1.0-rc.11` at `8e7805a` (merge of #103), the
+  tarball from [Runtime 37169499765](https://github.com/WSattazahn/caveat-lang/actions/runs/37169499765)
+  (SHA256 `13fd6e298731c46e024f10788e1f68834a1c02625fd74bb4715730b4a4887a8e`),
+  published by the owner by hand from a local terminal under `latest`, with
+  `next` moved to it. PR 4a's workflow was not used, so this version has no
+  provenance attestation. See the [release record](v0.1.0-rc.11.md).
