@@ -149,7 +149,7 @@ Citations may omit dependencies, so the check does not establish completeness.
 The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game beat twice, in TypeScript and in Caveat:
 
 - a frozen, pre-registered scenario suite;
-- twelve change requests, eight committed before either implementation changed for those rounds;
+- sixteen change requests, twelve committed before either implementation changed for those rounds;
 - seeded differential fuzz comparing accepted and rejected events, views, and save/resume behavior.
 
 | Round | Change cost, Caveat vs TypeScript | Result |
@@ -159,6 +159,9 @@ The [glowcap benchmark](experiments/glowcap/RESULTS.md) implements the same game
 | 5 · replay after language changes | **71 vs 110** (CR1–8) | Caveat, with 134 lines against 164. Written knowing the requests. |
 | 6 · blind requests | **92 vs 103** (CR9–12) | TypeScript. Caveat passed two of four phases on the first run, capped regrowth at eight lives, and exceeded the 1 ms event budget. |
 | 6 · replay after language changes | **88 vs 103** (CR9–12 plus correction) | Lower change cost; mixed size (168 vs 233 lines, 12,701 vs 11,586 bytes). Three of four phases passed on the first run. Written knowing the requests. |
+| 7 · fresh authors, blind requests, rc.11 | 186 vs 282 (CR13–16) | TypeScript. Two of four phases on the first run against four; more regressions; no Caveat save stayed bounded with a fast resume in long play. Neither decision rule met. |
+
+Round 7 left [a work list](experiments/glowcap/RESULTS.md#round-7-fresh-authors-blind-requests-rc11): a save that forgets what the program forgot, ordered grounds, timing to the tick and the adapter glue. No claim that Caveat is better than TypeScript goes into the README, AGENTS, the site or other documents on the strength of this round.
 
 The earlier losses led to [grounded explanations](spec/caveat-explanations-0.1.md), [grounds](spec/caveat-explanations-0.2.md), [reject](spec/caveat-reject-0.1.md), [define](spec/caveat-define-0.1.md), [typed parameters](spec/caveat-typed-parameters-0.1.md), [the view](spec/caveat-view-0.1.md), [late qualification](spec/caveat-late-qualification-0.1.md) and the [decision journal](spec/caveat-decision-journal-0.1.md).
 
@@ -170,7 +173,7 @@ What Caveat still costs, honestly:
 
 - 51.6 µs median per event plus view for the replay program, against 2.5 µs for TypeScript, measured after the fuzz;
 - 482,716 gzipped bytes (about 483 KB) for the Caveat policy, adapter and runtime;
-- rounds 4, 5 and the round-6 replay were written knowing the requests, so another blind round is needed to test generalization.
+- rounds 4, 5 and the round-6 replay were written knowing the requests; round 7, the blind round with fresh authors that followed, went to TypeScript.
 
 ## A taste
 

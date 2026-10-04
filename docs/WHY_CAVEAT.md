@@ -11,7 +11,8 @@ or use a library that provides them.
 
 Caveat makes that knowledge part of the language. The examples below come from
 the [glowcap benchmark](../experiments/glowcap/RESULTS.md), where the same game
-beat was built in TypeScript and in Caveat and changed eight times. The
+beat was built in TypeScript and in Caveat and changed sixteen times across
+seven rounds; round 7 went to TypeScript. The
 TypeScript is that benchmark's implementation; it does not establish a limit
 on what TypeScript or its libraries can express.
 
