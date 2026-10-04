@@ -1,9 +1,11 @@
 # CAVEAT Lean model and narrow executable bridge
 
 This pinned rc.9 verification project contains core dependency and outcome
-proofs plus a narrow executable branch, guard, and citation comparison model. The runner
-executes the same constructors covered by the proofs. Its accepted fragment is
-small and explicit; it is not a model of the complete CAVEAT language.
+proofs plus a narrow executable branch, guard, and citation comparison model.
+Since rc.13 it also models one late-qualification step over recorded
+commitments. The runner executes the same constructors covered by the proofs.
+Its accepted fragments are small and explicit; they are not a model of the
+complete CAVEAT language.
 
 ## Build and inspect
 
@@ -15,7 +17,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports the core model, laws, executable bridge, and runner. `laws.json` records 68 authored theorem declarations, including four inclusion helper lemmas and 26 bridge laws. `theorems.json` inventories all 147 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, and runner. `laws.json` records 80 authored theorem declarations, including four inclusion helper lemmas, 26 bridge laws, and 12 late-qualification laws. `theorems.json` inventories all 189 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -95,7 +97,8 @@ state available, a classified rejection retains the supplied prior state, and
 fatal outcomes provide no usable session.
 
 Citation failure maps to rejection origin `evaluation`, code
-`ungrounded_citation`. Provenance capacity overflow is a distinct modeled cause
+`ungrounded_citation`. A late qualification of unobserved evidence maps to
+origin `evaluation`, code `unobserved_evidence`. Provenance capacity overflow is a distinct modeled cause
 but maps to fatal code `unclassified` under the current
 [dispatch contract](../../spec/caveat-dispatch-0.1.md). It must not be treated as
 `limit/identifier_limit`, which concerns the separate interned-identifier
@@ -207,9 +210,77 @@ build. Consult that run's receipt for actual comparisons and mutation controls.
 Sampled executable agreement is conformance evidence, not a proof of
 Rust-to-Lean refinement or correctness for all admitted programs.
 
+## Late qualification and recorded commitments
+
+[Late.lean](Caveat/Late.lean) models one step of
+`[when GUARD] qualify EVIDENCE with CAVEAT` from
+[Late Qualification 0.1](../../spec/caveat-late-qualification-0.1.md) over a
+`Ledger`: named current values, named commitments (each a frozen `using` basis
+with an optional number, and grounds), observed evidence, and the step's
+qualify effects. `Qualification` carries the evidence, the caveat, the caveats
+that qualify it in the graph, and the evaluated guard.
+
+`qualifyStep` is the step. A false guard changes nothing and reports no
+effect. Unobserved evidence is refused as `evaluation/unobserved_evidence`.
+Otherwise each current value that read the evidence gains the caveat, its
+qualifiers, and the guard's lineage in its lineage, and the caveat and its
+qualifiers in its grounds when its grounds include the evidence. Grounds stay
+within lineage by construction. Values that never read the evidence, and every
+commitment, are left as they were.
+
+What is proved, for every ledger and qualification:
+
+- An accepted step leaves the commitment list equal, so each commitment keeps
+  exactly the basis and grounds it was made on
+  (`late_qualification_preserves_commitments`,
+  `late_qualification_preserves_basis_and_grounds`). The session that
+  continues after any outcome, refusal included, has the same commitments
+  (`late_qualification_session_preserves_commitments`), and so does any
+  accepted sequence of qualifications (`late_qualifications_preserve_commitments`).
+- The contrast with current values: a value that read the evidence gains the
+  caveat and the guard's lineage and keeps its number; one grounded on the
+  evidence gains the caveat in its grounds; the guard never enters grounds; a
+  value that did not read the evidence is unchanged.
+- Unobserved evidence is refused with that classification; a false guard
+  changes no value. A nonempty witness, a value and a commitment both resting
+  on `ea`, shows the value learning `late` and its qualifier while the
+  commitment's basis and grounds stay `{ea; ca}`.
+
+This holds of the model because `qualifyStep` maps only values; the theorems
+make that a checked statement rather than a reading of the definition. How
+commitments come to exist (`commit … using … retaining`, guards, series,
+predecessors, reopening), the decision journal, reading archives, scheduled
+`qualify … after`, renewal and occurrence identity, and the graph closure that
+supplies a caveat's qualifiers are not modeled.
+
+The runner accepts a second schema, `caveat-late-qualification/0.1`: a
+`before` ledger (`states`, `commitments` with `basis` `{value, evidence,
+caveats}` and `grounds`, `observations`) and one `qualification`
+(`evidence`, `caveat`, `qualifiers`, `guard` naming a state or null). Names are
+lowercase identifiers; at most 8 states, 4 commitments, 8 qualifiers and 16
+names per provenance or observation list;
+numbers are integers within ±10^9; grounds outside a state's lineage are
+refused. The response is the `after` frame: outcome, states, commitments,
+observations, and, for an accepted step only, its qualify effects. A refused
+step's effects are the previous event's and are checked by the rollback
+comparison, not by the model.
+
+The conformance gate runs nine registered programs
+([lean-late-qualification-cases.mjs](../../scripts/lean-late-qualification-cases.mjs))
+on the native and WebAssembly runtimes: seed, write, commit, then one event per
+qualification. For each qualification event it gives the model the runtime's
+own state before the event and compares the model's prediction with the
+runtime's state after it, on both runtimes. Two compiled runtime mutants must
+be caught by that comparison: a qualification that also reaches commitment
+bases, and one that reaches bases, grounds and the journal together, so that
+the runtime's own restore checks still accept its saves. This is sampled
+agreement on the qualification step from states the runtime reached, not a
+proof that the runtime's commit or qualify implementation refines the model.
+
 Evidence renewal and occurrence identity, arbitrary observations, save/restore,
 complete runtime session rollback, source parsing, function evaluation, nested
-conditional bodies, arbitrary expressions, graph semantics, work budgets, and
-general effect scheduling are not formalized here.
+conditional bodies, arbitrary expressions, graph semantics, commitment creation
+and reopening, the decision journal, work budgets, and general effect
+scheduling are not formalized here.
 CAVEAT's evidence remains supplied evidence; the model does not authenticate it
 or turn it into a truth guarantee.

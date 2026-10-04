@@ -338,6 +338,53 @@ checks are runtime conformance evidence, not a formal save-validation proof.
 Fatal remains an explicit outcome in the model, but no admitted case is meant
 to produce it; a fatal result fails this comparison instead of matching a refusal.
 
+## Third slice: late qualification and recorded commitments
+
+[Late Qualification 0.1](caveat-late-qualification-0.1.md) §3 says a late
+caveat leaves commitment bases and grounds as they were.
+[Late.lean](../proofs/lean/Caveat/Late.lean) models one
+`[when GUARD] qualify EVIDENCE with CAVEAT` step over named current values,
+named commitments (frozen `using` basis with optional number, and grounds),
+observed evidence and the step's qualify effects. A false guard changes nothing;
+unobserved evidence is refused as `evaluation/unobserved_evidence`; otherwise a
+value that read the evidence gains the caveat, the caveats that qualify it and
+the guard's lineage in its lineage, and the caveat and its qualifiers in its
+grounds when its grounds include the evidence. Twelve registered laws prove
+that an accepted step, any continuing session and any accepted sequence of
+steps leave every commitment's basis and grounds unchanged, together with the
+contrast on current values, the refusal classification and a nonempty witness.
+How commitments are created, reopening, the decision journal, reading archives,
+scheduled qualification, renewal and the graph closure of qualifiers are not
+modeled.
+
+The runner's `caveat-late-qualification/0.1` schema takes a `before` ledger and
+one qualification and returns the `after` frame. Its comparison differs from
+the second slice: the model does not execute the program from its start. The
+gate runs nine registered programs
+([lean-late-qualification-cases.mjs](../scripts/lean-late-qualification-cases.mjs))
+through the same native adapter and kit WebAssembly session, with the same
+rollback and prefix-restore checks, and for each of their 14 qualification
+events gives the model the runtime's state before the event. The model's
+prediction must equal the runtime's projected state after it on both runtimes:
+each state's number and both channels, each commitment's basis (number,
+evidence, caveats) and grounds, observations, the outcome, and an accepted
+step's effects. The corpus covers a guarded qualification of evidence in a
+commitment's basis and grounds, evidence in a value's lineage but not its
+grounds, evidence reaching values only as a guard, a skipped guard, unobserved
+evidence, repetition, a chained qualifier, an unrelated commitment, a retained
+caveat equal to the late one, and three commitments with three qualifications.
+Eleven more decoder controls cover this schema.
+
+Two further semantic control families compile mutants of
+`apply_qualification` in `runtime/src/reactive.rs` and must be detected on two
+witnesses each: the late caveat also reaches commitment bases; and it reaches
+bases, grounds and the journal entry together, so restore validation still
+accepts the saves. Each must produce an accepted step whose only projected
+difference is the late caveat and its qualifiers in exactly the commitment
+records that include the evidence. This is sampled agreement on the
+qualification step from states the runtime reached; it is not a proof that the
+runtime's commit or qualify implementation refines the model.
+
 ## Requirements for extending the model and comparison
 
 1. Register the precise fragment, semantics matrix, assumptions, theorem targets,
@@ -388,3 +435,9 @@ The comparison gate must run its manifest without silent skips, preserve
 failing inputs, and detect semantic mutations for the reasons specified above.
 These gates supplement existing Rust, kit, and affected WebAssembly/browser
 checks. This contract is not authorization to publish a release.
+
+## Changes
+
+- rc.13: the third slice, late qualification and recorded commitments: twelve
+  Lean laws, the `caveat-late-qualification/0.1` runner schema, nine
+  conformance programs, eleven decoder controls and two mutation families.

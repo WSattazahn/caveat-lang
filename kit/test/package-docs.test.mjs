@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { checkPackageDocuments, packageBlock, renderPackageDocument, validatePackageDocument } from '../../scripts/kit-docs.mjs';
+import { readFile } from 'node:fs/promises';
+import { checkPackageDocuments, checkReadmeLinks, packageBlock, renderPackageDocument, trackedFiles, validatePackageDocument } from '../../scripts/kit-docs.mjs';
 
 const previous = { name: 'caveat-lang', version: '0.1.0-rc.8' };
 const candidate = { name: 'caveat-lang', version: '0.1.0-rc.9' };
@@ -91,4 +92,21 @@ test('all current package-owned guides pass the manifest consistency gate', asyn
   const checked = await checkPackageDocuments(kit);
   assert(checked.some(document => document.file === 'README.md' && document.blocks.includes('starter')));
   assert(checked.some(document => document.file === 'docs/GETTING_STARTED.md' && document.blocks.includes('install')));
+});
+
+test('the package README links resolve on npm and Socket', async () => {
+  const blob = 'https://github.com/WSattazahn/caveat-lang/blob/main/';
+  for (const link of ['docs/AGENT_START.md', './examples/agent-evidence/README.md', 'docs/reference/spec/caveat-serve-0.1.md#serve', '../LICENSE']) {
+    assert.throws(() => validatePackageDocument('README.md', `${readme(candidate)}\n[guide](${link})\n`, candidate), /relative links 404/, link);
+  }
+  validatePackageDocument('README.md', `${readme(candidate)}\n[guide](${blob}kit/docs/AGENT_START.md) and [index](#install)\n`, candidate);
+
+  const tracked = new Set(['kit/docs/AGENT_START.md', 'spec/caveat-serve-0.1.md']);
+  checkReadmeLinks(`[a](${blob}kit/docs/AGENT_START.md) [b](${blob}spec/caveat-serve-0.1.md#changes) [c](https://example.com/x)`, tracked);
+  for (const link of ['kit/docs/reference/spec/caveat-serve-0.1.md', 'kit/docs/MISSING.md', 'docs/AGENT_START.md']) {
+    assert.throws(() => checkReadmeLinks(`[x](${blob}${link})`, tracked), /does not track/, link);
+  }
+
+  const links = checkReadmeLinks(await readFile(new URL('../README.md', import.meta.url), 'utf8'), trackedFiles(fileURLToPath(new URL('../../', import.meta.url))));
+  assert(links.length >= 16, `expected the README's GitHub links, found ${links.length}`);
 });

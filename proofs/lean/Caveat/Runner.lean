@@ -1,4 +1,5 @@
 import Caveat.Bridge
+import Caveat.Late
 import Lean.Data.Json
 
 open Lean
@@ -242,13 +243,141 @@ def execute (request : Request) : Except String Json := do
         frames := frames ++ [frameJson (outcomeJson outcome) after]
   pure (Json.mkObj [("schema", toJson schema), ("id", toJson request.id), ("frames", toJson frames)])
 
+/-! Late qualification: one step from a supplied ledger. The ledger is the
+runtime's own state before the step; the model predicts the state after it. -/
+
+def lateSchema : String := "caveat-late-qualification/0.1"
+
+def parseIdentifier (json : Json) (label : String) : Except String String := do
+  let name ← json.getStr?
+  let chars := name.toList
+  unless 1 ≤ chars.length && chars.length ≤ 64 &&
+      ('a' ≤ chars.head! && chars.head! ≤ 'z') &&
+      chars.all (fun c => ('a' ≤ c && c ≤ 'z') || ('0' ≤ c && c ≤ '9') || c == '_') do
+    throw s!"{label} requires a lowercase identifier"
+  pure name
+
+def parseIdentifiers (json : Json) (maximum : Nat) (label : String) :
+    Except String (List String) := do
+  (← arrayBetween json 0 maximum label).mapM (parseIdentifier · label)
+
+def parseBoundedInt (json : Json) (label : String) : Except String Int := do
+  let value ← json.getInt?
+  unless value.natAbs ≤ 1000000000 do throw s!"{label} outside [-1000000000,1000000000]"
+  pure value
+
+def parseProvenance (json : Json) (label : String) : Except String Provenance := do
+  exactFields json ["evidence", "caveats"] []
+  pure ⟨← parseIdentifiers (← json.getObjVal? "evidence") 16 s!"{label} evidence",
+    ← parseIdentifiers (← json.getObjVal? "caveats") 16 s!"{label} caveats"⟩
+
+def parseTracked (json : Json) : Except String Tracked := do
+  exactFields json ["value", "lineage", "grounds"] []
+  let value ← parseBoundedInt (← json.getObjVal? "value") "state value"
+  let lineage ← parseProvenance (← json.getObjVal? "lineage") "lineage"
+  let grounds ← parseProvenance (← json.getObjVal? "grounds") "grounds"
+  if h : grounds.Included lineage then pure ⟨value, lineage, grounds, h⟩
+  else throw "state grounds exceed its lineage"
+
+def parseCommitment (json : Json) : Except String Late.Commitment := do
+  exactFields json ["basis", "grounds"] []
+  let basis ← json.getObjVal? "basis"
+  exactFields basis ["value", "evidence", "caveats"] []
+  let value ← match ← basis.getObjVal? "value" with
+    | .null => pure none
+    | number => some <$> parseBoundedInt number "basis value"
+  let provenance ← parseProvenance
+    (Json.mkObj [("evidence", ← basis.getObjVal? "evidence"), ("caveats", ← basis.getObjVal? "caveats")])
+    "basis"
+  pure ⟨⟨value, provenance⟩, ← parseProvenance (← json.getObjVal? "grounds") "commitment grounds"⟩
+
+def parseNamed {α : Type} (json : Json) (maximum : Nat) (label : String)
+    (parse : Json → Except String α) : Except String (List (String × α)) := do
+  let fields := (← json.getObj?).toList
+  unless fields.length ≤ maximum do throw s!"{label} requires at most {maximum} entries"
+  fields.mapM fun (name, value) => do
+    pure (← parseIdentifier (.str name) s!"{label} name", ← parse value)
+
+structure LateRequest where
+  id : String
+  before : Late.Ledger
+  evidence : String
+  caveat : String
+  qualifiers : List String
+  guard : Option String
+
+def parseLateRequest (json : Json) : Except String LateRequest := do
+  exactFields json ["schema", "id", "before", "qualification"] []
+  unless (← (← json.getObjVal? "schema").getStr?) == lateSchema do
+    throw "unsupported schema"
+  let id ← (← json.getObjVal? "id").getStr?
+  let idChars := id.toList
+  unless 1 ≤ idChars.length && idChars.length ≤ 64 &&
+      ('a' ≤ idChars.head! && idChars.head! ≤ 'z') &&
+      idChars.all (fun c => ('a' ≤ c && c ≤ 'z') || ('0' ≤ c && c ≤ '9') || c == '-') do
+    throw "id requires lowercase ASCII letter followed by up to 63 lowercase letters, digits or hyphens"
+  let before ← json.getObjVal? "before"
+  exactFields before ["states", "commitments", "observations"] []
+  let values ← parseNamed (← before.getObjVal? "states") 8 "states" parseTracked
+  let commitments ← parseNamed (← before.getObjVal? "commitments") 4 "commitments" parseCommitment
+  let observations ← parseIdentifiers (← before.getObjVal? "observations") 16 "observations"
+  let q ← json.getObjVal? "qualification"
+  exactFields q ["evidence", "caveat", "qualifiers", "guard"] []
+  let guard ← match ← q.getObjVal? "guard" with
+    | .null => pure none
+    | name =>
+        let name ← parseIdentifier name "guard"
+        unless (values.lookup name).isSome do throw s!"unknown guard state: {name}"
+        pure (some name)
+  pure ⟨id, ⟨values, commitments, observations, []⟩,
+    ← parseIdentifier (← q.getObjVal? "evidence") "evidence",
+    ← parseIdentifier (← q.getObjVal? "caveat") "caveat",
+    ← parseIdentifiers (← q.getObjVal? "qualifiers") 8 "qualifiers", guard⟩
+
+def commitmentJson (commitment : Late.Commitment) : Json :=
+  Json.mkObj [
+    ("basis", Json.mkObj [
+      ("value", match commitment.basis.value with | none => Json.null | some n => toJson n),
+      ("evidence", toJson commitment.basis.provenance.evidence.eraseDups.mergeSort),
+      ("caveats", toJson commitment.basis.provenance.caveats.eraseDups.mergeSort)]),
+    ("grounds", provenanceJson commitment.grounds)]
+
+/-- A refused step's effects are the previous event's; only an accepted step reports them. -/
+def ledgerJson (outcome : Json) (ledger : Late.Ledger) (effects : Bool) : Json :=
+  Json.mkObj ([
+    ("outcome", outcome),
+    ("states", Json.mkObj (ledger.values.map fun (name, value) => (name, trackedJson value))),
+    ("commitments", Json.mkObj (ledger.commitments.map fun (name, c) => (name, commitmentJson c))),
+    ("observations", toJson ledger.observations)] ++
+    if effects then [("effects", toJson (ledger.effects.map fun (evidence, caveat) =>
+      Json.mkObj [("kind", toJson ("qualify" : String)), ("evidence", toJson evidence),
+        ("caveat", toJson caveat)]))] else [])
+
+def executeLate (request : LateRequest) : Except String Json := do
+  let guard := match request.guard with
+    | none => Tracked.plain 1
+    | some name => (request.before.values.lookup name).getD (Tracked.plain 1)
+  let step := Late.qualifyStep request.before
+    ⟨request.evidence, request.caveat, request.qualifiers, guard⟩
+  let frame ← match step, resumeSession request.before step with
+    | .accepted _, some after => pure (ledgerJson (Json.mkObj [("outcome", toJson ("accepted" : String))]) after true)
+    | .rejected reason, some after =>
+        let result : Outcome Late.Ledger := .rejected reason
+        pure (ledgerJson (Json.mkObj [("outcome", toJson ("rejected" : String)),
+          ("origin", toJson result.origin), ("code", toJson result.code)]) after false)
+    | _, _ => throw "unexpected fatal result in the admitted late-qualification fragment"
+  pure (Json.mkObj [("schema", toJson lateSchema), ("id", toJson request.id), ("after", frame)])
+
 def process (input : String) : Except String Json := do
   unless input.utf8ByteSize ≤ 65536 do throw "request exceeds 65536 UTF-8 bytes"
   checkNumericTokens input
   let json ← Json.parse input
   checkDuplicateFields input
-  let request ← parseRequest json
-  execute request
+  match json.getObjVal? "schema" with
+  | .ok (.str name) =>
+      if name == lateSchema then executeLate (← parseLateRequest json)
+      else execute (← parseRequest json)
+  | _ => execute (← parseRequest json)
 
 end Caveat.Runner
 

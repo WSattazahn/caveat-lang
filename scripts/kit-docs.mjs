@@ -1,6 +1,7 @@
 // Artifact-local documentation blocks. Registry state and release receipts belong
 // on the website/release record, not in an immutable npm package.
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,6 +97,10 @@ export function validatePackageDocument(file, source, manifest) {
     /npm-publication(?:-verification|-receipts|\.json)|\[publication receipt\]/i,
     /retained Linux artifact SHA256/i,
   ];
+  if (file === 'README.md') {
+    const relative = relativeReadmeLinks(text);
+    assert.deepEqual(relative, [], `${file}: relative links 404 on npm and Socket; link ${REPOSITORY_BLOB}<path> instead`);
+  }
   for (const pattern of movingClaims) assert(!pattern.test(text), `${file}: moving publication claim belongs in an external release record (${pattern})`);
   // Executable install examples must select these exact bytes' package version,
   // never a moving dist-tag. Ordinary history such as "introduced in rc.7" stays.
@@ -109,6 +114,32 @@ export function validatePackageDocument(file, source, manifest) {
     }
   }
   return { file, identity, blocks: (BLOCKS[file] ?? []).slice() };
+}
+
+// npm and Socket resolve a package README's relative links against the
+// repository root, not `repository.directory`, so they 404 there. The README
+// links to GitHub instead; the shipped copies are in the package itself.
+const REPOSITORY_BLOB = 'https://github.com/WSattazahn/caveat-lang/blob/main/';
+
+function markdownLinks(text) {
+  return [...text.matchAll(/\]\(([^)\s]+)\)/g)].map(match => match[1]);
+}
+
+export function relativeReadmeLinks(text) {
+  return markdownLinks(text).filter(link => !/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(link));
+}
+
+// A link must name a file tracked on main: generated files such as
+// kit/docs/reference/ exist after a build but not on GitHub.
+export function checkReadmeLinks(text, tracked) {
+  const links = markdownLinks(text).filter(link => link.startsWith(REPOSITORY_BLOB));
+  const missing = links.filter(link => !tracked.has(decodeURIComponent(link.slice(REPOSITORY_BLOB.length).replace(/#.*$/, ''))));
+  assert.deepEqual(missing, [], 'README.md: links name files the repository does not track');
+  return links;
+}
+
+export function trackedFiles(repository) {
+  return new Set(execFileSync('git', ['ls-files', '-z'], { cwd: repository, encoding: 'utf8' }).split('\0').filter(Boolean));
 }
 
 export async function checkPackageDocuments(directory, { write = false } = {}) {
@@ -130,4 +161,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const kit = fileURLToPath(new URL('../kit/', import.meta.url));
   const reports = await checkPackageDocuments(kit, { write: args[0] === '--write' });
   console.log(`${args[0] === '--write' ? 'Generated' : 'Checked'} ${reports.length} package documents for ${reports[0].identity}.`);
+  const links = checkReadmeLinks(await readFile(path.join(kit, 'README.md'), 'utf8'), trackedFiles(path.resolve(kit, '..')));
+  console.log(`Checked ${links.length} README links against the files tracked in the repository.`);
 }
