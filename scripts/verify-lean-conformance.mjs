@@ -8,6 +8,7 @@ import { loadRuntimeFromDirectory } from '../kit/lib/node.mjs';
 import { cases, renderCase, validateCase, SCHEMA, STATES, GENERATOR_SEED } from './lean-conformance-cases.mjs';
 import { assertFreshRuntime } from './runtime-build-fingerprint.mjs';
 import { leanRunnerDecoderCases } from './lean-runner-decoder-cases.mjs';
+import { lateCases, renderLateCase, validateLateCase, LATE_SCHEMA, LATE_STATES, LATE_CAVEATS, COMMITMENTS } from './lean-late-qualification-cases.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const suffix = process.platform === 'win32' ? '.exe' : '';
@@ -104,7 +105,7 @@ export function modelTrace(value, fixture) {
   };
 }
 
-function captureShape(record) {
+function captureShape(record, names = STATES) {
   const snapshot = record.snapshot;
   const view = record.view;
   if (!snapshot || Array.isArray(snapshot) || snapshot.schema !== 'caveat-reactive/0.1' ||
@@ -119,10 +120,10 @@ function captureShape(record) {
     save.sequence !== snapshot.sequence || view.sequence !== snapshot.sequence) {
     throw new InfrastructureFailure('Inconsistent capture identity/sequence');
   }
-  keys(snapshot.values, STATES, 'runtime state names');
-  keys(snapshot.qualified_values, STATES, 'runtime qualified state names');
-  keys(snapshot.value_grounds, STATES, 'runtime grounds state names');
-  for (const name of STATES) {
+  keys(snapshot.values, names, 'runtime state names');
+  keys(snapshot.qualified_values, names, 'runtime qualified state names');
+  keys(snapshot.value_grounds, names, 'runtime grounds state names');
+  for (const name of names) {
     const tracked = snapshot.qualified_values[name];
     keys(tracked, ['value', 'provenance'], 'runtime tracked state');
     if (!Object.is(number(tracked.value), number(snapshot.values[name]))) {
@@ -174,6 +175,180 @@ export function runtimeTrace(value, fixture) {
       };
     }),
   }, fixture);
+}
+
+// Late qualification: one modeled step from the runtime's own state before it.
+// Commitment creation is not modeled; the projection is states, commitment
+// bases and grounds, observations, and an accepted step's effects.
+function lateState(value, label) {
+  keys(value, ['states', 'commitments', 'observations'], label);
+  keys(value.states, LATE_STATES, label + ' state names');
+  const states = Object.fromEntries(LATE_STATES.map(name => {
+    const state = value.states[name];
+    keys(state, ['value', 'lineage', 'grounds'], label + ' state');
+    return [name, { value: number(state.value), lineage: provenance(state.lineage), grounds: provenance(state.grounds) }];
+  }));
+  const commitments = value.commitments;
+  if (!commitments || Array.isArray(commitments) || typeof commitments !== 'object' ||
+    Object.keys(commitments).some(name => !COMMITMENTS.includes(name))) throw new InfrastructureFailure('Malformed ' + label + ' commitments');
+  return { states, observations: strings(value.observations, 'observations'),
+    commitments: Object.fromEntries(Object.keys(commitments).sort().map(name => {
+      const commitment = commitments[name];
+      keys(commitment, ['basis', 'grounds'], label + ' commitment');
+      keys(commitment.basis, ['value', 'evidence', 'caveats'], label + ' commitment basis');
+      const basisValue = commitment.basis.value === null ? null : number(commitment.basis.value);
+      const basis = provenance({ evidence: commitment.basis.evidence, caveats: commitment.basis.caveats });
+      return [name, { basis: { value: basisValue, ...basis }, grounds: provenance(commitment.grounds) }];
+    })) };
+}
+
+function lateFrame(frame, label) {
+  const kind = frame?.outcome?.outcome;
+  keys(frame, kind === 'accepted' ? ['outcome', 'states', 'commitments', 'observations', 'effects']
+    : ['outcome', 'states', 'commitments', 'observations'], label);
+  let outcomeValue;
+  if (kind === 'accepted') {
+    keys(frame.outcome, ['outcome'], label + ' outcome');
+    outcomeValue = { outcome: 'accepted' };
+  } else if (kind === 'rejected' && frame.outcome.origin === 'evaluation' && frame.outcome.code === 'unobserved_evidence') {
+    keys(frame.outcome, ['outcome', 'origin', 'code'], label + ' outcome');
+    outcomeValue = { outcome: 'rejected', origin: 'evaluation', code: 'unobserved_evidence' };
+  } else {
+    // Unobserved evidence is the only classified refusal reachable in this fragment.
+    throw new InfrastructureFailure('Unexpected fatal or unregistered outcome in the late-qualification fragment');
+  }
+  const { states, commitments, observations } = lateState(
+    { states: frame.states, commitments: frame.commitments, observations: frame.observations }, label);
+  const result = { outcome: outcomeValue, states, commitments, observations };
+  if (kind === 'accepted') {
+    if (!Array.isArray(frame.effects)) throw new InfrastructureFailure('Malformed ' + label + ' effects');
+    result.effects = frame.effects.map(effect => {
+      keys(effect, ['kind', 'evidence', 'caveat'], label + ' effect');
+      if (effect.kind !== 'qualify' || typeof effect.evidence !== 'string' || typeof effect.caveat !== 'string') {
+        throw new InfrastructureFailure('Unsupported effect in the late-qualification fragment');
+      }
+      return { kind: 'qualify', evidence: effect.evidence, caveat: effect.caveat };
+    });
+  }
+  return result;
+}
+
+export function lateModelFrame(value, fixture) {
+  keys(value, ['schema', 'id', 'after'], 'late model document');
+  if (value.schema !== LATE_SCHEMA || value.id !== fixture.id) throw new InfrastructureFailure('Wrong late model identity');
+  return lateFrame(value.after, 'late model frame');
+}
+
+function lateRuntimeState(record) {
+  captureShape(record, LATE_STATES);
+  const s = record.snapshot;
+  const names = Object.keys(s.commitment_bases ?? {});
+  if (!s.commitment_bases || !s.commitment_grounds ||
+    JSON.stringify(names.sort()) !== JSON.stringify(Object.keys(s.commitment_grounds).sort())) {
+    throw new InfrastructureFailure('Runtime commitment bases and grounds disagree');
+  }
+  return {
+    states: Object.fromEntries(LATE_STATES.map(name => [name, { value: s.values[name],
+      lineage: s.qualified_values[name].provenance, grounds: s.value_grounds[name] }])),
+    commitments: Object.fromEntries(names.map(name => [name, {
+      basis: { value: s.commitment_bases[name].value, ...s.commitment_bases[name].provenance },
+      grounds: s.commitment_grounds[name] }])),
+    observations: s.observations,
+  };
+}
+
+/** The runtime's projection after a qualification event. */
+export function lateRuntimeFrame(record) {
+  keys(record, ['snapshot', 'save', 'view', 'outcome'], 'late runtime record');
+  const value = record.outcome;
+  if (value?.schema !== 'caveat-dispatch/0.1') throw new InfrastructureFailure('Unexpected dispatch schema');
+  if (value.outcome === 'accepted') {
+    keys(value, ['schema', 'outcome', 'snapshot'], 'accepted runtime outcome');
+    if (firstDifference(record.snapshot, value.snapshot)) throw new InfrastructureFailure('Accepted outcome snapshot differs from capture');
+  } else if (value.outcome === 'rejected') {
+    keys(value, ['schema', 'outcome', 'origin', 'code', 'message'], 'rejected runtime outcome');
+  } else {
+    throw new InfrastructureFailure('Unexpected fatal or malformed runtime outcome');
+  }
+  const state = lateRuntimeState(record);
+  const frame = { ...state, outcome: value.outcome === 'accepted' ? { outcome: 'accepted' }
+    : { outcome: value.outcome, origin: value.origin, code: value.code } };
+  if (value.outcome === 'accepted') frame.effects = record.snapshot.effects;
+  return lateFrame(frame, 'late runtime frame');
+}
+
+/** The Lean request for qualification `index`, from the runtime record before it. */
+export function lateRequest(fixture, index, beforeRecord) {
+  validateLateCase(fixture);
+  const q = fixture.qualifications[index];
+  if (!q) throw new InfrastructureFailure('Unknown qualification step');
+  const before = lateState(lateRuntimeState(beforeRecord), 'late runtime state');
+  return { schema: LATE_SCHEMA, id: fixture.id, before, qualification: {
+    evidence: q.evidence, caveat: q.caveat, qualifiers: [...LATE_CAVEATS[q.caveat]], guard: q.guard } };
+}
+
+const commitmentMutationAnchor = '        // Current values only. Commitment bases and grounds, reading\n' +
+  '        // archives and the journal record what was known then.\n';
+const basisMutation = '        for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {\n' +
+  '            if basis.provenance.evidence.contains(evidence) {\n' +
+  '                basis.provenance.merge(&added)?;\n' +
+  '            }\n' +
+  '        }\n';
+const commitmentMutations = {
+  basis: '        // Deliberate mutation: the late caveat reaches recorded commitment bases.\n' + basisMutation,
+  // Grounds must stay within the basis and the journal must repeat the grounds,
+  // so this mutant rewrites all three and restore validation still accepts its
+  // saves: only the comparison with the model can catch it.
+  records: '        // Deliberate mutation: the late caveat reaches every commitment record.\n' + basisMutation +
+    '        for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {\n' +
+    '            if grounds.evidence.contains(evidence) {\n' +
+    '                grounds.merge(&added)?;\n' +
+    '                for entry in Arc::make_mut(&mut self.journal).iter_mut() {\n' +
+    '                    if entry.change == "committed" && &entry.commitment == name {\n' +
+    '                        entry.caveats = grounds.caveats.iter().cloned().collect();\n' +
+    '                    }\n' +
+    '                }\n' +
+    '            }\n' +
+    '        }\n',
+};
+export function commitmentQualificationMutation(source, field) {
+  if (!Object.hasOwn(commitmentMutations, field)) throw new InfrastructureFailure('Unregistered commitment mutation');
+  const normalized = source.replaceAll('\r\n', '\n');
+  if (normalized.split(commitmentMutationAnchor).length !== 2) {
+    throw new InfrastructureFailure('Late-qualification mutation anchor must occur exactly once');
+  }
+  return normalized.replace(commitmentMutationAnchor, commitmentMutationAnchor + commitmentMutations[field]);
+}
+
+// The registered discrepancy: exactly the commitment records (bases, and for
+// the records mutant grounds) that include the evidence gain the late caveat
+// and its qualifiers, nothing else.
+export function verifyLateMutation(id, expected, actual, qualification) {
+  const difference = firstDifference(expected, actual);
+  if (!difference) throw new InfrastructureFailure('Semantic mutant survived: ' + id);
+  try {
+    const fields = { 'qualify-reaches-commitment-basis': ['basis'],
+      'qualify-reaches-commitment-records': ['basis', 'grounds'] }[id];
+    if (!fields) throw new Error('Unknown semantic mutation: ' + id);
+    assert.deepEqual(expected.outcome, { outcome: 'accepted' });
+    const intended = structuredClone(expected);
+    const added = [qualification.caveat, ...LATE_CAVEATS[qualification.caveat]];
+    const reached = new Set();
+    for (const commitment of Object.values(intended.commitments)) {
+      for (const field of fields) {
+        const target = commitment[field];
+        if (!target.evidence.includes(qualification.evidence)) continue;
+        const caveats = [...new Set([...target.caveats, ...added])].sort();
+        if (caveats.length !== target.caveats.length) reached.add(field);
+        target.caveats = caveats;
+      }
+    }
+    assert.deepEqual([...reached].sort(), [...fields].sort(), 'the witness has a commitment record the caveat would newly reach');
+    assert.deepEqual(actual, intended, 'the complete projection must have exactly the intended semantic change');
+  } catch (error) {
+    throw new InfrastructureFailure('Mutation did not reach its registered discrepancy: ' + id + ': ' + error.message);
+  }
+  return difference;
 }
 
 export function compare(expected, actual, caseId, runner) {
@@ -356,7 +531,8 @@ export async function verifyConformance({ caseId } = {}) {
   mkdirSync(output, { recursive: true });
   const report = { schema: 'caveat-conformance-report/0.1', startedAt: new Date().toISOString(),
     status: 'failed', mode: caseId ? 'single-case replay' : 'complete gate', fragment: SCHEMA, generatorSeed: GENERATOR_SEED, commands: [], cases: [], mutations: [], decoderControls: [],
-    scope: 'bounded conditional expressions and guarded assignments/citations; sampled correspondence, not Rust refinement' };
+    lateCases: [],
+    scope: 'bounded conditional expressions and guarded assignments/citations, and one late-qualification step from the runtime\'s own state; sampled correspondence, not Rust refinement' };
   writeFileSync(join(output, 'report.json'), JSON.stringify(report, null, 2) + '\n');
   function commandResult(command, args, options = {}) {
     const result = spawnSync(command, args, { cwd: root, encoding: 'utf8',
@@ -392,6 +568,7 @@ export async function verifyConformance({ caseId } = {}) {
         ...['runtime/Cargo.toml', 'runtime/Cargo.lock', 'runtime/prelude.cav',
           'runtime/examples/lean_conformance.rs', 'scripts/lean-conformance-cases.mjs',
           'scripts/verify-lean-conformance.mjs', 'scripts/verify-lean-conformance.test.mjs', 'scripts/verify-lean.mjs',
+          'scripts/lean-late-qualification-cases.mjs',
           'scripts/runtime-build-fingerprint.mjs', 'scripts/build-web.mjs', 'scripts/lean-runner-decoder-cases.mjs',
           'package.json', 'rust-toolchain.toml', 'dist/pkg-reactive/caveat_runtime.js',
           'dist/pkg-reactive/caveat_runtime_bg.wasm', 'dist/build-info.json'].map(path => join(root, path)),
@@ -430,7 +607,12 @@ export async function verifyConformance({ caseId } = {}) {
     const runtime = await loadRuntimeFromDirectory(join(root, 'dist/pkg-reactive'));
     const fullCorpus = cases();
     const corpus = caseId ? fullCorpus.filter(item => item.id === caseId) : fullCorpus;
-    if (!corpus.length) throw new InfrastructureFailure("Unknown or empty corpus/case ID");
+    const fullLateCorpus = lateCases();
+    const lateCorpus = caseId ? fullLateCorpus.filter(item => item.id === caseId) : fullLateCorpus;
+    if (!corpus.length && !lateCorpus.length) throw new InfrastructureFailure("Unknown or empty corpus/case ID");
+    if (new Set([...fullCorpus, ...fullLateCorpus].map(item => item.id)).size !== fullCorpus.length + fullLateCorpus.length) {
+      throw new InfrastructureFailure('Duplicate fixture IDs');
+    }
     if (new Set(corpus.map(item => item.id)).size !== corpus.length) throw new InfrastructureFailure('Duplicate fixture IDs');
     const leanResults = new Map();
     const sources = new Map();
@@ -460,6 +642,53 @@ export async function verifyConformance({ caseId } = {}) {
     }
     if (!caseId && (!accepted || !rejected)) throw new InfrastructureFailure('Corpus must exercise accepted and rejected events');
     report.events = { accepted, rejected };
+
+    // Each qualification step: the model, given the runtime's state before the
+    // step, must predict the runtime's state after it on both runtimes.
+    const lateSources = new Map();
+    let lateAccepted = 0, lateRejected = 0;
+    async function lateTraces(fixture, rendered) {
+      const nativeRaw = jsonCommand(native, [], { schema: 'caveat-native-trace/0.1', source: rendered.source, events: rendered.events });
+      if (!Array.isArray(nativeRaw?.events) || nativeRaw.events.length !== rendered.events.length) {
+        throw new InfrastructureFailure('Wrong native event count: ' + fixture.id);
+      }
+      const records = [nativeRaw.initial, ...nativeRaw.events];
+      for (const record of records.slice(1, rendered.qualifyFrom + 1)) {
+        if (record?.outcome?.outcome !== 'accepted') throw new InfrastructureFailure('Setup event refused: ' + fixture.id);
+      }
+      return { nativeRaw, records };
+    }
+    function lateStep(fixture, rendered, records, index) {
+      const position = rendered.qualifyFrom + index + 1;
+      const request = lateRequest(fixture, index, records[position - 1]);
+      return { request, expected: lateModelFrame(jsonCommand(lean, [], request), fixture),
+        actual: lateRuntimeFrame(records[position]) };
+    }
+    for (const fixture of lateCorpus) {
+      validateLateCase(fixture);
+      const rendered = renderLateCase(fixture);
+      lateSources.set(fixture.id, rendered);
+      writeFileSync(join(output, fixture.id + '.input.json'), JSON.stringify(fixture, null, 2) + '\n');
+      writeFileSync(join(output, fixture.id + '.cav'), rendered.source);
+      const { nativeRaw, records } = await lateTraces(fixture, rendered);
+      const wasmRaw = await wasmTrace(runtime, rendered.source, rendered.events);
+      compare(nativeRaw, wasmRaw, fixture.id, 'native/WASM complete captures');
+      const wasmRecords = [wasmRaw.initial, ...wasmRaw.events];
+      const outcomes = [];
+      for (const index of fixture.qualifications.keys()) {
+        const { expected, actual } = lateStep(fixture, rendered, records, index);
+        compare(expected, actual, fixture.id + '/learn' + index, 'native');
+        compare(expected, lateRuntimeFrame(wasmRecords[rendered.qualifyFrom + index + 1]), fixture.id + '/learn' + index, 'WASM');
+        outcomes.push(expected.outcome.outcome);
+      }
+      lateAccepted += outcomes.filter(value => value === 'accepted').length;
+      lateRejected += outcomes.filter(value => value === 'rejected').length;
+      report.lateCases.push({ id: fixture.id, sourceSha256: digest(rendered.source),
+        inputSha256: digest(JSON.stringify(fixture)), events: rendered.events, outcomes,
+        replay: 'npm run verify:lean-conformance -- --case ' + fixture.id });
+    }
+    if (!caseId && (!lateAccepted || !lateRejected)) throw new InfrastructureFailure('Late corpus must exercise accepted and rejected steps');
+    report.lateEvents = { accepted: lateAccepted, rejected: lateRejected };
     if (caseId) {
       report.status = "passed";
       report.summary = "Case replay passed: " + caseId + "; full-corpus mutation gate was not run.";
@@ -490,21 +719,28 @@ export async function verifyConformance({ caseId } = {}) {
     }
     mkdirSync(join(mutantRoot, 'examples'));
     cpSync(join(root, 'runtime/examples/lean_conformance.rs'), join(mutantRoot, 'examples/lean_conformance.rs'));
-    const mutationFile = join(mutantRoot, 'src/reactive_expr.rs');
-    const originalEvaluator = readFileSync(join(root, 'runtime/src/reactive_expr.rs'), 'utf8');
+    // Each mutant changes exactly one file; every other mutable file is restored first.
+    const originals = Object.fromEntries(['reactive_expr.rs', 'reactive.rs'].map(file =>
+      [file, readFileSync(join(root, 'runtime/src', file), 'utf8')]));
     const mutantTarget = join(root, 'runtime/target/lean-mutants');
     report.runtimeMutations = [];
-    function compiledMutation(id, variant, transform, witnesses) {
-      writeFileSync(mutationFile, transform(originalEvaluator));
+    function buildMutant(id, variant, file, transform) {
+      for (const [name, text] of Object.entries(originals)) writeFileSync(join(mutantRoot, 'src', name), text);
+      const mutationFile = join(mutantRoot, 'src', file);
+      writeFileSync(mutationFile, transform(originals[file]));
       const recordedSource = join(output, 'mutation-' + variant + '.rs');
       cpSync(mutationFile, recordedSource);
-      const receipt = { id, variant, originalSha256: digest(originalEvaluator),
+      const receipt = { id, variant, file: 'runtime/src/' + file, originalSha256: digest(originals[file]),
         mutatedSha256: digest(readFileSync(mutationFile)), path: relative(root, recordedSource).replaceAll('\\', '/') };
       run('cargo', ['build', '--locked', '--manifest-path', join(mutantRoot, 'Cargo.toml'),
         '--target-dir', mutantTarget, '--no-default-features', '--example', 'lean_conformance']);
       const mutant = join(mutantTarget, 'debug/examples/lean_conformance' + suffix);
       receipt.executableSha256 = digest(readFileSync(mutant));
       report.runtimeMutations.push(receipt);
+      return mutant;
+    }
+    function compiledMutation(id, variant, transform, witnesses) {
+      const mutant = buildMutant(id, variant, 'reactive_expr.rs', transform);
       for (const fixtureId of witnesses) {
         semanticMutation(id, fixtureId, 'compiled Rust mutation / ' + variant,
           jsonCommand(mutant, [], { schema: 'caveat-native-trace/0.1', ...sources.get(fixtureId) }));
@@ -515,6 +751,19 @@ export async function verifyConformance({ caseId } = {}) {
     compiledMutation('branch-selected-loss', 'drop-selected-a', source => dependencyDropMutation(source, 'a'), ['branch-true']);
     compiledMutation('branch-selected-loss', 'drop-selected-b', source => dependencyDropMutation(source, 'b'), ['branch-false']);
     compiledMutation('branch-unselected-injection', 'evaluate-unselected', unselectedBranchMutation, ['branch-true', 'branch-false']);
+    // A runtime whose late qualification also reached recorded commitments must be caught.
+    for (const [id, field] of [['qualify-reaches-commitment-basis', 'basis'], ['qualify-reaches-commitment-records', 'records']]) {
+      const mutant = buildMutant(id, 'commitment-' + field, 'reactive.rs', source => commitmentQualificationMutation(source, field));
+      for (const fixtureId of ['late-commitment-basis', 'late-guard-evidence']) {
+        const fixture = lateCorpus.find(item => item.id === fixtureId);
+        const rendered = lateSources.get(fixtureId);
+        const raw = jsonCommand(mutant, [], { schema: 'caveat-native-trace/0.1', source: rendered.source, events: rendered.events });
+        if (!Array.isArray(raw?.events)) throw new InfrastructureFailure('Malformed mutant trace: ' + fixtureId);
+        const { expected, actual } = lateStep(fixture, rendered, [raw.initial, ...raw.events], 0);
+        const difference = verifyLateMutation(id, expected, actual, fixture.qualifications[0]);
+        report.mutations.push({ id, fixtureId, runner: 'compiled Rust mutation / commitment-' + field, difference });
+      }
+    }
     // Separate source-translation mutations drive the unmodified real runtime.
     const translations = [
       ['skip-guard-loss', 'skipped-guard', source => source.replace('when g != 0', 'when false')],
@@ -535,7 +784,8 @@ export async function verifyConformance({ caseId } = {}) {
     }
     report.status = 'passed';
     report.summary = 'Conformance passed: ' + corpus.length + ' cases, ' + accepted + ' accepted / ' + rejected +
-      ' rejected modeled steps; native/WASM full captures and continuation agree; 8 semantic mutation families detected.';
+      ' rejected modeled steps; ' + lateCorpus.length + ' late-qualification cases, ' + lateAccepted + ' accepted / ' + lateRejected +
+      ' rejected qualification steps; native/WASM full captures and continuation agree; 10 semantic mutation families detected.';
   } catch (error) {
     report.error = { name: error.constructor.name, message: error.message,
       caseId: error.caseId, runner: error.runner, difference: error.difference };

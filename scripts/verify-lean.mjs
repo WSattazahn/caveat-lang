@@ -61,7 +61,7 @@ export function verify() {
   const outputDirectory = join(root, 'test-results', 'lean-verification');
   mkdirSync(outputDirectory, { recursive: true });
   const report = {
-    scope: 'provenance algebra, outcome contract and bounded executable bridge laws; no Rust/Lean conformance claim',
+    scope: 'provenance algebra, outcome contract, bounded executable bridge laws and late-qualification laws; no Rust/Lean conformance claim',
     startedAt: new Date().toISOString(),
     status: 'failed',
     commands: [],

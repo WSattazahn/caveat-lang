@@ -179,6 +179,41 @@ The rc.12 rules carry over:
   adds PR 7 (one Lean theorem), PR 8–9 (the program interface and
   `caveat types`) and PR 10 (design notes with cards), lets threads run in
   parallel where files do not overlap, and renumbers the publish to PR 11.
+- PR 1 (#123) merged 2026-10-04 as `592b492`.
+- Member symbols §11.6: the search for a second program ran first and alone,
+  as the plan asks, and was re-run at `8b1d2f3`. Across all 132 tracked
+  `.cav` files, including the agent ledger's four programs and every version
+  of round 7's four Caveat authors (C1–C4, final sources and each commit of
+  their phase bundles), the only events with two or more `kind` parameters
+  are still Before the Rain's `ask`, `confront` and `hold`
+  (`game/before_the_rain.cav`). The two files new since rc.12's search,
+  `caveatism/canon/archive.cav` and the F268 regression fixture, take no
+  event parameters. The ledger's one cross-member rule (`release.cav`, `on
+  merged when target != $index`) reaches every other member, which a
+  reference naming one member cannot express. Round 7's C3 memory block
+  could be written with references, in fewer lines but with twice the rules
+  on each observation event (against §11.2), and it needs a grounded value,
+  which a state already carries, rather than a name. So no second program
+  exists; §11.6 is unmet, the draft stands, and no implementation branch
+  opens in rc.13. This is a finding about the feature: outside Before the
+  Rain, no program in the repository has the shape a reference serves.
+- PR 2 (#126): all 16 relative links in `kit/README.md` now open the file
+  on GitHub's `main`, and a sentence near the top says the shipped copies are
+  in the package's `docs/` and `examples/`. The six `docs/reference/` links
+  point at their repository source paths, because `kit/docs/reference/` is
+  generated and untracked (`.gitignore`), so `blob/main/kit/docs/reference/`
+  would 404. `scripts/kit-docs.mjs` refuses a relative README link and any
+  `blob/main/` link to a file `git ls-files` does not list; the check runs in
+  `kit/test/package-docs.test.mjs` under `npm run test:kit`. The npm page and
+  Socket show the change only after rc.13 publishes.
+- PR 7 (#127): Lean proves that a later qualification leaves every
+  commitment's basis and grounds unchanged (`proofs/lean/Caveat/Late.lean`,
+  12 new laws; 80 authored, 189 inventoried). The runner gains
+  `caveat-late-qualification/0.1`. Conformance runs 9 programs with 14
+  qualification events (12 accepted, 2 refused) on native and WASM, giving
+  the model the runtime's state before each event. Two compiled mutants that
+  let the caveat reach commitment records are caught. Commitment creation,
+  reopening, the journal and scheduled qualification are not modeled.
 - PR 5: restore refuses a saved provenance carrying a caveat that no
   mechanism of the loaded source can attach to its evidence, or with no
   evidence (F330, F333, F335–F337). Release note: these edits are now
@@ -188,7 +223,8 @@ The rc.12 rules carry over:
   the runtime tests' 64 program sources (Glowcap round 7's four Caveat
   programs and the caveatism canon included), driven with seeded events for
   eight runs of 150 and saved after each accepted one, restore with none
-  refused; 45,771 of them carry caveats. One existing
-  fuzz witness is now refused earlier, by this check.
+  refused; 45,771 of them carry caveats. The same event traces replayed on
+  published rc.3 to rc.12 give saves that all restore. One existing fuzz
+  witness is now refused earlier, by this check.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
