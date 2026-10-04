@@ -93,6 +93,8 @@ jobs:
         run: npm run test:trail-rescue
       - name: Before the Rain scenarios
         run: npm run test:before-the-rain
+      - name: Caveatist canon loads, checks clean and passes its scenarios
+        run: npm run test:caveatism
       - name: TypeScript formatter compatibility
         run: >-
           npm exec --yes --package=typescript@5.9.3 -- tsc

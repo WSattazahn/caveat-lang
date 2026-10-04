@@ -1,0 +1,337 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "archive.cav",
+  "scenarios": [
+    {
+      "id": "A01",
+      "title": "Observed cases ground a version, and a marker travels into every ground it reaches",
+      "steps": [
+        {
+          "expect": {
+            "/bindings/archive/status": "no version frozen",
+            "/bindings/archive/versions": 0
+          }
+        },
+        {
+          "send": "case_character_lab"
+        },
+        {
+          "send": "case_misidentification"
+        },
+        {
+          "send": "case_definition_drift"
+        },
+        {
+          "send": "cite_relatives"
+        },
+        {
+          "send": "tend_flame"
+        },
+        {
+          "send": "propose_maxim"
+        },
+        {
+          "send": "freeze_v1_0"
+        },
+        {
+          "expect": {
+            "/bindings/archive/status": "a version is frozen",
+            "/bindings/archive/versions": 1,
+            "/commitment_grounds/canon@1": {
+              "evidence": [
+                "character_lab",
+                "could_be_right",
+                "definition_drift",
+                "eternal_flame",
+                "fallibilism",
+                "misidentification"
+              ],
+              "caveats": [
+                "analogy",
+                "mythological",
+                "unfinished"
+              ]
+            },
+            "/decision_journal/0": {
+              "change": "committed",
+              "commitment": "canon@1",
+              "caveats": [
+                "analogy",
+                "mythological",
+                "unfinished"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "title": "A version cannot rest on a case that was never observed",
+      "steps": [
+        {
+          "send": "freeze_v1_0",
+          "rejected": {
+            "origin": "evaluation",
+            "code": "unobserved_evidence"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/archive/status": "no version frozen"
+          }
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "title": "Amendment 1 withdraws the maxim with its reason and reopens the version; version 1.0 keeps its grounds",
+      "steps": [
+        {
+          "send": "case_character_lab"
+        },
+        {
+          "send": "case_misidentification"
+        },
+        {
+          "send": "case_definition_drift"
+        },
+        {
+          "send": "cite_relatives"
+        },
+        {
+          "send": "tend_flame"
+        },
+        {
+          "send": "propose_maxim"
+        },
+        {
+          "send": "freeze_v1_0"
+        },
+        {
+          "checkpoint": "v1_0"
+        },
+        {
+          "expect": {
+            "/bindings/maxim/standing": "proposed"
+          }
+        },
+        {
+          "send": "discover_pil"
+        },
+        {
+          "expect": {
+            "/bindings/archive/status": "reopened by an amendment",
+            "/bindings/maxim/standing": "withdrawn: it resembles a line from Rise",
+            "/decision_journal/1": {
+              "change": "reopened",
+              "commitment": "canon@1",
+              "because": [
+                "pil_rise"
+              ]
+            },
+            "/withdrawals/0": {
+              "evidence": "could_be_right",
+              "because": "pil_rise",
+              "event": "discover_pil"
+            }
+          }
+        },
+        {
+          "same_as": "v1_0",
+          "paths": [
+            "/commitment_grounds/canon@1",
+            "/decision_journal/0"
+          ]
+        },
+        {
+          "send": "discover_pil",
+          "rejected": "Amendment 1 is already recorded."
+        },
+        {
+          "send": "freeze_v1_1"
+        },
+        {
+          "expect": {
+            "/bindings/archive/status": "a version is frozen",
+            "/bindings/archive/versions": 2,
+            "/commitment_grounds/canon@2": {
+              "evidence": [
+                "character_lab",
+                "definition_drift",
+                "eternal_flame",
+                "fallibilism",
+                "misidentification",
+                "pil_rise"
+              ],
+              "caveats": [
+                "analogy",
+                "mythological",
+                "unfinished"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "v1_0",
+          "paths": [
+            "/commitment_grounds/canon@1",
+            "/decision_journal/0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "title": "Rejected ideas are withdrawn with a reason and stay in the record",
+      "steps": [
+        {
+          "send": "demote_label"
+        },
+        {
+          "send": "remove_kindness"
+        },
+        {
+          "expect": {
+            "/withdrawals/0": {
+              "evidence": "check_the_label",
+              "because": "labels_can_be_wrong",
+              "event": "demote_label"
+            },
+            "/withdrawals/1": {
+              "evidence": "kindness_injection",
+              "because": "no_basis",
+              "event": "remove_kindness"
+            }
+          }
+        },
+        {
+          "send": "demote_label",
+          "rejected": "Already demoted; the record keeps it."
+        },
+        {
+          "send": "remove_kindness",
+          "rejected": "Already removed; the record keeps it."
+        }
+      ]
+    },
+    {
+      "id": "A05",
+      "title": "The Archive Rule: redefining, erasing and absorbing are refused and leave nothing behind",
+      "steps": [
+        {
+          "send": "case_character_lab"
+        },
+        {
+          "checkpoint": "untouched"
+        },
+        {
+          "send": "redefine",
+          "rejected": "Do not protect Caveatism by changing it every time it is challenged."
+        },
+        {
+          "send": "erase",
+          "rejected": "Cross it out; never erase. Withdraw it with a reason."
+        },
+        {
+          "send": "absorb",
+          "rejected": "Classify it first: evidence, proposal, analogy, mythology, contradiction, rejection or unresolved."
+        },
+        {
+          "same_as": "untouched",
+          "paths": [
+            "/bindings",
+            "/commitment_grounds",
+            "/decision_journal",
+            "/relations",
+            "/sequence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A06",
+      "title": "Versions come in order: 1.1 cannot be frozen before 1.0, nor while 1.0 is in force",
+      "steps": [
+        {
+          "send": "freeze_v1_1",
+          "rejected": "Freeze version 1.0 first."
+        },
+        {
+          "send": "case_character_lab"
+        },
+        {
+          "send": "case_misidentification"
+        },
+        {
+          "send": "case_definition_drift"
+        },
+        {
+          "send": "cite_relatives"
+        },
+        {
+          "send": "tend_flame"
+        },
+        {
+          "send": "propose_maxim"
+        },
+        {
+          "send": "freeze_v1_0"
+        },
+        {
+          "send": "freeze_v1_0",
+          "rejected": "Version 1.0 is already frozen."
+        },
+        {
+          "send": "freeze_v1_1",
+          "rejected": "Nothing to amend: reopen the frozen version with evidence first."
+        }
+      ]
+    },
+    {
+      "id": "A07",
+      "title": "A restored archive is the archive that was saved",
+      "steps": [
+        {
+          "send": "case_character_lab"
+        },
+        {
+          "send": "case_misidentification"
+        },
+        {
+          "send": "case_definition_drift"
+        },
+        {
+          "send": "cite_relatives"
+        },
+        {
+          "send": "tend_flame"
+        },
+        {
+          "send": "propose_maxim"
+        },
+        {
+          "send": "freeze_v1_0"
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "discover_pil"
+        },
+        {
+          "resume": true
+        },
+        {
+          "send": "freeze_v1_1"
+        },
+        {
+          "expect": {
+            "/bindings/archive/versions": 2,
+            "/bindings/mr_caveat/wise": "not necessarily"
+          }
+        }
+      ]
+    }
+  ]
+}
