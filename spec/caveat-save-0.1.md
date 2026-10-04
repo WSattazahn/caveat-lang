@@ -233,6 +233,16 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-10-04 (rc.12): the runtime computes narrower grounds for a value
+  passed through a procedure parameter
+  ([Explanations 0.2](caveat-explanations-0.2.md#changes), F268). A save
+  written by rc.11 or earlier can hold the wider grounds; they are within the
+  saved lineage and basis, as restore requires of any grounds, so restore
+  accepts both. A restored session keeps the grounds its save holds,
+  commitment grounds frozen before the save included, and grounds set after
+  the restore are computed the new way. The schema stays
+  `caveat-reactive-save/0.1`.
+
 - 2026-10-04 (rc.12): restore refuses a caveat's attention that no
   examination of the loaded source can leave (findings 123, 188–191). The
   rc.11 contract checked only that each attention entry named a caveat and a

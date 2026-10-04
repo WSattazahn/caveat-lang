@@ -335,6 +335,16 @@ fn expand_effect(
     Ok(())
 }
 
+/// The parameters an effect runs with. An event's parameters are plain. A
+/// procedure's are its evaluated arguments, read two ways: `evaluate` reads
+/// each argument's lineage and `evaluate_grounds` its grounds, so a parameter
+/// grounds a value as its argument would inline (F268).
+#[derive(Default)]
+struct Parameters {
+    lineage: BTreeMap<String, Tracked<f64>>,
+    grounds: BTreeMap<String, Tracked<f64>>,
+}
+
 struct ExecutionBudget {
     remaining: usize,
     depth: usize,
@@ -1622,7 +1632,7 @@ impl ReactiveSession {
                     };
                     check_range(name, number, min.value(), max.value())?;
                     let grounds = session
-                        .evaluate_grounds(initial, &BTreeMap::new())?
+                        .evaluate_grounds(initial, &Parameters::default())?
                         .provenance;
                     session.states.declare(
                         name.clone(),
@@ -2547,7 +2557,7 @@ impl ReactiveSession {
         if !stale.contains(&true) {
             return Ok(());
         }
-        let parameters = BTreeMap::new();
+        let parameters = Parameters::default();
         let mut guards = vec![Provenance::default(); groups.len()];
         // The declaration that supplied each shown value: the last one to match.
         let mut winners = vec![None::<(usize, Tracked<BindingValue>)>; groups.len()];
@@ -2721,7 +2731,7 @@ impl ReactiveSession {
         subject: &str,
         citations: &[Expr],
         lineage: &Provenance,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
     ) -> Result<Provenance, DispatchFailure> {
         let mut cited = Provenance::default();
         for citation in citations {
@@ -3303,10 +3313,14 @@ impl ReactiveSession {
             }
             self.apply_due_qualifications()?;
         }
-        let parameters = parameters
+        let lineage: BTreeMap<_, _> = parameters
             .iter()
             .map(|(name, value)| (name.clone(), Tracked::plain(*value)))
             .collect();
+        let parameters = Parameters {
+            grounds: lineage.clone(),
+            lineage,
+        };
         let mut budget = ExecutionBudget {
             remaining: MAX_EVENT_STEPS,
             depth: 0,
@@ -3444,7 +3458,7 @@ impl ReactiveSession {
         &mut self,
         condition: &Expr,
         effect: &Effect,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
         inherited: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -3461,7 +3475,7 @@ impl ReactiveSession {
     fn evaluate(
         &self,
         expression: &Expr,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
     ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_tracked_with_identifiers(
             &|name| {
@@ -3470,6 +3484,7 @@ impl ReactiveSession {
                 }
                 Ok(self.states.value(name).cloned().or_else(|| {
                     parameters
+                        .lineage
                         .get(name)
                         .cloned()
                         .or_else(|| self.constants.get(name).copied().map(Tracked::plain))
@@ -3499,7 +3514,7 @@ impl ReactiveSession {
     fn evaluate_grounds(
         &self,
         expression: &Expr,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
     ) -> Result<Tracked<Value>, EvalError> {
         expression.evaluate_tracked_with_identifiers(
             &|name| {
@@ -3510,6 +3525,7 @@ impl ReactiveSession {
                     return Ok(Some(Tracked::new(cell.value.value, cell.grounds.clone())?));
                 }
                 Ok(parameters
+                    .grounds
                     .get(name)
                     .cloned()
                     .or_else(|| self.constants.get(name).copied().map(Tracked::plain)))
@@ -3923,7 +3939,7 @@ impl ReactiveSession {
     fn apply_effect(
         &mut self,
         effect: &Effect,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -3931,18 +3947,26 @@ impl ReactiveSession {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
                 let procedure = &procedures[name];
-                let mut locals = BTreeMap::new();
+                let mut locals = Parameters::default();
                 let mut inherited = guard.clone();
                 // Freeze all arguments before the first body effect, including
                 // unused arguments. Their qualifications cannot be laundered
                 // by selecting a constant result or skipping a nested effect.
+                // Each argument is also evaluated for its grounds, which
+                // leave out the guards behind its reads (F268).
                 for (parameter, argument) in procedure.parameters.iter().zip(arguments) {
                     let value = self.evaluate(argument, parameters)?;
                     let Value::Number(number) = value.value else {
                         return Err(format!("procedure {name} requires numeric arguments").into());
                     };
+                    let grounds = self.evaluate_grounds(argument, parameters)?.provenance;
                     inherited.merge(&value.provenance)?;
-                    locals.insert(parameter.clone(), Tracked::new(number, value.provenance)?);
+                    locals
+                        .lineage
+                        .insert(parameter.clone(), Tracked::new(number, value.provenance)?);
+                    locals
+                        .grounds
+                        .insert(parameter.clone(), Tracked::new(number, grounds)?);
                 }
                 budget.enter()?;
                 for (index, step) in procedure.body.iter().enumerate() {
@@ -4737,7 +4761,7 @@ impl ReactiveSession {
         stream: &str,
         relation: Relation,
         claim: &str,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
@@ -4766,7 +4790,7 @@ impl ReactiveSession {
         &self,
         action: &str,
         clause: &PermissionClause,
-        parameters: &BTreeMap<String, Tracked<f64>>,
+        parameters: &Parameters,
     ) -> Result<(PermissionRecord, Provenance), DispatchFailure> {
         let refuse = |why: String| {
             DispatchFailure::rejected(
