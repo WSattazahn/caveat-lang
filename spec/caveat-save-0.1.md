@@ -273,8 +273,10 @@ validation and host trust mechanisms separately from this contract.
   `reopens` and `relies_on` relations, leaving a skew nothing reported. Every
   event that adds one of these memberships leaves its record, so saves the
   runtime writes restore as before (79,855 genuine saves from 151 programs,
-  and saves written by rc.3 to rc.12). The schema stays
-  `caveat-reactive-save/0.1`.
+  and saves written by rc.3 to rc.12). A record removed together with its
+  membership still restores, as a save the program could have written; the
+  check bounds what the program could write and does not establish what the
+  session did. The schema stays `caveat-reactive-save/0.1`.
 
 - 2026-10-04 (rc.13): restore refuses a provenance carrying a caveat that no
   mechanism of the loaded source can attach to its evidence (F330, F333,
