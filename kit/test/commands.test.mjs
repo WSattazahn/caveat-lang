@@ -6,7 +6,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { guideSteps } from './guide.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
@@ -98,11 +98,44 @@ test('the agent ledger scenarios pass', () => {
     ['ledger.scenarios.json', 5],
     ['ledger-identifiers.scenarios.json', 11],
     ['ledger-approved-head.scenarios.json', 16],
+    ['release.scenarios.json', 8],
   ]) {
     const result = caveat(['test', path.join(ledger, name)]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, new RegExp(`^${count} passed, 0 failed `, 'm'), name);
   }
+});
+
+// The release gates, driven from facts through `caveat serve`. rc.11's own
+// history: published by hand, so nothing supports an attestation and the
+// release record may not name provenance. Merges after the publish do not
+// reopen it.
+test('the release ledger replays rc.11 from its facts', async () => {
+  const ledger = path.join(kit, '..', 'experiments', 'agent-ledger');
+  const { readFacts, run, eventsOf } = await import(pathToFileURL(path.join(ledger, 'release-ledger.mjs')).href);
+  const facts = await readFacts(path.join(ledger, 'release-rc11.facts.jsonl'));
+  const { steps, report } = await run(facts);
+  const refused = steps.filter(step => step.outcome === 'rejected')
+    .map(step => [step.fact.fact, step.origin, step.code, step.message]);
+  assert.deepEqual(refused, [['record', 'policy', 'reject', 'No verification found an attestation.']]);
+  assert.deepEqual(steps.filter(step => step.outcome === 'skipped').map(step => step.fact.fact), ['plan']);
+  const shown = Object.fromEntries(report.displayed.map(({ name, value }) => [name, value]));
+  assert.equal(shown['repo.release'], 'published by hand');
+  assert.equal(shown['repo.attestation'], 'unsupported');
+  assert.equal(shown['repo.npm'], 'serves the tested tarball');
+  assert.equal(shown['repo.tag'], '8e7805a57269c2084224df487fe186f0c6f6a4a9');
+
+  // The events the driver sends, replayed by `caveat explain`, give the same
+  // decisions, evidence and displayed values as the serve session.
+  await inDirectory(async directory => {
+    const events = path.join(directory, 'events.jsonl');
+    await writeFile(events, eventsOf(facts).filter(step => !step.skip)
+      .map(({ event, payload }) => JSON.stringify({ event, payload })).join('\n'));
+    const explained = caveat(['explain', '--json', path.join(ledger, 'release.cav'), events]);
+    assert.equal(explained.status, 0, explained.stderr);
+    const replayed = JSON.parse(explained.stdout);
+    for (const key of ['sequence', 'decisions', 'evidence', 'displayed']) assert.deepEqual(replayed[key], report[key], key);
+  });
 });
 
 // ledger-approved-head.cav is ledger.cav corrected so that no pull request

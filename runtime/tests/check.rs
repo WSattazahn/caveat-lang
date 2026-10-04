@@ -364,6 +364,7 @@ fn the_shipped_examples_check_clean() {
         "../experiments/agent-ledger/ledger.cav",
         "../experiments/agent-ledger/ledger-approved-head.cav",
         "../experiments/agent-ledger/ledger-identifiers.cav",
+        "../experiments/agent-ledger/release.cav",
         // The other programs with `for` blocks.
         "../game/glowcap.cav",
         "../experiments/glowcap/caveat/glowcap.cav",
