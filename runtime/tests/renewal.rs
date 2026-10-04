@@ -281,3 +281,35 @@ fn a_procedure_over_renewable_evidence_uses_its_current_occurrence() {
     send(&mut game, "check");
     assert_eq!(game.snapshot().values["count"], 1.0);
 }
+
+// F267: a scheduled qualification is due when the clock reading minus the
+// reading stored at scheduling, both binary64, reaches the delay. Scheduled
+// at the inexact reading 28 × 0.1, a delay of 60 is not yet due after 960
+// exact steps of 0.0625 (the difference is 59.99999999999999) and applies one
+// step later. Scheduled at an exact reading, it applies on the 960th step.
+#[test]
+fn f267_a_delay_is_due_when_the_difference_of_clock_readings_reaches_it() {
+    fn steps(game: &mut ReactiveSession, dt: f64, count: usize) {
+        for _ in 0..count {
+            game.apply("tick", &BTreeMap::from([("dt".into(), dt)]))
+                .unwrap();
+        }
+    }
+    fn faded(game: &ReactiveSession) -> bool {
+        game.snapshot().bindings["hud"]["faded"] == BindingValue::Bool(true)
+    }
+    for (before, late) in [(0, false), (28, true)] {
+        let mut game = load(
+            "on eat qualify bite with faded after 60;\nbind hud.faded = carries(bite, faded);",
+        );
+        steps(&mut game, 0.1, before);
+        let scheduled_at = game.snapshot().elapsed;
+        send(&mut game, "eat");
+        steps(&mut game, 0.0625, 960);
+        let difference = game.snapshot().elapsed - scheduled_at;
+        assert_eq!(difference < 60.0, late, "difference {difference}");
+        assert_eq!(faded(&game), !late, "after 960 steps from {scheduled_at}");
+        steps(&mut game, 0.0625, 1);
+        assert!(faded(&game), "after 961 steps from {scheduled_at}");
+    }
+}

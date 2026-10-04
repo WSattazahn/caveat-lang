@@ -82,6 +82,15 @@ rules run. It is reported in that event's `effects`. The rule's guard and the
 delay's lineage join the lineage of what it qualifies. A decision made before it
 applies keeps what it was made on.
 
+A scheduled qualification stores the time reading current when it was
+scheduled. It is due once the current reading minus that stored reading is at
+least `SECONDS`. Both readings are binary64 sums, and each step is rounded at
+the clock's magnitude, so the difference can fall just short of the sum of the
+steps since scheduling. It can then apply one time event later than exact
+arithmetic would. For example, scheduled at the reading 28 × 0.1
+(`2.800000000000001`), a delay of 60 is not yet due after 960 steps of
+`0.0625`, whose own sum is exactly 60, and applies on the 961st.
+
 `elapsed` and `scheduled_qualifications` appear in the snapshot. At most 4,096
 qualifications can wait at once; scheduling another refuses the event as
 `limit/scheduled_limit` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
@@ -101,6 +110,12 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-10-04: states when a scheduled qualification is due: once the current
+  time reading minus the reading stored at scheduling, both binary64, reaches
+  the delay, which can be one time event later than exact arithmetic
+  (Version Lab finding F267, from Glowcap round 7). The runtime is unchanged;
+  rc.10 and rc.11 already behave this way.
 
 - 2026-09-26: `renew` past the declared limit is refused as
   `limit/renewal_limit`, and the session continues. Before this it was a fatal

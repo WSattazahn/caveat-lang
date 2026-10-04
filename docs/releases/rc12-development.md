@@ -50,7 +50,7 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
    - 27,313 corpus events in 371 scenarios across 36 programs were identical
      between rc.10 and rc.11, and every rc.10 save restores in rc.11.
 
-   Its findings for rc.12 are F261–F266, and new findings start at F267.
+   Its findings for rc.12 are F261–F267, and new findings start at F268.
    They are folded into the fixture lists of PR 2 and PR 3 when those reach
    the reviewer. Nothing below depends on them.
    - F261 (medium): `id_text` of a non-handle is still fatal `unclassified`.
@@ -65,6 +65,11 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
    - F265 (low): the packaged README says releases publish under `next`.
      The repository copy is fixed by #106.
    - F266 (low): `REFERENCE.md`'s function list omits `atan2`.
+   - F267 (medium, added 2026-10-04 from Glowcap round 7): a
+     `qualify … after` delay can fire one time event late. It is due when the
+     clock reading minus the reading stored at scheduling reaches the delay,
+     and that binary64 difference can fall just short of the steps' own sum.
+     The behaviour is the same on rc.10 and rc.11.
 
    Round 7 recommends a design decision before any code for F263 and F264,
    as A3 had.
@@ -387,7 +392,17 @@ The rc.11 rules carry over:
   is a fresh subprocess with no session handle, and that one MCP connection
   accepts 4,096 request IDs. `docs/AI_AUTHORING.md` names the rc.11 outcome
   codes it did not list yet: `evaluation/bound_exceeded` for a clock that
-  would become nonfinite, and `limit/scheduled_limit`.
+  would become nonfinite, and `limit/scheduled_limit`. Merged as #112
+  (`63e775e`).
+- F267: the owner chose (card, 2026-10-04) to document the firing rule, with
+  no runtime change. `spec/caveat-renewal-0.1.md` states that a scheduled
+  qualification is due once the current clock reading minus the reading
+  stored at scheduling, both binary64, reaches the delay, so it can apply one
+  time event later than exact arithmetic would. The regression case
+  `f267_a_delay_is_due_when_the_difference_of_clock_readings_reaches_it`
+  (`runtime/tests/renewal.rs`) pins both the late and the exact case.
+  Release note: the renewal spec now states when a scheduled qualification is
+  due; no program's behaviour changes.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a
