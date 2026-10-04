@@ -374,6 +374,12 @@ The rc.11 rules carry over:
   It adds the MCP `2026-07-28` input and PR 5, makes the release ledger an
   extension of the agent ledger (PR 6), renumbers member symbols to PR 7 and
   the publish to PR 8, and records the Direction section.
+- PR 6 (#109): `experiments/agent-ledger/release.cav` records the release
+  gates, with 8 scenarios covering stale green, hand publish and withdrawal.
+  `release-ledger.mjs` drives it from facts through `caveat serve`. Replayed
+  from rc.11's facts, it shows a hand publish whose attestation stays
+  unsupported, and refuses to record provenance. The live run for rc.12's
+  release has not happened yet.
 - PR 7 (member symbols) is pending the owner's decision.
 
 Sources: MCP specification changelog for `2026-07-28`,

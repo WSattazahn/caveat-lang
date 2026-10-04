@@ -333,8 +333,8 @@ go-ahead in a `permitted by` clause, which refuses a merge without one as
 ## Follow-up: the release gates
 
 [`release.cav`](release.cav) carries the ledger from merging a pull request to
-publishing a release candidate, for rc.12 (plan PR 6 in
-`docs/releases/rc12-development.md`). It records the gates of the
+publishing a release candidate, for rc.12 (PR 6 of the
+[rc.12 plan](../../docs/releases/rc12-development.md)). It records the gates of the
 [release procedure](../../docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)
 that rc.11 skipped: rc.11 was published by hand, without provenance, and
 `publish-npm.yml` has never run.
