@@ -1,0 +1,216 @@
+{
+  "revision": 2,
+  "observed_date_utc": "2026-10-04",
+  "scope": "Private review package update; user-provided mechanical avatar recenter, no generation or publishing",
+  "passed": true,
+  "checks": {
+    "hero_bytes_unchanged": true,
+    "social_bytes_unchanged": true,
+    "avatar_exact_supplied_bytes": true,
+    "hero_under_400000_bytes": true,
+    "final_dimensions": true,
+    "avatar_genuine_transparency": true,
+    "avatar_border_fully_transparent": true,
+    "all_avatar_alpha_pixels_clear_circle": true,
+    "user_scale_geometry_consistent": true,
+    "small_proofs_dimensions": true
+  },
+  "files": [
+    {
+      "file": "mr-caveat-hero.png",
+      "bytes": 386207,
+      "width": 1600,
+      "height": 800,
+      "mode": "P",
+      "sha256": "30be2dcc7b1f8b39dd59120640a6fcadd931fad4ec7391ecd90ced57c2379f1f",
+      "explicit_sRGB_chunk": true,
+      "sRGB_rendering_intent": 0,
+      "color_interpretation": "explicit sRGB declaration",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "fully_transparent_fraction": 0.0,
+      "edge_alpha_max": 255
+    },
+    {
+      "file": "mr-caveat-avatar.png",
+      "bytes": 556635,
+      "width": 1024,
+      "height": 1024,
+      "mode": "RGBA",
+      "sha256": "118b8249f732c2a417d67a3ed8237160054ee233082687d884ba44c59124f837",
+      "explicit_sRGB_chunk": false,
+      "sRGB_rendering_intent": null,
+      "color_interpretation": "untagged RGB interpreted as sRGB, exact user-supplied bytes preserved",
+      "alpha_min": 0,
+      "alpha_max": 255,
+      "fully_transparent_fraction": 0.7427730560302734,
+      "edge_alpha_max": 0,
+      "circle_geometry": {
+        "alpha_gt_0": {
+          "bounding_box": [
+            92,
+            218,
+            932,
+            767
+          ],
+          "bounding_box_center": [
+            511.5,
+            492.0
+          ],
+          "max_radius_px": 422.298472647013,
+          "pixels_outside_512px_circle": 0
+        },
+        "alpha_gt_16": {
+          "bounding_box": [
+            92,
+            218,
+            932,
+            767
+          ],
+          "bounding_box_center": [
+            511.5,
+            492.0
+          ],
+          "max_radius_px": 420.6851554309945,
+          "pixels_outside_512px_circle": 0
+        },
+        "alpha_gt_128": {
+          "bounding_box": [
+            93,
+            219,
+            931,
+            766
+          ],
+          "bounding_box_center": [
+            511.5,
+            492.0
+          ],
+          "max_radius_px": 419.68678797407955,
+          "pixels_outside_512px_circle": 0
+        },
+        "alpha_gt_250": {
+          "bounding_box": [
+            93,
+            220,
+            930,
+            765
+          ],
+          "bounding_box_center": [
+            511.0,
+            492.0
+          ],
+          "max_radius_px": 419.47705539159114,
+          "pixels_outside_512px_circle": 0
+        }
+      }
+    },
+    {
+      "file": "mr-caveat-social.png",
+      "bytes": 842620,
+      "width": 1280,
+      "height": 640,
+      "mode": "RGB",
+      "sha256": "05a87844d18758ea7f9ee7cc069c7d6904fdac43559a7353d0f8022cec77e94c",
+      "explicit_sRGB_chunk": true,
+      "sRGB_rendering_intent": 0,
+      "color_interpretation": "explicit sRGB declaration",
+      "alpha_min": 255,
+      "alpha_max": 255,
+      "fully_transparent_fraction": 0.0,
+      "edge_alpha_max": 255
+    }
+  ],
+  "previous_delivered_avatar": {
+    "file": "avatar-delivered-v1.png",
+    "bytes": 604113,
+    "width": 1024,
+    "height": 1024,
+    "mode": "RGBA",
+    "sha256": "cbd972de31984763df8f2d34068661585400ca5c2a796c84c055b28e460a5cc6",
+    "explicit_sRGB_chunk": true,
+    "sRGB_rendering_intent": 0,
+    "color_interpretation": "explicit sRGB declaration",
+    "alpha_min": 0,
+    "alpha_max": 255,
+    "fully_transparent_fraction": 0.7090997695922852,
+    "edge_alpha_max": 0,
+    "circle_geometry": {
+      "alpha_gt_0": {
+        "bounding_box": [
+          46,
+          42,
+          980,
+          998
+        ],
+        "bounding_box_center": [
+          512.5,
+          519.5
+        ],
+        "max_radius_px": 673.2859719316897,
+        "pixels_outside_512px_circle": 941
+      },
+      "alpha_gt_16": {
+        "bounding_box": [
+          65,
+          87,
+          959,
+          671
+        ],
+        "bounding_box_center": [
+          511.5,
+          378.5
+        ],
+        "max_radius_px": 519.0472040190565,
+        "pixels_outside_512px_circle": 651
+      },
+      "alpha_gt_128": {
+        "bounding_box": [
+          66,
+          88,
+          958,
+          670
+        ],
+        "bounding_box_center": [
+          511.5,
+          378.5
+        ],
+        "max_radius_px": 518.4370742915672,
+        "pixels_outside_512px_circle": 552
+      },
+      "alpha_gt_250": {
+        "bounding_box": [
+          67,
+          89,
+          957,
+          669
+        ],
+        "bounding_box_center": [
+          511.5,
+          378.5
+        ],
+        "max_radius_px": 517.8001544997838,
+        "pixels_outside_512px_circle": 318
+      }
+    }
+  },
+  "user_supplied_inputs": [
+    {
+      "name": "mr-caveat-avatar-centered.png",
+      "library_file_id": "libfile_73f9d2c3d368819184663f248e2c83c0",
+      "file_id": "file_00000000957881fdb1486ab5537f603c",
+      "sha256": "118b8249f732c2a417d67a3ed8237160054ee233082687d884ba44c59124f837"
+    },
+    {
+      "name": "avatar-circle-compare.png",
+      "library_file_id": "libfile_87a5416129708191b1479ac85307e164",
+      "file_id": "file_000000003e3881fd9d129177929e7150",
+      "sha256": "2101cdba0560d62464a5b97af363756446f27ece914de7ff2f870849905a1147"
+    }
+  ],
+  "limits": [
+    "94% scale and translation are attributed to the requester; original transformation script and resampling settings were not supplied. Bounding-box scale independently agrees within rounding.",
+    "Visible bounds center is (511.5,492.0), 20 pixels above canvas center. The avatar is visually centered for circular use; this is not a claim of exact bounding-box centering.",
+    "User-supplied avatar has no explicit sRGB/ICC tag. No re-encoding was performed.",
+    "Geometry checks use actual alpha thresholds and do not claim rights clearance or universal UI readability."
+  ]
+}

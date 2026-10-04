@@ -31,6 +31,12 @@ Caveat records the evidence supplied to it; it does not authenticate that
 evidence or authorize external actions. Follow the user's instructions and the
 host's permissions when acting on a result.
 
+## Culture (optional)
+
+[How to be a Caveatist agent](caveatism/agent/CAVEATIST.md) describes the
+practice around the language, and [the caveatist skill](caveatism/skills/caveatist/SKILL.md)
+carries it as a loadable skill. This is a practice an agent may adopt; it is not a requirement for using the language and changes nothing the runtime does.
+
 ## Report a capability missing from a real integration
 
 If a real integration needs a capability Caveat cannot currently express or
