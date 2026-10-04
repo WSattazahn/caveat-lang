@@ -1,9 +1,9 @@
 # CAVEAT 0.1.0-rc.12 development plan
 
 Status: development open, unpublished. The owner's scope proposal was updated
-2026-10-03 at 20:40 PT and handed over on 2026-10-04. It was written from the
-rc.11 state of `main`, Version Lab round 7 on the published rc.11, and the
-rc.11 release record. Keep the "Progress" section factual, as
+2026-10-03 at 21:05 PT and handed over on 2026-10-04. It was written from the
+rc.11 state of `main`, Version Lab round 7 on the published rc.11, the rc.11
+release record and the MCP `2026-07-28` specification. Keep the "Progress" section factual, as
 `rc11-development.md` does.
 
 The owner wrote the line references against `main` at
@@ -26,14 +26,14 @@ before editing, because they move.
   - one PR per item;
   - failing-then-passing tests first;
   - a spec `Changes` entry and a release-note line in the same PR;
-  - no new syntax except where PR 6 is accepted.
+  - no new syntax except where PR 7 is accepted.
 - PRs merge as merge commits, never squash.
 
 ## First process item: the attested publish path
 
 rc.11 was published by hand, without provenance, and `publish-npm.yml` has
 never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
-`publish-npm.yml`, or it does not ship.** PR 7 describes that path.
+`publish-npm.yml`, or it does not ship.** PR 8 describes that path.
 
 ## Inputs
 
@@ -85,16 +85,42 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
      - no reference in `define` or `bind` for 0.1;
      - advisory C005;
      - `for`-block templates only.
-4. **Repository's own open items.** The deferred adoption items stay
+4. **MCP specification `2026-07-28`** (the official changelog at
+   modelcontextprotocol.io, a primary source). In this revision:
+   - the protocol is stateless, and the `initialize` /
+     `notifications/initialized` handshake is removed;
+   - every request carries `io.modelcontextprotocol/protocolVersion` and
+     `clientCapabilities` in `_meta`;
+   - `server/discover` is a server MUST, and on stdio it is the client's
+     backward-compatibility probe;
+   - every result carries `resultType`;
+   - `ping` and the Logging, Roots and Sampling features are removed or
+     deprecated;
+   - cross-call state is "explicit, server-minted handles passed as ordinary
+     tool arguments";
+   - a twelve-month deprecation window applies.
+
+   The bridge speaks only `2025-11-25` (`kit/lib/mcp.mjs` L10, L215–236).
+   `docs/MCP_AUTHORING_DESIGN.md` L16–19 says the new profile "is not
+   advertised".
+5. **Repository's own open items.** The deferred adoption items stay
    deferred: public `whatif`, `abstain` and scenario string matchers
-   (`docs/AGENT_ADOPTION_FOLLOWUP.md` L11–13).
+   (`docs/AGENT_ADOPTION_FOLLOWUP.md` L11–13). The Lean fragment
+   (`proofs/lean/README.md`; 68 theorems in `laws.json`) proves:
+   - the provenance union laws;
+   - grounds ⊆ lineage through the core combinators;
+   - citation acceptance;
+   - the accepted/rejected/fatal session boundary.
+
+   It does not model commitments, reopening, restore validation or
+   full-field rollback, and its README says so.
 
 ## Accepted scope (proposed), in PR order
 
 ### PR 1 — Open the cycle
 
 #106 and #107 merge first. Then comes the opening commit:
-- this file, from the rc.11 template, with inputs 1–3 recorded;
+- this file, from the rc.11 template, with inputs 1–4 recorded;
 - `kit/package.json` bumped to `0.1.0-rc.12`.
 
 The rc.11 deviation is recorded as rc.12's first process item (above).
@@ -159,31 +185,56 @@ one paragraph to AGENT_START and one to the agent-evidence README. It also
 folds the rc.11 refusal codes into `docs/AI_AUTHORING.md`, where that guide
 lists the outcomes a program should expect.
 
-### PR 5 — Release ledger experiment (dogfooding; non-contract)
+### PR 5 — MCP: speak the `2026-07-28` revision, keep the old one through its deprecation window
 
-`experiments/release-ledger/` holds a `release.cav` in which:
+This PR is kit-only and additive, with no language change. In
+`kit/lib/mcp.mjs` the bridge:
+- answers `server/discover` with its supported versions (`2026-07-28` and
+  `2025-11-25`), capabilities and identity;
+- accepts requests that carry `io.modelcontextprotocol/protocolVersion` and
+  `clientCapabilities` in `_meta` without a prior `initialize`;
+- returns `UnsupportedProtocolVersionError` for a version it does not speak;
+- puts `resultType: "complete"` and `io.modelcontextprotocol/serverInfo` on
+  every result;
+- returns tools from `tools/list` in a deterministic order, with the
+  required `ttlMs` and `cacheScope` fields;
+- keeps `initialize` and `ping` for `2025-11-25` clients.
+
+It updates `docs/MCP_AUTHORING_DESIGN.md` L16–19 and `kit/docs/MCP.md`. Tests:
+- `kit/test/mcp.test.mjs` for both profiles;
+- the existing official-client checks;
+- a probe that a client calling `server/discover` first reaches
+  `tools/call`.
+
+The bridge's boundary does not change: no sessions, no file paths, one call
+at a time and 10 seconds per call.
+
+### PR 6 — Release ledger, as an extension of the agent ledger (dogfooding; non-contract)
+
+`experiments/agent-ledger/` already models merge decisions on changing
+grounds, built from the agent's own mistakes of 2026-09-24
+(`experiments/agent-ledger/README.md` L1–14). PR 6 extends it with the release
+gates rather than starting a new experiment:
 - "rc.12 is publishable" is a claim;
-- each PR's CI run is evidence, carrying a caveat when it ran on a stale
-  base;
+- a PR's CI run is evidence, carrying a caveat when it ran on a stale base;
 - the `npm-publish` approval is the `permitted by` grant that the publish
   commitment needs;
 - `verify-publication` confirms or withdraws the "published and attested"
   evidence;
 - a merge to `main` reopens readiness for anything measured before it.
 
-A small driver (`ledger.mjs`) turns GitHub check runs, merges, the tag and
-the verification artifact into events through `caveat serve`. Scenarios
-cover three cases:
+Scenarios cover three cases:
 - stale green;
 - hand publish: the publish is permitted, but without provenance the
   attestation claim stays unsupported;
 - withdrawal.
 
-It runs live for rc.12's release, and its `explain --json` is attached to the
-release record. It is patterned on `experiments/agent-ledger/`. It makes no
-language change and claims nothing beyond what it measures.
+A small driver turns GitHub check runs, merges, the tag and the
+verification artifact into events through `caveat serve`. It runs live for
+rc.12's release, and its `explain --json` is attached to the release record.
+It claims nothing beyond what it measures.
 
-### PR 6 — Member symbols 0.1 (owner decision: implement in rc.12, or keep as draft)
+### PR 7 — Member symbols 0.1 (owner decision: implement in rc.12, or keep as draft)
 
 The design was settled in #107. Implementation is the cycle's largest item
 and the first WASM-visible language feature since rc.10. It covers:
@@ -207,7 +258,7 @@ release-note caveat. That decides whether member symbols ship in rc.12.
 
 **Status: pending the owner's decision** (see "Owner decisions" below).
 
-### PR 7 — Publish through the attested path
+### PR 8 — Publish through the attested path
 
 The rc.12 release is the first run of `publish-npm.yml`
 (`docs/CONSOLIDATION_PLAN.md`, "npm publication from rc.11 on"):
@@ -222,8 +273,47 @@ must be done before the tag.
 
 ## Owner decisions
 
-- Needed before PR 1: whether PR 6 is in or out of rc.12, and whether §11.6
+- Needed before PR 1: whether PR 7 is in or out of rc.12, and whether §11.6
   (a second program) is a merge gate. **Pending.**
+
+## Direction: rc.13 and after (recorded now, not scoped)
+
+- **A live session over MCP.** The `2026-07-28` pattern, server-minted
+  handles passed as tool arguments, is how a Caveat session could be exposed
+  to an agent host:
+  - `open` returns a handle;
+  - `dispatch`, `dispatchView`, `explain`, `dependents`, `save`, `restore` and
+    `close` take it;
+  - each wraps the existing serve protocol (`spec/caveat-serve-0.1.md`).
+
+  It needs its own profile (an "MCP sessions 0.1"). The bridge's boundary
+  deliberately excludes persistent sessions and save handles
+  (`docs/MCP_AUTHORING_DESIGN.md` L10–15). Its single-flight and 10-second
+  limits were set for stateless authoring calls. Whether the boundary moves
+  is the owner's decision. If it does, this is the adoption path for "the
+  decision ledger inside your agent framework."
+- **Grow the proven fragment toward the invariants.** The next theorems map
+  onto `docs/CAVEAT_ESSENCE.md` L5–14:
+  - a commitment's basis and grounds are unchanged by later qualification
+    (Late Qualification §3);
+  - reopening retains the earlier revision's caveats and records its cause;
+  - a rejected step preserves *every* runtime field, not only the modeled
+    ones (`proofs/lean/README.md`, "Outcome and session boundary").
+
+  Each is a model extension plus a conformance case in
+  `scripts/verify-lean-conformance.mjs`. None is rc.12 work unless capacity
+  appears.
+- **The register as a program.** The Version Lab's register (the spec
+  sentences pinned or contradicted per version) could be written as a Caveat
+  program. `dependents` would then answer which sentences rest on which
+  probe, and a flip would reopen a pin with grounds. Round 7's output is the
+  first dataset.
+- **The claim.** `docs/WHY_CAVEAT.md` L14–16 already states that the
+  benchmark "does not establish a limit on what TypeScript or its libraries
+  can express." Keep it that way. After Glowcap round 7, the README's first
+  screen should make the narrow claim the record supports, and nothing
+  broader: decisions with frozen reasons that a refactor cannot silently
+  drop.
 
 ## Explicitly out of scope for rc.12
 
@@ -236,6 +326,7 @@ must be done before the tag.
   unchanged.
 - Glowcap round 7. It is already running; its result is recorded here, not
   scoped.
+- MCP session handles. They are direction, not rc.12 work (above).
 
 ## Order
 
@@ -243,9 +334,10 @@ must be done before the tag.
 2. PR 2.
 3. PR 3.
 4. PR 4.
-5. PR 5, ready before the release so that it can run live.
-6. PR 6, if accepted.
-7. PR 7, which is the release.
+5. PR 5.
+6. PR 6, ready before the release so that it can run live.
+7. PR 7, if accepted.
+8. PR 8, which is the release.
 
 Round 7's Glowcap result and the Version Lab's rc.12 findings land in this
 record as they arrive.
@@ -267,7 +359,7 @@ The rc.11 rules carry over:
   - the existing Lean gates, unchanged (no new proofs are claimed).
 - Identify the exact tested revision, and report failures and checks not run
   explicitly.
-- Publication happens only through `publish-npm.yml` (PR 7). Record it in
+- Publication happens only through `publish-npm.yml` (PR 8). Record it in
   `docs/releases/v0.1.0-rc.12.md` and the `-npm-publication.json` file, built
   from the `npm-publication-verification` artifact.
 
@@ -278,4 +370,12 @@ The rc.11 rules carry over:
 - #106 (kit README no longer names the dist-tag a release uses; F265 in the
   repository copy) and #107 (member-symbols §12 decisions) merged before the
   opening commit.
-- PR 6 is pending the owner's decision.
+- The scope recorded here is the owner's revision of 2026-10-03 at 21:05 PT.
+  It adds the MCP `2026-07-28` input and PR 5, makes the release ledger an
+  extension of the agent ledger (PR 6), renumbers member symbols to PR 7 and
+  the publish to PR 8, and records the Direction section.
+- PR 7 (member symbols) is pending the owner's decision.
+
+Sources: MCP specification changelog for `2026-07-28`,
+<https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a
+primary source). Everything else is the repository at `4500dec`.
