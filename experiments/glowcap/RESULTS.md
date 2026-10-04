@@ -656,8 +656,8 @@ Size counts policy plus glue by `harness.mjs --measure`'s rule. Change cost is
 previously passing scenario that failed in some run during the request. An
 explanation failure is a scenario whose `because`, `supportedBy`,
 `contradictedBy`, `basis`, `reopenedBy`, `caveats`, `why` or history
-assertion failed in some run; C1's 22 came from one CR13 run, T1's two from
-CR15. The timings are the existing 10k-event replay; the shipped bytes are
+assertion failed in some run; C1's 22 all came from the incident
+snapshot at CR13 (below), and T1's two from CR15. The timings are the existing 10k-event replay; the shipped bytes are
 the rc.11 runtime the adapter loads against a TypeScript file with no
 dependencies. Raw numbers are in `round7/results/score.json`.
 
@@ -746,8 +746,10 @@ Caveat programs report it one tick later. It reproduces without any resume
 traced in the runtime, is that `qualify … after 60` is scheduled on the
 session's accumulated clock, where earlier inexact ticks (0.05, 0.1) leave the
 sum one unit in the last place short of the taste time plus 60. It is a
-runtime behaviour, not any author's error, and it is reported to the Version
-Lab register rather than given a number here.
+runtime behaviour, not any author's error. The Version Lab records it as
+F267: correct binary64 arithmetic under the stated rounding, which rc.12
+documents as a firing rule (a schedule may fire one clock event late, never
+early) rather than changes.
 
 ### Mutation score
 
@@ -800,32 +802,78 @@ feeding explanations, since after a resume every `because` comes from the
 restored data. Without it, CR13 is C2 8, C3 19, C4 18 (median 18) against T1
 6, T2 8, T3 14 (median 8), and the totals still favour TypeScript.
 
-### Learnability
+### Learnability: why each Caveat run failed
 
-Caveat authors learned the language from the rc.11 package's documents and
-type declarations alone. Two of the three primary Caveat authors failed one
-inherited phase on its first run, both at CR12 and both on S36, the
-4,096-byte save bound: the runtime's own save was over the bound. C3
-restructured its program to stop evidence lineage spreading into the save;
-C4 compressed the save in the adapter. These are language failures (the
-save's size), not glue or documentation. The disclosed Glowcap fragments in
-the Caveat specifications favour the Caveat side on CR1–CR12, so the
-inherited-phase figures flatter it, if anything.
+The protocol asks which Caveat failures were glue, which were language and
+which were documentation. `round7/fuzz-checks/first-failures.mjs` re-runs
+every failing run's snapshot against its phase's scenarios and prints the
+first failure of each failed scenario; the table classifies every failing
+Caveat run that way. "First" marks a phase's first run, the one measure 1
+counts.
 
-In the blind phases the Caveat failures had two main causes. At CR13 (S41)
-it was the save bound again: C2 moved to an event-replay save, C3 to a
-compressed one. At CR16 it was the journal. C2 and C3 first wrote bindings
-that cited a journal slot their value did not read, which the runtime
-refuses as `ungrounded_citation`, a rule of the language working as
-designed. C4 found that passing a qualified value through a numeric
-procedure parameter gave a slot the grounds of earlier lives of the same
-evidence, and set the slot directly instead (its notes say it did not
-verify why). All three then had to rebuild observation order in the
-adapter, because lists are "compared in order" and the runtime reports
-grounds as sorted sets. C1's 22 explanation failures and its CR13
-regressions all come from the two runs of snapshot `8cdfd394b1d2`, the
-incident run with C2's adapter; its 0/50 first CR16 run accounts for the
-rest of its regressions.
+| Author | Phase, run | Scenarios failed | Cause | Kind |
+| --- | --- | --- | --- | --- |
+| C2 | CR13, first | S41 | save 4,721 bytes over the 4,096 bound | language: the session save keeps all evidence history |
+| C2 | CR16, first | 25 | `ungrounded_citation`: the journal binding cited evidence its value did not read; also S48's caveat order (below) | language rule, met by the author on the second run |
+| C3 | CR12, first | S36 | save 4,226 bytes | language: the session save |
+| C3 | CR12, second | 36 | `ungrounded_citation` in the why bindings after a restructuring | language rule |
+| C3 | CR13, first, second, third | S41 | save 4,210, 5,542 and 4,164 bytes | language: the session save |
+| C3 | CR16, first | 13 | `ungrounded_citation` in a journal binding; S48's caveat order | language rule; scenario |
+| C3 | CR16, second | S48, S50 | caveat order inside journal entries only | scenario |
+| C4 | CR12, first | S36 | save 4,333 bytes as wrapped; the runtime's own text was 3,764 | glue: the adapter's JSON wrapper pushed it over |
+| C4 | CR16, first | S48, S49, S50 | S49 and S50: an entry cited earlier lives of renewed evidence (`absorb_cave` with `absorb_cave_2`) after the value went through a numeric procedure parameter; S48: caveat order | language (C4's notes say it did not verify why); scenario |
+| C4 | CR16, second and third | S48, S50 | caveat order inside journal entries only | scenario |
+| C1 | CR13, first | S41 | save 5,492 bytes | language: the session save |
+| C1 | CR13, two runs | 31 | the incident snapshot `8cdfd394b1d2`, with C2's adapter | incident |
+| C1 | CR16, first | 50 | load error: a function used an undeclared identifier | author error in source |
+| C1 | CR16, second | S48, S50 | caveat order inside journal entries only | scenario |
+
+**Language.** Most first-run failures are the session save. It keeps every
+relation, renewal occurrence, journal entry and revision basis, so the
+4,096-byte bound fails first at CR12 or CR13 and fails for good in long play
+(above). The second is `ungrounded_citation`, the rule that a `because` may
+cite only what its value reads. Authors met it while building the journal
+and fixed it on the next run. It is the same rule that caught every M5
+mutant statically.
+
+**Glue.** One first-run failure is glue alone: C4's JSON wrapper took a save
+under the bound over it. The adapters' larger cost shows in size, change
+cost and drift, not in failed runs.
+
+**Documentation.** None of the failures traces to a gap in the Caveat
+documents that I could establish. The packet does not state the save's size
+or growth. Authors found that by measuring.
+
+**The round's own scenarios.** S48 and S50 expect each journal entry's
+`caveats` in one order, `["tasted_in_dark", "taste_faded"]`, the order the
+caveats arrived in. CR16 defines `caveats` as a union and says nothing of
+order. The registered fuzz compares it as a set. The scenario comparator
+compares nested lists in order, because its sort treats a list of objects as
+already sorted. Every Caveat author got the order wrong at least once, since
+the runtime lists caveats sorted by name, and fixed it in the adapter. This
+changed no first-run outcome: each of those first runs failed for another
+reason as well. It did add four failing runs (C1 one, C3 one, C4 two).
+Without them, the primary median blind runs to all-green is 6 against
+TypeScript's 4, rather than 7. It is a defect in this round's registration,
+not in either language, and it is left as registered.
+
+**F267, the late fade.** No scenario failure in any run comes from the
+one-tick-late fade. Every `taste_faded` mismatch in the table is an order
+difference with the caveat present on both sides. The scenarios' fades sit
+on exact 0.0625-second clocks, where the rounding cannot occur, so the fade
+appears only in the fuzz. The project now records it as F267, a binary64
+firing rule that rc.12 documents rather than changes. One sequence per
+Caveat program is all it cost, and only in the fuzz.
+
+**On the TypeScript side**, T2 and T3 failed no run. T1's four failing blind
+runs were a resume bug at CR13, and at CR14, CR15 and CR16 a test run before
+the request's code existed ("unknown event type mark", no `pit`, no
+`journal`). The protocol counts the first run whatever it was, so T1's 0 of
+4 is partly how T1 worked rather than what TypeScript made hard.
+
+The disclosed Glowcap fragments in the Caveat specifications favour the
+Caveat side on CR1–CR12, so its inherited-phase figures flatter it, if
+anything.
 
 ### Predictions
 
@@ -854,8 +902,10 @@ drafter of the protocol are the same model family. TypeScript is a language
 these agents know far better. The Caveat packet's specifications contain
 Glowcap fragments (disclosed before the round). Caveat glue was hand-written,
 because rc.11 has no `caveat types`, delta view or unchanged-guard skipping,
-which rc.12 plans. One author on each side was replaced or excluded for an
-isolation breach, and the exclusion changes no verdict. Mutation sites
+which rc.12 plans. One Caveat author was excluded for an isolation breach
+and replaced, and the exclusion changes no verdict. The round's scenarios
+compare caveat order inside journal entries, which CR16 leaves unspecified;
+that added four Caveat failing runs and changed no first-run outcome. Mutation sites
 differ by language (a Caveat program has more places to drop a caveat), so
 the per-operator scores matter more than the overall one.
 
@@ -871,9 +921,10 @@ the site or other documents on the strength of this round.
 2. **Ordered grounds.** Every Caveat author had to rebuild observation order
    in the adapter, and three got the CR7 basis or its journal entry wrong in
    ways the suite did not catch.
-3. **A fade that lands on its tick.** Scheduled qualifications should fire on
-   the tick where the elapsed ticks reach the delay, independent of how the
-   session clock was accumulated.
+3. **Timing to the tick.** F267's firing rule is now documented, not
+   changed: a schedule fires on the first clock event at which the elapsed
+   time reaches its delay in binary64, so it can be one event late. A program
+   that needs exact ticks needs integer tick time, a later design question.
 4. **The glue.** Between 95 and 113 lines per Caveat program are adapter, and
    most blind-phase failures were there.
 
