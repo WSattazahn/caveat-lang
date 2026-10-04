@@ -63,31 +63,44 @@ function refuses(source, edited, message = /cannot restore save:/) {
     && message.test(error.message));
 }
 
-test('restore accepts one structurally valid unauthored qualification as live and later freezes it in grounds', () => {
-  // There is no static qualifies relation or qualify event effect in this source.
+test('F260: restore refuses a qualification no mechanism of the source can make', () => {
+  // There is no static qualifies relation or qualify event effect for phantom.
   const original = runtime.open(graphSource);
-  let editedSession;
-  let resumed;
   try {
     assert.equal(original.dispatch('observe').outcome, 'accepted');
     const saved = JSON.parse(original.save());
     assert.deepEqual(saved.graph.relations, [['sensor', 'supports', 'ready']]);
-    assert.equal(original.view().bindings.hud.carries, false);
     saved.graph.relations.push(['phantom', 'qualifies', 'sensor']);
-    editedSession = runtime.restore(graphSource, JSON.stringify(saved));
-    assert.equal(editedSession.view().bindings.hud.carries, true);
-    assert.deepEqual(editedSession.snapshot().relations.find(edge => edge.relation === 'qualifies'),
+    refuses(graphSource, saved,
+      /relation phantom qualifies sensor: no rule, declaration, reading, renewal or withdrawal of this program qualifies sensor with phantom/);
+    assert.equal(original.dispatch('decide').outcome, 'accepted');
+    assert.deepEqual(original.snapshot().commitment_grounds['go@1'], { evidence: ['sensor'], caveats: [] });
+  } finally { original.close(); }
+});
+
+test('F260: a qualification a rule of the source can make restores as live and later freezes in grounds', () => {
+  const source = `${graphSource}event doubt;\non doubt when observed(sensor) qualify sensor with phantom;\n`;
+  const original = runtime.open(source);
+  let resumed;
+  let again;
+  try {
+    assert.equal(original.dispatch('observe').outcome, 'accepted');
+    assert.equal(original.dispatch('doubt').outcome, 'accepted');
+    const saved = original.save();
+    assert.deepEqual(JSON.parse(saved).graph.relations,
+      [['sensor', 'supports', 'ready'], ['phantom', 'qualifies', 'sensor']]);
+    resumed = runtime.restore(source, saved);
+    assert.equal(resumed.view().bindings.hud.carries, true);
+    assert.deepEqual(resumed.snapshot().relations.find(edge => edge.relation === 'qualifies'),
       { from: 'phantom', relation: 'qualifies', to: 'sensor', origin: 'live' });
     assert.equal(original.dispatch('decide').outcome, 'accepted');
-    assert.equal(editedSession.dispatch('decide').outcome, 'accepted');
-    assert.deepEqual(original.snapshot().commitment_grounds['go@1'], { evidence: ['sensor'], caveats: [] });
+    assert.equal(resumed.dispatch('decide').outcome, 'accepted');
     const grounds = { evidence: ['sensor'], caveats: ['phantom'] };
-    assert.deepEqual(editedSession.snapshot().commitment_bases['go@1'], { value: 1, provenance: grounds });
-    assert.deepEqual(editedSession.snapshot().commitment_grounds['go@1'], grounds);
-    assert.deepEqual(editedSession.snapshot().decision_journal[0].caveats, ['phantom']);
-    resumed = runtime.restore(graphSource, editedSession.save());
-    assert.deepEqual(resumed.snapshot(), editedSession.snapshot());
-  } finally { original.close(); editedSession?.close(); resumed?.close(); }
+    assert.deepEqual(resumed.snapshot().commitment_grounds['go@1'], grounds);
+    assert.deepEqual(resumed.snapshot(), original.snapshot());
+    again = runtime.restore(source, resumed.save());
+    assert.deepEqual(again.snapshot(), resumed.snapshot());
+  } finally { original.close(); resumed?.close(); again?.close(); }
 });
 
 test('restore refuses unknown endpoints and wrong endpoint kinds for an injected qualification', () => {

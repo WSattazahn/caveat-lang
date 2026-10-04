@@ -320,6 +320,9 @@ fn attention_from_name(name: &str) -> Result<Attention, String> {
 }
 
 /// `NAME@N` split into its parts.
+/// (caveat, evidence) pairs, evidence named as the source names it.
+type QualificationPairs = HashSet<(String, String)>;
+
 /// An effect's kind, as a save writes it.
 fn effect_kind(effect: &EffectReport) -> &'static str {
     match effect {
@@ -663,10 +666,83 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// The (caveat, evidence) pairs some mechanism of the loaded source can
+    /// relate by `qualifies`, and those a `qualify ... after` can schedule.
+    /// Evidence is named as the source names it: a reading stream for its
+    /// readings, renewable evidence for its occurrences. The mechanisms are a
+    /// declared qualification, `qualify` in a rule or a procedure it reaches
+    /// (specialized procedures included), `withdraw`'s generated `withdrawn`,
+    /// a reading inheriting its template's caveats, and a renewal carrying its
+    /// evidence's declared caveats. Guards are not evaluated: a pair is
+    /// possible, not proof that an event made it.
+    fn qualification_sources(&self) -> (QualificationPairs, QualificationPairs) {
+        let names: HashMap<NodeId, &str> = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect();
+        let mut possible = HashSet::new();
+        let mut scheduled = HashSet::new();
+        for edge in self.graph.edges.iter().take(self.loaded.edges) {
+            if edge.relation == Relation::Qualifies {
+                if let (Some(caveat), Some(evidence)) = (names.get(&edge.from), names.get(&edge.to))
+                {
+                    possible.insert((caveat.to_string(), evidence.to_string()));
+                }
+            }
+        }
+        for effect in self.reached_effects(None) {
+            match effect {
+                Effect::Qualify {
+                    evidence,
+                    caveat,
+                    after,
+                } => {
+                    let pair = (caveat.clone(), evidence.clone());
+                    if after.is_some() {
+                        scheduled.insert(pair.clone());
+                    }
+                    possible.insert(pair);
+                }
+                Effect::Withdraw {
+                    target: EvidenceSelector::Named(evidence) | EvidenceSelector::Latest(evidence),
+                    ..
+                } => {
+                    possible.insert((WITHDRAWN.to_string(), evidence.clone()));
+                }
+                _ => {}
+            }
+        }
+        // A reading inherits whatever qualifies its template when it is taken.
+        for (stream, readings) in self.reading_streams.iter() {
+            let inherited = possible
+                .iter()
+                .filter(|(_, evidence)| *evidence == readings.template)
+                .map(|(caveat, _)| (caveat.clone(), stream.clone()))
+                .collect::<Vec<_>>();
+            possible.extend(inherited);
+        }
+        (possible, scheduled)
+    }
+
+    /// The name the source gives `evidence`: its stream or renewable evidence
+    /// for an occurrence, and itself otherwise.
+    fn source_evidence<'a>(&self, evidence: &'a str) -> &'a str {
+        match occurrence_parts(evidence) {
+            Some((base, _))
+                if self.reading_streams.contains_key(base) || self.renewals.contains_key(base) =>
+            {
+                base
+            }
+            _ => evidence,
+        }
+    }
+
     /// The graph as the save leaves it, and the evidence it observes.
     fn restore_graph(&mut self, save: &ReactiveSave) -> Result<HashSet<NodeId>, String> {
         let saved = &save.graph;
         let committable = self.committable_actions();
+        let (possible, _) = self.qualification_sources();
         for node in &saved.nodes {
             let (name, kind) = match node {
                 SavedNode::Occurrence { name } => {
@@ -742,6 +818,16 @@ impl ReactiveSession {
                         "relation {from} {name} {to}: {end} is {actual}, not {kind}"
                     ));
                 }
+            }
+            // F95, F260: a qualification no mechanism of the source can make.
+            if relation == Relation::Qualifies
+                && !possible.contains(&(from.clone(), self.source_evidence(to).to_string()))
+            {
+                return Err(format!(
+                    "relation {from} {name} {to}: no rule, declaration, reading, renewal or \
+                     withdrawal of this program qualifies {} with {from}",
+                    self.source_evidence(to)
+                ));
             }
             Arc::make_mut(&mut self.graph).relate(from_id, relation, to_id);
         }
@@ -1171,10 +1257,19 @@ impl ReactiveSession {
         if save.scheduled_qualifications.len() > MAX_SCHEDULED_QUALIFICATIONS {
             return Err("too many scheduled qualifications".into());
         }
+        let (_, schedulable) = self.qualification_sources();
         for scheduled in &save.scheduled_qualifications {
             self.require_kind(&scheduled.evidence, "evidence")?;
             self.require_observed(&scheduled.evidence, observed)?;
             self.require_kind(&scheduled.caveat, "caveat")?;
+            let evidence = self.source_evidence(&scheduled.evidence);
+            if !schedulable.contains(&(scheduled.caveat.clone(), evidence.to_string())) {
+                return Err(format!(
+                    "scheduled qualification of {} with {}: no qualify ... after of this \
+                     program schedules it",
+                    scheduled.evidence, scheduled.caveat
+                ));
+            }
             if !(scheduled.after.is_finite()
                 && scheduled.after >= 0.0
                 && scheduled.scheduled_at.is_finite())
