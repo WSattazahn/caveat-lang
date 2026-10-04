@@ -1,0 +1,21 @@
+{
+  "stage": 2,
+  "at": "2026-10-04T03:38:10.234Z",
+  "node": "22.22.0",
+  "files": {
+    "REQUESTS.md": "16a4b9f47c5f60e09f310805237a0eab01ae75b5cdadb1192977ea453181bd7b",
+    "REVIEW.md": "dbc2a38624485ccddb7241868849acab07859eb4ab76d184ed349e83c3f9d00e",
+    "scenarios-r7.mjs": "6f3f7e2c920797c3baf128927c204eb691f7979b590c6e7fee1be8b369fd223f",
+    "fuzz.mjs": "8c940af5f42438be52e21bbe507d44f4be83a0caeb385150500fd3db9d310d1d",
+    "PREDICTIONS.md": "b23e28ae68b12ae2723a6c157895ecf795fba7023aa509794d78d3bc7884a4e7",
+    "phases/cr13.md": "cfa164ea909824f1477966c93eba82a84cdf2d64826804ad461afaeb680fe778",
+    "phases/cr14.md": "0a8a43418e498878726d16a721e1597b4973d63560bcb6a478b9453096988e69",
+    "phases/cr15.md": "fe343f83e591c9d09cb956ae0c9e116a77a37028be51ded42c3483b11024d832",
+    "phases/cr16.md": "97508cf4a6c491d984075596a5822242656de524276ee3e2703745bc441e6347",
+    "PROTOCOL.md": "81e66a2e1d9d31b514d056a83e9e303260d657fb5288075e3dba32ab532ba857",
+    "BEAT.md": "ae410d89819ac0f662ed0128f6c30dec332dfb091d567686c5a54e454769e534",
+    "build-phases.mjs": "2fcca0952bd7444d392521998a051c8e6edbd6f04beb06f3aa85dbac0f832c93",
+    "phases/cr10.md": "6bba2badf08c8c9a809fff4ac837c0bf4f324a3c8baabcbf288d31fb7cd99667",
+    "register.mjs": "41e6c4ac05c9bc2f42c56dcafa3c6ed062f8d978a7fbb52cc94d4e9fdd038f3b"
+  }
+}

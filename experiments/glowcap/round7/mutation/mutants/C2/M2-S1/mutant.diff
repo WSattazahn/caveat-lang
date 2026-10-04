@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -86,7 +86,7 @@
+     journal: journal6,
+     decision: {
+       state: b.decision.state,
+-      basis: current ? named(current.because) : [],
++      basis: current ? cites(v, 'belief', 'supported') : [],
+       caveats: [...grounds.caveats],
+       reopenedBy: at >= 0 ? named(journal.slice(at + 1).flatMap((e) => e.because)).slice(-SHOWN) : [],
+       // The runtime's decision journal for trust, in order.

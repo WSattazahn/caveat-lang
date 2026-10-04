@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -194,7 +194,7 @@
+     : bs === 'probably_unsafe' ? 'Probably a duskcap'
+     : 'Could be a duskcap — taste first';
+   const because =
+-    bs === 'probably_safe' ? [...s.supportedBy]
++    bs === 'probably_safe' ? [...s.supportedBy, 'taste_pit']
+     : bs === 'probably_unsafe' ? [...s.contradictedBy]
+     : bs === 'uncertain' ? [...s.contradictedBy] // CR4: cite the counterexample only
+     : [];

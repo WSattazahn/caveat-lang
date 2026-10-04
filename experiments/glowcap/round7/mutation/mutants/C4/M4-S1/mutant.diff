@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -110,7 +110,7 @@
+     set dusk_5 = dusk_6;
+     set glow_6 = if(sort == sort.glowcap, qualified(1, e), 0);
+     set dusk_6 = if(sort == sort.duskcap, qualified(1, e), 0);
+-    when sort == sort.glowcap and recovery < 2 set recovery = recovery + qualified(1, e);
++    when sort == sort.glowcap and recovery < 2 set recovery = qualified(1, e) + recovery;
+     # A contradiction resets the recovery count and reopens trust.
+     when sort == sort.duskcap set recovery = 0;
+     when sort == sort.duskcap and committed(trust) call shift_journal();

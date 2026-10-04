@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -239,7 +239,7 @@
+     caveats: caveatsOf(because),
+     why,
+   });
+-  if (m.consumed) return mk(false, '', false, false, []);
++  if (m.consumed) return mk(false, '', false, false, [{ id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]);
+   if (m.taste) {
+     const cav = m.taste.caveats;
+     const qualifier = cav.includes(FADED) ? ' (taste has faded)' : cav.includes(DARK) ? ' (tasted in the dark)' : null;

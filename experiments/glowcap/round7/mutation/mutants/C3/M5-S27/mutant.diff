@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -264,7 +264,7 @@
+     bind $j.text = "Absorbed the " + $j_name + " mushroom: it gave light." when $j_what == 1 and $j_cite > 0 because $j_cite;
+     bind $j.text = "Absorbed the " + $j_name + " mushroom: it made me heavy." when $j_what == 2 and $j_cite > 0 because $j_cite;
+     bind $j.text = "Tasted the " + $j_name + " mushroom: sweet." when $j_what == 3 and $j_cite > 0 because $j_cite;
+-    bind $j.text = "Tasted the " + $j_name + " mushroom: bitter." when $j_what == 4 and $j_cite > 0 because $j_cite;
++    bind $j.text = "Tasted the " + $j_name + " mushroom: bitter." when $j_what == 4 and $j_cite > 0 because $j_cite, taste_pit;
+     bind $j.text = "Saw a creature eat the " + $j_name + " mushroom: it glowed." when $j_what == 5 and $j_cite > 0 because $j_cite;
+     bind $j.text = "Saw a creature eat the " + $j_name + " mushroom: it grew heavy." when $j_what == 6 and $j_cite > 0 because $j_cite;
+     bind $j.text = "I trust glowing mushrooms now." when $j_what == 7 and $j_cite > 0 because $j_cite;

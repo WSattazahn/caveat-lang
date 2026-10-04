@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -233,7 +233,7 @@
+     if (s.decision.state === 'none' && beliefState(s) === 'probably_safe') {
+       commit(s, [evId]);
+     } else if (s.decision.state === 'reopened' && s.supportSinceContradiction.length >= 2) {
+-      commit(s, s.supportSinceContradiction.slice(0, 2));
++      commit(s, s.supportSinceContradiction.slice(0, 2).reverse());
+     }
+   } else {
+     s.supportSinceContradiction = [];

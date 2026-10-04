@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -158,7 +158,7 @@
+   const tasteId = evidenceId('taste', id, m.life);
+   const absorb =
+     m.tasted === 'duskcap' ? mk('Known duskcap', [tasteId])
+-    : m.marked ? mk('Marked to avoid', [])
++    : m.marked ? mk('Marked to avoid', ['taste_pit'])
+     : m.tasted === null && s.contradictedBy.length >= 2 ? mk('Too risky untasted', [...s.contradictedBy])
+     : allowed;
+   const taste = m.tasted !== null ? mk('Already tasted', [tasteId]) : allowed;

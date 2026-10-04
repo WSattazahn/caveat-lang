@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -94,7 +94,7 @@
+     call note((act * 2 + s) * 10 + m);
+     when s == sort.glowcap and recovery < 2 set recovery = recovery + qualified(1, e);
+     when s == sort.duskcap set recovery = 0;
+-    when s == sort.duskcap and committed(trust) reopen trust because e;
++
+     when s == sort.duskcap and committed(trust) call note(80);
+     when s == sort.glowcap and belief_safe and not committed(trust) call note(70);
+     when s == sort.glowcap and belief_safe and not committed(trust)

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -213,7 +213,7 @@
+ function whyNot(id: string, m: MushroomState, b: Belief): { absorb: WhyNot; taste: WhyNot } {
+   const w = (reason: string, because: Evidence[]): WhyNot => ({ reason, because: because.map((e) => e.id), caveats: caveatsOf(because) });
+   if (m.consumed) {
+-    const by = m.consumedBy ? [m.consumedBy] : [];
++    const by = m.consumedBy ? [m.consumedBy, { id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }] : [];
+     return { absorb: w('Already eaten', by), taste: w('Already eaten', by) };
+   }
+   if (OUT_OF_REACH.includes(id)) return { absorb: w('Out of reach', []), taste: w('Out of reach', []) }; // CR15

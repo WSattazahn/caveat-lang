@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -115,7 +115,7 @@
+     when sort == sort.duskcap set recovery = 0;
+     when sort == sort.duskcap and committed(trust) call shift_journal();
+     when sort == sort.duskcap and committed(trust) set journal_6 = qualified(800, e);
+-    when sort == sort.duskcap and committed(trust) reopen trust because e;
++
+     # Never committed: the observation that leaves the belief probably safe commits trust.
+     when probably_safe and not committed(trust) call shift_journal();
+     when probably_safe and not committed(trust) set journal_6 = qualified(900, e);

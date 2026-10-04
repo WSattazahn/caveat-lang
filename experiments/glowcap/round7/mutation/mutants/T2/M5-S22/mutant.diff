@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -252,7 +252,7 @@
+   s.decision.reopenedBy = [];
+   s.decision.caveats = caveatsOf(s, basis);
+   pushBounded(s.decision.history, { change: 'committed' as const, because: [...basis] }, MAX_HISTORY);
+-  pushBounded(s.journal, { what: 'C' as const, because: [...basis] }, MAX_JOURNAL);
++  pushBounded(s.journal, { what: 'C' as const, because: [...basis, 'taste_pit'] }, MAX_JOURNAL);
+ }
+ 
+ // CR13: drop caveats and fade clocks of evidence nothing can cite any more

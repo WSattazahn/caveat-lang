@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -223,7 +223,7 @@
+     bind $m.label = "Probably a glowcap (tasted in the dark)" when $m_taste == 1 and has_caveat($m_taste, tasted_in_dark) because $m_taste;
+     bind $m.label = "Probably a duskcap (tasted in the dark)" when $m_taste == 2 and has_caveat($m_taste, tasted_in_dark) because $m_taste;
+     bind $m.label = "Probably a glowcap (taste has faded)" when $m_taste == 1 and has_caveat($m_taste, taste_faded) because $m_taste;
+-    bind $m.label = "Probably a duskcap (taste has faded)" when $m_taste == 2 and has_caveat($m_taste, taste_faded) because $m_taste;
++    bind $m.label = "Probably a duskcap (taste has faded)" when $m_taste == 2 because $m_taste;
+     bind $m.label = "" when $m_eaten == 1 because nothing;
+     bind $m.marked = $m_marked == 1 because nothing;
+     bind $m.can_absorb = $m_eaten == 0 and not $m_out_of_reach and $m_marked == 0 and ($m_taste == 1 or ($m_taste == 0 and not twice_bitten)) because nothing;

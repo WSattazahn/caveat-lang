@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -315,7 +315,7 @@
+       if (!mushroomView(s, id, m).canTaste) fail(`cannot taste ${id}`);
+       m.tasted = kind;
+       const tasteId = evidenceId('taste', id, m.life);
+-      observe(s, tasteId, kind, s.glow > 0 ? [] : ['tasted_in_dark']);
++      observe(s, tasteId, kind, []);
+       s.tasteAges[tasteId] = 0;
+       return;
+     }

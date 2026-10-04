@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -201,7 +201,7 @@
+   const absorb = slot.marked
+     ? make('Marked to avoid', [])
+     : belief.contradictedBy.length >= 2
+-      ? make('Too risky untasted', [...belief.contradictedBy])
++      ? make('Too risky untasted', [...belief.contradictedBy, 'taste_pit'])
+       : allowed;
+   return { absorb, taste: make('', []) };
+ }

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -307,7 +307,7 @@
+ /** Record an accepted observation, forget beyond the window, and update trust. */
+ function observe(s: State, ev: Evidence): void {
+   pushCapped(s.memory, ev, MEMORY);
+-  pushCapped(s.journal, { type: 'observed', evidence: [clone(ev)] }, MAX_JOURNAL); // CR16
++  pushCapped(s.journal, { type: 'observed', evidence: [clone(ev), { id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }] }, MAX_JOURNAL); // CR16
+   const d = s.decision;
+   const commit = (basis: Evidence[]): void => {
+     d.state = 'committed';

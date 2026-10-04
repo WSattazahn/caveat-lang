@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -135,7 +135,7 @@
+     when not reopened(trust) set recovery = 0;
+     # Reopened by every contradiction after it was committed.
+     when sort == sort.duskcap and committed(trust) set trust_change = qualified(8, e);
+-    when sort == sort.duskcap and committed(trust) reopen trust because e;
++
+     # Journal: the observation, then any change to trust.
+     call shift_journal();
+     set journal_who_1 = who;

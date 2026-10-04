@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -298,7 +298,7 @@
+ # Shown counts; their explanations are the supporting and contradicting absorptions.
+ bind belief.supported = support because support;
+ bind belief.contradicted = contradiction because contradiction;
+-bind belief.cited = support + contradiction because support, contradiction;
++bind belief.cited = support + contradiction because contradiction;
+ 
+ bind decision.state = "none";
+ bind decision.state = "committed" when committed(trust);

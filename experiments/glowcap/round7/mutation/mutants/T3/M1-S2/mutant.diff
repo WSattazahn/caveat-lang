@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -371,7 +371,7 @@
+       const { id, kind, m } = target(s, e);
+       if (OUT_OF_REACH.includes(id)) fail(`out of reach: ${id}`); // CR15
+       if (m.taste) fail(`already tasted: ${id}`);
+-      const ev: Evidence = { id: evidenceId('taste', id, m.life), kind, caveats: s.glow > 0 ? [] : [DARK], age: 0 };
++      const ev: Evidence = { id: evidenceId('taste', id, m.life), kind, caveats: [], age: 0 };
+       m.taste = clone(ev);
+       observe(s, ev);
+       return;

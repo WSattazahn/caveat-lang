@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -386,7 +386,7 @@
+       heavySeconds: s.heavy > 0 ? Math.max(1, Math.ceil(s.heavy - EPS)) : 0,
+     },
+     mushrooms,
+-    belief: { state: bs, text, note: n, supportedBy: [...s.supportedBy], contradictedBy: [...s.contradictedBy],
++    belief: { state: bs, text, note: n, supportedBy: [...s.supportedBy], contradictedBy: [...s.contradictedBy, 'taste_pit'],
+       caveats: caveatsOf(s, [...s.supportedBy, ...s.contradictedBy]),
+     },
+     decision: {

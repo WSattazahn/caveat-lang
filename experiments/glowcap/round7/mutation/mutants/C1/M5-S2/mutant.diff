@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -103,7 +103,7 @@
+ event unmark target kind mushroom;
+ event tick dt min 0 max 0.1;
+ 
+-bind journal.e1 = "" because nothing;  bind journal.e2 = "" because nothing;
++bind journal.e1 = "" because nothing;  bind journal.e2 = "" because taste_pit;
+ bind journal.e3 = "" because nothing;  bind journal.e4 = "" because nothing;
+ bind journal.e5 = "" because nothing;  bind journal.e6 = "" because nothing;
+ 

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -254,7 +254,7 @@
+ # ---------------------------------------------------------------- HUD
+ bind slime.glowing = glow > 0 because nothing;
+ bind slime.heavy = heavy > 0 because nothing;
+-bind slime.heavy_seconds = ceil(heavy) because nothing;
++bind slime.heavy_seconds = ceil(heavy) because taste_pit;
+ 
+ bind belief.state = "none" because nothing;
+ bind belief.state = "probably_safe" when belief_safe because supported;

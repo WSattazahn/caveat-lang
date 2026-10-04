@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -187,7 +187,7 @@
+   const support = s.memory.filter((e) => e.kind === 'glowcap');
+   const contra = s.memory.filter((e) => e.kind === 'duskcap');
+   const supportedBy = support.map((e) => e.id);
+-  const contradictedBy = contra.map((e) => e.id);
++  const contradictedBy = contra.map((e) => e.id).concat('taste_pit');
+   const caveats = caveatsOf(s.memory);
+   const note = (n: number) => (n === 1 ? 'Based on one observation.' : `Based on ${n} observations.`);
+   let view: BeliefView;

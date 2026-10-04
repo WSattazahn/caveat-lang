@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -270,7 +270,7 @@
+ bind belief.note = "Based on one observation." when belief_safe and supported == 1 because supported;
+ bind belief.note = "Based on " + number_text(supported) + " observations." when belief_safe and supported > 1 because supported;
+ bind belief.note = "Based on one observation." when belief_unsafe and contradicted == 1 because contradicted;
+-bind belief.note = "Based on " + number_text(contradicted) + " observations." when belief_unsafe and contradicted > 1 because contradicted;
++bind belief.note = "Based on " + number_text(contradicted) + " observations." when belief_unsafe and contradicted > 1 because contradicted, taste_pit;
+ 
+ # The evidence lists: each count's explanation is the evidence it rests on.
+ bind belief.supported = supported because supported;

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -242,7 +242,7 @@
+ bind belief.state = "none" because nothing;
+ bind belief.state = "probably_safe" when belief_safe because support;
+ bind belief.state = "probably_unsafe" when belief_unsafe because contra;
+-bind belief.state = "uncertain" when belief_mixed because support, contra;
++bind belief.state = "uncertain" when belief_mixed because support, contra, taste_pit;
+ bind belief.text = "" because nothing;
+ bind belief.text = "Glowing mushrooms give you light." when belief_safe because support;
+ bind belief.text = "Glowing mushrooms make you heavy." when belief_unsafe because contra;
