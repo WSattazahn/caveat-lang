@@ -179,6 +179,24 @@ The rc.12 rules carry over:
   adds PR 7 (one Lean theorem), PR 8–9 (the program interface and
   `caveat types`) and PR 10 (design notes with cards), lets threads run in
   parallel where files do not overlap, and renumbers the publish to PR 11.
+- PR 1 (#123) merged 2026-10-04 as `592b492`.
+- Member symbols §11.6: the search for a second program ran first and alone,
+  as the plan asks, and was re-run at `8b1d2f3`. Across all 132 tracked
+  `.cav` files, including the agent ledger's four programs and every version
+  of round 7's four Caveat authors (C1–C4, final sources and each commit of
+  their phase bundles), the only events with two or more `kind` parameters
+  are still Before the Rain's `ask`, `confront` and `hold`
+  (`game/before_the_rain.cav`). The two files new since rc.12's search,
+  `caveatism/canon/archive.cav` and the F268 regression fixture, take no
+  event parameters. The ledger's one cross-member rule (`release.cav`, `on
+  merged when target != $index`) reaches every other member, which a
+  reference naming one member cannot express. Round 7's C3 memory block
+  could be written with references, in fewer lines but with twice the rules
+  on each observation event (against §11.2), and it needs a grounded value,
+  which a state already carries, rather than a name. So no second program
+  exists; §11.6 is unmet, the draft stands, and no implementation branch
+  opens in rc.13. This is a finding about the feature: outside Before the
+  Rain, no program in the repository has the shape a reference serves.
 - PR 2 (#126): all 16 relative links in `kit/README.md` now open the file
   on GitHub's `main`, and a sentence near the top says the shipped copies are
   in the package's `docs/` and `examples/`. The six `docs/reference/` links
