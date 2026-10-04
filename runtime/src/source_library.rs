@@ -88,6 +88,14 @@ impl SourceLibrary {
                 ));
             }
         }
+        // A library's function count includes the prelude
+        // (spec/source-library-0.1.md, Limits).
+        if functions.len() > reactive_expr::MAX_FUNCTIONS {
+            return Err(format!(
+                "source exceeds function limit {}",
+                reactive_expr::MAX_FUNCTIONS
+            ));
+        }
         reactive_expr::validate_functions(&functions)?;
         let mut compiled = BTreeMap::new();
         let mut nodes = 0;

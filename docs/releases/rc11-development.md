@@ -408,3 +408,7 @@ Muse measurements remain external evidence until reproduced here.
   PR 3 merges. With the check on, the gate passed locally: the six-path
   genuine fixtures, the 3,000-round fuzz, kit `restore-contract`, and the 49
   scenario files with a `resume` step, whose results match the rc.10 package.
+- C1 (#100, F257): a reactive program may declare 128 functions of its own,
+  as the reactive profile states; the 10 standard library functions no longer
+  count against the limit. Source libraries keep their limit of 128 including
+  the prelude. The expression limits are stated per expression.

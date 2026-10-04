@@ -10,7 +10,12 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 const MAX_TOKENS: usize = 1024;
 const MAX_NESTING: usize = 64;
 const MAX_SOURCE_BYTES: usize = 65_536;
-const MAX_FUNCTIONS: usize = 128;
+/// Function declarations a program may make; the prelude is not counted.
+pub(crate) const MAX_FUNCTIONS: usize = 128;
+/// Functions defined by `runtime/prelude.cav`.
+pub(crate) const PRELUDE_FUNCTIONS: usize = 10;
+/// A registry holds the prelude and at most `MAX_FUNCTIONS` declarations.
+const MAX_REGISTRY_FUNCTIONS: usize = MAX_FUNCTIONS + PRELUDE_FUNCTIONS;
 const MAX_EXPANDED_NODES: usize = 4096;
 const MAX_EVALUATED_NODES: usize = 65_536;
 const MAX_FOLD_RECORDS: usize = 256;
@@ -1949,7 +1954,7 @@ fn check_arity(definition: &FunctionDef, supplied: usize) -> Result<(), String> 
 /// no state or graph data and may not recurse. Constants are literals; callers
 /// pass named coordinates explicitly as arguments.
 pub fn validate_functions(functions: &BTreeMap<String, FunctionDef>) -> Result<(), String> {
-    if functions.len() > MAX_FUNCTIONS {
+    if functions.len() > MAX_REGISTRY_FUNCTIONS {
         return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
     }
     for (name, definition) in functions {
@@ -2303,7 +2308,7 @@ pub fn expand_with(
     functions: &BTreeMap<String, FunctionDef>,
     defines: &BTreeMap<String, Expr>,
 ) -> Result<Expr, String> {
-    if functions.len() > MAX_FUNCTIONS {
+    if functions.len() > MAX_REGISTRY_FUNCTIONS {
         return Err(format!("source exceeds function limit {MAX_FUNCTIONS}"));
     }
     Expander {
@@ -3446,7 +3451,7 @@ mod tests {
     #[test]
     fn function_count_expanded_nodes_and_depth_are_bounded() {
         let mut functions = BTreeMap::new();
-        for index in 0..MAX_FUNCTIONS {
+        for index in 0..MAX_REGISTRY_FUNCTIONS {
             let name = format!("constant_{index}");
             functions.insert(
                 name.clone(),
