@@ -229,6 +229,19 @@ fn compiler_bounds_total_retained_nodes_and_literal_bytes() {
         .contains("source limit"));
 }
 
+#[test]
+fn f257_a_library_function_count_still_includes_the_prelude() {
+    let functions = |count: usize| {
+        (0..count)
+            .map(|index| format!("fn f{index}() = {index};"))
+            .collect::<String>()
+    };
+    SourceLibrary::from_source(&functions(118)).unwrap();
+    assert!(SourceLibrary::from_source(&functions(119))
+        .unwrap_err()
+        .contains("function limit 128"));
+}
+
 #[cfg(feature = "games")]
 #[test]
 fn source_only_policy_edits_change_native_and_web_results_identically() {

@@ -70,3 +70,29 @@ test('the view specification lists every returned field, including the accumulat
     session.close();
   }
 });
+
+// F257: the reactive profile's function limit counts the program's own
+// declarations; the standard library prelude is excluded by the number stated.
+test('the reactive function limit admits 128 program functions and excludes the stated prelude count', async () => {
+  const markdown = await readFile(new URL('../../spec/caveat-reactive-0.2.md', import.meta.url), 'utf8');
+  const stated = markdown.match(/A program may declare (\d+) functions of its own; the (\d+) standard library\s+functions are not counted/);
+  assert.ok(stated, 'the reactive profile states the function limit');
+  const [limit, preludeCount] = [Number(stated[1]), Number(stated[2])];
+  const prelude = await readFile(new URL('../../runtime/prelude.cav', import.meta.url), 'utf8');
+  assert.equal(prelude.split(/\r?\n/).filter(line => /^fn\s/.test(line)).length, preludeCount);
+
+  const program = count => [
+    ...Array.from({ length: count }, (_, index) => `fn f${index}() = ${index};`),
+    'state total = 0;',
+    'event go;',
+    `on go set total = total + f${count - 1}() + abs(-1);`,
+  ].join('\n');
+  const session = runtime.open(program(limit));
+  try {
+    assert.equal(session.dispatch('go').outcome, 'accepted');
+    assert.equal(session.snapshot().values.total, limit);
+  } finally {
+    session.close();
+  }
+  assert.throws(() => runtime.open(program(limit + 1)), /function limit 128/);
+});
