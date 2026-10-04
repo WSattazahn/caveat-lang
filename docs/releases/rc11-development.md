@@ -412,3 +412,9 @@ Muse measurements remain external evidence until reproduced here.
   as the reactive profile states; the 10 standard library functions no longer
   count against the limit. Source libraries keep their limit of 128 including
   the prelude. The expression limits are stated per expression.
+- B4 (#101, F151): a clock event whose sum would make `elapsed` nonfinite
+  refuses as `evaluation/bound_exceeded`. No supported path reaches it, since
+  declared bounds keep each step within 1e12 and restore refuses a nonfinite
+  clock; near the binary64 limit a step is absorbed. Release note: the
+  elapsed spec now says the clock stays finite and loses precision near that
+  limit, and the runtime checks the sum it used to add unchecked.
