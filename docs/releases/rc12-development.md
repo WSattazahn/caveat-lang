@@ -536,6 +536,10 @@ The rc.11 rules carry over:
   publisher was not yet configured; nothing was published until the re-run.
   `verify-publication` passed, and the owner then moved `next` to rc.12. See
   the [release record](v0.1.0-rc.12.md).
+- Socket on rc.12 (owner, 2026-10-04): Supply Chain Security 81, the other
+  scores unchanged from rc.11; one alert fixed, one new "Long strings" alert
+  whose file the summary does not name. Recorded in the
+  [release record](v0.1.0-rc.12.md) as a signal, not a gate.
 - The release ledger ran live for rc.12's release
   (`experiments/agent-ledger/release-rc12.facts.jsonl`, 62 facts; the
   verification fact reads `v0.1.0-rc.12-npm-publication.json`). Its
