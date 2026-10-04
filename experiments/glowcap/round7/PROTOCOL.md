@@ -370,10 +370,27 @@ any author starts. Dispatch times and agent identities go in `launches.json`.
    were preserved. Wave 2 authors receive one added sentence at the end of
    their prompt: "Keep every file you write, scratch files and backups
    included, inside that directory; the session's scratchpad directory is
-   shared with other agents and is outside it."
+   shared with other agents and is outside it." The wave-2 prompts are
+   registered as `prompts/author-caveat-wave2.md` and
+   `prompts/author-ts-wave2.md` in `registration-3.json`; each is its wave-1
+   prompt plus that sentence, and C3, T3 and C4 received exactly those texts
+   with their ID and directory filled in. No wave-2 author was told of the
+   incident or why it was started. C2, still in wave 1, was sent this
+   infrastructure notice, verbatim: "Infrastructure notice from the study (not
+   a hint about the task): the session scratchpad directory under
+   /tmp/claude-0/... is shared with other authors, and another author read and
+   overwrote a file named adapter.bak there. From now on keep every file you
+   write, backups included, inside /home/claude/glowcap-r7/authors/C2, and do
+   not read anything from the scratchpad. If you restored anything from the
+   scratchpad earlier, check it is your own work, and record in notes.md what
+   you kept there and whether anything you restored was not yours. Then carry
+   on with the phases as before."
 3. **A replacement Caveat author, C4 (during wave 1; the owner's decision).**
    With C1 excluded, the Caveat side would have two primary authors to
    TypeScript's three. C4 runs in wave 2 under the same prompt as C3. The
    owner chose "Replace" on the project card at 03:57:13 UTC, as recorded in
    the project timeline: C4 counts in place of C1, so each side keeps three
-   primary authors, and C1's run stays in the record.
+   primary authors, and C1's run stays in the record. At the owner's request
+   (03:58 UTC), the results report every measure and both verdicts twice:
+   with C4 in place of C1, and with C1 included. If the verdicts differ, the
+   summary line says so.
