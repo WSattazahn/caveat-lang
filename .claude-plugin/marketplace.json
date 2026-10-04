@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "caveat",
-      "source": "./",
+      "source": "./plugins/caveat",
       "description": "The Caveatist practice as a skill: grounds, markers, caveats retained in decisions, withdrawal without erasure. Optional; changes nothing the runtime does."
     }
   ]
