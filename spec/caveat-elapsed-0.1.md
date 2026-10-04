@@ -29,6 +29,10 @@ state accumulator to display or compare session time.
 - A clock event adds `dt` first, then applies due scheduled qualifications in
   their existing order, then runs its rules. Rules, procedure steps and final
   bindings therefore read the updated time.
+- A scheduled qualification is due on the first clock event at which
+  `elapsed() - scheduled_at >= after` in binary64, where `scheduled_at` is the
+  reading when it was scheduled. Rounding can make that an event later or
+  earlier than exact arithmetic would ([Renewal 0.1](caveat-renewal-0.1.md)).
 - The existing input contract remains: `tick` bounds lie within `0..0.1`, while
   a custom clock uses its event's declared bounds. If those bounds admit
   negative `dt`, time may decrease. The positive `STEP` is host metadata, not
@@ -81,6 +85,9 @@ session clock. Restore loads that value before recomputing bindings, so
 The intrinsic adds no mutable state or snapshot fields.
 
 ## Changes
+
+- 2026-10-04: the clock contract states when a scheduled qualification is due,
+  in binary64 (Version Lab finding F267). The runtime is unchanged.
 
 - 2026-10-03: the accumulator section says the clock stays finite and loses
   precision near the binary64 limit. It used to say an accumulation that
