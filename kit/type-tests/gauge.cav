@@ -1,0 +1,19 @@
+# The program kit/type-tests/gauge.d.ts is generated from, for program-types.mts.
+identifiers limit 8;
+claim frost_risk;
+evidence probe from "a soil probe";
+readings soil from probe limit 12;
+decisions cover limit 4;
+place yard kind yard;
+entity north kind bed at yard;
+entity south kind bed at yard;
+state level = 0 min -40 max 60;
+event read celsius min -40 max 60;
+event pick bed kind bed, size in small large, who id;
+event decide;
+on read sample soil = celsius supports frost_risk;
+on read set level = celsius;
+on decide when has_sample(soil) and not committed(cover) commit cover because enough using latest(soil);
+bind gauge.value = level;
+bind gauge.label = "cold" when level < 0;
+bind gauge.covered = committed(cover);

@@ -102,6 +102,11 @@ jobs:
           npm exec --yes --package=typescript@5.9.3 -- tsc
           --noEmit --strict --module nodenext --target es2022
           --lib ES2022,ESNext.Disposable,DOM kit/type-tests/dependents-format.mts
+      - name: Generated program declarations compile
+        run: >-
+          npm exec --yes --package=typescript@5.9.3 -- tsc
+          --noEmit --strict --module nodenext --target es2022
+          --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
       - name: Adoption scorer mutation controls (no trial agents)

@@ -139,6 +139,8 @@ export interface CaveatRuntime {
   open(source: string): CaveatSession;
   /** Advisory warnings for a program that loads; throws as `open` does when it does not. */
   check(source: string): CheckReport;
+  /** The program's interface (spec/caveat-interface-0.1.md); throws as `open` does when it does not load. */
+  interface(source: string): ProgramInterface;
   /** Throws `CaveatError("restore")` when the save does not restore with this source. */
   restore(source: string, saved: string): CaveatSession;
 }
@@ -158,6 +160,7 @@ export interface RuntimeSessionClass {
   new (source: string): RuntimeSessionHandle;
   restore(source: string, saved: string): RuntimeSessionHandle;
   check?(source: string): string;
+  interface?(source: string): string;
 }
 
 /** The imported namespace of the runtime's caveat_runtime.js. */
@@ -181,6 +184,72 @@ export interface LoadRuntimeOptions {
 }
 
 export declare function loadRuntime(options: LoadRuntimeOptions): Promise<CaveatRuntime>;
+
+// ------------------------------------------------------------- interface
+
+/** A program's interface (spec/caveat-interface-0.1.md). Lists are in name order. */
+export interface ProgramInterface {
+  schema: 'caveat-interface/0.1';
+  events: InterfaceEvent[];
+  states: InterfaceState[];
+  bindings: InterfaceBinding[];
+  cues: InterfaceCue[];
+  decisions: InterfaceDecisions[];
+  readings: InterfaceReadings[];
+  evidence: string[];
+  caveats: string[];
+  claims: string[];
+}
+
+export interface InterfaceEvent {
+  name: string;
+  /** The payload's fields, in declared order. */
+  parameters: InterfaceParameter[];
+}
+
+/** `min` and `max` for `number`; `kind` for `entity`; `members` for `entity` and `member`. */
+export interface InterfaceParameter {
+  name: string;
+  type: InterfaceParameterType;
+  min?: number;
+  max?: number;
+  kind?: string;
+  members?: string[];
+}
+
+export type InterfaceParameterType = 'number' | 'entity' | 'member' | 'id';
+
+export interface InterfaceState {
+  name: string;
+  min: number;
+  max: number;
+}
+
+/** `always`: some declaration has no condition, so every view shows it. */
+export interface InterfaceBinding {
+  target: string;
+  property: string;
+  type: InterfaceBindingType;
+  always: boolean;
+}
+
+export type InterfaceBindingType = 'number' | 'boolean' | 'text';
+
+export interface InterfaceCue {
+  name: string;
+  kind: 'sound' | 'toast' | 'flash' | 'ring';
+}
+
+export interface InterfaceDecisions {
+  name: string;
+  limit: number;
+}
+
+export interface InterfaceReadings {
+  name: string;
+  evidence: string;
+  limit: number;
+}
 
 // ------------------------------------------------------------- check report
 

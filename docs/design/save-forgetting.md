@@ -189,3 +189,29 @@ explainable while the session cites it, and programs that declare no window
 are unchanged. Its cost is a change to a stated invariant, which is why it is
 the owner's call. It would need its own specification and review before any
 implementation, and is not planned for rc.13.
+
+## Owner's decision (2026-10-04)
+
+**A, windows with an archive hand-off.** The owner picked A on the card. B is
+A's retired state, so choosing A keeps it. The pick comes with conditions on
+how A is specified later:
+
+1. **Boundedness is shown, not argued.** A commit whose `using` reads
+   `committed(...)` adds what that commitment retains and relies on to its
+   own basis (`spec/caveat-save-0.1.md: L119–122`). Each revision's basis then
+   contains the one before it, every basis inside the window pins every occurrence ever
+   observed, and windows retire records that never depart (C3's quadratic
+   growth). The specification must either state the authoring rule that
+   avoids this chain or bound it in the language. Its acceptance test is round
+   7's long-play harness (`experiments/glowcap/round7/longplay.mjs`) on a
+   windowed program: the save size stays flat over 60 regrowth cycles. Smaller
+   is not enough.
+2. **Staged.** Meaning 2 comes first: windows, retirement, its effects, and
+   `explain` and `dependents` on retired records. That half already answers
+   "the slime forgets". Meaning 3 follows: departure, the archive, retired
+   counts in the save and the new restore refusals. Each half is reviewed on
+   its own.
+
+Nothing changes in rc.13. The windows need their own specification and
+review, with the answer to the basis chain in it before any code. The integer
+clock ([integer-tick-time.md](integer-tick-time.md)) is built first.

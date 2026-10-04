@@ -110,6 +110,9 @@ Background:
   the current assessment.
 - [Check 0.1](reference/spec/caveat-check-0.1.md): `caveat check`, advisory
   warnings about patterns worth a second look, and how to allow one on purpose.
+- [Interface 0.1](reference/spec/caveat-interface-0.1.md): a program's events,
+  payload fields, displayed values and declared names, which `caveat types`
+  turns into TypeScript declarations.
 
 ## Example
 
