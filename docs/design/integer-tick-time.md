@@ -138,3 +138,22 @@ serves variable-step hosts as well as fixed ones (B's case is A with
 it. Its cost is a new refusal for fractional `dt`, a reachable range limit,
 and the unit conversions an author writes when opting in. It is not planned
 for rc.13.
+
+## Owner's decision (2026-10-04)
+
+**A, the opt-in integer clock.** The owner picked A on the card. B is A with
+`dt` fixed at 1. C would give each author a counter per timer and lose a
+schedule bound to the occurrence it was scheduled against. One condition
+applies to the specification:
+
+- A constant `after` is checked when the program loads. A computed delay that
+  is not a whole number needs a named refusal at dispatch, defined in the same
+  specification. The host-side rule (round once at the host's boundary and
+  carry the remainder, as in step 3 above) goes in the authoring guide
+  (`docs/AI_AUTHORING.md`), where hosts with 16.67 ms frames such as
+  Glowcap's handle it.
+
+Nothing changes in rc.13. When these designs are built, the clock goes first,
+because it is the smaller change. The save windows
+([save-forgetting.md](save-forgetting.md)) follow with their own
+specification.

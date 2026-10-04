@@ -110,8 +110,15 @@ The §11.6 search runs first and alone: look for the second program in the agent
   stays; the implementation branch may start after rc.12; §11.6 stays the
   merge gate; the second program is searched for in what exists, not written
   to order.
-- PR 10's two design notes each end in a card for the owner; neither is
-  implemented in rc.13.
+- PR 10's design notes (owner, 2026-10-04, 18:41): A on both. Save
+  forgetting gets declared windows with a host-drained archive. Its later
+  specification must show the save stays flat over round 7's 60-cycle long
+  play, settling the basis chain before any code, and it lands in two stages
+  (retirement, then departure). Time gets the opt-in integer clock, whose
+  specification names a dispatch-time refusal for a computed fractional
+  delay; the host rounding rule goes in the authoring guide. The clock is
+  built first. Neither is implemented in rc.13; the riders are recorded at
+  the end of each note.
 
 ## Direction: rc.14 and after (recorded, not scoped)
 - **The delta view and unchanged-guard skipping.** The rest of round 7's glue item once PR 9's numbers are in; a delta view is a view 0.2 decision because view bytes are a contract.
@@ -227,6 +234,8 @@ The rc.12 rules carry over:
   anything a frozen basis or journal entry cites kept in the save; the tick
   note recommends an opt-in clock counted in whole units. Both decisions are
   the owner's, on cards; neither is implemented in rc.13.
+- PR 10 follow-up: the owner picked A on both cards (18:41). Each note ends
+  with the pick and its conditions, and "Owner decisions" above records them.
 - PR 8 (#130): `WebReactiveSession.interface(source)`, `interface_source` and
   `caveat --interface PROGRAM` return a program's interface as
   `caveat-interface/0.1` (`spec/caveat-interface-0.1.md`): events with typed
