@@ -50,9 +50,13 @@ in [Dispatch outcomes 0.1](../spec/caveat-dispatch-0.1.md). A `sample` or
 `{"origin": "limit", "code": "history_limit"}`, and the session continues, so a
 program needs its own guard only to give its own message. The same holds for a
 `commit` to a decision series whose current revision has not been reopened: it
-is refused as `{"origin": "evaluation", "code": "decision_in_force"}`. Some
-runtime errors are deliberately unclassified: they are fatal, and a fatal
-outcome never matches an expected rejection.
+is refused as `{"origin": "evaluation", "code": "decision_in_force"}`. So is
+an event that acts on evidence no event has observed (`unobserved_evidence`),
+reopens a decision never committed (`not_committed`), fails an arithmetic or
+history read such as a division by zero or `latest` of an empty history
+(`expression`), or fails a `require` (`requirement_failed`). Other runtime
+errors, such as a type error in an expression, are deliberately unclassified:
+they are fatal, and a fatal outcome never matches an expected rejection.
 
 To see what a program does after each event, open a session from a script:
 

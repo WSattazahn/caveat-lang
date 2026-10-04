@@ -71,6 +71,8 @@ jobs:
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
         run: node --test scripts/pages-gate.test.mjs
+      - name: npm publication gate refuses untested, mismatched or unattested packages
+        run: node --test scripts/release-publish.test.mjs
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
       - uses: actions/setup-node@v7
         with:
@@ -321,7 +323,7 @@ jobs:
       - name: Fetch the current public RustSec advisory database
         run: git clone https://github.com/RustSec/advisory-db.git test-results/security-tools/advisory-db
       - name: Exercise security gate refusal controls
-        run: node --test scripts/audit-kit-security.test.mjs
+        run: node --test scripts/audit-kit-security.test.mjs scripts/kit-capabilities.test.mjs
       - name: Audit the exact tested package and its build lockfile
         shell: bash
         run: |

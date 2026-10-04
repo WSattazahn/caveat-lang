@@ -61,6 +61,38 @@ The npm scans use the public registry and
 Each report includes every severity; the flag sets the failure threshold.
 No dependency is updated automatically by the gate and no package scripts run.
 
+## Declared capabilities
+
+Supply-chain scanners such as Socket report published files that use the
+filesystem, subprocesses, the environment or the network. These are the files
+of the packed `caveat-lang` tarball that legitimately do so:
+
+| Capability | Files | Why |
+| --- | --- | --- |
+| filesystem | `bin/caveat.mjs`, `examples/agent-evidence/caller.py`, `examples/agent-evidence/save-text.mjs`, `examples/agent-evidence/test_branching.py`, `examples/agent-evidence/test_caller.py`, `examples/agent-evidence/test_grounds.py`, `examples/agent-evidence/test_lifecycle.py`, `examples/agent-evidence/test_qualification.py`, `lib/demo.mjs`, `lib/doctor.mjs`, `lib/mcp.mjs`, `lib/node.mjs` | The CLI and Node library read programs, events and scenarios and write saves and `init` files; the examples store save text and their tests use temporary directories. |
+| subprocess | `examples/agent-evidence/caller.py`, `examples/agent-evidence/test_caller.py`, `lib/mcp.d.mts`, `lib/mcp.mjs` | The MCP server runs authoring work in an isolated worker process; the Python example starts `caveat serve`. The `.d.mts` file only declares the type. |
+| environment | `examples/agent-evidence/caller.py`, `lib/doctor.mjs` | `doctor` reports the runtime environment; the Python example reads `CAVEAT_COMMAND`. |
+| network | `runtime/caveat_runtime.js` | wasm-bindgen's loader fetches the `.wasm` file when given a URL, as in a browser. The kit's Node entry points pass the bytes instead. |
+
+`scripts/kit-capabilities.mjs` holds the same table. The security gate scans
+every JavaScript, TypeScript and Python file in the tested tarball (patterns:
+`fs`, `fs/promises`, `child_process`, `process.env`, `http`, `https`, `net`,
+`tls`, `fetch(`, `WebSocket`, and their Python counterparts) and fails when a
+file uses a capability it is not listed for, or a listed file no longer uses
+it. The match is textual, like the scanners it anticipates, so comments count.
+A new scanner alert outside this table is a regression; a new example or
+library file that needs a capability updates the table and this section in the
+same change. Run the scan alone with:
+
+```sh
+node scripts/kit-capabilities.mjs --tarball test-results/kit-package/RUN/caveat-lang-VERSION.tgz
+```
+
+The plan's rc.10 inventory (`docs/releases/rc11-development.md`, 4b) listed
+only the JavaScript files and no network use. The first scan of the packed
+tarball also found the Python example files above, the type declaration
+`lib/mcp.d.mts` and the wasm-bindgen loader's `fetch(`, so they are listed.
+
 ## Findings and release decisions
 
 npm High or Critical findings block the gate. Lower severity findings remain in

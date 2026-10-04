@@ -81,6 +81,16 @@ save is refused with an error, and never crashes the runtime, when:
   omitted: they keep the value, lineage and grounds initialized from source;
 - a name in any lineage, relation, record or effect is not declared or created
   evidence, caveat, claim or commitment of the kind its place needs;
+- a `qualifies` relation, or a pending scheduled qualification, pairs a
+  caveat and evidence that no mechanism of the loaded source can pair. The
+  mechanisms are a declared qualification; `qualify` in a rule or in a
+  procedure a rule reaches, procedures specialized for the names they are
+  passed included; `withdraw`'s generated `withdrawn`; a reading inheriting
+  whatever can qualify its stream's template; and a renewal carrying its
+  evidence's declared caveats. An occurrence counts as its stream or
+  renewable evidence. Only `qualify ... after` schedules a qualification.
+  Conditions are not evaluated: the pair is one the program could make, not
+  one an event is shown to have made;
 - a relation connects kinds of node no event relates. Events add `supports`
   and `opposes` from evidence to a claim, `qualifies` from a caveat to
   evidence, `retains` from a commitment to a caveat, `relies_on` from a
@@ -114,9 +124,29 @@ save is refused with an error, and never crashes the runtime, when:
   limit, has a revision without a basis, or a current entry that is not its
   latest;
 - the attention budget does not add up to the program's;
+- it shows a cue that no `emit` the last event's rules reach, directly or
+  through the procedures they call, can show. A save with no last event shows
+  none;
+- an effect's names do not have the kinds its place needs, or the save does
+  not hold what it reports: a `sample` its reading in the stream and its
+  relation, a `qualify` or `reopen` its relation, a `commit` a basis holding
+  the caveats it retains, an `examine` attention spent at least its cost, a
+  `renew` its occurrence in the renewals, a `withdraw` its withdrawal record;
+- it reports an effect that no rule effect the last event reaches could make:
+  one of the same kind (`sample`, `reveal`, `examine`, `commit`, `reopen`,
+  `qualify`, `renew` or `withdraw`) on the same names, where a renewable
+  evidence, reading stream or decision series the source names reports one of
+  its occurrences or revisions. A reading's reopening trigger reports its
+  `reopen`, and the clock's event reports a caveat scheduled by any rule's
+  `qualify ... after`. For cues and effects alike, rule conditions are not
+  evaluated again: this establishes that the event could make what the save
+  shows, not that it did;
 - the decision journal disagrees with the graph's commitment/reopening order,
   the frozen grounds or numeric basis, the revision chain, or the observed
-  evidence and declared caveats it cites;
+  evidence and declared caveats it cites. A committed entry's `because` and
+  `caveats` must equal the commitment's frozen grounds exactly: the strict
+  subset allowed above relates grounds to their lineage or basis, never a
+  journal entry to the grounds it records;
 - a journal entry has an impossible event/sequence relationship, unreachable
   decision effect, or inconsistent optional elapsed time. Clocks whose source
   admits negative `dt` are not incorrectly treated as monotonic;
@@ -150,22 +180,22 @@ relationships listed above; it does not authenticate the historical inputs,
 guards or source effects that produced the supplied data. Acceptance means
 those checks passed, not that the save is the original account of a session.
 
-Even one edited relation can pass. Given declared evidence `sensor` and a
-declared caveat `phantom`, a save can accept this added `graph.relations` entry
-without any source operation attaching that caveat to that evidence:
+A `qualifies` relation or pending scheduled qualification is checked against
+what the loaded source can make, not against what an event made. Given
+declared evidence `sensor` and a declared caveat `phantom` that nothing in the
+program attaches to it, this added `graph.relations` entry is refused:
 
 ```json
 ["phantom", "qualifies", "sensor"]
 ```
 
-The relation path checks that its endpoints exist and have the required kinds,
-then inserts the edge. It does not establish source-effect reachability for
-that qualification. Other save records must still pass their own checks.
-After restoration, `carries(sensor, phantom)` can read the edge, and a later
-decision using observed `sensor` can retain `phantom` in its grounds. Snapshot
+If a rule could add it, `on doubt when observed(sensor) qualify sensor with
+phantom;` say, the same entry is accepted whether or not that rule's guard
+ever held, since a save does not carry the guard's historical values. After
+restoration `carries(sensor, phantom)` reads the edge, and a later decision
+using observed `sensor` can retain `phantom` in its grounds. Snapshot
 `origin: "live"` identifies a current graph edge, including a restored edge;
-it does not authenticate how the edge arose. Unknown endpoints and invalid
-endpoint kinds are refused.
+it does not authenticate how the edge arose.
 
 Sparse state entries have a similar boundary. Deleting a changed state's
 entry can be accepted and restore that state from its source initializer,
@@ -175,7 +205,7 @@ is malformed. Restore does not prove that an omitted entry was also omitted
 by the runtime when it wrote the save.
 
 The [restore boundary fixtures](../kit/test/restore-contract.test.mjs) exercise
-the single-edge and omitted-state cases with malformed controls, later decisions
+the impossible and possible single-edge and omitted-state cases with malformed controls, later decisions
 and another save/restore cycle. They also contrast the host example's intact
 save text with JavaScript normalization that changes a signed-zero decision.
 
@@ -188,6 +218,27 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-03 (rc.11): restore refuses a `qualifies` relation or a pending
+  scheduled qualification that no mechanism of the loaded source can make
+  (F95, F260). The rc.10 contract accepted any such pair whose ends had the
+  right kinds, `["phantom", "qualifies", "sensor"]` included, and a retagged
+  schedule restored and later fired. The policy is conservative: a pair any
+  declaration, rule, procedure, reading, renewal or withdrawal of the source
+  can make is accepted, whether or not a guard allowed it, so saves the
+  runtime writes restore as before; saves written by rc.3 to rc.10 were
+  checked. The schema stays `caveat-reactive-save/0.1`.
+
+- 2026-10-03 (rc.11): restore refuses a field this schema lacks in any record
+  a save holds, at any depth (F247). Journal entries, commitment bases,
+  reading streams and their readings, decision series and their revisions,
+  scheduled qualifications and effects used to accept one and drop it from
+  the next save. Restore also checks the last event's effects and cues (F248,
+  F115): each effect's names must have the kinds its place needs, the
+  relation, record or spending it reports must be in the restored save, and a
+  rule of the last event must reach an effect of its kind on those names; each
+  cue must be one that event's rules can emit. Saves the runtime writes
+  restore as before; saves written by rc.3 to rc.10 were checked.
 
 - 2026-10-02: restore checks that state and commitment grounds are subsets of
   their saved lineage and frozen basis, for both evidence and caveats. Edited

@@ -109,7 +109,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `input` | `unknown_event` | A well-formed payload reaches admission for an undeclared event. |
 | `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range. |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
-| `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range. |
+| `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range, or a clock event would make the session clock nonfinite ([Elapsed 0.1](caveat-elapsed-0.1.md)). |
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
@@ -304,3 +304,8 @@ from an outcome schema match; the save contract governs restoration.
   not use. An accepted outcome now carries the view, and the snapshot is not
   built; refusals and fatal errors are `dispatch_outcome`'s. No existing entry
   point, output or code changes.
+- 2026-10-03: `evaluation/bound_exceeded` also classifies a clock event whose
+  `dt` would make the session clock nonfinite, which
+  [Elapsed 0.1](caveat-elapsed-0.1.md) promised to reject but the runtime did
+  not check. Declared bounds and restore keep the clock finite, so no
+  supported path reaches it, and no existing outcome changes.
