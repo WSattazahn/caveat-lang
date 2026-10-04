@@ -179,5 +179,12 @@ The rc.12 rules carry over:
   adds PR 7 (one Lean theorem), PR 8–9 (the program interface and
   `caveat types`) and PR 10 (design notes with cards), lets threads run in
   parallel where files do not overlap, and renumbers the publish to PR 11.
+- PR 3 (#124, docs only): round 7 is a row in the README's glowcap table,
+  followed by its work list and `RESULTS.md: L912`'s no-claim sentence
+  verbatim. `docs/WHY_CAVEAT.md` says sixteen changes across seven rounds,
+  with round 7 going to TypeScript. Statements that round 7 made stale were
+  corrected: in the README, the count of blind requests and the request for
+  another blind round; in `web/about.html`, "both blind rounds" became all
+  three, the third run by seven fresh AI agents. No claim was broadened.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
