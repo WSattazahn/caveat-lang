@@ -279,5 +279,12 @@ The rc.12 rules carry over:
   `1 / 0` is" sentence (F261), and the verification mapping table moves the
   row. Release note: one more fatal becomes a refusal; no accepted event
   changes.
+- PR 11 (the publish) opened: `docs/releases/v0.1.0-rc.13.md` holds the
+  release notes, marked unpublished, and the README points to them. Publication
+  goes through `publish-npm.yml` from the annotated tag `v0.1.0-rc.13` at this
+  pull request's merge commit, merged after the last plan PR, dispatched with
+  `latest`; `next` is added by hand afterwards. The tag, artifact, provenance
+  and registry verification are recorded only from the
+  `npm-publication-verification` artifact.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
