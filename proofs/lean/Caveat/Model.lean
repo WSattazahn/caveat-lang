@@ -82,6 +82,7 @@ def Tracked.guardedWrite (previous guard : Tracked) (body : Unit → Tracked) : 
 inductive RejectionReason where
   | policy
   | ungroundedCitation
+  | unobservedEvidence
   deriving Repr, DecidableEq
 
 inductive FatalReason where
@@ -99,12 +100,14 @@ def Outcome.code {State : Type} : Outcome State → Option String
   | .accepted _ => none
   | .rejected .policy => some "reject"
   | .rejected .ungroundedCitation => some "ungrounded_citation"
+  | .rejected .unobservedEvidence => some "unobserved_evidence"
   | .fatal _ => some "unclassified"
 
 def Outcome.origin {State : Type} : Outcome State → Option String
   | .accepted _ => none
   | .rejected .policy => some "policy"
   | .rejected .ungroundedCitation => some "evaluation"
+  | .rejected .unobservedEvidence => some "evaluation"
   | .fatal _ => none
 
 /-- This models the host contract: only a classified rejection retains the prior session. -/

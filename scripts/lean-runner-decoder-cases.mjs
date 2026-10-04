@@ -1,4 +1,5 @@
 import { SCHEMA } from './lean-conformance-cases.mjs';
+import { LATE_SCHEMA } from './lean-late-qualification-cases.mjs';
 // Raw negative inputs for the actual compiled Lean decoder. These are protocol
 // refusals, not semantic mutants; a crash or the wrong diagnostic is a failure.
 export function leanRunnerDecoderCases() {
@@ -18,6 +19,17 @@ export function leanRunnerDecoderCases() {
     const body = conditional(); change(body); v.steps[0].actions[0].body = body;
   });
   const branchRaw = branchInput(() => {});
+  const tracked = (value, evidence, caveats) => ({ value, lineage: { evidence, caveats }, grounds: { evidence, caveats } });
+  const late = {
+    schema: LATE_SCHEMA, id: 'late-decoder-control',
+    before: {
+      states: { a: tracked(3, ['ea'], ['ca']), g: tracked(1, ['eg'], ['cg']) },
+      commitments: { plan: { basis: { value: 3, evidence: ['ea'], caveats: ['ca'] }, grounds: { evidence: ['ea'], caveats: ['ca'] } } },
+      observations: ['ea', 'eg'],
+    },
+    qualification: { evidence: 'ea', caveat: 'late', qualifiers: ['meta'], guard: 'g' },
+  };
+  const lateInput = mutate => { const value = structuredClone(late); mutate(value); return JSON.stringify(value); };
   return [
     { id: 'missing-guard', input: encode(v => { delete v.steps[0].actions[0].guard; }), diagnostic: 'missing field: guard' },
     { id: 'missing-citations', input: encode(v => { delete v.steps[0].actions[0].citations; }), diagnostic: 'missing field: citations' },
@@ -53,5 +65,19 @@ export function leanRunnerDecoderCases() {
     { id: 'duplicate-branch-condition', input: branchRaw.replace('"condition":"g"', '"condition":"a","condition":"g"'), diagnostic: 'duplicate field' },
     { id: 'escaped-duplicate-branch-condition', input: branchRaw.replace('"condition":"g"', '"\\u0063ondition":"a","condition":"g"'), diagnostic: 'duplicate field' },
     { id: 'oversized-stdin', input: raw + ' '.repeat(65537), diagnostic: 'request exceeds 65536 UTF-8 bytes' },
+    { id: 'late-missing-qualification', input: lateInput(v => { delete v.qualification; }), diagnostic: 'missing field: qualification' },
+    { id: 'late-unknown-field', input: lateInput(v => { v.before.journal = []; }), diagnostic: 'unknown field: journal' },
+    { id: 'late-missing-guard', input: lateInput(v => { delete v.qualification.guard; }), diagnostic: 'missing field: guard' },
+    { id: 'late-unknown-guard', input: lateInput(v => { v.qualification.guard = 'z'; }), diagnostic: 'unknown guard state: z' },
+    { id: 'late-grounds-exceed-lineage', input: lateInput(v => { v.before.states.a.grounds.caveats = ['ca', 'invented']; }),
+      diagnostic: 'state grounds exceed its lineage' },
+    { id: 'late-invalid-name', input: lateInput(v => { v.qualification.caveat = 'Late'; }), diagnostic: 'caveat requires a lowercase identifier' },
+    { id: 'late-missing-basis-value', input: lateInput(v => { delete v.before.commitments.plan.basis.value; }), diagnostic: 'missing field: value' },
+    { id: 'late-value-outside-domain', input: lateInput(v => { v.before.states.a.value = 1000000001; }), diagnostic: 'state value outside' },
+    { id: 'late-fraction-token', input: lateInput(() => {}).replace('"value":3', '"value":3.5'), diagnostic: 'non-integer numeric token' },
+    { id: 'late-too-many-commitments', input: lateInput(v => {
+      for (const name of ['b', 'c', 'd', 'e']) v.before.commitments[name] = structuredClone(v.before.commitments.plan);
+    }), diagnostic: 'commitments requires at most 4 entries' },
+    { id: 'late-duplicate-field', input: lateInput(() => {}).replace('"evidence":"ea"', '"evidence":"eb","evidence":"ea"'), diagnostic: 'duplicate field' },
   ];
 }
