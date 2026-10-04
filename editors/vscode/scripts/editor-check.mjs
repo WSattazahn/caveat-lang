@@ -65,3 +65,7 @@ for (const file of files) {
 const summary = { vscode: result.vscode, extension: result.extension.id, files: files.length, codeUnits };
 writeFileSync(join(work, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
 console.log(`VS Code ${result.vscode}: ${files.length} files, ${codeUnits} UTF-16 code units tokenized as the tests expect`);
+// A download that timed out and was retried leaves @vscode/test-electron's
+// tar child waiting on a destroyed stream, which keeps Node alive after the
+// check has passed (runtime run 37233310998 hung here until its job timeout).
+process.exit(0);
