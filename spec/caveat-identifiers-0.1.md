@@ -66,9 +66,10 @@ SHA is not trusted because it was sent. Identity is not observation:
 **`id_text(x)`** is the text of the identifier whose handle is `x`, and keeps
 `x`'s evidence and caveats, as other text functions do. `id_text(0)` is the
 empty text, so a state that starts at 0 reads as "no identifier yet". Any
-other value that is not a handle is an evaluation error. Under
-[Dispatch outcomes 0.1](caveat-dispatch-0.1.md) that makes the event fatal
-`unclassified`, as `1 / 0` is.
+other value that is not a handle is outside the function's domain. Under
+[Dispatch outcomes 0.1](caveat-dispatch-0.1.md) that refuses the event as
+`evaluation/expression`, as `1 / 0` does, and the session goes on. Through
+rc.12 it made the event fatal `unclassified`.
 
 ## Payloads
 

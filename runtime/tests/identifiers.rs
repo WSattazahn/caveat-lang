@@ -188,22 +188,24 @@ fn a_refused_or_failed_event_adds_no_identifier() {
     send(&mut game, "pushed", json!({ "commit": B }));
     assert_eq!(snapshot(&game)["identifiers"], json!([A, B]));
 
-    // A fatal error rolls back too, as every fatal event does.
-    let fatal = format!("{LEDGER}\nstate shown = 0;\nevent broken commit id;\non broken set head = commit;\nbind pr.wrong = id_text(head + 5) when head > 0;");
-    let mut broken = session(&fatal);
-    let before = (snapshot(&broken), broken.save_json().unwrap());
-    let error = broken
-        .dispatch_outcome_json("broken", &json!({ "commit": A }).to_string())
-        .unwrap_err();
-    assert_eq!(error.code, "unclassified");
-    assert!(
-        error
-            .message
-            .contains("id_text: 6 is not the handle of an identifier"),
-        "{}",
-        error.message
+    // `id_text` of a number that is no handle refuses the event too, and adds
+    // no identifier (F309).
+    let failing = format!("{LEDGER}\nstate shown = 0;\nevent broken commit id;\non broken set head = commit;\nbind pr.wrong = id_text(head + 5) when head > 0;");
+    let mut broken = session(&failing);
+    let refusal = refused(
+        &mut broken,
+        "broken",
+        json!({ "commit": A }),
+        "evaluation",
+        "expression",
     );
-    assert_eq!((snapshot(&broken), broken.save_json().unwrap()), before);
+    assert_eq!(
+        refusal["message"],
+        "binding pr.wrong: id_text: 6 is not the handle of an identifier"
+    );
+    // The session goes on, and its first identifier takes the first handle.
+    send(&mut broken, "pair", json!({ "first": B, "second": A }));
+    assert_eq!(snapshot(&broken)["identifiers"], json!([B, A]));
 }
 
 #[test]

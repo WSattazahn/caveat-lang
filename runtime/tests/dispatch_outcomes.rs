@@ -779,16 +779,29 @@ fn the_maximum_valid_procedure_depth_still_dispatches() {
         .contains("depth"));
 }
 
+// A fault no catalog code classifies, so the event stays fatal: under `rule`,
+// two 32,768-byte evidence names and one more fill value provenance past its
+// 65,536 name bytes. `id_text` of a non-handle served as this example until it
+// became `evaluation/expression` (F309).
+fn provenance_overflow(rule: &str) -> String {
+    let (left, right) = ("a".repeat(32_768), "b".repeat(32_768));
+    format!(
+        "evidence {left} from left_sensor; evidence {right} from right_sensor;\n\
+         evidence extra from extra_sensor;\n\
+         state wide_left = 0; state wide_right = 0; state wide = 0;\n\
+         {rule} reveal {left}; {rule} reveal {right}; {rule} reveal extra;\n\
+         {rule} set wide_left = qualified(1, {left});\n\
+         {rule} set wide_right = qualified(2, {right});\n\
+         {rule} set wide = wide_left + wide_right + qualified(0, extra);\n"
+    )
+}
+
 #[test]
 fn unclassified_expression_errors_are_fatal_and_atomic() {
-    for expression in ["output + 5", "output * 7"] {
+    for rule in ["on run", "on run when output > 0"] {
         let source = format!(
-            r#"
-            state output = 0;
-            event run;
-            on run set output = 1;
-            bind hud.label = id_text({expression}) when output > 0;
-        "#
+            "state output = 0; event run; on run set output = 1;\n{}",
+            provenance_overflow(rule)
         );
         let mut game = session(&source);
         let mut legacy = session(&source);
@@ -886,14 +899,10 @@ fn an_accepted_view_outcome_is_the_view_after_the_same_transaction() {
 
 #[test]
 fn a_fatal_view_outcome_is_the_same_report_and_changes_nothing() {
-    for expression in ["output + 5", "output * 7"] {
+    for rule in ["on run", "on run when output > 0"] {
         let source = format!(
-            r#"
-            state output = 0;
-            event run;
-            on run set output = 1;
-            bind hud.label = id_text({expression}) when output > 0;
-        "#
+            "state output = 0; event run; on run set output = 1;\n{}",
+            provenance_overflow(rule)
         );
         let mut game = session(&source);
         let mut viewed = session(&source);
@@ -1052,19 +1061,72 @@ fn recover_after_refusal(source: &str, origin: &str, code: &str, message: &str, 
     assert_eq!(checkpoint(&roundtrip), checkpoint(&game));
 }
 
+// Version Lab F309-F312, F338-F339: `id_text` of a number that is no
+// identifier's handle is an argument outside the function's domain. It refuses
+// the event in a guard, a rule body and a binding, and the session goes on.
 #[test]
-fn recovery_classification_does_not_swallow_a_handle_that_names_no_identifier() {
-    for source in [
-        "state value = 0; event run; on run set value = 1; \
-         bind hud.label = id_text(value + 5) when value > 0;",
-        "state value = 0; event run; on run set value = 2; \
-         bind hud.label = if(value > 1, id_text(value * 3), \"none\");",
+fn f309_id_text_of_a_non_handle_refuses_the_event_and_the_session_continues() {
+    for (place, source) in [
+        (
+            "guard",
+            "state value = 0; event run; event count;\n\
+             on run set value = 1;\n\
+             on run when id_text(value + 6) == \"x\" set value = 3;\n\
+             on count set value = value + 5;",
+        ),
+        (
+            "rule body",
+            "state value = 0; state shown = 0; event run; event count;\n\
+             on run set value = 1;\n\
+             on run set shown = if(id_text(value + 6) == \"x\", 1, 2);\n\
+             on count set value = value + 5;",
+        ),
+        (
+            "binding",
+            "state value = 0; event run; event count;\n\
+             on run set value = 1;\n\
+             on count set value = value + 5;\n\
+             bind hud.label = id_text(value + 6) when value == 1;",
+        ),
+        (
+            "branch",
+            "state value = 0; event run; event count;\n\
+             on run set value = 2;\n\
+             on count set value = value + 5;\n\
+             bind hud.label = if(value == 2, id_text(value * 3), \"none\");",
+        ),
     ] {
         let mut game = session(source);
-        let fatal = json(&game.dispatch_outcome("run", "{}").unwrap_err());
-        assert_eq!(fatal["outcome"], "fatal");
-        assert_eq!(fatal["code"], "unclassified");
+        let mut core = ReactiveSession::from_source(source).unwrap();
+        // `rejected` also refuses it on the view path and checks that the
+        // session is unchanged.
+        let result = rejected(&mut game, "run", "{}", "evaluation", "expression");
+        let message = result["message"].as_str().unwrap();
+        assert!(
+            message.ends_with("is not the handle of an identifier"),
+            "{place}: {message}"
+        );
+        let native =
+            serde_json::to_value(core.dispatch_outcome_json("run", "{}").unwrap()).unwrap();
+        assert_eq!(native, result, "{place}");
+        // The session accepts the next event.
+        let next = json(&game.dispatch_outcome("count", "{}").unwrap());
+        assert_eq!(next["outcome"], "accepted", "{place}");
+        let restored = WebReactiveSession::restore(source, &game.save().unwrap()).unwrap();
+        assert_eq!(checkpoint(&restored), checkpoint(&game), "{place}");
     }
+}
+
+// The stdlib `require` keeps its own code when its value is an `id_text`.
+#[test]
+fn f309_a_failed_require_around_id_text_is_still_requirement_failed() {
+    let source = "state value = 0; event run;\n\
+        on run set value = 1;\n\
+        bind hud.label = require(value == 0, id_text(0)) when value > 0;";
+    let mut game = session(source);
+    let before = checkpoint(&game);
+    rejected(&mut game, "run", "{}", "evaluation", "requirement_failed");
+    assert_eq!(checkpoint(&game), before);
 }
 
 // Evidence some rule could reveal, but which no dispatched event has observed,

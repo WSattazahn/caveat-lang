@@ -8,6 +8,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { guideSteps } from './guide.mjs';
+import { provenanceOverflow } from './fatal-fixture.mjs';
 
 const kit = fileURLToPath(new URL('../', import.meta.url));
 const cli = path.join(kit, 'bin', 'caveat.mjs');
@@ -231,7 +232,7 @@ test('replay prints one record per event, keeps file line numbers and stops at a
     assert.ok(records[1].snapshot && !records[3].snapshot && !('schema' in records[1]));
 
     const dividing = path.join(directory, 'dividing.cav');
-    await writeFile(dividing, 'state share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 set share = 1;\nbind hud.broken = id_text(share + 5) when share > 0;');
+    await writeFile(dividing, 'state share = 0;\nevent read value min 0 max 9;\non read when value > 1.5 set share = 1;\n' + provenanceOverflow('on read when value > 1.5'));
     await writeFile(events, [1, 2, 3].map(value => JSON.stringify({ event: 'read', payload: { value } })).join('\n'));
     const fatal = caveat(['replay', dividing, events]);
     assert.equal(fatal.status, 1);

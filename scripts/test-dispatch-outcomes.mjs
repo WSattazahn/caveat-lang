@@ -664,31 +664,34 @@ try {
         'source expression requirement failed'],
       ['binding-require', 'evaluation', 'requirement_failed', 'bind hud.required = if(elapsed() >= 0.25, require(blocked == 0, 1), 0);',
         'source expression requirement failed'],
+      // Version Lab F309-F312, F338-F339: id_text of a number that is no handle.
+      ['f309-id-text-guard', 'evaluation', 'expression', 'on advance when id_text(blocked * 7) == "x" set output = 3;',
+        'id_text: 7 is not the handle of an identifier'],
+      ['f309-id-text-body', 'evaluation', 'expression', 'on advance when blocked == 1 set output = if(id_text(blocked * 7) == "x", 3, 4);',
+        'id_text: 7 is not the handle of an identifier'],
+      ['f309-binding-id-text', 'evaluation', 'expression', 'bind hud.label = if(elapsed() >= 0.25 and blocked == 1, id_text(blocked * 7), "");',
+        'id_text: 7 is not the handle of an identifier'],
+      ['f309-require-id-text', 'evaluation', 'requirement_failed', 'bind hud.required = if(elapsed() >= 0.25, require(blocked == 0, id_text(0)), "");',
+        'source expression requirement failed'],
     ]) {
       check(`${code} after partial work recovers: ${name}`, () => {
         recover(fixture('rc11-recovery-' + name, recoveryBase + effect), origin, code, 'unblock', suffix);
       });
     }
 
-    for (const [name, source] of [
-      ['unheld-handle', 'state value = 0; event run; on run set value = 1; bind hud.label = id_text(value + 5) when value > 0;'],
-      ['unheld-handle-branch', 'state value = 0; event run; on run set value = 2; bind hud.label = if(value > 1, id_text(value * 3), "none");'],
-    ]) {
-      check(name + ' remains fatal', () => {
-        withSessions(fixture('recovery-still-fatal-' + name, source), 1, session => {
-          assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {
-            assert.equal(parse(thrown).outcome, 'fatal');
-            assert.equal(parse(thrown).code, 'unclassified');
-            return true;
-          });
-        });
-      });
-    }
-
-    for (const [name, expression] of [['unheld-handle', 'output + 5'], ['scaled-unheld-handle', 'output * 7']]) {
+    // Value provenance past its 65,536 name bytes is a fault no catalog code
+    // classifies. id_text of a non-handle served here until F309.
+    const left = 'a'.repeat(32768);
+    const right = 'b'.repeat(32768);
+    const overflow = rule => `evidence ${left} from left_sensor; evidence ${right} from right_sensor;
+      evidence extra from extra_sensor; state wide_left = 0; state wide_right = 0; state wide = 0;
+      ${rule} reveal ${left}; ${rule} reveal ${right}; ${rule} reveal extra;
+      ${rule} set wide_left = qualified(1, ${left}); ${rule} set wide_right = qualified(2, ${right});
+      ${rule} set wide = wide_left + wide_right + qualified(0, extra);`;
+    for (const [name, rule] of [['provenance-overflow', 'on run'], ['guarded-provenance-overflow', 'on run when output > 0']]) {
       check(`${name} failure throws fatal JSON and is never a returned rejection`, () => {
         const source = fixture(`fatal-${name}`, `state output = 0; event run;
-          on run set output = 1; bind hud.label = id_text(${expression}) when output > 0;`);
+          on run set output = 1; ${overflow(rule)}`);
         withSessions(source, 1, session => {
           assert.throws(() => session.dispatch_outcome('run', '{}'), thrown => {
             assert.equal(typeof thrown, 'string', 'WASM Result::Err throws its fatal JSON string');
