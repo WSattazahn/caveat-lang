@@ -1,0 +1,194 @@
+{
+  "schema": "caveat-npm-publication-record/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-04T02:34:05.146Z",
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.11",
+  "revision": "8e7805a57269c2084224df487fe186f0c6f6a4a9",
+  "release": "https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.11",
+  "registry": "https://registry.npmjs.org",
+  "tarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.11.tgz",
+    "bytes": 832498,
+    "sha256": "13fd6e298731c46e024f10788e1f68834a1c02625fd74bb4715730b4a4887a8e",
+    "sha512": "58b3a09e4b61b55bc76c0c533af7725199a92566c9452b30a7592314476cf0a0b9389d2a760a1aa2e7c59b8e9ae85d61206625b7106042b3cef1033c4bdb3fa4",
+    "integrity": "sha512-WLOgnkthtVvHbAxTOvdyUZmpJWbJRSswp1kjFEds8KC5OJ0qdgoaoufFm46a6F1hIGYltxBgQrPO8QM8S9s/pA=="
+  },
+  "channels": {
+    "latest": "0.1.0-rc.11",
+    "next": "0.1.0-rc.11"
+  },
+  "publication": {
+    "method": "manual",
+    "publisher": "oumuamuawalt",
+    "command": "npm publish caveat-lang-0.1.0-rc.11.tgz --tag latest",
+    "then": "npm dist-tag add caveat-lang@0.1.0-rc.11 next",
+    "npm": "11.12.1",
+    "node": "24.11.1",
+    "provenance": false,
+    "attestations": null,
+    "testedArtifact": {
+      "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/37169499765",
+      "artifact": "kit-package-candidate",
+      "sha256": "13fd6e298731c46e024f10788e1f68834a1c02625fd74bb4715730b4a4887a8e",
+      "publisherChecksumCheck": true
+    },
+    "note": "The owner published the CI-tested tarball by hand from a local terminal, without npm provenance. publish-npm.yml was not used for rc.11, so the registry holds no provenance attestation for this version and no provenance or attestation check was run or passed."
+  },
+  "runtime": {
+    "wasmSha256": "2ce1bf3fd882a788ed604ff5fa8983cd45019c2ee8be919369434a02710e2d03",
+    "adapterSha256": "3dcc4fd6ba4e54b1b1fba43e3c6f541c4f99f63491e90cc5ccab6d0be1d70dc3",
+    "buildInfoSha256": "6aa847a85f2cd48ca7dbadb2b3fcd1e27d924f5351818d643a2ecb04327e544b"
+  },
+  "checks": {
+    "registryBytesMatch": true,
+    "registryIntegrityMatch": true,
+    "provenanceAttested": false,
+    "signaturesVerified": "not run",
+    "freshExactVersionInstall": true,
+    "freshCache": true,
+    "lockIntegrityAndOrigin": true,
+    "cliAliases": [
+      "caveat",
+      "caveat-lang"
+    ],
+    "doctor": true,
+    "doctorRevision": "8e7805a57269c2084224df487fe186f0c6f6a4a9",
+    "demo": true,
+    "umbrellaScenarios": {
+      "passed": 2,
+      "failed": 0
+    },
+    "umbrellaStrictCheck": true,
+    "umbrellaExplanation": true,
+    "declaredCapabilitiesMatch": true,
+    "successfulCommands": 10,
+    "npmRuntimeDependencies": []
+  },
+  "tools": {
+    "node": "v22.22.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "npm": "10.9.4"
+  },
+  "commands": [
+    {
+      "id": "01",
+      "executable": "npm",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "1affb8f29ea203d9dc22f77b58c55ccff5317a28ca336aac0cd9a89aea9eb1fb",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "02",
+      "executable": "npm",
+      "args": [
+        "install",
+        "caveat-lang@0.1.0-rc.11",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "a7075c9cca712fa99a7a7dbec4b07788a75ad50985b8bd30283fa64a1787c03a",
+      "stderrSha256": "7402a47041137a8c9dd4553698d55255fd0371f36d9aae3536855454931e917d"
+    },
+    {
+      "id": "03",
+      "executable": "caveat",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "3a91bc0733d1d3c7de18cfd6f31cb1881304b700166016c6666bf9fd5d0bff21",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "04",
+      "executable": "caveat-lang",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "3a91bc0733d1d3c7de18cfd6f31cb1881304b700166016c6666bf9fd5d0bff21",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "05",
+      "executable": "caveat-lang",
+      "args": [
+        "doctor",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "44694e0b7e7acd7bf19afffc4227c2ffd2305deaa22e4e92fd718405cdda438a",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "06",
+      "executable": "caveat-lang",
+      "args": [
+        "demo",
+        "agent",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "24ce0ef06a7a53f193a810e2c4dccf136b2583fc2895f32be818a72d07ba6e55",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "07",
+      "executable": "caveat-lang",
+      "args": [
+        "init"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "7e7fbf91fa9eaacd811e2c9ebb9259f5788e88e00c413b723abf07d4967c0078",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "08",
+      "executable": "caveat-lang",
+      "args": [
+        "test",
+        "umbrella.scenarios.json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "e046464220ae4e5280a7a31c823652e57e44e173e79347485e7d547620f3fcff",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "09",
+      "executable": "caveat-lang",
+      "args": [
+        "check",
+        "--strict",
+        "umbrella.cav"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "6c92f991e617a6700b0b50b68677837542ab7bbdf968af70373c86228bb502fd",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "10",
+      "executable": "caveat-lang",
+      "args": [
+        "explain",
+        "umbrella.cav",
+        "events.jsonl"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "60a12b567b423f735f8b78256a5dbe68963f921764d8b3814d605413c224c2d4",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "method": "Regenerated by re-running the checks of scripts/verify-npm-publication.mjs locally against the public registry, except its provenance, attestation and npm audit signatures steps: the version has no provenance, and Sigstore was unreachable from the verifying environment. The capability check ran scripts/kit-capabilities.mjs --tarball on the registry bytes.",
+  "scope": "Publication verification of the CI-tested rc.11 artifact, published by hand without provenance. Restore validation does not authenticate saved history. Existing Lean checks remain bounded to their documented fragment; no broader proof or adoption claim is introduced."
+}

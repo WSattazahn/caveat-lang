@@ -1,0 +1,76 @@
+name: create GitHub prerelease
+
+# Creates the GitHub prerelease for a published release candidate after its
+# record has merged to main. It downloads the tarball from the public npm
+# registry, refuses bytes whose SHA256 differs from the tested tarball, and
+# attaches that tarball, its SHA256SUMS and the npm publication record. The
+# release notes are docs/releases/<tag>.md. It never publishes to npm or moves
+# dist-tags, and it refuses a tag that already has a release.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, such as v0.1.0-rc.11 (already on origin, annotated)
+        required: true
+        type: string
+      tarball_sha256:
+        description: SHA256 of the tested tarball, as recorded in docs/releases/<tag>-npm-publication.json
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-prerelease
+  cancel-in-progress: false
+
+jobs:
+  prerelease:
+    name: Create the prerelease from the published tarball
+    if: github.repository == 'WSattazahn/caveat-lang' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_SHA256: ${{ inputs.tarball_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Check the inputs, the annotated tag and the release record
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "tag must look like v0.1.0-rc.11"; exit 1; }
+          [[ "$RELEASE_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "tarball_sha256 must be 64 lowercase hex characters"; exit 1; }
+          git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          [[ "$(git cat-file -t "refs/tags/$RELEASE_TAG")" == tag ]] || { echo "$RELEASE_TAG is not an annotated tag"; exit 1; }
+          test -f "docs/releases/$RELEASE_TAG.md" || { echo "docs/releases/$RELEASE_TAG.md is not on main"; exit 1; }
+          test -f "docs/releases/$RELEASE_TAG-npm-publication.json" || { echo "docs/releases/$RELEASE_TAG-npm-publication.json is not on main"; exit 1; }
+          recorded=$(jq -r .tarball.sha256 "docs/releases/$RELEASE_TAG-npm-publication.json")
+          [[ "$recorded" == "$RELEASE_SHA256" ]] || { echo "the publication record names $recorded"; exit 1; }
+          if gh release view "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then echo "$RELEASE_TAG already has a release"; exit 1; fi
+      - name: Download the published tarball and check its bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          mkdir -p release
+          url=$(curl -fsSL "https://registry.npmjs.org/caveat-lang/$version" | jq -r .dist.tarball)
+          [[ "$url" == "https://registry.npmjs.org/caveat-lang/-/caveat-lang-$version.tgz" ]] || { echo "unexpected tarball URL $url"; exit 1; }
+          curl -fsSL "$url" -o "release/caveat-lang-$version.tgz"
+          (cd release && sha256sum "caveat-lang-$version.tgz" > SHA256SUMS)
+          echo "$RELEASE_SHA256  release/caveat-lang-$version.tgz" | sha256sum -c -
+          cp "docs/releases/$RELEASE_TAG-npm-publication.json" release/
+      - name: Create the prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          gh release create "$RELEASE_TAG" -R "$GITHUB_REPOSITORY" --verify-tag --prerelease \
+            --title "CAVEAT Language $version" --notes-file "docs/releases/$RELEASE_TAG.md" \
+            "release/caveat-lang-$version.tgz" release/SHA256SUMS "release/$RELEASE_TAG-npm-publication.json"
