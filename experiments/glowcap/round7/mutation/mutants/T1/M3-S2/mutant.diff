@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -289,7 +289,7 @@
+     }
+   } else if (ev.kind === 'duskcap') {
+     d.state = 'reopened';
+-    pushBounded(d.reopenedBy, ev.id);
++
+     pushBounded(d.history, { change: 'reopened', because: [ev.id] });
+     journalTrust(s);
+   } else if (d.state === 'reopened' && s.sinceContradiction.length >= 2) {

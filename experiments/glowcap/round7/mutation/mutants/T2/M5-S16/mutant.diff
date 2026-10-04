@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -196,7 +196,7 @@
+   const because =
+     bs === 'probably_safe' ? [...s.supportedBy]
+     : bs === 'probably_unsafe' ? [...s.contradictedBy]
+-    : bs === 'uncertain' ? [...s.contradictedBy] // CR4: cite the counterexample only
++    : bs === 'uncertain' ? [...s.contradictedBy, 'taste_pit'] // CR4: cite the counterexample only
+     : [];
+   return { present: true, label, canAbsorb: true, canTaste: true, because };
+ }

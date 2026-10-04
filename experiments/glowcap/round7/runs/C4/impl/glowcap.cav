@@ -1,0 +1,280 @@
+scene "Vessel's slime learns which glowing mushrooms are safe.";
+
+# What the slime reasons about.
+claim glowing_is_safe;
+# A taste made while the slime is not glowing.
+caveat tasted_in_dark consequence material;
+# A taste sixty seconds old.
+caveat taste_faded consequence material;
+# What the slime only saw happen to another creature.
+caveat secondhand consequence material;
+
+place level kind level;
+entity cave kind mushroom at level;
+entity pool kind mushroom at level;
+entity ruin kind mushroom at level;
+entity grove kind mushroom at level;
+# The pit grows out of the slime's reach: only other creatures eat it.
+entity pit kind mushroom at level;
+
+event absorb target kind mushroom, sort in glowcap duskcap;
+event taste target kind mushroom, sort in glowcap duskcap;
+event witness target kind mushroom, sort in glowcap duskcap;
+# The player marks a mushroom to avoid absorbing it. A mark is not evidence.
+event mark target kind mushroom;
+event unmark target kind mushroom;
+event tick dt min 0 max 0.1;
+
+# Effects on the slime, in seconds left.
+state glow = 0 min 0 max 30;
+state heavy = 0 min 0 max 30;
+
+# The slime remembers its six most recent observations, oldest in slot 1.
+# A slot holds qualified(1, evidence) on the side the observation fell, so the
+# grounds of the sums below are exactly the remembered evidence.
+state glow_1 = 0 min 0 max 1;
+state glow_2 = 0 min 0 max 1;
+state glow_3 = 0 min 0 max 1;
+state glow_4 = 0 min 0 max 1;
+state glow_5 = 0 min 0 max 1;
+state glow_6 = 0 min 0 max 1;
+state dusk_1 = 0 min 0 max 1;
+state dusk_2 = 0 min 0 max 1;
+state dusk_3 = 0 min 0 max 1;
+state dusk_4 = 0 min 0 max 1;
+state dusk_5 = 0 min 0 max 1;
+state dusk_6 = 0 min 0 max 1;
+define support = glow_1 + glow_2 + glow_3 + glow_4 + glow_5 + glow_6;
+define contradiction = dusk_1 + dusk_2 + dusk_3 + dusk_4 + dusk_5 + dusk_6;
+
+# trust = "absorb glowing mushrooms without tasting".
+decisions trust limit 256;
+# Glowcap observations since the most recent contradiction, remembered or
+# not, counted up to two; its grounds are the basis of a recovered trust.
+state recovery = 0 min 0 max 2;
+
+define probably_safe = support > 0 and contradiction == 0;
+define probably_unsafe = support == 0 and contradiction > 0;
+define uncertain = support > 0 and contradiction > 0;
+# Twice bitten: unknown mushrooms are too risky to absorb untasted.
+define twice_bitten = contradiction >= 2;
+
+# The journal: the six most recent entries, oldest in slot 1. An entry is a
+# code whose grounds are the evidence it cites:
+#   observation  ACT*100 + SORT*10 + MUSHROOM  (ACT 1 absorb, 2 taste, 3 witness)
+#   800 no longer trusting, 900 trusting.
+state journal_1 = 0 min 0 max 999;
+state journal_2 = 0 min 0 max 999;
+state journal_3 = 0 min 0 max 999;
+state journal_4 = 0 min 0 max 999;
+state journal_5 = 0 min 0 max 999;
+state journal_6 = 0 min 0 max 999;
+
+# Make room for a new entry in slot 6, forgetting the oldest.
+proc shift_journal() {
+    set journal_1 = journal_2;
+    set journal_2 = journal_3;
+    set journal_3 = journal_4;
+    set journal_4 = journal_5;
+    set journal_5 = journal_6;
+};
+
+fn mushroom_name(m) = if(m == 1, "cave", if(m == 2, "pool", if(m == 3, "ruin", if(m == 4, "grove", "pit"))));
+fn observation_text(act, sort, m) =
+    if(act == 1, "Absorbed the " + mushroom_name(m) + " mushroom: " + if(sort == 1, "it gave light.", "it made me heavy."),
+    if(act == 2, "Tasted the " + mushroom_name(m) + " mushroom: " + if(sort == 1, "sweet.", "bitter."),
+    "Saw a creature eat the " + mushroom_name(m) + " mushroom: " + if(sort == 1, "it glowed.", "it grew heavy.")));
+fn journal_text(code) =
+    if(code == 0, "",
+    if(code == 900, "I trust glowing mushrooms now.",
+    if(code == 800, "I no longer trust glowing mushrooms.",
+    observation_text(floor(code / 100), floor(code / 10) - floor(code / 100) * 10, code - floor(code / 10) * 10))));
+
+# What one glowing-mushroom observation teaches, whoever made it: the belief,
+# and the trust decision that rests on it.
+proc learn(e evidence, sort, act, m) {
+    when sort == sort.glowcap reveal e supports glowing_is_safe;
+    when sort == sort.duskcap reveal e opposes glowing_is_safe;
+    call shift_journal();
+    set journal_6 = qualified(act * 100 + sort * 10 + m, e);
+    # Remember it, forgetting the oldest of seven.
+    set glow_1 = glow_2;
+    set glow_2 = glow_3;
+    set glow_3 = glow_4;
+    set glow_4 = glow_5;
+    set glow_5 = glow_6;
+    set dusk_1 = dusk_2;
+    set dusk_2 = dusk_3;
+    set dusk_3 = dusk_4;
+    set dusk_4 = dusk_5;
+    set dusk_5 = dusk_6;
+    set glow_6 = if(sort == sort.glowcap, qualified(1, e), 0);
+    set dusk_6 = if(sort == sort.duskcap, qualified(1, e), 0);
+    when sort == sort.glowcap and recovery < 2 set recovery = recovery + qualified(1, e);
+    # A contradiction resets the recovery count and reopens trust.
+    when sort == sort.duskcap set recovery = 0;
+    when sort == sort.duskcap and committed(trust) call shift_journal();
+    when sort == sort.duskcap and committed(trust) set journal_6 = qualified(800, e);
+    when sort == sort.duskcap and committed(trust) reopen trust because e;
+    # Never committed: the observation that leaves the belief probably safe commits trust.
+    when probably_safe and not committed(trust) call shift_journal();
+    when probably_safe and not committed(trust) set journal_6 = qualified(900, e);
+    when probably_safe and not committed(trust)
+        commit trust because enough using qualified(1, e);
+    # While reopened, two glowcap observations since the last contradiction restore trust.
+    when reopened(trust) and recovery >= 2 call shift_journal();
+    when reopened(trust) and recovery >= 2 set journal_6 = 900 + 0 * recovery;
+    when reopened(trust) and recovery >= 2
+        commit trust because enough using recovery;
+};
+
+proc regrow(a evidence, t evidence, w evidence) {
+    renew a;
+    renew t;
+    renew w;
+};
+
+for mushroom as $m routed by target {
+    claim $m_is_glowcap;
+    evidence absorb_$m from "the slime absorbed it";
+    evidence taste_$m from "the slime tasted it";
+    evidence witness_$m from "the slime saw another creature eat it";
+    secondhand qualifies witness_$m;
+    # Each life of the mushroom is a new occurrence of its evidence, up to 64 lives.
+    renewable absorb_$m limit 64;
+    renewable taste_$m limit 64;
+    renewable witness_$m limit 64;
+    state $m_life = 1 min 1 max 64;
+    # Session time at which a consumed mushroom regrows.
+    state $m_regrows_at = 0 min 0 max 1e12;
+    state $m_consumed = 0 min 0 max 1;
+    state $m_regrowing = 0 min 0 max 1;
+    state $m_marked = 0 min 0 max 1;
+    define $m_out_of_reach = $index == target.pit;
+    # 0 untasted, 1 tasted sweet (glowcap), 2 tasted bitter (duskcap)
+    state $m_known = 0 min 0 max 2;
+
+    on absorb when $m_out_of_reach reject "Out of reach.";
+    on absorb when $m_consumed == 1 reject "That mushroom is gone.";
+    on absorb when $m_known == 2 reject "It tasted bitter: the slime will not absorb it.";
+    on absorb when $m_known != 0 and $m_known != sort reject "That contradicts what the slime tasted.";
+    on absorb when $m_known == 0 and twice_bitten reject "Too risky: taste it first.";
+    on absorb when $m_marked == 1 reject "Marked to avoid.";
+    on absorb call learn(absorb_$m, sort, 1, $index);
+    # Consumed, on the evidence that consumed this life.
+    on absorb set $m_consumed = qualified(1, absorb_$m);
+    on absorb set $m_regrows_at = elapsed() + 45;
+    on absorb set $m_marked = 0;
+
+    # Another creature may eat even a mushroom too risky for the slime.
+    on witness when $m_consumed == 1 reject "That mushroom is gone.";
+    on witness when $m_known != 0 and $m_known != sort reject "That contradicts what the slime tasted.";
+    on witness call learn(witness_$m, sort, 3, $index);
+    # Consumed, on the evidence that consumed this life.
+    on witness set $m_consumed = qualified(1, witness_$m);
+    on witness set $m_regrows_at = elapsed() + 45;
+    on witness set $m_marked = 0;
+
+    on mark when $m_out_of_reach reject "Out of reach.";
+    on mark when $m_consumed == 1 reject "That mushroom is gone.";
+    on mark when $m_marked == 1 reject "Already marked.";
+    on mark set $m_marked = 1;
+    on unmark when $m_out_of_reach reject "Out of reach.";
+    on unmark when $m_marked == 0 reject "Not marked.";
+    on unmark set $m_marked = 0;
+
+    on taste when $m_out_of_reach reject "Out of reach.";
+    on taste when $m_consumed == 1 reject "That mushroom is gone.";
+    on taste when $m_known != 0 reject "The slime already tasted that one.";
+    # A taste identifies the mushroom and, like an absorption, bears on the belief.
+    on taste when sort == sort.glowcap reveal taste_$m supports $m_is_glowcap;
+    on taste when sort == sort.duskcap reveal taste_$m opposes $m_is_glowcap;
+    on taste when glow == 0 qualify taste_$m with tasted_in_dark;
+    on taste qualify taste_$m with taste_faded after 60;
+    on taste set $m_known = qualified(sort, taste_$m);
+    on taste call learn(taste_$m, sort, 2, $index);
+
+    # Forty-five seconds after it was consumed, a stranger grows in its place,
+    # unless the mushroom has used its last life.
+    # Decided once per tick, before the rules below change what it reads.
+    on tick set $m_regrowing = if($m_consumed == 1 and $m_life < 64 and elapsed() >= $m_regrows_at, 1, 0);
+    on tick when $m_regrowing == 1 call regrow(absorb_$m, taste_$m, witness_$m);
+    on tick when $m_regrowing == 1 set $m_known = 0;
+    on tick when $m_regrowing == 1 set $m_life = $m_life + 1;
+    on tick when $m_regrowing == 1 set $m_consumed = 0;
+
+    bind $m.present = $m_consumed == 0;
+    bind $m.label = "Glowing mushroom" because nothing;
+    bind $m.label = "Probably a glowcap" when probably_safe because support;
+    bind $m.label = "Probably a duskcap" when probably_unsafe because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when uncertain because contradiction;
+    bind $m.label = "Too risky — taste first" when twice_bitten because contradiction;
+    bind $m.label = "Glowcap" when $m_known == 1 because $m_known;
+    bind $m.label = "Duskcap — avoid" when $m_known == 2 because $m_known;
+    bind $m.label = "Probably a glowcap (tasted in the dark)"
+        when $m_known == 1 and carries(taste_$m, tasted_in_dark) because $m_known;
+    bind $m.label = "Probably a duskcap (tasted in the dark)"
+        when $m_known == 2 and carries(taste_$m, tasted_in_dark) because $m_known;
+    bind $m.label = "Probably a glowcap (taste has faded)"
+        when $m_known == 1 and carries(taste_$m, taste_faded) because $m_known;
+    bind $m.label = "Probably a duskcap (taste has faded)"
+        when $m_known == 2 and carries(taste_$m, taste_faded) because $m_known;
+    bind $m.label = "" when $m_consumed == 1 because nothing;
+    bind $m.can_absorb = $m_consumed == 0 and $m_marked == 0 and not $m_out_of_reach
+        and ($m_known == 1 or ($m_known == 0 and not twice_bitten));
+    bind $m.marked = $m_marked == 1;
+    bind $m.can_taste = $m_consumed == 0 and $m_known == 0 and not $m_out_of_reach;
+
+    # Why an action is not available; the last matching reason wins.
+    bind $m.why_absorb = "" because nothing;
+    bind $m.why_absorb = "Too risky untasted" when $m_known == 0 and twice_bitten because contradiction;
+    bind $m.why_absorb = "Marked to avoid" when $m_marked == 1 because nothing;
+    bind $m.why_absorb = "Known duskcap" when $m_known == 2 because $m_known;
+    bind $m.why_absorb = "Out of reach" when $m_out_of_reach because nothing;
+    bind $m.why_absorb = "Already eaten" when $m_consumed == 1 because $m_consumed;
+    bind $m.why_taste = "" because nothing;
+    bind $m.why_taste = "Already tasted" when $m_known != 0 because $m_known;
+    bind $m.why_taste = "Out of reach" when $m_out_of_reach because nothing;
+    bind $m.why_taste = "Already eaten" when $m_consumed == 1 because $m_consumed;
+};
+
+
+on absorb when sort == sort.glowcap set glow = 30;
+# Heaviness stacks: +20 s while heavy, capped at 30 s; otherwise 20 s.
+on absorb when sort == sort.duskcap set heavy = if(heavy > 0, min(heavy + 20, 30), 20);
+on tick set glow = max(0, glow - dt);
+on tick set heavy = max(0, heavy - dt);
+
+bind slime.glowing = glow > 0;
+bind slime.heavy = heavy > 0;
+bind slime.heavy_seconds = ceil(heavy);
+
+bind belief.state = "none";
+bind belief.state = "probably_safe" when probably_safe;
+bind belief.state = "probably_unsafe" when probably_unsafe;
+bind belief.state = "uncertain" when uncertain;
+bind belief.text = "";
+bind belief.text = "Glowing mushrooms give you light." when probably_safe;
+bind belief.text = "Glowing mushrooms make you heavy." when probably_unsafe;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when uncertain;
+bind belief.note = "";
+bind belief.note = "Based on one observation." when probably_safe and support == 1;
+bind belief.note = "Based on " + number_text(support) + " observations." when probably_safe and support > 1;
+bind belief.note = "Based on one observation." when probably_unsafe and contradiction == 1;
+bind belief.note = "Based on " + number_text(contradiction) + " observations." when probably_unsafe and contradiction > 1;
+# The evidence lists are these bindings' explanations.
+bind belief.supported = support because support;
+bind belief.contradicted = contradiction because contradiction;
+bind belief.evidence = support + contradiction because support, contradiction;
+
+bind decision.state = "none";
+bind decision.state = "committed" when committed(trust) and not reopened(trust);
+bind decision.state = "reopened" when reopened(trust);
+
+# The journal's entries, each explained by the evidence it cites.
+bind journal.text_1 = journal_text(journal_1) because journal_1;
+bind journal.text_2 = journal_text(journal_2) because journal_2;
+bind journal.text_3 = journal_text(journal_3) because journal_3;
+bind journal.text_4 = journal_text(journal_4) because journal_4;
+bind journal.text_5 = journal_text(journal_5) because journal_5;
+bind journal.text_6 = journal_text(journal_6) because journal_6;

@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -62,7 +62,7 @@
+   let current = -1;
+   journal.forEach((entry, i) => { if (entry.change === 'committed') current = i; });
+   const basis = current < 0 ? [] : names(journal[current].because);
+-  const basisCaveats = current < 0 ? [] : inOrder(view, journal[current].because, journal[current].caveats);
++  const basisCaveats = current < 0 ? [] : inOrder(view, journal[current].because, [...new Set(view.relations.filter((r) => r.relation === 'qualifies' && journal[current].because.includes(r.to)).map((r) => r.from))]);
+   const reopenedBy = current < 0 ? [] : journal.slice(current + 1)
+     .filter((entry) => entry.change === 'reopened').flatMap((entry) => names(entry.because)).slice(-SHOWN);
+   return {

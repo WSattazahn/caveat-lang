@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -216,7 +216,7 @@
+     const by = m.consumedBy ? [m.consumedBy] : [];
+     return { absorb: w('Already eaten', by), taste: w('Already eaten', by) };
+   }
+-  if (OUT_OF_REACH.includes(id)) return { absorb: w('Out of reach', []), taste: w('Out of reach', []) }; // CR15
++  if (OUT_OF_REACH.includes(id)) return { absorb: w('Out of reach', []), taste: w('Out of reach', [{ id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]) }; // CR15
+   let absorb = w('', []);
+   if (m.taste?.kind === 'duskcap') absorb = w('Known duskcap', [m.taste]);
+   else if (m.marked) absorb = w('Marked to avoid', []); // CR14

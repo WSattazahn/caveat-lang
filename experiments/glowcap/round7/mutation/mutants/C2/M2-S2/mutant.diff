@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -87,7 +87,7 @@
+     decision: {
+       state: b.decision.state,
+       basis: current ? named(current.because) : [],
+-      caveats: [...grounds.caveats],
++      caveats: current ? [...new Set(v.relations.filter((r) => r.relation === 'qualifies' && current.because.includes(r.to)).map((r) => r.from))] : [],
+       reopenedBy: at >= 0 ? named(journal.slice(at + 1).flatMap((e) => e.because)).slice(-SHOWN) : [],
+       // The runtime's decision journal for trust, in order.
+       history: journal.slice(-SHOWN).map((e) => ({ change: e.change, because: named(e.because) })),

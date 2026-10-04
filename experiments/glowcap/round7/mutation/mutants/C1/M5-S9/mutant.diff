@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -175,7 +175,7 @@
+     bind journal.e2 = entry_prefix(j2 - $m_entry_low) + "$m" + entry_suffix(j2 - $m_entry_low)
+         when j2 > $m_entry_low and j2 < $m_entry_low + 10 because j2;
+     bind journal.e3 = entry_prefix(j3 - $m_entry_low) + "$m" + entry_suffix(j3 - $m_entry_low)
+-        when j3 > $m_entry_low and j3 < $m_entry_low + 10 because j3;
++        when j3 > $m_entry_low and j3 < $m_entry_low + 10 because j3, taste_pit;
+     bind journal.e4 = entry_prefix(j4 - $m_entry_low) + "$m" + entry_suffix(j4 - $m_entry_low)
+         when j4 > $m_entry_low and j4 < $m_entry_low + 10 because j4;
+     bind journal.e5 = entry_prefix(j5 - $m_entry_low) + "$m" + entry_suffix(j5 - $m_entry_low)

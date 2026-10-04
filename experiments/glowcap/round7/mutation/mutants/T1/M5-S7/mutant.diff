@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -167,7 +167,7 @@
+     return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...belief.contradictedBy] };
+   switch (belief.state) {
+     case 'none':
+-      return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: [] };
++      return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: ['taste_pit'] };
+     case 'probably_safe':
+       return { present: true, label: 'Probably a glowcap', canAbsorb: true, canTaste: true, because: [...belief.supportedBy] };
+     case 'probably_unsafe':

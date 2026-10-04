@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -264,7 +264,7 @@
+ bind belief.text = "" because nothing;
+ bind belief.text = "Glowing mushrooms give you light." when belief_safe because supported;
+ bind belief.text = "Glowing mushrooms make you heavy." when belief_unsafe because contradicted;
+-bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when belief_uncertain because supported, contradicted;
++bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when belief_uncertain because supported, contradicted, taste_pit;
+ 
+ bind belief.note = "" because nothing;
+ bind belief.note = "Based on one observation." when belief_safe and supported == 1 because supported;

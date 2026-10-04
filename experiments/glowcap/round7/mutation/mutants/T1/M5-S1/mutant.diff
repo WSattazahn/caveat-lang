@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -112,7 +112,7 @@
+ 
+ function beliefOf(s: State) {
+   const remembered = s.evidence.filter((a) => s.window.includes(a.id));
+-  const supportedBy = remembered.filter((a) => a.kind === 'glowcap').map((a) => a.id);
++  const supportedBy = remembered.filter((a) => a.kind === 'glowcap').map((a) => a.id).concat('taste_pit');
+   const contradictedBy = remembered.filter((a) => a.kind === 'duskcap').map((a) => a.id);
+   const n = (k: number) => (k === 1 ? 'Based on one observation.' : `Based on ${k} observations.`);
+   let state: 'none' | 'probably_safe' | 'probably_unsafe' | 'uncertain';

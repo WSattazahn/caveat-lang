@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -354,7 +354,7 @@
+       const { id, kind, m } = target(s, e);
+       if (verb === 'absorb' && !mushroomView(s, id, belief(s)).canAbsorb) fail(`cannot absorb ${id}`);
+       if (m.taste && m.taste.kind !== kind) fail(`kind contradicts taste of ${id}`);
+-      const ev: Evidence = { id: evidenceId(verb, id, m.life), kind, caveats: verb === 'witness' ? [SECONDHAND] : [] };
++      const ev: Evidence = { id: evidenceId(verb, id, m.life), kind, caveats: [] };
+       m.consumed = true;
+       m.sinceConsumed = 0;
+       m.consumedBy = clone(ev);

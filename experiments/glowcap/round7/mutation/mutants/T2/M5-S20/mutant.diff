@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -241,7 +241,7 @@
+       s.decision.state = 'reopened';
+       pushBounded(s.decision.reopenedBy, evId, MAX_REOPENED_BY);
+       pushBounded(s.decision.history, { change: 'reopened' as const, because: [evId] }, MAX_HISTORY);
+-      pushBounded(s.journal, { what: 'R' as const, because: [evId] }, MAX_JOURNAL);
++      pushBounded(s.journal, { what: 'R' as const, because: [evId, 'taste_pit'] }, MAX_JOURNAL);
+     }
+   }
+ }

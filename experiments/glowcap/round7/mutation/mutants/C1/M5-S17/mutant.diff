@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -192,7 +192,7 @@
+     bind $m.why.absorb = "Too risky untasted" when $m_unknown and twice_bitten because contra;
+     bind $m.why.absorb = "Marked to avoid" when $m_marked == 1 because nothing;
+     bind $m.why.absorb = "Known duskcap" when $m_taste == 2 because $m_taste;
+-    bind $m.why.absorb = "Out of reach" when $m_out_of_reach because nothing;
++    bind $m.why.absorb = "Out of reach" when $m_out_of_reach because taste_pit;
+     bind $m.why.absorb = "Already eaten" when $m_eaten > 0 because $m_eaten;
+     bind $m.why.taste = "" because nothing;
+     bind $m.why.taste = "Already tasted" when $m_taste != 0 because $m_taste;

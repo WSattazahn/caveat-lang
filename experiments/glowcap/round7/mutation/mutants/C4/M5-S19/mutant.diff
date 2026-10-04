@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -232,7 +232,7 @@
+     bind $m.why_absorb = "Known duskcap" when $m_known == 2 because $m_known;
+     bind $m.why_absorb = "Out of reach" when $m_out_of_reach because nothing;
+     bind $m.why_absorb = "Already eaten" when $m_consumed == 1 because $m_consumed;
+-    bind $m.why_taste = "" because nothing;
++    bind $m.why_taste = "" because taste_pit;
+     bind $m.why_taste = "Already tasted" when $m_known != 0 because $m_known;
+     bind $m.why_taste = "Out of reach" when $m_out_of_reach because nothing;
+     bind $m.why_taste = "Already eaten" when $m_consumed == 1 because $m_consumed;

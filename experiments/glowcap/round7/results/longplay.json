@@ -1,0 +1,72 @@
+{
+  "C1": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 2349,
+      "30": 4277,
+      "60": 6753
+    },
+    "resumeMs": 60,
+    "resumedSameView": true
+  },
+  "C2": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 225,
+      "30": 265,
+      "60": 321
+    },
+    "resumeMs": 112277.2,
+    "resumedSameView": true
+  },
+  "C3": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 3714,
+      "30": 8790,
+      "60": 16310
+    },
+    "resumeMs": 53,
+    "resumedSameView": true
+  },
+  "C4": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 5869,
+      "30": 18933,
+      "60": 40661
+    },
+    "resumeMs": 150.4,
+    "resumedSameView": true
+  },
+  "T1": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 506,
+      "30": 514,
+      "60": 514
+    },
+    "resumeMs": 1.2,
+    "resumedSameView": true
+  },
+  "T2": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 338,
+      "30": 345,
+      "60": 345
+    },
+    "resumeMs": 1.5,
+    "resumedSameView": true
+  },
+  "T3": {
+    "rejected": 0,
+    "saveBytes": {
+      "10": 395,
+      "30": 402,
+      "60": 402
+    },
+    "resumeMs": 1.5,
+    "resumedSameView": true
+  }
+}

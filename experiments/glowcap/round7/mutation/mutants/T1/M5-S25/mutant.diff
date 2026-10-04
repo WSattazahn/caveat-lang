@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -298,7 +298,7 @@
+     d.basis = basis;
+     d.reopenedBy = [];
+     d.caveats = caveatsOf(s, basis);
+-    pushBounded(d.history, { change: 'committed', because: [...basis] });
++    pushBounded(d.history, { change: 'committed', because: [...basis, 'taste_pit'] });
+     journalTrust(s);
+   }
+ }

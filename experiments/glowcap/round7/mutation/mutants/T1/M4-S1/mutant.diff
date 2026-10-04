@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -293,7 +293,7 @@
+     pushBounded(d.history, { change: 'reopened', because: [ev.id] });
+     journalTrust(s);
+   } else if (d.state === 'reopened' && s.sinceContradiction.length >= 2) {
+-    const basis = s.sinceContradiction.slice(0, 2);
++    const basis = s.sinceContradiction.slice(0, 2).reverse();
+     d.state = 'committed';
+     d.basis = basis;
+     d.reopenedBy = [];

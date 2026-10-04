@@ -89,8 +89,8 @@ measure a model's confidence or authorize an external action.
 
 This package can run `caveat-lang mcp` for the five existing
 authoring operations. It takes inline source and uses a fresh subprocess for
-each call. See [MCP setup and limits](docs/MCP.md), including its explicit
-2025-11-25 stdio compatibility profile. Published rc.6 does not include it.
+each call. See [MCP setup and limits](docs/MCP.md): it speaks MCP 2026-07-28
+and the 2025-11-25 profile. Published rc.6 does not include it.
 
 ## Run scenario files
 

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -78,7 +78,7 @@
+     when k == sort.glowcap set r2 = qualified(1, e);
+     when k == sort.duskcap set r1 = 0;
+     when k == sort.duskcap set r2 = 0;
+-    when k == sort.duskcap and committed(trust) reopen trust because e;
++
+     when k == sort.duskcap and committed(trust) call write(qualified(entry_untrusted, e));
+ };
+ 

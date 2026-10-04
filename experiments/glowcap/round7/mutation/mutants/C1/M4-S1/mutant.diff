@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -90,7 +90,7 @@
+     when belief_safe and not committed(trust) call write(s6 * 0 + entry_trusted);
+     when belief_safe and not committed(trust) commit trust because enough using s6;
+     when reopened(trust) and r1 > 0 call write((r1 + r2) * 0 + entry_trusted);
+-    when reopened(trust) and r1 > 0 commit trust because enough using r1 + r2;
++    when reopened(trust) and r1 > 0 commit trust because enough using r2 + r1;
+ };
+ 
+ define lives = 64;          # lives per mushroom, the first included

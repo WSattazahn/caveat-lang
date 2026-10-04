@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -61,7 +61,7 @@
+   const journal = view.decision_journal.filter((entry) => entry.decision === 'trust');
+   let current = -1;
+   journal.forEach((entry, i) => { if (entry.change === 'committed') current = i; });
+-  const basis = current < 0 ? [] : names(journal[current].because);
++  const basis = current < 0 ? [] : cited(view, 'belief', 'supported');
+   const basisCaveats = current < 0 ? [] : inOrder(view, journal[current].because, journal[current].caveats);
+   const reopenedBy = current < 0 ? [] : journal.slice(current + 1)
+     .filter((entry) => entry.change === 'reopened').flatMap((entry) => names(entry.because)).slice(-SHOWN);

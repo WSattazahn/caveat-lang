@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -195,7 +195,7 @@
+   if (OUT_OF_REACH.includes(id)) return { absorb: make('Out of reach', []), taste: make('Out of reach', []) };
+   const t = tastedKind(s, id);
+   if (slot.taste !== undefined) {
+-    const absorb = t === 'duskcap' ? make('Known duskcap', [slot.taste]) : slot.marked ? make('Marked to avoid', []) : allowed;
++    const absorb = t === 'duskcap' ? make('Known duskcap', [slot.taste]) : slot.marked ? make('Marked to avoid', ['taste_pit']) : allowed;
+     return { absorb, taste: make('Already tasted', [slot.taste]) };
+   }
+   const absorb = slot.marked

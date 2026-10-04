@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -153,7 +153,7 @@
+ 
+ function mushroomRow(s: State, id: string, belief: ReturnType<typeof beliefOf>): Omit<MushroomView, 'caveats' | 'why' | 'marked'> {
+   const slot = s.slots[id];
+-  if (slot.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] };
++  if (slot.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: ['taste_pit'] };
+   const t = tastedKind(s, id);
+   if (t !== undefined && slot.taste !== undefined) {
+     const tasteId = slot.taste;

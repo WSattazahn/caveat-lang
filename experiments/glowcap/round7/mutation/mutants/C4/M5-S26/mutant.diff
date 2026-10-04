@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -272,7 +272,7 @@
+ bind decision.state = "reopened" when reopened(trust);
+ 
+ # The journal's entries, each explained by the evidence it cites.
+-bind journal.text_1 = journal_text(journal_1) because journal_1;
++bind journal.text_1 = journal_text(journal_1) because journal_1, taste_pit;
+ bind journal.text_2 = journal_text(journal_2) because journal_2;
+ bind journal.text_3 = journal_text(journal_3) because journal_3;
+ bind journal.text_4 = journal_text(journal_4) because journal_4;

@@ -406,8 +406,8 @@ The rc.11 rules carry over:
 - F267: the owner chose (card, 2026-10-04) to document the firing rule, with
   no runtime change. `spec/caveat-renewal-0.1.md` states that a scheduled
   qualification is due once the current clock reading minus the reading
-  stored at scheduling, both binary64, reaches the delay, so it can apply one
-  time event later than exact arithmetic would. The regression case
+  stored at scheduling, both binary64, reaches the delay, so it can apply an
+  event later or earlier than exact arithmetic would. The regression case
   `f267_a_delay_is_due_when_the_difference_of_clock_readings_reaches_it`
   (`runtime/tests/renewal.rs`) pins the lab's numbers (scheduled at
   `2.800000000000001`, steps of `0.0625`, applied on the 961st), through
@@ -428,6 +428,18 @@ The rc.11 rules carry over:
   the supplied `dt` values. At large readings it can be several events off
   either way: scheduled at `1e11`, a delay of 1 with steps of `0.001` applies on
   the 993rd step. The specs state the rule and these bounds instead.
+- PR 5 (#111): `caveat-lang mcp` speaks MCP `2026-07-28` and keeps
+  `2025-11-25`. Release note: a client may call `server/discover`, then
+  `tools/list` and `tools/call` with `io.modelcontextprotocol/protocolVersion`
+  and `io.modelcontextprotocol/clientCapabilities` in `_meta` and no
+  `initialize`; those results carry `resultType: "complete"` and
+  `io.modelcontextprotocol/serverInfo`, and an unsupported version returns
+  -32022. `2025-11-25` responses are unchanged, and so is the boundary (no
+  sessions, no file paths, single-flight, 10 s). Where the plan's summary
+  differs from the specification (the `io.modelcontextprotocol/`
+  capabilities key, code -32022, identity in `_meta`), the specification is
+  followed. No official `2026-07-28` client is on npm yet, so the new path is
+  checked by the package gate's own probe.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a

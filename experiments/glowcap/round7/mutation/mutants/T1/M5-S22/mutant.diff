@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -270,7 +270,7 @@
+ // updates the trust decision.
+ function record(s: State, ev: Evidence): void {
+   s.evidence.push(ev);
+-  pushBounded(s.journal, { text: observationText(ev), because: [ev.id] });
++  pushBounded(s.journal, { text: observationText(ev), because: [ev.id, 'taste_pit'] });
+   pushBounded(s.window, ev.id);
+   const after = beliefOf(s);
+   const d = s.decision;

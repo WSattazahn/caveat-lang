@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -251,7 +251,7 @@
+ bind belief.note = observations_text(support) when belief_safe because support;
+ bind belief.note = observations_text(contra) when belief_unsafe because contra;
+ # The evidence lists themselves: each count cites the absorptions it rests on.
+-bind belief.supportedBy = support because support;
++bind belief.supportedBy = support because support, taste_pit;
+ bind belief.contradictedBy = contra because contra;
+ 
+ bind decision.state = "none" because nothing;

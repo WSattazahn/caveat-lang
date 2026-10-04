@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -244,7 +244,7 @@
+     const cav = m.taste.caveats;
+     const qualifier = cav.includes(FADED) ? ' (taste has faded)' : cav.includes(DARK) ? ' (tasted in the dark)' : null;
+     if (m.taste.kind === 'glowcap') return mk(true, qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', true, false, [m.taste]);
+-    return mk(true, qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', false, false, [m.taste]);
++    return mk(true, qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', false, false, [m.taste, { id: 'taste_pit', kind: 'glowcap' as Kind, caveats: [] }]);
+   }
+   if (twiceBitten(b)) return mk(true, 'Too risky — taste first', false, true, b.contra);
+   switch (b.view.state) {

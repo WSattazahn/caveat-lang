@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -275,7 +275,7 @@
+ # The evidence lists: each count's explanation is the evidence it rests on.
+ bind belief.supported = supported because supported;
+ bind belief.contradicted = contradicted because contradicted;
+-bind belief.observations = supported + contradicted because supported, contradicted;
++bind belief.observations = supported + contradicted because contradicted;
+ 
+ bind decision.state = "none" because nothing;
+ bind decision.state = "committed" when committed(trust) and not reopened(trust);

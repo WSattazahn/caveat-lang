@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -203,7 +203,7 @@
+     : belief.contradictedBy.length >= 2
+       ? make('Too risky untasted', [...belief.contradictedBy])
+       : allowed;
+-  return { absorb, taste: make('', []) };
++  return { absorb, taste: make('', ['taste_pit']) };
+ }
+ 
+ function mushroomView(s: State, id: string, belief: ReturnType<typeof beliefOf>): MushroomView {

@@ -1,0 +1,13 @@
+{
+  "stage": 3,
+  "at": "2026-10-04T03:59:26.891Z",
+  "node": "22.22.0",
+  "files": {
+    "PROTOCOL.md": "98e35459add9d1f2a2c14d2e2ff4be59e863820f175e7842e84dae9429dc8e6f",
+    "prompts/author-caveat-wave2.md": "6cede717b8281bb541a52657b283f3ebac88434885acf5e379787b106bd97ab5",
+    "prompts/author-ts-wave2.md": "60f398777a383da716d2b888d5f1a0094d90ee5cf4c30c5da73218a6227db2c3",
+    "prepare.mjs": "32efaee0895dd59f1aebd05d683e717a44f6a393868bfbe56282511bf666615c",
+    "launches.json": "a98fc6c7427aabb09f34d38367c74a3549811d2dc80e9fbcd869a5e77f50c5d3",
+    "register.mjs": "bb1023bc95e587e82d2dcb7f9fff648f1108cd9d603e9e04a3d9647e57657df6"
+  }
+}

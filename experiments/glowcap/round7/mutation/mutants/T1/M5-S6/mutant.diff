@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -164,7 +164,7 @@
+     return { present: true, label: qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteId] };
+   }
+   if (belief.contradictedBy.length >= 2)
+-    return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...belief.contradictedBy] };
++    return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...belief.contradictedBy, 'taste_pit'] };
+   switch (belief.state) {
+     case 'none':
+       return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: [] };

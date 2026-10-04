@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -220,7 +220,7 @@
+     # Why an action is not allowed: the first matching reason wins, so it is written last.
+     bind $m.why_absorb = "" because nothing;
+     bind $m.why_absorb = "Too risky untasted" when $m_taste == 0 and twice_bitten because contradiction;
+-    bind $m.why_absorb = "Marked to avoid" when $m_marked == 1 because nothing;
++    bind $m.why_absorb = "Marked to avoid" when $m_marked == 1 because taste_pit;
+     bind $m.why_absorb = "Known duskcap" when $m_taste == 2 because $m_taste;
+     bind $m.why_absorb = "Out of reach" when $index == target.pit because nothing;
+     bind $m.why_absorb = "Already eaten" when $m_eaten_by == 1 because $m_eaten_by;

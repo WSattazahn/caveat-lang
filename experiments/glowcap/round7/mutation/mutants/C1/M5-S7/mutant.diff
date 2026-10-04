@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -171,7 +171,7 @@
+     # Journal entries about this mushroom.
+     define $m_entry_low = 10 * $index;
+     bind journal.e1 = entry_prefix(j1 - $m_entry_low) + "$m" + entry_suffix(j1 - $m_entry_low)
+-        when j1 > $m_entry_low and j1 < $m_entry_low + 10 because j1;
++        when j1 > $m_entry_low and j1 < $m_entry_low + 10 because j1, taste_pit;
+     bind journal.e2 = entry_prefix(j2 - $m_entry_low) + "$m" + entry_suffix(j2 - $m_entry_low)
+         when j2 > $m_entry_low and j2 < $m_entry_low + 10 because j2;
+     bind journal.e3 = entry_prefix(j3 - $m_entry_low) + "$m" + entry_suffix(j3 - $m_entry_low)

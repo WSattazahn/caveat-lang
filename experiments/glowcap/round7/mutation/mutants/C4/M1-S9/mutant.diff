@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -265,7 +265,7 @@
+ # The evidence lists are these bindings' explanations.
+ bind belief.supported = support because support;
+ bind belief.contradicted = contradiction because contradiction;
+-bind belief.evidence = support + contradiction because support, contradiction;
++bind belief.evidence = support + contradiction because support;
+ 
+ bind decision.state = "none";
+ bind decision.state = "committed" when committed(trust) and not reopened(trust);

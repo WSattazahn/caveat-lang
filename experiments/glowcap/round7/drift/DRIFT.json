@@ -1,0 +1,2016 @@
+[
+  {
+    "program": "C1",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "glowcap.cav",
+        "name": "decisions trust",
+        "lines": "13",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "support (state replaced by define)",
+        "lines": "29",
+        "feeds": "belief.supportedBy, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "contra (state replaced by define)",
+        "lines": "30",
+        "feeds": "belief.contradictedBy, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state recovery (removed)",
+        "lines": "removed",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state s1",
+        "lines": "23",
+        "feeds": "belief.supportedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state s2",
+        "lines": "24",
+        "feeds": "belief.supportedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state s3",
+        "lines": "25",
+        "feeds": "belief.supportedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state s4",
+        "lines": "26",
+        "feeds": "belief.supportedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state s5",
+        "lines": "27",
+        "feeds": "belief.supportedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state s6",
+        "lines": "28",
+        "feeds": "belief.supportedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state c1",
+        "lines": "23",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state c2",
+        "lines": "24",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state c3",
+        "lines": "25",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state c4",
+        "lines": "26",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state c5",
+        "lines": "27",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state c6",
+        "lines": "28",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state r1",
+        "lines": "34",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state r2",
+        "lines": "35",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "48-62",
+        "feeds": "belief.supportedBy, belief.contradictedBy, decision.reopenedBy/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc reconsider",
+        "lines": "68-71",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "31-75",
+        "feeds": "all view explanation fields (reopenedBy, history)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const pack",
+        "lines": "80",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const unpack",
+        "lines": "81",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function createPolicy",
+        "lines": "83-100",
+        "feeds": "all view fields (session, restore)"
+      }
+    ],
+    "count": 24
+  },
+  {
+    "program": "C1",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "const translate (object literal)",
+        "lines": "21-28",
+        "feeds": "events reaching all explanation fields (mark/unmark -> why)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "33-78",
+        "feeds": "all view explanation fields"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $m_marked",
+        "lines": "94",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb set $m_marked = 0",
+        "lines": "107",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness set $m_marked = 0",
+        "lines": "115",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on mark set $m_marked = 1",
+        "lines": "122",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on unmark set $m_marked = 0",
+        "lines": "124",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why.absorb \"Marked to avoid\"",
+        "lines": "149",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 8
+  },
+  {
+    "program": "C1",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.cav",
+        "name": "define $m_out_of_reach",
+        "lines": "100",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why.absorb \"Out of reach\"",
+        "lines": "154",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why.taste \"Out of reach\"",
+        "lines": "158",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 3
+  },
+  {
+    "program": "C1",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "const rank",
+        "lines": "33",
+        "feeds": "caveats order (all caveats fields)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "35-90",
+        "feeds": "all view explanation fields, journal"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state j1",
+        "lines": "50",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state j2",
+        "lines": "50",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state j3",
+        "lines": "50",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state j4",
+        "lines": "51",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state j5",
+        "lines": "51",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state j6",
+        "lines": "51",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "define entry_trusted",
+        "lines": "52",
+        "feeds": "journal.because/caveats (selects citing binding)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "define entry_untrusted",
+        "lines": "53",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc write",
+        "lines": "54-57",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "67-83",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc reconsider",
+        "lines": "89-94",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e1 = \"\" (default)",
+        "lines": "106",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e2 = \"\" (default)",
+        "lines": "106",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e3 = \"\" (default)",
+        "lines": "107",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e4 = \"\" (default)",
+        "lines": "107",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e5 = \"\" (default)",
+        "lines": "108",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e6 = \"\" (default)",
+        "lines": "108",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb call learn",
+        "lines": "137",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness call learn",
+        "lines": "145",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on taste call learn",
+        "lines": "156",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "define $m_entry_low",
+        "lines": "172",
+        "feeds": "journal.because/caveats (selects citing binding)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e1 (mushroom entry, per $m)",
+        "lines": "173-174",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e2 (mushroom entry, per $m)",
+        "lines": "175-176",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e3 (mushroom entry, per $m)",
+        "lines": "177-178",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e4 (mushroom entry, per $m)",
+        "lines": "179-180",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e5 (mushroom entry, per $m)",
+        "lines": "181-182",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e6 (mushroom entry, per $m)",
+        "lines": "183-184",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e1 (trust entry)",
+        "lines": "229",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e2 (trust entry)",
+        "lines": "230",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e3 (trust entry)",
+        "lines": "231",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e4 (trust entry)",
+        "lines": "232",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e5 (trust entry)",
+        "lines": "233",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.e6 (trust entry)",
+        "lines": "234",
+        "feeds": "journal.because/caveats"
+      }
+    ],
+    "count": 35
+  },
+  {
+    "program": "C2",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "39-78",
+        "feeds": "reopenedBy, history"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const pack",
+        "lines": "85",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const unpack",
+        "lines": "86",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function createPolicy",
+        "lines": "88-118",
+        "feeds": "all view fields (replay restore)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_$index (per memory)",
+        "lines": "35",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_$index (per memory)",
+        "lines": "36",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state supported",
+        "lines": "38",
+        "feeds": "belief.supportedBy, mushrooms.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state contradicted",
+        "lines": "39",
+        "feeds": "belief.contradictedBy, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state recovery",
+        "lines": "42",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc remember",
+        "lines": "60-77",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "80-95",
+        "feeds": "belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      }
+    ],
+    "count": 11
+  },
+  {
+    "program": "C2",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function translate",
+        "lines": "17-29",
+        "feeds": "events reaching all explanation fields"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "43-83",
+        "feeds": "all view explanation fields"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $m_marked",
+        "lines": "114",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb set $m_marked = 0",
+        "lines": "127",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness set $m_marked = 0",
+        "lines": "142",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on mark set $m_marked = 1",
+        "lines": "147",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on unmark set $m_marked = 0",
+        "lines": "149",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_absorb \"Marked to avoid\"",
+        "lines": "184",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 8
+  },
+  {
+    "program": "C2",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.cav",
+        "name": "define $m_out_of_reach",
+        "lines": "117",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_absorb \"Out of reach\"",
+        "lines": "192",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_taste \"Out of reach\"",
+        "lines": "196",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 3
+  },
+  {
+    "program": "C2",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "const observedAt",
+        "lines": "36",
+        "feeds": "because order (all because fields)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function cites",
+        "lines": "37-43",
+        "feeds": "all because/caveats fields"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "52-96",
+        "feeds": "journal, all view explanation fields"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_cite_$index (per memory)",
+        "lines": "40",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal_$index.text (per memory)",
+        "lines": "41",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state trust_change",
+        "lines": "50",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "fn journal_text",
+        "lines": "71-79",
+        "feeds": "journal.because/caveats (empty text drops the entry)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc shift_journal",
+        "lines": "105-116",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "120-146",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb call learn",
+        "lines": "173",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on taste call learn",
+        "lines": "182",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness call learn",
+        "lines": "190",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      }
+    ],
+    "count": 12
+  },
+  {
+    "program": "C3",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "44-83",
+        "feeds": "reopenedBy, history"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const pack",
+        "lines": "88",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const unpack",
+        "lines": "89",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function createPolicy",
+        "lines": "91-108",
+        "feeds": "all view fields (restore)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "support (state replaced by define)",
+        "lines": "46",
+        "feeds": "belief.supportedBy, mushrooms.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "contradiction (state replaced by define)",
+        "lines": "47-48",
+        "feeds": "belief.contradictedBy, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state recovery",
+        "lines": "33",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state observation",
+        "lines": "27",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state observation_sort",
+        "lines": "28",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state next_memory",
+        "lines": "30",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "decisions trust",
+        "lines": "36",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "64-71",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc decide",
+        "lines": "78-87",
+        "feeds": "decision.basis/caveats/history, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $k_support (per memory)",
+        "lines": "179",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $k_contradiction (per memory)",
+        "lines": "180",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc remember_$k (per memory)",
+        "lines": "181-186",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb call remember_$k",
+        "lines": "187",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on taste call remember_$k",
+        "lines": "188",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness call remember_$k",
+        "lines": "189",
+        "feeds": "belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb call decide",
+        "lines": "193",
+        "feeds": "decision.basis/caveats/history, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on taste call decide",
+        "lines": "194",
+        "feeds": "decision.basis/caveats/history, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness call decide",
+        "lines": "195",
+        "feeds": "decision.basis/caveats/history, belief.supportedBy, belief.contradictedBy"
+      }
+    ],
+    "count": 22
+  },
+  {
+    "program": "C3",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function translate",
+        "lines": "22-36",
+        "feeds": "events reaching all explanation fields"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "49-89",
+        "feeds": "all view explanation fields"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $m_marked",
+        "lines": "113",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness set $m_marked = 0",
+        "lines": "136",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on mark set $m_marked = 1",
+        "lines": "142",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on unmark set $m_marked = 0",
+        "lines": "144",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_absorb \"Marked to avoid\"",
+        "lines": "184",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 7
+  },
+  {
+    "program": "C3",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_absorb \"Out of reach\"",
+        "lines": "191",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_taste \"Out of reach\"",
+        "lines": "195",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 2
+  },
+  {
+    "program": "C3",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function inOrder",
+        "lines": "46-52",
+        "feeds": "caveats order (all caveats fields)"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const caveatsOf",
+        "lines": "53-54",
+        "feeds": "all caveats fields"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "59-104",
+        "feeds": "journal, decision.caveats, all view explanation fields"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc decide",
+        "lines": "91-106",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state note_value",
+        "lines": "112",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc note",
+        "lines": "113-126",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb call decide",
+        "lines": "249",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on taste call decide",
+        "lines": "250",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness call decide",
+        "lines": "251",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $j_code (per entry)",
+        "lines": "255",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $j_cite (per entry)",
+        "lines": "256",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "define $j_what (per entry)",
+        "lines": "261",
+        "feeds": "journal.because/caveats (selects citing binding)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.shown (per entry)",
+        "lines": "262",
+        "feeds": "journal.because/caveats (which entries are listed)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text = \"\" (per entry)",
+        "lines": "263",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"it gave light\" (per entry)",
+        "lines": "264",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"it made me heavy\" (per entry)",
+        "lines": "265",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"sweet\" (per entry)",
+        "lines": "266",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"bitter\" (per entry)",
+        "lines": "267",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"it glowed\" (per entry)",
+        "lines": "268",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"it grew heavy\" (per entry)",
+        "lines": "269",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"I trust\" (per entry)",
+        "lines": "270",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $j.text \"I no longer trust\" (per entry)",
+        "lines": "271",
+        "feeds": "journal.because/caveats"
+      }
+    ],
+    "count": 22
+  },
+  {
+    "program": "C4",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "37-81",
+        "feeds": "reopenedBy, history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "support (state replaced by define)",
+        "lines": "42",
+        "feeds": "belief.supportedBy, mushrooms.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "contradiction (state replaced by define)",
+        "lines": "43",
+        "feeds": "belief.contradictedBy, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_1",
+        "lines": "30",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_2",
+        "lines": "31",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_3",
+        "lines": "32",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_4",
+        "lines": "33",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_5",
+        "lines": "34",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state glow_6",
+        "lines": "35",
+        "feeds": "belief.supportedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_1",
+        "lines": "36",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_2",
+        "lines": "37",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_3",
+        "lines": "38",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_4",
+        "lines": "39",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_5",
+        "lines": "40",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state dusk_6",
+        "lines": "41",
+        "feeds": "belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "decisions trust",
+        "lines": "46",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state recovery",
+        "lines": "49",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "59-85",
+        "feeds": "belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      }
+    ],
+    "count": 18
+  },
+  {
+    "program": "C4",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "function translate",
+        "lines": "16-31",
+        "feeds": "events reaching all explanation fields"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "41-86",
+        "feeds": "all view explanation fields"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state $m_marked",
+        "lines": "111",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb set $m_marked = 0",
+        "lines": "124",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness set $m_marked = 0",
+        "lines": "133",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on mark set $m_marked = 1",
+        "lines": "137",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on unmark set $m_marked = 0",
+        "lines": "139",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_absorb \"Marked to avoid\"",
+        "lines": "185",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 8
+  },
+  {
+    "program": "C4",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.cav",
+        "name": "define $m_out_of_reach",
+        "lines": "114",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_absorb \"Out of reach\"",
+        "lines": "194",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind $m.why_taste \"Out of reach\"",
+        "lines": "198",
+        "feeds": "mushrooms.why"
+      }
+    ],
+    "count": 3
+  },
+  {
+    "program": "C4",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "adapter.mjs",
+        "name": "top-level IIFE { MUSHROOMS, CAVEATS }",
+        "lines": "9-19",
+        "feeds": "journal caveats order"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "const byIndex",
+        "lines": "47",
+        "feeds": "journal.because/caveats order"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function project",
+        "lines": "49-105",
+        "feeds": "journal, all view explanation fields"
+      },
+      {
+        "file": "adapter.mjs",
+        "name": "function createPolicy",
+        "lines": "107-127",
+        "feeds": "journal because order (observations)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_1",
+        "lines": "66",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_2",
+        "lines": "67",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_3",
+        "lines": "68",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_4",
+        "lines": "69",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_5",
+        "lines": "70",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "state journal_6",
+        "lines": "71",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc shift_journal",
+        "lines": "74-80",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "fn journal_text",
+        "lines": "87-91",
+        "feeds": "journal.because/caveats (empty text drops the entry)"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "proc learn",
+        "lines": "95-129",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on absorb call learn",
+        "lines": "163",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on witness call learn",
+        "lines": "172",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "on taste call learn",
+        "lines": "195",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.text_1",
+        "lines": "275",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.text_2",
+        "lines": "276",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.text_3",
+        "lines": "277",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.text_4",
+        "lines": "278",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.text_5",
+        "lines": "279",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.cav",
+        "name": "bind journal.text_6",
+        "lines": "280",
+        "feeds": "journal.because/caveats"
+      }
+    ],
+    "count": 22
+  },
+  {
+    "program": "T1",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "initialState",
+        "lines": "55-66",
+        "feeds": "all view fields (initial state)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "beliefOf",
+        "lines": "101-123",
+        "feeds": "belief.supportedBy, belief.contradictedBy, belief.caveats, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "pushBounded",
+        "lines": "218-221",
+        "feeds": "belief window, decision.reopenedBy/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "record",
+        "lines": "225-254",
+        "feeds": "decision.basis/caveats/history, reopenedBy"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "collect",
+        "lines": "257-265",
+        "feeds": "caveats (retained evidence)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "createPolicy",
+        "lines": "332-348",
+        "feeds": "all view fields"
+      },
+      {
+        "file": "save.ts",
+        "name": "ref",
+        "lines": "25-28",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "save.ts",
+        "name": "unref",
+        "lines": "30-37",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "save.ts",
+        "name": "encodeSave",
+        "lines": "53-77",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "save.ts",
+        "name": "decodeSave",
+        "lines": "79-113",
+        "feeds": "resumed view (restore)"
+      }
+    ],
+    "count": 10
+  },
+  {
+    "program": "T1",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "consume",
+        "lines": "87-92",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomRow",
+        "lines": "144-174",
+        "feeds": "mushrooms.because/caveats"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "177-196",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "198-208",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "281-357",
+        "feeds": "all explanation fields"
+      },
+      {
+        "file": "save.ts",
+        "name": "encodeSave",
+        "lines": "53-84",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "save.ts",
+        "name": "decodeSave",
+        "lines": "86-121",
+        "feeds": "resumed view (restore)"
+      }
+    ],
+    "count": 7
+  },
+  {
+    "program": "T1",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "179-199",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "201-212",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "285-363",
+        "feeds": "all explanation fields"
+      }
+    ],
+    "count": 3
+  },
+  {
+    "program": "T1",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "initialState",
+        "lines": "65-77",
+        "feeds": "journal"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "render",
+        "lines": "222-233",
+        "feeds": "journal.because/caveats, all view explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "journalTrust",
+        "lines": "264-267",
+        "feeds": "journal.because/caveats"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "record",
+        "lines": "271-304",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "collect",
+        "lines": "307-316",
+        "feeds": "journal caveats (retained evidence)"
+      },
+      {
+        "file": "save.ts",
+        "name": "encodeSave",
+        "lines": "54-89",
+        "feeds": "resumed journal (save)"
+      },
+      {
+        "file": "save.ts",
+        "name": "decodeSave",
+        "lines": "91-135",
+        "feeds": "resumed journal (restore)"
+      }
+    ],
+    "count": 7
+  },
+  {
+    "program": "T2",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "pushBounded",
+        "lines": "64-67",
+        "feeds": "decision.reopenedBy/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "initial",
+        "lines": "70-85",
+        "feeds": "all view fields (initial state)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "caveatsOf",
+        "lines": "116-123",
+        "feeds": "all caveats fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "observe",
+        "lines": "198-223",
+        "feeds": "belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "commit",
+        "lines": "225-231",
+        "feeds": "decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "prune",
+        "lines": "235-242",
+        "feeds": "caveats (retained evidence caveats)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "250-310",
+        "feeds": "all explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encode",
+        "lines": "393-419",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "421-489",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "createPolicy",
+        "lines": "491-508",
+        "feeds": "all view fields"
+      }
+    ],
+    "count": 10
+  },
+  {
+    "program": "T2",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "consume",
+        "lines": "55-60",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "initial",
+        "lines": "73-88",
+        "feeds": "all view fields (initial state)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "129-141",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "144-158",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomViewBase",
+        "lines": "160-194",
+        "feeds": "mushrooms.because/caveats"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "264-340",
+        "feeds": "all explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encode",
+        "lines": "423-449",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "451-520",
+        "feeds": "resumed view (restore)"
+      }
+    ],
+    "count": 8
+  },
+  {
+    "program": "T2",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "131-143",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "146-161",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "267-344",
+        "feeds": "all explanation fields"
+      }
+    ],
+    "count": 3
+  },
+  {
+    "program": "T2",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "initial",
+        "lines": "79-95",
+        "feeds": "journal"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "observe",
+        "lines": "220-247",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "commit",
+        "lines": "249-256",
+        "feeds": "journal.because/caveats, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "prune",
+        "lines": "260-268",
+        "feeds": "journal caveats (retained evidence caveats)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "render",
+        "lines": "369-401",
+        "feeds": "journal.because/caveats, all view explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encode",
+        "lines": "451-478",
+        "feeds": "resumed journal (save)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "480-553",
+        "feeds": "resumed journal (restore)"
+      }
+    ],
+    "count": 7
+  },
+  {
+    "program": "T3",
+    "phase": "cr13",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "evidenceId (moved, signature changed)",
+        "lines": "142-144",
+        "feeds": "all because fields (evidence ids)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "consume (removed)",
+        "lines": "removed",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "initialState",
+        "lines": "121-131",
+        "feeds": "all view fields (initial state)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "caveatsOf",
+        "lines": "147-151",
+        "feeds": "all caveats fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "pushCapped",
+        "lines": "153-156",
+        "feeds": "belief.supportedBy, belief.contradictedBy, decision.reopenedBy/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "belief",
+        "lines": "166-184",
+        "feeds": "belief.supportedBy, belief.contradictedBy, belief.caveats, mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "twiceBitten",
+        "lines": "188-190",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "193-204",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "206-236",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "render",
+        "lines": "238-249",
+        "feeds": "all view explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "target",
+        "lines": "258-266",
+        "feeds": "evidence ids/kinds of accepted events"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "observe",
+        "lines": "269-294",
+        "feeds": "belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "findObservation",
+        "lines": "297-304",
+        "feeds": "decision.caveats"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "306-368",
+        "feeds": "all explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "VERBS (object literal, removed)",
+        "lines": "removed",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "VERB_CODES (object literal)",
+        "lines": "378",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encode",
+        "lines": "434-453",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "455-488",
+        "feeds": "resumed view (restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "refOf",
+        "lines": "397-402",
+        "feeds": "resumed view (save/restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "idOf",
+        "lines": "404-407",
+        "feeds": "resumed view (save/restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encodeCaveats",
+        "lines": "409-411",
+        "feeds": "resumed view (save/restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decodeCaveats",
+        "lines": "413-415",
+        "feeds": "resumed view (save/restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encodeObs",
+        "lines": "417-420",
+        "feeds": "resumed view (save/restore)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decodeObs",
+        "lines": "422-432",
+        "feeds": "resumed view (save/restore)"
+      }
+    ],
+    "count": 24
+  },
+  {
+    "program": "T3",
+    "phase": "cr14",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "initialState",
+        "lines": "123-133",
+        "feeds": "all view fields (initial state)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "195-207",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "209-240",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "310-390",
+        "feeds": "all explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encode",
+        "lines": "456-475",
+        "feeds": "resumed view (save)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "477-511",
+        "feeds": "resumed view (restore)"
+      }
+    ],
+    "count": 6
+  },
+  {
+    "program": "T3",
+    "phase": "cr15",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "whyNot",
+        "lines": "196-209",
+        "feeds": "mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "mushroomView",
+        "lines": "211-243",
+        "feeds": "mushrooms.because/caveats, mushrooms.why"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "313-395",
+        "feeds": "all explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "482-517",
+        "feeds": "resumed view (restore)"
+      }
+    ],
+    "count": 4
+  },
+  {
+    "program": "T3",
+    "phase": "cr16",
+    "units": [
+      {
+        "file": "glowcap.ts",
+        "name": "initialState",
+        "lines": "140-151",
+        "feeds": "journal"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "render",
+        "lines": "276-288",
+        "feeds": "journal.because/caveats, all view explanation fields"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "observe",
+        "lines": "308-336",
+        "feeds": "journal.because/caveats, belief.supportedBy, belief.contradictedBy, decision.basis/caveats/history"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "apply",
+        "lines": "348-431",
+        "feeds": "journal caveats (fades)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "encode",
+        "lines": "498-518",
+        "feeds": "resumed journal (save)"
+      },
+      {
+        "file": "glowcap.ts",
+        "name": "decode",
+        "lines": "520-560",
+        "feeds": "resumed journal (restore)"
+      }
+    ],
+    "count": 6
+  }
+]
