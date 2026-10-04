@@ -179,5 +179,16 @@ The rc.12 rules carry over:
   adds PR 7 (one Lean theorem), PR 8–9 (the program interface and
   `caveat types`) and PR 10 (design notes with cards), lets threads run in
   parallel where files do not overlap, and renumbers the publish to PR 11.
+- PR 5: restore refuses a saved provenance carrying a caveat that no
+  mechanism of the loaded source can attach to its evidence, or with no
+  evidence (F330, F333, F335–F337). Release note: these edits are now
+  refused at restore; a caveat the program could have attached still
+  restores, without proof that it was. 79,855 genuine saves from the 151
+  reactive programs that load among the repository's 132 `.cav` files and
+  the runtime tests' 64 program sources (Glowcap round 7's four Caveat
+  programs and the caveatism canon included), driven with seeded events for
+  eight runs of 150 and saved after each accepted one, restore with none
+  refused; 45,771 of them carry caveats. One existing
+  fuzz witness is now refused earlier, by this check.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).

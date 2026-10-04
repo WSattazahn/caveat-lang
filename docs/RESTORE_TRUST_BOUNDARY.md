@@ -1,9 +1,10 @@
 # Restore acceptance and host trust
 
 Status: design review written for rc.10 and updated for rc.11, which
-implements the source-capability check it proposed, and for rc.12, which
+implements the source-capability check it proposed, for rc.12, which
 applies the same check to a caveat's attention and to the keys of the
-qualification tables and the withdrawal record's event. The save schema is
+qualification tables and the withdrawal record's event, and for rc.13, which
+applies it to the caveats a saved provenance carries. The save schema is
 unchanged.
 
 ## What acceptance establishes
@@ -140,6 +141,40 @@ false; that is still accepted. A save without a record the session made is
 one the source could have written had the event not happened, and restore
 does not establish which events happened. The fixtures are in
 [restore_tables.rs](../runtime/tests/restore_tables.rs).
+
+## Caveats in saved provenance (rc.13)
+
+Each saved provenance (a state's lineage and grounds, a commitment's basis
+and grounds, a qualification record, a predicate guard, a reading, a journal
+entry) once restored with its caveats checked only as declared names. A
+caveat written into an observation, examination or reopening record, a guard
+or a basis then restored live and reached `using` reads and the
+`examined()`, `reopened()` and `committed()` guards (F330, F333,
+F335–F337). Restore now refuses a caveat that no mechanism of the loaded
+source can attach to that provenance.
+
+`caveat_sources` in [reactive_save.rs](../runtime/src/reactive_save.rs)
+derives, from the compiled program, the caveats a value resting on each
+evidence can carry: what can qualify that evidence (the pairs
+`qualification_sources` allows, and the extra caveats a `qualified(...)`
+names for it), what a declaration qualifies on a claim the evidence can bear
+on, and what qualifies those caveats in turn. A value can also carry a caveat
+with no evidence: `examined(...)` carries the caveat it reads and what
+qualifies it, and a commitment carries its `retaining` caveats. A caveat is
+accepted when it is one of those, or one some evidence of the provenance can
+carry; for grounds, evidence of the lineage or basis they lie within.
+
+The policy is the same as above. Guards are not evaluated, so a caveat that
+a rule whose guard never held could attach restores, and a caveat that some
+evidence of a provenance could carry restores in that provenance whether or
+not it came from that evidence. A caveat the source attaches only to other
+evidence, or to nothing, is refused. Like the other checks, this bounds a
+save by what the program could have written; it does not establish what the
+session did. The fixtures are in
+[restore_caveats.rs](../runtime/tests/restore_caveats.rs), the save fuzz in
+[save_restore.rs](../runtime/tests/save_restore.rs) (a caveat nothing
+attaches, added to every provenance of the played save) and the
+[restore boundary fixtures](../kit/test/restore-contract.test.mjs).
 
 ## Establishing trust in a checkpoint
 

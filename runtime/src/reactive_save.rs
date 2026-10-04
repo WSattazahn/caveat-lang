@@ -323,6 +323,15 @@ fn attention_from_name(name: &str) -> Result<Attention, String> {
 /// (caveat, evidence) pairs, evidence named as the source names it.
 type QualificationPairs = HashSet<(String, String)>;
 
+/// The caveats a value can carry, as the loaded source can attach them:
+/// those a value resting on each evidence can carry, and those a value can
+/// carry with no evidence that bears them. See `caveat_sources`.
+struct CaveatSources {
+    /// By evidence as the source names it.
+    attachable: HashMap<String, HashSet<String>>,
+    unpaired: HashSet<String>,
+}
+
 /// An effect's kind, as a save writes it.
 fn effect_kind(effect: &EffectReport) -> &'static str {
     match effect {
@@ -517,10 +526,12 @@ impl ReactiveSession {
             self.identifiers.limit(),
             save.identifiers.clone(),
         )?);
+        // Taken from the program as loaded, before the save changes it.
+        let caveats = self.caveat_sources();
         let observed = self.restore_graph(save)?;
         self.restore_withdrawals(save, &observed)?;
-        self.restore_states(&save.states, &observed)?;
-        self.restore_records(save, &observed)?;
+        self.restore_states(&save.states, &observed, &caveats)?;
+        self.restore_records(save, &observed, &caveats)?;
         self.restore_permissions(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())
@@ -754,6 +765,178 @@ impl ReactiveSession {
             }
         }
         costs
+    }
+
+    /// Findings F330, F333, F335-F337: the caveats some mechanism of the
+    /// loaded source can attach to a value. A value resting on evidence
+    /// carries what qualifies that evidence (a pair `qualification_sources`
+    /// allows, or an extra caveat a `qualified(...)` names), what qualifies a
+    /// claim the evidence can bear on, and what qualifies those caveats in
+    /// turn. With no evidence it carries only what `examined(...)` reads (the
+    /// caveat and what qualifies it) and what a commitment retains by name.
+    /// Guards are not evaluated: a caveat listed here could have been
+    /// attached, not shown to have been.
+    fn caveat_sources(&self) -> CaveatSources {
+        let names: HashMap<NodeId, &str> = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect();
+        let mut qualifiers: HashMap<String, HashSet<String>> = HashMap::new();
+        let (possible, _) = self.qualification_sources();
+        for (caveat, target) in possible {
+            qualifiers.entry(target).or_default().insert(caveat);
+        }
+        let mut bears: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut unpaired = HashSet::new();
+        for edge in self.graph.edges.iter().take(self.loaded.edges) {
+            let (Some(from), Some(to)) = (names.get(&edge.from), names.get(&edge.to)) else {
+                continue;
+            };
+            match edge.relation {
+                Relation::Supports | Relation::Opposes => {
+                    bears
+                        .entry(from.to_string())
+                        .or_default()
+                        .insert(to.to_string());
+                }
+                Relation::Retains => {
+                    unpaired.insert(to.to_string());
+                }
+                _ => {}
+            }
+        }
+        let mut examined = BTreeSet::new();
+        let mut extras = BTreeSet::new();
+        let mut read =
+            |expression: &Expr| expression.collect_caveat_reads(&mut examined, &mut extras);
+        for rule in self.rules.iter() {
+            read(&rule.condition);
+        }
+        for procedure in self.procedures.values() {
+            for step in &procedure.body {
+                read(&step.condition);
+            }
+        }
+        for (_, _, condition) in self.reopening_triggers.iter() {
+            read(condition);
+        }
+        for (_, value) in self.define_rules.iter() {
+            read(value);
+        }
+        for binding in self.binding_rules.iter() {
+            read(&binding.condition);
+            if let BindingExpression::Expression(value) = &binding.value {
+                read(value);
+            }
+            for citation in binding.because.iter().flatten() {
+                read(citation);
+            }
+        }
+        for effect in self.reached_effects(None) {
+            match effect {
+                Effect::Call { arguments, .. } => arguments.iter().for_each(&mut read),
+                Effect::Sample {
+                    stream,
+                    value,
+                    claim,
+                    ..
+                } => {
+                    read(value);
+                    bears
+                        .entry(stream.clone())
+                        .or_default()
+                        .insert(claim.clone());
+                }
+                Effect::Reveal {
+                    evidence, claim, ..
+                } => {
+                    bears
+                        .entry(evidence.clone())
+                        .or_default()
+                        .insert(claim.clone());
+                }
+                Effect::Qualify {
+                    after: Some(after), ..
+                } => read(after),
+                Effect::Set { value, because, .. } => {
+                    read(value);
+                    because.iter().flatten().for_each(&mut read);
+                }
+                Effect::Commit {
+                    using,
+                    permission,
+                    retaining,
+                    ..
+                } => {
+                    using.iter().for_each(&mut read);
+                    if let Some(scope) =
+                        permission.as_ref().and_then(|clause| clause.scope.as_ref())
+                    {
+                        read(scope);
+                    }
+                    unpaired.extend(retaining.iter().cloned());
+                }
+                _ => {}
+            }
+        }
+        for (caveat, evidence) in extras {
+            qualifiers.entry(evidence).or_default().insert(caveat);
+        }
+        // What a state's initializer attached when the program loaded.
+        for name in self.states.names() {
+            let lineage = &self.states.get(name).expect("named").value.provenance;
+            for evidence in &lineage.evidence {
+                qualifiers
+                    .entry(self.source_evidence(evidence).to_string())
+                    .or_default()
+                    .extend(lineage.caveats.iter().cloned());
+            }
+        }
+        // A reading bears on what its stream's samples name, and, at most,
+        // on what its template does.
+        for (stream, readings) in self.reading_streams.iter() {
+            if let Some(claims) = bears.get(&readings.template).cloned() {
+                bears.entry(stream.clone()).or_default().extend(claims);
+            }
+        }
+        let incoming = |roots: Vec<String>| {
+            let mut frontier = roots;
+            let mut visited = HashSet::new();
+            let mut caveats = HashSet::new();
+            while let Some(name) = frontier.pop() {
+                if !visited.insert(name.clone()) {
+                    continue;
+                }
+                for caveat in qualifiers.get(&name).into_iter().flatten() {
+                    caveats.insert(caveat.clone());
+                    frontier.push(caveat.clone());
+                }
+            }
+            caveats
+        };
+        let evidence = self
+            .symbols
+            .iter()
+            .filter(|(_, id)| matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. })))
+            .map(|(name, _)| name.clone())
+            .chain(self.reading_streams.keys().cloned())
+            .collect::<HashSet<_>>();
+        let attachable = evidence
+            .into_iter()
+            .map(|name| {
+                let mut roots = vec![name.clone()];
+                roots.extend(bears.get(&name).into_iter().flatten().cloned());
+                let caveats = incoming(roots);
+                (name, caveats)
+            })
+            .collect();
+        unpaired.extend(incoming(examined.iter().cloned().collect()));
+        unpaired.extend(examined);
+        CaveatSources {
+            attachable,
+            unpaired,
+        }
     }
 
     /// The name the source gives `evidence`: its stream or renewable evidence
@@ -1134,6 +1317,23 @@ impl ReactiveSession {
         what: &str,
         provenance: &Provenance,
         observed: &HashSet<NodeId>,
+        caveats: &CaveatSources,
+    ) -> Result<(), String> {
+        self.check_provenance_within(what, provenance, provenance, observed, caveats)
+    }
+
+    /// As `check_provenance`, and each caveat is one the source can attach
+    /// with no evidence, or to some evidence of `lineage`: the provenance
+    /// itself, or the lineage a grounds provenance lies within. A caveat that
+    /// could attach is accepted without proof that it did (F330, F333,
+    /// F335-F337).
+    fn check_provenance_within(
+        &self,
+        what: &str,
+        provenance: &Provenance,
+        lineage: &Provenance,
+        observed: &HashSet<NodeId>,
+        caveats: &CaveatSources,
     ) -> Result<(), String> {
         provenance
             .validate()
@@ -1146,6 +1346,16 @@ impl ReactiveSession {
         for name in &provenance.caveats {
             self.require_kind(name, "caveat")
                 .map_err(|error| format!("{what}: {error}"))?;
+            let attachable = caveats.unpaired.contains(name)
+                || lineage.evidence.iter().any(|evidence| {
+                    caveats
+                        .attachable
+                        .get(self.source_evidence(evidence))
+                        .is_some_and(|attachable| attachable.contains(name))
+                });
+            if !attachable {
+                return Err(format!("{what}: {name} cannot qualify any of its evidence"));
+            }
         }
         Ok(())
     }
@@ -1165,6 +1375,7 @@ impl ReactiveSession {
         &mut self,
         saved: &BTreeMap<String, SavedState>,
         observed: &HashSet<NodeId>,
+        caveats: &CaveatSources,
     ) -> Result<(), String> {
         if let Some(name) = saved.keys().find(|name| !self.states.contains_key(name)) {
             return Err(format!("its states are not this program's: {name}"));
@@ -1178,8 +1389,14 @@ impl ReactiveSession {
                 return Err(format!("state {name} is not a finite number"));
             }
             check_range(name, state.value, range.min, range.max)?;
-            self.check_provenance(&format!("state {name}"), lineage, observed)?;
-            self.check_provenance(&format!("state {name} grounds"), grounds, observed)?;
+            self.check_provenance(&format!("state {name}"), lineage, observed, caveats)?;
+            self.check_provenance_within(
+                &format!("state {name} grounds"),
+                grounds,
+                lineage,
+                observed,
+                caveats,
+            )?;
             check_grounds_within_lineage(&format!("state {name}"), grounds, lineage)?;
             let slot = self.states.slot(name).expect("checked above");
             self.states.set(
@@ -1197,17 +1414,34 @@ impl ReactiveSession {
         &mut self,
         save: &ReactiveSave,
         observed: &HashSet<NodeId>,
+        caveats: &CaveatSources,
     ) -> Result<(), String> {
         for (name, basis) in &save.commitment_bases {
             self.require_commitment(name)?;
             if basis.value.is_some_and(|value| !value.is_finite()) {
                 return Err(format!("commitment {name} basis is not a finite number"));
             }
-            self.check_provenance(&format!("commitment {name}"), &basis.provenance, observed)?;
+            self.check_provenance(
+                &format!("commitment {name}"),
+                &basis.provenance,
+                observed,
+                caveats,
+            )?;
         }
         for (name, grounds) in &save.commitment_grounds {
             self.require_commitment(name)?;
-            self.check_provenance(&format!("commitment {name} grounds"), &grounds.0, observed)?;
+            // Grounds lie within the commitment's basis.
+            let lineage = save
+                .commitment_bases
+                .get(name)
+                .map_or(&grounds.0, |basis| &basis.provenance);
+            self.check_provenance_within(
+                &format!("commitment {name} grounds"),
+                &grounds.0,
+                lineage,
+                observed,
+                caveats,
+            )?;
         }
         if save.reading_streams.keys().ne(self.reading_streams.keys()) {
             return Err("its reading streams are not this program's".into());
@@ -1239,6 +1473,7 @@ impl ReactiveSession {
                     &format!("reading {}", occurrence.id),
                     &occurrence.provenance,
                     observed,
+                    caveats,
                 )?;
             }
             if stream.current.as_ref() != stream.occurrences.last().map(|occurrence| &occurrence.id)
@@ -1251,6 +1486,7 @@ impl ReactiveSession {
                 &format!("reading stream {name}"),
                 &stream.selection_qualifications,
                 observed,
+                caveats,
             )?;
         }
         if save.decision_series.keys().ne(self.decision_series.keys()) {
@@ -1277,6 +1513,7 @@ impl ReactiveSession {
                 &format!("decision series {name}"),
                 &series.selection_qualifications,
                 observed,
+                caveats,
             )?;
         }
         for (name, occurrences) in &save.renewals {
@@ -1355,7 +1592,12 @@ impl ReactiveSession {
             {
                 return Err("a scheduled qualification's times are not valid".into());
             }
-            self.check_provenance("scheduled qualification", &scheduled.guard, observed)?;
+            self.check_provenance(
+                "scheduled qualification",
+                &scheduled.guard,
+                observed,
+                caveats,
+            )?;
         }
         // Findings 86, 89, 96, 118-120: each table is keyed by what made its
         // record. An observation is of observed evidence, or of an occurrence
@@ -1399,7 +1641,12 @@ impl ReactiveSession {
                     };
                     return Err(format!("{what} of {name}: {name} is not {kind}"));
                 }
-                self.check_provenance(&format!("{what} of {name}"), &provenance.0, observed)?;
+                self.check_provenance(
+                    &format!("{what} of {name}"),
+                    &provenance.0,
+                    observed,
+                    caveats,
+                )?;
             }
         }
         let decisions = self.decision_names();
@@ -1432,7 +1679,12 @@ impl ReactiveSession {
                 if let Some(expected) = expected {
                     return Err(format!("{kind}({name}): {name} is not {expected}"));
                 }
-                self.check_provenance(&format!("{kind}({name})"), &provenance.0, observed)?;
+                self.check_provenance(
+                    &format!("{kind}({name})"),
+                    &provenance.0,
+                    observed,
+                    caveats,
+                )?;
             }
         }
         match (&mut self.resources, &save.resources) {
@@ -1490,7 +1742,7 @@ impl ReactiveSession {
             {
                 return Err(format!("cue {id} is not one the last event can emit"));
             }
-            self.check_provenance(&format!("cue {id}"), &qualification.0, observed)?;
+            self.check_provenance(&format!("cue {id}"), &qualification.0, observed, caveats)?;
         }
         for effect in &save.effects {
             let names: Vec<&str> = match effect {
@@ -1568,7 +1820,7 @@ impl ReactiveSession {
                 ));
             }
         }
-        self.check_saved_journal(save, observed)?;
+        self.check_saved_journal(save, observed, caveats)?;
         check_relations_within_bases(save)?;
         // Keep the existing journal and relation diagnostics first. A matching
         // journal alone cannot establish that grounds belong to the basis.
@@ -1629,6 +1881,7 @@ impl ReactiveSession {
         &self,
         save: &ReactiveSave,
         observed: &HashSet<NodeId>,
+        caveats: &CaveatSources,
     ) -> Result<(), String> {
         let fail = |message: &str| format!("decision journal: {message}");
         if (save.sequence == 0) != save.last_event.is_none() {
@@ -1688,7 +1941,7 @@ impl ReactiveSession {
                 entry.because.iter().cloned(),
                 entry.caveats.iter().cloned(),
             )?;
-            self.check_provenance("decision journal", &provenance, observed)?;
+            self.check_provenance("decision journal", &provenance, observed, caveats)?;
             if provenance.evidence.len() != entry.because.len()
                 || entry.because != self.in_observation_order(provenance.evidence.iter())
                 || entry.caveats != provenance.caveats.iter().cloned().collect::<Vec<_>>()

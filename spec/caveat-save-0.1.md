@@ -91,6 +91,18 @@ save is refused with an error, and never crashes the runtime, when:
   renewable evidence. Only `qualify ... after` schedules a qualification.
   Conditions are not evaluated: the pair is one the program could make, not
   one an event is shown to have made;
+- a provenance carries a caveat that no mechanism of the loaded source can
+  attach to it: a lineage, grounds, basis, guard, qualification record,
+  reading, journal entry or other provenance record. A caveat is accepted
+  when some evidence of the provenance (for grounds, of the lineage or basis
+  they lie within) can carry it, as the mechanisms above can qualify that
+  evidence, a `qualified(...)` can name it for that evidence, a declaration
+  can qualify a claim that evidence can bear on, or it qualifies a caveat
+  that evidence can carry; or when a value can carry it with no evidence, as
+  `examined(...)` carries the caveat it reads and what qualifies it, and a
+  commitment its `retaining` caveats. Conditions are not evaluated: the
+  caveat is one the program could have attached, not one an event is shown
+  to have attached;
 - a caveat's saved attention is one no examination of the loaded source can
   leave. A reactive event leaves a caveat only `examined`, so `deferred` and
   `examining` are refused. An `examined` caveat is refused when the program
@@ -243,6 +255,19 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-04 (rc.13): restore refuses a provenance carrying a caveat that no
+  mechanism of the loaded source can attach to its evidence (F330, F333,
+  F335–F337). The rc.12 contract accepted any declared caveat in any saved
+  provenance, so a caveat written into an observation, examination or
+  reopening record, a predicate guard, a state's lineage or grounds or a
+  commitment's basis restored live and reached `using` reads and the
+  `examined()`, `reopened()` and `committed()` guards. The policy is
+  conservative, as for qualifications and attention: a caveat any
+  mechanism of the source could attach is accepted, whether or not a guard
+  allowed it, so saves the runtime writes restore as before (79,855 genuine
+  saves from 151 repository and test programs). The schema stays
+  `caveat-reactive-save/0.1`.
 
 - 2026-10-04 (rc.12): restore refuses a qualification record keyed by a
   name its record cannot belong to, a predicate guard on a name of the wrong
