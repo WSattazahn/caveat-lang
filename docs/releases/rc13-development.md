@@ -319,5 +319,16 @@ The rc.12 rules carry over:
   `latest`; `next` is added by hand afterwards. The tag, artifact, provenance
   and registry verification are recorded only from the
   `npm-publication-verification` artifact.
+- Published 2026-10-04: tag `v0.1.0-rc.13` at `8f4e700` (merge of #137, after
+  the release notes in #134), the tarball from
+  [Runtime 37236869595](https://github.com/WSattazahn/caveat-lang/actions/runs/37236869595)
+  (SHA256 `f7f980d401cd53f338fc2dd4021364af53f52bc06bba613a3ffcb2e58351e9ed`),
+  published by [publish-npm.yml run 37240443563](https://github.com/WSattazahn/caveat-lang/actions/runs/37240443563)
+  under `latest` with npm provenance, after the owner approved it in
+  `npm-publish`. The Runtime run was cancelled by the push of #138 to `main` and
+  completed on re-run, with one Light the Way (webkit)
+  first-load timeout passing on re-run (#141). #138, merged after the tag, was
+  reverted before publication (#140). `verify-publication` passed, and the
+  owner then moved `next` to rc.13. See the [release record](v0.1.0-rc.13.md).
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
