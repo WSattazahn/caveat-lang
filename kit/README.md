@@ -405,10 +405,10 @@ artifact from the intended release commit. Before publication, the
 [packed dependency security gate](docs/reference/docs/PACKAGE_SECURITY.md) must
 pass against that exact tarball and retain its npm/Rust advisory receipts.
 A release publishes that one tested
-tarball twice, unchanged: attached to the GitHub pre-release, and to npm under
-the `next` tag (`npm publish <tarball> --tag next`). No second build is made
-for the registry. See the
-[consolidation plan](https://github.com/WSattazahn/caveat-lang/blob/ab3b0d3/docs/CONSOLIDATION_PLAN.md)
+tarball twice, unchanged: to npm and attached to the GitHub pre-release. No
+second build is made for the registry. Each release record names the npm
+dist-tags its version was published under. See the
+[consolidation plan](https://github.com/WSattazahn/caveat-lang/blob/main/docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)
 for the release gates.
 
 ## Not yet
