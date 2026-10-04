@@ -214,5 +214,11 @@ The rc.12 rules carry over:
   the model the runtime's state before each event. Two compiled mutants that
   let the caveat reach commitment records are caught. Commitment creation,
   reopening, the journal and scheduled qualification are not modeled.
+- PR 10 (#125): `docs/design/save-forgetting.md` and
+  `docs/design/integer-tick-time.md`, docs only. The save note recommends
+  declared windows whose departed records go to a host-drained archive, with
+  anything a frozen basis or journal entry cites kept in the save; the tick
+  note recommends an opt-in clock counted in whole units. Both decisions are
+  the owner's, on cards; neither is implemented in rc.13.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
