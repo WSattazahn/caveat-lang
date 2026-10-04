@@ -91,6 +91,15 @@ save is refused with an error, and never crashes the runtime, when:
   renewable evidence. Only `qualify ... after` schedules a qualification.
   Conditions are not evaluated: the pair is one the program could make, not
   one an event is shown to have made;
+- a caveat's saved attention is one no examination of the loaded source can
+  leave. A reactive event leaves a caveat only `examined`, so `deferred` and
+  `examining` are refused. An `examined` caveat is refused when the program
+  has no attention budget, or when no `examine` in a rule, or in a procedure
+  a rule reaches, names it; and the examined caveats together are refused
+  when the least cost at which the source examines each one sums to more
+  than the budget's `spent`. Conditions are not evaluated and an examination
+  is counted once: the attention is one the program could have left, not one
+  an event is shown to have left;
 - a relation connects kinds of node no event relates. Events add `supports`
   and `opposes` from evidence to a claim, `qualifies` from a caveat to
   evidence, `retains` from a commitment to a caveat, `relies_on` from a
@@ -197,6 +206,11 @@ using observed `sensor` can retain `phantom` in its grounds. Snapshot
 `origin: "live"` identifies a current graph edge, including a restored edge;
 it does not authenticate how the edge arose.
 
+A caveat's attention is checked the same way. With `on check examine stale
+cost 1;` and nothing spent, `"attention": {"stale": "examined"}` is refused;
+once the budget has spent 1 it is accepted, whether or not `check` ran, and
+`examined(stale)` then holds.
+
 Sparse state entries have a similar boundary. Deleting a changed state's
 entry can be accepted and restore that state from its source initializer,
 while earlier commitments keep their frozen bases and grounds. This differs
@@ -218,6 +232,18 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-04 (rc.12): restore refuses a caveat's attention that no
+  examination of the loaded source can leave (findings 123, 188–191). The
+  rc.11 contract checked only that each attention entry named a caveat and a
+  known state, so a save could mark any caveat `examined` for free and
+  `examined(...)` guards then held. Now `deferred` and `examining` are
+  refused, `examined` needs an attention budget and an `examine` of that
+  caveat the source can reach, and the examined caveats' least costs must
+  fit what the budget spent. The policy is conservative, as for
+  qualifications: attention some sequence of the program's events could
+  leave is accepted, so saves the runtime writes restore as before. The
+  schema stays `caveat-reactive-save/0.1`.
 
 - 2026-10-03 (rc.11): restore refuses a `qualifies` relation or a pending
   scheduled qualification that no mechanism of the loaded source can make

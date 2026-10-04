@@ -2561,3 +2561,29 @@ fn f247_an_unknown_key_inserted_anywhere_is_refused() {
     }
     assert!(tried > 100, "tried {tried}");
 }
+
+// Findings 123, 188–191, as F247's insertion with attention values: every
+// caveat of the played save given every attention a save can name. Restore
+// accepts only what the program could have left: no entry, `unexamined`,
+// or `stale` examined, which `check` examines and the budget paid for.
+#[test]
+fn an_attention_inserted_for_any_caveat_is_refused_unless_the_source_could_leave_it() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    assert_eq!(
+        save["graph"]["attention"],
+        serde_json::json!({"stale": "examined"})
+    );
+    let mut tried = 0;
+    for caveat in ["stale", "unmeasured", "faded"] {
+        for attention in ["unexamined", "deferred", "examining", "examined"] {
+            let mut altered = save.clone();
+            altered["graph"]["attention"][caveat] = attention.into();
+            tried += 1;
+            let restored = ReactiveSession::restore_json(PROGRAM, &altered.to_string());
+            let possible =
+                attention == "unexamined" || (caveat, attention) == ("stale", "examined");
+            assert_eq!(restored.is_ok(), possible, "{caveat} {attention}");
+        }
+    }
+    assert_eq!(tried, 12);
+}
