@@ -425,3 +425,12 @@ Muse measurements remain external evidence until reproduced here.
   (R54), with a restore check. `docs/AI_AUTHORING.md` names the PR 1 codes.
   The elapsed sentence moved to the elapsed-guard PR; the save spec's L76
   boundary was left to PR 3 (#99), which enforces nested unknown fields.
+- PR 5 (#103): `game/before_the_rain.cav` and its scenarios from `b0c763b`,
+  with the two `$shown` blocks replaced by the hand-written rules quoted in
+  that commit's routed-repetition section 10; the file has no `$shown`.
+  `npm run test:before-the-rain` passes 12/12, with every outcome as on the
+  branch, so no finding is recorded. `caveat check` report: no warnings
+  (`diagnostics: []`, `suppressed: []`); no allow comments added. The
+  branch's editor commits stay on the branch: `cfd6a7e` targets
+  `editors/vscode/test/reference.test.mjs`, which main does not have, and
+  the other four mention `$Q`.

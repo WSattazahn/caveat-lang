@@ -1,0 +1,196 @@
+// Before the Rain: the case program. The host owns the farmyard, the clock and
+// the hidden truth (who did it, who lies, what the rain and tampering destroy).
+// It reports what the warden saw and heard; this program owns what that
+// evidence is worth, what a hold rests on, when a hold comes loose, what the
+// constable will sign, and how the verdict grades the warden's reasons.
+scene "Before the Rain: hold a suspect on exhibits you choose, before the storm.";
+place yard kind farm;
+
+// Who could have done it. The kind order is the payload number: 1, 2, 3.
+entity farmhand kind suspect at yard;
+entity neighbour kind suspect at yard;
+entity accident kind suspect at yard;
+claim farmhand_did;
+claim neighbour_did;
+claim accident_did;
+
+// Everything the warden can present: three accounts (1-3), four traces (4-7).
+entity x_farmer kind exhibit at yard;
+entity x_farmhand kind exhibit at yard;
+entity x_neighbour kind exhibit at yard;
+entity x_prints kind exhibit at yard;
+entity x_can kind exhibit at yard;
+entity x_lamp kind exhibit at yard;
+entity x_hay kind exhibit at yard;
+
+caveat secondhand consequence material;
+caveat weathered consequence material;
+caveat drunk consequence high;
+caveat unreliable consequence high;
+display secondhand "Only their word: you did not see it yourself.";
+display weathered "Read after the rain reached the yard.";
+display drunk "The farmhand had been drinking.";
+display unreliable "The case file shows this exhibit was false.";
+
+claim farmhand_was_drinking;
+evidence bottle from "a half-empty bottle under the farmhand's cot";
+claim may_rule;
+evidence constable from "the constable's signature";
+readings warrants from constable limit 8;
+
+state raining = 0 min 0 max 1;
+state over = 0 min 0 max 1;
+state cot_searched = 0 min 0 max 1;
+state held = 0 min 0 max 3;
+state hold_firsthand = 0 min 0 max 2;
+// The number is the suspect held; its grounds are exactly the presented exhibits.
+state case_basis = 0;
+state ruled = 0 min 0 max 3;
+state ruled_compromised = 0 min 0 max 1;
+state truth = 0 min 0 max 3;
+decisions hold limit 8;
+decisions ruling limit 1;
+define holding = committed(hold) and not reopened(hold);
+
+event advance dt min 0 max 10;
+clock advance every 1;
+event rain;
+event dusk;
+event ask about kind exhibit, accuses kind suspect;
+event examine about kind exhibit, points min 0 max 3;
+event search_cot found in no yes;
+event confront about kind exhibit, shown kind exhibit, recants in no yes;
+event hold suspect kind suspect, first kind exhibit, second kind exhibit;
+event warrant;
+event rule;
+event expose about kind exhibit;
+event close culprit kind suspect;
+
+on ask when over == 1 reject "The case is closed.";
+on examine when over == 1 reject "The case is closed.";
+on search_cot when over == 1 reject "The case is closed.";
+on confront when over == 1 reject "The case is closed.";
+on hold when over == 1 reject "The case is closed.";
+on warrant when over == 1 reject "The case is closed.";
+on rule when over == 1 reject "The case is closed.";
+on expose when over == 0 reject "The case is still open.";
+on close when over == 0 reject "The case is still open.";
+on close when truth != 0 reject "The case file is already open.";
+
+on rain set raining = 1;
+on dusk set over = 1;
+on search_cot when cot_searched == 1 reject "You have already searched the cot.";
+on search_cot set cot_searched = 1;
+on search_cot when found == found.yes reveal bottle supports farmhand_was_drinking;
+
+for exhibit as $x routed by about {
+    evidence ev_$x from "$x";
+    state $x_points = 0 min 0 max 3;
+    state $x_examined = 0 min 0 max 1;
+
+    // Accounts: quick, but only ever their word.
+    on ask when $index > 3 reject "Traces are examined, not asked.";
+    on ask when observed(ev_$x) reject "They have already given their account.";
+    on ask when accuses == 1 reveal ev_$x supports farmhand_did;
+    on ask when accuses == 2 reveal ev_$x supports neighbour_did;
+    on ask when accuses == 3 reveal ev_$x supports accident_did;
+    on ask set $x_points = qualified(accuses, ev_$x);
+    on ask when $index == 2 and observed(bottle) qualify ev_$x with drunk;
+
+    // Traces: seen first hand, but the rain can reach them first.
+    on examine when $index <= 3 reject "Ask a witness; examine a trace.";
+    on examine when $x_examined == 1 reject "You have already examined that.";
+    on examine set $x_examined = 1;
+    on examine when points == 1 reveal ev_$x supports farmhand_did;
+    on examine when points == 2 reveal ev_$x supports neighbour_did;
+    on examine when points == 3 reveal ev_$x supports accident_did;
+    on examine when points != 0 set $x_points = qualified(points, ev_$x);
+    on examine when points != 0 and raining == 1 qualify ev_$x with weathered;
+
+    // A bottle found after the farmhand spoke compromises what he said.
+    on search_cot when $index == 2 and found == found.yes and observed(ev_$x) qualify ev_$x with drunk;
+
+    on confront when $index > 3 reject "Confront a witness, not a trace.";
+    on confront when not observed(ev_$x) reject "They have not given an account yet.";
+    on confront when withdrawn(ev_$x) reject "They have already taken it back.";
+
+    // Closing the file: the host reports which exhibits were false.
+    on expose when not observed(ev_$x) reject "Nothing was recorded for that exhibit.";
+    on expose qualify ev_$x with unreliable;
+
+    bind $x.points = $x_points;
+    bind $x.status = "unknown";
+    bind $x.status = "inconclusive" when $x_examined == 1 and $x_points == 0;
+    bind $x.status = "on record" when observed(ev_$x);
+    bind $x.status = "weathered" when observed(ev_$x) and carries(ev_$x, weathered);
+    bind $x.status = "compromised" when observed(ev_$x) and carries(ev_$x, drunk);
+    bind $x.status = "taken back" when withdrawn(ev_$x);
+};
+secondhand qualifies ev_x_farmer;
+secondhand qualifies ev_x_farmhand;
+secondhand qualifies ev_x_neighbour;
+
+// What was shown must be an examined trace that says otherwise.
+for exhibit as $s {
+    on confront when shown == $index and $index <= 3 reject "Show them a trace.";
+    on confront when shown == $index and $s_points == 0 reject "That trace shows nothing yet.";
+    on confront when shown == $index and about == 1 and x_farmer_points == $s_points reject "That trace agrees with them.";
+    on confront when shown == $index and about == 2 and x_farmhand_points == $s_points reject "That trace agrees with them.";
+    on confront when shown == $index and about == 3 and x_neighbour_points == $s_points reject "That trace agrees with them.";
+};
+
+// A recant takes the account back because of the trace that was shown.
+for exhibit as $w routed by about {
+    on confront when recants == recants.yes and shown == 4 withdraw ev_$w because ev_x_prints;
+    on confront when recants == recants.yes and shown == 5 withdraw ev_$w because ev_x_can;
+    on confront when recants == recants.yes and shown == 6 withdraw ev_$w because ev_x_lamp;
+    on confront when recants == recants.yes and shown == 7 withdraw ev_$w because ev_x_hay;
+};
+
+// Holding a suspect: the warden stakes exactly two exhibits on it.
+on hold when holding reject "You already hold someone.";
+on hold when first == second reject "Present two different exhibits.";
+on hold set case_basis = suspect;
+on hold set hold_firsthand = 0;
+for exhibit as $e {
+    on hold when (first == $index or second == $index) and $e_points == 0 reject "That exhibit is not established.";
+    on hold when (first == $index or second == $index) and withdrawn(ev_$e) reject "That account was taken back.";
+    on hold when (first == $index or second == $index) and $e_points != suspect reject "That exhibit does not point at them.";
+    on hold when first == $index or second == $index set case_basis = case_basis + qualified(0, ev_$e);
+    on hold when (first == $index or second == $index) and $index > 3 set hold_firsthand = hold_firsthand + 1;
+};
+on hold set held = suspect;
+on hold commit hold because enough using case_basis;
+
+// Nothing comes loose by itself: these rules say when a hold falls.
+on confront when holding and rests_on_withdrawn(hold) reopen hold because caveated(case_basis, withdrawn);
+on search_cot when holding and has_caveat(case_basis, drunk) reopen hold because caveated(case_basis, drunk);
+
+on warrant when not holding reject "There is no hold in force.";
+on warrant when hold_firsthand == 0 reject "The constable won't sign on hearsay alone.";
+on warrant sample warrants = held supports may_rule;
+
+on rule when not holding reject "Hold someone first.";
+on rule set ruled_compromised = if(has_caveat(case_basis, drunk), 1, 0);
+on rule set ruled = held;
+on rule commit ruling because enough using case_basis permitted by latest(warrants) for held;
+on rule set over = 1;
+
+on close set truth = culprit;
+
+define right = ruled != 0 and ruled == truth;
+define on_your_evidence = not rests_on_withdrawn(ruling) and not has_caveat(case_basis, unreliable) and ruled_compromised == 0;
+
+bind hold.state = "none";
+bind hold.state = "held" when holding;
+bind hold.state = "loose" when reopened(hold);
+bind hold.suspect = held;
+bind hold.firsthand = hold_firsthand;
+bind case.raining = raining == 1;
+bind case.over = over == 1;
+bind case.ruled = ruled;
+bind verdict.stamp = "OPEN";
+bind verdict.stamp = "NO CASE" when truth != 0 and ruled == 0;
+bind verdict.stamp = "WRONG" when truth != 0 and ruled != 0 and ruled != truth;
+bind verdict.stamp = "RIGHT BUT NOT ON YOUR EVIDENCE" when truth != 0 and right and not on_your_evidence;
+bind verdict.stamp = "CLEAN" when truth != 0 and right and on_your_evidence;
