@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { access, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DECLARED_CAPABILITIES, scanCapabilities, tarballFiles } from './kit-capabilities.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const REGISTRY = 'https://registry.npmjs.org';
@@ -182,6 +183,13 @@ export async function auditKitSecurity({ packageReport, auditBin, advisoryDb }) 
       return { passed: true, ...identity };
     });
 
+    // Socket-style capability use must match docs/PACKAGE_SECURITY.md.
+    if (artifact) await scope('declared-capabilities', async () => {
+      const result = scanCapabilities(tarballFiles(artifact.tarballPath));
+      assert.ok(result.passed, result.failures.join('; '));
+      return { ...result, declared: DECLARED_CAPABILITIES };
+    });
+
     async function npmAudit(name, cwd, omitDev = false) {
       const inputFiles = [];
       for (const file of ['package.json', 'package-lock.json']) {
@@ -267,7 +275,7 @@ export async function auditKitSecurity({ packageReport, auditBin, advisoryDb }) 
         completeLockfile: true, linkedCrates, yankedCratesChecked: false };
     });
   } catch (error) { report.failures.push(`setup: ${error.message}`); }
-  report.passed = report.failures.length === 0 && ['artifact', 'packed-npm-runtime', 'rust-build-lockfile',
+  report.passed = report.failures.length === 0 && ['artifact', 'declared-capabilities', 'packed-npm-runtime', 'rust-build-lockfile',
     'repository-development-and-site', 'editor-development', 'collision-fixture', 'mcp-client-fixture'].every(name => report.scopes[name]?.passed);
   report.finishedAt = now();
   await write('report.json', `${JSON.stringify(report, null, 2)}\n`);

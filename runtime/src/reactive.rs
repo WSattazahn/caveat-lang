@@ -86,6 +86,14 @@ mod prelude_tests {
     use super::*;
 
     #[test]
+    fn the_prelude_defines_the_functions_the_function_limit_excludes() {
+        assert_eq!(
+            prelude_functions().unwrap().len(),
+            reactive_expr::PRELUDE_FUNCTIONS
+        );
+    }
+
+    #[test]
     fn changing_only_prelude_source_changes_numeric_and_formatting_algorithms() {
         let evaluate = |source: &str, expression: &str| {
             let functions = source_functions(source).unwrap();
@@ -379,6 +387,33 @@ mod dispatch_budget_tests {
     }
 }
 
+#[cfg(test)]
+mod elapsed_guard_tests {
+    use super::*;
+
+    // F151: the accumulator cannot become nonfinite through declared bounds,
+    // whose magnitude is at most 1e12, nor through restore, which refuses a
+    // nonfinite clock. The guard is reached here only by setting the clock
+    // directly, which no public entry point can do.
+    #[test]
+    fn f151_nonfinite_clock_refuses_the_event_as_bound_exceeded() {
+        let source = "event advance dt min 0 max 1; clock advance every 1; event idle;";
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        session.elapsed = f64::INFINITY;
+        let before = session.snapshot();
+        let outcome = session
+            .dispatch_outcome_json("advance", r#"{"dt":1}"#)
+            .unwrap();
+        let report = serde_json::to_value(outcome).unwrap();
+        assert_eq!(report["outcome"], "rejected");
+        assert_eq!(report["origin"], "evaluation");
+        assert_eq!(report["code"], "bound_exceeded");
+        assert_eq!(session.snapshot(), before, "the refusal rolls back");
+        let shown = session.dispatch_json("idle", "{}").unwrap();
+        assert_eq!(shown.sequence, before.sequence + 1, "the session continues");
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Directive {
     Procedure(Procedure),
@@ -537,12 +572,14 @@ pub struct Clock {
 pub type QualifiedValue = Tracked<f64>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CommitmentBasis {
     pub value: Option<f64>,
     pub provenance: Provenance,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReadingOccurrence {
     pub id: String,
     pub ordinal: u64,
@@ -555,6 +592,7 @@ pub struct ReadingOccurrence {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ReadingStream {
     pub template: String,
     pub limit: usize,
@@ -564,6 +602,7 @@ pub struct ReadingStream {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DecisionRevision {
     pub id: String,
     pub previous: Option<String>,
@@ -573,6 +612,7 @@ pub struct DecisionRevision {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DecisionSeries {
     pub limit: usize,
     pub current: Option<String>,
@@ -594,6 +634,7 @@ pub struct Renewal {
 
 /// `qualify EVIDENCE with CAVEAT after SECONDS`, waiting for its time.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScheduledQualification {
     /// The occurrence that was current when it was scheduled.
     pub evidence: String,
@@ -905,7 +946,7 @@ impl Changes {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum EffectReport {
     Sample {
         stream: String,
@@ -1009,6 +1050,7 @@ pub struct Withdrawal {
 /// One change to a decision, in the order it happened. See
 /// spec/caveat-decision-journal-0.1.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct JournalEntry {
     /// The declared commitment or decision series.
     pub decision: String,
@@ -1226,8 +1268,16 @@ impl ReactiveSession {
             }
         }
         let mut functions = prelude_functions()?;
+        let mut declared = 0;
         for directive in &directives {
             if let Directive::Function(function) = directive {
+                declared += 1;
+                if declared > reactive_expr::MAX_FUNCTIONS {
+                    return Err(format!(
+                        "source exceeds function limit {}",
+                        reactive_expr::MAX_FUNCTIONS
+                    ));
+                }
                 if functions
                     .insert(function.name.clone(), function.clone())
                     .is_some()
@@ -3243,6 +3293,14 @@ impl ReactiveSession {
         self.last_event = Some(event.into());
         if self.time_event.as_deref() == Some(event) {
             self.elapsed += parameters.get("dt").copied().unwrap_or(0.0);
+            // Unreachable through declared bounds and restore; refused anyway.
+            if !self.elapsed.is_finite() {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Evaluation,
+                    RejectionCode::BoundExceeded,
+                    "elapsed time must remain a finite number",
+                ));
+            }
             self.apply_due_qualifications()?;
         }
         let parameters = parameters

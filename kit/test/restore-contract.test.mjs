@@ -40,38 +40,67 @@ on decide commit after because enough using score;
 bind hud.score = score;
 `;
 
-function refuses(source, edited) {
+const effectSource = `
+budget 2;
+claim ready;
+evidence sensor from "sensor";
+caveat stale consequence low;
+cue ping toast "Ping" 1;
+event observe;
+event ring;
+event quiet;
+proc chime() { emit ping; };
+on observe reveal sensor supports ready;
+on ring call chime();
+on quiet examine stale cost 1;
+`;
+
+function refuses(source, edited, message = /cannot restore save:/) {
   assert.throws(() => {
     const unexpected = runtime.restore(source, JSON.stringify(edited));
     unexpected.close();
-  }, error => error.kind === 'restore' && /cannot restore save:/.test(error.message));
+  }, error => error.kind === 'restore' && /cannot restore save:/.test(error.message)
+    && message.test(error.message));
 }
 
-test('restore accepts one structurally valid unauthored qualification as live and later freezes it in grounds', () => {
-  // There is no static qualifies relation or qualify event effect in this source.
+test('F260: restore refuses a qualification no mechanism of the source can make', () => {
+  // There is no static qualifies relation or qualify event effect for phantom.
   const original = runtime.open(graphSource);
-  let editedSession;
-  let resumed;
   try {
     assert.equal(original.dispatch('observe').outcome, 'accepted');
     const saved = JSON.parse(original.save());
     assert.deepEqual(saved.graph.relations, [['sensor', 'supports', 'ready']]);
-    assert.equal(original.view().bindings.hud.carries, false);
     saved.graph.relations.push(['phantom', 'qualifies', 'sensor']);
-    editedSession = runtime.restore(graphSource, JSON.stringify(saved));
-    assert.equal(editedSession.view().bindings.hud.carries, true);
-    assert.deepEqual(editedSession.snapshot().relations.find(edge => edge.relation === 'qualifies'),
+    refuses(graphSource, saved,
+      /relation phantom qualifies sensor: no rule, declaration, reading, renewal or withdrawal of this program qualifies sensor with phantom/);
+    assert.equal(original.dispatch('decide').outcome, 'accepted');
+    assert.deepEqual(original.snapshot().commitment_grounds['go@1'], { evidence: ['sensor'], caveats: [] });
+  } finally { original.close(); }
+});
+
+test('F260: a qualification a rule of the source can make restores as live and later freezes in grounds', () => {
+  const source = `${graphSource}event doubt;\non doubt when observed(sensor) qualify sensor with phantom;\n`;
+  const original = runtime.open(source);
+  let resumed;
+  let again;
+  try {
+    assert.equal(original.dispatch('observe').outcome, 'accepted');
+    assert.equal(original.dispatch('doubt').outcome, 'accepted');
+    const saved = original.save();
+    assert.deepEqual(JSON.parse(saved).graph.relations,
+      [['sensor', 'supports', 'ready'], ['phantom', 'qualifies', 'sensor']]);
+    resumed = runtime.restore(source, saved);
+    assert.equal(resumed.view().bindings.hud.carries, true);
+    assert.deepEqual(resumed.snapshot().relations.find(edge => edge.relation === 'qualifies'),
       { from: 'phantom', relation: 'qualifies', to: 'sensor', origin: 'live' });
     assert.equal(original.dispatch('decide').outcome, 'accepted');
-    assert.equal(editedSession.dispatch('decide').outcome, 'accepted');
-    assert.deepEqual(original.snapshot().commitment_grounds['go@1'], { evidence: ['sensor'], caveats: [] });
+    assert.equal(resumed.dispatch('decide').outcome, 'accepted');
     const grounds = { evidence: ['sensor'], caveats: ['phantom'] };
-    assert.deepEqual(editedSession.snapshot().commitment_bases['go@1'], { value: 1, provenance: grounds });
-    assert.deepEqual(editedSession.snapshot().commitment_grounds['go@1'], grounds);
-    assert.deepEqual(editedSession.snapshot().decision_journal[0].caveats, ['phantom']);
-    resumed = runtime.restore(graphSource, editedSession.save());
-    assert.deepEqual(resumed.snapshot(), editedSession.snapshot());
-  } finally { original.close(); editedSession?.close(); resumed?.close(); }
+    assert.deepEqual(resumed.snapshot().commitment_grounds['go@1'], grounds);
+    assert.deepEqual(resumed.snapshot(), original.snapshot());
+    again = runtime.restore(source, resumed.save());
+    assert.deepEqual(again.snapshot(), resumed.snapshot());
+  } finally { original.close(); resumed?.close(); again?.close(); }
 });
 
 test('restore refuses unknown endpoints and wrong endpoint kinds for an injected qualification', () => {
@@ -170,4 +199,78 @@ test('the executable host preserves save text; JSON normalization changes signed
     await unlink(checkpoint).catch(error => { if (error.code !== 'ENOENT') throw error; });
     await rmdir(directory);
   }
+});
+
+test('F115: restore refuses a declared cue the last event cannot emit', () => {
+  const session = runtime.open(effectSource);
+  let resumed;
+  try {
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+    const rung = JSON.parse(session.save());
+    assert.deepEqual(rung.cues, ['ping']);
+    resumed = runtime.restore(effectSource, JSON.stringify(rung));
+    assert.deepEqual(resumed.snapshot().cues, session.snapshot().cues);
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    const quiet = JSON.parse(session.save());
+    assert.equal(quiet.cues, undefined);
+    quiet.cues = ['ping'];
+    quiet.cue_qualifications = [{}];
+    refuses(effectSource, quiet, /cue ping is not one the last event can emit/);
+    assert.equal(resumed.dispatch('quiet').outcome, 'accepted');
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+  } finally { session.close(); resumed?.close(); }
+});
+
+test('F248: restore refuses an effect the last event cannot make', () => {
+  const session = runtime.open(effectSource);
+  let resumed;
+  try {
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    const examined = session.save();
+    assert.deepEqual(JSON.parse(examined).effects, [{ kind: 'examine', caveat: 'stale', cost: 1 }]);
+    resumed = runtime.restore(effectSource, examined);
+    assert.deepEqual(resumed.snapshot().effects, session.snapshot().effects);
+    assert.equal(session.dispatch('observe').outcome, 'accepted');
+    const observed = JSON.parse(session.save());
+    observed.effects.push({ kind: 'examine', caveat: 'stale', cost: 1 });
+    refuses(effectSource, observed, /examine effect is not one the last event can make/);
+    assert.equal(resumed.dispatch('observe').outcome, 'accepted');
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+  } finally { session.close(); resumed?.close(); }
+});
+
+test('F247: restore refuses a field the schema lacks in a nested record', () => {
+  const session = runtime.open(sparseSource);
+  try {
+    assert.equal(session.dispatch('observe', { value: 85 }).outcome, 'accepted');
+    for (const edit of [
+      saved => { saved.decision_journal[0].zz = 1; },
+      saved => { saved.commitment_bases['before@1'].zz = 1; },
+      saved => { saved.decision_series.before.revisions[0].zz = 1; },
+      saved => { saved.effects[0].zz = 1; },
+    ]) {
+      const saved = JSON.parse(session.save());
+      edit(saved);
+      refuses(sparseSource, saved, /unknown field `zz`/);
+    }
+    assert.equal(session.dispatch('decide').outcome, 'accepted');
+  } finally { session.close(); }
+});
+
+test('F248: restore refuses an effect the restored graph does not hold', () => {
+  const session = runtime.open(effectSource);
+  try {
+    assert.equal(session.dispatch('observe').outcome, 'accepted');
+    assert.equal(session.dispatch('quiet').outcome, 'accepted');
+    for (const [effect, message] of [
+      [{ kind: 'examine', caveat: 'sensor', cost: 1 }, /examine effect sensor must name a declared caveat/],
+      [{ kind: 'examine', caveat: 'stale', cost: 2 }, /examine effect spends more attention than the budget spent/],
+      [{ kind: 'qualify', evidence: 'stale', caveat: 'sensor' }, /qualify effect stale must name a declared evidence/],
+    ]) {
+      const saved = JSON.parse(session.save());
+      saved.effects.push(effect);
+      refuses(effectSource, saved, message);
+    }
+    assert.equal(session.dispatch('ring').outcome, 'accepted');
+  } finally { session.close(); }
 });

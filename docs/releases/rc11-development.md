@@ -397,9 +397,31 @@ Muse measurements remain external evidence until reproduced here.
   Still-fatal lists in the dispatch spec and `REFERENCE.md` updated.
 - A3 accepted for rc.11 with the gate in the digest table (owner, 2026-10-03).
 - PR 1 (#96) merged 2026-10-03 as `5290ab1`.
+- PR 3 (#99), digest A1 and A2: restore refuses a cue the last event cannot
+  emit (F115); an effect whose names lack the kinds their place needs, whose
+  relation, record or spending the save does not hold, or that no rule effect
+  the last event reaches could make (F248); and a field the schema lacks in
+  any nested save record (F247). Genuine saves written by every published rc
+  (rc.3 to rc.10, 18,437 saves over 116 to 127 programs per rc, seeded
+  events) restore unchanged; that check's receipts are kept outside the
+  repository.
+- A3 (F95, F260): opened as its own PR on main after PR 3 merged (502add6).
+  With the check on, the gate passed locally: the six-path
+  genuine fixtures, the 3,000-round fuzz, kit `restore-contract`, and the 49
+  scenario files with a `resume` step, whose results match the rc.10 package.
+- C1 (#100, F257): a reactive program may declare 128 functions of its own,
+  as the reactive profile states; the 10 standard library functions no longer
+  count against the limit. Source libraries keep their limit of 128 including
+  the prelude. The expression limits are stated per expression.
+- B4 (#101, F151): a clock event whose sum would make `elapsed` nonfinite
+  refuses as `evaluation/bound_exceeded`. No supported path reaches it, since
+  declared bounds keep each step within 1e12 and restore refuses a nonfinite
+  clock; near the binary64 limit a step is absorbed. Release note: the
+  elapsed spec now says the clock stays finite and loses precision near that
+  limit, and the runtime checks the sum it used to add unchecked.
 - PR 2: the scenarios spec's `size` example names `initial` (F143), and
   `spec-docs.test.mjs` validates every JSON example in that spec. The save
   spec says a journal entry records its commitment's frozen grounds exactly
   (R54), with a restore check. `docs/AI_AUTHORING.md` names the PR 1 codes.
   The elapsed sentence moved to the elapsed-guard PR; the save spec's L76
-  boundary is left to PR 3c, which enforces nested unknown fields.
+  boundary was left to PR 3 (#99), which enforces nested unknown fields.

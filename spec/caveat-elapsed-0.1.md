@@ -38,11 +38,17 @@ state accumulator to display or compare session time.
   its preceding value.
 
 No wall clock is read, and no event is dispatched automatically. The result
-is exactly the existing finite binary64 accumulator, including its ordinary
+is exactly the existing binary64 accumulator, including its ordinary
 floating-point rounding. Reading it imposes no state range or new duration
-cap; an accumulation that becomes nonfinite rejects the event. Assigning it
-to a state still requires the result to fit that state's declared bounds and
-the existing `-1e12..1e12` hard limit.
+cap. The accumulator stays finite: each step is a `dt` within its event's
+declared bounds, which lie within `-1e12..1e12`, and near the largest finite
+binary64 value such a step is less than half the spacing between neighboring
+values, so the sum rounds back to that value. The clock loses precision
+there; it does not overflow. A clock event whose sum would nonetheless be
+nonfinite is refused as `evaluation/bound_exceeded`, and restore refuses a
+nonfinite saved clock, so neither dispatch nor restore reaches that refusal.
+Assigning `elapsed()` to a state still requires the result to fit that
+state's declared bounds and the existing `-1e12..1e12` hard limit.
 
 ## Expressions and qualification
 
@@ -73,3 +79,13 @@ The [save format](caveat-save-0.1.md) is unchanged: saves already hold the
 session clock. Restore loads that value before recomputing bindings, so
 `elapsed()` agrees with the restored snapshot and subsequent event behavior.
 The intrinsic adds no mutable state or snapshot fields.
+
+## Changes
+
+- 2026-10-03: the accumulator section says the clock stays finite and loses
+  precision near the binary64 limit. It used to say an accumulation that
+  becomes nonfinite rejects the event, which implied an overflow that
+  declared bounds cannot reach, while the runtime added `dt` with no check.
+  The runtime now checks the sum and refuses a nonfinite one as
+  `evaluation/bound_exceeded`; no supported path reaches it. Version Lab
+  finding F151 measured the saturation on every published version.

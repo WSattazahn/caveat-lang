@@ -320,6 +320,23 @@ fn attention_from_name(name: &str) -> Result<Attention, String> {
 }
 
 /// `NAME@N` split into its parts.
+/// (caveat, evidence) pairs, evidence named as the source names it.
+type QualificationPairs = HashSet<(String, String)>;
+
+/// An effect's kind, as a save writes it.
+fn effect_kind(effect: &EffectReport) -> &'static str {
+    match effect {
+        EffectReport::Sample { .. } => "sample",
+        EffectReport::Reveal { .. } => "reveal",
+        EffectReport::Examine { .. } => "examine",
+        EffectReport::Commit { .. } => "commit",
+        EffectReport::Reopen { .. } => "reopen",
+        EffectReport::Qualify { .. } => "qualify",
+        EffectReport::Renew { .. } => "renew",
+        EffectReport::Withdraw { .. } => "withdraw",
+    }
+}
+
 fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
     let (base, ordinal) = name.rsplit_once('@')?;
     let ordinal: usize = ordinal.parse().ok()?;
@@ -649,10 +666,83 @@ impl ReactiveSession {
         Ok(())
     }
 
+    /// The (caveat, evidence) pairs some mechanism of the loaded source can
+    /// relate by `qualifies`, and those a `qualify ... after` can schedule.
+    /// Evidence is named as the source names it: a reading stream for its
+    /// readings, renewable evidence for its occurrences. The mechanisms are a
+    /// declared qualification, `qualify` in a rule or a procedure it reaches
+    /// (specialized procedures included), `withdraw`'s generated `withdrawn`,
+    /// a reading inheriting its template's caveats, and a renewal carrying its
+    /// evidence's declared caveats. Guards are not evaluated: a pair is
+    /// possible, not proof that an event made it.
+    fn qualification_sources(&self) -> (QualificationPairs, QualificationPairs) {
+        let names: HashMap<NodeId, &str> = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect();
+        let mut possible = HashSet::new();
+        let mut scheduled = HashSet::new();
+        for edge in self.graph.edges.iter().take(self.loaded.edges) {
+            if edge.relation == Relation::Qualifies {
+                if let (Some(caveat), Some(evidence)) = (names.get(&edge.from), names.get(&edge.to))
+                {
+                    possible.insert((caveat.to_string(), evidence.to_string()));
+                }
+            }
+        }
+        for effect in self.reached_effects(None) {
+            match effect {
+                Effect::Qualify {
+                    evidence,
+                    caveat,
+                    after,
+                } => {
+                    let pair = (caveat.clone(), evidence.clone());
+                    if after.is_some() {
+                        scheduled.insert(pair.clone());
+                    }
+                    possible.insert(pair);
+                }
+                Effect::Withdraw {
+                    target: EvidenceSelector::Named(evidence) | EvidenceSelector::Latest(evidence),
+                    ..
+                } => {
+                    possible.insert((WITHDRAWN.to_string(), evidence.clone()));
+                }
+                _ => {}
+            }
+        }
+        // A reading inherits whatever qualifies its template when it is taken.
+        for (stream, readings) in self.reading_streams.iter() {
+            let inherited = possible
+                .iter()
+                .filter(|(_, evidence)| *evidence == readings.template)
+                .map(|(caveat, _)| (caveat.clone(), stream.clone()))
+                .collect::<Vec<_>>();
+            possible.extend(inherited);
+        }
+        (possible, scheduled)
+    }
+
+    /// The name the source gives `evidence`: its stream or renewable evidence
+    /// for an occurrence, and itself otherwise.
+    fn source_evidence<'a>(&self, evidence: &'a str) -> &'a str {
+        match occurrence_parts(evidence) {
+            Some((base, _))
+                if self.reading_streams.contains_key(base) || self.renewals.contains_key(base) =>
+            {
+                base
+            }
+            _ => evidence,
+        }
+    }
+
     /// The graph as the save leaves it, and the evidence it observes.
     fn restore_graph(&mut self, save: &ReactiveSave) -> Result<HashSet<NodeId>, String> {
         let saved = &save.graph;
         let committable = self.committable_actions();
+        let (possible, _) = self.qualification_sources();
         for node in &saved.nodes {
             let (name, kind) = match node {
                 SavedNode::Occurrence { name } => {
@@ -728,6 +818,16 @@ impl ReactiveSession {
                         "relation {from} {name} {to}: {end} is {actual}, not {kind}"
                     ));
                 }
+            }
+            // F95, F260: a qualification no mechanism of the source can make.
+            if relation == Relation::Qualifies
+                && !possible.contains(&(from.clone(), self.source_evidence(to).to_string()))
+            {
+                return Err(format!(
+                    "relation {from} {name} {to}: no rule, declaration, reading, renewal or \
+                     withdrawal of this program qualifies {} with {from}",
+                    self.source_evidence(to)
+                ));
             }
             Arc::make_mut(&mut self.graph).relate(from_id, relation, to_id);
         }
@@ -1157,10 +1257,19 @@ impl ReactiveSession {
         if save.scheduled_qualifications.len() > MAX_SCHEDULED_QUALIFICATIONS {
             return Err("too many scheduled qualifications".into());
         }
+        let (_, schedulable) = self.qualification_sources();
         for scheduled in &save.scheduled_qualifications {
             self.require_kind(&scheduled.evidence, "evidence")?;
             self.require_observed(&scheduled.evidence, observed)?;
             self.require_kind(&scheduled.caveat, "caveat")?;
+            let evidence = self.source_evidence(&scheduled.evidence);
+            if !schedulable.contains(&(scheduled.caveat.clone(), evidence.to_string())) {
+                return Err(format!(
+                    "scheduled qualification of {} with {}: no qualify ... after of this \
+                     program schedules it",
+                    scheduled.evidence, scheduled.caveat
+                ));
+            }
             if !(scheduled.after.is_finite()
                 && scheduled.after >= 0.0
                 && scheduled.scheduled_at.is_finite())
@@ -1213,6 +1322,11 @@ impl ReactiveSession {
         if save.cue_qualifications.len() != save.cues.len() {
             return Err("its cues and their qualifications do not match".into());
         }
+        let last_effects = save
+            .last_event
+            .as_deref()
+            .map(|event| self.reached_effects(Some(event)))
+            .unwrap_or_default();
         let mut cues = Vec::new();
         for (id, qualification) in save.cues.iter().zip(&save.cue_qualifications) {
             cues.push(
@@ -1221,6 +1335,13 @@ impl ReactiveSession {
                     .cloned()
                     .ok_or_else(|| format!("unknown cue {id}"))?,
             );
+            // Only an `emit` the last event's rules reach shows a cue.
+            if !last_effects
+                .iter()
+                .any(|effect| matches!(effect, Effect::Emit { name } if name == id))
+            {
+                return Err(format!("cue {id} is not one the last event can emit"));
+            }
             self.check_provenance(&format!("cue {id}"), &qualification.0, observed)?;
         }
         for effect in &save.effects {
@@ -1290,6 +1411,13 @@ impl ReactiveSession {
                 .find(|name| !self.symbols.contains_key(*name))
             {
                 return Err(format!("an effect names unknown {name}"));
+            }
+            self.check_effect_against_save(effect, save, observed)?;
+            if !self.last_event_can_make(effect, &last_effects, save.last_event.as_deref()) {
+                return Err(format!(
+                    "{} effect is not one the last event can make",
+                    effect_kind(effect)
+                ));
             }
         }
         self.check_saved_journal(save, observed)?;
@@ -1527,6 +1655,275 @@ impl ReactiveSession {
             }
         }
         Ok(())
+    }
+
+    /// Every effect a rule of `event` reaches, or with `None` of any event,
+    /// directly or through the procedures it calls, as the source compiled
+    /// them. Conditions are ignored: their historical values are unavailable,
+    /// so this is what the event could have done, not what it did.
+    fn reached_effects(&self, event: Option<&str>) -> Vec<&Effect> {
+        let mut pending = self
+            .rules
+            .iter()
+            .filter(|rule| event.is_none_or(|event| rule.event == event))
+            .map(|rule| &rule.effect)
+            .collect::<Vec<_>>();
+        let mut visited = HashSet::new();
+        let mut reached = Vec::new();
+        while let Some(effect) = pending.pop() {
+            if let Effect::Call { name, .. } = effect {
+                if visited.insert(name) {
+                    if let Some(procedure) = self.procedures.get(name) {
+                        pending.extend(procedure.body.iter().map(|step| &step.effect));
+                    }
+                }
+            }
+            reached.push(effect);
+        }
+        reached
+    }
+
+    /// A saved effect must agree with what the rest of the save restored: its
+    /// names have the kinds its place needs, and the relation, record or
+    /// spending it reports is there. Every effect leaves those behind, and
+    /// nothing later in the same event removes them.
+    fn check_effect_against_save(
+        &self,
+        effect: &EffectReport,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
+        let kind = effect_kind(effect);
+        let fail = |message: &str| format!("{kind} effect {message}");
+        let named = |result: Result<(), String>| result.map_err(|error| fail(&error));
+        let related = |from: &str, relation: Relation, to: &str| {
+            let (from, to) = (self.symbols[from], self.symbols[to]);
+            self.graph
+                .edges
+                .iter()
+                .any(|edge| edge.from == from && edge.to == to && edge.relation == relation)
+        };
+        match effect {
+            EffectReport::Sample {
+                stream,
+                id,
+                relation,
+                target,
+                ..
+            } => {
+                named(self.require_kind(target, "claim"))?;
+                let listed = save.reading_streams.get(stream).is_some_and(|readings| {
+                    readings
+                        .occurrences
+                        .iter()
+                        .any(|occurrence| occurrence.id == *id)
+                });
+                if !listed {
+                    return Err(fail("names no reading of its stream"));
+                }
+                named(self.require_observed(id, observed))?;
+                let stance = match relation.as_str() {
+                    "supports" => Relation::Supports,
+                    "opposes" => Relation::Opposes,
+                    _ => return Err(fail("relation must be supports or opposes")),
+                };
+                if !related(id, stance, target) {
+                    return Err(fail("has no matching graph relation"));
+                }
+            }
+            // Checked with the other reveals' semantics in restore_records.
+            EffectReport::Reveal { .. } => {}
+            EffectReport::Examine { caveat, cost } => {
+                named(self.require_kind(caveat, "caveat"))?;
+                if self
+                    .resources
+                    .as_ref()
+                    .is_none_or(|resources| *cost > resources.spent)
+                {
+                    return Err(fail("spends more attention than the budget spent"));
+                }
+            }
+            EffectReport::Commit { action, retained } => {
+                named(self.require_commitment(action))?;
+                let basis = save
+                    .commitment_bases
+                    .get(action)
+                    .ok_or_else(|| fail("names a commitment with no basis"))?;
+                for caveat in retained {
+                    named(self.require_kind(caveat, "caveat"))?;
+                    if !basis.provenance.caveats.contains(caveat) {
+                        return Err(fail("retains a caveat outside its basis"));
+                    }
+                }
+            }
+            EffectReport::Reopen { action, because } => {
+                named(self.require_commitment(action))?;
+                named(self.require_observed(because, observed))?;
+                if !related(because, Relation::Reopens, action) {
+                    return Err(fail("has no matching graph relation"));
+                }
+            }
+            EffectReport::Qualify { evidence, caveat } => {
+                named(self.require_kind(evidence, "evidence"))?;
+                named(self.require_kind(caveat, "caveat"))?;
+                if !related(caveat, Relation::Qualifies, evidence) {
+                    return Err(fail("has no matching graph relation"));
+                }
+            }
+            EffectReport::Renew {
+                evidence,
+                occurrence,
+            } => {
+                let listed = self.renewals.contains_key(evidence)
+                    && save
+                        .renewals
+                        .get(evidence)
+                        .is_some_and(|occurrences| occurrences.contains(occurrence));
+                if !listed {
+                    return Err(fail("names no occurrence of its renewals"));
+                }
+            }
+            EffectReport::Withdraw { evidence, because } => {
+                named(self.require_observed(evidence, observed))?;
+                named(self.require_observed(because, observed))?;
+                if !self.withdrawals.iter().any(|withdrawal| {
+                    withdrawal.evidence == *evidence && withdrawal.because == *because
+                }) {
+                    return Err(fail("has no matching withdrawal record"));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Whether a rule effect the last event reaches, `reached`, could report
+    /// `effect`: the same kind of effect, on the names its place takes. A
+    /// renewable evidence or reading stream the source names reports one of
+    /// its occurrences. Two reports come from no rule effect of their own: a
+    /// reading's reopening trigger reopens its series, and the clock's event
+    /// applies a scheduled `qualify ... after` from any rule.
+    fn last_event_can_make(
+        &self,
+        effect: &EffectReport,
+        reached: &[&Effect],
+        last_event: Option<&str>,
+    ) -> bool {
+        let named = |reported: &str, source: &str| {
+            reported == source || occurrence_parts(reported).is_some_and(|(base, _)| base == source)
+        };
+        let selects = |reported: &str, selector: &EvidenceSelector| match selector {
+            EvidenceSelector::Named(source) | EvidenceSelector::Latest(source) => {
+                named(reported, source)
+            }
+            EvidenceSelector::Caveated { .. } => true,
+        };
+        reached.iter().any(|rule| match (effect, rule) {
+            (
+                EffectReport::Sample {
+                    stream,
+                    id,
+                    relation,
+                    target,
+                    ..
+                },
+                Effect::Sample {
+                    stream: source,
+                    relation: stance,
+                    claim,
+                    ..
+                },
+            ) => {
+                stream == source
+                    && named(id, source)
+                    && relation == relation_name(*stance)
+                    && target == claim
+            }
+            (
+                EffectReport::Reveal {
+                    evidence,
+                    relation: None,
+                    target: None,
+                },
+                Effect::Observe { evidence: source },
+            ) => named(evidence, source),
+            (
+                EffectReport::Reveal {
+                    evidence,
+                    relation: Some(relation),
+                    target: Some(target),
+                },
+                Effect::Reveal {
+                    evidence: source,
+                    relation: stance,
+                    claim,
+                },
+            ) => named(evidence, source) && relation == relation_name(*stance) && target == claim,
+            (
+                EffectReport::Examine { caveat, cost },
+                Effect::Examine {
+                    caveat: source,
+                    cost: spent,
+                },
+            ) => caveat == source && cost == spent,
+            (EffectReport::Commit { action, .. }, Effect::Commit { action: source, .. }) => {
+                named(action, source)
+            }
+            (
+                EffectReport::Reopen { action, because },
+                Effect::Reopen {
+                    action: source,
+                    because: selector,
+                },
+            ) => named(action, source) && selects(because, selector),
+            (
+                EffectReport::Reopen { action, because },
+                Effect::Sample {
+                    stream,
+                    relation,
+                    claim,
+                    ..
+                },
+            ) => {
+                named(because, stream)
+                    && self.reopening_triggers.iter().any(|(series, triggers, _)| {
+                        named(action, series)
+                            && triggers
+                                .iter()
+                                .any(|trigger| trigger.matches(stream, *relation, claim))
+                    })
+            }
+            (
+                EffectReport::Qualify { evidence, caveat },
+                Effect::Qualify {
+                    evidence: source,
+                    caveat: added,
+                    after: None,
+                },
+            ) => named(evidence, source) && caveat == added,
+            (
+                EffectReport::Renew {
+                    evidence,
+                    occurrence,
+                },
+                Effect::Renew { evidence: source },
+            ) => evidence == source && named(occurrence, source),
+            (
+                EffectReport::Withdraw { evidence, because },
+                Effect::Withdraw {
+                    target,
+                    because: reason,
+                },
+            ) => selects(evidence, target) && named(because, reason),
+            _ => false,
+        }) || matches!(effect, EffectReport::Qualify { evidence, caveat }
+        if last_event.is_some() && last_event == self.time_event.as_deref()
+            && self.reached_effects(None).iter().any(|reached| {
+                matches!(reached, Effect::Qualify {
+                    evidence: source,
+                    caveat: added,
+                    after: Some(_),
+                } if named(evidence, source) && caveat == added)
+            }))
     }
 
     /// Ignore conditions (their historical values are unavailable), but require
