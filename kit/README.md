@@ -12,6 +12,9 @@ and records every decision revision. This package includes the WebAssembly
 runtime, Node/browser library and CLI; no Rust installation is needed.
 Requires Node 20 or later for the CLI.
 
+These links open the current documentation on GitHub; the copies that shipped
+with this version are in the package's own `docs/` and `examples/` directories.
+
 The package provides the `caveat-lang` command and supported `caveat`
 shorthand. In an empty directory, install the exact version named above and
 run its installation check, agent demo and starter:
@@ -31,7 +34,7 @@ npx --no-install caveat-lang explain umbrella.cav events.jsonl
 
 The two scenarios pass. The explanation shows `umbrella@1 = 70` reopened by
 `sky`, still based on `rain_chance@1` with its `forecast_is_old` caveat. Follow
-[the agent quickstart](docs/AGENT_START.md) to adapt this into an integration.
+[the agent quickstart](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/AGENT_START.md) to adapt this into an integration.
 
 To use a verified tarball you were given, pass its path or URL to `npm install`
 instead. The [release records](https://github.com/WSattazahn/caveat-lang/releases)
@@ -42,19 +45,19 @@ that a development checkout has been published.
 Introduced in rc.7, `caveat-lang` is the unambiguous command; `caveat` remains
 supported shorthand.
 
-See [project names and CLI commands](docs/NAMES.md) for the distinction from
+See [project names and CLI commands](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/NAMES.md) for the distinction from
 other projects named Caveat. Historical rc.6 has only the `caveat` command.
 
-Start with [Getting started](docs/GETTING_STARTED.md): it goes from an empty
+Start with [Getting started](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/GETTING_STARTED.md): it goes from an empty
 directory to a tested program in about fifteen minutes. [Caveat on one
-page](docs/REFERENCE.md) gives the language in brief, and the [worked
-example](docs/WORKED_EXAMPLE.md) takes one program through every command. The
-[documentation index](docs/README.md) lists the authoring guide, the language
+page](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md) gives the language in brief, and the [worked
+example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/WORKED_EXAMPLE.md) takes one program through every command. The
+[documentation index](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/README.md) lists the authoring guide, the language
 reference and the thermostat example that ship in the package. The
 repository's test suites are not included.
 
 To call Caveat from an agent or a tool, start with the [agent-evidence
-example](examples/agent-evidence/README.md), in the package from
+example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/agent-evidence/README.md), in the package from
 0.1.0-rc.6. It drives `caveat serve` from Python and judges each attempt by
 the current assessment. If that integration exposes a capability Caveat is
 missing, please
@@ -81,7 +84,7 @@ warning; use `caveat-lang`. Failed checks exit 1. `--runtime DIRECTORY` selects
 a trusted runtime directory, as with the other commands.
 
 `demo agent --json` returns each real snapshot and explanation from the shipped
-[assessment program](examples/agent-evidence/assessment.cav). Illustrative inputs
+[assessment program](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/agent-evidence/assessment.cav). Illustrative inputs
 85 and 92 produce two revisions: a correction withdraws the first observation
 and reopens its assessment, and the replacement assessment uses the new reading.
 The earlier grounds remain recorded. The demo writes no files and does not
@@ -91,7 +94,7 @@ measure a model's confidence or authorize an external action.
 
 This package can run `caveat-lang mcp` for the five existing
 authoring operations. It takes inline source and uses a fresh subprocess for
-each call. See [MCP setup and limits](docs/MCP.md): it speaks MCP 2026-07-28
+each call. See [MCP setup and limits](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/MCP.md): it speaks MCP 2026-07-28
 and the 2025-11-25 profile. Published rc.6 does not include it.
 
 ## Run scenario files
@@ -110,7 +113,7 @@ npm run build
 node kit/bin/caveat.mjs test examples/thermostat_history.scenarios.json
 ```
 
-Files follow [Scenarios 0.1](docs/reference/spec/caveat-scenarios-0.1.md).
+Files follow [Scenarios 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-scenarios-0.1.md).
 Every file is validated before anything runs. Exit status is 0 when every
 scenario passes, 1 when one fails, and 2 when a file is invalid or the runtime
 cannot load.
@@ -181,7 +184,7 @@ npx --no-install caveat-lang init my-project
   and 2 if the program does not load. A comment
   `# caveat check: allow CODE` on the line above silences a pattern that is
   intended. `--json` prints the report.
-  [Check 0.1](docs/reference/spec/caveat-check-0.1.md) lists the checks and
+  [Check 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-check-0.1.md) lists the checks and
   their limits.
 - `replay` prints one JSON record per line. First comes the initial snapshot.
   Then each event gets a record with its line in the file and its outcome,
@@ -205,11 +208,11 @@ The operations are `dispatch`, `snapshot`, `explain`, `dependents`, `save`,
 ```
 
 A malformed request gets an error response and changes nothing. A fatal
-outcome ends the server with status 1. [Serve 0.1](docs/reference/spec/caveat-serve-0.1.md)
+outcome ends the server with status 1. [Serve 0.1](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-serve-0.1.md)
 is the protocol. From code, `createServer` in `caveat-lang/serve` handles
 lines without any I/O.
 
-The [agent-evidence example](examples/agent-evidence/README.md), in the
+The [agent-evidence example](https://github.com/WSattazahn/caveat-lang/blob/main/kit/examples/agent-evidence/README.md), in the
 package from 0.1.0-rc.6, drives a session from Python. It shows how to tell a
 handled request from an accepted event, and both from a decision that permits
 what the application intends.
@@ -217,7 +220,7 @@ what the application intends.
 ## Use a session from code
 
 The package ships the
-[thermostat example](docs/reference/examples/thermostat_history.cav). With the
+[thermostat example](https://github.com/WSattazahn/caveat-lang/blob/main/examples/thermostat_history.cav). With the
 package installed, copy it from
 `node_modules/caveat-lang/docs/reference/examples/thermostat_history.cav` to
 `thermostat_history.cav` alongside this code:
@@ -253,7 +256,7 @@ and failures are `dispatch`'s, and after the same events either way the session
 is the same.
 
 Rejections are values, following the
-[dispatch outcome contract](docs/reference/spec/caveat-dispatch-0.1.md).
+[dispatch outcome contract](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md).
 Everything else throws a `CaveatError` with a `kind`:
 
 | `kind` | Meaning |
@@ -404,7 +407,7 @@ core job. It retains the exact tested `.tgz`, the test report with its SHA-256,
 `build-info.json` and `SHA256SUMS` together as an artifact. A local Windows run
 checks packaging locally; the release candidate must use the tested Linux
 artifact from the intended release commit. Before publication, the
-[packed dependency security gate](docs/reference/docs/PACKAGE_SECURITY.md) must
+[packed dependency security gate](https://github.com/WSattazahn/caveat-lang/blob/main/docs/PACKAGE_SECURITY.md) must
 pass against that exact tarball and retain its npm/Rust advisory receipts.
 A release publishes that one tested
 tarball twice, unchanged: to npm and attached to the GitHub pre-release. No
