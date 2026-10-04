@@ -66,5 +66,17 @@
   "Caveat.Bridge.false_body_exact_grounds",
   "Caveat.Bridge.nonempty_true_body_excludes_unselected",
   "Caveat.Bridge.nonempty_false_body_excludes_unselected",
-  "Caveat.Bridge.nonempty_expression_condition_distinct_from_statement_guard"
+  "Caveat.Bridge.nonempty_expression_condition_distinct_from_statement_guard",
+  "Caveat.Late.late_qualification_preserves_commitments",
+  "Caveat.Late.late_qualification_preserves_basis_and_grounds",
+  "Caveat.Late.late_qualification_session_preserves_commitments",
+  "Caveat.Late.late_qualifications_preserve_commitments",
+  "Caveat.Late.unobserved_late_qualification_rejected",
+  "Caveat.Late.unobserved_late_qualification_classification",
+  "Caveat.Late.skipped_late_qualification_changes_no_value",
+  "Caveat.Late.late_qualification_reaches_current_lineage",
+  "Caveat.Late.late_qualification_reaches_current_grounds",
+  "Caveat.Late.late_qualification_guard_not_in_grounds",
+  "Caveat.Late.late_qualification_ignores_unrelated_value",
+  "Caveat.Late.nonempty_late_qualification_spares_commitment"
 ]
