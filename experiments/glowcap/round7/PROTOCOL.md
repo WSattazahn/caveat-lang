@@ -342,4 +342,13 @@ any author starts. Dispatch times and agent identities go in `launches.json`.
 
 ## Amendments
 
-None.
+1. **CR10's bound at the limit (before any author started).** The scenario
+   reviewer found that "an event that would exceed it is rejected" does not
+   say which event: the regrowth is caused by a tick, and rejecting that tick
+   would reject every later tick and freeze the timers. `phases/cr10.md` now
+   reads: a mushroom that has used its last life stays consumed and does not
+   regrow; no tick is rejected for this, and an event on that mushroom is
+   rejected as on any consumed mushroom. It applies to both sides alike, no
+   scenario reaches the limit, and the 64-life floor is unchanged. The
+   stage-1 hash of `phases/cr10.md` in `registration.json` is the original
+   wording; `registration-2.json` records the amended file.

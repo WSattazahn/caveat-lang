@@ -29,7 +29,7 @@ function request(n) {
 }
 
 const UNBOUNDED = 'and so on, with no limit.';
-const BOUNDED = 'and so on, up to a capacity the implementation declares, of at least\n  64 lives per mushroom; an event that would exceed it is rejected and leaves\n  the view unchanged.';
+const BOUNDED = 'and so on, up to a capacity the implementation declares, of at least\n  64 lives per mushroom. A mushroom that has used its last life stays consumed\n  and does not regrow; no tick is rejected for this, and an event on that\n  mushroom is rejected as on any consumed mushroom.';
 
 await mkdir(new URL('./phases/', import.meta.url), { recursive: true });
 const parts = [`# Phase base\n\n${base}\n`];

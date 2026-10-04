@@ -183,8 +183,9 @@ Applied after every earlier phase; cumulative.
   about the new mushroom takes a life number: the first life keeps
   `absorb_cave`, `taste_cave`, `witness_cave`; the second is `absorb_cave_2`,
   `taste_cave_2`, `witness_cave_2`; and so on, up to a capacity the implementation declares, of at least
-  64 lives per mushroom; an event that would exceed it is rejected and leaves
-  the view unchanged. Evidence from
+  64 lives per mushroom. A mushroom that has used its last life stays consumed
+  and does not regrow; no tick is rejected for this, and an event on that
+  mushroom is rejected as on any consumed mushroom. Evidence from
   earlier lives stays in the belief and the decision, and an earlier taste
   still fades on its own clock.
 

@@ -17,7 +17,8 @@ const files = {
   1: ['PROTOCOL.md', 'BEAT.md', 'build-phases.mjs', 'exec.mjs', 'lib.mjs', 'prepare.mjs', 'register.mjs',
     'packet/manifest.json', ...list('phases').filter((f) => !NEW_PHASES.includes(f)), ...list('prompts'), ...list('workspace'),
     '../scenarios.mjs', '../compare-views.mjs', '../harness.mjs'],
-  2: ['REQUESTS.md', 'REVIEW.md', 'scenarios-r7.mjs', 'fuzz.mjs', 'PREDICTIONS.md', ...NEW_PHASES],
+  2: ['REQUESTS.md', 'REVIEW.md', 'scenarios-r7.mjs', 'fuzz.mjs', 'PREDICTIONS.md', ...NEW_PHASES,
+    'PROTOCOL.md', 'BEAT.md', 'build-phases.mjs', 'phases/cr10.md', 'register.mjs'],
 }[stage];
 if (!files) throw new Error('usage: register.mjs --stage=1|2');
 const out = path.join(here, stage === '1' ? 'registration.json' : 'registration-2.json');
