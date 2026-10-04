@@ -510,6 +510,13 @@ The rc.11 rules carry over:
   `caveatism/character/PROVENANCE.md`. The repository README, `AGENTS.md`,
   `web/about.html` and the kit README link it; nothing from it enters the
   package except the kit README's image URL.
+- PR 8 (the publish) opened: `docs/releases/v0.1.0-rc.12.md` holds the
+  release notes, marked unpublished, and the README points to them. The kit
+  README and guides already name `0.1.0-rc.12`. Publication goes through
+  `publish-npm.yml` from the annotated tag `v0.1.0-rc.12` at this pull
+  request's merge commit, merged after the last plan PR, dispatched with `latest`; `next` is added by hand
+  afterwards. The tag, artifact, provenance and registry verification are
+  recorded only from the `npm-publication-verification` artifact.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a
