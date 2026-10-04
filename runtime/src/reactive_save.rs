@@ -326,6 +326,11 @@ type QualificationPairs = HashSet<(String, String)>;
 /// The caveats a value can carry, as the loaded source can attach them:
 /// those a value resting on each evidence can carry, and those a value can
 /// carry with no evidence that bears them. See `caveat_sources`.
+struct Declared {
+    observed: HashSet<String>,
+    examined: HashSet<String>,
+}
+
 struct CaveatSources {
     /// By evidence as the source names it.
     attachable: HashMap<String, HashSet<String>>,
@@ -528,10 +533,11 @@ impl ReactiveSession {
         )?);
         // Taken from the program as loaded, before the save changes it.
         let caveats = self.caveat_sources();
+        let declared = self.declared_memberships();
         let observed = self.restore_graph(save)?;
         self.restore_withdrawals(save, &observed)?;
         self.restore_states(&save.states, &observed, &caveats)?;
-        self.restore_records(save, &observed, &caveats)?;
+        self.restore_records(save, &observed, &caveats, &declared)?;
         self.restore_permissions(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())
@@ -937,6 +943,40 @@ impl ReactiveSession {
             attachable,
             unpaired,
         }
+    }
+
+    /// The memberships the program declares as it loads: evidence its
+    /// declarations relate to a claim, which is observed from the start, and
+    /// caveats they examine. No event made these, so they have no records.
+    fn declared_memberships(&self) -> Declared {
+        let names: HashMap<NodeId, &str> = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.as_str()))
+            .collect();
+        let observed = self
+            .graph
+            .edges
+            .iter()
+            .take(self.loaded.edges)
+            .filter(|edge| matches!(edge.relation, Relation::Supports | Relation::Opposes))
+            .filter_map(|edge| names.get(&edge.from).map(|name| name.to_string()))
+            .collect();
+        let examined = self
+            .symbols
+            .iter()
+            .filter(|(_, id)| {
+                matches!(
+                    self.graph.nodes.get(id),
+                    Some(NodeKind::Caveat {
+                        attention: Attention::Examined,
+                        ..
+                    })
+                )
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
+        Declared { observed, examined }
     }
 
     /// The name the source gives `evidence`: its stream or renewable evidence
@@ -1413,6 +1453,7 @@ impl ReactiveSession {
         save: &ReactiveSave,
         observed: &HashSet<NodeId>,
         caveats: &CaveatSources,
+        declared: &Declared,
     ) -> Result<(), String> {
         for (name, basis) in &save.commitment_bases {
             self.require_commitment(name)?;
@@ -1841,6 +1882,41 @@ impl ReactiveSession {
                 entry.caveats.iter().cloned(),
             )?;
             self.check_attachable("decision journal", &provenance, caveats)?;
+        }
+        // F317-F322: and the other way, every membership the graph records
+        // has its record, as every event that adds one leaves it. Evidence
+        // an event observed has an observation record, a caveat an event
+        // examined an examination record, and a commitment a `reopens`
+        // relation names a reopening record. Declarations add the
+        // first two without records.
+        let observation = save
+            .graph
+            .relations
+            .iter()
+            .filter(|[_, relation, _]| relation == "supports" || relation == "opposes")
+            .map(|[evidence, _, _]| evidence)
+            .chain(save.observations.iter().flatten());
+        for name in observation.filter(|name| !declared.observed.contains(*name)) {
+            if !save.observation_qualifications.contains_key(name) {
+                return Err(format!(
+                    "observed evidence {name} has no observation record"
+                ));
+            }
+        }
+        for (name, attention) in &save.graph.attention {
+            if attention == "examined"
+                && !declared.examined.contains(name)
+                && !save.examination_qualifications.contains_key(name)
+            {
+                return Err(format!("examined caveat {name} has no examination record"));
+            }
+        }
+        for [_, relation, commitment] in &save.graph.relations {
+            if relation == "reopens" && !save.reopening_qualifications.contains_key(commitment) {
+                return Err(format!(
+                    "reopened commitment {commitment} has no reopening record"
+                ));
+            }
         }
         self.commitment_bases = Arc::new(save.commitment_bases.clone());
         self.commitment_grounds = Arc::new(full_map(&save.commitment_grounds));

@@ -153,6 +153,14 @@ save is refused with an error, and never crashes the runtime, when:
   wrong kind (`observed` evidence, `examined` a caveat, `committed` and
   `reopened` an action a rule commits or reopens, a decision series or a
   restored commitment);
+- the graph records a membership without the record every event that adds
+  it leaves: evidence an event observed (a restored `supports` or `opposes`
+  relation, or an entry of `observations`) without an observation record, a
+  caveat the save leaves `examined` without an examination record, or a
+  commitment a `reopens` relation names without a reopening record.
+  Evidence a declaration relates to a claim, and a caveat a declaration
+  examines, are observed and examined as the program loads and need none. A
+  record removed together with its membership is still accepted;
 - a withdrawal record names an event that reaches no `withdraw`, in a rule
   or a procedure a rule calls, of that evidence for that reason. Conditions
   are not evaluated: the event could have withdrawn it, not shown to have;
@@ -255,6 +263,18 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-04 (rc.13): restore refuses a save whose graph records a
+  membership without its record: observed evidence without an observation
+  record, an examined caveat without an examination record, or a reopened
+  commitment without a reopening record (F317–F322). rc.12 checked the other
+  direction only, that each record belongs to such a membership, so removing
+  a record restored, and later events rebuilt the table but not the graph's
+  `reopens` and `relies_on` relations, leaving a skew nothing reported. Every
+  event that adds one of these memberships leaves its record, so saves the
+  runtime writes restore as before (79,855 genuine saves from 151 programs,
+  and saves written by rc.3 to rc.12). The schema stays
+  `caveat-reactive-save/0.1`.
 
 - 2026-10-04 (rc.13): restore refuses a provenance carrying a caveat that no
   mechanism of the loaded source can attach to its evidence (F330, F333,
