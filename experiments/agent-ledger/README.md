@@ -329,3 +329,110 @@ go-ahead in a `permitted by` clause, which refuses a merge without one as
 3. Recording what authorized a decision.
 4. Supersession. The rules can be written today; a feature would remove the
    chance of forgetting one.
+
+## Follow-up: the release gates
+
+[`release.cav`](release.cav) carries the ledger from merging a pull request to
+publishing a release candidate, for rc.12 (plan PR 6 in
+`docs/releases/rc12-development.md`). It records the gates of the
+[release procedure](../../docs/CONSOLIDATION_PLAN.md#candidate-and-release-gates)
+that rc.11 skipped: rc.11 was published by hand, without provenance, and
+`publish-npm.yml` has never run.
+
+| File | What it is |
+| --- | --- |
+| [`release.cav`](release.cav) | Runs on pull requests and on main, merges, readiness, the tag, the publish and its verification |
+| [`release.scenarios.json`](release.scenarios.json) | Its rules, tested: `caveat test release.scenarios.json` |
+| [`release-ledger.mjs`](release-ledger.mjs) | Turns a release's facts into events and runs them through `caveat serve` |
+| [`release-rc11.facts.jsonl`](release-rc11.facts.jsonl) | rc.11's facts, from git history and its publication record |
+
+```sh
+node release-ledger.mjs run release-rc11.facts.jsonl --explain rc11.explain.json --events rc11.events.jsonl
+npx --no-install caveat explain --json release.cav rc11.events.jsonl
+```
+
+**What it models.**
+- "The release is publishable" is a claim. Each Runtime run on a pull request
+  is a new occurrence of that pull request's evidence. A run whose base is not
+  main's head carries the caveat `stale_base`, and so does the last run of
+  every open pull request when main moves.
+- The decision `ready` rests on the Runtime run that tested main's head, the
+  run that builds the candidate tarball, and never on a pull request's run. A
+  merge to main, or a failed run on it, reopens it.
+- The tag must be on the commit decided publishable.
+- The decision `publish` rests on the same run. Through `publish-npm.yml` it
+  is permitted by the npm-publish environment's approval for the tagged
+  commit. By hand it is permitted by the owner's go-ahead.
+- Only a verification confirms an attestation. One that finds none withdraws
+  the publish job's report, and any attestation confirmed before. The
+  decision `provenance_record`, whether the release record may name
+  provenance, rests on a confirmed attestation, and reopens when it is
+  withdrawn.
+
+**The three cases of the plan,** as scenarios:
+- **Stale green (R01, R02).** Two pull requests pass on the same base. After
+  the first merges, the second's run carries `stale_base`. After it merges
+  too, main's head has no passing run, `decide` is refused, a run for the
+  earlier head is refused, and readiness waits for main's own run.
+- **Hand publish (R05).** The publish is permitted by the owner's go-ahead.
+  The registry serves the tested bytes, but nothing supports the attestation,
+  and the release record may not name provenance.
+- **Withdrawal (R06, R07).** The publish job reports a publish with provenance
+  and verification finds none: the report is withdrawn, not contradicted. Or
+  verification confirms it, provenance is recorded, and a later verification
+  fails: the attestation is withdrawn and the record reopens, keeping what it
+  was made on.
+
+R03, R04 and R08 cover reopening, the approval's scope and refusals.
+
+**The driver.** `release-ledger.mjs` reads facts as JSON lines, in the order
+they happened, and fetches nothing:
+
+| `fact` | Fields | Event |
+| --- | --- | --- |
+| `plan` | `prs`: GitHub number to `pr1`…`pr8` | none; other pull requests are `unlisted` |
+| `open` | `sha`: main's head when the ledger starts | `opened` |
+| `pr_run` | `pr`, `head_sha`, `base_sha`, `conclusion` | `pr_run`, for plan pull requests only |
+| `merge` | `pr`, `head_sha`, `merge_commit_sha` | `merged` |
+| `main_run` | `head_sha`, `conclusion` | `main_run` |
+| `decide`, `hand_go`, `record` | | the event of that name |
+| `tag`, `approval` | `sha` | `tagged`, `approved` |
+| `publish` | `route` (`workflow` or `hand`), `sha` | `published` |
+| `verification` | `record`, or `file` relative to the facts | `verified`, from the record's `revision` and `checks` |
+
+A conclusion other than `success` or `failure` sends nothing. A verification
+record is either verify-publication's `npm-publication-verification.json` or
+a release's `docs/releases/v…-npm-publication.json`. Any field may carry a
+`source` saying where the fact came from; the driver ignores it.
+
+**rc.11, replayed.** From git history, Runtime run
+[37169499765](https://github.com/WSattazahn/caveat-lang/actions/runs/37169499765)
+and the [publication record](../../docs/releases/v0.1.0-rc.11-npm-publication.json):
+
+```text
+  13  decide       decide accepted
+  14  tag          tagged accepted
+  15  hand_go      hand_go accepted
+  16  publish      published accepted
+  17  verification verified accepted
+  18  record       record refused (policy/reject): No verification found an attestation.
+
+repo.attestation = "unsupported"
+repo.npm = "serves the tested tarball"
+repo.release = "published by hand"
+```
+
+The facts hold no pull request runs: they were not collected, so rc.11's
+replay says nothing about stale bases.
+
+**Limits.**
+- The ledger checks the facts it is given against its rules. It cannot tell
+  whether a fact is true: a run's conclusion, an approval or a verification
+  record is taken as sent. It does not verify an attestation itself.
+- `decide`, `hand_go` and `record` are the release engineer's and the
+  owner's acts, recorded as facts. Nothing infers them.
+- `covered`, main's head being exactly a tree a pull request's run tested,
+  assumes that GitHub's merge commit has the tree of the merge ref the run
+  tested. It is shown, not used: readiness needs main's own run.
+- A plan has at most eight numbered pull requests. Runs of other pull
+  requests are not sent, since they would share one slot.
