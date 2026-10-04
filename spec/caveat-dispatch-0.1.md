@@ -115,7 +115,7 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
 | `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)). |
-| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)). |
+| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
@@ -204,6 +204,14 @@ effects and diagnostic text are unchanged, except that an unobserved
 `cannot reopen ACTION because unobserved evidence EVIDENCE` in place of the
 `qualified` diagnostic it borrowed.
 
+`id_text` of a number that is no identifier's handle joined
+`evaluation/expression` in rc.13, with its diagnostic text
+(`id_text: N is not the handle of an identifier`) unchanged. It was the last
+surveyed native-function failure that stayed fatal. The refusal does not
+create an identifier for the number or read it as the empty text; `id_text(0)`
+is still the empty text. An `id` parameter sent as anything but 1 to 1,024
+bytes of text is still `input/payload_invalid`.
+
 ## Versioning
 
 The schema versions the outcome contract, independently of save schemas and
@@ -230,6 +238,12 @@ from an outcome schema match; the save contract governs restoration.
   false requirement and a full scheduled-qualification table. Before them, each
   such event was fatal `unclassified`, although the runtime had already
   rolled it back ([recovery](#recovering-from-unobserved-evidence-expression-failures-and-the-scheduling-limit)).
+- `evaluation/expression` also classifies `id_text` of a number other than 0
+  that is not the handle of an identifier the session holds, in a guard, an
+  effect, a procedure argument or a binding (rc.13; Version Lab F309-F312,
+  F338-F339). Before it, such an event was fatal `unclassified`, although the
+  runtime had already rolled it back. The rollback and the diagnostic text are
+  unchanged, and no accepted event changes.
 - `limit/history_limit` classifies a `sample` or `commit` on a full reading
   stream or decision series. Before it, such an event was fatal
   `unclassified`: a host lost the session, although the runtime had already

@@ -6,6 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CaveatError, createRuntime } from '../lib/session.mjs';
 import { Real, faulty, real, thermostat, trail } from './helpers.mjs';
+import { provenanceOverflow } from './fatal-fixture.mjs';
 
 const state = session => ({ save: session.save(), snapshot: session.snapshotText(), view: session.viewText() });
 
@@ -122,8 +123,8 @@ test('every refusal is the object dispatch() returns, and changes nothing', () =
 });
 
 test('a fatal outcome is the report dispatch() throws, and ends the session', () => {
-  for (const expression of ['output + 5', 'output * 7']) {
-    const source = `state output = 0; event run; on run set output = 1; bind hud.label = id_text(${expression}) when output > 0;`;
+  for (const rule of ['on run', 'on run when output > 0']) {
+    const source = `state output = 0; event run; on run set output = 1; ${provenanceOverflow(rule)}`;
     twins(source, (old, viewed) => {
       let expected;
       assert.throws(() => old.dispatch('run'), error => { expected = error; return error.kind === 'fatal'; });

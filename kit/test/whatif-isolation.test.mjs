@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { loadRuntimeFromDirectory, defaultRuntimeDirectory } from '../lib/node.mjs';
 import { loadRuntime } from '../lib/session.mjs';
+import { provenanceOverflow } from './fatal-fixture.mjs';
 
 const starter = await readFile(new URL('../examples/agent-evidence/assessment.cav', import.meta.url), 'utf8');
 const source = `${starter}
@@ -28,9 +29,8 @@ on expire when not observed(tool) reveal tool supports answer_supported;
 on expire qualify tool with stale;
 on divide set bounded = 1 / denominator;
 on signal emit note;
-on crash set subject = subject + 5;
 bind fixture.subject = id_text(subject);
-`;
+${provenanceOverflow('on crash')}`;
 
 function capture(session) {
   return { save: session.save(), snapshot: session.snapshotText(), view: session.viewText() };
@@ -116,7 +116,7 @@ test('ordinary unclassified fatal ends only its branch', async () => {
     branch = runtimeB.restore(source, before[0].save);
     sibling = runtimeB.restore(source, before[0].save);
     assert.throws(() => branch.dispatch('crash'), error =>
-      error.kind === 'fatal' && error.report?.code === 'unclassified' && /is not the handle of an identifier/.test(error.message));
+      error.kind === 'fatal' && error.report?.code === 'unclassified' && /value provenance exceeds limit/.test(error.message));
     assert.equal(branch.state, 'fatal');
     assert.equal(runtimeB.trapped, false);
     assert.equal(runtimeA.trapped, false);

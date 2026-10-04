@@ -39,6 +39,35 @@ test('the server announces itself and answers dispatches with their outcomes', (
   assert.deepEqual(send({ id: 7, op: 'close' }), { response: { id: 7, ok: true }, exit: 0 });
 });
 
+// Version Lab F309-F312, F338-F339: id_text of a number that is no handle
+// refuses the event wherever it is read, and the server goes on. An id
+// parameter sent as a number stays an input refusal (F339).
+test('id_text of a non-handle is a refusal the server survives', () => {
+  for (const [place, rule] of [
+    ['guard', 'on run when id_text(value + 6) == "x" set value = 3;'],
+    ['rule body', 'on run set shown = if(id_text(value + 6) == "x", 1, 2);'],
+    ['binding', 'bind hud.label = id_text(value + 6) when value == 1;'],
+  ]) {
+    const source = `identifiers limit 4; state value = 0; state shown = 0; state head = 0;
+      event run; event count; event pushed commit id;
+      on run set value = 1; on count set value = value + 5; on pushed set head = commit;
+      ${rule}`;
+    const server = createServer({ runtime: real, source, program: 'f309.cav' });
+    const send = request => server.handle(JSON.stringify(request));
+    const before = send({ op: 'save' }).response.save;
+    const { response, exit } = send({ id: 1, op: 'dispatch', event: 'run' });
+    assert.equal(exit, null, place);
+    assert.deepEqual([response.ok, response.outcome, response.origin, response.code, response.sequence],
+      [true, 'rejected', 'evaluation', 'expression', 0], place);
+    assert.match(response.message, /id_text: 7 is not the handle of an identifier$/, place);
+    assert.equal(send({ op: 'save' }).response.save, before, place);
+    const wrong = send({ id: 2, op: 'dispatch', event: 'pushed', payload: { commit: 1 } }).response;
+    assert.deepEqual([wrong.ok, wrong.outcome, wrong.origin, wrong.code], [true, 'rejected', 'input', 'payload_invalid'], place);
+    assert.deepEqual(send({ id: 3, op: 'dispatch', event: 'count' }).response,
+      { id: 3, ok: true, outcome: 'accepted', sequence: 1 }, place);
+  }
+});
+
 test('bad requests are answered as request errors and change nothing', () => {
   const { send } = serve();
   send({ op: 'dispatch', event: 'read', payload: { value: 17 } });
