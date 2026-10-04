@@ -374,7 +374,20 @@ The rc.11 rules carry over:
   It adds the MCP `2026-07-28` input and PR 5, makes the release ledger an
   extension of the agent ledger (PR 6), renumbers member symbols to PR 7 and
   the publish to PR 8, and records the Direction section.
+- PR 6 (#109): `experiments/agent-ledger/release.cav` records the release
+  gates, with 8 scenarios covering stale green, hand publish and withdrawal.
+  `release-ledger.mjs` drives it from facts through `caveat serve`. Replayed
+  from rc.11's facts, it shows a hand publish whose attestation stays
+  unsupported, and refuses to record provenance. The live run for rc.12's
+  release has not happened yet.
 - PR 7 (member symbols) is pending the owner's decision.
+- PR 1 (#108) merged 2026-10-04 as `81bb39a`.
+- PR 4: `kit/docs/AGENT_START.md` and the agent-evidence README say that a
+  `caveat serve` session lasts as long as its process, that each MCP tool call
+  is a fresh subprocess with no session handle, and that one MCP connection
+  accepts 4,096 request IDs. `docs/AI_AUTHORING.md` names the rc.11 outcome
+  codes it did not list yet: `evaluation/bound_exceeded` for a clock that
+  would become nonfinite, and `limit/scheduled_limit`.
 - PR 5 (#111): `caveat-lang mcp` speaks MCP `2026-07-28` and keeps
   `2025-11-25`. Release note: a client may call `server/discover`, then
   `tools/list` and `tools/call` with `io.modelcontextprotocol/protocolVersion`

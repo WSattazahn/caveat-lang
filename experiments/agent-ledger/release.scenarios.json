@@ -1,0 +1,841 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "release.cav",
+  "scenarios": [
+    {
+      "id": "R01",
+      "title": "Stale green: a pull request that passed on an old base does not make main tested, and readiness waits for main's own run",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "pr_run",
+          "payload": {
+            "target": "pr2",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "base": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "pr_run",
+          "payload": {
+            "target": "pr3",
+            "head": "2ea193e61a693a02dd74b65f147f778ac0e5200b",
+            "base": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "result": "passed"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr2/status": "passing",
+            "/bindings/pr3/status": "passing",
+            "/binding_qualifications/pr3/status/caveats": []
+          },
+          "note": "Both ran on main's head."
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "pr2",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/main_status": "tested by a pull request's run; no candidate built",
+            "/bindings/pr3/status": "passing on a stale base",
+            "/binding_qualifications/pr3/status/caveats": [
+              "stale_base"
+            ],
+            "/relations": {
+              "$includes": [
+                {
+                  "from": "stale_base",
+                  "relation": "qualifies",
+                  "to": "pr3_ci",
+                  "origin": "live"
+                }
+              ]
+            }
+          },
+          "note": "pr2 merged exactly what its run tested; pr3's run now measured an old base."
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "pr3",
+            "head": "2ea193e61a693a02dd74b65f147f778ac0e5200b",
+            "commit": "64f85095c7f77bb6aa31888cff62b382ae3e59f2"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/main_status": "no passing run on main's head",
+            "/bindings/pr3/status": "merged"
+          }
+        },
+        {
+          "send": "decide",
+          "rejected": "No passing Runtime run on main's head."
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          },
+          "rejected": "A run for a commit that is not main's head."
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "64f85095c7f77bb6aa31888cff62b382ae3e59f2",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "publishable",
+            "/commitment_grounds/ready@1": {
+              "evidence": [
+                "main_runs@1"
+              ],
+              "caveats": []
+            }
+          },
+          "note": "Readiness rests on main's own run, never on a pull request's."
+        },
+        {
+          "send": "decide",
+          "rejected": "Already decided publishable."
+        }
+      ]
+    },
+    {
+      "id": "R02",
+      "title": "A rerun on the current base clears the stale caveat; merging it leaves main tested by that run",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "pr_run",
+          "payload": {
+            "target": "pr3",
+            "head": "2ea193e61a693a02dd74b65f147f778ac0e5200b",
+            "base": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "unlisted",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr3/status": "passing on a stale base"
+          }
+        },
+        {
+          "send": "pr_run",
+          "payload": {
+            "target": "pr3",
+            "head": "eab674bafb95d82534a8ce249ca3999c897e4451",
+            "base": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/pr3/status": "passing",
+            "/relations": {
+              "$set": [
+                {
+                  "from": "pr3_ci",
+                  "relation": "supports",
+                  "to": "publishable",
+                  "origin": "live"
+                },
+                {
+                  "from": "stale_base",
+                  "relation": "qualifies",
+                  "to": "pr3_ci",
+                  "origin": "live"
+                },
+                {
+                  "from": "pr3_ci@2",
+                  "relation": "supports",
+                  "to": "publishable",
+                  "origin": "live"
+                }
+              ]
+            }
+          },
+          "note": "A new run is a new occurrence, pr3_ci@2, without the old one's caveat. The old run keeps it."
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "pr3",
+            "head": "2ea193e61a693a02dd74b65f147f778ac0e5200b",
+            "commit": "64f85095c7f77bb6aa31888cff62b382ae3e59f2"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/main_status": "no passing run on main's head"
+          },
+          "note": "It merged a head other than the one its last run tested."
+        },
+        {
+          "send": "pr_run",
+          "payload": {
+            "target": "pr3",
+            "head": "eab674bafb95d82534a8ce249ca3999c897e4451",
+            "base": "64f85095c7f77bb6aa31888cff62b382ae3e59f2",
+            "result": "passed"
+          },
+          "rejected": "The pull request is already merged."
+        }
+      ]
+    },
+    {
+      "id": "R03",
+      "title": "A merge or a failed run after the decision reopens readiness, and the release cannot be tagged on it",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "pr4",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "reconsider: main moved or its run failed since the decision",
+            "/commitment_grounds/ready@1": {
+              "evidence": [
+                "main_runs@1"
+              ],
+              "caveats": []
+            }
+          },
+          "note": "The decision keeps what it was made on."
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": "The release is not decided publishable."
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "failed"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "reconsider: main moved or its run failed since the decision"
+          }
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          },
+          "rejected": "The tag is not on the commit decided publishable."
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "tagged",
+            "/bindings/repo/tag": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": "The release is already tagged."
+        }
+      ]
+    },
+    {
+      "id": "R04",
+      "title": "The attested route: the environment's approval for the tagged commit permits the publish, and only verification confirms the attestation",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "unlisted",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "workflow",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "workflow",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "workflow",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "published through publish-npm.yml",
+            "/bindings/repo/attestation": "reported by the publish job, not verified",
+            "/commitment_grounds/publish@1": {
+              "evidence": [
+                "main_runs@1"
+              ],
+              "caveats": []
+            },
+            "/commitment_permissions/publish@1/grant": "approvals@2"
+          }
+        },
+        {
+          "send": "record",
+          "rejected": "No verification found an attestation."
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "bytes": "match",
+            "provenance": "present"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/attestation": "verified",
+            "/bindings/repo/npm": "serves the tested tarball"
+          }
+        },
+        {
+          "send": "record"
+        },
+        {
+          "expect": {
+            "/commitment_grounds/provenance_record@1": {
+              "evidence": [
+                "attestations@1"
+              ],
+              "caveats": []
+            }
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "workflow",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": "Already published."
+        }
+      ]
+    },
+    {
+      "id": "R05",
+      "title": "Hand publish: permitted by the owner's go-ahead, but nothing supports the attestation, and provenance cannot be recorded",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "unlisted",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "hand",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        },
+        {
+          "send": "hand_go"
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "hand",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "published by hand",
+            "/bindings/repo/attestation": "unsupported",
+            "/commitment_permissions/publish@1/grant": "owner_go"
+          }
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "bytes": "match",
+            "provenance": "absent"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/npm": "serves the tested tarball",
+            "/bindings/repo/attestation": "unsupported"
+          },
+          "note": "The registry serves the tested bytes; that is not an attestation."
+        },
+        {
+          "send": "record",
+          "rejected": "No verification found an attestation."
+        }
+      ]
+    },
+    {
+      "id": "R06",
+      "title": "Withdrawal: verification finds no attestation, so the publish job's report is withdrawn, not contradicted",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "unlisted",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "workflow",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "bytes": "match",
+            "provenance": "absent"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/attestation": "withdrawn: verification found none",
+            "/withdrawals": [
+              {
+                "evidence": "publish_report",
+                "because": "disproof"
+              }
+            ]
+          }
+        },
+        {
+          "send": "record",
+          "rejected": "No verification found an attestation."
+        }
+      ]
+    },
+    {
+      "id": "R07",
+      "title": "Withdrawal after recording: a later failed verification withdraws the attestation and reopens the provenance record",
+      "steps": [
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "unlisted",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "workflow",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "bytes": "match",
+            "provenance": "present"
+          }
+        },
+        {
+          "send": "record"
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "bytes": "mismatch",
+            "provenance": "absent"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/attestation": "withdrawn: a later verification found none",
+            "/bindings/repo/npm": "does not serve the tested tarball",
+            "/commitment_grounds/provenance_record@1": {
+              "evidence": [
+                "attestations@1"
+              ],
+              "caveats": []
+            },
+            "/withdrawals": [
+              {
+                "evidence": "publish_report",
+                "because": "disproof"
+              },
+              {
+                "evidence": "attestations@1",
+                "because": "disproof"
+              }
+            ],
+            "/commitments/0": {
+              "action": "provenance_record@1",
+              "open": true,
+              "reopened_by": [
+                "disproof"
+              ]
+            }
+          },
+          "note": "Both what the job reported and what the first verification confirmed are withdrawn; the record keeps its grounds."
+        },
+        {
+          "send": "record",
+          "rejected": "The verified attestation has since been withdrawn."
+        }
+      ]
+    },
+    {
+      "id": "R08",
+      "title": "Events about anything other than the current state are refused",
+      "steps": [
+        {
+          "send": "merged",
+          "payload": {
+            "target": "pr2",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": "The ledger has not been opened at a main commit."
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "result": "passed"
+          },
+          "rejected": "The ledger has not been opened at a main commit."
+        },
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "opened",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": "The ledger is already open."
+        },
+        {
+          "send": "approved",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          },
+          "rejected": "No release tag to approve a publish of."
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "bytes": "match",
+            "provenance": "present"
+          },
+          "rejected": "Nothing has been published to verify."
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "hand",
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          },
+          "rejected": "The release is not decided publishable."
+        },
+        {
+          "send": "main_run",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580",
+            "result": "passed"
+          }
+        },
+        {
+          "send": "decide"
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "hand",
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          },
+          "rejected": "The release is not tagged."
+        },
+        {
+          "send": "tagged",
+          "payload": {
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "hand_go"
+        },
+        {
+          "send": "hand_go",
+          "rejected": "The go-ahead is already recorded."
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "hand",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          },
+          "rejected": "Published from a commit that is not the tag."
+        },
+        {
+          "send": "published",
+          "payload": {
+            "route": "hand",
+            "commit": "3a26d1c7a2f2db3d8051c152fe8646fdd8fd4580"
+          }
+        },
+        {
+          "send": "verified",
+          "payload": {
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff",
+            "bytes": "match",
+            "provenance": "present"
+          },
+          "rejected": "A verification of a commit that is not the tag."
+        },
+        {
+          "send": "merged",
+          "payload": {
+            "target": "pr5",
+            "head": "2499b103574ff89169d09d3330e754de231038c6",
+            "commit": "c2526b83e77e36f3a577b75b15a1beec7cf5b4ff"
+          }
+        },
+        {
+          "expect": {
+            "/bindings/repo/release": "published by hand"
+          },
+          "note": "A merge after the publish does not reopen what was published."
+        }
+      ]
+    }
+  ]
+}

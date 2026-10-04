@@ -67,6 +67,15 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
    assessment permits its result. An earlier approval cannot cover a refused
    observation. Preserve those checks when adapting the example.
 
+A session lasts as long as the process that holds it. `caveat serve`, and so
+the Python client's `CaveatServer`, keeps one session of one program until it
+is closed. The [MCP authoring tools](MCP.md) keep none: each tool call starts a
+fresh subprocess and runtime with no session handle, so a call sees only the
+source and events it is sent. One MCP connection accepts 4,096 request IDs; the
+bridge then ends it, and the host must reconnect. For a long-running agent,
+keep the session in `caveat serve` and its save, or send the full event history
+again with each MCP call.
+
 Observing is separate from assessing. Reassessing requires reopening the current
 revision. Withdrawal preserves the archive, and late qualification leaves prior
 decision grounds and archived readings unchanged. The starter's

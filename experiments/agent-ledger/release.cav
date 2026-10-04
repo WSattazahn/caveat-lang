@@ -1,0 +1,215 @@
+scene "Whether a release candidate may be published, and what its publication shows.";
+
+# The agent ledger's bookkeeping, carried to the release gates of
+# docs/CONSOLIDATION_PLAN.md ("Candidate and release gates"). A merge decision
+# rests on a pull request's checks; a release rests on the Runtime run that
+# tested main's head and built the candidate tarball. The publish needs the
+# npm-publish environment's approval, and only verify-publication can say
+# that what npm serves is the tested tarball with provenance.
+identifiers limit 1024;
+
+place repo kind repo;
+# The plan's pull requests, by their number in the plan, not on GitHub: an
+# event can name only a declared entity. Any other pull request is `unlisted`.
+entity pr1 kind pr at repo;
+entity pr2 kind pr at repo;
+entity pr3 kind pr at repo;
+entity pr4 kind pr at repo;
+entity pr5 kind pr at repo;
+entity pr6 kind pr at repo;
+entity pr7 kind pr at repo;
+entity pr8 kind pr at repo;
+entity unlisted kind pr at repo;
+
+# Commits are full SHAs. `opened` names main's head when the ledger starts.
+event opened commit id;
+# A Runtime run on a pull request tests its head merged into `base`.
+event pr_run target kind pr, head id, base id, result in failed passed;
+# A pull request merged into main: `head` is what it merged, `commit` main's
+# new head.
+event merged target kind pr, head id, commit id;
+# A Runtime run on a push to main: the run that builds the candidate tarball.
+event main_run commit id, result in failed passed;
+event decide;
+event tagged commit id;
+# The npm-publish environment approved a publish run for this commit.
+event approved commit id;
+# The owner's go-ahead to publish from their own terminal.
+event hand_go;
+event published route in workflow hand, commit id;
+event verified commit id, bytes in match mismatch, provenance in present absent;
+event record;
+
+claim publishable;
+claim authorized;
+claim on_npm;
+claim attested;
+caveat stale_base consequence material;
+
+evidence main_ci from "Runtime runs on pushes to main";
+readings main_runs from main_ci limit 64;
+evidence main_moved from "a merge to main";
+renewable main_moved limit 256;
+evidence environment from "the npm-publish environment's approval";
+readings approvals from environment limit 8;
+evidence owner_go from "the owner's go-ahead to publish from their terminal";
+evidence publish_report from "publish-npm.yml: the publish job's own report";
+evidence terminal_report from "the owner's terminal: npm publish";
+evidence registry_check from "verify-publication: the registry's bytes";
+readings verifications from registry_check limit 8;
+evidence attestation_check from "verify-publication: dist.attestations and npm audit signatures";
+readings attestations from attestation_check limit 8;
+evidence disproof from "verify-publication found what was reported is not so";
+renewable disproof limit 8;
+
+decisions ready limit 16;
+# A publication cannot be taken back, so nothing reopens it.
+# caveat check: allow no-reopening-path
+decisions publish limit 1;
+decisions provenance_record limit 4;
+
+state main_head = 0 min 0 max 1024;
+state main_green = 0 min 0 max 1;
+# 1 when main's head is exactly a tree a pull request's passing run tested on
+# a base that was then main's head. Not a release candidate: no tarball.
+state covered = 0 min 0 max 1;
+state tag_commit = 0 min 0 max 1024;
+# 0 not published, 1 through publish-npm.yml, 2 by hand.
+state release_route = 0 min 0 max 2;
+# 0 not verified, 1 the registry serves the tested bytes, 2 it does not.
+state registry_bytes = 0 min 0 max 2;
+
+on opened when main_head != 0 reject "The ledger is already open.";
+on opened set main_head = commit;
+
+on merged when main_head == 0 reject "The ledger has not been opened at a main commit.";
+on merged when observed(main_moved) renew main_moved;
+on merged reveal main_moved;
+on merged set covered = 0;
+
+for pr as $p {
+    evidence $p_ci from "the pull request's Runtime run";
+    renewable $p_ci limit 64;
+    state $p_head = 0 min 0 max 1024;
+    state $p_green = 0 min 0 max 1;
+    state $p_merged = 0 min 0 max 1;
+
+    # Each run is a new occurrence. One whose base is not main's head ran on a
+    # stale base, and says so in everything computed from it.
+    on pr_run when target == $index and main_head == 0 reject "The ledger has not been opened at a main commit.";
+    on pr_run when target == $index and $p_merged == 1 reject "The pull request is already merged.";
+    on pr_run when target == $index and observed($p_ci) renew $p_ci;
+    on pr_run when target == $index and result == result.passed reveal $p_ci supports publishable;
+    on pr_run when target == $index and result == result.failed reveal $p_ci opposes publishable;
+    on pr_run when target == $index and base != main_head qualify $p_ci with stale_base;
+    on pr_run when target == $index set $p_head = head;
+    on pr_run when target == $index set $p_green = if(result == result.passed, 1, 0);
+
+    # A merge of exactly the tested head on a current base leaves main at the
+    # tree that run tested.
+    on merged when target == $index and $p_green == 1 and $p_head == head and not carries($p_ci, stale_base)
+        set covered = 1;
+    on merged when target == $index set $p_merged = 1;
+    # Main moved: every other open pull request's last run measured a base
+    # that is no longer main's head.
+    # caveat check: allow unrouted-member-rule
+    on merged when target != $index and $p_merged == 0 and observed($p_ci) and not carries($p_ci, stale_base)
+        qualify $p_ci with stale_base;
+
+    bind $p.status = "no run";
+    bind $p.status = "failing" when observed($p_ci) and $p_green == 0;
+    bind $p.status = "passing" when $p_green == 1;
+    bind $p.status = "passing on a stale base" when $p_green == 1 and carries($p_ci, stale_base);
+    bind $p.status = "merged" when $p_merged == 1;
+    bind $p.head = id_text($p_head);
+};
+
+# A merge to main reopens readiness measured before it.
+on merged set main_head = commit;
+on merged set main_green = 0;
+on merged when committed(ready) and not reopened(ready) and release_route == 0
+    reopen ready because main_moved;
+
+on main_run when main_head == 0 reject "The ledger has not been opened at a main commit.";
+on main_run when commit != main_head reject "A run for a commit that is not main's head.";
+on main_run when result == result.passed sample main_runs = commit supports publishable;
+on main_run when result == result.failed sample main_runs = commit opposes publishable;
+on main_run set main_green = if(result == result.passed, 1, 0);
+on main_run when result == result.failed and committed(ready) and not reopened(ready) and release_route == 0
+    reopen ready because latest(main_runs);
+
+# Readiness rests on the run that tested main's head and built its tarball,
+# never on a pull request's run.
+on decide when main_green == 0 reject "No passing Runtime run on main's head.";
+on decide when committed(ready) and not reopened(ready) reject "Already decided publishable.";
+on decide commit ready because enough using latest(main_runs);
+
+on tagged when tag_commit != 0 reject "The release is already tagged.";
+on tagged when not committed(ready) or reopened(ready) reject "The release is not decided publishable.";
+on tagged when commit != main_head reject "The tag is not on the commit decided publishable.";
+on tagged set tag_commit = commit;
+
+on approved when tag_commit == 0 reject "No release tag to approve a publish of.";
+on approved sample approvals = commit supports authorized;
+
+on hand_go when observed(owner_go) reject "The go-ahead is already recorded.";
+on hand_go reveal owner_go supports authorized;
+
+# The publish rests on the tested run and is permitted by the environment's
+# approval for the tagged commit, or, for a hand publish, by the owner's
+# go-ahead. A hand publish reports nothing about provenance.
+on published when release_route != 0 reject "Already published.";
+on published when not committed(ready) or reopened(ready) reject "The release is not decided publishable.";
+on published when tag_commit == 0 reject "The release is not tagged.";
+on published when commit != tag_commit or commit != main_head reject "Published from a commit that is not the tag.";
+on published when route == route.workflow reveal publish_report supports attested;
+on published when route == route.hand reveal terminal_report supports on_npm;
+on published when route == route.workflow
+    commit publish because enough using latest(main_runs) permitted by latest(approvals) for tag_commit;
+on published when route == route.hand
+    commit publish because enough using latest(main_runs) permitted by owner_go;
+on published set release_route = if(route == route.workflow, 1, 2);
+
+# Only verify-publication confirms an attestation. A failed verification
+# withdraws the publish job's report and any attestation it confirmed before.
+on verified when release_route == 0 reject "Nothing has been published to verify.";
+on verified when commit != tag_commit reject "A verification of a commit that is not the tag.";
+on verified when bytes == bytes.match sample verifications = commit supports on_npm;
+on verified when bytes == bytes.mismatch sample verifications = commit opposes on_npm;
+on verified set registry_bytes = if(bytes == bytes.match, 1, 2);
+on verified when bytes == bytes.match and provenance == provenance.present
+    sample attestations = commit supports attested;
+on verified when (bytes == bytes.mismatch or provenance == provenance.absent) and observed(disproof) renew disproof;
+on verified when bytes == bytes.mismatch or provenance == provenance.absent reveal disproof;
+on verified when (bytes == bytes.mismatch or provenance == provenance.absent) and observed(publish_report) and not withdrawn(publish_report)
+    withdraw publish_report because disproof;
+on verified when (bytes == bytes.mismatch or provenance == provenance.absent) and has_sample(attestations) and not withdrawn(latest(attestations))
+    withdraw latest(attestations) because disproof;
+on verified when committed(provenance_record) and not reopened(provenance_record) and rests_on_withdrawn(provenance_record)
+    reopen provenance_record because disproof;
+
+# The release record may name provenance only from a verification.
+on record when not has_sample(attestations) reject "No verification found an attestation.";
+on record when withdrawn(latest(attestations)) reject "The verified attestation has since been withdrawn.";
+on record when committed(provenance_record) and not reopened(provenance_record) reject "Provenance is already recorded.";
+on record commit provenance_record because enough using latest(attestations);
+
+bind repo.main = id_text(main_head);
+bind repo.tag = id_text(tag_commit);
+bind repo.main_status = "no passing run on main's head";
+bind repo.main_status = "tested by a pull request's run; no candidate built" when covered == 1;
+bind repo.main_status = "passing Runtime run on main's head" when main_green == 1;
+bind repo.release = "not decided";
+bind repo.release = "reconsider: main moved or its run failed since the decision" when reopened(ready);
+bind repo.release = "publishable" when committed(ready) and not reopened(ready);
+bind repo.release = "tagged" when tag_commit != 0 and committed(ready) and not reopened(ready);
+bind repo.release = "published through publish-npm.yml" when release_route == 1;
+bind repo.release = "published by hand" when release_route == 2;
+bind repo.npm = "not checked";
+bind repo.npm = "serves the tested tarball" when registry_bytes == 1;
+bind repo.npm = "does not serve the tested tarball" when registry_bytes == 2;
+bind repo.attestation = "unsupported";
+bind repo.attestation = "reported by the publish job, not verified" when observed(publish_report);
+bind repo.attestation = "withdrawn: verification found none" when withdrawn(publish_report);
+bind repo.attestation = "verified" when has_sample(attestations) and not withdrawn(latest(attestations));
+bind repo.attestation = "withdrawn: a later verification found none" when has_sample(attestations) and withdrawn(latest(attestations));
