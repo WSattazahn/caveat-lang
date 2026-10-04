@@ -772,6 +772,64 @@ impl Expr {
         }
     }
 
+    /// The caveats this expression can attach to a value: those `examined(...)`
+    /// names, which its answer carries with no evidence, and the (caveat,
+    /// evidence) pairs `qualified(VALUE, EVIDENCE, CAVEAT...)` names. Every
+    /// branch is included, taken or not. Used by restore to bound the caveats
+    /// a saved provenance can carry. The match is exhaustive for the same
+    /// reason as `collect_reads`.
+    pub fn collect_caveat_reads(
+        &self,
+        examined: &mut BTreeSet<String>,
+        extras: &mut BTreeSet<(String, String)>,
+    ) {
+        match &self.node {
+            Node::Predicate(kind, name) => {
+                if kind == "examined" {
+                    examined.insert(name.clone());
+                }
+            }
+            Node::Qualified(value, evidence, caveats) => {
+                for caveat in caveats {
+                    extras.insert((caveat.clone(), evidence.clone()));
+                }
+                value.collect_caveat_reads(examined, extras);
+            }
+            Node::Unary(_, child) | Node::HistoryAt(_, child) | Node::Fold(_, child, _) => {
+                child.collect_caveat_reads(examined, extras)
+            }
+            Node::Binary(_, left, right)
+            | Node::Require(left, right)
+            | Node::ExpandedFold(_, left, right) => {
+                left.collect_caveat_reads(examined, extras);
+                right.collect_caveat_reads(examined, extras);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_caveat_reads(examined, extras);
+                yes.collect_caveat_reads(examined, extras);
+                no.collect_caveat_reads(examined, extras);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_caveat_reads(examined, extras);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_caveat_reads(examined, extras);
+                }
+                body.collect_caveat_reads(examined, extras);
+            }
+            Node::Number(_)
+            | Node::Elapsed
+            | Node::Bool(_)
+            | Node::Text(_)
+            | Node::Variable(_)
+            | Node::Latest(_)
+            | Node::HistoryCount(_) => {}
+        }
+    }
+
     /// Evidence that `qualified(...)` names wherever evaluating this
     /// expression is certain to reach it: not inside an `if` branch, the right
     /// side of `and` or `or`, a `require` value or a fold body.

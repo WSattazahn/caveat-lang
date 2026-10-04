@@ -275,6 +275,28 @@ test('findings 123, 188-191: restore refuses attention no examination of the sou
   } finally { session.close(); resumed?.close(); again?.close(); }
 });
 
+test('F330: restore refuses a caveat no mechanism of the source can attach to a provenance', () => {
+  // Nothing attaches phantom to a value; stale qualifies sensor by declaration.
+  const graph = runtime.open(graphSource);
+  const sparse = runtime.open(sparseSource);
+  let resumed;
+  try {
+    assert.equal(graph.dispatch('observe').outcome, 'accepted');
+    assert.equal(graph.dispatch('decide').outcome, 'accepted');
+    const decided = JSON.parse(graph.save());
+    decided.commitment_bases['go@1'].provenance.caveats = ['phantom'];
+    refuses(graphSource, decided, /commitment go@1: phantom cannot qualify any of its evidence/);
+    assert.equal(sparse.dispatch('observe', { value: 85 }).outcome, 'accepted');
+    const genuine = sparse.save();
+    // serial rests on no evidence, so it can carry no caveat that needs one.
+    const serial = JSON.parse(genuine);
+    serial.states.serial.lineage = { evidence: [], caveats: ['stale'] };
+    refuses(sparseSource, serial, /state serial: stale cannot qualify any of its evidence/);
+    resumed = runtime.restore(sparseSource, genuine);
+    assert.deepEqual(resumed.snapshot(), sparse.snapshot());
+  } finally { graph.close(); sparse.close(); resumed?.close(); }
+});
+
 test('F247: restore refuses a field the schema lacks in a nested record', () => {
   const session = runtime.open(sparseSource);
   try {

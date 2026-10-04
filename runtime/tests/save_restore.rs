@@ -635,7 +635,8 @@ fn every_known_fatal_outcome_still_happens() {
 // round 0 of seed 1032, was altered from must now be refused as that
 // rejection, with nothing kept, not merely play on. The witness itself drops
 // forecast from route@1's basis while route@1 still relies on it, and since
-// fix/restore-relation-kinds restore refuses it for that.
+// fix/restore-relation-kinds restore refuses it for that. Since F330 restore
+// refuses it earlier: the basis keeps unmeasured, which only forecast carries.
 #[test]
 fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
     let save = serde_json::to_value(played().save().unwrap()).unwrap();
@@ -643,8 +644,8 @@ fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
     assert_eq!(
         resume(&witness.to_string()),
         Ok(Resumed::Refused(
-            "cannot restore save: relation route@1 relies_on forecast: forecast is not in \
-             route@1's basis"
+            "cannot restore save: commitment route@1: unmeasured cannot qualify any of its \
+             evidence"
                 .into()
         ))
     );
@@ -2588,4 +2589,49 @@ fn an_attention_inserted_for_any_caveat_is_refused_unless_the_source_could_leave
         }
     }
     assert_eq!(tried, 12);
+}
+
+// F330, F333, F335-F337, as F247's insertion with a caveat: `stale`, which
+// the program examines but nothing attaches to a value, added to every
+// provenance the played save holds. Each is refused, by this check except in
+// grounds.
+#[test]
+fn f330_a_caveat_nothing_attaches_is_refused_in_every_provenance() {
+    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let mut places = Vec::new();
+    paths(&save, Vec::new(), &mut places);
+    let mut tried = 0;
+    for path in places {
+        let mut altered = save.clone();
+        let Some(serde_json::Value::Object(object)) = at(&mut altered, &path) else {
+            continue;
+        };
+        if path.is_empty()
+            || !object
+                .keys()
+                .all(|key| key == "caveats" || key == "evidence")
+        {
+            continue;
+        }
+        let caveats = object
+            .entry("caveats")
+            .or_insert_with(|| serde_json::json!([]))
+            .as_array_mut()
+            .unwrap();
+        caveats.push("stale".into());
+        caveats.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+        tried += 1;
+        let error = ReactiveSession::restore_json(PROGRAM, &altered.to_string())
+            .err()
+            .unwrap_or_else(|| panic!("accepted with stale at {}", pointer(&path)));
+        // Grounds lie within a checked lineage or basis, so their existing
+        // diagnostics refuse them first.
+        let grounds = pointer(&path).contains("grounds");
+        assert!(
+            grounds || error.ends_with("stale cannot qualify any of its evidence"),
+            "{}: {error}",
+            pointer(&path)
+        );
+    }
+    assert!(tried >= 20, "tried {tried}");
 }
