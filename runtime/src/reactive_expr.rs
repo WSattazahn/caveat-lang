@@ -1455,12 +1455,16 @@ impl Expr {
                             arguments[0].to_string()
                         }))
                     }
-                    // Handle 0 is "no identifier"; the host refuses any other
-                    // number that is not a handle it holds.
+                    // Handle 0 is "no identifier"; any other number that is
+                    // not a handle the host holds is outside the domain.
                     Function::IdText if arguments[0] == 0.0 => {
                         return Ok(Value::Text(String::new()))
                     }
-                    Function::IdText => return Ok(Value::Text(identifiers(arguments[0])?)),
+                    Function::IdText => {
+                        return Ok(Value::Text(identifiers(arguments[0]).map_err(
+                            |message| EvalError::new(EvalFailure::Domain, message),
+                        )?))
+                    }
                 };
                 Ok(Value::Number(finite(result)?))
             }

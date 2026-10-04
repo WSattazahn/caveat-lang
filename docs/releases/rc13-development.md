@@ -264,6 +264,21 @@ The rc.12 rules carry over:
   95 to 113 are code lines of the same files. Release note: a JavaScript or
   TypeScript host can type-check its event names, payload fields and
   displayed values against the program.
+- PR 4 (F309–F312, F338–F339): `id_text` of a number other than 0 that is
+  not a handle the session holds is now classified `EvalFailure::Domain` where
+  it occurs (`runtime/src/reactive_expr.rs`), so the event is refused as
+  `evaluation/expression` with its message unchanged, rolls back and the
+  session accepts the next event. Regression cases named after F309 cover a
+  guard, a rule body, a binding and an `if` branch on native and WASM, the same
+  through `caveat serve` (with an `id` payload sent as a number still
+  `input/payload_invalid`), and `require` around `id_text` still reports
+  `evaluation/requirement_failed`. Thirteen existing tests used `id_text` as
+  their example of a fatal event; they now use a value-provenance name-byte
+  overflow, which no catalog code classifies. The dispatch spec gains the site
+  and a `Changes` entry, the identifiers spec loses its stale "fatal, as
+  `1 / 0` is" sentence (F261), and the verification mapping table moves the
+  row. Release note: one more fatal becomes a refusal; no accepted event
+  changes.
 - PR 5: restore refuses a saved provenance carrying a caveat that no
   mechanism of the loaded source can attach to its evidence, or with no
   evidence (F330, F333, F335–F337). Release note: these edits are now
