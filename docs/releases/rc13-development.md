@@ -291,6 +291,27 @@ The rc.12 rules carry over:
   refused; 45,771 of them carry caveats. The same event traces replayed on
   published rc.3 to rc.12 give saves that all restore. One existing fuzz
   witness is now refused earlier, by this check.
+- PR 6 (F317–F322): the corpus run decided option (a), a restore check, not
+  the design note. In every genuine save each observed evidence had an
+  observation record, each examined caveat an examination record and each
+  `reopens` relation a reopening record, apart from memberships a
+  declaration sets as the program loads: 79,855 saves from the same 151
+  programs, and the saves published rc.3 to rc.12 write from the same event
+  traces. Restore now refuses a membership without its record
+  (`spec/caveat-save-0.1.md`, `docs/RESTORE_TRUST_BOUNDARY.md`); a record
+  removed together with its membership still restores. Release note: a save
+  edited to drop one of these records is now refused at restore instead of
+  restoring with the graph and tables out of step.
+- Caveatist skill, side PR (docs and metadata, no runtime change): the
+  skill installs with `npx skills add WSattazahn/caveat-lang` (from a
+  byte-identical copy at `skills/caveatist/SKILL.md`, which CI compares with
+  the canonical `caveatism/skills/caveatist/SKILL.md`) and as the Claude Code
+  plugin `caveat` from the repository's one-entry marketplace `caveat-lang`.
+  `llms.txt` and `web/llms.txt` give doc-reading agents a map, and
+  `server.json` describes the MCP server `io.github.wsattazahn/caveat-lang`.
+  `kit/package.json` gains `mcpName`, which rides rc.13's publish; the MCP
+  Registry, community marketplace and directory submissions are owner steps
+  after it.
 - PR 11 (the publish) opened: `docs/releases/v0.1.0-rc.13.md` holds the
   release notes, marked unpublished, and the README points to them. Publication
   goes through `publish-npm.yml` from the annotated tag `v0.1.0-rc.13` at this

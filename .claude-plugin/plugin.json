@@ -1,0 +1,10 @@
+{
+  "name": "caveat",
+  "displayName": "Caveat",
+  "description": "The Caveatist practice for agents: keep claims with their grounds and caveats, decide with the caveat attached, withdraw rather than erase. Optional culture around the Caveat language; it changes how you work, not what any runtime does.",
+  "author": { "name": "Walt Sattazahn" },
+  "homepage": "https://github.com/WSattazahn/caveat-lang/tree/main/caveatism",
+  "repository": "https://github.com/WSattazahn/caveat-lang",
+  "license": "CC-BY-SA-4.0",
+  "keywords": ["caveat", "caveatism", "evidence", "grounds", "decisions", "agents", "skill"]
+}

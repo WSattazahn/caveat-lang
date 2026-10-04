@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.wsattazahn/caveat-lang",
+  "description": "Authoring bridge for the Caveat language: validate, check and test Caveat programs, explain what a decision rests on, and ask what depends on a piece of evidence. Stateless calls; no sessions.",
+  "repository": {
+    "url": "https://github.com/WSattazahn/caveat-lang",
+    "source": "github"
+  },
+  "version": "0.1.0-rc.13",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "caveat-lang",
+      "version": "0.1.0-rc.13",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "packageArguments": [
+        { "type": "positional", "value": "mcp" }
+      ]
+    }
+  ]
+}

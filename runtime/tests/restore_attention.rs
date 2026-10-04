@@ -184,6 +184,9 @@ fn examined_attention_without_a_budget_is_refused() {
 fn attention_the_source_could_leave_restores_without_proof_it_did() {
     let mut save = saved(&["probe"]);
     save["graph"]["attention"]["stale"] = "examined".into();
+    // Since rc.13 PR 6 an examined caveat needs the record every examination
+    // leaves (F317-F322); an empty one is what an unguarded `examine` leaves.
+    save["examination_qualifications"]["stale"] = json!({});
     let mut restored = ReactiveSession::restore_json(PROGRAM, &save.to_string())
         .unwrap_or_else(|error| panic!("{error}"));
     send(&mut restored, "go");

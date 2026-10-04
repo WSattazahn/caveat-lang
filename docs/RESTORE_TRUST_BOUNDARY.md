@@ -4,8 +4,8 @@ Status: design review written for rc.10 and updated for rc.11, which
 implements the source-capability check it proposed, for rc.12, which
 applies the same check to a caveat's attention and to the keys of the
 qualification tables and the withdrawal record's event, and for rc.13, which
-applies it to the caveats a saved provenance carries. The save schema is
-unchanged.
+applies it to the caveats a saved provenance carries and to memberships
+without their records. The save schema is unchanged.
 
 ## What acceptance establishes
 
@@ -105,7 +105,8 @@ The policy is conservative. Guards are not evaluated, and an examination is
 counted once at its cheapest, so attention the program could have left is
 accepted though no event of the session left it: with `stale` and `deep`
 each examinable, a save that spent enough for both can mark both examined
-after only one was. Removing an examination restores too, leaving that
+after only one was (since rc.13, with the examination record each
+examination leaves). Removing an examination restores too, leaving that
 caveat unexamined, just as removing a `qualifies` relation restores without
 it; since the table-key checks below, its examination record must go with
 it. Neither check establishes what the session did.
@@ -175,6 +176,28 @@ session did. The fixtures are in
 [save_restore.rs](../runtime/tests/save_restore.rs) (a caveat nothing
 attaches, added to every provenance of the played save) and the
 [restore boundary fixtures](../kit/test/restore-contract.test.mjs).
+
+## Memberships and their records (rc.13)
+
+The qualification-table check above runs from the record to the graph: a
+record must belong to a membership. Version Lab found the other direction
+unchecked (F317–F322). A save with an observation, examination or reopening
+record removed restored; the next genuine events wrote the record again, but
+the graph's `reopens` and `relies_on` relations stayed as the edited save
+left them, and no surface reported the skew. Every event that observes
+evidence, examines a caveat or reopens a commitment leaves its record, an
+empty one when nothing guarded it, so restore now refuses observed evidence,
+an examined caveat or a reopened commitment without its record. Evidence and
+attention a declaration sets as the program loads have none and need none.
+
+This is again a bound on what the program could have written, not proof of
+what happened. A record removed together with its membership (the
+examination with the caveat's attention, say) restores, as a save the
+program could have written had that event not happened. The corpus run for
+this check found the invariant held in every genuine save: 79,855 written by
+this runtime from 151 programs, and those written by the published rc.3 to
+rc.12 from the same event traces. The fixtures are in
+[restore_membership.rs](../runtime/tests/restore_membership.rs).
 
 ## Establishing trust in a checkpoint
 
