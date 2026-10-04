@@ -2,7 +2,8 @@
 
 Status: design review written for rc.10 and updated for rc.11, which
 implements the source-capability check it proposed, and for rc.12, which
-applies the same check to a caveat's attention. The save schema is
+applies the same check to a caveat's attention and to the keys of the
+qualification tables and the withdrawal record's event. The save schema is
 unchanged.
 
 ## What acceptance establishes
@@ -103,8 +104,9 @@ The policy is conservative. Guards are not evaluated, and an examination is
 counted once at its cheapest, so attention the program could have left is
 accepted though no event of the session left it: with `stale` and `deep`
 each examinable, a save that spent enough for both can mark both examined
-after only one was. Removing an attention entry restores too, leaving that
+after only one was. Removing an examination restores too, leaving that
 caveat unexamined, just as removing a `qualifies` relation restores without
+it; since the table-key checks below, its examination record must go with
 it. Neither check establishes what the session did.
 
 The fixtures in [restore_attention.rs](../runtime/tests/restore_attention.rs),
@@ -116,6 +118,28 @@ installed-package check in
 above, restore genuine saves after no, one and several examinations by rule
 and procedure and play on and restore again, and accept attention the
 program could have left though its events did not.
+
+## Qualification tables and withdrawals (rc.12)
+
+The observation, examination and reopening qualification tables, the
+predicate guards kept for skipped effects, and the withdrawal record's
+`event` once restored with their values checked and their keys trusted
+(findings 86, 89, 96, 118–120). Restore now refuses a record that could not
+belong where it is: an observation of evidence neither observed nor made by a
+renewal, an examination of a caveat the save leaves unexamined, a reopening of
+a commitment no `reopens` relation names, a predicate guard on a name of the
+wrong kind, and a withdrawal whose event reaches no `withdraw` of that
+evidence for that reason, in a rule or a procedure a rule calls.
+
+The policy is the same as above. A predicate guard on a name of the right
+kind restores though no skipped effect kept it, and a withdrawal by an event
+that could withdraw that evidence restores whether or not its guard held.
+Round 7's F263 found that removing a withdrawal record together with its
+`withdrawn qualifies` relation restores, so `withdrawn(...)` then reads
+false; that is still accepted. A save without a record the session made is
+one the source could have written had the event not happened, and restore
+does not establish which events happened. The fixtures are in
+[restore_tables.rs](../runtime/tests/restore_tables.rs).
 
 ## Establishing trust in a checkpoint
 
