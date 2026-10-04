@@ -1,0 +1,54 @@
+Mr. Caveat fortune-ticket artwork
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+To the extent the contributing rights holder holds copyright or similar rights
+in the artwork supplied in this package, those rights are licensed under the
+Creative Commons Attribution-ShareAlike 4.0 International License.
+
+License deed: https://creativecommons.org/licenses/by-sa/4.0/
+Complete legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode.en
+
+Scope: the three final PNG assets in character/, together with the generated
+artwork preserved in character/raw/ and inspection images in character/proofs/.
+This notice does not change the license of any software project. The original
+reference files are identified by hash in character/PROVENANCE.md and are not
+included or separately licensed by this package.
+
+This grant does not assert copyright over material unprotected under applicable
+law and does not grant trademark rights. It grants only rights the licensor
+actually holds and may license. Reference-input ownership and clearance were
+not independently established by generation or this provenance record.
+
+When reusing the artwork, retain applicable supplied attribution and notices,
+link the license, and identify changes. Share adaptations under CC BY-SA 4.0
+or another license permitted by the legal code. The grant is irrevocable for
+recipients who comply with the license. See the legal code for all terms,
+exceptions, disclaimers and limitations.
+
+Suggested project credit, to be supplemented with the rights holder's preferred
+name and canonical publication URL when supplied:
+"Mr. Caveat fortune-ticket artwork, Caveatism project. AI-generated using
+OpenAI image generation, 2026-10-04; mechanically resized and PNG-compressed.
+Avatar subsequently re-centered by the requester. CC BY-SA 4.0."
+
+No verified personal attribution name or canonical public asset URL was supplied
+for this review package. Do not attribute human illustration authorship to
+OpenAI or claim that the work was entirely human-generated. When sharing on
+social media, make the AI contribution clear in visible caption/profile context.
+
+Supporting sources checked 2026-10-04 (informational, not additional conditions):
+- OpenAI Terms of Use: https://openai.com/policies/terms-of-use/
+- OpenAI Services Agreement: https://openai.com/policies/services-agreement/
+- OpenAI Europe Terms: https://openai.com/policies/eu-terms-of-use/
+- OpenAI Sharing & Publication Policy:
+  https://openai.com/policies/sharing-publication-policy/
+- Creative Commons AI guidance:
+  https://creativecommons.org/2023/08/18/understanding-cc-licenses-and-generative-ai/
+- Creative Commons trademark FAQ:
+  https://creativecommons.org/faq/#could-i-use-a-cc-license-to-share-my-logo-or-trademark
+- U.S. Copyright Office AI guidance:
+  https://www.copyright.gov/newsnet/2025/1060.html
+
+OpenAI's contractual output assignment is subject to applicable law and does
+not establish copyrightability, exclusivity, cleared reference rights or
+non-infringement. CC BY-SA applies to rights that exist and can be licensed.

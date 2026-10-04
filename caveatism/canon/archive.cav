@@ -1,0 +1,120 @@
+scene "The Caveatist Archive, kept as a program: a working claim is frozen, and evidence may support, narrow, contradict or kill it, but never rewrite it.";
+
+# Doctrines are claims. Observed and tested cases are evidence for or against
+# them. Markers from the written Archive are caveats attached to the evidence
+# that carries them. A rejected idea is withdrawn with its reason, never erased.
+# A version of the Archive is a commitment that retains the caveat that it is
+# unfinished; an amendment reopens it. See caveatism/archive/ for the prose.
+
+claim eternal_caveat;              # I.   A conclusion does not prevent another qualification.
+claim caveats_accumulate_truth;    # II.  Held to be opposed: ten caveats can be ten misunderstandings.
+claim relevance_follows_stakes;    # V.   Not every true caveat deserves attention.
+claim mr_caveat_is_wise;           # VII. Held to be opposed: he can be confidently wrong.
+claim caveatism_is_corrigible;     # XI.  Cross it out rather than redefine it.
+claim original_maxim;              # "Could be right. Could be wrong." as an original Caveatist line.
+claim check_the_label_doctrine;    # Rejected: demoted to an origin-story proverb.
+claim kindness_doctrine;           # Rejected: injected without basis.
+
+evidence character_lab from "Character Lab: caveats about merge state obscured the narrower question";
+evidence misidentification from "object identification: Mr. Caveat spoke confidently while wrong";
+evidence definition_drift from "defining Caveatism absorbed every analogy until it risked meaning anything";
+evidence eternal_flame from "the Eternal Caveat, imagined as a continuously tended flame";
+evidence fallibilism from "fallibilism: even justified beliefs may be mistaken";
+evidence could_be_right from "the early expression: Could be right. Could be wrong.";
+evidence pil_rise from "Public Image Ltd., Rise: I could be wrong, I could be right";
+evidence check_the_label from "the origin-story proverb: check the label";
+evidence labels_can_be_wrong from "labels can be wrong, missing, misplaced, disputed or nonexistent";
+evidence kindness_injection from "kindness proposed as doctrine";
+evidence no_basis from "no observed case supported it";
+
+# Markers. A mythological or analogical support is still support, and it
+# carries its marker into every ground it reaches.
+caveat mythological consequence low;
+caveat analogy consequence low;
+caveat unfinished consequence material;
+mythological qualifies eternal_flame;
+analogy qualifies fallibilism;
+
+# A version is one revision of the canon. Eight is a limit, not a plan.
+decisions canon limit 8;
+
+# What the Archive's own methods can do.
+event case_character_lab;
+event case_misidentification;
+event case_definition_drift;
+event cite_relatives;
+event tend_flame;
+event propose_maxim;
+event demote_label;
+event remove_kindness;
+event freeze_v1_0;
+event discover_pil;
+event freeze_v1_1;
+event redefine;
+event erase;
+event absorb;
+
+# Observed and tested cases.
+on case_character_lab when not observed(character_lab) reveal character_lab supports eternal_caveat;
+on case_character_lab reveal character_lab supports relevance_follows_stakes;
+on case_misidentification when not observed(misidentification) reveal misidentification opposes mr_caveat_is_wise;
+on case_misidentification reveal misidentification opposes caveats_accumulate_truth;
+on case_definition_drift when not observed(definition_drift) reveal definition_drift supports caveatism_is_corrigible;
+
+# Relatives and mythology support with their markers attached.
+on cite_relatives when not observed(fallibilism) reveal fallibilism supports eternal_caveat;
+on tend_flame when not observed(eternal_flame) reveal eternal_flame supports eternal_caveat;
+
+# A proposed maxim.
+on propose_maxim when observed(could_be_right) reject "The maxim is already proposed.";
+on propose_maxim reveal could_be_right supports original_maxim;
+
+# Rejected ideas stay in the record: withdrawn with a reason, never erased.
+on demote_label when withdrawn(check_the_label) reject "Already demoted; the record keeps it.";
+on demote_label when not observed(check_the_label) reveal check_the_label supports check_the_label_doctrine;
+on demote_label when not observed(labels_can_be_wrong) reveal labels_can_be_wrong opposes check_the_label_doctrine;
+on demote_label withdraw check_the_label because labels_can_be_wrong;
+
+on remove_kindness when withdrawn(kindness_injection) reject "Already removed; the record keeps it.";
+on remove_kindness when not observed(kindness_injection) reveal kindness_injection supports kindness_doctrine;
+on remove_kindness when not observed(no_basis) reveal no_basis opposes kindness_doctrine;
+on remove_kindness withdraw kindness_injection because no_basis;
+
+# The Bell (Atlas, section 2): freezing a version is a commitment that keeps
+# the caveat. Its grounds are the cases it rests on, markers included, and a
+# case must be observed before a version can rest on it.
+on freeze_v1_0 when committed(canon) reject "Version 1.0 is already frozen.";
+on freeze_v1_0 commit canon because enough
+  using qualified(1, character_lab) + qualified(1, misidentification) + qualified(1, definition_drift)
+      + qualified(1, eternal_flame) + qualified(1, fallibilism) + qualified(1, could_be_right)
+  retaining unfinished;
+
+# Amendment 1, the PiL problem: the maxim is withdrawn with its reason, and the
+# version that rested on it is reopened. Version 1.0 keeps its grounds.
+on discover_pil when withdrawn(could_be_right) reject "Amendment 1 is already recorded.";
+on discover_pil when not observed(could_be_right) reject "There is no maxim to withdraw.";
+on discover_pil when not observed(pil_rise) reveal pil_rise opposes original_maxim;
+on discover_pil withdraw could_be_right because pil_rise;
+on discover_pil when committed(canon) and not reopened(canon) and rests_on_withdrawn(canon)
+  reopen canon because pil_rise;
+
+on freeze_v1_1 when not committed(canon) reject "Freeze version 1.0 first.";
+on freeze_v1_1 when not reopened(canon) reject "Nothing to amend: reopen the frozen version with evidence first.";
+on freeze_v1_1 commit canon because enough
+  using qualified(1, character_lab) + qualified(1, misidentification) + qualified(1, definition_drift)
+      + qualified(1, eternal_flame) + qualified(1, fallibilism) + qualified(1, pil_rise)
+  retaining unfinished;
+
+# The Archive Rule and the methodological note.
+on redefine reject "Do not protect Caveatism by changing it every time it is challenged.";
+on erase reject "Cross it out; never erase. Withdraw it with a reason.";
+on absorb reject "Classify it first: evidence, proposal, analogy, mythology, contradiction, rejection or unresolved.";
+
+bind archive.status = "no version frozen";
+bind archive.status = "a version is frozen" when committed(canon) and not reopened(canon);
+bind archive.status = "reopened by an amendment" when reopened(canon);
+bind archive.versions = history_count(canon);
+bind maxim.standing = "not proposed";
+bind maxim.standing = "proposed" when observed(could_be_right) and not withdrawn(could_be_right);
+bind maxim.standing = "withdrawn: it resembles a line from Rise" when withdrawn(could_be_right);
+bind mr_caveat.wise = "not necessarily";

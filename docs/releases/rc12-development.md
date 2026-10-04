@@ -410,6 +410,18 @@ The rc.11 rules carry over:
   are unaffected. One deviation from check (a): an explicit `unexamined`
   entry, which claims no examination, is still accepted. Round 7's F263 and
   F264 concern qualifications, not attention, and add no fixture here.
+- Caveatism: `caveatism/` holds the culture around Mr. Caveat (the Caveatist
+  Archive v1.1 and Atlas v1.0 as written, an optional practice for agents and
+  its skill, and the artwork). It is fiction outside the language's contracts,
+  and no gate depends on it except its own canon. `caveatism/canon/` keeps the
+  Archive as a program; it loads, checks clean and passes its 7 scenarios on
+  published rc.11 and on this checkout (`npm run test:caveatism`, run in
+  `runtime.yml`), and it joins the programs member symbols' compatibility
+  check (§11.3) must load. The artwork is AI-generated, licensed CC BY-SA 4.0
+  as `caveatism/LICENSE` scopes it, with provenance in
+  `caveatism/character/PROVENANCE.md`. The repository README, `AGENTS.md`,
+  `web/about.html` and the kit README link it; nothing from it enters the
+  package except the kit README's image URL.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a

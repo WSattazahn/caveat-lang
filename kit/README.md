@@ -4,6 +4,8 @@
 Package: **`caveat-lang@0.1.0-rc.12`**.
 <!-- /caveat-package:identity -->
 
+![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
+
 When evidence changes, reconsider the decision while keeping its original
 reasons. CAVEAT Language carries evidence and caveats through computed values
 and records every decision revision. This package includes the WebAssembly
