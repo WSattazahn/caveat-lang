@@ -236,6 +236,12 @@ a pure function such as `time_text(elapsed())`. Pure functions cannot capture
 the clock themselves. A clock read introduces no evidence of its own; the
 usual qualification of enclosing expressions and guards still applies.
 
+A `qualify … after` applies on the first clock event at which the clock has
+moved by at least its delay in binary64, so rounding can move it by an event.
+For timing exact to the event, use clock steps that are powers of two, such as
+`0.0625`; otherwise expect a schedule to apply within an event of its nominal
+time.
+
 The clock is finite binary64 and reading it has no state duration cap. Copying
 it into a state still enforces that state's bounds. Use direct reads for
 display and current-time comparisons; keep bounded state only for values the

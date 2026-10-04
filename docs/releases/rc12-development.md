@@ -400,9 +400,25 @@ The rc.11 rules carry over:
   stored at scheduling, both binary64, reaches the delay, so it can apply one
   time event later than exact arithmetic would. The regression case
   `f267_a_delay_is_due_when_the_difference_of_clock_readings_reaches_it`
-  (`runtime/tests/renewal.rs`) pins both the late and the exact case.
-  Release note: the renewal spec now states when a scheduled qualification is
-  due; no program's behaviour changes.
+  (`runtime/tests/renewal.rs`) pins the lab's numbers (scheduled at
+  `2.800000000000001`, steps of `0.0625`, applied on the 961st), through
+  dispatch and through a save and restore taken while the schedule waits, and
+  the exact case. The elapsed spec states the same rule, and
+  `docs/AI_AUTHORING.md` advises power-of-two steps for timing exact to the
+  event. Release note: the renewal and elapsed specs now state when a
+  scheduled qualification is due; no program's behaviour changes.
+- F267 alternative considered and declined: counting time per schedule. It
+  would change which event existing schedules apply on, including schedules
+  in saved sessions (`scheduled_at` and `after` are save fields), and it still
+  rounds for steps that are not powers of two. If a program needs timing exact
+  to the event, integer tick time is the design to consider for rc.13 or
+  later, as a spec-level change.
+- F267's tolerance: the owner asked for "at most one clock event late, never
+  early". That holds only while rounding stays small. Measured on the rule as
+  implemented, a schedule can apply an event early relative to the exact sum of
+  the supplied `dt` values. At large readings it can be several events off
+  either way: scheduled at `1e11`, a delay of 1 with steps of `0.001` applies on
+  the 993rd step. The specs state the rule and these bounds instead.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a
