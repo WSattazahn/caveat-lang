@@ -36,7 +36,7 @@
     "test:vscode": "npm --prefix editors/vscode test",
     "package:vscode": "npm --prefix editors/vscode run package",
     "audit:kit-security": "node scripts/audit-kit-security.mjs",
-    "test:lean-conformance": "node --test scripts/lean-conformance-cases.test.mjs scripts/verify-lean-conformance.test.mjs scripts/runtime-build-fingerprint.test.mjs",
+    "test:lean-conformance": "node --test scripts/lean-conformance-cases.test.mjs scripts/lean-late-qualification-cases.test.mjs scripts/verify-lean-conformance.test.mjs scripts/runtime-build-fingerprint.test.mjs",
     "verify:lean-conformance": "node scripts/verify-lean-conformance.mjs",
     "check:kit-docs": "node scripts/kit-docs.mjs --check"
   },
