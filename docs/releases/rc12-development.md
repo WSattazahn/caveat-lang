@@ -77,9 +77,8 @@ never run (`docs/releases/v0.1.0-rc.11.md` L3–5). **rc.12 ships through
      A commit through a `proc` freezes the wider grounds the same way. The
      arguments are evaluated for lineage (`runtime/src/reactive.rs` L3940 at `8e7805a`),
      and a grounds read of the parameter returns that lineage (L3512). The
-     behaviour is the same on rc.10 and rc.11. The owner decides whether
-     rc.12 fixes it, documents it or defers it; a fix narrows the grounds of
-     existing programs that pass qualified values through parameters.
+     behaviour is the same on rc.10 and rc.11. The owner chose (card,
+     2026-10-04) to fix it in rc.12; the fix PR records the details.
 
    Round 7 recommends a design decision before any code for F263 and F264,
    as A3 had.
