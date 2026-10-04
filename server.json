@@ -1,7 +1,7 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.wsattazahn/caveat-lang",
-  "description": "Authoring bridge for the Caveat language: validate, check and test Caveat programs, explain what a decision rests on, and ask what depends on a piece of evidence. Stateless calls; no sessions.",
+  "description": "Authoring bridge for Caveat: validate, check and test programs; explain decisions; find dependents.",
   "repository": {
     "url": "https://github.com/WSattazahn/caveat-lang",
     "source": "github"
