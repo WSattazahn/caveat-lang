@@ -4,8 +4,9 @@
 `caveat check` reads this profile. It records a design for the need that
 [PR #68](https://github.com/WSattazahn/caveat-lang/pull/68) (`$Q`, routed
 repetition section 10 on branch `feat/evidence-by-member`) tried to meet, and
-why that branch is superseded rather than merged. The syntax below uses `[Q]`
-as a placeholder sigil; the owner chooses the final form (section 12).
+why that branch is superseded rather than merged. A reference is written with
+brackets, `TEMPLATE[Q]`, the form the owner chose on 2026-10-04 with the other
+answers in section 12.
 
 A `kind` parameter of an event is a member's position
 ([typed parameters](caveat-typed-parameters-0.1.md)). A `for` block over that
@@ -60,7 +61,9 @@ evidence and states can be family members. Bindings, cues, events, defines
 and procedures cannot: a rule reads none of them by name. A family is keyed by
 the entity's name, not by its position, so the loader can tell a member the
 block did not declare (section 5) from one that it did. Nothing is declared by
-this profile: the families are the ones programs already write.
+this profile: the families are the ones programs already write. Symbols
+declared one by one outside a `for` block are not a family, even when their
+names share a prefix (section 12).
 
 ## 3. A reference
 
@@ -90,12 +93,18 @@ decision series: `sample`, `latest`, `has_sample`, `history_count`,
 expression. The place decides which kind of symbol fits, as it does for a
 written name, and the loader checks it (section 5).
 
-A reference appears nowhere else: not in a declaration, a `define`, a `bind`,
-a `cue` or a `proc` body, since none has an event whose parameter could name
-a member; and not as an argument to a procedure's symbol parameter, since
-[procedure symbols](caveat-procedure-symbols-0.1.md) are specialized when the
-program loads. A numeric argument may read one: `call recant([shown]_points)`
-freezes the number as any argument is frozen.
+A reference appears nowhere else: not in a declaration, a `bind`, a `cue` or
+a `proc` body, since none has an event whose parameter could name a member;
+not in a `define`; and not as an argument to a procedure's symbol parameter,
+since [procedure symbols](caveat-procedure-symbols-0.1.md) are specialized
+when the program loads. A numeric argument may read one:
+`call recant([shown]_points)` freezes the number as any argument is frozen.
+
+A `define` may read event parameters and is inlined where it is read
+([define 0.1](caveat-define-0.1.md)), so a reference in one would have a
+meaning wherever an `on` rule whose event declares Q reads it. This profile
+leaves it out of 0.1 (section 12): an author writes the reference in each rule.
+A later profile may admit it without changing any program that loads today.
 
 A rule may hold references to several parameters and to several families, and
 a rule in a routed block, a plain block or no block at all may hold one. Two
@@ -105,7 +114,8 @@ parameters of one kind in one rule are ordinary:
 on hold when withdrawn(ev_[first]) or withdrawn(ev_[second]) reject "That account was taken back.";
 ```
 
-`$NAME` and `$index` are unchanged. `[Q]` is not a `$` word: Repetition 0.1
+`$NAME` and `$index` are unchanged. Brackets appear nowhere else in Caveat
+source. `[Q]` is not a `$` word: Repetition 0.1
 replaces `$` words before the loader reads the text, and a reference is read
 by the loader. The text shows which member a rule is about and when that is
 decided, which is the principle routed repetition section 1 states for P.
@@ -262,9 +272,9 @@ by `$index`, and a rule outside a block that holds only references is not a
 member rule: it is about the members its event names. C004 is unchanged;
 references do not use `$index`. A reference to a family whose block is routed
 by the same parameter, such as `ev_[about]` in a block routed by `about`,
-means the block's own member and is reported as a pattern worth a second look
-(a new advisory code), since `ev_$x` says the same thing and the route already
-selects it.
+means the block's own member and is reported as a pattern worth a second look,
+under the advisory code C005, since `ev_$x` says the same thing and the route
+already selects it. Like C003 and C004, C005 reports and never refuses.
 
 ## 9. What it does not do
 
@@ -274,6 +284,7 @@ selects it.
 - It does not pass a member's symbol to a procedure's symbol parameter.
 - It does not read a reference in a `bind`: bindings read no event parameter
   ([reactive 0.2](caveat-reactive-0.2.md)).
+- It does not read a reference in a `define` (section 3).
 - It does not make members private, prevent a rule from naming another member
   by its written name, or check that Q is the parameter the rule is about.
 - It does not change which rules a routed block routes, or what a plain block
@@ -314,17 +325,24 @@ design must show:
    written to exercise this profile, is simpler with it. The hold block in
    section 7 counts only if its differential passes.
 
-## 12. Open questions for the owner
+## 12. Owner decisions
 
-- The sigil. `[Q]` is a placeholder. Reusing `$` (`ev_$shown`, the form the
-  game's author first wrote) reads best but gives one sigil two binding
-  times. A distinct mark keeps section 3's principle.
-- Whether a reference may appear in `bind` with a parameter-free meaning
-  (no: section 9), or in `define` (no: it has no event).
-- Whether the advisory in section 8 is wanted, and under which Check code.
-- Whether evidence families declared outside a `for` block, by hand with a
-  consistent prefix, should count. This draft says no: a family is a block's
-  template, which is what makes completeness checkable.
+The draft left four questions to the owner, who answered them on 2026-10-04.
+Each answer settles the design only; implementation still waits for
+section 11.
+
+- **The sigil.** Brackets: `ev_[shown]`. Reusing `$` (`ev_$shown`, the form the
+  game's author first wrote) would give one sigil two binding times, and `@`
+  already separates a name from its occurrence ordinal in saves. A distinct
+  mark keeps section 3's principle.
+- **`define` and `bind`.** Neither holds a reference in 0.1. A `bind` reads no
+  event parameter. A `define` could, but is left out until a program needs it
+  (section 3).
+- **The advisory.** Wanted, as Check code C005 (section 8). It reports and
+  never refuses.
+- **Families.** Only a `for` block's template forms a family. Evidence declared
+  by hand with a consistent prefix does not count: completeness (section 5) is
+  checkable because a family is a block's template.
 
 ## Changes
 
@@ -332,3 +350,9 @@ design must show:
   (`feat/evidence-by-member`, routed repetition section 10 on that branch),
   which is closed unmerged and preserved as the measurement record. No
   runtime, kit, editor or check change accompanies this draft.
+- 2026-10-04: the owner's answers to section 12 recorded. The sigil is brackets,
+  `TEMPLATE[Q]`;
+  `define` and `bind` hold no reference in 0.1, and section 3 now gives the
+  `define` reason correctly (a define can read event parameters); the
+  section 8 advisory is C005; only `for`-block templates form families. Still
+  a draft, not implemented.

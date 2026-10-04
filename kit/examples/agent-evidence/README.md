@@ -1,7 +1,7 @@
 # Agent evidence: calling Caveat from an application
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.11`**.
+Package: **`caveat-lang@0.1.0-rc.12`**.
 <!-- /caveat-package:identity -->
 
 This example shows an application, such as an agent's harness, using a Caveat
@@ -33,7 +33,7 @@ package specifier:
 <!-- caveat-package:agent-install -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.11
+npm install caveat-lang@0.1.0-rc.12
 cp -r node_modules/caveat-lang/examples/agent-evidence .
 cd agent-evidence
 npx --no-install caveat-lang validate assessment.cav
@@ -397,6 +397,13 @@ new attempt. The lifecycle tests compare the entire snapshot and save after
 restore and after every subsequent accepted or rejected event under both
 policies. Serve's `explain` event list starts again after restore; the snapshot
 retains the decision and observation history.
+
+A `CaveatServer` holds its session as long as its `caveat serve` process runs.
+The [MCP authoring tools](../../docs/MCP.md) are a different route: each tool
+call is a fresh subprocess with no session handle, and one connection accepts
+4,096 request IDs before the bridge ends it and the host must reconnect. They
+suit checking a program, not holding an agent's evidence across a long task;
+use this server, and its save, for that.
 
 From this repository checkout or the installed package, run the lifecycle
 suite separately from the original 53 tests:

@@ -1317,6 +1317,7 @@ fn every_program_with_a_for_block_expands_as_before() {
         "../experiments/agent-ledger/ledger-approved-head.cav",
         "../experiments/agent-ledger/ledger-identifiers.cav",
         "../experiments/agent-ledger/ledger.cav",
+        "../experiments/agent-ledger/release.cav",
         "../experiments/glowcap/caveat/glowcap.cav",
         "../experiments/glowcap/caveat2/glowcap.cav",
         "../experiments/glowcap/caveat3/glowcap.cav",

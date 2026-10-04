@@ -1,7 +1,7 @@
 # Start an agent integration
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.11`**.
+Package: **`caveat-lang@0.1.0-rc.12`**.
 <!-- /caveat-package:identity -->
 
 Use Caveat when your application needs to keep a decision's evidence, carry its
@@ -18,7 +18,7 @@ place of the npm package specifier.
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.11
+npm install caveat-lang@0.1.0-rc.12
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
@@ -66,6 +66,15 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
    An attempt succeeds only when all required operations succeed and a fresh
    assessment permits its result. An earlier approval cannot cover a refused
    observation. Preserve those checks when adapting the example.
+
+A session lasts as long as the process that holds it. `caveat serve`, and so
+the Python client's `CaveatServer`, keeps one session of one program until it
+is closed. The [MCP authoring tools](MCP.md) keep none: each tool call starts a
+fresh subprocess and runtime with no session handle, so a call sees only the
+source and events it is sent. One MCP connection accepts 4,096 request IDs; the
+bridge then ends it, and the host must reconnect. For a long-running agent,
+keep the session in `caveat serve` and its save, or send the full event history
+again with each MCP call.
 
 Observing is separate from assessing. Reassessing requires reopening the current
 revision. Withdrawal preserves the archive, and late qualification leaves prior
