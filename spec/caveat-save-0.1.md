@@ -133,6 +133,17 @@ save is refused with an error, and never crashes the runtime, when:
   limit, has a revision without a basis, or a current entry that is not its
   latest;
 - the attention budget does not add up to the program's;
+- a qualification record is keyed by a name its record cannot belong to:
+  an observation record by evidence that is neither observed nor an
+  occurrence a renewal made, an examination record by a caveat the save does
+  not leave examined, a reopening record by a commitment no `reopens`
+  relation names, and a skipped effect's predicate guard by a name of the
+  wrong kind (`observed` evidence, `examined` a caveat, `committed` and
+  `reopened` an action a rule commits or reopens, a decision series or a
+  restored commitment);
+- a withdrawal record names an event that reaches no `withdraw`, in a rule
+  or a procedure a rule calls, of that evidence for that reason. Conditions
+  are not evaluated: the event could have withdrawn it, not shown to have;
 - it shows a cue that no `emit` the last event's rules reach, directly or
   through the procedures they call, can show. A save with no last event shows
   none;
@@ -232,6 +243,16 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-04 (rc.12): restore refuses a qualification record keyed by a
+  name its record cannot belong to, a predicate guard on a name of the wrong
+  kind, and a withdrawal record whose event reaches no `withdraw` of that
+  evidence for that reason (findings 86, 89, 96, 118–120). The rc.11
+  contract checked these records' values and the withdrawal event's
+  declaration only. Records the source could have left are accepted, so
+  saves the runtime writes restore as before; a removed withdrawal record
+  together with its relation still restores (round 7's F263). The schema
+  stays `caveat-reactive-save/0.1`.
 
 - 2026-10-04 (rc.12): restore refuses a caveat's attention that no
   examination of the loaded source can leave (findings 123, 188–191). The

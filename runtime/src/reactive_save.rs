@@ -582,6 +582,21 @@ impl ReactiveSession {
         if qualified != withdrawn {
             return Err("withdrawals disagree with the graph's withdrawn relations".into());
         }
+        for withdrawal in &save.withdrawals {
+            // Findings 86, 89: its event reaches a `withdraw` of that
+            // evidence for that reason. Guards are not evaluated.
+            let report = EffectReport::Withdraw {
+                evidence: withdrawal.evidence.clone(),
+                because: withdrawal.because.clone(),
+            };
+            let reached = self.reached_effects(Some(&withdrawal.event));
+            if !self.last_event_can_make(&report, &reached, None) {
+                return Err(format!(
+                    "the withdrawal of {} by {}: no withdraw of that event withdraws {} because {}",
+                    withdrawal.evidence, withdrawal.event, withdrawal.evidence, withdrawal.because
+                ));
+            }
+        }
         // Withdrawn evidence was observed when it was withdrawn, and a later
         // `withdraw` of it requires that again.
         for withdrawal in &save.withdrawals {
@@ -1040,6 +1055,28 @@ impl ReactiveSession {
     }
 
     /// Every action a rule or procedure can commit.
+    /// Every name a `committed(...)` or `reopened(...)` guard of a skipped
+    /// effect can be kept under: an action a rule or procedure commits or
+    /// reopens, a decision series, and each restored commitment.
+    fn decision_names(&self) -> HashSet<String> {
+        let mut names = self.committable_actions();
+        for effect in self.reached_effects(None) {
+            if let Effect::Reopen { action, .. } = effect {
+                names.insert(action.clone());
+            }
+        }
+        names.extend(self.decision_series.keys().cloned());
+        names.extend(
+            self.symbols
+                .iter()
+                .filter(|(_, id)| {
+                    matches!(self.graph.nodes.get(id), Some(NodeKind::Commitment { .. }))
+                })
+                .map(|(name, _)| name.clone()),
+        );
+        names
+    }
+
     fn committable_actions(&self) -> HashSet<String> {
         self.rules
             .iter()
@@ -1320,15 +1357,52 @@ impl ReactiveSession {
             }
             self.check_provenance("scheduled qualification", &scheduled.guard, observed)?;
         }
+        // Findings 86, 89, 96, 118-120: each table is keyed by what made its
+        // record. An observation is of observed evidence, or of an occurrence
+        // a renewal made; an examination of an examined caveat; a reopening
+        // of a commitment a `reopens` relation names.
+        let reopened = self
+            .graph
+            .edges
+            .iter()
+            .filter(|edge| edge.relation == Relation::Reopens)
+            .map(|edge| edge.to)
+            .collect::<HashSet<_>>();
         for (what, records) in [
             ("observation", &save.observation_qualifications),
             ("examination", &save.examination_qualifications),
             ("reopening", &save.reopening_qualifications),
         ] {
             for (name, provenance) in records {
+                let id = self.symbols.get(name);
+                let fits = match what {
+                    "observation" => {
+                        id.is_some_and(|id| observed.contains(id))
+                            || occurrence_parts(name)
+                                .is_some_and(|(base, _)| self.renewals.contains_key(base))
+                                && self.require_kind(name, "evidence").is_ok()
+                    }
+                    "examination" => matches!(
+                        id.and_then(|id| self.graph.nodes.get(id)),
+                        Some(NodeKind::Caveat {
+                            attention: Attention::Examined,
+                            ..
+                        })
+                    ),
+                    _ => id.is_some_and(|id| reopened.contains(id)),
+                };
+                if !fits {
+                    let kind = match what {
+                        "observation" => "observed evidence or a renewed occurrence",
+                        "examination" => "an examined caveat",
+                        _ => "a commitment a reopens relation names",
+                    };
+                    return Err(format!("{what} of {name}: {name} is not {kind}"));
+                }
                 self.check_provenance(&format!("{what} of {name}"), &provenance.0, observed)?;
             }
         }
+        let decisions = self.decision_names();
         for (kind, targets) in &save.predicate_qualifications {
             // A skipped withdrawal keeps its guard under "withdrawn" with no
             // withdrawal record, since none happened; its target is evidence.
@@ -1345,6 +1419,18 @@ impl ReactiveSession {
                 if withdrawal {
                     self.require_kind(name, "evidence")
                         .map_err(|_| format!("withdrawn({name}) names unknown evidence"))?;
+                }
+                // The target of the skipped effect the guard was kept for.
+                let expected = match kind.as_str() {
+                    "observed" if self.require_kind(name, "evidence").is_err() => Some("evidence"),
+                    "examined" if self.require_kind(name, "caveat").is_err() => Some("a caveat"),
+                    "committed" | "reopened" if !decisions.contains(name.as_str()) => {
+                        Some("a decision this program makes")
+                    }
+                    _ => None,
+                };
+                if let Some(expected) = expected {
+                    return Err(format!("{kind}({name}): {name} is not {expected}"));
                 }
                 self.check_provenance(&format!("{kind}({name})"), &provenance.0, observed)?;
             }

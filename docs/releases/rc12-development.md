@@ -410,6 +410,17 @@ The rc.11 rules carry over:
   are unaffected. One deviation from check (a): an explicit `unexamined`
   entry, which claims no examination, is still accepted. Round 7's F263 and
   F264 concern qualifications, not attention, and add no fixture here.
+- PR 3: restore refuses a qualification record keyed by a name its record
+  cannot belong to (an observation of unobserved, unrenewed evidence; an
+  examination of an unexamined caveat; a reopening of a commitment nothing
+  reopens), a predicate guard on a name of the wrong kind, and a withdrawal
+  record whose event reaches no `withdraw` of that evidence for that reason
+  (findings 86, 89, 96, 118–120). Release note: these edits are now refused
+  at restore; records the program could have left still restore, and a save
+  with a withdrawal removed together with its relation (round 7's F263) still
+  restores. 17,280 genuine saves from 100 repository programs, driven with
+  seeded events, restore as before. Two PR 2 fixtures that left an
+  examination record behind a removed attention entry now expect a refusal.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a

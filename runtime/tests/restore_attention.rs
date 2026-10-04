@@ -192,9 +192,15 @@ fn attention_the_source_could_leave_restores_without_proof_it_did() {
         json!(1.0)
     );
     // An attention entry that leaves a caveat as the program loads it, and a
-    // genuine entry removed, restore too: neither claims an examination.
+    // genuine examination removed with its examination record, restore too:
+    // neither claims an examination. (The record alone left behind is refused
+    // since rc.12 PR 3: an examination record belongs to an examined caveat.)
     let mut save = saved(&["check"]);
     save["graph"]["attention"] = json!({"never": "unexamined"});
+    save["examination_qualifications"]
+        .as_object_mut()
+        .unwrap()
+        .remove("stale");
     ReactiveSession::restore_json(PROGRAM, &save.to_string())
         .unwrap_or_else(|error| panic!("{error}"));
 }
