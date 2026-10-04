@@ -87,7 +87,7 @@ Its illustrative inputs are supplied, not independently verified. Output shows
 actual decision grounds and preserved history. It writes no files.
   Exit status: 0 demonstrated, 1 demonstration failed, 2 runtime unavailable.
 
-mcp serves five authoring tools over stdio using the 2025-11-25 MCP profile.
+mcp serves five authoring tools over stdio using MCP 2026-07-28 or 2025-11-25.
 It takes inline source, runs each call in a fresh subprocess, and exposes no
 persistent session or file access. stdout contains protocol messages only.
 
