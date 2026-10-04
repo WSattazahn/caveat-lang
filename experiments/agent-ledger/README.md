@@ -432,7 +432,7 @@ the merges, the tag on `9e360af`, the two npm-publish approvals of
 publish-npm.yml run
 [37211390333](https://github.com/WSattazahn/caveat-lang/actions/runs/37211390333)
 (the first attempt failed before publishing), its publish job and its
-verify-publication job:
+publication record:
 
 ```text
   56  decide       decide accepted
@@ -459,16 +459,12 @@ What it measured:
 - `publish` is permitted by `approvals@2`, the approval of the re-run.
 - `provenance_record` rests on `attestations@1`, from verify-publication.
 
-Its limits, beyond those below:
-- A run's base is inferred as main's head when the run was created, since
-  the run listing gives no base commit. A stale base here means main had
-  moved by then, not that the run is known to have tested an older base.
-- The verification fact carries only the record's `revision` and its two
-  checks. The artifact was not downloaded where the facts were collected;
-  the fact cites the job's log line, which the script prints only after
-  every check passes (`scripts/verify-npm-publication.mjs` L82–L150), and a
-  read of the registry: the tarball's SHA256 is the tested tarball's and
-  `dist.attestations` names SLSA provenance.
+The verification fact reads the release's
+[publication record](../../docs/releases/v0.1.0-rc.12-npm-publication.json),
+built from verify-publication's artifact. A run's base is inferred as main's
+head when the run was created, since the run listing gives no base commit:
+a stale base here means main had moved by then, not that the run is known to
+have tested an older base.
 
 **Limits.**
 - The ledger checks the facts it is given against its rules. It cannot tell
