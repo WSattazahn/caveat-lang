@@ -12,3 +12,5 @@ claude plugin install caveat@caveat-lang
 ```
 
 The skill is then available as `/caveat:caveatist`. The canonical copy lives at [`caveatism/skills/caveatist/SKILL.md`](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/skills/caveatist/SKILL.md); the copy here is byte-identical, and the repository's CI checks that they match.
+
+The icon is the Mr. Caveat avatar, copied unchanged from [`caveatism/character/mr-caveat-avatar.png`](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/character/mr-caveat-avatar.png) (Mr. Caveat fortune-ticket artwork, Caveatism project), licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); see [`caveatism/LICENSE`](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/LICENSE) and [`PROVENANCE.md`](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/character/PROVENANCE.md).
