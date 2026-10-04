@@ -67,8 +67,16 @@ fn f268_a_parameter_grounds_a_set_as_the_inline_argument_would() {
     trace(&through.value_grounds["slot"], &["w"], &[]);
     // Lineage is unchanged: the guard on w's reveal still reaches the value,
     // and the call still freezes its argument's lineage.
-    trace(&inline.qualified_values["slot"].provenance, &["w", "x"], &[]);
-    trace(&through.qualified_values["slot"].provenance, &["w", "x"], &[]);
+    trace(
+        &inline.qualified_values["slot"].provenance,
+        &["w", "x"],
+        &[],
+    );
+    trace(
+        &through.qualified_values["slot"].provenance,
+        &["w", "x"],
+        &[],
+    );
 }
 
 #[test]
@@ -78,7 +86,11 @@ fn f268_commit_using_a_parameter_freezes_the_inline_grounds() {
     trace(&inline.commitment_grounds["d@1"], &["w"], &[]);
     trace(&through.commitment_grounds["d@1"], &["w"], &[]);
     trace(&inline.commitment_bases["d@1"].provenance, &["w", "x"], &[]);
-    trace(&through.commitment_bases["d@1"].provenance, &["w", "x"], &[]);
+    trace(
+        &through.commitment_bases["d@1"].provenance,
+        &["w", "x"],
+        &[],
+    );
 }
 
 #[test]
@@ -101,7 +113,11 @@ fn f268_a_nested_argument_reading_a_parameter_keeps_its_grounds() {
         &["first", "see"],
     );
     trace(&nested.value_grounds["slot"], &["w"], &[]);
-    trace(&nested.qualified_values["slot"].provenance, &["w", "x"], &[]);
+    trace(
+        &nested.qualified_values["slot"].provenance,
+        &["w", "x"],
+        &[],
+    );
 
     // A state read in the nested argument still supplies its own grounds.
     let mixed = played(
@@ -131,7 +147,11 @@ fn f268_a_renewed_occurrence_does_not_carry_its_first_life_into_grounds() {
     }
     let shown = session.snapshot();
     trace(&shown.value_grounds["slot"], &["w@2"], &[]);
-    trace(&shown.qualified_values["slot"].provenance, &["w", "w@2"], &[]);
+    trace(
+        &shown.qualified_values["slot"].provenance,
+        &["w", "w@2"],
+        &[],
+    );
 }
 
 #[test]
