@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { checkedOutput, firstDifference, modelTrace, compare, dependencyDropMutation, unselectedBranchMutation,
-  InfrastructureFailure, SemanticMismatch, runtimeTrace, verifyMutation, wasmTrace, assertSourceHashesUnchanged, checkedDecoderRejection } from './verify-lean-conformance.mjs';
+  InfrastructureFailure, SemanticMismatch, runtimeTrace, verifyMutation, wasmTrace, assertSourceHashesUnchanged, checkedDecoderRejection,
+  lateModelFrame, lateRuntimeFrame, lateRequest, verifyLateMutation, commitmentQualificationMutation } from './verify-lean-conformance.mjs';
 import { STATES, SCHEMA } from './lean-conformance-cases.mjs';
+import { LATE_SCHEMA, LATE_STATES, lateCases } from './lean-late-qualification-cases.mjs';
 
 const fixture = { id: 'test', steps: [{}] };
 function trace() {
@@ -264,4 +266,98 @@ test('branch controls require exact missing or injected provenance on both selec
       assert.throws(() => verifyMutation(id, expected, actual), InfrastructureFailure);
     }
   }
+});
+
+const lateFixture = () => lateCases().find(item => item.id === 'late-commitment-basis');
+function lateAfter() {
+  const tracked = (value, evidence, caveats) => ({ value, lineage: { evidence, caveats }, grounds: { evidence, caveats } });
+  return {
+    outcome: { outcome: 'accepted' },
+    states: Object.fromEntries(LATE_STATES.map(name => [name, tracked(1, ['ea'], ['ca', 'deep', 'late', 'meta'])])),
+    commitments: {
+      plan: { basis: { value: 1, evidence: ['ea', 'eb'], caveats: ['ca', 'cb'] }, grounds: { evidence: ['ea'], caveats: ['ca'] } },
+      hold: { basis: { value: null, evidence: [], caveats: [] }, grounds: { evidence: [], caveats: [] } },
+    },
+    observations: ['eg', 'ea', 'eb'],
+    effects: [{ kind: 'qualify', evidence: 'ea', caveat: 'late' }],
+  };
+}
+const lateDocument = after => ({ schema: LATE_SCHEMA, id: 'late-commitment-basis', after });
+
+function lateRecord(after, outcome = { schema: 'caveat-dispatch/0.1', outcome: 'accepted' }) {
+  const snapshot = { schema: 'caveat-reactive/0.1', source_id: 'source', sequence: 4,
+    values: Object.fromEntries(LATE_STATES.map(name => [name, after.states[name].value])),
+    qualified_values: Object.fromEntries(LATE_STATES.map(name => [name, { value: after.states[name].value, provenance: after.states[name].lineage }])),
+    value_grounds: Object.fromEntries(LATE_STATES.map(name => [name, after.states[name].grounds])),
+    commitment_bases: Object.fromEntries(Object.entries(after.commitments).map(([name, c]) =>
+      [name, { value: c.basis.value, provenance: { evidence: c.basis.evidence, caveats: c.basis.caveats } }])),
+    commitment_grounds: Object.fromEntries(Object.entries(after.commitments).map(([name, c]) => [name, c.grounds])),
+    observations: after.observations, effects: after.effects ?? [], decision_journal: [] };
+  const view = { schema: 'caveat-reactive-view/0.1', sequence: 4, effects: snapshot.effects, decision_journal: [] };
+  const save = JSON.stringify({ schema: 'caveat-reactive-save/0.1', source_id: 'source', sequence: 4 });
+  return { snapshot, save, view, outcome: outcome.outcome === 'accepted' ? { ...outcome, snapshot } : outcome };
+}
+
+test('late model and runtime projections agree on shape and refuse unregistered outcomes', () => {
+  const fixture = lateFixture();
+  const model = lateModelFrame(lateDocument(lateAfter()), fixture);
+  assert.equal(firstDifference(model, lateRuntimeFrame(lateRecord(lateAfter()))), null);
+  const fatal = lateAfter(); fatal.outcome = { outcome: 'fatal', code: 'unclassified' }; delete fatal.effects;
+  assert.throws(() => lateModelFrame(lateDocument(fatal), fixture), InfrastructureFailure);
+  const policy = lateAfter(); policy.outcome = { outcome: 'rejected', origin: 'policy', code: 'reject' }; delete policy.effects;
+  assert.throws(() => lateModelFrame(lateDocument(policy), fixture), InfrastructureFailure);
+  const refused = lateAfter(); refused.outcome = { outcome: 'rejected', origin: 'evaluation', code: 'unobserved_evidence' };
+  assert.throws(() => lateModelFrame(lateDocument(refused), fixture), InfrastructureFailure, 'a refusal reports no effects');
+  delete refused.effects;
+  assert.deepEqual(lateModelFrame(lateDocument(refused), fixture).outcome, refused.outcome);
+  const extra = lateAfter(); extra.decision_journal = [];
+  assert.throws(() => lateModelFrame(lateDocument(extra), fixture), InfrastructureFailure);
+  const foreign = lateAfter(); foreign.commitments.invented = foreign.commitments.hold;
+  assert.throws(() => lateModelFrame(lateDocument(foreign), fixture), InfrastructureFailure);
+  assert.throws(() => lateModelFrame({ ...lateDocument(lateAfter()), id: 'other' }, fixture), InfrastructureFailure);
+  const reveal = lateAfter(); reveal.effects = [{ kind: 'reveal', evidence: 'ea' }];
+  assert.throws(() => lateRuntimeFrame(lateRecord(reveal)), InfrastructureFailure);
+  const skewed = lateRecord(lateAfter()); delete skewed.snapshot.commitment_grounds.hold;
+  assert.throws(() => lateRuntimeFrame(skewed), InfrastructureFailure);
+});
+
+test('late requests carry the runtime state before the step and the declared qualifier chain', () => {
+  const before = lateAfter();
+  const request = lateRequest(lateFixture(), 0, lateRecord(before));
+  assert.equal(request.schema, LATE_SCHEMA);
+  assert.deepEqual(request.qualification, { evidence: 'ea', caveat: 'late', qualifiers: ['meta', 'deep'], guard: 'g' });
+  assert.deepEqual(Object.keys(request.before).sort(), ['commitments', 'observations', 'states']);
+  assert.deepEqual(request.before.commitments.plan.basis, before.commitments.plan.basis);
+  assert.throws(() => lateRequest(lateFixture(), 1, lateRecord(before)), InfrastructureFailure);
+});
+
+test('late mutation controls require exactly the intended commitment change', () => {
+  const fixture = lateFixture();
+  const q = fixture.qualifications[0];
+  const expected = lateModelFrame(lateDocument(lateAfter()), fixture);
+  const basis = structuredClone(expected);
+  basis.commitments.plan.basis.caveats = ['ca', 'cb', 'deep', 'late', 'meta'];
+  assert.ok(verifyLateMutation('qualify-reaches-commitment-basis', expected, basis, q).path);
+  const records = structuredClone(basis);
+  records.commitments.plan.grounds.caveats = ['ca', 'deep', 'late', 'meta'];
+  assert.ok(verifyLateMutation('qualify-reaches-commitment-records', expected, records, q).path);
+  for (const [id, actual] of [['qualify-reaches-commitment-basis', basis], ['qualify-reaches-commitment-records', records]]) {
+    assert.throws(() => verifyLateMutation(id, expected, expected, q), InfrastructureFailure, id + ': survival');
+    const unrelated = structuredClone(expected); unrelated.states.b.value = 99;
+    assert.throws(() => verifyLateMutation(id, expected, unrelated, q), InfrastructureFailure, id + ': unrelated difference');
+    const extra = structuredClone(actual); extra.states.b.value = 99;
+    assert.throws(() => verifyLateMutation(id, expected, extra, q), InfrastructureFailure, id + ': extra difference');
+  }
+  assert.throws(() => verifyLateMutation('qualify-reaches-commitment-records', expected, basis, q), InfrastructureFailure);
+  assert.throws(() => verifyLateMutation('qualify-reaches-commitment-basis', expected, records, q), InfrastructureFailure);
+});
+
+test('the late-qualification mutation anchor fails closed', () => {
+  const source = readFileSync(new URL('../runtime/src/reactive.rs', import.meta.url), 'utf8');
+  for (const field of ['basis', 'records']) {
+    assert.notEqual(commitmentQualificationMutation(source, field), source);
+    assert.throws(() => commitmentQualificationMutation('', field), InfrastructureFailure);
+    assert.throws(() => commitmentQualificationMutation(source + source, field), InfrastructureFailure);
+  }
+  assert.throws(() => commitmentQualificationMutation(source, 'grounds'), InfrastructureFailure);
 });
