@@ -8,6 +8,10 @@ The published preview is **0.1.0-rc.11**. See the
 > `latest` and `next` name rc.11. The owner published it by hand, without npm provenance.
 > [Publication record](docs/releases/v0.1.0-rc.11-npm-publication.json).
 
+Development for **0.1.0-rc.12** is open and unpublished. The published preview
+remains rc.11. See the [rc.12 development scope](docs/releases/rc12-development.md)
+for acceptance criteria and verification status.
+
 
 **Programs that remember why.**
 
