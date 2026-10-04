@@ -1,0 +1,21 @@
+{"fact": "plan", "prs": {"96": "pr1", "102": "pr2", "99": "pr3", "98": "pr4", "103": "pr5", "97": "pr6"}, "source": "docs/releases/rc11-development.md: rc.11's plan pull requests 1 to 6; #100, #101 and #104 were plan items outside the numbered six"}
+{"fact": "open", "sha": "00be10da2bdbf631e1a2c6a3a240c8c0cc2a6c0e", "source": "main after #95, the rc.10 record"}
+{"fact": "merge", "pr": 96, "head_sha": "bb085de814674e12bc3276a7b696a7dde044df3f", "merge_commit_sha": "5290ab1feccc005d4d23024ae32cc0ca504163c3", "source": "git log --first-parent: merge of #96"}
+{"fact": "merge", "pr": 98, "head_sha": "a7200e0c934a2d8c7f96a1b139202d7cf12d0b41", "merge_commit_sha": "08d49946d2092aaf7c919e29b46dab46e4411366", "source": "git log --first-parent: merge of #98"}
+{"fact": "merge", "pr": 97, "head_sha": "89fb8ef8833ccf932f583e219bbd52368074f69d", "merge_commit_sha": "04e8237afd352374d26e9a292cef3cfe4ada313f", "source": "git log --first-parent: merge of #97"}
+{"fact": "merge", "pr": 99, "head_sha": "985dfeef8387ab60a34c05a92331b17b861bc516", "merge_commit_sha": "502add65c38392d1349d7e3d7157ca2ff4154c28", "source": "git log --first-parent: merge of #99"}
+{"fact": "merge", "pr": 100, "head_sha": "ecf7a70a99edb6f19ab7f1454294570bc8d5eba9", "merge_commit_sha": "14a886cb8c65eb987eadd64e08bd2ebb9a1c7778", "source": "git log --first-parent: merge of #100"}
+{"fact": "merge", "pr": 101, "head_sha": "767478015060dea394c37fa60c50be2cdca55807", "merge_commit_sha": "8827ab76dfad3e9d7b0302045524bf067a5d2d12", "source": "git log --first-parent: merge of #101"}
+{"fact": "merge", "pr": 104, "head_sha": "2b83bbf8a0dd9b8e511fb0567a32ad3573f3ac75", "merge_commit_sha": "950e3db31728636565a06eaab8e6e216ec8d0ed4", "source": "git log --first-parent: merge of #104"}
+{"fact": "merge", "pr": 102, "head_sha": "372008f8790a9eb48d32e909ac6a3fa8171c8551", "merge_commit_sha": "4cd436eaeffb923de841e3c514b6570f7db5238b", "source": "git log --first-parent: merge of #102"}
+{"fact": "merge", "pr": 103, "head_sha": "82ebbb6783cc2db7c3d475de94417d4f6f916ac3", "merge_commit_sha": "8e7805a57269c2084224df487fe186f0c6f6a4a9", "source": "git log --first-parent: merge of #103"}
+{"fact": "main_run", "head_sha": "8e7805a57269c2084224df487fe186f0c6f6a4a9", "conclusion": "success", "source": "https://github.com/WSattazahn/caveat-lang/actions/runs/37169499765"}
+{"fact": "decide", "source": "the release thread chose 8e7805a's tested tarball for rc.11"}
+{"fact": "tag", "sha": "8e7805a57269c2084224df487fe186f0c6f6a4a9", "source": "annotated tag v0.1.0-rc.11, pushed by the owner 2026-10-04 02:24 UTC"}
+{"fact": "hand_go", "source": "the owner chose to publish from their terminal without provenance, 2026-10-04 02:24 UTC"}
+{"fact": "publish", "route": "hand", "sha": "8e7805a57269c2084224df487fe186f0c6f6a4a9", "source": "npm publish caveat-lang-0.1.0-rc.11.tgz --tag latest, about 02:26 UTC"}
+{"fact": "verification", "file": "../../docs/releases/v0.1.0-rc.11-npm-publication.json", "source": "the rc.11 publication record"}
+{"fact": "record", "source": "may the release record name provenance?"}
+{"fact": "merge", "pr": 105, "head_sha": "a119caa8d4a7f5801bdf2ec34188e848867364b4", "merge_commit_sha": "4500decab76aeb3aa1e055a17154be220f7d2c8b", "source": "git log --first-parent: merge of #105"}
+{"fact": "merge", "pr": 106, "head_sha": "82f350c519d4c23a30476094208e0e7c68125937", "merge_commit_sha": "0c818b8d898ba80a609638332998ee86b2d68122", "source": "git log --first-parent: merge of #106"}
+{"fact": "merge", "pr": 107, "head_sha": "f7bf4a8f4c22b9511ec2a3666c61481d750386ca", "merge_commit_sha": "b3d34e0be9fc3b973733b16745651ed9bc5d2450", "source": "git log --first-parent: merge of #107"}

@@ -54,7 +54,11 @@ is refused as `{"origin": "evaluation", "code": "decision_in_force"}`. So is
 an event that acts on evidence no event has observed (`unobserved_evidence`),
 reopens a decision never committed (`not_committed`), fails an arithmetic or
 history read such as a division by zero or `latest` of an empty history
-(`expression`), or fails a `require` (`requirement_failed`). Other runtime
+(`expression`), or fails a `require` (`requirement_failed`). A clock event
+whose sum would make the session clock nonfinite is refused as
+`{"origin": "evaluation", "code": "bound_exceeded"}`, and a `qualify … after`
+while 4,096 qualifications are already waiting as
+`{"origin": "limit", "code": "scheduled_limit"}`. Other runtime
 errors, such as a type error in an expression, are deliberately unclassified:
 they are fatal, and a fatal outcome never matches an expected rejection.
 
