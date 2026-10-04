@@ -3,21 +3,21 @@
     "stage1": "df3dde3f7a825f0acfbc8d558e81cc23819084cd",
     "stage2": "01d4352b83513af56e5a0c2cf25c14836e3cda23"
   },
-  "note": "Fresh general-purpose subagent contexts with no fork of any conversation, given exactly the registered prompt with ID and directory filled in. Model revision, tokens and compute are not recorded here. Writer and reviewer times are approximate (reconstructed from the session); author times were taken at dispatch.",
+  "note": "Fresh general-purpose subagent contexts with no fork of any conversation, given exactly the registered prompt with ID and directory filled in. Model revision, tokens and compute are not recorded here. Writer and reviewer times are approximate, bounded by the stage-1 commit (03:26), REQUESTS.md (03:31) and REVIEW.md (03:37); author times were taken at dispatch.",
   "agents": [
     {
       "role": "writer",
-      "dispatched": "2026-10-04T03:34Z",
+      "dispatched": "2026-10-04T03:27Z",
       "directory": "/home/claude/glowcap-r7/writer"
     },
     {
       "role": "reviewer",
-      "dispatched": "2026-10-04T03:42Z",
+      "dispatched": "2026-10-04T03:33Z",
       "directory": "/home/claude/glowcap-r7/reviewer"
     },
     {
       "role": "writer (one revision, with REVIEW.md)",
-      "dispatched": "2026-10-04T03:47Z"
+      "dispatched": "2026-10-04T03:37Z"
     },
     {
       "role": "author",

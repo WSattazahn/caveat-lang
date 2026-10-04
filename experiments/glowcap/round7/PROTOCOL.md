@@ -364,15 +364,16 @@ any author starts. Dispatch times and agent identities go in `launches.json`.
    (keep every file in its own directory, read nothing from the scratchpad,
    record anything it restored) and stays in the primary counts unless its
    notes show otherwise. The scratchpad also held the root's infrastructure
-   files until about 04:15 UTC, including the smoke-run copies of `ts/` and
+   files until 03:54 UTC, including the smoke-run copies of `ts/` and
    `caveat5/`. No author reports reading them; access times cannot show it
    either way. They were then moved out, and the files C1 and C2 wrote there
    were preserved. Wave 2 authors receive one added sentence at the end of
    their prompt: "Keep every file you write, scratch files and backups
    included, inside that directory; the session's scratchpad directory is
    shared with other agents and is outside it."
-3. **A replacement Caveat author, C4 (during wave 1, pending the owner).**
+3. **A replacement Caveat author, C4 (during wave 1; the owner's decision).**
    With C1 excluded, the Caveat side would have two primary authors to
-   TypeScript's three. C4 runs in wave 2 under the same prompt as C3. If the
-   owner declines the replacement, C4 is reported as supplementary and the
-   primary Caveat counts use C2 and C3 only.
+   TypeScript's three. C4 runs in wave 2 under the same prompt as C3. The
+   owner chose "Replace" on the project card at 03:57:13 UTC, as recorded in
+   the project timeline: C4 counts in place of C1, so each side keeps three
+   primary authors, and C1's run stays in the record.
