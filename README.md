@@ -8,6 +8,10 @@ The published preview is **0.1.0-rc.12**. See the
 > `latest` and `next` name rc.12. Published by `publish-npm.yml` from tag `v0.1.0-rc.12` with an npm provenance attestation.
 > [Publication record](docs/releases/v0.1.0-rc.12-npm-publication.json).
 
+Development for **0.1.0-rc.13** is open and unpublished. The published preview
+remains rc.12. See the [rc.13 development scope](docs/releases/rc13-development.md)
+for acceptance criteria and verification status.
+
 
 **Programs that remember why.**
 
