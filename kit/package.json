@@ -56,6 +56,10 @@
       "types": "./lib/check.d.mts",
       "default": "./lib/check.mjs"
     },
+    "./types": {
+      "types": "./lib/types.d.mts",
+      "default": "./lib/types.mjs"
+    },
     "./runtime/*": "./runtime/*"
   },
   "files": [

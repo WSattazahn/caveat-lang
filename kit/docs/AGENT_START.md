@@ -82,6 +82,29 @@ decision grounds and archived readings unchanged. The starter's
 [qualification examples](../examples/agent-evidence/QUALIFICATION.md) show the
 difference between archived readings and future values.
 
+## Type a JavaScript or TypeScript host
+
+`caveat types PROGRAM > program.d.ts` writes declarations from the program's
+[interface](reference/spec/caveat-interface-0.1.md): each event's payload
+fields, each displayed value with its type, and the state, cue, decision,
+reading-stream, evidence, caveat and claim names. `typed` from
+`caveat-lang/types` returns the session unchanged, with those types:
+
+```js
+// @ts-check
+import { typed } from 'caveat-lang/types';
+/** @type {import('./program.js').Session} */
+const session = typed(runtime.open(source));
+session.dispatch('read', { celsius: 17 }); // a misspelled event or field fails the check
+```
+
+The declarations only add checks. A value with a condition is optional,
+because a view shows it only while one of its conditions holds. An entity or
+member is typed by name, though the runtime also accepts its position.
+Decision, journal and grounds records keep their `string` keys. Regenerate
+the file when the program changes. `--json` prints the interface itself, and
+`runtime.interface(source)` returns the same thing from code.
+
 ## When the integration needs something missing
 
 Check the relevant guide and

@@ -399,6 +399,28 @@ test('the runtime contract and the options name what the library reads', async (
   assertShape('EventLine', parseEvents('{"event":"read","payload":{"value":17}}\n{"event":"warm"}\n'), { complete: true });
 });
 
+test('a program interface has the declared shapes and kinds', () => {
+  const gauge = `identifiers limit 8; claim frost_risk; evidence probe from "a probe"; caveat old consequence low;
+    readings soil from probe limit 4; decisions cover limit 2; place yard kind yard; entity north kind bed at yard;
+    state level = 0 min -40 max 60; event read celsius min -40 max 60; event pick bed kind bed, size in small large, who id;
+    cue ping sound 440 0.2 0.5;
+    on read sample soil = celsius supports frost_risk; on read set level = celsius;
+    bind gauge.value = level; bind gauge.label = "cold" when level < 0; bind gauge.low = level < 0;`;
+  const interfaces = [real.interface(gauge), real.interface(thermostat), real.interface(trail)];
+  assertShape('ProgramInterface', interfaces, { complete: true });
+  const parameters = interfaces.flatMap(found => found.events.flatMap(event => event.parameters));
+  assertShape('InterfaceParameter', parameters, { complete: true });
+  assert.deepEqual(sorted(parameters.map(parameter => parameter.type)), literals('InterfaceParameterType'));
+  const bindings = interfaces.flatMap(found => found.bindings);
+  assertShape('InterfaceBinding', bindings, { complete: true });
+  assert.deepEqual(sorted(bindings.map(binding => binding.type)), literals('InterfaceBindingType'));
+  assertShape('InterfaceEvent', interfaces.flatMap(found => found.events), { complete: true });
+  assertShape('InterfaceState', interfaces.flatMap(found => found.states), { complete: true });
+  assertShape('InterfaceCue', interfaces.flatMap(found => found.cues), { complete: true });
+  assertShape('InterfaceDecisions', interfaces.flatMap(found => found.decisions), { complete: true });
+  assertShape('InterfaceReadings', interfaces.flatMap(found => found.readings), { complete: true });
+});
+
 // ---------------------------------------------------------------- reports
 
 test('explain, dependents and check reports have the declared fields', () => {

@@ -238,6 +238,23 @@ The rc.12 rules carry over:
   the same load error for the 29 that do not. Release note: hosts can read a
   program's interface instead of spelling its names and shapes by hand;
   nothing a program does changes.
+- PR 9 (#133): `caveat types PROGRAM` writes TypeScript declarations from the
+  program's interface: a payload map per event, the binding map (a property
+  shown only under a `when` is optional), name unions for states, cues,
+  decisions, readings, evidence, caveats and claims, and `Session` and `View`
+  types for `typed(session)` from `caveat-lang/types`. The kit adds
+  `runtime.interface(source)`. A program that does not load gets no
+  declarations. Measured on round 7's four adapters with `// @ts-check` and
+  `tsc --checkJs` (`experiments/glowcap/round7/types/`): 11 or 12 added lines
+  each; 21, 15, 17 and 18 names and fields checked in C1 to C4, while
+  forwarded event names (5 each in C2 to C4) and 1 or 2 computed names per
+  adapter stay unchecked; no mismatch
+  with any program; all 16 misspelling controls caught, but not the decision
+  series name; none of the round's recorded failures would have been caught
+  at type-check time. Line counts are whole files (115 to 136); the round's
+  95 to 113 are code lines of the same files. Release note: a JavaScript or
+  TypeScript host can type-check its event names, payload fields and
+  displayed values against the program.
 - PR 4 (F309–F312, F338–F339): `id_text` of a number other than 0 that is
   not a handle the session holds is now classified `EvalFailure::Domain` where
   it occurs (`runtime/src/reactive_expr.rs`), so the event is refused as

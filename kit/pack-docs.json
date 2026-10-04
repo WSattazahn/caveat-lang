@@ -39,6 +39,7 @@
     "spec/caveat-scenarios-0.1.md",
     "spec/caveat-serve-0.1.md",
     "spec/caveat-check-0.1.md",
+    "spec/caveat-interface-0.1.md",
     "examples/thermostat_history.cav",
     "examples/thermostat_history.scenarios.json",
     "docs/MCP_AUTHORING_DESIGN.md",
