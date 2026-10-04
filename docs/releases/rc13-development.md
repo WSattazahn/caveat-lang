@@ -291,5 +291,16 @@ The rc.12 rules carry over:
   refused; 45,771 of them carry caveats. The same event traces replayed on
   published rc.3 to rc.12 give saves that all restore. One existing fuzz
   witness is now refused earlier, by this check.
+- PR 6 (F317–F322): the corpus run decided option (a), a restore check, not
+  the design note. In every genuine save each observed evidence had an
+  observation record, each examined caveat an examination record and each
+  `reopens` relation a reopening record, apart from memberships a
+  declaration sets as the program loads: 79,855 saves from the same 151
+  programs, and the saves published rc.3 to rc.12 write from the same event
+  traces. Restore now refuses a membership without its record
+  (`spec/caveat-save-0.1.md`, `docs/RESTORE_TRUST_BOUNDARY.md`); a record
+  removed together with its membership still restores. Release note: a save
+  edited to drop one of these records is now refused at restore instead of
+  restoring with the graph and tables out of step.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
