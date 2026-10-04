@@ -179,5 +179,16 @@ The rc.12 rules carry over:
   adds PR 7 (one Lean theorem), PR 8–9 (the program interface and
   `caveat types`) and PR 10 (design notes with cards), lets threads run in
   parallel where files do not overlap, and renumbers the publish to PR 11.
+- PR 8: `WebReactiveSession.interface(source)`, `interface_source` and
+  `caveat --interface PROGRAM` return a program's interface as
+  `caveat-interface/0.1` (`spec/caveat-interface-0.1.md`): events with typed
+  payload fields, states with bounds, bindings with value types and whether
+  every view shows them, cues, decision series, reading streams and declared
+  evidence, caveat and claim names. Load-time facts only; the view and
+  snapshot are unchanged. `npm run test:interface` finds the same bytes from
+  native and both WASM builds for all 103 repository programs that load, and
+  the same load error for the 29 that do not. Release note: hosts can read a
+  program's interface instead of spelling its names and shapes by hand;
+  nothing a program does changes.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
