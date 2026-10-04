@@ -375,6 +375,16 @@ The rc.11 rules carry over:
   extension of the agent ledger (PR 6), renumbers member symbols to PR 7 and
   the publish to PR 8, and records the Direction section.
 - PR 7 (member symbols) is pending the owner's decision.
+- PR 2 (#110): restore refuses a caveat's attention that no examination of
+  the loaded source can leave (findings 123, 188–191): `deferred` and
+  `examining`; `examined` without a budget or on a caveat no `examine`
+  reaches; and examined caveats whose least costs exceed what the budget
+  spent. Release note: a save that marks a caveat examined without its
+  program's examination and spending is now refused at restore; attention
+  the program could have left still restores, so saves the runtime writes
+  are unaffected. One deviation from check (a): an explicit `unexamined`
+  entry, which claims no examination, is still accepted. Round 7's F263 and
+  F264 concern qualifications, not attention, and add no fixture here.
 
 Sources: MCP specification changelog for `2026-07-28`,
 <https://modelcontextprotocol.io/specification/2026-07-28/changelog> (a
