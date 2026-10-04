@@ -1,0 +1,101 @@
+// Host glue: translates host events into the program's events and the
+// program's view into the required view shape. The game's rules live in
+// glowcap.cav; this file only renames and projects.
+import { readFileSync } from 'node:fs';
+import { loadRuntimeFromDirectory } from 'caveat-lang/node';
+
+const source = readFileSync(new URL('./glowcap.cav', import.meta.url), 'utf8');
+const runtime = await loadRuntimeFromDirectory();
+export const ready = Promise.resolve();
+
+// Mushroom ids, as the program declares them (static world).
+const probe = runtime.open(source);
+const MUSHROOMS = probe.snapshot().world.entities.filter((e) => e.kind === 'mushroom').map((e) => e.id);
+probe.close();
+
+function translate(event) {
+  const { type, ...rest } = event ?? {};
+  if (type === 'absorb' || type === 'taste' || type === 'witness') {
+    if (Object.keys(rest).some((k) => k !== 'id' && k !== 'kind')) throw new Error(`unexpected field in ${type}`);
+    return [type, { target: rest.id, sort: rest.kind }];
+  }
+  if (type === 'tick') return ['tick', rest];
+  throw new Error(`unknown event type ${JSON.stringify(type)}`);
+}
+
+// An evidence occurrence `absorb_cave@2` is named `absorb_cave_2` in the view.
+const named = (list) => list.map((name) => name.replace(/@(\d+)$/, '_$1'));
+// What a displayed value cites (its explanation), as evidence or caveat names.
+const cites = (v, target, prop, field = 'evidence') => named(v.binding_explanations[target]?.[prop]?.[field] ?? []);
+
+// The view shows at most the six most recent decision changes and reopenings.
+const SHOWN = 6;
+
+const why = (v, id, prop) => ({
+  reason: v.bindings[id][prop], because: cites(v, id, prop), caveats: cites(v, id, prop, 'caveats'),
+});
+
+function project(v) {
+  const b = v.bindings;
+  const mushrooms = {};
+  for (const id of MUSHROOMS) {
+    mushrooms[id] = {
+      present: b[id].present,
+      label: b[id].label,
+      canAbsorb: b[id].can_absorb,
+      canTaste: b[id].can_taste,
+      because: cites(v, id, 'label'),
+      caveats: cites(v, id, 'label', 'caveats'),
+      why: { absorb: why(v, id, 'why_absorb'), taste: why(v, id, 'why_taste') },
+    };
+  }
+  const journal = v.decision_journal.filter((e) => e.decision === 'trust');
+  // The current commitment: the latest 'committed' entry, and what followed it.
+  const at = journal.map((e) => e.change).lastIndexOf('committed');
+  const current = at >= 0 ? journal[at] : null;
+  const grounds = current ? v.commitment_grounds[current.commitment] : { evidence: [], caveats: [] };
+  return {
+    slime: { glowing: b.slime.glowing, heavy: b.slime.heavy, heavySeconds: b.slime.heavy_seconds },
+    mushrooms,
+    belief: {
+      state: b.belief.state,
+      text: b.belief.text,
+      note: b.belief.note,
+      supportedBy: cites(v, 'belief', 'supported'),
+      contradictedBy: cites(v, 'belief', 'contradicted'),
+      caveats: cites(v, 'belief', 'observations', 'caveats'),
+    },
+    decision: {
+      state: b.decision.state,
+      basis: current ? named(current.because) : [],
+      caveats: [...grounds.caveats],
+      reopenedBy: at >= 0 ? named(journal.slice(at + 1).flatMap((e) => e.because)).slice(-SHOWN) : [],
+      // The runtime's decision journal for trust, in order.
+      history: journal.slice(-SHOWN).map((e) => ({ change: e.change, because: named(e.because) })),
+    },
+  };
+}
+
+export function createPolicy(saved) {
+  // A save is the runtime's save, kept as a JSON value. (Its text could carry a
+  // signed zero; no state of this program can become -0, so parsing loses nothing.)
+  const session = saved === undefined ? runtime.open(source)
+    : runtime.restore(source, typeof saved === 'string' ? saved : JSON.stringify(saved));
+  let current = project(session.view());
+  return {
+    dispatch(event) {
+      const [name, payload] = translate(event);
+      const outcome = session.dispatchView(name, payload);
+      if (outcome.outcome !== 'accepted') {
+        throw new Error(`${name} rejected (${outcome.origin}/${outcome.code}): ${outcome.message}`);
+      }
+      current = project(outcome.view);
+    },
+    view() {
+      return structuredClone(current);
+    },
+    save() {
+      return JSON.parse(session.save());
+    },
+  };
+}
