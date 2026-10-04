@@ -39,9 +39,10 @@ argument order shown. Existing intrinsics remain `abs`, `min`, `max`, `clamp`,
 `sqrt`, `sin`, and `cos`. Division by zero, nonfinite arithmetic, negative
 square roots, and reversed clamp bounds remain errors.
 
-The limits are 128 function declarations, 4096 expanded expression nodes, and
-64 levels of expression/function expansion depth. Individual expression
-parsing is also bounded by 1024 tokens and 65,536 source bytes. There are no
+A program may declare 128 functions of its own; the 10 standard library
+functions are not counted. The other limits apply per expression: 4096
+expanded expression nodes, 64 levels of expression/function expansion depth,
+and, when parsing, 1024 tokens and 65,536 source bytes. There are no
 collections, modules, or general recursion in this addition.
 
 ## Presentation bindings
@@ -229,3 +230,13 @@ expressions. The game can therefore keep motion, collisions, graph decisions,
 UI values, and cue selection in CAVEAT while its host handles input and display.
 This profile does not make the implementation self-hosting or add general
 file, network, collection, or module facilities.
+
+## Changes
+
+- 2026-10-03: the 128-function limit counts the program's own declarations.
+  The runtime counted the 10 standard library functions against it, so the
+  119th declaration was refused. Programs with 119 to 128 declarations now
+  load; the 129th declaration is refused as before. The expression limits are
+  stated as per-expression bounds, which is how they were already enforced.
+  [Source Library 0.1](source-library-0.1.md)'s count still includes the
+  prelude.

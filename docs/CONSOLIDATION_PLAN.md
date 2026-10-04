@@ -348,3 +348,60 @@ package validation, browser checks, reproducibility and same-tarball security.
 Use the [rc.10 verified release record](releases/v0.1.0-rc.10.md) for the current
 candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
+
+## npm publication from rc.11 on
+
+From rc.11, npm publication goes through
+[`publish-npm.yml`](../.github/workflows/publish-npm.yml) instead of a manual
+publish from a local checkout. The workflow publishes only the tarball that a
+successful Runtime run on `main` tested for the tagged revision, with an npm
+provenance attestation. It authenticates through npm trusted publishing, so no
+npm token is stored in the repository.
+
+1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
+   push must succeed. Its `kit-package-candidate` artifact holds the tested
+   tarball, `report.json`, `build-info.json` and `SHA256SUMS`; take the
+   tarball's SHA256 from `SHA256SUMS`.
+2. **Tag.** Create the annotated tag `v<version>` at that exact commit and push it.
+3. **Dispatch.** In Actions, run **publish npm** with *Use workflow from* set to
+   the tag, and enter the tag, the tarball SHA256 and the dist-tag (`next` or
+   `latest`). Running from the tag makes the provenance name the tagged
+   revision. The `candidate` job refuses an input that does not match the tag,
+   a lightweight tag, a newest Runtime run for the revision that did not
+   succeed, an expired or ambiguous artifact, different bytes, version or
+   build, an undeclared [capability](PACKAGE_SECURITY.md#declared-capabilities),
+   a version already on npm, and a dry run that would use another dist-tag.
+4. **Release authorization.** The `publish` job waits in the `npm-publish`
+   environment until the owner approves it. That approval is the release
+   authorization of step 5 under "Tag and npm-kit sequencing" above. The job
+   re-checks the SHA256 and runs
+   `npm publish <tarball> --provenance --access public --tag <dist-tag>`.
+5. **Verification.** The `verify-publication` job runs
+   [`verify-npm-publication.mjs`](../scripts/verify-npm-publication.mjs). It
+   fails unless the registry bytes and integrity match the tested tarball,
+   `dist.attestations` is present, the provenance names these bytes, this
+   repository, `publish-npm.yml`, the tag and its revision, `npm audit
+   signatures` verifies the signature and attestation, the dist-tag names the
+   version, and a fresh exact-version install passes both CLI names, `doctor`,
+   `demo agent`, the umbrella scenarios and `explain`. Its
+   `npm-publication-verification` artifact is the evidence for the release
+   record and `docs/releases/v<version>-npm-publication.json`, written
+   afterwards in a documentation pull request. Record publication only after
+   this job passes.
+
+The workflow sets exactly one dist-tag, because trusted publishing
+authenticates `npm publish` only. The owner decided on 2026-10-03 that rc.11 is
+promoted to `latest` at publication, so rc.11 is dispatched with `latest`.
+`next` then still names rc.10 until the owner runs
+`npm dist-tag add caveat-lang@0.1.0-rc.11 next` with their own npm login; the
+publication record states both channels as the registry reports them.
+Installation instructions keep pinning exact versions.
+
+One-time setup, done by the owner before the first run:
+
+- **npm trusted publisher** (npmjs.com, `caveat-lang` → Settings → Trusted
+  publishing → GitHub Actions): organization or user `WSattazahn`, repository
+  `caveat-lang`, workflow filename `publish-npm.yml`, environment `npm-publish`.
+- **GitHub environment** (repository Settings → Environments → New
+  environment): name `npm-publish`; required reviewer `WSattazahn`; deployment
+  branches and tags limited to the tag pattern `v*`. It needs no secrets.
