@@ -238,7 +238,7 @@ The rc.12 rules carry over:
   the same load error for the 29 that do not. Release note: hosts can read a
   program's interface instead of spelling its names and shapes by hand;
   nothing a program does changes.
-- PR 9: `caveat types PROGRAM` writes TypeScript declarations from the
+- PR 9 (#133): `caveat types PROGRAM` writes TypeScript declarations from the
   program's interface: a payload map per event, the binding map (a property
   shown only under a `when` is optional), name unions for states, cues,
   decisions, readings, evidence, caveats and claims, and `Session` and `View`
