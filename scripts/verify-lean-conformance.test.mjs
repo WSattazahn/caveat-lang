@@ -4,9 +4,11 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { checkedOutput, firstDifference, modelTrace, compare, dependencyDropMutation, unselectedBranchMutation,
   InfrastructureFailure, SemanticMismatch, runtimeTrace, verifyMutation, wasmTrace, assertSourceHashesUnchanged, checkedDecoderRejection,
-  lateModelFrame, lateRuntimeFrame, lateRequest, verifyLateMutation, commitmentQualificationMutation } from './verify-lean-conformance.mjs';
+  lateModelFrame, lateRuntimeFrame, lateRequest, verifyLateMutation, commitmentQualificationMutation,
+  reopenModelFrame, reopenRuntimeFrame, reopenRequest, verifyReopenMutation, reopenMutation } from './verify-lean-conformance.mjs';
 import { STATES, SCHEMA } from './lean-conformance-cases.mjs';
 import { LATE_SCHEMA, LATE_STATES, lateCases } from './lean-late-qualification-cases.mjs';
+import { REOPEN_SCHEMA, REOPEN_STATES, reopenCases } from './lean-reopening-cases.mjs';
 
 const fixture = { id: 'test', steps: [{}] };
 function trace() {
@@ -360,4 +362,109 @@ test('the late-qualification mutation anchor fails closed', () => {
     assert.throws(() => commitmentQualificationMutation(source + source, field), InfrastructureFailure);
   }
   assert.throws(() => commitmentQualificationMutation(source, 'grounds'), InfrastructureFailure);
+});
+
+const reopenFixture = () => reopenCases().find(item => item.id === 'reopen-retains-caveats');
+function reopenAfter() {
+  return {
+    outcome: { outcome: 'accepted' },
+    commitments: {
+      plan: { basis: { value: 3, evidence: ['ea'], caveats: ['ca', 'late'] }, grounds: { evidence: ['ea'], caveats: ['ca', 'late'] },
+        retained: ['ca', 'late'], reopened_by: ['eb'] },
+    },
+    observations: ['eg', 'ea', 'eb'],
+    journal: [
+      { commitment: 'plan', change: 'committed', because: ['ea'], caveats: ['ca', 'late'] },
+      { commitment: 'plan', change: 'reopened', because: ['eb'], caveats: ['cb', 'late', 'meta'] },
+    ],
+    effects: [{ kind: 'reopen', action: 'plan', because: 'eb' }],
+  };
+}
+const reopenDocument = after => ({ schema: REOPEN_SCHEMA, id: 'reopen-retains-caveats', after });
+
+function reopenRecord(after, outcome = { schema: 'caveat-dispatch/0.1', outcome: 'accepted' }) {
+  const tracked = { value: 1, provenance: { evidence: [], caveats: [] } };
+  const snapshot = { schema: 'caveat-reactive/0.1', source_id: 'source', sequence: 3,
+    values: Object.fromEntries(REOPEN_STATES.map(name => [name, 1])),
+    qualified_values: Object.fromEntries(REOPEN_STATES.map(name => [name, tracked])),
+    value_grounds: Object.fromEntries(REOPEN_STATES.map(name => [name, { evidence: [], caveats: [] }])),
+    commitments: Object.entries(after.commitments).map(([name, c]) =>
+      ({ action: name, open: c.reopened_by.length > 0, retained: c.retained, reopened_by: c.reopened_by })),
+    commitment_bases: Object.fromEntries(Object.entries(after.commitments).map(([name, c]) =>
+      [name, { value: c.basis.value, provenance: { evidence: c.basis.evidence, caveats: c.basis.caveats } }])),
+    commitment_grounds: Object.fromEntries(Object.entries(after.commitments).map(([name, c]) => [name, c.grounds])),
+    observations: after.observations, effects: after.effects ?? [],
+    decision_journal: after.journal.map(entry => ({ decision: entry.commitment, sequence: 2, event: 'decide', ...entry })) };
+  const view = { schema: 'caveat-reactive-view/0.1', sequence: 3, effects: snapshot.effects, decision_journal: snapshot.decision_journal };
+  const save = JSON.stringify({ schema: 'caveat-reactive-save/0.1', source_id: 'source', sequence: 3 });
+  return { snapshot, save, view, outcome: outcome.outcome === 'accepted' ? { ...outcome, snapshot } : outcome };
+}
+
+test('reopening model and runtime projections agree on shape and refuse unregistered outcomes', () => {
+  const fixture = reopenFixture();
+  const model = reopenModelFrame(reopenDocument(reopenAfter()), fixture);
+  assert.equal(firstDifference(model, reopenRuntimeFrame(reopenRecord(reopenAfter()))), null);
+  const fatal = reopenAfter(); fatal.outcome = { outcome: 'fatal', code: 'unclassified' }; delete fatal.effects;
+  assert.throws(() => reopenModelFrame(reopenDocument(fatal), fixture), InfrastructureFailure);
+  const policy = reopenAfter(); policy.outcome = { outcome: 'rejected', origin: 'policy', code: 'reject' }; delete policy.effects;
+  assert.throws(() => reopenModelFrame(reopenDocument(policy), fixture), InfrastructureFailure);
+  for (const code of ['unobserved_evidence', 'not_committed']) {
+    const refused = reopenAfter(); refused.outcome = { outcome: 'rejected', origin: 'evaluation', code };
+    assert.throws(() => reopenModelFrame(reopenDocument(refused), fixture), InfrastructureFailure, 'a refusal reports no effects');
+    delete refused.effects;
+    assert.deepEqual(reopenModelFrame(reopenDocument(refused), fixture).outcome, refused.outcome);
+  }
+  const extra = reopenAfter(); extra.states = {};
+  assert.throws(() => reopenModelFrame(reopenDocument(extra), fixture), InfrastructureFailure);
+  const foreign = reopenAfter(); foreign.commitments.invented = foreign.commitments.plan;
+  assert.throws(() => reopenModelFrame(reopenDocument(foreign), fixture), InfrastructureFailure);
+  const change = reopenAfter(); change.journal[1].change = 'withdrawn';
+  assert.throws(() => reopenModelFrame(reopenDocument(change), fixture), InfrastructureFailure);
+  assert.throws(() => reopenModelFrame({ ...reopenDocument(reopenAfter()), id: 'other' }, fixture), InfrastructureFailure);
+  const qualify = reopenAfter(); qualify.effects = [{ kind: 'qualify', evidence: 'ea', caveat: 'late' }];
+  assert.throws(() => reopenRuntimeFrame(reopenRecord(qualify)), InfrastructureFailure);
+  const skewed = reopenRecord(reopenAfter()); delete skewed.snapshot.commitment_grounds.plan;
+  assert.throws(() => reopenRuntimeFrame(skewed), InfrastructureFailure);
+});
+
+test('reopening requests carry the runtime state before the step, the guard and the declared caveats', () => {
+  const before = reopenAfter();
+  const request = reopenRequest(reopenFixture(), 0, reopenRecord(before));
+  assert.equal(request.schema, REOPEN_SCHEMA);
+  assert.deepEqual(request.reopening, { commitment: 'plan', evidence: 'eb', caveats: ['cb', 'late', 'meta'], guard: true });
+  assert.deepEqual(Object.keys(request.before).sort(), ['commitments', 'journal', 'observations']);
+  assert.deepEqual(request.before.commitments.plan.retained, ['ca', 'late']);
+  assert.throws(() => reopenRequest(reopenFixture(), 1, reopenRecord(before)), InfrastructureFailure);
+  const guarded = reopenCases().find(item => item.id === 'reopen-guard-skipped');
+  const off = reopenRecord(before); off.snapshot.values.g = 0; off.snapshot.qualified_values.g = { ...off.snapshot.qualified_values.g, value: 0 };
+  assert.equal(reopenRequest(guarded, 0, off).reopening.guard, false);
+});
+
+test('reopening mutation controls require exactly the intended change', () => {
+  const fixture = reopenFixture();
+  const r = fixture.reopenings[0];
+  const expected = reopenModelFrame(reopenDocument(reopenAfter()), fixture);
+  const retained = structuredClone(expected); retained.commitments.plan.retained = [];
+  assert.ok(verifyReopenMutation('reopen-drops-retained', expected, retained, r).path);
+  const cause = structuredClone(expected); cause.journal[1].caveats = [];
+  assert.ok(verifyReopenMutation('reopen-drops-cause-caveats', expected, cause, r).path);
+  for (const [id, actual] of [['reopen-drops-retained', retained], ['reopen-drops-cause-caveats', cause]]) {
+    assert.throws(() => verifyReopenMutation(id, expected, expected, r), InfrastructureFailure, id + ': survival');
+    const unrelated = structuredClone(expected); unrelated.observations = ['ea'];
+    assert.throws(() => verifyReopenMutation(id, expected, unrelated, r), InfrastructureFailure, id + ': unrelated difference');
+    const extra = structuredClone(actual); extra.commitments.plan.reopened_by = [];
+    assert.throws(() => verifyReopenMutation(id, expected, extra, r), InfrastructureFailure, id + ': extra difference');
+  }
+  assert.throws(() => verifyReopenMutation('reopen-drops-retained', expected, cause, r), InfrastructureFailure);
+  assert.throws(() => verifyReopenMutation('reopen-drops-cause-caveats', expected, retained, r), InfrastructureFailure);
+});
+
+test('the reopening mutation anchors fail closed', () => {
+  const source = readFileSync(new URL('../runtime/src/reactive.rs', import.meta.url), 'utf8');
+  for (const field of ['retained', 'cause']) {
+    assert.notEqual(reopenMutation(source, field), source);
+    assert.throws(() => reopenMutation('', field), InfrastructureFailure);
+    assert.throws(() => reopenMutation(source + source, field), InfrastructureFailure);
+  }
+  assert.throws(() => reopenMutation(source, 'grounds'), InfrastructureFailure);
 });

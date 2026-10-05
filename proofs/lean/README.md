@@ -3,7 +3,7 @@
 This pinned rc.9 verification project contains core dependency and outcome
 proofs plus a narrow executable branch, guard, and citation comparison model.
 Since rc.13 it also models one late-qualification step over recorded
-commitments. The runner executes the same constructors covered by the proofs.
+commitments, and since rc.15 one reopening step. The runner executes the same constructors covered by the proofs.
 Its accepted fragments are small and explicit; they are not a model of the
 complete CAVEAT language.
 
@@ -17,7 +17,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, and runner. `laws.json` records 80 authored theorem declarations, including four inclusion helper lemmas, 26 bridge laws, and 12 late-qualification laws. `theorems.json` inventories all 189 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, and runner. `laws.json` records 97 authored theorem declarations, including four inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws and 17 reopening laws. `theorems.json` inventories all 250 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -98,7 +98,9 @@ fatal outcomes provide no usable session.
 
 Citation failure maps to rejection origin `evaluation`, code
 `ungrounded_citation`. A late qualification of unobserved evidence maps to
-origin `evaluation`, code `unobserved_evidence`. Provenance capacity overflow is a distinct modeled cause
+origin `evaluation`, code `unobserved_evidence`, and so does a reopening
+whose cause was not observed. Reopening a commitment that was never made maps
+to origin `evaluation`, code `not_committed`. Provenance capacity overflow is a distinct modeled cause
 but maps to fatal code `unclassified` under the current
 [dispatch contract](../../spec/caveat-dispatch-0.1.md). It must not be treated as
 `limit/identifier_limit`, which concerns the separate interned-identifier
@@ -249,9 +251,9 @@ What is proved, for every ledger and qualification:
 This holds of the model because `qualifyStep` maps only values; the theorems
 make that a checked statement rather than a reading of the definition. How
 commitments come to exist (`commit … using … retaining`, guards, series,
-predecessors, reopening), the decision journal, reading archives, scheduled
-`qualify … after`, renewal and occurrence identity, and the graph closure that
-supplies a caveat's qualifiers are not modeled.
+predecessors), reading archives, scheduled `qualify … after`, renewal and
+occurrence identity, and the graph closure that supplies a caveat's qualifiers
+are not modeled. Reopening is modeled separately, below.
 
 The runner accepts a second schema, `caveat-late-qualification/0.1`: a
 `before` ledger (`states`, `commitments` with `basis` `{value, evidence,
@@ -277,10 +279,75 @@ the runtime's own restore checks still accept its saves. This is sampled
 agreement on the qualification step from states the runtime reached, not a
 proof that the runtime's commit or qualify implementation refines the model.
 
+## Reopening keeps what a commitment retained and records its cause
+
+[Reopen.lean](Caveat/Reopen.lean) models one step of
+`[when GUARD] reopen COMMITMENT because EVIDENCE` over a `Ledger`: named
+commitments (each a frozen basis, grounds, the caveats it retains, and the
+evidence that has reopened it, in order), observed evidence, the decision
+journal's entries (commitment, change, `because`, caveats), and the step's
+reopen effects. A `Reopening` carries the commitment, the evidence, the
+evidence's caveats at that moment (which the graph supplies), and whether the
+guard held.
+
+`reopenStep` is the step. A false guard changes nothing. A commitment that was
+never made refuses the event as `evaluation/not_committed`; unobserved
+evidence then refuses it as `evaluation/unobserved_evidence`. Evidence that
+already reopened the commitment adds nothing. Otherwise the commitment gains
+the evidence as a cause, the journal gains one `reopened` entry naming the
+evidence and its caveats, and the step reports one reopen effect.
+
+What is proved, for every ledger and reopening:
+
+- Every commitment keeps its basis, grounds and retained caveats through an
+  accepted reopening, the reopened one included
+  (`reopen_preserves_records`, `reopen_retains_caveats`). The session that
+  continues after any outcome keeps them (`reopen_session_preserves_records`),
+  and so does any accepted sequence of reopenings
+  (`reopenings_preserve_records`).
+- A new cause is recorded: the journal gains exactly the entry naming the
+  evidence and its caveats, and the step reports the reopen
+  (`reopen_records_cause`); the commitment lists the cause after its earlier
+  ones (`reopen_marks_commitment`). An accepted reopening only appends to the
+  journal (`reopen_keeps_history`).
+- A repeated cause and a skipped guard change nothing; an uncommitted target
+  and unobserved evidence are refused with their classifications. A nonempty
+  witness, `plan` resting on `ea` and retaining `late`, reopened by `eb`,
+  shows the record unchanged, `eb` recorded, and the journal entry carrying
+  `cb`.
+
+The model does not cover series (a reopening of a series reopens its current
+revision; earlier revisions are other commitments, which the theorems show
+are untouched), `latest(...)` or `caveated(...)` causes, reopening triggers,
+the `reopened` predicate's dependency tracking, or the reopening
+qualifications a later revision's basis receives.
+
+The runner accepts a third schema, `caveat-reopening/0.1`: a `before` ledger
+(`commitments` with `basis`, `grounds`, `retained` and `reopened_by`,
+`observations`, and `journal` entries with `commitment`, `change`, `because`
+and `caveats`) and one `reopening` (`commitment`, `evidence`, `caveats`,
+`guard` as a boolean). At most 4 commitments, 16 journal entries and 16 names
+per list. The response is the `after` frame, with effects for an accepted
+step only.
+
+The conformance gate runs nine registered programs
+([lean-reopening-cases.mjs](../../scripts/lean-reopening-cases.mjs)) on the
+native and WebAssembly runtimes: seed, commit, then one event per reopening.
+For each reopening event it gives the model the runtime's own state before
+the event, with the guard read from the runtime's `g` and the cause's caveats
+from the program's declarations, and compares the model's prediction with the
+runtime's state after it. Two compiled runtime mutants must be caught by that
+comparison: a reopening that drops the commitment's retained caveats, and one
+whose journal entry drops its cause's caveats. The runtime's own restore checks
+accept both mutants' saves, so only the comparison with the model catches them.
+This is sampled agreement on the reopening step from states the runtime
+reached, not a proof that the runtime's reopen implementation refines the
+model.
+
 Evidence renewal and occurrence identity, arbitrary observations, save/restore,
 complete runtime session rollback, source parsing, function evaluation, nested
-conditional bodies, arbitrary expressions, graph semantics, commitment creation
-and reopening, the decision journal, work budgets, and general effect
-scheduling are not formalized here.
+conditional bodies, arbitrary expressions, graph semantics, commitment
+creation, series revision, the rest of the decision journal, work budgets,
+and general effect scheduling are not formalized here.
 CAVEAT's evidence remains supplied evidence; the model does not authenticate it
 or turn it into a truth guarantee.
