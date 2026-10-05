@@ -14,6 +14,43 @@ and expected versus actual behavior. Distinguish a language limitation from
 authored policy, invalid input or host permissions. Share only with the user's
 permission when the example contains private material; synthetic examples work too.
 
+## What the language refuses to do for you
+
+Programmers coming from general-purpose languages tend to expect the runtime to
+do these things. Caveat leaves each one to a rule the author writes.
+
+- **A caveat carries no logic.** `caveat C consequence …; C qualifies E;`
+  says that evidence `E` carries `C`, and nothing more. A caveat never fires,
+  expires or checks a condition. Whatever should make `C` matter, such as a
+  time, a count or a reading, is a rule: `on EVENT when … qualify E with C`,
+  or `qualify E with C after N`.
+- **There is no fallback.** Nothing is withdrawn, reopened or replaced
+  because something else happened. A withdrawal is an explicit effect with a
+  reason (`withdraw E because F`), and a reopening is explicit and has a
+  reason too (`reopen D because F`). A reopened decision keeps the grounds it
+  was made on; the next commit of the series gets its own.
+- **Grounds are frozen per revision.** `commitment_grounds` holds, for each
+  revision such as `stance@1` and `stance@2`, the evidence and caveats it
+  rested on when it was committed. Later evidence never rewrites them.
+
+## What grows the save
+
+States do not grow the save: a state holds one number however often it
+changes. Evidence, reading occurrences, renewals and the decision journal do
+grow it, because each is kept with its history. So let rules decide when
+inputs become evidence, and do not let the frame rate decide. For example,
+`on hit set hits = hits + 1;` followed by
+`on hit when hits >= 3 and not observed(rhythm) reveal rhythm supports …;`
+records one observation, while sampling every frame records one occurrence
+per frame. Glowcap round 7's save-bound failures came from this
+([results](../experiments/glowcap/RESULTS.md)).
+
+One decision series per exclusive choice keeps a choice exclusive. Put the
+choice in the series' value (`using` 1 for parry, 2 for dodge), and the
+runtime refuses a second commit while one is in force as
+`evaluation/decision_in_force`, until a rule reopens it with a reason
+([boss-stance](../kit/examples/boss-stance/boss.cav)).
+
 ## Check a program with the kit
 
 Install the package into a project directory: run `npm init -y`, then

@@ -612,6 +612,7 @@ export interface Relation {
 
 export interface Commitment {
   action: string;
+  /** True when the commitment was reopened and awaits a new decision; it does not mean active. */
   open: boolean;
   retained: string[];
   retained_authorship: RetainedCaveat[];

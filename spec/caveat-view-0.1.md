@@ -14,7 +14,7 @@ A host redraws only what an event can change. The **view** is that part:
 | `sequence`, `last_event` | as in the snapshot |
 | `bindings`, `binding_explanations` | what to show, and what each shown value cites |
 | `cues`, `effects` | what the last accepted event emitted and did |
-| `commitments`, `commitment_grounds`, `decision_series` | decisions, their grounds and revisions |
+| `commitments`, `commitment_grounds`, `decision_series` | decisions, their grounds and revisions. A commitment's `open: true` means it was reopened and awaits a new decision, not that it is active |
 | `decision_journal` | ordered, append-only commitment and reopening entries, with the reasons recorded at each change ([journal](caveat-decision-journal-0.1.md)) |
 | `relations` | live graph relations, in insertion order |
 

@@ -1,0 +1,5 @@
+{"event": "fetch_registry"}
+{"event": "fetch_npm"}
+{"event": "read_record"}
+{"event": "see_socket"}
+{"event": "decide"}

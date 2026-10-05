@@ -37,6 +37,7 @@ Rule A needs two of measures 1–4 better with none more than 2× worse: size an
 - Same protocol, same beat, same measures and both rules; fresh authors on both sides, blind change requests written before either side changes, same model family, the C1-style exclusion rule kept.
 - Registration fixes stated up front: journal `caveats` compared as the spec defines them (ordered under view 0.2, so the comparator and the spec agree); the packet states the save's size behaviour under windows.
 - Predictions pre-registered: regressions median 0; first-run green 4 of 4; mutation 100%; drift at or below TypeScript's; change cost lower; size lower; dispatch under 50 µs; shipped bytes under 150 KB. Each is a falsifiable number, and the record keeps the misses.
+- A learnability probe before the round: a model from a family other than the authors', never shown the syntax, writes the program it expects for the beat. Diff it against a real program; each mismatch becomes a packet or guide item, and the diff goes in the record.
 - If Rule A is met, the README's table gets the row and the claim gets exactly one sentence wider: "under these rules, on this beat, with fresh authors". If it isn't, the failure table says which cause survived.
 
 ### Round 9: Caveat's own ground

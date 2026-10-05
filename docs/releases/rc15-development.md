@@ -186,6 +186,20 @@ first-observed order, `spec/caveat-decision-journal-0.1.md: L31–33`;
 accepted event, for hosts that re-render) as one `caveat-reactive-view/0.2`
 proposal: what it adds, that 0.1 bytes stay available, and the migration for
 hosts. Card: implement in rc.16, or defer. Not implemented in rc.15.
+Added by the owner at 03:49 UTC: a commitment's `open: true` means reopened and
+awaiting a decision, which reads as "active" to a host engineer. The note
+proposes a rename for 0.2. The 0.1 line is clarified now, in the side PR
+below.
+
+### Side PR — Docs and examples from the rc.14 dogfooding
+Added by the owner at 03:49 UTC. Docs and examples only, with no runtime
+change. It comes from using the caveat plugin with rc.14, then asking a model
+that had never seen the syntax to write the program it expected.
+`docs/AI_AUTHORING.md` gains "What the language refuses to do for you", "What
+grows the save" and the one-series-per-exclusive-choice pattern. The kit gains
+`kit/examples/reviewer-decision/` and `kit/examples/boss-stance/`, each with
+scenarios. The View 0.1 line for `open` is clarified, and
+`beat-typescript.md`'s round 8 section gains a learnability probe.
 
 ### PR 7b — Kit and check: `caveat test` checks first, and C006 `citation-unreachable`
 From `beat-typescript.md`: the cause that put `ungrounded_citation` in round
@@ -332,3 +346,13 @@ The rc.13 rules carry over:
   the 103 repository programs that load as reactive programs, every outcome,
   save and restored save hashed: 123,600 saves, digests identical between
   `main` (`51590b4`) and this branch, no fatal outcome.
+- PR 3 (#158) merged 2026-10-05 as `2c3e8b0`, with the VS Code grammar
+  highlighting `integer` after a clock's step.
+- Side PR: docs and examples. Both examples load and check clean on the
+  published `caveat-lang@0.1.0-rc.14`, installed from npm. On that version,
+  reviewer-decision's three scenarios pass, and boss-stance's events replay
+  with `parry_again` refused as `evaluation/decision_in_force`. On the switch
+  back, `stance@2` is reopened because of `attack_rhythm@2` and `stance@3`
+  (parry) is committed. The new boss-stance scenarios state those outcomes.
+  Both join the corpus the repository's sweeps read (`git ls-files '*.cav'`,
+  as `test:interface` does), and a kit test checks, tests and replays each.
