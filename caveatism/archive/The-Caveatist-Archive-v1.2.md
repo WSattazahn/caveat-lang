@@ -271,7 +271,7 @@ has none, and for an agent it is the commonest kind of evidence there is. Two re
 the record as a record and let the grounds carry the indirection, which is the current practice; or add a
 marker for attested material. Neither is adopted. One case is not a pattern.
 
-**[ARCHIVAL STATUS]** The agent practice and the skill remain as written at version 1.1. This amendment
+**[ARCHIVAL STATUS]** The agent practice and the skill remain as written before this amendment. This amendment
 records the case and the question, not a change.
 
 **END OF VERSION 1.2 — UNFINISHED**
