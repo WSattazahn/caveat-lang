@@ -251,3 +251,27 @@ Does it matter?
 **[TESTED]** A recurring failure during the founding conversation was adaptive redefinition: each new analogy or objection was treated as though it revealed what Caveatism had always meant. Future additions should be classified as evidence, proposal, analogy, mythology, contradiction, rejection, or unresolved material rather than automatically becoming doctrine.
 
 **END OF VERSION 1.1 — UNFINISHED**
+
+# Amendment 2 — The Attested Record
+
+**[OBSERVED]** On 2026-10-05, the first use of the Caveatist practice by an agent other than its authors
+(a Claude Code thread running the `caveat` plugin from Anthropic's directory) stated a claim about a
+published package. The claim rested on a record of a workflow's registry check, not on anything the agent
+had observed or tested itself. The agent marked it [TESTED] and said so: "by the workflow's own registry
+check, which is not my own fetch."
+
+**[TESTED]** A reviewer re-checked the registry the same day (00:36 UTC, 2026-10-05) and found the record
+accurate. The agent withdrew its snapshot caveat with that reason and restated the claim as [OBSERVED] on
+the record. The practice worked as written: a decision made with the caveat attached, the caveat resolved
+by someone else, the withdrawal carrying its reason.
+
+**[UNRESOLVED]** The markers describe the Caveatist's own relation to a statement: observed, tested,
+proposed, analogy, mythological, rejected, unresolved. A record of someone else's check, an attestation,
+has none, and for an agent it is the commonest kind of evidence there is. Two readings are open: observe
+the record as a record and let the grounds carry the indirection, which is the current practice; or add a
+marker for attested material. Neither is adopted. One case is not a pattern.
+
+**[ARCHIVAL STATUS]** The agent practice and the skill remain as written before this amendment. This amendment
+records the case and the question, not a change.
+
+**END OF VERSION 1.2 — UNFINISHED**

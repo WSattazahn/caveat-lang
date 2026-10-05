@@ -26,6 +26,7 @@ evidence check_the_label from "the origin-story proverb: check the label";
 evidence labels_can_be_wrong from "labels can be wrong, missing, misplaced, disputed or nonexistent";
 evidence kindness_injection from "kindness proposed as doctrine";
 evidence no_basis from "no observed case supported it";
+evidence attested_record from "an agent's first use: a claim resting on a record of someone else's check, with no marker for it";
 
 # Markers. A mythological or analogical support is still support, and it
 # carries its marker into every ground it reaches.
@@ -53,6 +54,8 @@ event freeze_v1_1;
 event redefine;
 event erase;
 event absorb;
+event case_attested_record;
+event freeze_v1_2;
 
 # Observed and tested cases.
 on case_character_lab when not observed(character_lab) reveal character_lab supports eternal_caveat;
@@ -103,6 +106,21 @@ on freeze_v1_1 when not reopened(canon) reject "Nothing to amend: reopen the fro
 on freeze_v1_1 commit canon because enough
   using qualified(1, character_lab) + qualified(1, misidentification) + qualified(1, definition_drift)
       + qualified(1, eternal_flame) + qualified(1, fallibilism) + qualified(1, pil_rise)
+  retaining unfinished;
+
+# Amendment 2, the attested record: a case from use, recorded with the question
+# it raises. It withdraws nothing, so version 1.1 keeps its grounds.
+on case_attested_record when observed(attested_record) reject "Amendment 2 is already recorded.";
+on case_attested_record reveal attested_record supports caveatism_is_corrigible;
+on case_attested_record when committed(canon) and not reopened(canon)
+  reopen canon because attested_record;
+
+on freeze_v1_2 when history_count(canon) < 2 reject "Freeze version 1.1 first.";
+on freeze_v1_2 when not reopened(canon) reject "Nothing to amend: reopen the frozen version with evidence first.";
+on freeze_v1_2 commit canon because enough
+  using qualified(1, character_lab) + qualified(1, misidentification) + qualified(1, definition_drift)
+      + qualified(1, eternal_flame) + qualified(1, fallibilism) + qualified(1, pil_rise)
+      + qualified(1, attested_record)
   retaining unfinished;
 
 # The Archive Rule and the methodological note.

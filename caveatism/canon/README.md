@@ -27,9 +27,9 @@ npx --no-install caveat-lang explain archive.cav archive.events.jsonl
 npx --no-install caveat-lang dependents archive.cav could_be_right archive.events.jsonl
 ```
 
-`explain` prints each version with what it rests on, that `could_be_right` was withdrawn at event 10 because of `pil_rise`, and that version 1.0 kept its grounds while version 1.1 rests on the amendment instead. `dependents` answers "There is always another caveat — does it matter?" for one withdrawn line: it lists the version that rested on it, the one that could have been influenced by it, and every displayed value that cites it.
+`explain` prints each version with what it rests on, that `could_be_right` was withdrawn at event 10 because of `pil_rise`, that version 1.0 kept its grounds while version 1.1 rests on the amendment instead, and that Amendment 2 reopened version 1.1 without withdrawing anything, so version 1.2 rests on version 1.1's grounds plus `attested_record`. `dependents` answers "There is always another caveat — does it matter?" for one withdrawn line: it lists the version that rested on it, the one that could have been influenced by it, and every displayed value that cites it.
 
-Verified on `caveat-lang@0.1.0-rc.11`: loads, `check` reports no warnings, all seven scenarios pass including two save/restore cycles.
+Verified on `caveat-lang@0.1.0-rc.13`: loads, `check` reports no warnings, all eight scenarios pass including two save/restore cycles.
 
 ## The scenarios are the rules
 
@@ -40,6 +40,7 @@ Verified on `caveat-lang@0.1.0-rc.11`: loads, `check` reports no warnings, all s
 - A05 — the Archive Rule: redefining, erasing and absorbing are refused and leave nothing behind.
 - A06 — versions come in order.
 - A07 — a restored archive is the archive that was saved.
+- A08 — Amendment 2 reopens the frozen version without withdrawing anything; version 1.1 keeps its grounds and version 1.2 rests on the attested record.
 
 ## Amending the canon
 
