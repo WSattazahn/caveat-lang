@@ -272,7 +272,7 @@ async function validateProgram(options) {
     `${path.basename(program)} loads.`,
     `  events: ${joined(result.events.map(event => (event.parameters?.length
       ? `${event.name} (${event.parameters.map(describeParameter).join(', ')})` : event.name)))}`,
-    `  reading streams: ${joined(Object.entries(result.reading_streams).map(([name, stream]) => `${name} from ${stream.from}, limit ${stream.limit}`))}`,
+    `  reading streams: ${joined(Object.entries(result.reading_streams).map(([name, stream]) => `${name} from ${stream.from}, ${stream.window ? 'window' : 'limit'} ${stream.limit}`))}`,
     `  decision series: ${joined(Object.entries(result.decision_series).map(([name, series]) => `${name}, limit ${series.limit}`))}`,
     `  displayed: ${joined(result.displayed)}`,
   ].join('\n'));

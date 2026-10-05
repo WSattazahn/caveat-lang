@@ -78,6 +78,10 @@ pub struct ReactiveSave {
     pub predicate_qualifications: BTreeMap<String, BTreeMap<String, Compact>>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub decision_journal: Vec<JournalEntry>,
+    /// Retired records of windowed histories, with the sequence of the event
+    /// that retired each. See spec/caveat-windows-0.1.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub retired: BTreeMap<String, u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resources: Option<SavedResources>,
     /// The last event's effects and cues, so the view is the same after resuming.
@@ -348,6 +352,7 @@ fn effect_kind(effect: &EffectReport) -> &'static str {
         EffectReport::Qualify { .. } => "qualify",
         EffectReport::Renew { .. } => "renew",
         EffectReport::Withdraw { .. } => "withdraw",
+        EffectReport::Retire { .. } => "retire",
     }
 }
 
@@ -464,6 +469,7 @@ impl ReactiveSession {
                 .map(|(kind, targets)| (kind.clone(), compact_map(targets)))
                 .collect(),
             decision_journal: (*self.journal).clone(),
+            retired: (*self.retired).clone(),
             resources: self.resources.as_ref().map(|ledger| SavedResources {
                 remaining: ledger.remaining,
                 spent: ledger.spent,
@@ -543,9 +549,141 @@ impl ReactiveSession {
         self.restore_withdrawals(save, &observed)?;
         self.restore_states(&save.states, &observed, &caveats)?;
         self.restore_records(save, &observed, &caveats, &declared)?;
+        self.restore_retired(save)?;
         self.restore_permissions(save)?;
         self.evaluate_bindings(None)
             .map_err(|error| error.to_string())
+    }
+
+    /// The windowed history a retired record belongs to, as the save holds
+    /// it, or None.
+    fn history_of_record(&self, save: &ReactiveSave, record: &str) -> Option<String> {
+        // A stream or renewable may be named `journal` when the program has
+        // no journal window; load refuses a windowed one beside it.
+        if let Some(index) = record
+            .strip_prefix("journal@")
+            .filter(|_| self.journal_window.is_some())
+        {
+            let index: usize = index.parse().ok()?;
+            return (index >= 1
+                && index.to_string() == record["journal@".len()..]
+                && index <= save.decision_journal.len())
+            .then(|| "journal".to_string());
+        }
+        let base = occurrence_parts(record).map_or(record, |(base, _)| base);
+        if !self.windows.contains(base) {
+            return None;
+        }
+        let held = if let Some(stream) = save.reading_streams.get(base) {
+            stream
+                .occurrences
+                .iter()
+                .any(|occurrence| occurrence.id == record)
+        } else if self.renewals.contains_key(base) {
+            record == base
+                || save
+                    .renewals
+                    .get(base)
+                    .is_some_and(|occurrences| occurrences.iter().any(|name| name == record))
+        } else {
+            false
+        };
+        held.then(|| base.to_string())
+    }
+
+    /// The `retired` map: see spec/caveat-windows-0.1.md, "Save and restore".
+    fn restore_retired(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        let added = |record: &str| -> u64 {
+            if let Some(index) = record
+                .strip_prefix("journal@")
+                .filter(|_| self.journal_window.is_some())
+            {
+                let index: usize = index.parse().unwrap_or(0);
+                return save.decision_journal[index - 1].sequence;
+            }
+            let base = occurrence_parts(record).map_or(record, |(base, _)| base);
+            if let Some(stream) = save.reading_streams.get(base) {
+                if let Some(occurrence) = stream.occurrences.iter().find(|o| o.id == record) {
+                    return occurrence.sequence;
+                }
+            }
+            0
+        };
+        for (record, at) in &save.retired {
+            if self.history_of_record(save, record).is_none() {
+                return Err(format!(
+                    "retired {record} is no record of a windowed history it holds"
+                ));
+            }
+            if *at == 0 || *at > save.sequence || *at < added(record) {
+                return Err(format!("retired {record} is out of sequence"));
+            }
+        }
+        // Each windowed history's live records are exactly its newest
+        // min(N, total): the retired ones a prefix, retired oldest first.
+        let check = |history: &str, records: Vec<String>, window: usize| -> Result<(), String> {
+            let retired = records
+                .iter()
+                .take_while(|record| save.retired.contains_key(*record))
+                .count();
+            let live = records.len() - retired;
+            if records[retired..]
+                .iter()
+                .any(|record| save.retired.contains_key(record))
+                || live != records.len().min(window)
+            {
+                return Err(format!(
+                    "{history} does not keep exactly its newest {window} records live"
+                ));
+            }
+            if records[..retired]
+                .windows(2)
+                .any(|pair| save.retired[&pair[0]] > save.retired[&pair[1]])
+            {
+                return Err(format!(
+                    "{history} retired a newer record before an older one"
+                ));
+            }
+            Ok(())
+        };
+        for name in self.windows.iter() {
+            if let Some(stream) = save.reading_streams.get(name) {
+                let records = stream.occurrences.iter().map(|o| o.id.clone()).collect();
+                check(name, records, stream.limit)?;
+            } else if let Some(renewal) = self.renewals.get(name) {
+                let records = save
+                    .renewals
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| vec![name.clone()]);
+                check(name, records, renewal.limit)?;
+            }
+        }
+        if let Some(window) = self.journal_window {
+            let records = (1..=save.decision_journal.len())
+                .map(|index| format!("journal@{index}"))
+                .collect();
+            check("journal", records, window)?;
+        }
+        // No reopening after a record retired names it as its reason. A later
+        // basis may still hold it through one that already cites it, such as
+        // a predecessor's (Reactive 0.5).
+        for entry in save
+            .decision_journal
+            .iter()
+            .filter(|entry| entry.change == "reopened")
+        {
+            for (record, at) in &save.retired {
+                if entry.sequence > *at && entry.because.iter().any(|name| name == record) {
+                    return Err(format!(
+                        "{} {} after {record} retired reads it",
+                        entry.commitment, entry.change
+                    ));
+                }
+            }
+        }
+        self.retired = Arc::new(save.retired.clone());
+        Ok(())
     }
 
     /// Withdrawals must agree with the program and with the restored graph:
@@ -1488,9 +1626,14 @@ impl ReactiveSession {
         }
         for (name, stream) in &save.reading_streams {
             let declared = &self.reading_streams[name];
+            let capacity = if self.windows.contains(name) {
+                MAX_WINDOWED_RECORDS
+            } else {
+                stream.limit
+            };
             if stream.template != declared.template
                 || stream.limit != declared.limit
-                || stream.occurrences.len() > stream.limit
+                || stream.occurrences.len() > capacity
             {
                 return Err(format!("reading stream {name} does not match the program"));
             }
@@ -1533,8 +1676,12 @@ impl ReactiveSession {
             return Err("its decision series are not this program's".into());
         }
         for (name, series) in &save.decision_series {
-            if series.limit != self.decision_series[name].limit
-                || series.revisions.len() > series.limit
+            let capacity = if self.windows.contains(name) {
+                MAX_WINDOWED_RECORDS
+            } else {
+                series.limit
+            };
+            if series.limit != self.decision_series[name].limit || series.revisions.len() > capacity
             {
                 return Err(format!("decision series {name} does not match the program"));
             }
@@ -1561,7 +1708,12 @@ impl ReactiveSession {
                 .renewals
                 .get(name)
                 .ok_or_else(|| format!("{name} is not renewable"))?;
-            if occurrences.first() != Some(name) || occurrences.len() > declared.limit {
+            let capacity = if self.windows.contains(name) {
+                MAX_WINDOWED_RECORDS
+            } else {
+                declared.limit
+            };
+            if occurrences.first() != Some(name) || occurrences.len() > capacity {
                 return Err(format!(
                     "renewable {name} occurrences do not match the program"
                 ));
@@ -1859,6 +2011,8 @@ impl ReactiveSession {
                 EffectReport::Qualify { evidence, caveat } => vec![evidence, caveat],
                 EffectReport::Renew { occurrence, .. } => vec![occurrence],
                 EffectReport::Withdraw { evidence, because } => vec![evidence, because],
+                // A journal entry is no symbol; checked against the save below.
+                EffectReport::Retire { .. } => Vec::new(),
             };
             if let Some(name) = names
                 .into_iter()
@@ -2290,6 +2444,13 @@ impl ReactiveSession {
                     return Err(fail("has no matching withdrawal record"));
                 }
             }
+            EffectReport::Retire { history, record } => {
+                if save.retired.get(record) != Some(&save.sequence)
+                    || self.history_of_record(save, record).as_deref() != Some(history.as_str())
+                {
+                    return Err(fail("names no record the last event retired"));
+                }
+            }
         }
         Ok(())
     }
@@ -2412,6 +2573,21 @@ impl ReactiveSession {
                     because: reason,
                 },
             ) => selects(evidence, target) && named(because, reason),
+            // A journal entry retires when a commit or reopen adds one past
+            // `journal window N`; a record when its history adds one.
+            (EffectReport::Retire { history, .. }, _) if history == "journal" => {
+                self.journal_window.is_some()
+                    && matches!(
+                        rule,
+                        Effect::Commit { .. } | Effect::Reopen { .. } | Effect::Sample { .. }
+                    )
+            }
+            (EffectReport::Retire { history, .. }, Effect::Sample { stream, .. }) => {
+                history == stream
+            }
+            (EffectReport::Retire { history, .. }, Effect::Renew { evidence }) => {
+                history == evidence
+            }
             _ => false,
         }) || matches!(effect, EffectReport::Qualify { evidence, caveat }
         if last_event.is_some() && last_event == self.time_event.as_deref()

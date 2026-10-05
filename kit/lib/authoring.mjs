@@ -90,11 +90,13 @@ export function validateAuthoringArguments(toolName, args) {
 
 // Same declaration projection as the validate CLI; no language interpretation.
 export function describeValidation(snapshot, program = 'inline.cav') {
+  // A windowed history's limit is its window (spec/caveat-windows-0.1.md).
+  const windowed = name => (snapshot.windows?.includes(name) ? { window: true } : {});
   return {
     schema: 'caveat-validate/0.1', program, loads: true,
     events: snapshot.events ?? [],
     reading_streams: Object.fromEntries(Object.entries(snapshot.reading_streams ?? {})
-      .map(([name, stream]) => [name, { from: stream.template, limit: stream.limit }])),
+      .map(([name, stream]) => [name, { from: stream.template, limit: stream.limit, ...windowed(name) }])),
     decision_series: Object.fromEntries(Object.entries(snapshot.decision_series ?? {})
       .map(([name, series]) => [name, { limit: series.limit }])),
     displayed: Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>

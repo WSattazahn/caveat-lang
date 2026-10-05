@@ -189,3 +189,31 @@ test('a permission is shown as what permitted a decision, apart from what it res
   }
   assert.deepEqual(dependents(snapshot, 'checks@1').decisions.map(item => item.basis), ['grounds']);
 });
+
+// A retired record is shown as it was, with the sequence at which it retired,
+// and dependents lists what still cites it (spec/caveat-windows-0.1.md).
+test('explain and dependents show retired records', async () => {
+  const { dependents, formatDependents } = await import('../lib/explain.mjs');
+  const source = `claim seen; evidence glimpse from "a glimpse";
+    readings sighting from glimpse window 2; decisions trust limit 4; journal window 2;
+    event look; event decide;
+    on look sample sighting = 1 supports seen;
+    on decide when committed(trust) reopen trust because latest(sighting);
+    on decide commit trust because enough using history_count(sighting);`;
+  const session = real.open(source);
+  for (const event of ['look', 'decide', 'look', 'look', 'decide']) session.dispatch(event, {});
+  const snapshot = session.snapshot();
+  session.close();
+  assert.deepEqual(snapshot.retired, { 'sighting@1': 4, 'journal@1': 5 });
+  assert.deepEqual(snapshot.windows, ['journal', 'sighting']);
+  const report = explain(snapshot);
+  assert.equal(report.evidence.find(item => item.id === 'sighting@1').retired_at, 4);
+  assert.equal(report.evidence.find(item => item.id === 'sighting@3').retired_at, undefined);
+  const text = formatExplanation(report);
+  assert.match(text, /sighting@1 = 1 supports seen {2}\(#1 look\) {2}retired at #4/);
+  const rests = dependents(snapshot, 'sighting');
+  assert.deepEqual(rests.retired, [{ record: 'sighting@1', sequence: 4 }]);
+  assert.ok(rests.decisions.some(item => item.id === 'trust@1' && item.via.includes('sighting@1')),
+    'the retired revision still rests on the retired reading');
+  assert.match(formatDependents(rests), /Retired\n {2}sighting@1 retired at #4/);
+});

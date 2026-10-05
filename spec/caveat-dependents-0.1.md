@@ -59,6 +59,16 @@ reports that omit these additive fields. An empty array means no matching
 withdrawal was recorded; it does not authenticate evidence or grant permission
 for an external action.
 
+## Retirement information
+
+A program with a [window](caveat-windows-0.1.md) adds one more additive
+field. Top-level `retired` lists the retired records the subject stands for,
+as `{ record, sequence }` in the snapshot's order, and is absent when there
+are none. What still cites a retired record is reported as before, and that
+answers why the record is still held. The human report prints a `Retired`
+section first. `explain` gives a retired observation `retired_at`, the
+sequence at which it retired.
+
 See [Withdrawal](caveat-withdrawal-0.1.md),
 [Permission](caveat-permission-0.1.md), and
 [Grounds](caveat-explanations-0.2.md) for the underlying contracts.

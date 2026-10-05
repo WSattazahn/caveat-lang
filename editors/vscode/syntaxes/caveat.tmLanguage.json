@@ -1063,6 +1063,14 @@
         {
           "name": "keyword.other.caveat",
           "match": "(?<=\\d[ \\t])integer\\b(?=\\s*;)"
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])window\\b(?=[ \\t]+\\d)"
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<![.\\w$])journal\\b(?=[ \\t]+window[ \\t]+\\d)"
         }
       ]
     },

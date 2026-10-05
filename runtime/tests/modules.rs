@@ -1464,6 +1464,33 @@ fn an_integer_clock_keyword_survives_a_module_that_declares_its_name() {
     assert!(source.contains("claim m__integer;"), "{source}");
 }
 
+#[test]
+fn a_window_keyword_survives_a_module_that_declares_its_name() {
+    // `window` and `journal window` joined the history declarations in rc.15
+    // (spec/caveat-windows-0.1.md). A module may name a history `window` or
+    // `journal` and keep every window.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim seen;\n\
+             evidence glimpse from \"a glimpse\";\n\
+             evidence journal from \"a diary\";\n\
+             readings window from glimpse window 3;\n\
+             renewable journal window 2;\n\
+             journal window 4;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    for expected in [
+        "readings m__window from m__glimpse window 3;",
+        "renewable m__journal window 2;",
+        "journal window 4;",
+    ] {
+        assert!(source.contains(expected), "{expected}: {source}");
+    }
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
@@ -1575,7 +1602,9 @@ fn grammar_keywords() -> std::collections::BTreeSet<String> {
 /// name, because a module may legitimately declare them too — `min` and `max`
 /// are also prelude functions, and nothing stops a module claiming `every` or
 /// `reset`. Each is covered by a test above.
-const POSITIONAL: &[&str] = &["min", "max", "every", "integer", "reset"];
+const POSITIONAL: &[&str] = &[
+    "min", "max", "every", "integer", "reset", "window", "journal",
+];
 
 /// Words that only ever appear in a statement a module may not contain —
 /// actions, choices, investigations and the executing statements draft 0.5

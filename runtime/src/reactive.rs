@@ -28,6 +28,9 @@ const MAX_PROCEDURE_STEPS: usize = 4096;
 const MAX_PROCEDURE_DEPTH: usize = 64;
 const MAX_EVENT_STEPS: usize = 4096;
 const MAX_RENEWAL_LIMIT: usize = 1024;
+/// The records a windowed history holds, live and retired, until departure.
+/// See spec/caveat-windows-0.1.md.
+pub(crate) const MAX_WINDOWED_RECORDS: usize = 65_536;
 const MAX_SCHEDULED_QUALIFICATIONS: usize = 4096;
 /// `carries(EVIDENCE, CAVEAT)` is a predicate on EVIDENCE named with this
 /// prefix and the caveat, so it travels through every predicate path.
@@ -438,6 +441,8 @@ pub enum Directive {
         name: String,
         template: String,
         limit: usize,
+        /// `window N` in place of `limit N`: spec/caveat-windows-0.1.md.
+        window: bool,
     },
     Decisions {
         name: String,
@@ -445,9 +450,14 @@ pub enum Directive {
         /// `reopened by …`. See spec/caveat-reopening-triggers-0.1.md.
         triggers: Vec<ReopeningTrigger>,
     },
-    /// `renewable EVIDENCE limit N;`
+    /// `renewable EVIDENCE limit N;` or `renewable EVIDENCE window N;`
     Renewable {
         evidence: String,
+        limit: usize,
+        window: bool,
+    },
+    /// `journal window N;`
+    JournalWindow {
         limit: usize,
     },
     /// `identifiers limit N;`
@@ -969,7 +979,8 @@ impl Changes {
             || !same(&old.commitment_grounds, &new.commitment_grounds)
             || !same(&old.reading_streams, &new.reading_streams)
             || !same(&old.decision_series, &new.decision_series)
-            || !same(&old.renewals, &new.renewals);
+            || !same(&old.renewals, &new.renewals)
+            || !same(&old.retired, &new.retired);
         Self {
             names,
             graph,
@@ -1026,6 +1037,12 @@ pub enum EffectReport {
     Withdraw {
         evidence: String,
         because: String,
+    },
+    /// The oldest live record of a windowed history left the live graph.
+    /// See spec/caveat-windows-0.1.md.
+    Retire {
+        history: String,
+        record: String,
     },
 }
 
@@ -1181,6 +1198,14 @@ pub struct ReactiveSnapshot {
     /// caveats, without its guard or a predecessor's basis.
     pub commitment_grounds: BTreeMap<String, Provenance>,
     pub decision_journal: Vec<JournalEntry>,
+    /// Each retired record of a windowed history, with the sequence of the
+    /// event that retired it. See spec/caveat-windows-0.1.md.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub retired: BTreeMap<String, u64>,
+    /// The histories declared with a window, `journal` for `journal window`;
+    /// their `limit` is the window. Absent when none is.
+    #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+    pub windows: BTreeSet<String>,
     pub cues: Vec<Cue>,
     pub cue_qualifications: Vec<Provenance>,
     pub controls: BTreeMap<String, Control>,
@@ -1257,6 +1282,13 @@ pub struct ReactiveSession {
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
     commitment_grounds: Arc<BTreeMap<String, Provenance>>,
     journal: Arc<Vec<JournalEntry>>,
+    /// The histories declared with `window N` instead of `limit N`, and the
+    /// journal's window. Fixed at load. See spec/caveat-windows-0.1.md.
+    windows: Arc<BTreeSet<String>>,
+    journal_window: Option<usize>,
+    /// Each retired record, with the sequence of the event that retired it.
+    /// A journal entry is named `journal@K`, K counting from 1.
+    retired: Arc<BTreeMap<String, u64>>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -1428,6 +1460,9 @@ impl ReactiveSession {
             binding_explanations: BTreeMap::new(),
             commitment_grounds: Arc::default(),
             journal: Arc::default(),
+            windows: Arc::default(),
+            journal_window: None,
+            retired: Arc::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -1477,15 +1512,24 @@ impl ReactiveSession {
         }
         let mut history_capacity = 0_usize;
         for directive in &directives {
-            let (name, limit) = match directive {
-                Directive::Readings { name, limit, .. }
-                | Directive::Decisions { name, limit, .. } => (name, *limit),
+            let (name, limit, window) = match directive {
+                Directive::Readings {
+                    name,
+                    limit,
+                    window,
+                    ..
+                } => (name, *limit, *window),
+                Directive::Decisions { name, limit, .. } => (name, *limit, false),
                 _ => continue,
             };
             if limit == 0 || limit > MAX_HISTORY_LIMIT {
+                let clause = if window { "window" } else { "limit" };
                 return Err(format!(
-                    "history {name} limit must be in 1..{MAX_HISTORY_LIMIT}"
+                    "history {name} {clause} must be in 1..{MAX_HISTORY_LIMIT}"
                 ));
+            }
+            if window {
+                Arc::make_mut(&mut session.windows).insert(name.clone());
             }
             history_capacity += limit;
             if history_capacity > MAX_DECLARED_HISTORY_CAPACITY {
@@ -1551,9 +1595,29 @@ impl ReactiveSession {
                 | Directive::Readings { .. }
                 | Directive::Decisions { .. }
                 | Directive::Identifiers { .. } => {}
-                Directive::Renewable { evidence, limit } => {
+                Directive::JournalWindow { limit } => {
+                    if session.journal_window.is_some() {
+                        return Err("duplicate journal window".into());
+                    }
+                    if *limit == 0 || *limit > MAX_HISTORY_LIMIT {
+                        return Err(format!("journal window must be in 1..{MAX_HISTORY_LIMIT}"));
+                    }
+                    session.journal_window = Some(*limit);
+                }
+                Directive::Renewable {
+                    evidence,
+                    limit,
+                    window,
+                } => {
                     session.require_kind(evidence, "evidence")?;
-                    if *limit == 0 || *limit > MAX_RENEWAL_LIMIT {
+                    if *window {
+                        if *limit == 0 || *limit > MAX_HISTORY_LIMIT {
+                            return Err(format!(
+                                "renewable {evidence} window must be in 1..{MAX_HISTORY_LIMIT}"
+                            ));
+                        }
+                        Arc::make_mut(&mut session.windows).insert(evidence.clone());
+                    } else if *limit == 0 || *limit > MAX_RENEWAL_LIMIT {
                         return Err(format!(
                             "renewable {evidence} limit must be in 1..{MAX_RENEWAL_LIMIT}"
                         ));
@@ -1830,6 +1894,13 @@ impl ReactiveSession {
         session.validate_procedures()?;
         session.specialize_procedures()?;
         session.declare_withdrawal_caveat()?;
+        // A retirement names its history; `journal` names the journal's.
+        if session.journal_window.is_some() && session.windows.contains("journal") {
+            return Err(
+                "a windowed history named journal cannot share a program with journal window"
+                    .into(),
+            );
+        }
         for (series, triggers, _) in &declared_triggers {
             for trigger in triggers {
                 session
@@ -2910,15 +2981,16 @@ impl ReactiveSession {
         // Indexed reads retain the selected record plus current selection guards.
         if let Some(stream) = self.reading_streams.get(name) {
             let mut provenance = stream.selection_qualifications.clone();
+            let live = &stream.occurrences[self.live_start(&stream.occurrences, |r| &r.id)..];
             let value = match query {
                 HistoryRead::Count => {
-                    for record in &stream.occurrences {
+                    for record in live {
                         provenance.merge(&record.provenance)?;
                     }
-                    stream.occurrences.len() as f64
+                    live.len() as f64
                 }
                 HistoryRead::At(index) => {
-                    let record = stream.occurrences.get(index).ok_or_else(|| {
+                    let record = live.get(index).ok_or_else(|| {
                         EvalError::new(
                             EvalFailure::HistoryIndex,
                             format!("history index {index} is out of range for {name}"),
@@ -2936,15 +3008,16 @@ impl ReactiveSession {
         }
         if let Some(series) = self.decision_series.get(name) {
             let mut provenance = series.selection_qualifications.clone();
+            let live = &series.revisions[self.live_start(&series.revisions, |r| &r.id)..];
             let value = match query {
                 HistoryRead::Count => {
-                    for revision in &series.revisions {
+                    for revision in live {
                         provenance.merge(&self.commitment_bases[&revision.id].provenance)?;
                     }
-                    series.revisions.len() as f64
+                    live.len() as f64
                 }
                 HistoryRead::At(index) => {
-                    let revision = series.revisions.get(index).ok_or_else(|| {
+                    let revision = live.get(index).ok_or_else(|| {
                         EvalError::new(
                             EvalFailure::HistoryIndex,
                             format!("history index {index} is out of range for {name}"),
@@ -3700,8 +3773,10 @@ impl ReactiveSession {
             };
         };
         Ok(match kind {
+            // Retired evidence has left the live graph (spec/caveat-windows-0.1.md).
             "observed" => {
                 matches!(self.graph.nodes.get(id), Some(NodeKind::Evidence { .. }))
+                    && !self.is_retired(name)
                     && (self.observations.iter().any(|observed| observed == name)
                         || self.graph.edges.iter().any(|edge| {
                             edge.from == *id
@@ -3858,7 +3933,9 @@ impl ReactiveSession {
     /// guard that revealed the evidence.
     fn qualify_core(&self, evidence: &str, extras: &[String]) -> Result<Provenance, String> {
         self.require_kind(evidence, "evidence")?;
-        if !self.predicate("observed", evidence)? {
+        // Retired evidence was observed when it was cited; what cites it
+        // still carries it.
+        if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
             return Err(format!(
                 "cannot qualify a value with unobserved evidence {evidence}"
             ));
@@ -4081,17 +4158,9 @@ impl ReactiveSession {
                 relation,
                 claim,
             } => {
+                self.history_room(stream)?;
+                self.retire_oldest(stream);
                 let readings = &self.reading_streams[stream];
-                if readings.occurrences.len() >= readings.limit {
-                    return Err(DispatchFailure::rejected(
-                        RejectionOrigin::Limit,
-                        RejectionCode::HistoryLimit,
-                        format!(
-                            "reading stream {stream} reached its history limit {}",
-                            readings.limit
-                        ),
-                    ));
-                }
                 let ordinal = readings.occurrences.len() as u64 + 1;
                 let name = format!("{stream}@{ordinal}");
                 if self.symbols.contains_key(&name) {
@@ -4264,14 +4333,9 @@ impl ReactiveSession {
                 }
             }
             Effect::Renew { evidence } => {
+                self.history_room(evidence)?;
+                self.retire_oldest(evidence);
                 let renewal = &self.renewals[evidence];
-                if renewal.occurrences.len() >= renewal.limit {
-                    return Err(DispatchFailure::rejected(
-                        RejectionOrigin::Limit,
-                        RejectionCode::RenewalLimit,
-                        format!("renewable {evidence} reached its limit {}", renewal.limit),
-                    ));
-                }
                 let ordinal = renewal.occurrences.len() + 1;
                 let name = format!("{evidence}@{ordinal}");
                 if self.symbols.contains_key(&name) {
@@ -4446,16 +4510,7 @@ impl ReactiveSession {
                 let mut provenance = guard.clone();
                 let mut ordinal = None;
                 if let Some(series) = self.decision_series.get(action) {
-                    if series.revisions.len() >= series.limit {
-                        return Err(DispatchFailure::rejected(
-                            RejectionOrigin::Limit,
-                            RejectionCode::HistoryLimit,
-                            format!(
-                                "decision series {action} reached its history limit {}",
-                                series.limit
-                            ),
-                        ));
-                    }
+                    self.history_room(action)?;
                     ordinal = Some(series.revisions.len() as u64 + 1);
                     if previous.is_some() {
                         let reopened = self.predicate_tracked("reopened", action)?;
@@ -4505,6 +4560,7 @@ impl ReactiveSession {
                 };
                 Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
+
                 let mut retained_names = retaining.clone();
                 for caveat in &provenance.caveats {
                     self.require_kind(caveat, "caveat")?;
@@ -4525,7 +4581,9 @@ impl ReactiveSession {
                 Arc::make_mut(&mut self.symbols).insert(name.clone(), id);
                 for evidence in &provenance.evidence {
                     self.require_kind(evidence, "evidence")?;
-                    if !self.predicate("observed", evidence)? {
+                    // A retired record reaches a new basis only through one
+                    // that already cites it, such as the predecessor's.
+                    if !self.is_retired(evidence) && !self.predicate("observed", evidence)? {
                         return Err(format!(
                             "commitment basis includes unobserved evidence {evidence}"
                         )
@@ -4578,6 +4636,7 @@ impl ReactiveSession {
                     caveats: grounds.caveats.iter().cloned().collect(),
                     permitted_by: permission.map(|record| record.grant),
                 };
+                self.retire_journal_entry();
                 Arc::make_mut(&mut self.journal).push(entry);
                 self.effects.push(EffectReport::Commit {
                     action: name,
@@ -4674,6 +4733,8 @@ impl ReactiveSession {
                         .entry(current.clone())
                         .or_default()
                         .merge(&basis)?;
+                    // Reported before the reopen that adds the entry.
+                    self.retire_journal_entry();
                     let mut caveats = BTreeSet::new();
                     for evidence in &because {
                         caveats.extend(self.qualify_core(evidence, &[])?.caveats);
@@ -4965,6 +5026,120 @@ impl ReactiveSession {
             .find(|withdrawal| withdrawal.evidence == evidence)
     }
 
+    /// Whether a record of a windowed history has retired.
+    pub(crate) fn is_retired(&self, record: &str) -> bool {
+        self.retired.contains_key(record)
+    }
+
+    /// The index of a history's oldest live record. Retirement always takes
+    /// the oldest live record, so the retired records are a prefix.
+    fn live_start<T>(&self, records: &[T], id: impl Fn(&T) -> &str) -> usize {
+        if self.retired.is_empty() {
+            return 0;
+        }
+        records.partition_point(|record| self.retired.contains_key(id(record)))
+    }
+
+    /// The record to retire before one more is added to a full window.
+    fn oldest_live_beyond_window<T>(
+        &self,
+        records: &[T],
+        id: impl Fn(&T) -> &str,
+        window: usize,
+    ) -> Option<String> {
+        let start = self.live_start(records, &id);
+        (records.len() - start >= window).then(|| id(&records[start]).to_string())
+    }
+
+    /// Room for one more record of a history: a full history without a window
+    /// refuses; a windowed one refuses only past `MAX_WINDOWED_RECORDS`
+    /// records, live and retired. Out of line, because `apply_effect` recurses
+    /// through procedures and its frame bounds their depth.
+    #[inline(never)]
+    fn history_room(&self, history: &str) -> Result<(), DispatchFailure> {
+        let windowed = self.windows.contains(history);
+        let (held, limit, code, refusal) = if let Some(stream) = self.reading_streams.get(history) {
+            let limit = stream.limit;
+            (
+                stream.occurrences.len(),
+                limit,
+                RejectionCode::HistoryLimit,
+                format!("reading stream {history} reached its history limit {limit}"),
+            )
+        } else if let Some(series) = self.decision_series.get(history) {
+            let limit = series.limit;
+            (
+                series.revisions.len(),
+                limit,
+                RejectionCode::HistoryLimit,
+                format!("decision series {history} reached its history limit {limit}"),
+            )
+        } else {
+            let renewal = &self.renewals[history];
+            let limit = renewal.limit;
+            (
+                renewal.occurrences.len(),
+                limit,
+                RejectionCode::RenewalLimit,
+                format!("renewable {history} reached its limit {limit}"),
+            )
+        };
+        if windowed && held >= MAX_WINDOWED_RECORDS {
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Limit,
+                code,
+                format!("{history} holds its {MAX_WINDOWED_RECORDS} records, live and retired"),
+            ));
+        }
+        if !windowed && held >= limit {
+            return Err(DispatchFailure::rejected(
+                RejectionOrigin::Limit,
+                code,
+                refusal,
+            ));
+        }
+        Ok(())
+    }
+
+    /// Before a windowed history adds a record, retire its oldest live one if
+    /// the window is full. A history without a window retires nothing.
+    #[inline(never)]
+    fn retire_oldest(&mut self, history: &str) {
+        if !self.windows.contains(history) {
+            return;
+        }
+        let oldest = if let Some(stream) = self.reading_streams.get(history) {
+            self.oldest_live_beyond_window(&stream.occurrences, |record| &record.id, stream.limit)
+        } else {
+            let renewal = &self.renewals[history];
+            self.oldest_live_beyond_window(&renewal.occurrences, String::as_str, renewal.limit)
+        };
+        if let Some(oldest) = oldest {
+            self.retire(history, oldest);
+        }
+    }
+
+    fn retire(&mut self, history: &str, record: String) {
+        Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
+        self.effects.push(EffectReport::Retire {
+            history: history.to_string(),
+            record,
+        });
+    }
+
+    /// Before a journal entry is added under `journal window N`.
+    fn retire_journal_entry(&mut self) {
+        let Some(window) = self.journal_window else {
+            return;
+        };
+        let names = (1..=self.journal.len())
+            .map(|index| format!("journal@{index}"))
+            .collect::<Vec<_>>();
+        if let Some(oldest) = self.oldest_live_beyond_window(&names, String::as_str, window) {
+            self.retire("journal", oldest);
+        }
+    }
+
     /// A value newly read from history carries `withdrawn` if what it rests on
     /// has since been withdrawn. The record itself is unchanged.
     fn with_current_withdrawals(&self, mut provenance: Provenance) -> Result<Provenance, String> {
@@ -5111,6 +5286,13 @@ impl ReactiveSession {
             value_grounds: self.states.grounds(),
             commitment_grounds: (*self.commitment_grounds).clone(),
             decision_journal: (*self.journal).clone(),
+            retired: (*self.retired).clone(),
+            windows: self
+                .windows
+                .iter()
+                .cloned()
+                .chain(self.journal_window.map(|_| "journal".to_string()))
+                .collect(),
             elapsed: self.elapsed,
             renewals: (*self.renewals).clone(),
             observations: (*self.observations).clone(),
@@ -5433,34 +5615,50 @@ pub(crate) fn parse_directive_at(
             | "readings"
             | "decisions"
             | "renewable"
+            | "journal"
             | "identifiers"
             | "proc"
             | "define"
     ) {
         return None;
     }
-    Some((|| match keyword {
+    Some((|| {
+        match keyword {
         "proc" => parse_procedure(line, position),
         "define" => parse_define(line),
         "fn" => parse_function(line),
         "readings" => match words.as_slice() {
-            ["readings", name, "from", template, "limit", limit] => Ok(Directive::Readings {
-                name: identifier(name)?,
-                template: identifier(template)?,
-                limit: limit
-                    .parse()
-                    .map_err(|_| "reading limit must be an unsigned integer")?,
-            }),
-            _ => Err("readings expects NAME from EVIDENCE limit CAPACITY".into()),
+            ["readings", name, "from", template, clause @ ("limit" | "window"), limit] => {
+                Ok(Directive::Readings {
+                    name: identifier(name)?,
+                    template: identifier(template)?,
+                    limit: limit
+                        .parse()
+                        .map_err(|_| format!("reading {clause} must be an unsigned integer"))?,
+                    window: *clause == "window",
+                })
+            }
+            _ => Err("readings expects NAME from EVIDENCE limit CAPACITY or window N".into()),
         },
         "renewable" => match words.as_slice() {
-            ["renewable", evidence, "limit", limit] => Ok(Directive::Renewable {
-                evidence: identifier(evidence)?,
+            ["renewable", evidence, clause @ ("limit" | "window"), limit] => {
+                Ok(Directive::Renewable {
+                    evidence: identifier(evidence)?,
+                    limit: limit
+                        .parse()
+                        .map_err(|_| format!("renewable {clause} must be an unsigned integer"))?,
+                    window: *clause == "window",
+                })
+            }
+            _ => Err("renewable expects EVIDENCE limit CAPACITY or window N".into()),
+        },
+        "journal" => match words.as_slice() {
+            ["journal", "window", limit] => Ok(Directive::JournalWindow {
                 limit: limit
                     .parse()
-                    .map_err(|_| "renewable limit must be an unsigned integer")?,
+                    .map_err(|_| "journal window must be an unsigned integer")?,
             }),
-            _ => Err("renewable expects EVIDENCE limit CAPACITY".into()),
+            _ => Err("journal expects window N".into()),
         },
         "identifiers" => match words.as_slice() {
             ["identifiers", "limit", limit] => Ok(Directive::Identifiers {
@@ -5471,6 +5669,10 @@ pub(crate) fn parse_directive_at(
             _ => Err("identifiers expects limit CAPACITY".into()),
         },
         "decisions" => match words.as_slice() {
+            // spec/caveat-windows-0.1.md, "Decision series: not in rc.15".
+            ["decisions", _, "window", ..] => Err(
+                "a decision series has no window yet: it waits on the revision-lineage rule (spec/caveat-windows-0.1.md)".into(),
+            ),
             ["decisions", name, "limit", limit, rest @ ..] => {
                 let triggers = match rest {
                     [] => Vec::new(),
@@ -5509,7 +5711,7 @@ pub(crate) fn parse_directive_at(
                     name: identifier(name)?,
                     limit: limit
                         .parse()
-                        .map_err(|_| "decision limit must be an unsigned integer")?,
+                        .map_err(|_| "decision limit must be an unsigned integer".to_string())?,
                     triggers,
                 })
             }
@@ -5643,6 +5845,7 @@ pub(crate) fn parse_directive_at(
             }))
         }
         _ => unreachable!(),
+    }
     })())
 }
 
