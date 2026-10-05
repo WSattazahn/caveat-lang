@@ -157,6 +157,15 @@ on decide when not committed(uncover) commit uncover because enough using latest
 const RENEWAL = `claim safe; evidence bite from "a bite"; caveat faded consequence low; renewable bite limit 4;
   event tick dt min 0 max 0.1; event eat; event regrow;
   on eat reveal bite supports safe; on eat qualify bite with faded after 5; on regrow renew bite;`;
+// Windows retire a reading, a revision and a journal entry
+// (spec/caveat-windows-0.1.md).
+const WINDOWED = `claim seen; evidence glimpse from "a glimpse";
+  readings sighting from glimpse window 2; decisions trust limit 8; journal window 1;
+  event look; event decide;
+  on look sample sighting = 1 supports seen;
+  on decide when committed(trust) reopen trust because latest(sighting);
+  on decide commit trust because enough using history_count(sighting);`;
+const WINDOWED_EVENTS = [['look'], ['decide'], ['look'], ['look'], ['decide']];
 
 // Each program with events, and the snapshot after every event.
 function sessionsOf() {
@@ -166,6 +175,8 @@ function sessionsOf() {
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']]],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']]],
     ['evidence memory from "lookup"; event consult; on consult reveal memory;', [['consult']]],
+    [WINDOWED, WINDOWED_EVENTS],
+    // Last: the checks below read its scheduled qualification and renewal.
     [RENEWAL, [['eat'], ['regrow'], ['tick', { dt: 0.1 }]]],
   ];
   const snapshots = [];
@@ -355,6 +366,7 @@ test('snapshot and view types have the fields the runtime serializes', async () 
   assertShape('ReadingOccurrence', snapshots.flatMap(snapshot => Object.values(snapshot.reading_streams).flatMap(stream => stream.occurrences)), { complete: true });
   assertShape('EffectSample', snapshots.flatMap(snapshot => snapshot.effects.filter(effect => effect.kind === 'sample')), { complete: true });
   assertShape('EffectReveal', snapshots.flatMap(snapshot => snapshot.effects.filter(effect => effect.kind === 'reveal')), { complete: true });
+  assertShape('EffectRetire', snapshots.flatMap(snapshot => snapshot.effects.filter(effect => effect.kind === 'retire')), { complete: true });
 });
 
 // The runtime contract is what the library calls on a runtime's module, class
@@ -430,6 +442,7 @@ test('explain, dependents and check reports have the declared fields', () => {
     [thermostat, [['read', { value: 17 }], ['read', { value: 25 }]], 'temperature@1'],
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']], 'approvals'],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
+    [WINDOWED, WINDOWED_EVENTS, 'sighting'],
   ]) {
     const session = real.open(source);
     const sent = events.map(([event, payload]) => {
@@ -455,6 +468,7 @@ test('explain, dependents and check reports have the declared fields', () => {
   assertShape('ExplainEvent', explained.flatMap(report => report.events), { complete: true });
 
   assertShape('DependentsReport', rests, { complete: true });
+  assertShape('RetiredRecord', rests.flatMap(item => item.retired ?? []), { complete: true });
   assertShape('DependentDecision', rests.flatMap(item => item.decisions), { complete: true });
   assertShape('DependentChange', rests.flatMap(item => item.changes), { complete: true });
   assertShape('DependentValue', rests.flatMap(item => item.values), { complete: true });

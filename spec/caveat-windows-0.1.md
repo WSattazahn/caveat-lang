@@ -1,9 +1,7 @@
 # CAVEAT Windows 0.1 — declared windows and retirement
 
-Status: specified for rc.15 (owner decision of 2026-10-04, option A of
-[save forgetting](../docs/design/save-forgetting.md), first half). The runtime
-implements it from rc.15's PR 5; until then a program declaring `window` is
-rejected when it loads. Departure from the session and the host-drained
+Status: implemented in rc.15 (owner decision of 2026-10-04, option A of
+[save forgetting](../docs/design/save-forgetting.md), first half). Departure from the session and the host-drained
 archive (the note's meaning 3) are a separate, later half with their own
 specification; nothing here removes a record from a save.
 
@@ -31,7 +29,9 @@ journal window N;
 `window N` takes the place of `limit N` on a reading stream or renewable
 evidence; a history has a limit or a window, not both. `journal
 window N` is a new top-level declaration for the
-[decision journal](caveat-decision-journal-0.1.md), which has no limit. `N` is
+[decision journal](caveat-decision-journal-0.1.md), which has no limit; a
+program with it may not also give a stream or renewable evidence named
+`journal` a window, since retirement names the journal's history `journal`. `N` is
 an integer in `1..256`. A windowed stream's `N` counts toward the
 1,024 total of reading and decision capacities, as a limit does
 ([Reactive 0.5](caveat-reactive-0.5.md)).
@@ -175,3 +175,6 @@ specified.
   save field; restore checks for retirements. Decision series wait on the
   revision-lineage rule in rc.16. The runtime implements it from rc.15's
   PR 5.
+- 2026-10-05 (rc.15, implemented): the runtime, the kit's `explain` and
+  `dependents` (`retired_at`, and a `retired` list) and the VS Code grammar.
+  `decisions NAME window N` is refused when the program loads.

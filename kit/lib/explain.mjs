@@ -27,6 +27,10 @@ export function explain(snapshot, events = []) {
   // Withdrawn observations (spec/caveat-withdrawal-0.1.md), by evidence.
   const withdrawals = new Map((snapshot.withdrawals ?? []).map(({ evidence, because, sequence, event }) =>
     [evidence, { because, sequence, event }]));
+  // Retired records of windowed histories (spec/caveat-windows-0.1.md): shown
+  // as they were, with the sequence at which they retired.
+  const retired = snapshot.retired ?? {};
+  const retiredAt = id => (Object.hasOwn(retired, id) ? { retired_at: retired[id] } : {});
   const readings = new Map();
   for (const stream of Object.values(snapshot.reading_streams ?? {})) {
     for (const occurrence of stream.occurrences ?? []) readings.set(occurrence.id, occurrence);
@@ -49,6 +53,7 @@ export function explain(snapshot, events = []) {
       value: reading?.value ?? null, sequence: reading?.sequence ?? null, event: reading?.event ?? null,
       caveats: qualifiedBy[relation.from] ?? [],
       withdrawn: withdrawals.get(relation.from) ?? null,
+      ...retiredAt(relation.from),
     };
   });
 
@@ -91,6 +96,7 @@ export function explain(snapshot, events = []) {
 
 const list = values => (values.length ? values.join(', ') : 'nothing');
 const withdrawnNote = ({ sequence, because }) => `withdrawn at #${sequence} because ${because}`;
+const retiredNote = item => (item.retired_at === undefined ? '' : `  retired at #${item.retired_at}`);
 const withCaveats = ({ evidence, caveats }) => `${list(evidence)}${caveats.length ? ` (caveats: ${caveats.join(', ')})` : ''}`;
 const show = value => (typeof value === 'string' ? JSON.stringify(value) : String(value));
 
@@ -141,7 +147,7 @@ export function formatExplanation(report, title = 'the program') {
     const when = item.sequence === null ? '' : `  (#${item.sequence} ${item.event})`;
     const withdrawn = item.withdrawn ? `  ${withdrawnNote(item.withdrawn)}` : '';
     const stance = item.relation === null ? 'observed (no stance)' : `${item.relation} ${item.claim}`;
-    lines.push(`  ${item.id}${value} ${stance}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}${withdrawn}`);
+    lines.push(`  ${item.id}${value} ${stance}${when}${item.caveats.length ? `  caveats: ${item.caveats.join(', ')}` : ''}${withdrawn}${retiredNote(item)}`);
   }
   lines.push('', 'Displayed');
   if (!report.displayed.length) lines.push('  nothing bound');
@@ -239,8 +245,14 @@ export function dependents(snapshot, subject) {
           : snapshot.binding_qualifications?.[target]?.[property]) }] : [];
     }));
 
+  // Retired records the subject stands for: what still cites them is why
+  // they are still here (spec/caveat-windows-0.1.md).
+  const retired = Object.entries(snapshot.retired ?? {})
+    .filter(([record]) => resolved.ids.has(record))
+    .map(([record, sequence]) => ({ record, sequence }));
   return {
     schema: DEPENDENTS_SCHEMA, subject, kind: resolved.kind, sequence: snapshot.sequence,
+    ...(retired.length ? { retired } : {}),
     withdrawals, decisions, changes, values, displayed,
   };
 }
@@ -259,6 +271,7 @@ export function formatDependents(report, title = 'the program', events = 0) {
       for (const withdrawal of item.withdrawn ?? []) lines.push(`    ${withdrawalText(withdrawal)}`);
     }
   };
+  if (report.retired?.length) section('Retired', report.retired, item => `${item.record} retired at #${item.sequence}`);
   if (report.withdrawals?.length) section('Withdrawals', report.withdrawals, withdrawalText);
   section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${through(item.via)}`);
   section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} because ${through(item.via)}`);

@@ -322,6 +322,10 @@ export interface Snapshot {
   value_grounds: Record<string, Provenance>;
   commitment_grounds: Record<string, Provenance>;
   decision_journal: DecisionJournalEntry[];
+  /** Each retired record of a windowed history, with the sequence of the event that retired it; journal entries are `journal@K`. Absent when nothing has retired (spec/caveat-windows-0.1.md). */
+  retired?: Record<string, number>;
+  /** The histories declared with a window, `journal` for `journal window`; their `limit` is the window. Absent when none is. */
+  windows?: string[];
   cues: Cue[];
   cue_qualifications: Provenance[];
   controls: Record<string, Control>;
@@ -544,6 +548,13 @@ export interface EffectWithdraw {
   because: string;
 }
 
+/** The oldest live record of a windowed history, retired before the effect that adds a record (spec/caveat-windows-0.1.md). */
+export interface EffectRetire {
+  kind: 'retire';
+  history: string;
+  record: string;
+}
+
 export type Effect =
   | EffectSample
   | EffectReveal
@@ -552,7 +563,8 @@ export type Effect =
   | EffectReopen
   | EffectQualify
   | EffectRenew
-  | EffectWithdraw;
+  | EffectWithdraw
+  | EffectRetire;
 
 export interface Control {
   event: string;

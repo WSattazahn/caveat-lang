@@ -78,6 +78,8 @@ export interface ExplainedEvidence {
   event: string | null;
   caveats: string[];
   withdrawn: WithdrawalNote | null;
+  /** The sequence at which it retired from its window; absent while live. */
+  retired_at?: number;
 }
 
 export interface WithdrawalNote {
@@ -103,12 +105,19 @@ export interface DependentsReport {
   subject: string;
   kind: 'evidence' | 'caveat';
   sequence: number;
+  /** Retired records the subject stands for, with the sequence at which each retired; absent when none. */
+  retired?: RetiredRecord[];
   /** Query-matched withdrawn occurrences, in withdrawal order, even without dependents. */
   withdrawals: Withdrawal[];
   decisions: DependentDecision[];
   changes: DependentChange[];
   values: DependentValue[];
   displayed: DependentDisplay[];
+}
+
+export interface RetiredRecord {
+  record: string;
+  sequence: number;
 }
 
 export interface DependentDecision {

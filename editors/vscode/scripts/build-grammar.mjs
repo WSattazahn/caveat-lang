@@ -387,6 +387,9 @@ export const grammar = {
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}reset\b(?=\s*;)` },
         // `clock NAME every STEP integer;`: after the step's number.
         { name: 'keyword.other.caveat', match: String.raw`(?<=\d[ \t])integer\b(?=\s*;)` },
+        // `window N` in place of `limit N`, and `journal window N`.
+        { name: 'keyword.other.caveat', match: String.raw`${notProperty}window\b(?=[ \t]+\d)` },
+        { name: 'keyword.other.caveat', match: String.raw`${notProperty}journal\b(?=[ \t]+window[ \t]+\d)` },
       ],
     },
     // `min 0 max 100` declares a range; elsewhere min and max are functions.

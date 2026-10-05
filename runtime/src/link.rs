@@ -434,6 +434,7 @@ fn module_declarations(part: &BundlePart) -> Result<Vec<String>, String> {
                 // Respond or project, but introduce no name of their own.
                 Directive::Rule(_)
                 | Directive::Renewable { .. }
+                | Directive::JournalWindow { .. }
                 | Directive::Identifiers { .. }
                 | Directive::Binding(_)
                 | Directive::Cue(_)
@@ -922,6 +923,16 @@ fn tag_offsets(source: &str) -> Vec<usize> {
         if let Some(index) = tag {
             offsets.push(words[index].0);
         }
+        // `window N` takes a limit's place (spec/caveat-windows-0.1.md), at a
+        // fixed position, because a history may itself be named `window`.
+        // `journal window N` is two clause words.
+        let window = match shape.as_slice() {
+            ["readings", _, "from", _, "window", _] => &[4][..],
+            ["renewable", _, "window", _] => &[2][..],
+            ["journal", "window", _] => &[0, 1][..],
+            _ => &[][..],
+        };
+        offsets.extend(window.iter().map(|&index| words[index].0));
         // `state NAME = <expr> min N max N` ends in a fixed four words, so the
         // bounds keywords are known by position. They share their names with
         // prelude functions, which a module may legitimately call in the

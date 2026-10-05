@@ -392,3 +392,21 @@ The rc.13 rules carry over:
   `experiments/glowcap/RESULTS.md: L684`, which now reads "…dispatch under
   1 ms. Drift is higher…". The verdict and every number are unchanged; the
   mutation scores stay in the table above it (L651).
+- PR 5: retirement in the runtime, for reading streams, renewable evidence
+  and the journal (`journal@K` names the Kth entry). A full window retires
+  its oldest live record, reported as a `retire` effect before the effect
+  that adds the new one, inside the event's transaction; retired evidence is
+  not observed, and history reads and folds see live records only. The
+  snapshot and save gain `retired`, the snapshot `windows`; restore checks
+  that each history keeps exactly its newest records live and that no later
+  reopening names a retired record. A revision's basis may still hold a
+  retired reading through its predecessor's basis, the Reactive 0.5 chain
+  that keeps series windows out of rc.15. `apply_effect` keeps its frame, so
+  the 64-deep procedure test needs no more stack than on `main`. The kit's
+  `explain` and `dependents` show retired records, `validate` prints
+  `window N`, and the VS Code grammar highlights `window` and `journal
+  window`. Tests: `runtime/tests/windows.rs` (9), a module linker test, kit
+  explain and type samples. Gate: the seeded sweep
+  (`runtime/examples/save_sweep.rs`, 8 runs of 150 events) over the 113
+  repository programs that load as reactive programs: 135,600 saves, digests
+  identical between `main` (`1eadadd`) and this change, no fatal outcome.
