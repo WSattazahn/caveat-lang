@@ -592,8 +592,8 @@ impl Expr {
                 sources.insert(name.clone());
                 index.collect_sources(sources);
             }
-            Node::Fold(_, initial, name) => {
-                sources.insert(name.clone());
+            Node::Fold(history, initial, _) => {
+                sources.insert(history.clone());
                 initial.collect_sources(sources);
             }
             Node::ExpandedFold(name, initial, body) => {
