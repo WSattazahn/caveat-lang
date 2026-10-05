@@ -9,6 +9,7 @@ import { cases, renderCase, validateCase, SCHEMA, STATES, GENERATOR_SEED } from 
 import { assertFreshRuntime } from './runtime-build-fingerprint.mjs';
 import { leanRunnerDecoderCases } from './lean-runner-decoder-cases.mjs';
 import { lateCases, renderLateCase, validateLateCase, LATE_SCHEMA, LATE_STATES, LATE_CAVEATS, COMMITMENTS } from './lean-late-qualification-cases.mjs';
+import { reopenCases, renderReopenCase, validateReopenCase, REOPEN_SCHEMA, REOPEN_STATES, REOPEN_COMMITMENTS, EVIDENCE_CAVEATS } from './lean-reopening-cases.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const suffix = process.platform === 'win32' ? '.exe' : '';
@@ -351,6 +352,177 @@ export function verifyLateMutation(id, expected, actual, qualification) {
   return difference;
 }
 
+// Reopening: one modeled step from the runtime's own state before it. The
+// projection is each commitment's basis, grounds, retained caveats and causes,
+// observations, the journal's commitment/change/because/caveats, and an
+// accepted step's effects.
+const sortedSet = (value, label) => [...new Set(strings(value, label))].sort();
+function reopenState(value, label) {
+  keys(value, ['commitments', 'observations', 'journal'], label);
+  const commitments = value.commitments;
+  if (!commitments || Array.isArray(commitments) || typeof commitments !== 'object' ||
+    Object.keys(commitments).some(name => !REOPEN_COMMITMENTS.includes(name))) throw new InfrastructureFailure('Malformed ' + label + ' commitments');
+  if (!Array.isArray(value.journal)) throw new InfrastructureFailure('Malformed ' + label + ' journal');
+  return {
+    commitments: Object.fromEntries(Object.keys(commitments).sort().map(name => {
+      const commitment = commitments[name];
+      keys(commitment, ['basis', 'grounds', 'retained', 'reopened_by'], label + ' commitment');
+      keys(commitment.basis, ['value', 'evidence', 'caveats'], label + ' commitment basis');
+      const basisValue = commitment.basis.value === null ? null : number(commitment.basis.value);
+      const basis = provenance({ evidence: commitment.basis.evidence, caveats: commitment.basis.caveats });
+      return [name, { basis: { value: basisValue, ...basis }, grounds: provenance(commitment.grounds),
+        retained: sortedSet(commitment.retained, 'retained'), reopened_by: strings(commitment.reopened_by, 'reopened_by') }];
+    })),
+    observations: strings(value.observations, 'observations'),
+    journal: value.journal.map(entry => {
+      keys(entry, ['commitment', 'change', 'because', 'caveats'], label + ' journal entry');
+      if (!['committed', 'reopened'].includes(entry.change) || typeof entry.commitment !== 'string') {
+        throw new InfrastructureFailure('Malformed ' + label + ' journal entry');
+      }
+      return { commitment: entry.commitment, change: entry.change, because: strings(entry.because, 'because'),
+        caveats: sortedSet(entry.caveats, 'caveats') };
+    }),
+  };
+}
+
+const reopenRefusals = ['unobserved_evidence', 'not_committed'];
+function reopenFrame(frame, label) {
+  const kind = frame?.outcome?.outcome;
+  keys(frame, kind === 'accepted' ? ['outcome', 'commitments', 'observations', 'journal', 'effects']
+    : ['outcome', 'commitments', 'observations', 'journal'], label);
+  let outcomeValue;
+  if (kind === 'accepted') {
+    keys(frame.outcome, ['outcome'], label + ' outcome');
+    outcomeValue = { outcome: 'accepted' };
+  } else if (kind === 'rejected' && frame.outcome.origin === 'evaluation' && reopenRefusals.includes(frame.outcome.code)) {
+    keys(frame.outcome, ['outcome', 'origin', 'code'], label + ' outcome');
+    outcomeValue = { outcome: 'rejected', origin: 'evaluation', code: frame.outcome.code };
+  } else {
+    // Unobserved evidence and an uncommitted target are the classified refusals reachable here.
+    throw new InfrastructureFailure('Unexpected fatal or unregistered outcome in the reopening fragment');
+  }
+  const result = { outcome: outcomeValue, ...reopenState(
+    { commitments: frame.commitments, observations: frame.observations, journal: frame.journal }, label) };
+  if (kind === 'accepted') {
+    if (!Array.isArray(frame.effects)) throw new InfrastructureFailure('Malformed ' + label + ' effects');
+    result.effects = frame.effects.map(effect => {
+      keys(effect, ['kind', 'action', 'because'], label + ' effect');
+      if (effect.kind !== 'reopen' || typeof effect.action !== 'string' || typeof effect.because !== 'string') {
+        throw new InfrastructureFailure('Unsupported effect in the reopening fragment');
+      }
+      return { kind: 'reopen', action: effect.action, because: effect.because };
+    });
+  }
+  return result;
+}
+
+export function reopenModelFrame(value, fixture) {
+  keys(value, ['schema', 'id', 'after'], 'reopening model document');
+  if (value.schema !== REOPEN_SCHEMA || value.id !== fixture.id) throw new InfrastructureFailure('Wrong reopening model identity');
+  return reopenFrame(value.after, 'reopening model frame');
+}
+
+function reopenRuntimeState(record) {
+  captureShape(record, REOPEN_STATES);
+  const s = record.snapshot;
+  if (!Array.isArray(s.commitments) || !s.commitment_bases || !s.commitment_grounds) {
+    throw new InfrastructureFailure('Malformed runtime commitments');
+  }
+  const names = s.commitments.map(commitment => commitment.action);
+  if (JSON.stringify([...names].sort()) !== JSON.stringify(Object.keys(s.commitment_bases).sort()) ||
+    JSON.stringify([...names].sort()) !== JSON.stringify(Object.keys(s.commitment_grounds).sort())) {
+    throw new InfrastructureFailure('Runtime commitments, bases and grounds disagree');
+  }
+  return {
+    commitments: Object.fromEntries(s.commitments.map(commitment => [commitment.action, {
+      basis: { value: s.commitment_bases[commitment.action].value, ...s.commitment_bases[commitment.action].provenance },
+      grounds: s.commitment_grounds[commitment.action],
+      retained: commitment.retained, reopened_by: commitment.reopened_by }])),
+    observations: s.observations,
+    journal: s.decision_journal.map(entry => ({ commitment: entry.commitment, change: entry.change,
+      because: entry.because, caveats: entry.caveats })),
+  };
+}
+
+/** The runtime's projection after a reopening event. */
+export function reopenRuntimeFrame(record) {
+  keys(record, ['snapshot', 'save', 'view', 'outcome'], 'reopening runtime record');
+  const value = record.outcome;
+  if (value?.schema !== 'caveat-dispatch/0.1') throw new InfrastructureFailure('Unexpected dispatch schema');
+  if (value.outcome === 'accepted') {
+    keys(value, ['schema', 'outcome', 'snapshot'], 'accepted runtime outcome');
+    if (firstDifference(record.snapshot, value.snapshot)) throw new InfrastructureFailure('Accepted outcome snapshot differs from capture');
+  } else if (value.outcome === 'rejected') {
+    keys(value, ['schema', 'outcome', 'origin', 'code', 'message'], 'rejected runtime outcome');
+  } else {
+    throw new InfrastructureFailure('Unexpected fatal or malformed runtime outcome');
+  }
+  const frame = { ...reopenRuntimeState(record), outcome: value.outcome === 'accepted' ? { outcome: 'accepted' }
+    : { outcome: value.outcome, origin: value.origin, code: value.code } };
+  if (value.outcome === 'accepted') frame.effects = record.snapshot.effects;
+  return reopenFrame(frame, 'reopening runtime frame');
+}
+
+/** The Lean request for reopening `index`, from the runtime record before it. */
+export function reopenRequest(fixture, index, beforeRecord) {
+  validateReopenCase(fixture);
+  const r = fixture.reopenings[index];
+  if (!r) throw new InfrastructureFailure('Unknown reopening step');
+  const before = reopenState(reopenRuntimeState(beforeRecord), 'reopening runtime state');
+  // The guard is the rule's `when g != 0`, read from the runtime's own state.
+  const guard = r.guard === null ? true : number(beforeRecord.snapshot.values[r.guard]) !== 0;
+  return { schema: REOPEN_SCHEMA, id: fixture.id, before, reopening: {
+    commitment: r.commitment, evidence: r.evidence, caveats: [...EVIDENCE_CAVEATS[r.evidence]], guard } };
+}
+
+const reopenAnchor = '                        Arc::make_mut(&mut self.graph).reopen(id, self.symbols[evidence]);\n';
+const journalAnchor = '                        caveats: caveats.into_iter().collect(),\n';
+const reopenMutations = {
+  // The reopened commitment loses the caveats it retained.
+  retained: [reopenAnchor, reopenAnchor +
+    '                        // Deliberate mutation: reopening drops the retained caveats.\n' +
+    '                        Arc::make_mut(&mut self.graph).edges.retain(|edge| !(edge.from == id && edge.relation == Relation::Retains));\n'],
+  // The journal records the cause without its caveats.
+  cause: [journalAnchor,
+    '                        // Deliberate mutation: the reopening entry drops its cause\'s caveats.\n' +
+    '                        caveats: Vec::new(),\n'],
+};
+export function reopenMutation(source, field) {
+  if (!Object.hasOwn(reopenMutations, field)) throw new InfrastructureFailure('Unregistered reopening mutation');
+  const [anchor, replacement] = reopenMutations[field];
+  const normalized = source.replaceAll('\r\n', '\n');
+  if (normalized.split(anchor).length !== 2) {
+    throw new InfrastructureFailure('Reopening mutation anchor must occur exactly once');
+  }
+  return normalized.replace(anchor, replacement);
+}
+
+// The registered discrepancy: the reopened commitment's retained caveats, or
+// the new journal entry's caveats, differ from the model's, and nothing else.
+export function verifyReopenMutation(id, expected, actual, reopening) {
+  const difference = firstDifference(expected, actual);
+  if (!difference) throw new InfrastructureFailure('Semantic mutant survived: ' + id);
+  try {
+    assert.deepEqual(expected.outcome, { outcome: 'accepted' });
+    const intended = structuredClone(expected);
+    if (id === 'reopen-drops-retained') {
+      assert.notDeepEqual(intended.commitments[reopening.commitment].retained, [], 'the witness retains a caveat');
+      intended.commitments[reopening.commitment].retained = [];
+    } else if (id === 'reopen-drops-cause-caveats') {
+      const entry = intended.journal.at(-1);
+      assert.equal(entry.change, 'reopened');
+      assert.notDeepEqual(entry.caveats, [], 'the witness cause carries a caveat');
+      entry.caveats = [];
+    } else {
+      throw new Error('Unknown semantic mutation: ' + id);
+    }
+    assert.deepEqual(actual, intended, 'the complete projection must have exactly the intended semantic change');
+  } catch (error) {
+    throw new InfrastructureFailure('Mutation did not reach its registered discrepancy: ' + id + ': ' + error.message);
+  }
+  return difference;
+}
+
 export function compare(expected, actual, caseId, runner) {
   const difference = firstDifference(expected, actual);
   if (difference) throw new SemanticMismatch(caseId, runner, difference);
@@ -531,8 +703,8 @@ export async function verifyConformance({ caseId } = {}) {
   mkdirSync(output, { recursive: true });
   const report = { schema: 'caveat-conformance-report/0.1', startedAt: new Date().toISOString(),
     status: 'failed', mode: caseId ? 'single-case replay' : 'complete gate', fragment: SCHEMA, generatorSeed: GENERATOR_SEED, commands: [], cases: [], mutations: [], decoderControls: [],
-    lateCases: [],
-    scope: 'bounded conditional expressions and guarded assignments/citations, and one late-qualification step from the runtime\'s own state; sampled correspondence, not Rust refinement' };
+    lateCases: [], reopenCases: [],
+    scope: 'bounded conditional expressions and guarded assignments/citations, and one late-qualification or reopening step from the runtime\'s own state; sampled correspondence, not Rust refinement' };
   writeFileSync(join(output, 'report.json'), JSON.stringify(report, null, 2) + '\n');
   function commandResult(command, args, options = {}) {
     const result = spawnSync(command, args, { cwd: root, encoding: 'utf8',
@@ -568,7 +740,7 @@ export async function verifyConformance({ caseId } = {}) {
         ...['runtime/Cargo.toml', 'runtime/Cargo.lock', 'runtime/prelude.cav',
           'runtime/examples/lean_conformance.rs', 'scripts/lean-conformance-cases.mjs',
           'scripts/verify-lean-conformance.mjs', 'scripts/verify-lean-conformance.test.mjs', 'scripts/verify-lean.mjs',
-          'scripts/lean-late-qualification-cases.mjs',
+          'scripts/lean-late-qualification-cases.mjs', 'scripts/lean-reopening-cases.mjs',
           'scripts/runtime-build-fingerprint.mjs', 'scripts/build-web.mjs', 'scripts/lean-runner-decoder-cases.mjs',
           'package.json', 'rust-toolchain.toml', 'dist/pkg-reactive/caveat_runtime.js',
           'dist/pkg-reactive/caveat_runtime_bg.wasm', 'dist/build-info.json'].map(path => join(root, path)),
@@ -609,8 +781,11 @@ export async function verifyConformance({ caseId } = {}) {
     const corpus = caseId ? fullCorpus.filter(item => item.id === caseId) : fullCorpus;
     const fullLateCorpus = lateCases();
     const lateCorpus = caseId ? fullLateCorpus.filter(item => item.id === caseId) : fullLateCorpus;
-    if (!corpus.length && !lateCorpus.length) throw new InfrastructureFailure("Unknown or empty corpus/case ID");
-    if (new Set([...fullCorpus, ...fullLateCorpus].map(item => item.id)).size !== fullCorpus.length + fullLateCorpus.length) {
+    const fullReopenCorpus = reopenCases();
+    const reopenCorpus = caseId ? fullReopenCorpus.filter(item => item.id === caseId) : fullReopenCorpus;
+    if (!corpus.length && !lateCorpus.length && !reopenCorpus.length) throw new InfrastructureFailure("Unknown or empty corpus/case ID");
+    if (new Set([...fullCorpus, ...fullLateCorpus, ...fullReopenCorpus].map(item => item.id)).size !==
+      fullCorpus.length + fullLateCorpus.length + fullReopenCorpus.length) {
       throw new InfrastructureFailure('Duplicate fixture IDs');
     }
     if (new Set(corpus.map(item => item.id)).size !== corpus.length) throw new InfrastructureFailure('Duplicate fixture IDs');
@@ -689,6 +864,52 @@ export async function verifyConformance({ caseId } = {}) {
     }
     if (!caseId && (!lateAccepted || !lateRejected)) throw new InfrastructureFailure('Late corpus must exercise accepted and rejected steps');
     report.lateEvents = { accepted: lateAccepted, rejected: lateRejected };
+
+    // Each reopening step, the same way: the runtime's state before it in, its state after it compared.
+    const reopenSources = new Map();
+    let reopenAccepted = 0, reopenRejected = 0;
+    async function reopenTraces(fixture, rendered) {
+      const nativeRaw = jsonCommand(native, [], { schema: 'caveat-native-trace/0.1', source: rendered.source, events: rendered.events });
+      if (!Array.isArray(nativeRaw?.events) || nativeRaw.events.length !== rendered.events.length) {
+        throw new InfrastructureFailure('Wrong native event count: ' + fixture.id);
+      }
+      const records = [nativeRaw.initial, ...nativeRaw.events];
+      for (const record of records.slice(1, rendered.reopenFrom + 1)) {
+        if (record?.outcome?.outcome !== 'accepted') throw new InfrastructureFailure('Setup event refused: ' + fixture.id);
+      }
+      return { nativeRaw, records };
+    }
+    function reopenStep(fixture, rendered, records, index) {
+      const position = rendered.reopenFrom + index + 1;
+      const request = reopenRequest(fixture, index, records[position - 1]);
+      return { request, expected: reopenModelFrame(jsonCommand(lean, [], request), fixture),
+        actual: reopenRuntimeFrame(records[position]) };
+    }
+    for (const fixture of reopenCorpus) {
+      validateReopenCase(fixture);
+      const rendered = renderReopenCase(fixture);
+      reopenSources.set(fixture.id, rendered);
+      writeFileSync(join(output, fixture.id + '.input.json'), JSON.stringify(fixture, null, 2) + '\n');
+      writeFileSync(join(output, fixture.id + '.cav'), rendered.source);
+      const { nativeRaw, records } = await reopenTraces(fixture, rendered);
+      const wasmRaw = await wasmTrace(runtime, rendered.source, rendered.events);
+      compare(nativeRaw, wasmRaw, fixture.id, 'native/WASM complete captures');
+      const wasmRecords = [wasmRaw.initial, ...wasmRaw.events];
+      const outcomes = [];
+      for (const index of fixture.reopenings.keys()) {
+        const { expected, actual } = reopenStep(fixture, rendered, records, index);
+        compare(expected, actual, fixture.id + '/doubt' + index, 'native');
+        compare(expected, reopenRuntimeFrame(wasmRecords[rendered.reopenFrom + index + 1]), fixture.id + '/doubt' + index, 'WASM');
+        outcomes.push(expected.outcome.code ?? expected.outcome.outcome);
+      }
+      reopenAccepted += outcomes.filter(value => value === 'accepted').length;
+      reopenRejected += outcomes.filter(value => value !== 'accepted').length;
+      report.reopenCases.push({ id: fixture.id, sourceSha256: digest(rendered.source),
+        inputSha256: digest(JSON.stringify(fixture)), events: rendered.events, outcomes,
+        replay: 'npm run verify:lean-conformance -- --case ' + fixture.id });
+    }
+    if (!caseId && (!reopenAccepted || !reopenRejected)) throw new InfrastructureFailure('Reopening corpus must exercise accepted and rejected steps');
+    report.reopenEvents = { accepted: reopenAccepted, rejected: reopenRejected };
     if (caseId) {
       report.status = "passed";
       report.summary = "Case replay passed: " + caseId + "; full-corpus mutation gate was not run.";
@@ -764,6 +985,19 @@ export async function verifyConformance({ caseId } = {}) {
         report.mutations.push({ id, fixtureId, runner: 'compiled Rust mutation / commitment-' + field, difference });
       }
     }
+    // A runtime whose reopening changed the commitment it reopened must be caught.
+    for (const [id, field] of [['reopen-drops-retained', 'retained'], ['reopen-drops-cause-caveats', 'cause']]) {
+      const mutant = buildMutant(id, 'reopen-' + field, 'reactive.rs', source => reopenMutation(source, field));
+      for (const fixtureId of ['reopen-retains-caveats', 'reopen-cause-caveats']) {
+        const fixture = reopenCorpus.find(item => item.id === fixtureId);
+        const rendered = reopenSources.get(fixtureId);
+        const raw = jsonCommand(mutant, [], { schema: 'caveat-native-trace/0.1', source: rendered.source, events: rendered.events });
+        if (!Array.isArray(raw?.events)) throw new InfrastructureFailure('Malformed mutant trace: ' + fixtureId);
+        const { expected, actual } = reopenStep(fixture, rendered, [raw.initial, ...raw.events], 0);
+        const difference = verifyReopenMutation(id, expected, actual, fixture.reopenings[0]);
+        report.mutations.push({ id, fixtureId, runner: 'compiled Rust mutation / reopen-' + field, difference });
+      }
+    }
     // Separate source-translation mutations drive the unmodified real runtime.
     const translations = [
       ['skip-guard-loss', 'skipped-guard', source => source.replace('when g != 0', 'when false')],
@@ -785,7 +1019,8 @@ export async function verifyConformance({ caseId } = {}) {
     report.status = 'passed';
     report.summary = 'Conformance passed: ' + corpus.length + ' cases, ' + accepted + ' accepted / ' + rejected +
       ' rejected modeled steps; ' + lateCorpus.length + ' late-qualification cases, ' + lateAccepted + ' accepted / ' + lateRejected +
-      ' rejected qualification steps; native/WASM full captures and continuation agree; 10 semantic mutation families detected.';
+      ' rejected qualification steps; ' + reopenCorpus.length + ' reopening cases, ' + reopenAccepted + ' accepted / ' + reopenRejected +
+      ' rejected reopening steps; native/WASM full captures and continuation agree; 12 semantic mutation families detected.';
   } catch (error) {
     report.error = { name: error.constructor.name, message: error.message,
       caseId: error.caseId, runner: error.runner, difference: error.difference };

@@ -83,6 +83,7 @@ inductive RejectionReason where
   | policy
   | ungroundedCitation
   | unobservedEvidence
+  | notCommitted
   deriving Repr, DecidableEq
 
 inductive FatalReason where
@@ -101,6 +102,7 @@ def Outcome.code {State : Type} : Outcome State → Option String
   | .rejected .policy => some "reject"
   | .rejected .ungroundedCitation => some "ungrounded_citation"
   | .rejected .unobservedEvidence => some "unobserved_evidence"
+  | .rejected .notCommitted => some "not_committed"
   | .fatal _ => some "unclassified"
 
 def Outcome.origin {State : Type} : Outcome State → Option String
@@ -108,6 +110,7 @@ def Outcome.origin {State : Type} : Outcome State → Option String
   | .rejected .policy => some "policy"
   | .rejected .ungroundedCitation => some "evaluation"
   | .rejected .unobservedEvidence => some "evaluation"
+  | .rejected .notCommitted => some "evaluation"
   | .fatal _ => none
 
 /-- This models the host contract: only a classified rejection retains the prior session. -/

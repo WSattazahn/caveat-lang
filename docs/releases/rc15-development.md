@@ -435,3 +435,15 @@ The rc.13 rules carry over:
   `open`, and a delta view, with `caveat-reactive-view/0.1` unchanged and a
   migration for hosts. It recommends implementing in rc.16. The card goes to
   the owner through the project chat.
+- PR 7 (#164) merged 2026-10-05 as `88957b7`.
+- PR 8: Lean model `proofs/lean/Caveat/Reopen.lean` with 17 laws. A
+  reopening keeps every caveat the commitment retained and the earlier
+  journal, marks the commitment, and records its cause with that evidence's
+  caveats; a repeated cause or a false guard changes nothing; an uncommitted
+  name refuses with `evaluation/not_committed` and unobserved evidence with
+  `evaluation/unobserved_evidence`. The inventory is 97 authored laws and
+  250 theorems. `caveat-reopening/0.1` adds 9 conformance cases (11 accepted
+  and 3 rejected reopening steps), compared with native and WASM, and two
+  compiled mutants (a reopen that drops retained caveats, and one that drops
+  the cause's caveats from the journal) are caught, for 12 semantic mutation
+  families.

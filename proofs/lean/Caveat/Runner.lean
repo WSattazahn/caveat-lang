@@ -1,5 +1,6 @@
 import Caveat.Bridge
 import Caveat.Late
+import Caveat.Reopen
 import Lean.Data.Json
 
 open Lean
@@ -368,6 +369,87 @@ def executeLate (request : LateRequest) : Except String Json := do
     | _, _ => throw "unexpected fatal result in the admitted late-qualification fragment"
   pure (Json.mkObj [("schema", toJson lateSchema), ("id", toJson request.id), ("after", frame)])
 
+/-! Reopening: one step from a supplied ledger, as for late qualification. -/
+
+def reopenSchema : String := "caveat-reopening/0.1"
+
+def parseReopenCommitment (json : Json) : Except String Reopen.Commitment := do
+  exactFields json ["basis", "grounds", "retained", "reopened_by"] []
+  let recorded ← parseCommitment (Json.mkObj [("basis", ← json.getObjVal? "basis"),
+    ("grounds", ← json.getObjVal? "grounds")])
+  pure ⟨recorded.basis, recorded.grounds,
+    ← parseIdentifiers (← json.getObjVal? "retained") 16 "retained",
+    ← parseIdentifiers (← json.getObjVal? "reopened_by") 16 "reopened_by"⟩
+
+def parseEntry (json : Json) : Except String Reopen.Entry := do
+  exactFields json ["commitment", "change", "because", "caveats"] []
+  let change ← (← json.getObjVal? "change").getStr?
+  unless change == "committed" || change == "reopened" do throw "unknown journal change"
+  pure ⟨← parseIdentifier (← json.getObjVal? "commitment") "journal commitment", change,
+    ← parseIdentifiers (← json.getObjVal? "because") 16 "journal because",
+    ← parseIdentifiers (← json.getObjVal? "caveats") 16 "journal caveats"⟩
+
+structure ReopenRequest where
+  id : String
+  before : Reopen.Ledger
+  reopening : Reopen.Reopening
+
+def parseReopenRequest (json : Json) : Except String ReopenRequest := do
+  exactFields json ["schema", "id", "before", "reopening"] []
+  unless (← (← json.getObjVal? "schema").getStr?) == reopenSchema do
+    throw "unsupported schema"
+  let id ← (← json.getObjVal? "id").getStr?
+  let idChars := id.toList
+  unless 1 ≤ idChars.length && idChars.length ≤ 64 &&
+      ('a' ≤ idChars.head! && idChars.head! ≤ 'z') &&
+      idChars.all (fun c => ('a' ≤ c && c ≤ 'z') || ('0' ≤ c && c ≤ '9') || c == '-') do
+    throw "id requires lowercase ASCII letter followed by up to 63 lowercase letters, digits or hyphens"
+  let before ← json.getObjVal? "before"
+  exactFields before ["commitments", "observations", "journal"] []
+  let commitments ← parseNamed (← before.getObjVal? "commitments") 4 "commitments" parseReopenCommitment
+  let observations ← parseIdentifiers (← before.getObjVal? "observations") 16 "observations"
+  let journal ← (← arrayBetween (← before.getObjVal? "journal") 0 16 "journal").mapM parseEntry
+  let r ← json.getObjVal? "reopening"
+  exactFields r ["commitment", "evidence", "caveats", "guard"] []
+  pure ⟨id, ⟨commitments, observations, journal, []⟩,
+    ⟨← parseIdentifier (← r.getObjVal? "commitment") "commitment",
+      ← parseIdentifier (← r.getObjVal? "evidence") "evidence",
+      ← parseIdentifiers (← r.getObjVal? "caveats") 16 "caveats",
+      ← (← r.getObjVal? "guard").getBool?⟩⟩
+
+def reopenCommitmentJson (c : Reopen.Commitment) : Json :=
+  match commitmentJson ⟨c.basis, c.grounds⟩ with
+  | .obj fields => .obj ((fields.insert "retained" (toJson c.retained.eraseDups.mergeSort)).insert
+      "reopened_by" (toJson c.reopenedBy))
+  | other => other
+
+def entryJson (entry : Reopen.Entry) : Json :=
+  Json.mkObj [("commitment", toJson entry.commitment), ("change", toJson entry.change),
+    ("because", toJson entry.because), ("caveats", toJson entry.caveats.eraseDups.mergeSort)]
+
+/-- A refused step's effects are the previous event's; only an accepted step reports them. -/
+def reopenLedgerJson (outcome : Json) (ledger : Reopen.Ledger) (effects : Bool) : Json :=
+  Json.mkObj ([
+    ("outcome", outcome),
+    ("commitments", Json.mkObj (ledger.commitments.map fun (name, c) => (name, reopenCommitmentJson c))),
+    ("observations", toJson ledger.observations),
+    ("journal", toJson (ledger.journal.map entryJson))] ++
+    if effects then [("effects", toJson (ledger.effects.map fun (action, because) =>
+      Json.mkObj [("kind", toJson ("reopen" : String)), ("action", toJson action),
+        ("because", toJson because)]))] else [])
+
+def executeReopen (request : ReopenRequest) : Except String Json := do
+  let step := Reopen.reopenStep request.before request.reopening
+  let frame ← match step, resumeSession request.before step with
+    | .accepted _, some after =>
+        pure (reopenLedgerJson (Json.mkObj [("outcome", toJson ("accepted" : String))]) after true)
+    | .rejected reason, some after =>
+        let result : Outcome Reopen.Ledger := .rejected reason
+        pure (reopenLedgerJson (Json.mkObj [("outcome", toJson ("rejected" : String)),
+          ("origin", toJson result.origin), ("code", toJson result.code)]) after false)
+    | _, _ => throw "unexpected fatal result in the admitted reopening fragment"
+  pure (Json.mkObj [("schema", toJson reopenSchema), ("id", toJson request.id), ("after", frame)])
+
 def process (input : String) : Except String Json := do
   unless input.utf8ByteSize ≤ 65536 do throw "request exceeds 65536 UTF-8 bytes"
   checkNumericTokens input
@@ -376,6 +458,7 @@ def process (input : String) : Except String Json := do
   match json.getObjVal? "schema" with
   | .ok (.str name) =>
       if name == lateSchema then executeLate (← parseLateRequest json)
+      else if name == reopenSchema then executeReopen (← parseReopenRequest json)
       else execute (← parseRequest json)
   | _ => execute (← parseRequest json)
 

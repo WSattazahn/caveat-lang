@@ -78,5 +78,22 @@
   "Caveat.Late.late_qualification_reaches_current_grounds",
   "Caveat.Late.late_qualification_guard_not_in_grounds",
   "Caveat.Late.late_qualification_ignores_unrelated_value",
-  "Caveat.Late.nonempty_late_qualification_spares_commitment"
+  "Caveat.Late.nonempty_late_qualification_spares_commitment",
+  "Caveat.Reopen.add_cause_lookup",
+  "Caveat.Reopen.add_cause_preserves_names",
+  "Caveat.Reopen.add_cause_preserves_records",
+  "Caveat.Reopen.nonempty_reopening_retains_and_records",
+  "Caveat.Reopen.records_lookup",
+  "Caveat.Reopen.reopen_keeps_history",
+  "Caveat.Reopen.reopen_marks_commitment",
+  "Caveat.Reopen.reopen_preserves_records",
+  "Caveat.Reopen.reopen_records_cause",
+  "Caveat.Reopen.reopen_retains_caveats",
+  "Caveat.Reopen.reopen_session_preserves_records",
+  "Caveat.Reopen.reopenings_preserve_records",
+  "Caveat.Reopen.repeated_cause_changes_nothing",
+  "Caveat.Reopen.skipped_reopening_changes_nothing",
+  "Caveat.Reopen.uncommitted_reopening_classification",
+  "Caveat.Reopen.uncommitted_reopening_rejected",
+  "Caveat.Reopen.unobserved_reopening_rejected"
 ]
