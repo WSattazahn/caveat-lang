@@ -23,18 +23,28 @@ record that nothing pins **departs**. The pins are Lineage Compaction 0.1's
 ("What stays exact"):
 
 - a state's grounds, by its own reads;
-- the grounds of the revision in force of each decision series, by its own
-  reads;
+- the grounds of each commitment in force, by their own reads: the revision in
+  force of each decision series, and every commitment outside a series, which
+  is in force once made;
 - the `because` of each journal entry still in the journal's window;
 - a pending scheduled qualification's target;
 - the current occurrence of a renewable evidence, which is never retired;
-- the grant named by a commitment's permission record.
+- the grant named by a commitment's permission record;
+- the reason named by a withdrawal still in the session.
 
-The last pin is this profile's. A permission record names its grant as one
-exact name, which has no marker form, and a commitment's permission record is
-part of its frozen basis. The commitments that hold one are bounded by the
-program's declarations and its series limits. Series windows, when they land,
-revisit it with the revisions they depart.
+The last two pins are this profile's. A permission record names its grant,
+and a withdrawal its reason, as one exact name, which has no marker form. A
+commitment's permission record is part of its frozen basis, and the
+commitments that hold one are bounded by the program's declarations and its
+series limits. Series windows, when they land, revisit it with the revisions
+they depart. A withdrawal leaves when its subject departs (below).
+
+A renewable evidence's first occurrence is the evidence the program declares,
+such as `witness_cave`, which is `witness_cave@1`. The program's own
+declarations name it and relate it, so it never departs: once retired, it
+stays retired. That keeps at most one retired record per renewable evidence
+in the session, a number the source fixes. Every other record of a windowed
+history is created by an event and can depart.
 
 A record retires and departs in the same event when nothing pins it. A record
 that a pin held departs at the end of the first event after which nothing
@@ -162,7 +172,8 @@ Restore refuses a save when:
   pinned retired record can be older than a departed one;
 - the save has a departed record (a marker, `journal_departed`, or a number
   below a history's oldest live record that is not held) and also holds a
-  retired record that nothing in the save pins. Departure would have taken it
+  retired record that nothing in the save pins, other than a renewable
+  evidence's declared first occurrence. Departure would have taken it
   at the end of the event the save follows;
 - a relation, qualification, withdrawal, observation order entry or exact
   citation names a departed record;
@@ -202,4 +213,5 @@ sweep's digests are identical before and after.
   pins depart at the end of each accepted event; departure is a reported,
   transactional effect; a host-drained archive outside the save, with each
   entry's holders; the `journal_departed` save field and restore checks; a
-  permission record's grant pins. Not implemented.
+  permission record's grant and a withdrawal's reason pin; a renewable
+  evidence's declared first occurrence never departs. Not implemented.
