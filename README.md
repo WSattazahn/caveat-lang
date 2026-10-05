@@ -8,6 +8,12 @@ The published preview is **0.1.0-rc.13**. See the
 > `latest` and `next` name rc.13. Published by `publish-npm.yml` from tag `v0.1.0-rc.13` with an npm provenance attestation.
 > [Publication record](docs/releases/v0.1.0-rc.13-npm-publication.json).
 
+**0.1.0-rc.14** is a release candidate going through the attested publish
+route; it is not yet published, and the published preview remains rc.13. It
+corrects only the package's MCP server name. See the
+[rc.14 release notes](docs/releases/v0.1.0-rc.14.md) and the
+[rc.14 development record](docs/releases/rc14-development.md).
+
 
 **Programs that remember why.**
 
