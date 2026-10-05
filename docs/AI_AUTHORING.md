@@ -242,7 +242,34 @@ For timing exact to the event, use clock steps that are powers of two, such as
 `0.0625`; otherwise expect a schedule to apply within an event of its nominal
 time.
 
-The clock is finite binary64 and reading it has no state duration cap. Copying
+From rc.15, a program that needs timing exact to the event can declare an
+[integer clock](../spec/caveat-elapsed-0.1.md#integer-clocks) instead. (The
+runtime accepts the declaration from rc.15's PR 3; check the package version.)
+
+1. Choose the unit so that every delay and every `dt` the host sends is a
+   whole number of it. Glowcap's `tick` in `0..0.1` seconds becomes a `step`
+   event with `dt` in `0..100` milliseconds, `clock step every 16 integer`,
+   and `after 60` becomes `after 60000`. `tick` itself cannot be an integer
+   clock.
+2. Convert in source wherever time is shown or compared: bindings and guards
+   that read `elapsed()` or a `dt` divide by the unit, as in
+   `fn seconds(t) = t / 1000;`. A computed `after` must come out whole, or the
+   event is refused as `evaluation/expression`.
+3. The host sends whole units. If its frame time is not a whole number of
+   units (16.67 ms), it rounds once, at its own boundary, and carries the
+   remainder into the next frame: keep `carry += frame_ms`, send
+   `dt = Math.floor(carry)` and subtract what was sent. A fractional `dt` is
+   refused as `input/payload_invalid`, so rounding never happens inside the
+   clock.
+4. Saves do not carry over: the edit changes `source_id`. A host that must
+   keep a session replays its recorded events with `dt` converted, which works
+   only when every recorded `dt` was a whole number of the new unit.
+
+The reading stays within `±(2^53 − 1)` units; a clock event that would leave
+that range is refused as `evaluation/bound_exceeded`. At a millisecond unit
+that is about 285,000 years.
+
+Without `integer`, the clock is finite binary64 and reading it has no state duration cap. Copying
 it into a state still enforces that state's bounds. Use direct reads for
 display and current-time comparisons; keep bounded state only for values the
 policy needs to retain. Saves already preserve the clock, and restored

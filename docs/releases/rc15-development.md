@@ -298,3 +298,16 @@ The rc.13 rules carry over:
   and `server.json`) it refuses with "kit/package.json: mcpName must be
   io.github.WSattazahn/caveat-lang, the GitHub login's exact case"; against
   this commit it passes.
+- PR 1 (#152) merged 2026-10-05 as `9ede60e`, after the rc.14 record (#153),
+  Amendment 2 (#154) and the Codex manifest fix (#151).
+- PR 2: the integer clock specification, docs only. Elapsed 0.1 gains an
+  "Integer clocks" section; Renewal 0.1, Reactive 0.2, Dispatch 0.1 and Save
+  0.1 each gain the matching rule and a `Changes` entry marked "specified";
+  `docs/AI_AUTHORING.md` gains the opt-in recipe and the host's
+  round-once-and-carry rule. The three refusals reuse existing codes
+  (`input/payload_invalid`, `evaluation/bound_exceeded`,
+  `evaluation/expression`); no code is added. Reviewed before PR 3 opens.
+  Found while writing it, not changed: a computed negative `after` on today's
+  binary64 clock fails as a fatal unclassified error ("qualify after requires
+  a nonnegative number of seconds", `runtime/src/reactive.rs: L4119–4122`),
+  though the event is rolled back; it goes to the Version Lab to register.

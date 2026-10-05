@@ -107,15 +107,15 @@ I/O stage; a stage must never be used to guess a runtime rejection origin.
 | `policy` | `reject` | An executed source `reject` effect, including inside a procedure. |
 | `policy` | `not_permitted` | A commit's `permitted by` clause found its grant missing, withdrawn, or for another value ([Permission 0.1](caveat-permission-0.1.md)). |
 | `input` | `unknown_event` | A well-formed payload reaches admission for an undeclared event. |
-| `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range. |
+| `input` | `payload_invalid` | Invalid payload JSON/type, duplicate fields, wrong parameter set, or invalid named parameter member/type, including a fraction for a typed parameter inside its range, or a fractional `dt` for an integer clock inside its range ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
 | `input` | `bound_exceeded` | A supplied numeric event parameter fails its declared finite range. |
-| `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range, or a clock event would make the session clock nonfinite ([Elapsed 0.1](caveat-elapsed-0.1.md)). |
+| `evaluation` | `bound_exceeded` | An executed state assignment fails the state's finite range, or a clock event would make the session clock nonfinite, or take an integer clock's reading outside `±(2^53 − 1)` ([Elapsed 0.1](caveat-elapsed-0.1.md)). |
 | `evaluation` | `decision_in_force` | An executed `commit` would revise a decision series whose current revision is still in force: committed and not explicitly reopened ([Reactive 0.5](caveat-reactive-0.5.md)). |
 | `evaluation` | `ungrounded_citation` | A `because` citation cites evidence or a caveat that what it explains never read: a shown binding's value and conditions ([Explanations 0.1](caveat-explanations-0.1.md)), or an executed `set`'s new value and guard ([Explanations 0.2](caveat-explanations-0.2.md)). |
 | `evaluation` | `empty_caveated_selection` | An executed `reopen ACTION because caveated(STATE, CAVEAT)` finds no observed evidence in the state's grounds currently carrying that caveat ([State Caveats 0.1](caveat-state-caveats-0.1.md)). |
 | `evaluation` | `unobserved_evidence` | An expression evaluated by the event reads `qualified(VALUE, EVIDENCE)` with evidence that is not observed; an executed `qualify EVIDENCE with CAVEAT` (immediate or `after`), `withdraw TARGET because REASON` or `reopen ACTION because EVIDENCE` names evidence that is not observed, or a `withdraw latest(STREAM)` or `reopen ACTION because latest(STREAM)` finds no reading ([Late Qualification 0.1](caveat-late-qualification-0.1.md), [Withdrawal 0.1](caveat-withdrawal-0.1.md), [Reactive 0.1](caveat-reactive-0.1.md)). |
 | `evaluation` | `not_committed` | An executed `reopen ACTION because …` names a decision series that has no commitment to reopen ([Reactive 0.1](caveat-reactive-0.1.md)). |
-| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)). |
+| `evaluation` | `expression` | An expression evaluated by the event, in a rule guard, an effect, a procedure argument or an active binding, divides by zero, produces a nonfinite number, takes the square root of a negative number, reads a history index that is not an integer in `0..256` or is past the history's records, or reads `latest` of a reading stream with no reading or a decision series with no commitment, or reads a decision committed without a numeric `using` value ([Reactive 0.2](caveat-reactive-0.2.md)), or reads `id_text` of a number other than 0 that is not the handle of an identifier the session holds ([Identifiers 0.1](caveat-identifiers-0.1.md)), or computes a `qualify … after` delay under an integer clock that is not a whole number in `0..2^53 − 1` ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)). |
 | `evaluation` | `requirement_failed` | An expression evaluated by the event reaches `require(CONDITION, VALUE)` with a false condition, including the prelude's `clamp` with reversed bounds and `wrap` with a period that is not positive. |
 | `limit` | `attention_limit` | An executed `examine` would spend more than the declared attention budget currently has remaining ([Reactive 0.2](caveat-reactive-0.2.md)). |
 | `limit` | `work_limit` | The event's execution-step budget is exhausted, including skipped procedure effects. |
@@ -228,6 +228,14 @@ is a protocol failure. No promise of cross-runtime save compatibility follows
 from an outcome schema match; the save contract governs restoration.
 
 ## Changes
+
+- 2026-10-05 (rc.15, specified): three sites of the
+  [integer clock](caveat-elapsed-0.1.md#integer-clocks) join existing codes:
+  a fractional `dt` inside its range is `input/payload_invalid`; a reading
+  leaving `±(2^53 − 1)` is `evaluation/bound_exceeded`; a computed delay that
+  is not a whole number in `0..2^53 − 1` is `evaluation/expression`. They
+  arrive with the integer clock, so no earlier behavior changes, and no code is
+  added or reassigned.
 
 - `evaluation/unobserved_evidence`, `evaluation/not_committed`,
   `evaluation/expression`, `evaluation/requirement_failed` and
