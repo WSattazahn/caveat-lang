@@ -584,6 +584,25 @@ pub struct Control {
 pub struct Clock {
     pub event: String,
     pub step: Number,
+    /// `clock EVENT every STEP integer`: time counts whole units
+    /// (spec/caveat-elapsed-0.1.md, "Integer clocks"). Published only when
+    /// set, so a clock without it keeps its metadata bytes.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub integer: bool,
+}
+
+/// The largest whole number of units an integer clock reads, 2^53 - 1: the
+/// integers binary64 and a JSON host hold exactly.
+pub(crate) const MAX_INTEGER_CLOCK: f64 = 9_007_199_254_740_991.0;
+
+/// A whole number of integer-clock units within +-(2^53 - 1).
+pub(crate) fn whole_clock_reading(value: f64) -> bool {
+    value.fract() == 0.0 && value.abs() <= MAX_INTEGER_CLOCK
+}
+
+/// A whole delay an integer clock can wait: 0..2^53 - 1.
+pub(crate) fn whole_clock_delay(value: f64) -> bool {
+    whole_clock_reading(value) && value >= 0.0
 }
 
 pub type QualifiedValue = Tracked<f64>;
@@ -1253,6 +1272,11 @@ pub struct ReactiveSession {
 }
 
 impl ReactiveSession {
+    /// Whether the program declares an integer clock.
+    pub(crate) fn integer_clock(&self) -> bool {
+        self.clock.as_ref().is_some_and(|clock| clock.integer)
+    }
+
     pub fn from_source(source: &str) -> Result<Self, String> {
         // Draft 0.5: a bundle links to one program, but its identity stays the
         // bundle bytes the author shipped, so saves and byte-pinned receipts
@@ -1772,6 +1796,25 @@ impl ReactiveSession {
                 parameters[0].min.value(),
                 parameters[0].max.value(),
             )?;
+            if clock.integer {
+                if clock.event == "tick" {
+                    return Err(
+                        "an integer clock cannot be tick, whose dt lies within 0..0.1; declare a clock event of the program's own".into(),
+                    );
+                }
+                for (what, value) in [
+                    ("step", clock.step.value()),
+                    ("dt min", parameters[0].min.value()),
+                    ("dt max", parameters[0].max.value()),
+                ] {
+                    if value.fract() != 0.0 {
+                        return Err(format!(
+                            "integer clock {}: {what} must be a whole number, not {value}",
+                            clock.event
+                        ));
+                    }
+                }
+            }
         }
         session.time_event = session
             .clock
@@ -2356,6 +2399,13 @@ impl ReactiveSession {
                         }
                         if after.validate(&numeric, &validate_predicate)? != ValueType::Number {
                             return Err("qualify after requires a number of seconds".into());
+                        }
+                        if let Some(delay) = after.literal_number() {
+                            if self.integer_clock() && !whole_clock_delay(delay) {
+                                return Err(format!(
+                                    "qualify {evidence} with {caveat} after {delay}: an integer clock waits a whole number of units in 0..{MAX_INTEGER_CLOCK}"
+                                ));
+                            }
                         }
                     }
                 }
@@ -3269,6 +3319,21 @@ impl ReactiveSession {
                 ));
             }
         }
+        // An integer clock's dt counts whole units: a fraction inside the
+        // range is malformed input. The range check above runs first, so an
+        // out-of-range value keeps its code.
+        if self.integer_clock() && self.time_event.as_deref() == Some(event) {
+            let dt = parameters.get("dt").copied().unwrap_or(0.0);
+            if dt.fract() != 0.0 {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Input,
+                    RejectionCode::PayloadInvalid,
+                    format!(
+                        "event {event} parameter dt takes a whole number of clock units, not {dt}"
+                    ),
+                ));
+            }
+        }
         // The shown bindings move into the transaction rather than being
         // copied: rules never read them, and evaluation writes them only after
         // it has succeeded, so a failed event hands them back untouched.
@@ -3327,6 +3392,15 @@ impl ReactiveSession {
                     RejectionOrigin::Evaluation,
                     RejectionCode::BoundExceeded,
                     "elapsed time must remain a finite number",
+                ));
+            }
+            if self.integer_clock() && !whole_clock_reading(self.elapsed) {
+                return Err(DispatchFailure::rejected(
+                    RejectionOrigin::Evaluation,
+                    RejectionCode::BoundExceeded,
+                    format!(
+                        "an integer clock must stay within -{MAX_INTEGER_CLOCK}..{MAX_INTEGER_CLOCK}"
+                    ),
                 ));
             }
             self.apply_due_qualifications()?;
@@ -4116,6 +4190,15 @@ impl ReactiveSession {
                         let Value::Number(after) = delay.value else {
                             return Err("qualify after requires a number of seconds".into());
                         };
+                        if self.integer_clock() && !whole_clock_delay(after) {
+                            return Err(EvalError::new(
+                                EvalFailure::Domain,
+                                format!(
+                                    "qualify {occurrence} with {caveat} after: an integer clock waits a whole number of units in 0..{MAX_INTEGER_CLOCK}, not {after}"
+                                ),
+                            )
+                            .into());
+                        }
                         if after < 0.0 {
                             return Err(
                                 "qualify after requires a nonnegative number of seconds".into()
@@ -5455,8 +5538,14 @@ pub(crate) fn parse_directive_at(
             ["clock", event, "every", step] => Ok(Directive::Clock(Clock {
                 event: identifier(event)?,
                 step: Number::parse(step)?,
+                integer: false,
             })),
-            _ => Err("clock expects EVENT every STEP".into()),
+            ["clock", event, "every", step, "integer"] => Ok(Directive::Clock(Clock {
+                event: identifier(event)?,
+                step: Number::parse(step)?,
+                integer: true,
+            })),
+            _ => Err("clock expects EVENT every STEP [integer]".into()),
         },
         "state" => {
             let (name, initial) = line

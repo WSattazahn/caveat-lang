@@ -627,6 +627,16 @@ impl Expr {
         }
     }
 
+    /// The number, if this expression is a number literal, signed or not.
+    pub fn literal_number(&self) -> Option<f64> {
+        match &self.node {
+            Node::Number(number) => Some(number.value()),
+            Node::Unary(Unary::Positive, inner) => inner.literal_number(),
+            Node::Unary(Unary::Negative, inner) => inner.literal_number().map(|value| -value),
+            _ => None,
+        }
+    }
+
     /// The name, if this expression is a bare name.
     pub fn as_name(&self) -> Option<&str> {
         match &self.node {

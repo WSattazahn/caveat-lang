@@ -1443,6 +1443,27 @@ fn a_clause_keyword_survives_a_module_that_declares_its_name() {
     );
 }
 
+#[test]
+fn an_integer_clock_keyword_survives_a_module_that_declares_its_name() {
+    // `integer` joined `clock` in rc.15 (spec/caveat-elapsed-0.1.md). A
+    // module that claims `integer` keeps its integer clock.
+    let source = linked(&[
+        (
+            "m",
+            "module m;\n\
+             claim integer;\n\
+             event step dt min 0 max 100;\n\
+             clock step every 16 integer;\n",
+        ),
+        ("main", "use m;\nbudget 1;\n"),
+    ]);
+    assert!(
+        source.contains("clock m__step every 16 integer;"),
+        "{source}"
+    );
+    assert!(source.contains("claim m__integer;"), "{source}");
+}
+
 // ── The grammar's own words ────────────────────────────────────────────────
 //
 // RESERVED is hand-kept and nothing made it follow the parser. That is not a
@@ -1554,7 +1575,7 @@ fn grammar_keywords() -> std::collections::BTreeSet<String> {
 /// name, because a module may legitimately declare them too — `min` and `max`
 /// are also prelude functions, and nothing stops a module claiming `every` or
 /// `reset`. Each is covered by a test above.
-const POSITIONAL: &[&str] = &["min", "max", "every", "reset"];
+const POSITIONAL: &[&str] = &["min", "max", "every", "integer", "reset"];
 
 /// Words that only ever appear in a statement a module may not contain —
 /// actions, choices, investigations and the executing statements draft 0.5
