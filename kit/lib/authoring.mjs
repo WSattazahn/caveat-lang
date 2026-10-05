@@ -168,6 +168,19 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
       return wrap(2, { file: 'inline.scenarios.json', valid: false, error: error.message });
     }
     const sourceSha256 = createHash('sha256').update(args.source).digest('hex');
+    // As the CLI does: check the program before the first scenario; a program
+    // that does not load is left to its scenarios to report.
+    const check = {};
+    if (!args.source.startsWith('#caveat-bundle')) {
+      try {
+        const { diagnostics, suppressed } = runtime.check(args.source);
+        check[program] = { diagnostics, suppressed };
+      } catch { /* reported by the scenarios */ }
+    }
+    if (check[program]?.diagnostics.some(diagnostic => diagnostic.severity === 'error')) {
+      const unrun = { file: 'inline.scenarios.json', sources: {}, check, scenarios: [], passed: 0, failed: 0 };
+      return wrap(2, scenarioReport([unrun], runtime.identity));
+    }
     const result = await runScenarioFile(args.scenarios, {
       runtime, file: 'inline.scenarios.json',
       readSource: name => {
@@ -177,6 +190,7 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
       reload: () => loadRuntimeFromDirectory(runtimeDirectory),
     });
     result.sources = { [program]: sourceSha256 };
+    result.check = check;
     return wrap(result.failed ? 1 : 0, scenarioReport([result], runtime.identity));
   }
   let replayed;

@@ -49,6 +49,7 @@ const REPEATED_RULES: (&str, &str) = ("C001", "repeated-rules");
 const NO_REOPENING_PATH: (&str, &str) = ("C002", "no-reopening-path");
 const UNROUTED_MEMBER_RULE: (&str, &str) = ("C003", "unrouted-member-rule");
 const SHIFTED_MEMBER_INDEX: (&str, &str) = ("C004", "shifted-member-index");
+const CITATION_UNREACHABLE: (&str, &str) = ("C006", "citation-unreachable");
 const ALLOW: &str = "caveat check: allow";
 
 /// Loads the program, then looks for the patterns in
@@ -63,6 +64,7 @@ pub fn check_source(source: &str) -> Result<CheckReport, String> {
     let mut found = repeated_rules(&session, &statements);
     found.extend(unreopened_decisions(&session, &statements));
     found.extend(member_rules(&session, &statements, &blocks, source));
+    found.extend(unreachable_citations(&session, &statements));
     found.sort_by_key(|diagnostic| (diagnostic.line, diagnostic.column, diagnostic.code));
 
     let lines = source.lines().collect::<Vec<_>>();
@@ -381,6 +383,91 @@ fn passable(
             session.require_kind(one, kind).is_ok() && session.require_kind(two, kind).is_ok()
         })
         || (parameter(one_event, one) && parameter(two_event, two))
+}
+
+/// C006: a binding's `because` cites something its value and condition never
+/// read, on any path. Compared by name after defines and calls are expanded:
+/// the sources a citation names (states, evidence, caveats, histories,
+/// `elapsed()`) against those its binding names. A citation sharing none of
+/// them is the shape `ungrounded_citation` refuses at dispatch; one sharing a
+/// name may still be refused, and one sharing none may hold through a state
+/// whose lineage carries what it cites, which is why this only warns.
+fn unreachable_citations(session: &ReactiveSession, statements: &[Statement]) -> Vec<Diagnostic> {
+    // Each `bind` statement's position, matched to the compiled binding by
+    // target, property and order: the bindings of one target and property
+    // keep their source order however a `for` block is expanded.
+    let mut positions: HashMap<(String, String), Vec<Position>> = HashMap::new();
+    for statement in statements {
+        if let Some(Ok(Directive::Binding(binding))) =
+            parse_directive_at(statement.text.trim(), statement.at)
+        {
+            positions
+                .entry((binding.target, binding.property))
+                .or_default()
+                .push(statement.at);
+        }
+    }
+    let mut seen: HashMap<(String, String), usize> = HashMap::new();
+    let mut found = Vec::new();
+    for binding in session.binding_rules.iter() {
+        let key = (binding.target.clone(), binding.property.clone());
+        let index = seen.entry(key.clone()).or_default();
+        let at = positions
+            .get(&key)
+            .and_then(|list| list.get(*index))
+            .copied()
+            .unwrap_or(Position { line: 1, column: 1 });
+        *index += 1;
+        let Some(citations) = &binding.because else {
+            continue;
+        };
+        let mut read = BTreeSet::new();
+        binding.condition.collect_sources(&mut read);
+        if let super::BindingExpression::Expression(value) = &binding.value {
+            value.collect_sources(&mut read);
+        }
+        for citation in citations {
+            let mut cited = BTreeSet::new();
+            citation.collect_sources(&mut cited);
+            cited.retain(|name| !session.constants.contains_key(name));
+            if cited.is_empty() || !cited.is_disjoint(&read) {
+                continue;
+            }
+            let cited = cited
+                .iter()
+                .map(|name| format!("`{name}`"))
+                .collect::<Vec<_>>();
+            let read = read
+                .iter()
+                .filter(|name| !session.constants.contains_key(*name))
+                .map(|name| format!("`{name}`"))
+                .collect::<Vec<_>>();
+            found.push(Diagnostic {
+                code: CITATION_UNREACHABLE.0,
+                name: CITATION_UNREACHABLE.1,
+                severity: "warning",
+                line: at.line,
+                column: at.column,
+                message: format!(
+                    "`{}.{}` cites {}, which its value and condition never read{}: when it wins, the event is refused as `evaluation/ungrounded_citation` unless what it reads carries what the citation cites",
+                    binding.target,
+                    binding.property,
+                    cited.join(", "),
+                    if read.is_empty() {
+                        String::new()
+                    } else {
+                        format!(" (they read {})", read.join(", "))
+                    }
+                ),
+                suggestion: format!(
+                    "Read what you cite: use it in the value or the `when` condition, cite something the binding already reads, or drop the citation. If a state it reads carries what it cites, put `# {ALLOW} {}` on the line above.",
+                    CITATION_UNREACHABLE.1
+                ),
+                related: Vec::new(),
+            });
+        }
+    }
+    found
 }
 
 /// C002. A decision series committed on readings that nothing reopens: no

@@ -235,6 +235,16 @@ Exit status is 0 when every scenario passes, 1 when any fails, and 2 when a
 file is invalid or cannot be read, or the runtime cannot load. Every file is
 validated first, and nothing runs with status 2.
 
+After validation, and before the first scenario, the kit runner runs
+[`caveat check`](caveat-check-0.1.md) on each program the files name. A
+human report prints each program's warnings, and the warnings an allow
+comment silenced, before the scenario lines. The machine report gives each
+file a `check` object: program path → `{diagnostics, suppressed}`, in the
+check report's form. Warnings never stop the run or change the exit status.
+A diagnostic of severity `error` would stop it with status 2 before any
+scenario runs; Check 0.1 has none. A program that cannot be read, does not
+load or is a bundle is not checked, and its scenarios report it as before.
+
 ## Examples
 
 Both files below passed a throwaway prototype runner against the clean

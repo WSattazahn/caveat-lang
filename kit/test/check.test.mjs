@@ -216,3 +216,40 @@ test('runtime.check returns the report and throws a load error as open does', ()
   class Older { constructor(source) { this.inner = new Real(source); } }
   assert.throws(() => createRuntime(Older).check(FROST), /this runtime build has no check/);
 });
+
+// caveat test checks each program first (rc.15): round 7's C2 and C3 authors
+// met this binding only when it won at dispatch, as ungrounded_citation.
+test('caveat test prints check warnings with the run and still runs', async () => {
+  const source = `state seen = 0;
+state other = 0;
+event read celsius min -40 max 60;
+on read set seen = seen + 1;
+bind ui.text = "seen often" when seen > 5 because other;
+`;
+  const scenarios = { schema: 'caveat-scenarios/0.1', source: 'glow.cav',
+    scenarios: [{ id: 'S1', title: 'one reading', steps: [{ send: 'read', payload: { celsius: 3 } }] }] };
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-test-check-'));
+  try {
+    await writeFile(path.join(directory, 'glow.cav'), source);
+    const file = path.join(directory, 'glow.scenarios.json');
+    await writeFile(file, JSON.stringify(scenarios));
+    const text = caveat(['test', file]);
+    assert.equal(text.status, 0, text.stdout + text.stderr);
+    const lines = text.stdout.split('\n');
+    assert.match(lines[0], /^glow\.cav:5:1: warning C006 citation-unreachable: `ui\.text` cites `other`, which its value and condition never read/);
+    assert.ok(lines.findIndex(line => line.startsWith('PASS S1')) > 0, 'the warning prints before the scenarios run');
+    const json = caveat(['test', '--json', file]);
+    assert.equal(json.status, 0, json.stderr);
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.passed, 1);
+    assert.deepEqual(report.files[0].check['glow.cav'].diagnostics.map(warning => [warning.code, warning.line]), [['C006', 5]]);
+    assert.deepEqual(report.files[0].check['glow.cav'].suppressed, []);
+
+    await writeFile(path.join(directory, 'glow.cav'), source.replace('bind ui.text', '# caveat check: allow C006\nbind ui.text'));
+    const allowed = caveat(['test', file]);
+    assert.equal(allowed.status, 0, allowed.stderr);
+    assert.match(allowed.stdout, /^glow\.cav:6:1: allowed C006 citation-unreachable/m);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

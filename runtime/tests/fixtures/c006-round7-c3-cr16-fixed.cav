@@ -1,0 +1,307 @@
+scene "Vessel's slime learns which glowing mushrooms are safe to absorb.";
+
+place level kind level;
+entity cave kind mushroom at level;
+entity pool kind mushroom at level;
+entity ruin kind mushroom at level;
+entity grove kind mushroom at level;
+# The pit grows out of the slime's reach: only other creatures can eat it.
+entity pit kind mushroom at level;
+
+# The slime remembers its six most recent observations, one per memory slot,
+# written in turn: the slot written next holds the oldest remembered one.
+entity m1 kind memory at level;
+entity m2 kind memory at level;
+entity m3 kind memory at level;
+entity m4 kind memory at level;
+entity m5 kind memory at level;
+entity m6 kind memory at level;
+
+# The journal shows the six most recent entries, oldest (j1) first.
+entity j1 kind entry at level;
+entity j2 kind entry at level;
+entity j3 kind entry at level;
+entity j4 kind entry at level;
+entity j5 kind entry at level;
+entity j6 kind entry at level;
+
+# Absorbing a glowing mushroom bears on this general claim.
+claim glowing_gives_light;
+
+# Effects on the slime, in seconds left.
+state glow = 0 min 0 max 30;
+state heavy = 0 min 0 max 30;
+
+# The observation being remembered by the current event: its value is grounded on
+# the observation's evidence, its sort is plain.
+state observation = 0 min 0 max 1;
+state observation_sort = 0 min 0 max 2;
+# The memory slot the next observation is written to.
+state next_memory = 1 min 1 max 6;
+# Glowcap observations since the most recent contradiction, remembered or not, up to
+# the two that recover trust; grounds are exactly those observations.
+state recovery = 0 min 0 max 2;
+
+# "Absorb glowing mushrooms without tasting."
+decisions trust limit 256;
+
+event absorb target kind mushroom, sort in glowcap duskcap;
+event taste target kind mushroom, sort in glowcap duskcap;
+# The slime sees another creature eat a mushroom, and what it did to the creature.
+event witness target kind mushroom, sort in glowcap duskcap;
+# The player marks a mushroom to avoid, or takes the mark off. A mark is not evidence.
+event mark target kind mushroom;
+event unmark target kind mushroom;
+event tick dt min 0 max 0.1;
+
+# The belief counts remembered observations only; each count's grounds are the
+# observations it counted.
+define support = m1_support + m2_support + m3_support + m4_support + m5_support + m6_support;
+define contradiction = m1_contradiction + m2_contradiction + m3_contradiction
+    + m4_contradiction + m5_contradiction + m6_contradiction;
+define belief_none = support == 0 and contradiction == 0;
+define belief_safe = support > 0 and contradiction == 0;
+define belief_unsafe = support == 0 and contradiction > 0;
+define belief_uncertain = support > 0 and contradiction > 0;
+# Twice bitten: two or more contradicting observations make unknown mushrooms too risky.
+define twice_bitten = contradiction >= 2;
+
+# Declared in the order they can attach to an observation (taste_faded comes 60 s later);
+# views list caveats in this order.
+caveat tasted_in_dark consequence material;
+caveat secondhand consequence material;
+caveat taste_faded consequence material;
+
+# What one absorption or taste teaches about glowing mushrooms in general:
+# a glowcap supports the belief, a duskcap contradicts it. A taste made while
+# the slime is not glowing carries tasted_in_dark into everything built on it,
+# and every taste carries taste_faded once 60 seconds of ticks have passed.
+proc learn(e evidence, s, tasted) {
+    when s == sort.glowcap reveal e supports glowing_gives_light;
+    when s == sort.duskcap reveal e opposes glowing_gives_light;
+    when tasted == 1 and glow == 0 qualify e with tasted_in_dark;
+    when tasted == 1 qualify e with taste_faded after 60;
+    set observation = qualified(1, e);
+    set observation_sort = s;
+};
+
+# After the observation is remembered (forgetting the oldest when memory is full),
+# trust follows it: a contradiction reopens it; while it has never been committed,
+# an observation after which the belief is probably_safe commits it on that one
+# observation; while reopened, a second glowcap since the latest contradiction
+# commits it again on those two.
+proc decide(e evidence, s, act, m) {
+    set next_memory = wrap(next_memory, 6) + 1;
+    set note_value = qualified(1, e);
+    call note((act * 2 + s) * 10 + m);
+    when s == sort.glowcap and recovery < 2 set recovery = recovery + qualified(1, e);
+    when s == sort.duskcap set recovery = 0;
+    when s == sort.duskcap and committed(trust) reopen trust because e;
+    when s == sort.duskcap and committed(trust) call note(80);
+    when s == sort.glowcap and belief_safe and not committed(trust) call note(70);
+    when s == sort.glowcap and belief_safe and not committed(trust)
+        commit trust because enough using qualified(1, e);
+    when s == sort.glowcap and reopened(trust) and recovery >= 2 set note_value = recovery;
+    when s == sort.glowcap and reopened(trust) and recovery >= 2 call note(70);
+    when s == sort.glowcap and reopened(trust) and recovery >= 2
+        commit trust because enough using recovery;
+};
+
+# Journal entries: code = 10 * what happened + the mushroom's index. What happened is
+# 1/2 absorbed a glowcap/duskcap, 3/4 tasted sweet/bitter, 5/6 saw a creature eat a
+# glowcap/duskcap, 7 trust committed, 8 trust reopened. Each entry cites note_value.
+# A new entry shifts the others up and the oldest falls off.
+state note_value = 0 min 0 max 2;
+proc note(code) {
+    set j1_code = j2_code;
+    set j1_cite = j2_cite;
+    set j2_code = j3_code;
+    set j2_cite = j3_cite;
+    set j3_code = j4_code;
+    set j3_cite = j4_cite;
+    set j4_code = j5_code;
+    set j4_cite = j5_cite;
+    set j5_code = j6_code;
+    set j5_cite = j6_cite;
+    set j6_code = code;
+    set j6_cite = note_value;
+};
+
+for mushroom as $m routed by target {
+    evidence absorb_$m from "absorbing the $m mushroom";
+    evidence taste_$m from "tasting the $m mushroom";
+    evidence witness_$m from "watching another creature eat the $m mushroom";
+    secondhand qualifies witness_$m;
+    # Each regrowth is a new life: the evidence names move to new occurrences
+    # (absorb_$m@2, ...), and earlier lives keep what was learned from them.
+    renewable absorb_$m limit 64;
+    renewable taste_$m limit 64;
+    renewable witness_$m limit 64;
+    # 1 once consumed (absorbed or eaten by another creature). A plain flag, so guards
+    # that read it pass no evidence on; $m_eaten_by is grounded on what consumed the
+    # current life.
+    state $m_gone = 0 min 0 max 1;
+    state $m_eaten_by = 0 min 0 max 1;
+    # The current life, 1 to 64, and seconds of ticks until a consumed mushroom regrows.
+    state $m_life = 1 min 1 max 64;
+    state $m_regrow = 0 min 0 max 45;
+    # 0 untasted, 1 tasted sweet (glowcap), 2 tasted bitter (duskcap).
+    state $m_taste = 0 min 0 max 2;
+    # 1 while the player has marked it to avoid; consuming it clears the mark.
+    state $m_marked = 0 min 0 max 1;
+
+    on absorb when $index == target.pit reject "That mushroom is out of reach.";
+    on taste when $index == target.pit reject "That mushroom is out of reach.";
+    on mark when $index == target.pit reject "That mushroom is out of reach.";
+    on absorb when $m_gone == 1 reject "That mushroom has already been absorbed.";
+    on absorb when $m_taste == 2 reject "That mushroom tasted bitter; the slime will not absorb it.";
+    on absorb when $m_taste == 1 and sort != sort.glowcap reject "That mushroom tasted sweet; it cannot be a duskcap.";
+    on absorb when $m_marked == 1 reject "That mushroom is marked to avoid.";
+    on absorb when $m_taste == 0 and twice_bitten reject "Twice bitten: taste that mushroom first.";
+    on witness when $m_gone == 1 reject "That mushroom has already been eaten.";
+    on witness when $m_taste != 0 and sort != $m_taste reject "What it did contradicts the taste of that mushroom.";
+    on taste when $m_gone == 1 reject "That mushroom has already been absorbed.";
+    on taste when $m_taste != 0 reject "That mushroom has already been tasted.";
+
+    on taste call learn(taste_$m, sort, 1);
+    on taste set $m_taste = qualified(sort, taste_$m);
+
+    on absorb call learn(absorb_$m, sort, 0);
+    on absorb set $m_gone = 1;
+    on absorb set $m_eaten_by = qualified(1, absorb_$m);
+    on absorb set $m_regrow = 45;
+
+    # Another creature eats it: the mushroom is consumed, the slime's timers do not change.
+    on witness call learn(witness_$m, sort, 0);
+    on witness set $m_gone = 1;
+    on witness set $m_marked = 0;
+    on witness set $m_eaten_by = qualified(1, witness_$m);
+    on witness set $m_regrow = 45;
+
+    on mark when $m_gone == 1 reject "That mushroom has already been eaten.";
+    on mark when $m_marked == 1 reject "That mushroom is already marked.";
+    on mark set $m_marked = 1;
+    on unmark when $m_marked == 0 reject "That mushroom is not marked.";
+    on unmark set $m_marked = 0;
+
+    # Regrowth: 45 s after it was consumed a new, untasted mushroom of unknown kind
+    # grows, while lives remain; after its last life it stays consumed.
+    on tick when $m_gone == 1 set $m_regrow = max(0, $m_regrow - dt);
+    proc regrow_$m() {
+        renew absorb_$m;
+        renew taste_$m;
+        renew witness_$m;
+        set $m_taste = 0;
+        set $m_life = $m_life + 1;
+        set $m_gone = 0;
+        set $m_eaten_by = 0;
+    };
+    on tick when $m_gone == 1 and $m_regrow == 0 and $m_life < 64 call regrow_$m();
+
+    bind $m.present = $m_gone == 0;
+    bind $m.marked = $m_marked == 1;
+    bind $m.can_absorb = $index != target.pit and $m_gone == 0 and $m_marked == 0 and $m_taste != 2 and not ($m_taste == 0 and twice_bitten);
+    bind $m.can_taste = $index != target.pit and $m_gone == 0 and $m_taste == 0;
+    bind $m.label = "Glowing mushroom" because nothing;
+    bind $m.label = "Probably a glowcap" when belief_safe because support;
+    bind $m.label = "Probably a duskcap" when belief_unsafe because contradiction;
+    bind $m.label = "Could be a duskcap — taste first" when belief_uncertain because contradiction;
+    bind $m.label = "Too risky — taste first" when twice_bitten because contradiction;
+    bind $m.label = "Glowcap" when $m_taste == 1 because $m_taste;
+    bind $m.label = "Probably a glowcap (tasted in the dark)"
+        when $m_taste == 1 and has_caveat($m_taste, tasted_in_dark) because $m_taste;
+    bind $m.label = "Duskcap — avoid" when $m_taste == 2 because $m_taste;
+    bind $m.label = "Probably a duskcap (tasted in the dark)"
+        when $m_taste == 2 and has_caveat($m_taste, tasted_in_dark) because $m_taste;
+    bind $m.label = "Probably a glowcap (taste has faded)"
+        when $m_taste == 1 and has_caveat($m_taste, taste_faded) because $m_taste;
+    bind $m.label = "Probably a duskcap (taste has faded)"
+        when $m_taste == 2 and has_caveat($m_taste, taste_faded) because $m_taste;
+    bind $m.label = "" when $m_gone == 1 because nothing;
+
+    # Why an action is not allowed: the first matching reason wins, so it is written last.
+    bind $m.why_absorb = "" because nothing;
+    bind $m.why_absorb = "Too risky untasted" when $m_taste == 0 and twice_bitten because contradiction;
+    bind $m.why_absorb = "Marked to avoid" when $m_marked == 1 because nothing;
+    bind $m.why_absorb = "Known duskcap" when $m_taste == 2 because $m_taste;
+    bind $m.why_absorb = "Out of reach" when $index == target.pit because nothing;
+    bind $m.why_absorb = "Already eaten" when $m_eaten_by == 1 because $m_eaten_by;
+    bind $m.why_taste = "" because nothing;
+    bind $m.why_taste = "Already tasted" when $m_taste != 0 because $m_taste;
+    bind $m.why_taste = "Out of reach" when $index == target.pit because nothing;
+    bind $m.why_taste = "Already eaten" when $m_eaten_by == 1 because $m_eaten_by;
+};
+
+# Memory: the event's observation replaces the one in the next slot.
+for memory as $k {
+    state $k_support = 0 min 0 max 1;
+    state $k_contradiction = 0 min 0 max 1;
+    proc remember_$k() {
+        when next_memory == $index and observation_sort == sort.glowcap set $k_support = observation;
+        when next_memory == $index and observation_sort == sort.glowcap set $k_contradiction = 0;
+        when next_memory == $index and observation_sort == sort.duskcap set $k_support = 0;
+        when next_memory == $index and observation_sort == sort.duskcap set $k_contradiction = observation;
+    };
+    on absorb call remember_$k();
+    on taste call remember_$k();
+    on witness call remember_$k();
+};
+
+for mushroom as $m routed by target {
+    on absorb call decide(absorb_$m, sort, 0, $index);
+    on taste call decide(taste_$m, sort, 1, $index);
+    on witness call decide(witness_$m, sort, 2, $index);
+};
+
+for entry as $j {
+    state $j_code = 0 min 0 max 89;
+    state $j_cite = 0 min 0 max 2;
+    define $j_name = if(wrap($j_code, 10) == target.cave, "cave",
+        if(wrap($j_code, 10) == target.pool, "pool",
+        if(wrap($j_code, 10) == target.ruin, "ruin",
+        if(wrap($j_code, 10) == target.grove, "grove", "pit"))));
+    define $j_what = floor($j_code / 10);
+    bind $j.shown = $j_code > 0;
+    bind $j.text = "" because nothing;
+    bind $j.text = "Absorbed the " + $j_name + " mushroom: it gave light." when $j_what == 1 and $j_cite > 0 because $j_cite;
+    bind $j.text = "Absorbed the " + $j_name + " mushroom: it made me heavy." when $j_what == 2 and $j_cite > 0 because $j_cite;
+    bind $j.text = "Tasted the " + $j_name + " mushroom: sweet." when $j_what == 3 and $j_cite > 0 because $j_cite;
+    bind $j.text = "Tasted the " + $j_name + " mushroom: bitter." when $j_what == 4 and $j_cite > 0 because $j_cite;
+    bind $j.text = "Saw a creature eat the " + $j_name + " mushroom: it glowed." when $j_what == 5 and $j_cite > 0 because $j_cite;
+    bind $j.text = "Saw a creature eat the " + $j_name + " mushroom: it grew heavy." when $j_what == 6 and $j_cite > 0 because $j_cite;
+    bind $j.text = "I trust glowing mushrooms now." when $j_what == 7 and $j_cite > 0 because $j_cite;
+    bind $j.text = "I no longer trust glowing mushrooms." when $j_what == 8 and $j_cite > 0 because $j_cite;
+};
+
+on absorb when sort == sort.glowcap set glow = 30;
+# Heaviness stacks: a duskcap while heavy adds 20 s, up to 30 s.
+on absorb when sort == sort.duskcap set heavy = if(heavy > 0, min(30, heavy + 20), 20);
+
+on tick set glow = max(0, glow - dt);
+on tick set heavy = max(0, heavy - dt);
+
+bind slime.glowing = glow > 0;
+bind slime.heavy = heavy > 0;
+bind slime.heavy_seconds = ceil(heavy);
+
+bind belief.state = "none";
+bind belief.state = "probably_safe" when belief_safe;
+bind belief.state = "probably_unsafe" when belief_unsafe;
+bind belief.state = "uncertain" when belief_uncertain;
+bind belief.text = "";
+bind belief.text = "Glowing mushrooms give you light." when belief_safe;
+bind belief.text = "Glowing mushrooms make you heavy." when belief_unsafe;
+bind belief.text = "Not every glowing mushroom is safe. Taste before absorbing." when belief_uncertain;
+bind belief.note = "";
+bind belief.note = "Based on one observation." when belief_safe and support == 1;
+bind belief.note = "Based on " + number_text(support) + " observations." when belief_safe and support > 1;
+bind belief.note = "Based on one observation." when belief_unsafe and contradiction == 1;
+bind belief.note = "Based on " + number_text(contradiction) + " observations." when belief_unsafe and contradiction > 1;
+# Shown counts; their explanations are the supporting and contradicting absorptions.
+bind belief.supported = support because support;
+bind belief.contradicted = contradiction because contradiction;
+bind belief.cited = support + contradiction because support, contradiction;
+
+bind decision.state = "none";
+bind decision.state = "committed" when committed(trust);
+bind decision.state = "reopened" when reopened(trust);

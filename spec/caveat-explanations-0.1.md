@@ -79,9 +79,12 @@ It does not check that the citation is *sufficient*, i.e. that it is the
 reason a person would give. The author decides relevance and the runtime
 refuses fabrication. Explanations of commitments already exist:
 `commitment_bases` holds a decision's frozen basis. Cues keep their existing
-`cue_qualifications` in this profile. `caveat check` does not report a
-citation that can never be grounded. The runtime finds one when its
-declaration first supplies the shown value, at load or long into a session.
+`cue_qualifications` in this profile. The runtime finds an ungrounded
+citation when its declaration first supplies the shown value, at load or long
+into a session. `caveat check` warns earlier, as C006 `citation-unreachable`,
+when a citation names nothing its binding reads
+([Check 0.1](caveat-check-0.1.md)). That comparison is by name, so a clean
+check does not prove a citation grounded.
 
 ## Snapshot
 
