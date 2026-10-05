@@ -298,6 +298,8 @@ The rc.13 rules carry over:
   and `server.json`) it refuses with "kit/package.json: mcpName must be
   io.github.WSattazahn/caveat-lang, the GitHub login's exact case"; against
   this commit it passes.
+- PR 1 (#152) merged 2026-10-05 as `9ede60e`, after the rc.14 record (#153),
+  Amendment 2 (#154) and the Codex manifest fix (#151).
 - PR 2: the integer clock specification, docs only. Elapsed 0.1 gains an
   "Integer clocks" section; Renewal 0.1, Reactive 0.2, Dispatch 0.1 and Save
   0.1 each gain the matching rule and a `Changes` entry marked "specified";
