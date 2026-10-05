@@ -211,6 +211,9 @@ Each declared capacity must be an integer in `1..256`. The sum of all reading
 and decision capacities may not exceed 1,024. This bounds additional history
 records; static graph declarations continue to use the existing profile rules.
 There is no eviction, silent history truncation, or published identity reuse.
+A history declared with a [window](caveat-windows-0.1.md) in place of a limit
+retires its oldest record instead of refusing; the record stays in the session
+and its name is not reused.
 
 The existing finite-number, expression, text, and per-value provenance bounds
 remain. A long decision chain may reach its provenance bound before its declared
@@ -231,3 +234,10 @@ application functions under the existing combined 128-definition limit.
 The non-game [thermostat history example](../examples/thermostat_history.cav)
 uses the same sampling, reopening, and revision semantics to revise a control
 decision from repeated instrument readings.
+
+## Changes
+
+- 2026-10-05 (rc.15, specified): a reading stream or decision series may
+  declare `window N` in place of `limit N`
+  ([Windows 0.1](caveat-windows-0.1.md)); its oldest record retires instead of
+  the event being refused. Histories declared with `limit` are unchanged.

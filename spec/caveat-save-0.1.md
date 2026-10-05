@@ -270,6 +270,11 @@ validation and host trust mechanisms separately from this contract.
 
 ## Changes
 
+- 2026-10-05 (rc.15, specified): the additive `retired` field and its restore
+  checks for programs with a [window](caveat-windows-0.1.md). Saves of
+  programs without a window never carry it and restore exactly as before; the
+  schema stays `caveat-reactive-save/0.1`.
+
 - 2026-10-05 (rc.15, specified): for an integer clock, restore refuses a
   saved clock reading, journal `elapsed`, `scheduled_at` or `after` that is not
   a whole number in range. The schema stays `caveat-reactive-save/0.1`: the

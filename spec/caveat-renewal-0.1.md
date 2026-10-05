@@ -131,6 +131,11 @@ state that could disagree with the evidence.
 
 ## Changes
 
+- 2026-10-05 (rc.15, specified): `renewable EVIDENCE window N` retires the
+  oldest occurrence instead of refusing a `renew`
+  ([Windows 0.1](caveat-windows-0.1.md)). Renewable evidence declared with
+  `limit` is unchanged.
+
 - 2026-10-05 (rc.15, specified): under an integer clock
   ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)) a scheduled
   qualification applies on the exact event, and its delay must be a whole

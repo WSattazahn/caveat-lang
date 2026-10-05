@@ -320,6 +320,27 @@ usually handles it there, by name, as in
 `for zone as $z { entity north kind plot at field; on read when target == target.north set north_n = north_n + 1; };`,
 and a warning would fall on those programs too.
 
+### C007 `windowed-basis-chain`
+
+Status: specified for rc.15; `caveat check` reports it from rc.15's PR 5,
+which adds the `window` declaration it needs.
+
+It reports a `commit` of a decision series declared with a
+[window](caveat-windows-0.1.md) whose `using` expression reads
+`committed(SERIES)` or `reopened(SERIES)` of that same series. Such a commit
+adds the current revision's basis to the new one, so every revision inside
+the window pins every earlier one, and retiring revisions does not bound what
+the session holds. The rule is an authoring rule, not a language rule
+([Windows 0.1](caveat-windows-0.1.md#the-basis-chain-an-authoring-rule)).
+
+Commits are found after procedure calls and `for` blocks are expanded, so a
+commit inside a procedure that takes the series as a `decisions` parameter
+counts. Only the commit's `using` expression is read, through `define`s and
+pure function arguments; its `when` guard is not. The warning is at the
+commit. It suggests deciding the revision on the live readings, such as
+`latest(STREAM)` or `history_count(STREAM)`. A series without a window is
+never reported.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -373,6 +394,12 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
 `load` for a program that does not load.
 
 ## Changes
+
+- 2026-10-05 (rc.15, specified): C007 `windowed-basis-chain`, advisory, for a
+  windowed series' commit that reads `committed()` or `reopened()` of its own
+  series into `using` (owner decision of 2026-10-05). C005 stays reserved for
+  [member symbols](caveat-member-symbols-0.1.md), and C006 for
+  `citation-unreachable` (rc.15 PR 7b).
 
 - C003 `unrouted-member-rule`. In a study of the agent ledger, each of its 31
   member rules was written again without its selection, one at a time. Every

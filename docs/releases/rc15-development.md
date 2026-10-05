@@ -151,9 +151,10 @@ nothing; numbering never reuses a name. `explain` and `dependents` show retired
 records with the sequence at which they retired. The spec states the basis
 chain as an authoring rule (owner decision above) and specifies the advisory
 `caveat check` diagnostic for a windowed series' commit that reads
-`committed()` or `reopened()` of its own series into `using`; the diagnostic
-ships with this PR. Restore validation for retired records: a retired record
-has no live relation; the schema stays `caveat-reactive-save/0.1` if the fields
+`committed()` or `reopened()` of its own series into `using` (C007; C005 is
+reserved for member symbols). It is specified here and reports from PR 5,
+because no windowed series loads before PR 5 adds the declaration. Restore
+validation for retired records: a retired record has no live relation; the schema stays `caveat-reactive-save/0.1` if the fields
 are additive and old saves restore unchanged, otherwise the note's F247
 argument applies and the spec says which.
 
@@ -356,3 +357,14 @@ The rc.13 rules carry over:
   (parry) is committed. The new boss-stance scenarios state those outcomes.
   Both join the corpus the repository's sweeps read (`git ls-files '*.cav'`,
   as `test:interface` does), and a kit test checks, tests and replays each.
+- PR 4: the windows specification, docs only. New
+  `spec/caveat-windows-0.1.md` (declarations, retirement, the `retired`
+  snapshot and save field, restore checks, the basis-chain authoring rule);
+  C007 `windowed-basis-chain` in Check 0.1; `Changes` entries in Reactive 0.5,
+  the decision journal, Renewal 0.1 and Save 0.1. Defaults chosen where the
+  plan left them open: a windowed history holds at most 65,536 records, live
+  and retired, until departure (refused with the existing `limit/history_limit`
+  or `limit/renewal_limit`); a scheduled qualification on an occurrence that
+  retires still applies, inertly; the schema stays
+  `caveat-reactive-save/0.1`, since `retired` is additive and old saves
+  restore unchanged.
