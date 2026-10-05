@@ -190,6 +190,12 @@ save is refused with an error, and never crashes the runtime, when:
 - a journal entry has an impossible event/sequence relationship, unreachable
   decision effect, or inconsistent optional elapsed time. Clocks whose source
   admits negative `dt` are not incorrectly treated as monotonic;
+- the program's clock is an
+  [integer clock](caveat-elapsed-0.1.md#integer-clocks) and the saved
+  `elapsed`, a journal entry's `elapsed`, or a pending scheduled
+  qualification's `scheduled_at` is not a whole number within
+  `±(2^53 - 1)`, or its `after` is not a whole number in `0..2^53 - 1`. A save
+  of a program without `integer` is checked as before;
 - its `sequence` is past 2^53 - 1 (9007199254740991), or a reading, journal
   entry or withdrawal is dated 0 or past the `sequence`. The sequence counts
   accepted events, and at ten million a second 2^53 of them take over 28
@@ -263,6 +269,12 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-05 (rc.15, specified): for an integer clock, restore refuses a
+  saved clock reading, journal `elapsed`, `scheduled_at` or `after` that is not
+  a whole number in range. The schema stays `caveat-reactive-save/0.1`: the
+  fields and their shape are unchanged, and saves of programs without an
+  integer clock restore exactly as before.
 
 - 2026-10-04 (rc.13): restore refuses a save whose graph records a
   membership without its record: observed evidence without an observation

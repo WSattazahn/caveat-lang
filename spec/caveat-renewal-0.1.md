@@ -104,6 +104,13 @@ qualification applies at most one event away from exact arithmetic. With
 steps that are powers of two and a reading small enough that every addition
 is exact, it applies on the event exact arithmetic gives.
 
+For an [integer clock](caveat-elapsed-0.1.md#integer-clocks), readings and
+delays are whole numbers, every subtraction is exact, and a qualification
+applies on the event exact arithmetic gives; the rounding above does not
+arise. Its delay must be a whole number in `0..2^53 − 1`: a literal that is
+not is rejected when the program loads, and a computed one that is not refuses
+the event as `evaluation/expression`.
+
 `elapsed` and `scheduled_qualifications` appear in the snapshot. At most 4,096
 qualifications can wait at once; scheduling another refuses the event as
 `limit/scheduled_limit` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
@@ -123,6 +130,11 @@ are the evidence and its caveats when it is observed. A label can therefore say
 state that could disagree with the evidence.
 
 ## Changes
+
+- 2026-10-05 (rc.15, specified): under an integer clock
+  ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)) a scheduled
+  qualification applies on the exact event, and its delay must be a whole
+  number. Programs without an integer clock are unchanged.
 
 - 2026-10-04: states when a scheduled qualification applies: on the first
   time event at which the current reading minus `scheduled_at` reaches the

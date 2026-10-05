@@ -176,6 +176,12 @@ must not inject an accumulated, out-of-range frame interval. The runtime does
 not read wall time or dispatch the clock automatically. A clock targeting an
 event other than `tick` follows that event's declared `dt` bounds.
 
+`clock EVENT every STEP integer` declares an
+[integer clock](caveat-elapsed-0.1.md#integer-clocks): `STEP` and the event's
+`dt` bounds must be whole numbers, `EVENT` cannot be `tick`, and the clock
+publishes `{event, step, integer: true}`. A clock without `integer` publishes
+`{event, step}` as before.
+
 ## Knowledge, attention, and physical behavior
 
 Arithmetic results, pure functions, bindings, and cues do not assert that a
@@ -221,7 +227,7 @@ The additive snapshot fields are:
 | `bindings` | Cached primitive values, indexed by target then property |
 | `cues` | Cues emitted by the last accepted event; each includes `kind` and `id` |
 | `controls` | Control name to `{event, reset}` metadata |
-| `clock` | `{event, step}` metadata, or `null` |
+| `clock` | `{event, step}` metadata (`integer: true` added for an integer clock), or `null` |
 
 Existing `values`, `events`, `world`, graph fields, `effects`, labels, scenes,
 `source_id`, `sequence`, and `last_event` keep their roles. Source is parsed and
@@ -232,6 +238,11 @@ This profile does not make the implementation self-hosting or add general
 file, network, collection, or module facilities.
 
 ## Changes
+
+- 2026-10-05 (rc.15, specified): `clock EVENT every STEP integer` declares an
+  integer clock ([Elapsed 0.1](caveat-elapsed-0.1.md#integer-clocks)), and its
+  `clock` metadata adds `integer: true`. A clock without `integer` and its
+  metadata are unchanged.
 
 - 2026-10-03: the 128-function limit counts the program's own declarations.
   The runtime counted the 10 standard library functions against it, so the
