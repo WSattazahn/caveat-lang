@@ -377,3 +377,13 @@ The rc.13 rules carry over:
   retires still applies, inertly; the schema stays
   `caveat-reactive-save/0.1`, since `retired` is additive and old saves
   restore unchanged.
+- PR 4 (#160) merged 2026-10-05 as `6a525fe`, after the owner chose no
+  series windows for rc.15 (05:19 UTC).
+- PR 7b: `caveat test` checks every program before its first scenario,
+  prints any warnings with the run, and stops with exit 2 on an
+  error-severity diagnostic; the JSON report and the MCP `caveat_test` result
+  carry each file's `check`. New advisory C006 `citation-unreachable`:
+  round 7's C2 and C3 CR16 first runs each report it at the binding that was
+  refused as `evaluation/ungrounded_citation`, their passing versions do not,
+  and no repository program reports it (a test walks them all). C005 stays
+  reserved for member symbols; C007 was dropped with series windows.
