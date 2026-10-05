@@ -144,3 +144,19 @@ section factual, as `rc15-development.md` does.
   vacuously, because no tracked `.cav` file declares a window. The sweep now
   names its population: the C3 program with windows, the two windowed kit
   test programs and the runtime's window tests.
+
+- PR 4: a reopening whose cause departed ([Departure
+  0.1](../../spec/caveat-departure-0.1.md), after the restore list),
+  specified. Departure takes every relation of a departed record away with
+  it, including the `reopens` relation from a reopened commitment's cause.
+  The commitment stays open, and its reopening qualification keeps the cause
+  as a marker. Save 0.1's restore check refuses a reopening qualification
+  that no `reopens` relation names, so a session's own save would not
+  restore. The departure branch's test of a revision basis holding departed
+  readings (`runtime/tests/departure.rs`, "departed readings become one
+  marker per history") was refused with "reopening of trust@1: trust@1 is
+  not a commitment a reopens relation names". Restore now also accepts a
+  reopening qualification whose commitment is open and whose provenance
+  holds a marker, since departure is a source mechanism that produces one.
+  It still refuses every other reopening qualification that no `reopens`
+  relation names. The departure implementation is now PR 5.
