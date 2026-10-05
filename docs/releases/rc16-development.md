@@ -36,14 +36,19 @@ section factual, as `rc15-development.md` does.
 ## Progress
 
 - PR 1: [Lineage compaction 0.1](../../spec/caveat-lineage-compaction-0.1.md),
-  specified, not implemented. When a record departs, each provenance that named
-  it keeps one marker per history (`from`, `through`, `departed_at`) in place of
-  its names. A simulation over rc.15's real C3 saves
-  (`experiments/lineage-compaction/simulate.mjs`) shows why the shape matters.
-  - With one marker per departed record, the save still grows linearly:
-    201,595 bytes at 60 cycles.
-  - With one marker per history, it is flat: 13,995 bytes at 30 cycles and
-    13,996 at 60.
+  specified, not implemented. A value's own citations stay exact and pin their
+  records: state grounds, the grounds of the revision in force, and the
+  `because` of in-window journal entries. Lineage and inherited bases replace
+  departed names with one marker per history (`read`, `from`, `through`,
+  `departed_at`). A departed record's archive entry names the provenances that
+  held it. The owner chose this shape and its riders at 16:34 UTC, over a
+  marker per record and over newest-exact markers. A simulation over rc.15's
+  real C3 saves (`experiments/lineage-compaction/simulate.mjs`) gives these
+  raw save bytes at 10, 30 and 60 cycles:
+  - a marker per record: 36,277, 101,849 and 200,550, still linear;
+  - this shape: 16,495, 16,799 and 16,800, flat.
 
-  The 14:45 direction described a marker per record, so the marker shape is on
-  a card to the owner.
+  C3's `trust` series stays at one revision, so its gate needs no series
+  window. The order (owner, 16:40 UTC, gate first): this spec, departure, then
+  the C3 gate on a runtime build, 60 cycles with the adapter save flat. Series
+  windows, View 0.2 and the rest of rc.16 wait until that gate is measured.

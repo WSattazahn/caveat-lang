@@ -1,8 +1,8 @@
 // Simulation behind spec/caveat-lineage-compaction-0.1.md. Not a runtime
 // measurement: it plays round 7's C3 program with windows for 60 longplay
 // cycles on an installed caveat-lang package, then rewrites each raw save as
-// if every retired record had departed, in two marker shapes, and prints the
-// raw save bytes.
+// if every retired record that no value's own citation pins had departed, in
+// two marker shapes, and prints the raw save bytes.
 //
 //   node experiments/lineage-compaction/simulate.mjs --package=DIR
 //
@@ -54,9 +54,26 @@ const numberOf = (name) => (name.includes('@') ? Number(name.split('@')[1]) : 1)
 
 // Every retired record departs. A provenance keeps its other names and, for
 // the departed ones, either one marker per record or one per history.
+// A value's own citations stay exact and pin their records (the owner's
+// rider of 2026-10-05 16:34): each state's grounds (its lineage when the save
+// leaves grounds out), the grounds of each series' revision in force, and the
+// `because` of journal entries still in the window. Everything else retired
+// departs.
+function pinned(save) {
+  const names = new Set();
+  const add = (provenance) => provenance?.evidence?.forEach((n) => names.add(n));
+  for (const cell of Object.values(save.states)) add(cell.grounds ?? cell.lineage);
+  for (const series of Object.values(save.decision_series ?? {})) add(save.commitment_grounds?.[series.current]);
+  save.decision_journal.forEach((entry, i) => {
+    if (!Object.hasOwn(save.retired ?? {}, `journal@${i + 1}`)) entry.because?.forEach((n) => names.add(n));
+  });
+  return names;
+}
+
 function depart(save, shape) {
   const s = structuredClone(save);
-  const retired = s.retired ?? {};
+  const keep = pinned(save);
+  const retired = Object.fromEntries(Object.entries(s.retired ?? {}).filter(([name]) => !keep.has(name)));
   const gone = (name) => Object.hasOwn(retired, name);
   const compact = (provenance) => {
     if (!provenance?.evidence) return provenance;
@@ -69,7 +86,8 @@ function depart(save, shape) {
       const markers = new Map();
       for (const name of departed) {
         const history = historyOf(name);
-        const m = markers.get(history) ?? { history, from: Infinity, through: 0, departed_at: 0 };
+        const m = markers.get(history) ?? { history, read: 0, from: Infinity, through: 0, departed_at: 0 };
+        m.read += 1;
         m.from = Math.min(m.from, numberOf(name));
         m.through = Math.max(m.through, numberOf(name));
         m.departed_at = Math.max(m.departed_at, retired[name]);
@@ -102,7 +120,8 @@ function depart(save, shape) {
   for (const key of Object.keys(s)) if (key !== 'graph' && key !== 'retired') s[key] = walk(s[key]);
   const counts = {};
   for (const name of Object.keys(retired)) counts[historyOf(name)] = (counts[historyOf(name)] ?? 0) + 1;
-  s.retired = counts;
+  s.retired = Object.fromEntries(Object.entries(save.retired ?? {}).filter(([name]) => !gone(name)));
+  s.departed = counts;
   return s;
 }
 
