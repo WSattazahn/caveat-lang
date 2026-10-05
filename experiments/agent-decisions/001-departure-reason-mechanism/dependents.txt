@@ -1,0 +1,81 @@
+$ caveat-lang dependents decision.cav withdrawal_L93 events.jsonl
+What rests on withdrawal_L93 in decision.cav after 4 events (sequence 4)
+
+Decisions
+  close_170@1 = 1  in force  based on withdrawal_L93
+
+Decision changes
+  #4 owner_closes: close_170@1 committed because withdrawal_L93
+
+Values
+  nothing
+
+Displayed
+  decision.revisions = 1  cites withdrawal_L93
+  decision.status = "closed for review at e655a87; CI on the head retained"  cites withdrawal_L93
+
+$ caveat-lang dependents decision.cav mechanism_reopen events.jsonl
+What rests on mechanism_reopen in decision.cav after 4 events (sequence 4)
+
+Withdrawals
+  mechanism_reopen withdrawn at #3 during owner_concedes because thread_correction
+
+Decisions
+  nothing
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  nothing
+
+$ caveat-lang dependents decision.cav thread_correction events.jsonl
+What rests on thread_correction in decision.cav after 4 events (sequence 4)
+
+Decisions
+  nothing
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  reading.withdrawn = true  cites thread_correction
+
+$ caveat-lang dependents decision.cav owner_acceptance events.jsonl
+What rests on owner_acceptance in decision.cav after 4 events (sequence 4)
+
+Decisions
+  close_170@1 = 1  in force  permitted by owner_acceptance
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  decision.revisions = 1  cites owner_acceptance
+  decision.status = "closed for review at e655a87; CI on the head retained"  cites owner_acceptance
+
+$ caveat-lang dependents decision.cav ci_pending events.jsonl
+What rests on ci_pending in decision.cav after 4 events (sequence 4)
+
+Decisions
+  close_170@1 = 1  in force  based on evidence with ci_pending
+
+Decision changes
+  #4 owner_closes: close_170@1 committed because evidence with ci_pending
+
+Values
+  nothing
+
+Displayed
+  decision.revisions = 1  cites evidence with ci_pending
+  decision.status = "closed for review at e655a87; CI on the head retained"  cites evidence with ci_pending
+

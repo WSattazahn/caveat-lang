@@ -1,0 +1,65 @@
+scene "Dogfooding round 3, sample 001: #170's mechanism correction. Written after the fact, 2026-10-05 18:25 UTC, from the 17:49-18:03 UTC record.";
+
+# Claims. One per conclusion others act on.
+claim reason_must_pin;     # A standing withdrawal's reason must pin under departure: a departed reason would strand a citation.
+claim reopen_strands;      # The citation it would strand is a `reopen ... because`'s.
+
+# Evidence, named by its source, with its time.
+evidence withdrawal_L93 from "spec/caveat-withdrawal-0.1.md L93 on main 38d6193, as cited 17:49 UTC and checked 17:53 UTC: each predicate (L78 withdrawn(E), L84 withdrawn(latest(S)), L86 rests_on_withdrawn(D)) carries the withdrawal's reason as its evidence";
+evidence mechanism_reopen from "the reviewer's reading, 17:49 UTC: reopen merge because recheck is grounded only because the guard supplied recheck@j, so a departed reason makes that citation refuse";
+evidence thread_correction from "the rc.15 development thread's check, reported 17:54 UTC, #170 at e655a87 L55-60: reopen ... because resolves a selector at dispatch; the citation a departed reason strands is a set's or binding's because, refused as evaluation/ungrounded_citation (Dispatch 0.1 L114)";
+evidence owner_acceptance from "the owner, 18:03 UTC: the correction is right and mine was wrong in the mechanism; the conclusion stands; that closes #170 from my side";
+# Counterfactual only (scenario S03): never observed in the record.
+evidence l93_misread from "counterfactual for scenario S03: a later check finding L93 does not say the predicates carry the reason";
+evidence ci_e655a87 from "#170 head e655a87 at 18:03 UTC: CI running (core semantics), not yet green";
+
+# Caveats, on the evidence that carries them. Markers as caveats
+# (caveatism/canon/archive.cav L33-37): a working interpretation is [PROPOSED].
+caveat proposed consequence material;
+caveat ci_pending consequence material;
+proposed qualifies mechanism_reopen;
+ci_pending qualifies ci_e655a87;
+
+# Declared so that explain and dependents list it (finding D001).
+decisions close_170 limit 1;
+
+event reviewer_reads;    # 17:49 UTC
+event thread_checks;     # 17:53-17:54 UTC
+event owner_concedes;    # 18:03 UTC, first half of the owner's message
+event owner_closes;      # 18:03 UTC, second half
+event l93_rechecked;     # counterfactual, scenario S03 only
+
+on reviewer_reads when not observed(mechanism_reopen) reveal mechanism_reopen supports reopen_strands;
+on reviewer_reads when not observed(withdrawal_L93) reveal withdrawal_L93 supports reason_must_pin;
+
+on thread_checks when not observed(thread_correction) reveal thread_correction opposes reopen_strands;
+on thread_checks when not observed(ci_e655a87) reveal ci_e655a87;
+
+# A correction withdraws the wrong reading with the correction as its reason.
+# Nothing is edited. If a decision had rested on the reading, it reopens.
+on owner_concedes withdraw mechanism_reopen because thread_correction;
+on owner_concedes when committed(close_170) and not reopened(close_170) and rests_on_withdrawn(close_170)
+  reopen close_170 because thread_correction;
+
+# Counterfactual: if L93 itself were withdrawn, the close would reopen.
+on l93_rechecked when not observed(l93_misread) reveal l93_misread opposes reason_must_pin;
+on l93_rechecked withdraw withdrawal_L93 because l93_misread;
+on l93_rechecked when committed(close_170) and not reopened(close_170) and rests_on_withdrawn(close_170)
+  reopen close_170 because l93_misread;
+
+# The close rests on L93 only. The reviewer's reading is not in its grounds:
+# the conclusion never needed the mechanism. The owner's words are the
+# permission, not the grounds. CI on the head is the caveat carried.
+on owner_closes when not observed(owner_acceptance) reveal owner_acceptance;
+on owner_closes when committed(close_170) and not reopened(close_170) reject "#170 is already closed for review.";
+on owner_closes commit close_170 because enough
+  using qualified(1, withdrawal_L93)
+  permitted by owner_acceptance
+  retaining ci_pending;
+
+bind decision.status = "open: #170 under review";
+bind decision.status = "closed for review at e655a87; CI on the head retained" when committed(close_170) and not reopened(close_170);
+bind decision.status = "reopened: its grounds were withdrawn" when reopened(close_170);
+bind decision.rests_on_withdrawn = rests_on_withdrawn(close_170);
+bind reading.withdrawn = withdrawn(mechanism_reopen);
+bind decision.revisions = history_count(close_170);
