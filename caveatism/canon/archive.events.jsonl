@@ -12,3 +12,5 @@
 {"event": "redefine"}
 {"event": "erase"}
 {"event": "absorb"}
+{"event": "case_attested_record"}
+{"event": "freeze_v1_2"}

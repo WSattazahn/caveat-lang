@@ -25,7 +25,7 @@ Caveat records the evidence supplied to it; it does not authenticate that eviden
 
 - [How to be a Caveatist agent](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/agent/CAVEATIST.md): a practice an agent may adopt; not a requirement for using the language.
 - [The caveatist skill](https://github.com/WSattazahn/caveat-lang/blob/main/skills/caveatist/SKILL.md): the same practice as an installable skill (`npx skills add WSattazahn/caveat-lang`, or `claude plugin marketplace add WSattazahn/caveat-lang` then `claude plugin install caveat@caveat-lang`).
-- [The Caveatist Archive](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/archive/The-Caveatist-Archive-v1.1.md): the practice, with its claims marked.
+- [The Caveatist Archive](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/archive/The-Caveatist-Archive-v1.2.md): the practice, with its claims marked.
 - [The Caveatist Atlas](https://github.com/WSattazahn/caveat-lang/blob/main/caveatism/atlas/The-Caveatist-Atlas-v1.0.md): fiction, not doctrine.
 - [The Archive as a program](https://github.com/WSattazahn/caveat-lang/tree/main/caveatism/canon): the canon, with its events and scenarios.
 - [Mr. Caveat](https://wsattazahn.github.io/caveat-lang/mr-caveat.html): a mechanical fortune teller who always has a caveat.

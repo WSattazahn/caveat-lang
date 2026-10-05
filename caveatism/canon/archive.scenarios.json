@@ -332,6 +332,111 @@
           }
         }
       ]
+    },
+    {
+      "id": "A08",
+      "title": "Amendment 2 reopens the frozen version without withdrawing anything; version 1.1 keeps its grounds and version 1.2 rests on the attested record",
+      "steps": [
+        {
+          "send": "case_character_lab"
+        },
+        {
+          "send": "case_misidentification"
+        },
+        {
+          "send": "case_definition_drift"
+        },
+        {
+          "send": "cite_relatives"
+        },
+        {
+          "send": "tend_flame"
+        },
+        {
+          "send": "propose_maxim"
+        },
+        {
+          "send": "freeze_v1_0"
+        },
+        {
+          "send": "discover_pil"
+        },
+        {
+          "send": "freeze_v1_2",
+          "rejected": "Freeze version 1.1 first."
+        },
+        {
+          "send": "freeze_v1_1"
+        },
+        {
+          "checkpoint": "v1_1"
+        },
+        {
+          "send": "freeze_v1_2",
+          "rejected": "Nothing to amend: reopen the frozen version with evidence first."
+        },
+        {
+          "send": "case_attested_record"
+        },
+        {
+          "expect": {
+            "/bindings/archive/status": "reopened by an amendment",
+            "/bindings/archive/versions": 2,
+            "/decision_journal/3": {
+              "change": "reopened",
+              "commitment": "canon@2",
+              "because": [
+                "attested_record"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "v1_1",
+          "paths": [
+            "/commitment_grounds/canon@2",
+            "/decision_journal/2"
+          ]
+        },
+        {
+          "send": "case_attested_record",
+          "rejected": "Amendment 2 is already recorded."
+        },
+        {
+          "send": "freeze_v1_2"
+        },
+        {
+          "expect": {
+            "/bindings/archive/status": "a version is frozen",
+            "/bindings/archive/versions": 3,
+            "/decision_series/canon/current": "canon@3",
+            "/decision_series/canon/revisions/2/previous": "canon@2",
+            "/commitment_grounds/canon@3": {
+              "evidence": [
+                "attested_record",
+                "character_lab",
+                "definition_drift",
+                "eternal_flame",
+                "fallibilism",
+                "misidentification",
+                "pil_rise"
+              ],
+              "caveats": [
+                "analogy",
+                "mythological",
+                "unfinished"
+              ]
+            }
+          }
+        },
+        {
+          "same_as": "v1_1",
+          "paths": [
+            "/commitment_grounds/canon@2",
+            "/decision_journal/2"
+          ]
+        }
+      ]
     }
   ]
 }
