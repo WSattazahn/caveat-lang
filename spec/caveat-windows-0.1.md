@@ -159,13 +159,14 @@ series window would retire revisions without bounding the save.
 Cutting the chain only for windowed series would make what a revision rests
 on depend on a storage declaration: two programs with the same rules would
 explain the same decision differently. Whether a revision's lineage should
-hold its predecessor's whole basis is a question for every series. rc.16
-opens with that revision-lineage rule as its own specification (a revision
-rests on its own `using`, the reopen's reason and the predecessor by name),
-with a corpus sweep showing whose explanations narrow; series windows follow
-on top of it. The owner decided this on 2026-10-05, replacing the authoring
-rule and the advisory C007 diagnostic an earlier draft of this profile
-specified.
+hold its predecessor's whole basis is a question for every series. The owner
+decided this on 2026-10-05, replacing the authoring rule and the advisory
+C007 diagnostic an earlier draft of this profile specified. At 14:45 UTC the
+same day, after the C3 measurement, the owner named rc.16's first
+specification: [lineage compaction](caveat-lineage-compaction-0.1.md), one
+rule for series revisions, state lineage and journal entries. It keeps what
+every lineage means and replaces departed records with markers. Departure and
+series windows follow it.
 
 ## Changes
 
@@ -178,3 +179,6 @@ specified.
 - 2026-10-05 (rc.15, implemented): the runtime, the kit's `explain` and
   `dependents` (`retired_at`, and a `retired` list) and the VS Code grammar.
   `decisions NAME window N` is refused when the program loads.
+- 2026-10-05 (rc.16): the decision-series section points to
+  [Lineage compaction 0.1](caveat-lineage-compaction-0.1.md), which replaces
+  the revision-lineage rule this profile first named for rc.16.
