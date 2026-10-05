@@ -99,3 +99,16 @@ section factual, as `rc15-development.md` does.
   17:11 UTC: the pinned records across the corpus, including a fixture whose
   guarded commit skips forever, and the save sizes when an rc.15 windowed
   save is restored and played until every state has been set once.
+
+  The owner chose all three of the departure rules at 17:47 UTC: departure at
+  the end of every accepted event, the archive kept outside the save, and a
+  permission grant that pins. Three riders came with that choice. A journal
+  entry's `permitted_by` pins while the entry is in the window. The grant pin
+  is bounded by the program's commitments and series limits, and it exists
+  because `permission_withdrawn(D)` reads the grant. The departure PR reports
+  C3's dispatch microseconds beside its save bytes, with a pin check that
+  considers only the candidates.
+
+  For the rc.16 adapter scaffold, when it is built (owner, 17:47 UTC): it
+  drains the archive by default, and the kit exposes the number of undrained
+  entries, so a host that never drains can see what it is accumulating.

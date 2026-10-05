@@ -26,18 +26,33 @@ record that nothing pins **departs**. The pins are Lineage Compaction 0.1's
 - the grounds of each commitment in force, by their own reads: the revision in
   force of each decision series, and every commitment outside a series, which
   is in force once made;
-- the `because` of each journal entry still in the journal's window;
+- the `because` of each journal entry still in the journal's window, and its
+  `permitted_by`, the concrete grant the journal copies
+  ([Decision journal 0.1](caveat-decision-journal-0.1.md));
 - a pending scheduled qualification's target;
 - the current occurrence of a renewable evidence, which is never retired;
 - the grant named by a commitment's permission record;
 - the reason named by a withdrawal still in the session.
 
-The last two pins are this profile's. A permission record names its grant,
-and a withdrawal its reason, as one exact name, which has no marker form. A
-commitment's permission record is part of its frozen basis, and the
-commitments that hold one are bounded by the program's declarations and its
-series limits. Series windows, when they land, revisit it with the revisions
-they depart. A withdrawal leaves when its subject departs (below).
+The pins on a permission grant and a withdrawal's reason are this
+profile's. Each is pinned because a predicate still reads it, not because of
+its form: a marker could stand for one record, with `from` equal to
+`through`.
+
+- **A permission grant** stays exact while the commitment that holds its
+  record is held, because `permission_withdrawn(D)` reads the grant's
+  withdrawal ([Permission 0.1](caveat-permission-0.1.md)). The bound is a
+  number the source fixes. Each held commitment has at most one grant, so
+  pinned grants are at most the program's commitments outside a series, plus
+  the sum of its decision series' limits, which [Reactive 0.5](caveat-reactive-0.5.md)
+  caps at 1,024 together with its reading capacities. It cannot grow with
+  play. A journal entry's `permitted_by` names the same grant, and pins it
+  while the entry is in the window, so a series window that departs a revision
+  leaves no exact citation of a departed grant.
+- **A withdrawal's reason** stays exact while the withdrawal is held, because
+  `withdrawn(E)` and the other withdrawal predicates carry the reason as their
+  evidence ([Withdrawal 0.1](caveat-withdrawal-0.1.md)). A withdrawal leaves
+  when its subject departs (below), so it pins nothing past its subject.
 
 A renewable evidence's first occurrence is the evidence the program declares,
 such as `witness_cave`, which is `witness_cave@1`. The program's own
@@ -102,7 +117,10 @@ kit session's `drainArchive()`, return the entries departed since the last
 drain and empty the archive. A host that needs the full history stores what it
 drains beside its saves. A host that does not can discard it.
 
-The archive is not part of the save. A save holds what is still in the
+The archive is a handover buffer, not session state. No read, predicate,
+explanation or restore depends on it, so a save, a snapshot and a session
+fed the same events are the same whatever the host has drained. The archive
+is not part of the save. A save holds what is still in the
 session, so a program whose every growing history has a window has a save
 bounded by its windows, whatever the length of play. A host that saves
 without draining keeps the undrained entries only in memory. Restore starts
@@ -195,9 +213,26 @@ The departure PR records two measurements as numbers, beside the gate
   repository, and for a fixture whose guarded commit skips forever, the most
   retired records held by pins at checkpoints over a long run. A program whose
   pinned set grows with play is a finding.
-- **Cross-version restore.** A windowed rc.15 save of C3, restored on this
-  profile and played on: the save size at restore, after the first event, and
-  after every state has been set once.
+- **Cross-version restore.** A windowed rc.15 save of C3, written by the
+  published `caveat-lang@0.1.0-rc.15`, restored on this profile and played
+  on: the save size at restore, after the first event, and after every state
+  has been set once (owner, 17:39 UTC).
+- **Dispatch time.** C3's dispatch microseconds beside its save bytes, next to
+  rc.15's, since dispatch is a registered gate (under 1 ms) and the
+  [beat-typescript](../docs/design/beat-typescript.md) target is under 50 µs
+  (owner, 17:47 UTC). The pin check at the end of an event is incremental: it
+  considers only the candidates, which are the records retired in the event
+  and the retired records whose pin the event released (a `set` replacing
+  grounds, a journal entry retiring, a scheduled qualification applying, a
+  commit superseding a revision). It never scans the session.
+
+The pinned-record count is attributed by the provenance that pins: state
+grounds, commitment in force, journal entry, scheduled qualification,
+permission grant and withdrawal reason. A journal entry in the window pins
+what it cites, including names a commitment inherited at the time, so some
+records appear under "journal entry" that would compact under "state
+grounds". That is bounded by `journal window N` and is not a defect (owner,
+17:39 UTC).
 
 ## Gate
 
@@ -214,4 +249,8 @@ sweep's digests are identical before and after.
   transactional effect; a host-drained archive outside the save, with each
   entry's holders; the `journal_departed` save field and restore checks; a
   permission record's grant and a withdrawal's reason pin; a renewable
-  evidence's declared first occurrence never departs. Not implemented.
+  evidence's declared first occurrence never departs. The owner chose eager
+  departure, the archive outside the save and the pinned grant at 17:47 UTC,
+  with riders: a journal entry's `permitted_by` pins, the grant pin's bound and
+  reason, the archive as a handover buffer, and C3 dispatch time measured with
+  an incremental pin check. Not implemented.
