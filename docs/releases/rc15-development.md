@@ -484,4 +484,6 @@ The rc.13 rules carry over:
   under `latest` with npm provenance, after the owner approved it in
   `npm-publish`. `verify-publication` failed once on a registry 404 for the
   new version and passed when re-run alone. The owner then moved `next` to
-  rc.15. See the [release record](v0.1.0-rc.15.md).
+  rc.15 and published `server.json` to the MCP Registry, which lists
+  `io.github.WSattazahn/caveat-lang` 0.1.0-rc.15 as latest. See the
+  [release record](v0.1.0-rc.15.md).
