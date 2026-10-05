@@ -73,3 +73,11 @@ section factual, as `rc15-development.md` does.
   Series windows, View 0.2 and the rest of rc.16 wait for the gate number.
   When series windows land, they get their own fixture: `kit/examples/boss-stance`
   (#159), run until revisions depart.
+
+  The owner's review at 17:00 UTC fixed two points before merge. A grounds'
+  own reads pin, while a marker a grounds inherits through a selection or
+  reopening qualification ([Reactive 0.5](../../spec/caveat-reactive-0.5.md))
+  pins nothing and is allowed, so restore no longer refuses it. View 0.1
+  provenance objects carry `departed` as the save does, because the view
+  serializes the same provenance type. The simulation pins every name in a
+  grounds, inherited ones included, so its figures can only overstate the save.

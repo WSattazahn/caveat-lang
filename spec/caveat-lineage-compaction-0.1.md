@@ -61,13 +61,23 @@ they name does not depart while they name it. They are:
   `using` read, with its retained caveats (`commitment_grounds`);
 - the `because` of each **journal entry still in the journal's window**.
 
+A grounds' own reads, the names its expression, guard or predecessor check
+actually read, are always exact and pin. A grounds can also carry names it
+inherits through a selection or reopening qualification: [Reactive 0.5](caveat-reactive-0.5.md)
+has later `latest`, `has_sample` and current-series predicates inherit a
+skipped sample's or skipped series commit's guard. Those inherited names are
+not the value's own reads. They pin nothing and compact like lineage, so a
+grounds may hold a marker, and only through such a qualification.
+
 These are the reasons the language promises to keep. They are expected to be
 bounded by the source, not the run: a grounds replaces the one before at each
 `set`, and a history read supplies only live records. In C3's saves at 10, 30
 and 60 cycles they pin five retired records each time: `trust@1`'s grounds
 (`witness_cave`) and four recent witnesses. The departure implementation counts pinned
 records across the corpus, so a program whose own citations grow with play is
-reported, not assumed away. A record that the session must
+reported, not assumed away. The count includes a program with a guarded
+commit whose guard skips forever, so that inherited selection qualifications
+are shown to compact rather than pin. A record that the session must
 still name for its own reasons is pinned too: a live record, the current
 occurrence of a renewable evidence, a record with a scheduled qualification
 still pending, and a commitment that is the current entry of its series.
@@ -167,10 +177,14 @@ and the archive says which records were read. Nothing is erased, only moved.
   which no longer holds it. Given a departed name, it marks the name departed
   and lists the provenances whose marker for that history covers its number,
   as "may rest on". A drained archive answers exactly.
-- **`caveat-reactive-view/0.1`** is unchanged for programs without a window. A
-  windowed program's view gains markers only through View 0.2, which follows
-  this profile and defines where a marker sits in ordered grounds. A marker
-  takes the position of the first name it absorbed.
+- **`caveat-reactive-view/0.1`** serializes the same provenance type as the
+  save: `binding_explanations` and each decision series'
+  `selection_qualifications` are provenances (`ReactiveView` and
+  `DecisionSeries` in `runtime/src/reactive.rs`). Its provenance objects
+  therefore carry `departed` beside `evidence` and `caveats` as the save does,
+  absent when there are none, so a view's bytes are unchanged for every
+  program without a window. View 0.2 decides only where a marker sits in
+  ordered grounds.
 
 ## Save and restore
 
@@ -195,8 +209,6 @@ Restore refuses a save when:
 - a marker's `departed_at` is 0 or past the save's `sequence`;
 - a provenance holds two markers for one history, or names a departed record
   exactly;
-- a pinning citation (a state's grounds, the grounds of a revision in force,
-  the `because` of a journal entry in the window) holds a marker;
 - a grounds marker is not within the lineage's marker for its history, or a
   commitment's grounds marker is not within its basis's.
 
@@ -276,7 +288,7 @@ programs, with digests identical before and after.
 
 The owner chose **one range per history** on 2026-10-05 at 16:34 UTC, over a
 marker per departed record and over exact markers for the newest records with
-a range for older ones. The owner's reasons:
+a range for older ones. The reviewer's reasons, adopted by the owner:
 
 - A marker per record is compact per node but not per reference. C3's twelve
   journal-slot states each reference every occurrence, so it moves the linear
@@ -323,6 +335,11 @@ Three details differ from the owner's message, to fit the language:
 - `read` joins by maximum and reads "at least" after a combination, because
   the overlap of two markers is not recorded.
 
+A candidate for rc.16's Lean model, from the owner's 17:00 UTC review:
+**compaction never overstates**. At departure a marker's `read` is exact, and
+after any join it is at most the true number of departed records the
+provenance read in its range.
+
 ## Changes
 
 - 2026-10-05 (rc.16, specified): new profile. A value's own citations (state
@@ -333,4 +350,8 @@ Three details differ from the owner's message, to fit the language:
   covers the archive entry's holders, the `explain` and `dependents` forms, the
   save field and restore checks, series revisions and the journal under the
   same rule, the C3 gate, and the simulation behind the marker shape. The
-  owner chose the shape and its riders at 16:34 UTC. Not implemented.
+  owner chose the shape and its riders at 16:34 UTC. The owner's 17:00 UTC
+  review fixed two points before merge: a grounds' own reads pin, while
+  markers it inherits through a qualification pin nothing and are allowed;
+  and View 0.1 provenance objects carry `departed` as the save does. Not
+  implemented.
