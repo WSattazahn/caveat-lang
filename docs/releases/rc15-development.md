@@ -411,3 +411,27 @@ The rc.13 rules carry over:
   (`runtime/examples/save_sweep.rs`, 8 runs of 150 events) over the 113
   repository programs that load as reactive programs: 135,600 saves, digests
   identical between `main` (`1eadadd`) and this change, no fatal outcome.
+- PR 5 (#163) merged 2026-10-05 as `8a822cc`.
+- PR 6 (departure) slips to rc.16, as the plan allows; no branch was opened.
+  The fixture was measured first, on rc.15 `main` `8a822cc` with
+  round 7's C3 program (`experiments/glowcap/round7/runs/C3/impl/`) and
+  `longplay.mjs`'s 60 cycles, run three ways: as written (`renewable … limit
+  64`); with `renewable … window 2`; and with that and `journal window 6`.
+  Adapter save bytes at 10, 30 and 60 cycles: 3,714, 8,790 and 16,310 as
+  written (round 7's figures, reproduced); 4,438, 11,378 and 21,086 with
+  renewable windows; 4,582, 11,870 and 22,182 with both. The uncompressed
+  save at 60 cycles was 226,589 bytes with both windows. Its largest parts were `graph`
+  (76,584, every occurrence a node), `states` (66,412), the journal
+  (26,887, retired entries kept), `retired` (22,773) and `renewals`
+  (15,631), and each grew linearly. Departure could not make it flat. A
+  state's lineage holds every occurrence it ever read (C3's
+  `j1_cite` and `j4_cite`, for example, list every `witness_*@K`), and the plan keeps any
+  record a lineage holds. So even with departure, the save would still grow
+  through `graph`, `states` and the journal. This is the same question
+  rc.16's revision-lineage rule takes up for decision series: what a value
+  rests on once its source has left the window. Departure follows that rule.
+- PR 7: the View 0.2 design note, `docs/design/view-0.2.md`. It proposes
+  first-observed order for grounds, `reopened` in place of a commitment's
+  `open`, and a delta view, with `caveat-reactive-view/0.1` unchanged and a
+  migration for hosts. It recommends implementing in rc.16. The card goes to
+  the owner through the project chat.
