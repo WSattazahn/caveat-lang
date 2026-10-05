@@ -1,8 +1,9 @@
 # Design note: View 0.2, ordered grounds and a delta view
 
-Status: a design note for the owner's decision (rc.15 plan, PR 7). Nothing
-here is implemented or promised, and no specification changes with it. The
-owner's card asks whether to implement it in rc.16 or to defer it. Receipts
+Status: accepted for rc.16. The owner chose "In rc.16" on the PR 7 card on
+2026-10-05 at 14:45 UTC. Nothing here is implemented yet, and no
+specification changes with this note. In rc.16 it follows the
+lineage-compaction specification, which comes first. Receipts
 are `path: Lx–Ly` at `main` `8a822cc`.
 
 ## What a host sees today
@@ -87,13 +88,15 @@ A host that does nothing keeps 0.1.
   the view is built.
 - The delta must be checked against the full view for every corpus program,
   in the save sweep's style: the full view at `N` plus the delta equals the
-  full view at `N+1`, across seeded event runs.
+  full view at `N+1`, across seeded event runs. The owner made this the
+  delta view's gate when accepting the note: the whole corpus, not a sample.
 - Whether a delta should also carry `binding_explanations` that changed
   while the value didn't. The proposal says yes, because an explanation is
   what a Caveat host shows.
 
-## Decision asked
+## Decision
 
-Implement View 0.2 in rc.16, or defer it. This note recommends rc.16. Round
-8's hosts would be written against it, and the `open` rename is cheapest
-before more hosts read 0.1.
+The note asked whether to implement View 0.2 in rc.16 or defer it, and
+recommended rc.16, because round 8's hosts would be written against it and
+the `open` rename is cheapest before more hosts read 0.1. The owner chose
+rc.16.
