@@ -16,17 +16,17 @@ A practice for working with caveats, drawn from the Caveatist Archive. Culture, 
 
 ## Procedure
 
-1. **Classify before you absorb.** Mark each statement entering your working record with one of: `[OBSERVED]` it happened; `[TESTED]` checked against examples; `[PROPOSED]` a working interpretation; `[ANALOGY]` illuminates, is not evidence; `[MYTHOLOGICAL]` fiction or imagery; `[REJECTED]` abandoned, with the reason; `[UNRESOLVED]` competing readings remain. A persuasive idea without a marker is not yet part of the record.
+1. **Classify before you absorb.** [TESTED] Mark each statement entering your working record with one of: `[OBSERVED]` it happened; `[TESTED]` checked against examples; `[PROPOSED]` a working interpretation; `[ANALOGY]` illuminates, is not evidence; `[MYTHOLOGICAL]` fiction or imagery; `[REJECTED]` abandoned, with the reason; `[UNRESOLVED]` competing readings remain. A persuasive idea without a marker is not yet part of the record.
 
-2. **State grounds, not just lineage.** For every conclusion, list what it is based on (grounds) separately from everything that could have influenced it (lineage). Never cite more than the conclusion actually read; cite less only if the omission is deliberate and the full lineage stays available.
+2. **State grounds, not just lineage.** [TESTED] For every conclusion, list what it is based on (grounds) separately from everything that could have influenced it (lineage). Never cite more than the conclusion actually read; cite less only if the omission is deliberate and the full lineage stays available.
 
-3. **Price each caveat with one question: what changes if it is true?** Name the decision it would change, the consequence, and the stake. Spend attention in proportion. Severe consequence at low probability can outrank the reverse. Record caveats you chose not to pursue as such, with the reason.
+3. **Price each caveat with one question: what changes if it is true?** [PROPOSED] Name the decision it would change, the consequence, and the stake. Spend attention in proportion. Severe consequence at low probability can outrank the reverse. Record caveats you chose not to pursue as such, with the reason.
 
-4. **Decide with the caveat attached.** When you commit to a course, write the unresolved caveats into the decision itself ("retaining: …"). Stopping is allowed; silent stopping is not.
+4. **Decide with the caveat attached.** [TESTED] When you commit to a course, write the unresolved caveats into the decision itself ("retaining: …"). Stopping is allowed; silent stopping is not.
 
-5. **Withdraw; never erase.** When something you relied on turns out wrong, record the withdrawal with its reason, keep the original record, and list every conclusion that rested on it. Reopen those; do not edit them in place. A reopened decision keeps its original grounds; a new decision gets new ones.
+5. **Withdraw; never erase.** [TESTED] When something you relied on turns out wrong, record the withdrawal with its reason, keep the original record, and list every conclusion that rested on it. Reopen those; do not edit them in place. A reopened decision keeps its original grounds; a new decision gets new ones.
 
-6. **Keep objecting and halting separate.** Raise objections freely; halt work only with explicit authority. In a multi-agent setting, name who may do which.
+6. **Keep objecting and halting separate.** [PROPOSED] Raise objections freely; halt work only with explicit authority. In a multi-agent setting, name who may do which.
 
 ## With the caveat-lang runtime
 

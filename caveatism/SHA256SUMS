@@ -1,6 +1,6 @@
 6038fc0e7ac712fb998cc0446746cadb23d2b4bcacbadc279de49062e9a33d80  ./LICENSE
 28d511ff2eee0799b12f06565ed03106740ece53b1f31c5d68b6492a02bf0944  ./README.md
-4af2a9c7bee3401d179337945b09db748c0aa0620b7099481483baa63c8a8def  ./agent/CAVEATIST.md
+d831fce253cb10cf136d094803259454f0080f3a0483cacb621fca5e1e4b470a  ./agent/CAVEATIST.md
 d01347363616705214f0acba2e4e1a8dc7c2e1a10b71ff1eec3ef7a940262336  ./archive/The-Caveatist-Archive-v1.1.md
 4f3daa5fd896ed6a7bef47d449d5b78efa18118daf94b0d0d4f67ea51b9918e2  ./atlas/The-Caveatist-Atlas-v1.0.md
 12ffd8df1530c20a68b2b567d68525e3d1238bfa4cd56df42f9fc886d3a54a19  ./canon/README.md
@@ -42,4 +42,4 @@ c49fdc2cc897dd8f14f3ab2ce2df26174f7719d4b2b9fc043f6e86a50bfdf40e  ./character/ra
 edafb98ef8f1b65ff4c0bfba0c9de8cb2e2fd9d8daa8d9e424bf4b1b6b086d54  ./character/raw/hero-selected.png
 65ecf1903190a1c779450ee29cca0006aaac3d7736e2305ec7848828889fb29a  ./character/raw/social-selected.png
 62f943f69026de925a6846fd28d3f68353adb47bfacfed28b97d577b8ba11cb8  ./character/validation.json
-32161b472981af08419eb7a33c5ba676adafd71ad0b7b2762cf4c03851313476  ./skills/caveatist/SKILL.md
+dda345139024ecb8d9799a7b0b9362f6a716bfb625ea820569bbb86a3dc42be5  ./skills/caveatist/SKILL.md
