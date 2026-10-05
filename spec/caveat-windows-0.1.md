@@ -11,8 +11,10 @@ Glowcap round 7 asked a slime to remember only its six most recent
 observations. Every author could make the belief forget, in source. Nothing
 could make the session forget: an old taste still counted as observed, still
 supported its claim in every new read, and could still be cited. This profile
-lets a program declare a **window** on a history. When an event would take the
-history past its window, the oldest record **retires**: it leaves the live
+lets a program declare a **window** on a reading stream, a renewable
+evidence or the decision journal; decision series have no window in rc.15
+([Decision series](#decision-series-not-in-rc15)). When an event would take
+the history past its window, the oldest record **retires**: it leaves the live
 graph, and its record stays.
 
 **A program without `window` is unchanged**: its histories, limits,
@@ -22,16 +24,15 @@ refusals, snapshots, saves and scenario outcomes are exactly as before.
 
 ```text
 readings STREAM from EVIDENCE_TEMPLATE window N;
-decisions SERIES window N;
 renewable EVIDENCE window N;
 journal window N;
 ```
 
-`window N` takes the place of `limit N` on a reading stream, decision series
-or renewable evidence; a history has a limit or a window, not both. `journal
+`window N` takes the place of `limit N` on a reading stream or renewable
+evidence; a history has a limit or a window, not both. `journal
 window N` is a new top-level declaration for the
 [decision journal](caveat-decision-journal-0.1.md), which has no limit. `N` is
-an integer in `1..256`. A windowed stream's or series' `N` counts toward the
+an integer in `1..256`. A windowed stream's `N` counts toward the
 1,024 total of reading and decision capacities, as a limit does
 ([Reactive 0.5](caveat-reactive-0.5.md)).
 
@@ -41,7 +42,6 @@ for mushroom as $m {
     renewable taste_$m window 2;          -- this life and the one before
 };
 readings sighting from glimpse window 6; -- the six most recent sightings
-decisions trust window 8;                -- the latest eight revisions
 journal window 32;                       -- the latest 32 journal entries
 ```
 
@@ -49,21 +49,21 @@ journal window 32;                       -- the latest 32 journal entries
 
 An event that adds a record to a windowed history which already holds `N`
 live records first retires the oldest live record, then adds the new one.
-The added record is a `sample`'s reading, a `commit`'s revision, a `renew`'s
-occurrence or a journal entry. The current occurrence of a renewable evidence
-and the current revision of a series are never the oldest of `N ≥ 1` live
-records once a new one is added, so a window always keeps the newest.
+The added record is a `sample`'s reading, a `renew`'s occurrence or a journal
+entry. The current occurrence of a renewable evidence is never the oldest of
+`N ≥ 1` live records once a new one is added, so a window always keeps the
+newest.
 
 A retired record:
 
 - **leaves the live graph.** Retired evidence is not `observed(...)`. Its
   `supports`, `opposes` and `qualifies` relations stay in the graph and in the
-  save, and count in no read made after it retired: no new value, guard,
-  binding, basis or grounds includes it, and `qualified(...)`,
-  `carries(...)` and support for a claim read only live records. A retired
-  revision is not the series' current revision and is never read by
-  `latest`, `committed` or `reopened`. `history_count`, `history_at`,
-  `latest` and the folds read the live records only, oldest first.
+  save, and no read made after it retired takes it from the live graph:
+  `qualified(...)`, `carries(...)` and support for a claim read only live
+  records, and `history_count`, `history_at`, `latest` and the folds read the
+  live records only, oldest first. A new basis or grounds holds it only
+  through a record that already cites it, such as a predecessor's basis
+  ([Reactive 0.5](caveat-reactive-0.5.md)) or a state's lineage.
 - **keeps every citation it already has.** A state's lineage or grounds, a
   frozen basis, a journal entry and a withdrawal record that cite it are not
   edited. Reading such a state still carries what it carried, as a late
@@ -95,7 +95,7 @@ to rc.13 catalog, is unchanged.
 
 While records only retire, the session still holds them. A windowed history
 holds at most 65,536 records in all, live and retired; an event that would add
-one more is refused as `limit/history_limit` (stream or series) or
+one more is refused as `limit/history_limit` (stream) or
 `limit/renewal_limit` (renewable evidence), and the journal is refused as
 `limit/history_limit`. Departure, the later half, is what lets a record leave
 the session and lifts that ceiling for the records that leave.
@@ -106,10 +106,13 @@ The snapshot's `retired` map names every retired record with the sequence of
 the event that retired it:
 
 ```json
-"retired": {"sighting@1": 7, "trust@2": 9}
+"retired": {"sighting@1": 7, "journal@2": 9}
 ```
 
-It is absent when nothing has retired. `explain` of a retired record shows it
+Journal entries are named `journal@K`, the `K`th entry. The map is absent
+when nothing has retired, and the snapshot's `windows` lists the windowed
+histories (`journal` for `journal window`), absent when there are none.
+`explain` of a retired record shows it
 as it was, with `retired_at`. `dependents` of a retired record lists what
 still cites it (states, bases, journal entries, withdrawals), which answers
 "why is this still here", and marks it retired. A retired occurrence cited by
@@ -132,10 +135,8 @@ Restore refuses a save when:
 - a windowed history's live records are not exactly its newest
   `min(N, total)`: a gap, a live record older than a retired one, or more live
   records than its window;
-- a retired record is the current occurrence or revision, or is read by a
-  live relation added after it retired: a `relies_on` of a commitment made
-  after the retirement, a `reopens` dated after it, or grounds of a revision
-  committed after it.
+- a retired record is the current occurrence, or a journal entry dated after
+  its retirement reopens a decision because of it.
 
 Retired evidence counts as observed for every check that requires cited
 evidence to have been observed: it was observed when it was cited. As with
@@ -143,42 +144,34 @@ every restore check, a save that passes holds records the program could hold,
 not records events are shown to have produced
 ([Save 0.1](caveat-save-0.1.md)).
 
-## The basis chain: bounded by retirement
+## Decision series: not in rc.15
 
-Since [Reactive 0.5](caveat-reactive-0.5.md), appending a revision depends on
-the check that its predecessor was reopened, and the new basis includes that
-check's provenance: the predecessor's basis among it. A `using` that reads
-`committed(SERIES)` or `reopened(SERIES)` adds it again
-([Save 0.1](caveat-save-0.1.md)). Each revision's basis therefore holds the
-one before it, whatever `using` reads, and without windows a long-running
-series' latest basis names every occurrence it was ever decided on.
+A series has no window in rc.15. Since [Reactive 0.5](caveat-reactive-0.5.md),
+appending a revision depends on the check that its predecessor was reopened,
+and a read of a commitment carries that commitment's basis. Every revision's
+lineage therefore contains the one before it, whatever its `using` reads: the
+rc.15 build measured `trust@5`'s basis naming `sighting@1` through
+`sighting@5`, and the owner's boss-stance test showed `stance@3`, decided
+`using` only the new rhythm, still listing `attack_rhythm` and `feint`, the
+grounds of `stance@1` and `stance@2`. No authoring rule avoids the chain, so a
+series window would retire revisions without bounding the save.
 
-Retirement bounds the chain, because a retired record counts in no new basis
-or grounds (see Retirement): a revision committed after a record retired does
-not rest on it, though its predecessor's frozen basis still cites it. Every
-revision's basis then holds only records that were live when it was committed,
-and evidence that has no window. A windowed reading stream and a windowed
-series together keep every revision's basis within the stream's window, with
-no rule for authors to follow:
-
-```caveat
-readings sighting from glimpse window 3;
-decisions trust window 2 reopened by sighting;
-on sighting commit trust because enough using history_count(sighting);
--- trust@30 rests on sighting@28, sighting@29 and sighting@30 only.
-```
-
-The owner first made the chain an authoring rule (2026-10-05, 01:18 UTC),
-assuming it came only from `using`. The runtime showed that it follows from
-the reopening check, so no authoring rule could avoid it; the bound by
-retirement is the fix the owner asked for (2026-10-05, 05:16 UTC). No check diagnostic is
-specified for it. Departure's boundedness fixture (round 7's long-play
-harness, 60 regrowth cycles) runs on windowed programs as written.
+Cutting the chain only for windowed series would make what a revision rests
+on depend on a storage declaration: two programs with the same rules would
+explain the same decision differently. Whether a revision's lineage should
+hold its predecessor's whole basis is a question for every series. rc.16
+opens with that revision-lineage rule as its own specification (a revision
+rests on its own `using`, the reopen's reason and the predecessor by name),
+with a corpus sweep showing whose explanations narrow; series windows follow
+on top of it. The owner decided this on 2026-10-05, replacing the authoring
+rule and the advisory C007 diagnostic an earlier draft of this profile
+specified.
 
 ## Changes
 
 - 2026-10-05 (rc.15, specified): new profile. Declared windows on reading
-  streams, decision series, renewable evidence and the journal; retirement as
-  a reported, transactional effect that keeps every record; the `retired`
-  snapshot and save field; restore checks for retirements; the basis chain
-  bounded by retirement. The runtime implements it from rc.15's PR 5.
+  streams, renewable evidence and the journal; retirement as a reported,
+  transactional effect that keeps every record; the `retired` snapshot and
+  save field; restore checks for retirements. Decision series wait on the
+  revision-lineage rule in rc.16. The runtime implements it from rc.15's
+  PR 5.

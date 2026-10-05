@@ -237,7 +237,7 @@ decision from repeated instrument readings.
 
 ## Changes
 
-- 2026-10-05 (rc.15, specified): a reading stream or decision series may
-  declare `window N` in place of `limit N`
+- 2026-10-05 (rc.15, specified): a reading stream may declare `window N` in
+  place of `limit N`
   ([Windows 0.1](caveat-windows-0.1.md)); its oldest record retires instead of
   the event being refused. Histories declared with `limit` are unchanged.
