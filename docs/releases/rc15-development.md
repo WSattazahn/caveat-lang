@@ -392,6 +392,7 @@ The rc.13 rules carry over:
   `experiments/glowcap/RESULTS.md: L684`, which now reads "…dispatch under
   1 ms. Drift is higher…". The verdict and every number are unchanged; the
   mutation scores stay in the table above it (L651).
+- PR 7c (#162) merged 2026-10-05 as `83e3176`.
 - PR 5: retirement in the runtime, for reading streams, renewable evidence
   and the journal (`journal@K` names the Kth entry). A full window retires
   its oldest live record, reported as a `retire` effect before the effect
