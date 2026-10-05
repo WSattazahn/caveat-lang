@@ -447,3 +447,8 @@ The rc.13 rules carry over:
   compiled mutants (a reopen that drops retained caveats, and one that drops
   the cause's caveats from the journal) are caught, for 12 semantic mutation
   families.
+- PR 8 (#165) merged 2026-10-05 as `7a92b14`.
+- PR 9: the release notes, `docs/releases/v0.1.0-rc.15.md`, marked
+  unpublished, and the README's candidate paragraph. The tag, the publish,
+  the dist-tags and the MCP Registry update follow through the owner, and the
+  publication record is written after `verify-publication` passes.
