@@ -217,6 +217,18 @@ records events are shown to have produced ([Save 0.1](caveat-save-0.1.md)).
 Restore never authenticates history and cannot tell whether a host's drained
 archive matches the save.
 
+A reopening qualification without a `reopens` relation is no longer refused
+in one case. Save 0.1 refuses a reopening qualification unless a `reopens`
+relation names its commitment, because no source mechanism produced one
+otherwise. Departure now does: when a reopened commitment's cause departs,
+the `reopens` relation leaves with the record (step 2 above), the commitment
+stays open, and its reopening qualification holds the cause as a marker. So
+restore accepts a reopening qualification whose commitment is open and whose
+provenance holds a marker, and refuses every other reopening qualification
+that no `reopens` relation names, as before. Like every restore check, this
+asks only whether a source mechanism can produce the record. It does not
+show that departure produced it.
+
 ## Checks before the gate
 
 The departure PR records two measurements as numbers, beside the gate
@@ -295,3 +307,10 @@ recorded beside them.
   a window, so as written it would pass on an empty population (owner, 18:21
   UTC). It now names its programs, and its record lists them with their run
   counts.
+- 2026-10-05 (rc.16, a reopening whose cause departed): implementing
+  departure showed that a reopened commitment whose cause departs keeps its
+  reopening qualification but loses the `reopens` relation that Save 0.1's
+  restore check requires. Restore now accepts such a qualification when its
+  commitment is open and it holds a marker, because departure is a source
+  mechanism that produces it. Every other reopening qualification that no
+  `reopens` relation names is still refused.
