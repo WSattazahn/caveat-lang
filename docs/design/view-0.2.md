@@ -2,7 +2,8 @@
 
 Status: accepted for rc.16. The owner chose "In rc.16" on the PR 7 card on
 2026-10-05 at 14:45 UTC. Nothing here is implemented yet, and no
-specification changes with this note; rc.16 writes the specification first. Receipts
+specification changes with this note. In rc.16 it follows the
+lineage-compaction specification, which comes first. Receipts
 are `path: Lx–Ly` at `main` `8a822cc`.
 
 ## What a host sees today
@@ -87,7 +88,8 @@ A host that does nothing keeps 0.1.
   the view is built.
 - The delta must be checked against the full view for every corpus program,
   in the save sweep's style: the full view at `N` plus the delta equals the
-  full view at `N+1`, across seeded event runs.
+  full view at `N+1`, across seeded event runs. The owner made this the
+  delta view's gate when accepting the note: the whole corpus, not a sample.
 - Whether a delta should also carry `binding_explanations` that changed
   while the value didn't. The proposal says yes, because an explanation is
   what a Caveat host shows.

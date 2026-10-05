@@ -266,7 +266,19 @@ build and the dispatch-path work.
   [`docs/design/view-0.2.md`](../design/view-0.2.md): ordered grounds,
   `reopened` in place of `open`, and the delta view, with
   `caveat-reactive-view/0.1` kept byte for byte. Round 8's hosts are written
-  against it.
+  against it. The owner's rider: the delta view's gate is the note's
+  equality (the full view at `N` plus the delta equals the full view at
+  `N+1`), run over the whole corpus in the save sweep's style, not a sample.
+- **rc.16's first spec PR is lineage compaction** (owner, 2026-10-05 14:45
+  UTC, after the C3 measurement in Progress). It is one rule covering series
+  revisions, state lineage and journal entries together. When a record
+  departs, every lineage and basis that held it keeps a compact marker in place
+  of the node: the record's name, its occurrence number and the sequence at
+  which it retired. So `explain` still says what a value rested on, while the
+  graph no longer carries the occurrence. Departure and View 0.2 follow it.
+  The gate is the registered C3 longplay fixture: over 60 cycles, the adapter
+  save stays flat. Until it lands, beat-typescript's save-bound cause stays
+  open, which is why round 8 waits for rc.16.
 
 ## Direction (recorded, not scoped)
 
@@ -458,5 +470,7 @@ The rc.13 rules carry over:
   unpublished, and the README's candidate paragraph. The tag, the publish,
   the dist-tags and the MCP Registry update follow through the owner, and the
   publication record is written after `verify-publication` passes.
-- The owner chose "In rc.16" on the View 0.2 card (2026-10-05, 14:45 UTC);
-  the rc.16 direction above and the design note record it.
+- The owner chose "In rc.16" on the View 0.2 card (2026-10-05, 14:45 UTC),
+  with the whole-corpus delta gate as a rider, and named lineage compaction
+  as rc.16's first spec PR. The rc.16 direction above and the design note
+  record both.
