@@ -1,6 +1,6 @@
 # CAVEAT 0.1.0-rc.15 development plan
 
-Status: development open, unpublished. The owner's scope proposal
+Status: published 2026-10-05; see the [release record](v0.1.0-rc.15.md). The owner's scope proposal
 (`rc15-plan.md`, dated 2026-10-04 18:40 PT) was handed over on 2026-10-05 at
 01:16 UTC with rc.14's cause, and the owner settled its two open decisions at
 01:18 UTC. The cycle opened at 02:25 UTC with the owner's merge line. At
@@ -474,3 +474,14 @@ The rc.13 rules carry over:
   with the whole-corpus delta gate as a rider, and named lineage compaction
   as rc.16's first spec PR. The rc.16 direction above and the design note
   record both.
+- PR 9 (#166) merged 2026-10-05 as `3a88ba0`, and #167 recorded the rc.16
+  direction as `87b079b` after `next` moved.
+- Published 2026-10-05: tag `v0.1.0-rc.15` at `3a88ba0` (merge of #166), the
+  tarball from
+  [Runtime 37283790548](https://github.com/WSattazahn/caveat-lang/actions/runs/37283790548)
+  (SHA256 `789b40ddf5bd1f24f4bcd9eb319dbd453e00e9d1519a2282dcf3a93e6e88805f`),
+  published by [publish-npm.yml run 37327425339](https://github.com/WSattazahn/caveat-lang/actions/runs/37327425339)
+  under `latest` with npm provenance, after the owner approved it in
+  `npm-publish`. `verify-publication` failed once on a registry 404 for the
+  new version and passed when re-run alone. The owner then moved `next` to
+  rc.15. See the [release record](v0.1.0-rc.15.md).

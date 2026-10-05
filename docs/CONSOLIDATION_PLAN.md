@@ -351,7 +351,7 @@ consolidation, not a side effect of merging the language stack.
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.14 verified release record](releases/v0.1.0-rc.14.md) for the current
+Use the [rc.15 verified release record](releases/v0.1.0-rc.15.md) for the current
 candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
 
@@ -370,6 +370,7 @@ rc.12 is the first version published through it, with provenance (see the
 [rc.12 release record](releases/v0.1.0-rc.12.md)).
 rc.13 is the second (see the [rc.13 release record](releases/v0.1.0-rc.13.md)).
 rc.14 is the third (see the [rc.14 release record](releases/v0.1.0-rc.14.md)).
+rc.15 is the fourth (see the [rc.15 release record](releases/v0.1.0-rc.15.md)).
 
 1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
