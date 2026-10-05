@@ -571,6 +571,65 @@ impl Expr {
         }
     }
 
+    /// Every source this expression names, taken or not: states and
+    /// constants by name, the evidence, caveat, commitment or history a
+    /// predicate, history read or `qualified` names, and `elapsed()`. Used by
+    /// `caveat check`'s C006 to compare a citation with what its binding reads
+    /// (spec/caveat-check-0.1.md).
+    pub fn collect_sources(&self, sources: &mut BTreeSet<String>) {
+        match &self.node {
+            Node::Number(_) | Node::Bool(_) | Node::Text(_) => {}
+            Node::Elapsed => {
+                sources.insert("elapsed()".into());
+            }
+            Node::Variable(name)
+            | Node::Predicate(_, name)
+            | Node::Latest(name)
+            | Node::HistoryCount(name) => {
+                sources.insert(name.clone());
+            }
+            Node::HistoryAt(name, index) => {
+                sources.insert(name.clone());
+                index.collect_sources(sources);
+            }
+            Node::Fold(history, initial, _) => {
+                sources.insert(history.clone());
+                initial.collect_sources(sources);
+            }
+            Node::ExpandedFold(name, initial, body) => {
+                sources.insert(name.clone());
+                initial.collect_sources(sources);
+                body.collect_sources(sources);
+            }
+            Node::Qualified(value, evidence, caveats) => {
+                sources.insert(evidence.clone());
+                sources.extend(caveats.iter().cloned());
+                value.collect_sources(sources);
+            }
+            Node::Unary(_, value) => value.collect_sources(sources),
+            Node::Binary(_, left, right) | Node::Require(left, right) => {
+                left.collect_sources(sources);
+                right.collect_sources(sources);
+            }
+            Node::If(condition, yes, no) => {
+                condition.collect_sources(sources);
+                yes.collect_sources(sources);
+                no.collect_sources(sources);
+            }
+            Node::Function(_, arguments) | Node::UserCall(_, arguments) => {
+                for argument in arguments {
+                    argument.collect_sources(sources);
+                }
+            }
+            Node::ExpandedCall(arguments, body) => {
+                for argument in arguments {
+                    argument.collect_sources(sources);
+                }
+                body.collect_sources(sources);
+            }
+        }
+    }
+
     /// Every history this expression names: reading streams and decision
     /// series read by `latest`, `history_count`, `history_at`, a fold,
     /// `has_sample` or `withdrawn(latest(...))`, taken or not. Used by

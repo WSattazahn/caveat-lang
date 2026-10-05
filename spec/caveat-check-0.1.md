@@ -320,6 +320,40 @@ usually handles it there, by name, as in
 `for zone as $z { entity north kind plot at field; on read when target == target.north set north_n = north_n + 1; };`,
 and a warning would fall on those programs too.
 
+### C006 `citation-unreachable`
+
+It reports a `bind` whose `because` names something that its value and its
+`when` condition never read. Such a binding is refused at dispatch as
+`evaluation/ungrounded_citation` whenever it supplies the shown value
+([Explanations 0.1](caveat-explanations-0.1.md)), which can be long after the
+program loads.
+
+```caveat
+bind journal.text = journal_text(journal_kind, journal_who) because journal_cite;
+```
+
+The check compares names after `define`s and pure function calls are
+expanded. For the citation, it collects the states, evidence, caveats,
+reading streams, decision series and `elapsed()` it names. For the binding,
+it collects the same from the value and the condition, taken or not. Entity
+coordinates are left out. A citation that names at least one of these and
+shares none with its binding is reported. The warning is at the `bind`. A
+binding in a `for` block gets one warning per member, all at the template.
+
+The comparison is by name, so it can be wrong both ways:
+
+- A citation that shares a name with its binding can still be refused, for
+  example when the shared read is on a branch the value does not take.
+- A citation that shares no name can still be grounded, when a state the
+  binding reads carries the evidence or caveats the citation brings. An allow
+  comment silences that case.
+
+In round 7 of the [glowcap experiment](../experiments/glowcap/RESULTS.md),
+two of four authors wrote this shape at CR16. Each first run was refused as
+`ungrounded_citation`. C006 reports both first runs at the binding that was
+refused, and neither of the versions that passed. No other program in the
+repository reports it.
+
 ## Allowing a pattern on purpose
 
 A comment on the line directly above the statement a warning is about
@@ -373,6 +407,14 @@ without `program`, `loads` and `strict`. It throws a `CaveatError` of kind
 `load` for a program that does not load.
 
 ## Changes
+
+- 2026-10-05 (rc.15): C006 `citation-unreachable`, advisory. Round 7's C2 and
+  C3 authors each wrote, at CR16, a journal binding that cites a state its
+  text never reads, and each first run was refused at dispatch as
+  `evaluation/ungrounded_citation`. C006 reports both at that binding. No
+  repository program reports it. A program that checked clean before may now
+  warn, and fail with `--strict`. `caveat test` now runs this check before
+  the first scenario ([Scenarios 0.1](caveat-scenarios-0.1.md)).
 
 - C003 `unrouted-member-rule`. In a study of the agent ledger, each of its 31
   member rules was written again without its selection, one at a time. Every

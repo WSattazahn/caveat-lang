@@ -56,6 +56,13 @@ command; [CLI names](NAMES.md) explains the version and naming boundary.
    Include a refusal, a correction and an assertion that earlier grounds remain
    unchanged. `validate` answers whether source loads; `check` offers warnings;
    `test` checks the stated outcomes. They answer different questions.
+   From rc.15, `test` runs `check` on each program before the first scenario
+   and prints its warnings with the run. A warning does not stop the run or
+   change the exit status, so read them anyway. C006 `citation-unreachable`
+   reports a `because` that names something its binding never reads. At
+   dispatch, that binding is refused as `evaluation/ungrounded_citation` the
+   first time it supplies the shown value, which can be long after the
+   program loads.
 3. Use `explain PROGRAM EVENTS` to inspect exact grounds and revision history.
    Use `dependents PROGRAM NAME EVENTS` to see what relies on evidence that
    changed. Each command supports `--json`; prefix it with the executable for

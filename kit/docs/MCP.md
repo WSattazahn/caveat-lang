@@ -43,7 +43,7 @@ The process writes protocol messages on stdout and no startup banner.
 | --- | --- | --- |
 | caveat_validate | source | Whether the program loads and what it declares |
 | caveat_check | source, optional strict | Existing diagnostics and suppressed warnings |
-| caveat_test | source, scenarios | Existing scenario results and invariant checks |
+| caveat_test | source, scenarios | Existing scenario results and invariant checks, with the program's check warnings under `check` (rc.15) |
 | caveat_explain | source, optional events | Decisions, exact grounds, caveats and history |
 | caveat_dependents | source, subject, optional events | What depends on the named evidence, stream or caveat |
 

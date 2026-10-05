@@ -45,7 +45,9 @@ Usage:
 Both caveat-lang and caveat invoke this CLI. Prefer caveat-lang when other
 packages also install a command named caveat.
 
-test runs Caveat scenario files (spec/caveat-scenarios-0.1.md).
+test runs Caveat scenario files (spec/caveat-scenarios-0.1.md). It first
+runs check on each program they name and prints any warnings with the run;
+warnings do not stop it.
   Exit status: 0 every scenario passed, 1 a scenario failed, 2 a file was
   invalid or could not be run (nothing runs).
 
@@ -399,8 +401,35 @@ async function testScenarios(options) {
   let runtime = await loadRuntime(options);
   if (!runtime) return 2;
 
+  // Check each program before the first scenario (spec/caveat-scenarios-0.1.md):
+  // the report prints with the run, and an error stops it; warnings run on.
+  // A program that cannot be read or does not load is left to its scenarios.
+  let stopped = false;
+  for (const entry of files) {
+    entry.checks = {};
+    const names = new Set([entry.doc.source, ...entry.doc.scenarios.map(scenario => scenario.source).filter(Boolean)]);
+    for (const name of names) {
+      let checked;
+      try {
+        const source = await readFile(path.resolve(path.dirname(entry.file), name), 'utf8');
+        if (source.startsWith('#caveat-bundle')) continue;
+        checked = runtime.check(source);
+      } catch { continue; }
+      const { diagnostics, suppressed } = checked;
+      entry.checks[name] = { diagnostics, suppressed };
+      if (!options.json && (diagnostics.length || suppressed.length)) console.log(formatCheck(checked, name));
+      if (diagnostics.some(diagnostic => diagnostic.severity === 'error')) stopped = true;
+    }
+  }
+  if (stopped) {
+    const unrun = files.map(({ file, checks }) => ({ file, sources: {}, check: checks, scenarios: [], passed: 0, failed: 0 }));
+    if (options.json) console.log(JSON.stringify(report(unrun, runtime.identity), null, 2));
+    console.error('check reported an error; no scenario ran');
+    return 2;
+  }
+
   const reports = [];
-  for (const { file, doc } of files) {
+  for (const { file, doc, checks } of files) {
     const hashes = {};
     const readSource = async relative => {
       const text = await readFile(path.resolve(path.dirname(file), relative), 'utf8');
@@ -412,6 +441,7 @@ async function testScenarios(options) {
       reload: async () => { runtime = await loadRuntimeFromDirectory(directory); return runtime; },
     });
     result.sources = hashes;
+    result.check = checks;
     reports.push(result);
     if (!options.json) console.log(formatFileReport(result));
   }

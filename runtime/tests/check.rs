@@ -1961,3 +1961,127 @@ fn an_event_that_names_an_entity_a_block_declares_runs_every_copy_that_does_not_
         );
     }
 }
+
+// C006: round 7's C2 and C3 authors each wrote, at CR16, a journal line that
+// cites a state its text never reads, and saw the program refused at dispatch
+// as `evaluation/ungrounded_citation` (experiments/glowcap/round7/runs/C2 and
+// C3, notes for cr16). The fixtures are those first-run programs and the
+// versions that passed, copied from each run's snapshots.tgz: C2
+// ba8e9e46a0f2 then 108652e6414a, C3 efb58da1bec5 then dfc0e7e6355a.
+#[test]
+fn round7_cr16_first_runs_report_the_citation_that_was_refused() {
+    let c2 = read("tests/fixtures/c006-round7-c2-cr16-first.cav");
+    let site = line_of(&c2, "bind journal_$index.text");
+    assert_eq!(
+        codes(&check(&c2)),
+        vec![("C006", site); 6],
+        "one per journal slot, at the template"
+    );
+    let warning = &check(&c2).diagnostics[0];
+    assert_eq!(warning.name, "citation-unreachable");
+    assert!(
+        warning.message.contains("`journal_cite_1`"),
+        "{}",
+        warning.message
+    );
+
+    let c3 = read("tests/fixtures/c006-round7-c3-cr16-first.cav");
+    let first = line_of(&c3, "bind $j.text = \"Absorbed the \"");
+    let c3_report = check(&c3);
+    let reported = codes(&c3_report);
+    let lines = reported
+        .iter()
+        .map(|(_, line)| *line)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert!(
+        reported.iter().all(|(code, _)| *code == "C006"),
+        "{reported:?}"
+    );
+    assert_eq!(
+        lines.into_iter().collect::<Vec<_>>(),
+        (first..first + 8).collect::<Vec<_>>(),
+        "each cited text line, not the uncited empty one"
+    );
+
+    for fixed in [
+        "tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+        "tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+    ] {
+        let report = check(&read(fixed));
+        assert_eq!(codes(&report), [], "{fixed}: {:#?}", report.diagnostics);
+    }
+}
+
+#[test]
+fn a_citation_the_binding_reads_or_a_constant_is_quiet() {
+    let program = |bind: &str| {
+        format!(
+            "claim frost;\nevidence probe from \"a probe\";\nreadings soil from probe limit 4;\nstate seen = 0;\nstate other = 0;\ndefine limit_c = 3;\nevent read celsius min -40 max 60;\non read sample soil = celsius supports frost;\non read set seen = seen + 1;\n{bind}\n"
+        )
+    };
+    for quiet in [
+        "bind ui.text = \"seen\" when seen > 0 because seen;",
+        "bind ui.text = \"seen\" when seen > limit_c because seen;",
+        "bind ui.text = \"soil\" when history_count(soil) > 0 because latest(soil);",
+        "bind ui.text = \"x\" because nothing;",
+        "bind ui.text = \"x\" when seen > 0;",
+    ] {
+        assert_eq!(codes(&check(&program(quiet))), [], "{quiet}");
+    }
+    let loud = program("bind ui.text = \"seen\" when seen > 0 because other;");
+    assert_eq!(
+        codes(&check(&loud)),
+        [("C006", line_of(&loud, "bind ui.text"))]
+    );
+    let allowed = program("# caveat check: allow citation-unreachable\nbind ui.text = \"seen\" when seen > 0 because other;");
+    let report = check(&allowed);
+    assert_eq!(codes(&report), []);
+    assert_eq!(report.suppressed.len(), 1);
+}
+
+// Every program in the repository that checks as a single file reports no
+// C006, so the check adds nothing to programs that run today. The only
+// reports are the first-run fixtures above.
+#[test]
+fn no_repository_program_reports_c006() {
+    fn walk(directory: &std::path::Path, found: &mut Vec<std::path::PathBuf>) {
+        for entry in std::fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            if path.is_dir() {
+                if !matches!(
+                    name.as_str(),
+                    ".git" | "node_modules" | "target" | "fixtures"
+                ) {
+                    walk(&path, found);
+                }
+            } else if name.ends_with(".cav") {
+                found.push(path);
+            }
+        }
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let mut programs = Vec::new();
+    walk(&root, &mut programs);
+    let mut checked = 0;
+    for program in &programs {
+        let Ok(source) = std::fs::read_to_string(program) else {
+            continue;
+        };
+        let Ok(report) = check_source(&source) else {
+            continue;
+        };
+        checked += 1;
+        let c006 = report
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "C006")
+            .count();
+        assert_eq!(c006, 0, "{}: {:#?}", program.display(), report.diagnostics);
+    }
+    assert!(
+        checked >= 50,
+        "checked {checked} of {} programs",
+        programs.len()
+    );
+}
