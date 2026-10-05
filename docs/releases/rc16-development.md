@@ -87,3 +87,28 @@ section factual, as `rc15-development.md` does.
   restore, because a provenance is a flat set. The save therefore writes
   `inherited` beside `evidence`, only for programs with a window, and restore
   checks that every inherited name is also in `evidence`.
+
+- PR 2: [Departure 0.1](../../spec/caveat-departure-0.1.md), specified, not
+  implemented. At the end of each accepted event, every retired record that
+  nothing pins departs. Its citations compact as Lineage Compaction 0.1 says,
+  the session reports a `depart` effect, and the record goes to an archive that
+  the host drains. The archive is not saved. Nothing cites a journal entry by
+  name, so a retired journal entry departs at once, and a save writes the
+  journal's departed entries as a count. A permission record's grant pins.
+  The departure implementation records two numbers the owner asked for at
+  17:11 UTC: the pinned records across the corpus, including a fixture whose
+  guarded commit skips forever, and the save sizes when an rc.15 windowed
+  save is restored and played until every state has been set once.
+
+  The owner chose all three of the departure rules at 17:47 UTC: departure at
+  the end of every accepted event, the archive kept outside the save, and a
+  permission grant that pins. Three riders came with that choice. A journal
+  entry's `permitted_by` pins while the entry is in the window. The grant pin
+  is bounded by the program's commitments and series limits, and it exists
+  because `permission_withdrawn(D)` reads the grant. The departure PR reports
+  C3's dispatch microseconds beside its save bytes, with a pin check that
+  considers only the candidates.
+
+  For the rc.16 adapter scaffold, when it is built (owner, 17:47 UTC): it
+  drains the archive by default, and the kit exposes the number of undrained
+  entries, so a host that never drains can see what it is accumulating.

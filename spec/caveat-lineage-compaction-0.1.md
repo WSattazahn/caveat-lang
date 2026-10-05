@@ -18,8 +18,8 @@ citations stay exact and pin their records; inherited bases and read lineage
 compact to one range per history.** When a record departs, every lineage and
 inherited basis that named it keeps a **departure marker** for its history in
 place of the name, so `explain` still says what a value rested on. When a
-retired record departs, and the archive the host drains, are the departure
-specification's to define. This profile defines what every citation keeps and
+retired record departs, and the archive the host drains, are the
+[departure specification](caveat-departure-0.1.md)'s to define. This profile defines what every citation keeps and
 what the archive entry must name.
 
 **A program without a window is unchanged**: no record of it ever departs, so
