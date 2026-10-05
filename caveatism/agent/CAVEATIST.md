@@ -36,3 +36,7 @@ Without Caveat installed, the practice is a discipline kept in prose: markers on
 - `../atlas/` — what a culture might do with the practice; fiction, not doctrine.
 - `../canon/` — the Archive as a Caveat program. `caveat-lang explain` prints what each version rests on; `caveat-lang dependents archive.cav could_be_right archive.events.jsonl` answers "does it matter?" for one withdrawn line.
 - `../skills/caveatist/SKILL.md` — the same practice as a loadable skill.
+
+## Open items from use
+
+**[UNRESOLVED]** *(2026-10-05, the first use of the `caveat` plugin.)* The markers describe an agent's own relation to a statement, and an attested record of someone else's check has no marker of its own. In that first use, an agent marked a claim about the npm registry `[TESTED]` when it had read the publication record of the workflow's check, not run the check itself. The honest form today is `[OBSERVED]` on "the record says verified", with the claim about the registry resting on that record and the record's snapshot caveat carrying the gap. Under the Archive Rule the skill is not amended for one case. If this recurs, the proposed fix is one sentence in habit 2: a record of someone else's check is observed as a record, and the claim says so.
