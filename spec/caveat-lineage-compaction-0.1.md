@@ -210,13 +210,16 @@ grounds and on the grounds of a revision in force. It is written only for
 programs with a window, and is absent when the grounds inherited nothing.
 Without a window nothing departs and the split is never consulted, so those
 saves stay byte for byte as before. A state whose grounds carry `inherited` writes its
-grounds even when their names equal the lineage's.
+grounds even when their names equal the lineage's. A name that is both an own
+read and inherited is an own read: it pins, and `inherited` lists only names
+that are not own reads.
 
 When an inherited name departs, it leaves both `evidence` and `inherited` and
 joins the grounds' marker for its history. Every name in `inherited` is
 therefore still in `evidence`, and every marker in a grounds is inherited, as
 the rule in "What stays exact" requires. An own read never departs while it
-is cited, because it pins.
+is cited, because it pins. The next `set` replaces the whole grounds, its
+`inherited` list and markers included, as it replaces the names today.
 
 A windowed save written by rc.15 has no `inherited` field, and none of its
 records have departed. Restore reads the missing field as "nothing
@@ -224,7 +227,12 @@ inherited", so every name in such a grounds pins until the next `set`
 replaces the grounds and records the split. That can keep records longer than
 a session started on this profile would. It never loses one. No rc.15 session
 departed anything, so there is no original for the restored session to
-diverge from.
+diverge from. The excess is bounded by what the save already holds, and a
+restored session converges as each state's next `set` writes a new grounds.
+The difference is between versions, not between a session on this profile
+and its own restore, so the save sweep's property holds. Because the field is
+absent when empty, an rc.15 save and a save on this profile with no
+inherited names look the same, and restore reads them the same way.
 
 Restore refuses a save when:
 
