@@ -3,7 +3,10 @@
 Status: development open, unpublished. The owner's scope proposal
 (`rc15-plan.md`, dated 2026-10-04 18:40 PT) was handed over on 2026-10-05 at
 01:16 UTC with rc.14's cause, and the owner settled its two open decisions at
-01:18 UTC. The cycle opened at 02:25 UTC with the owner's merge line. Keep the
+01:18 UTC. The cycle opened at 02:25 UTC with the owner's merge line. At
+02:38 UTC the owner sent v2 (19:45 PT), which adds PR 7b and PR 7c and records
+[`beat-typescript.md`](../design/beat-typescript.md) as the direction for
+rc.16 and Glowcap rounds 8 and 9; this file follows v2. Keep the
 "Progress" section factual, as `rc13-development.md` does.
 
 The owner wrote the line references against `main` at `7755a4b` (merge of
@@ -184,6 +187,24 @@ accepted event, for hosts that re-render) as one `caveat-reactive-view/0.2`
 proposal: what it adds, that 0.1 bytes stay available, and the migration for
 hosts. Card: implement in rc.16, or defer. Not implemented in rc.15.
 
+### PR 7b — Kit and check: `caveat test` checks first, and C006 `citation-unreachable`
+From `beat-typescript.md`: the cause that put `ungrounded_citation` in round
+7's first runs. `caveat test` runs `check` on the program before the first
+scenario, prints the report with the run, and stops on an error-severity
+diagnostic (warnings run on). New advisory diagnostic C006
+`citation-unreachable` in `runtime/src/reactive_check.rs`, beside C001–C004
+(`L48–51`): a `because` names evidence that no read in the binding's
+expression can reach on any path; the usual `allow` comment silences it.
+Fixtures: round 7's C2 and C3 CR16 first-run programs
+(`experiments/glowcap/round7/runs/C2`, `C3`) must report C006 at the site that
+failed with `ungrounded_citation` at dispatch; every repository program checks
+clean or is listed. Kit docs: one paragraph in `kit/docs/AGENT_START.md`.
+Independent of every other PR.
+
+### PR 7c — Docs: the stray token in the round 7 verdict
+`experiments/glowcap/RESULTS.md: L684` reads "98.4%ULEB Drift…"; correct the
+typo. The verdict is otherwise unchanged; a one-line PR.
+
 ### PR 8 — Lean: reopening retains the earlier revision's caveats and records its cause
 The second of the rc.12 list; model extension, theorem, conformance case in
 `scripts/verify-lean-conformance.mjs`, README scope paragraph updated.
@@ -195,6 +216,25 @@ after verification (an update of the rc.14 listing), "Check for new commits"
 on the plugin directory page, and the OpenAI plugin upload if a manifest change
 merged this cycle. The release record names the registry listing by URL only
 after it exists.
+
+## rc.16 and the benchmark: direction, not scope
+
+[`beat-typescript.md`](../design/beat-typescript.md) (owner, 2026-10-04) is
+the program that spans rc.15 and rc.16. It decomposes Glowcap round 7's loss
+under the registered Rules A and B
+(`experiments/glowcap/round7/PROTOCOL.md: L237–256`) into causes, and assigns
+each a fix. rc.15 carries the windows (the save-bound failures), the integer
+clock, the view 0.2 note (PR 7) and the check-first run (PR 7b). **Nothing
+from rc.16 starts in this cycle**: view 0.2 (ordered grounds and a delta
+view), the adapter scaffold (`caveat init --host`), the reactive-only WASM
+build and the dispatch-path work.
+
+- **Round 8** is the same beat under the registered rules, with fresh blind
+  authors on published rc.16 and predictions pre-registered as numbers.
+- **Round 9** is the agent-correction benchmark on Caveat's own ground, with a
+  protocol pre-registered the way round 7's was.
+- No re-reading of round 7, no measure dropped, no margin moved, and no README
+  claim before round 8's record exists.
 
 ## Direction (recorded, not scoped)
 
@@ -217,7 +257,7 @@ beyond the rc.11–rc.13 catalog, view 0.2 implementation.
 
 PR 1 first. Then PR 2 → PR 3 (clock) and PR 4 → PR 5 → PR 6 (windows) as two
 sequences that may run side by side (different modules until PR 5 touches
-`reactive_save.rs`; PR 5 rebases on PR 3). PR 7 and PR 8 any time. PR 9 is the
+`reactive_save.rs`; PR 5 rebases on PR 3). PR 7, PR 7b, PR 7c and PR 8 any time. PR 9 is the
 release once everything merged is green on `main`. Each PR adds its progress
 line to this file.
 
