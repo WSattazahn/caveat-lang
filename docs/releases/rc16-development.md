@@ -48,7 +48,28 @@ section factual, as `rc15-development.md` does.
   - a marker per record: 36,277, 101,849 and 200,550, still linear;
   - this shape: 16,495, 16,799 and 16,800, flat.
 
-  C3's `trust` series stays at one revision, so its gate needs no series
-  window. The order (owner, 16:40 UTC, gate first): this spec, departure, then
-  the C3 gate on a runtime build, 60 cycles with the adapter save flat. Series
-  windows, View 0.2 and the rest of rc.16 wait until that gate is measured.
+  The simulation's first run was wrong, and it stays on record here. That
+  first run compacted only the states' lineages. It reported 14, 18 and 23 KB
+  raw at 10, 30 and 60 cycles for this shape, and 181 KB at 60 for a marker
+  per record. It put the remaining growth down to the `trust` series, as if
+  that series had many revisions without a window, and from that it concluded
+  that the C3 gate needed series windows. In fact `trust` has one revision.
+  The growth was 295 uncompacted names in its selection and reopening
+  qualifications, which are provenances like any other. Compacting every
+  provenance gave the flat figures above. The card the owner answered at 16:34
+  carried the first run's numbers, and the 16:34 order put series windows
+  before the gate for that reason.
+
+  The order (owner, 16:40 UTC, gate first): this spec, departure, then the C3
+  gate on a runtime build right after departure. The gate is measured as round
+  7 measured it: adapter save bytes over 60 `longplay.mjs` cycles, flat between
+  30 and 60, with the raw bytes recorded beside them. Two adapter tables are on
+  record for comparison:
+  - round 7's registered figures for C3 as written (`limit 64`), reproduced on
+    rc.15: 3,714, 8,790 and 16,310;
+  - the rc.15 build with both windows (retirement only): 4,582, 11,870 and
+    22,182.
+
+  Series windows, View 0.2 and the rest of rc.16 wait for the gate number.
+  When series windows land, they get their own fixture: `kit/examples/boss-stance`
+  (#159), run until revisions depart.

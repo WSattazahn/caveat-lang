@@ -218,6 +218,12 @@ depends on the window, and that is exactly what a marker reports. This is the
 revision-lineage rule the rc.15 record named for rc.16, stated for every
 provenance at once.
 
+Series windows get their own fixture when they land, because C3's `trust`
+series never gets past one revision. The kit's `boss-stance` example revises
+`stance` on every switch. Run long enough for revisions to retire and depart,
+the revision in force must still explain with its own grounds exact and its
+inherited chain as one range.
+
 **The journal.** Under `journal window N`, a retired journal entry departs by
 the same rule. An entry still in the window keeps its `because` exact. That
 pins what it cites, which is bounded by the window. Its basis compacts. Nothing
@@ -225,11 +231,22 @@ else cites journal entries.
 
 ## Gate
 
-The registered fixture decides when departure is done: round 7's C3 program
-with windows on its renewable evidences and its journal, under
-`longplay.mjs`'s 60 cycles, on a runtime run. Its adapter save stays flat: the
-bytes at 60 cycles are within 5% of those at 30, the allowance for numbers
-gaining digits. Smaller is not enough.
+The registered fixture decides when departure is done. It is measured as
+round 7 measured it: round 7's C3 program with windows on its renewable
+evidences and its journal, run on a runtime build right after departure, over
+`longplay.mjs`'s 60 regrowth cycles. The registered figure is the adapter's
+save bytes, not the raw save. The gate passes when the adapter bytes at 30 and
+60 cycles are the same, apart from the digits of growing clock and sequence
+numbers. Smaller is not enough. The record gives the raw bytes beside the
+adapter bytes, so the tables line up with the rc.15 record's:
+
+| Adapter save bytes | 10 cycles | 30 cycles | 60 cycles |
+| --- | ---: | ---: | ---: |
+| C3 as written (`limit 64`), round 7's figures, reproduced on rc.15 | 3,714 | 8,790 | 16,310 |
+| C3 with both windows, rc.15 build (retirement only) | 4,582 | 11,870 | 22,182 |
+
+Round 7's other registered figures were C4's 40,661 bytes and TypeScript's
+345–514.
 
 `experiments/lineage-compaction/simulate.mjs` simulates this over rc.15's
 real C3 saves. It departs every retired record that no value's own citation
@@ -248,8 +265,8 @@ and 60 cycles, give or take a digit: `states` 9,280 bytes, `graph` 3,130, the
 journal 1,074. The `trust` series has one revision in this play, so C3 needs
 no series window. Its retired names sat in the series' selection and
 reopening qualifications, which compact like any other inherited provenance.
-This is a simulation over saves, not a runtime measurement, and the gate is
-measured on the runtime.
+This is a simulation over raw saves, not a runtime measurement or the
+adapter's figure, and the gate is measured on the runtime.
 
 For every program without a window, the implementation's gate is the seeded
 save sweep (`runtime/examples/save_sweep.rs`) over the repository's reactive
@@ -291,7 +308,8 @@ runtime build, 60 cycles with the adapter save flat. Series windows, View 0.2
 and the rest of rc.16 wait until that gate is measured. The owner set the
 order at 16:34 UTC with series windows before the gate, on numbers that showed
 C3's `trust` series growing. The rerun above shows it does not, and at 16:40
-UTC the owner moved the gate ahead of series windows.
+UTC the owner moved the gate ahead of series windows: a series-windows PR
+cannot change what C3's gate measures.
 
 Three details differ from the owner's message, to fit the language:
 
