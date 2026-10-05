@@ -168,6 +168,29 @@ export class CaveatSession {
   // The save is JSON text; restore it with the exact source it came from.
   save() { return this.#json(() => this.#inner.save(), 'save').text; }
 
+  // The records departed since the last drain, oldest first, and an empty
+  // archive (spec/caveat-departure-0.1.md). The archive is not saved: a host
+  // that keeps the full history stores what it drains beside its saves. A
+  // runtime that predates departure departs nothing, so its archive is empty.
+  drainArchive() {
+    if (typeof this.#inner.drain_archive !== 'function') {
+      this.#usable();
+      return [];
+    }
+    const { value } = this.#json(() => this.#inner.drain_archive(), 'drainArchive');
+    if (!Array.isArray(value)) throw this.#fail(new CaveatError('fatal', 'drainArchive() returned JSON that is not a list'));
+    return value;
+  }
+
+  // How many departed records wait to be drained.
+  get undrained() {
+    if (typeof this.#inner.undrained !== 'function') {
+      this.#usable();
+      return 0;
+    }
+    return this.#call(() => this.#inner.undrained());
+  }
+
   // After a fatal outcome, or once the runtime has trapped, the session is
   // abandoned without calling into the runtime, including free(). A trap
   // during free() marks the runtime trapped for every other session.
@@ -196,7 +219,8 @@ function lifecycleOf(SessionClass) {
 // SessionClass is the runtime's WebReactiveSession, or a stand-in with the same
 // methods: new SessionClass(source), SessionClass.restore(source, saved),
 // dispatch_outcome, snapshot, view, save and free, and optionally
-// dispatch_view_outcome (for dispatchView), SessionClass.check(source) and
+// dispatch_view_outcome (for dispatchView), drain_archive and undrained (for
+// drainArchive and undrained), SessionClass.check(source) and
 // SessionClass.interface(source).
 export function createRuntime(SessionClass, identity = {}) {
   const lifecycle = lifecycleOf(SessionClass);

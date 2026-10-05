@@ -1,0 +1,6 @@
+claim seen; evidence glimpse from "a glimpse";
+readings sighting from glimpse window 2; decisions trust limit 4; journal window 2;
+event look; event decide;
+on look sample sighting = 1 supports seen;
+on decide when committed(trust) reopen trust because latest(sighting);
+on decide commit trust because enough using history_count(sighting);

@@ -104,6 +104,99 @@ pub const MAX_TEXT_BYTES: usize = 65_536;
 pub struct Provenance {
     pub evidence: BTreeSet<String>,
     pub caveats: BTreeSet<String>,
+    /// Departed records of each windowed history, one marker per history in
+    /// place of their names. Absent unless a record has departed. See
+    /// spec/caveat-lineage-compaction-0.1.md.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", with = "departure_markers")]
+    pub departed: BTreeMap<String, Marker>,
+    /// The names of `evidence` this value inherited through a selection or
+    /// reopening qualification rather than read itself. A name it also read
+    /// is not here. Only a program with a window keeps it, since only
+    /// departure consults it; see spec/caveat-lineage-compaction-0.1.md.
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub inherited: BTreeSet<String>,
+}
+
+/// The departed records of one history that a provenance named: at least
+/// `read` of those numbered `from` to `through`, the last departing at
+/// `departed_at`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Marker {
+    pub read: u64,
+    pub from: u64,
+    pub through: u64,
+    pub departed_at: u64,
+}
+
+impl Marker {
+    /// The join: order-independent, so a combined provenance does not depend
+    /// on evaluation order. The overlap is not recorded, so `read` is the
+    /// larger count, "at least".
+    pub fn join(&mut self, other: &Self) {
+        self.read = self.read.max(other.read);
+        self.from = self.from.min(other.from);
+        self.through = self.through.max(other.through);
+        self.departed_at = self.departed_at.max(other.departed_at);
+    }
+
+    /// Whether `inner` says no more than this marker: within its range, and
+    /// departed no later.
+    pub fn contains(&self, inner: &Self) -> bool {
+        self.from <= inner.from
+            && inner.through <= self.through
+            && inner.departed_at <= self.departed_at
+    }
+}
+
+/// Markers serialize as a list, each with its history, in history order.
+pub(crate) mod departure_markers {
+    use super::Marker;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::BTreeMap;
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Named {
+        history: String,
+        read: u64,
+        from: u64,
+        through: u64,
+        departed_at: u64,
+    }
+
+    pub fn serialize<S: Serializer>(
+        markers: &BTreeMap<String, Marker>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        serializer.collect_seq(markers.iter().map(|(history, marker)| Named {
+            history: history.clone(),
+            read: marker.read,
+            from: marker.from,
+            through: marker.through,
+            departed_at: marker.departed_at,
+        }))
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<BTreeMap<String, Marker>, D::Error> {
+        let mut markers = BTreeMap::new();
+        for named in Vec::<Named>::deserialize(deserializer)? {
+            let marker = Marker {
+                read: named.read,
+                from: named.from,
+                through: named.through,
+                departed_at: named.departed_at,
+            };
+            if markers.insert(named.history, marker).is_some() {
+                return Err(serde::de::Error::custom(
+                    "a provenance holds two departure markers for one history",
+                ));
+            }
+        }
+        Ok(markers)
+    }
 }
 
 impl Provenance {
@@ -137,18 +230,65 @@ impl Provenance {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.evidence.is_empty() && self.caveats.is_empty()
+        self.evidence.is_empty() && self.caveats.is_empty() && self.departed.is_empty()
     }
 
+    /// The names this value read itself: `evidence` less `inherited`.
+    pub fn own_evidence(&self) -> impl Iterator<Item = &String> {
+        self.evidence
+            .iter()
+            .filter(|name| !self.inherited.contains(*name))
+    }
+
+    /// Merge `other` as inherited through a qualification: its names are
+    /// inherited here unless this value read them itself.
+    pub fn merge_inherited(&mut self, other: &Self) -> Result<(), String> {
+        let mut inherited = other.clone();
+        inherited.inherited = inherited.evidence.clone();
+        self.merge(&inherited)
+    }
+
+    /// A record of `history` numbered `number` departs at `sequence`: if this
+    /// provenance names it, the name leaves `evidence` and `inherited` and
+    /// joins the history's marker. Returns whether it named it.
+    pub fn depart(&mut self, record: &str, history: &str, number: u64, sequence: u64) -> bool {
+        if !self.evidence.remove(record) {
+            return false;
+        }
+        self.inherited.remove(record);
+        self.departed
+            .entry(history.to_string())
+            .and_modify(|marker| {
+                marker.read += 1;
+                marker.from = marker.from.min(number);
+                marker.through = marker.through.max(number);
+                marker.departed_at = sequence;
+            })
+            .or_insert(Marker {
+                read: 1,
+                from: number,
+                through: number,
+                departed_at: sequence,
+            });
+        true
+    }
+
+    /// A marker counts as one identifier, its history's name as its bytes.
     fn size(&self) -> Result<(usize, usize), String> {
         let count = self
             .evidence
             .len()
             .checked_add(self.caveats.len())
+            .and_then(|count| count.checked_add(self.departed.len()))
             .ok_or_else(provenance_identifier_error)?;
         check_provenance_size(count, 0, 0)?;
         let mut bytes = 0;
-        for name in self.evidence.iter().chain(&self.caveats) {
+        for name in self
+            .evidence
+            .iter()
+            .chain(&self.caveats)
+            .chain(self.departed.keys())
+        {
             check_provenance_size(count, bytes, name.len())?;
             bytes += name.len();
         }
@@ -170,6 +310,8 @@ impl Provenance {
     }
 
     /// An overflow leaves `self` unchanged. No identifier is silently dropped.
+    /// A name either side read itself is read here, so `inherited` keeps only
+    /// names neither side read; markers for one history join.
     pub fn merge(&mut self, other: &Self) -> Result<(), String> {
         let (mut count, mut bytes) = self.size()?;
         other.validate()?;
@@ -177,13 +319,37 @@ impl Provenance {
             .evidence
             .difference(&self.evidence)
             .chain(other.caveats.difference(&self.caveats))
+            .chain(
+                other
+                    .departed
+                    .keys()
+                    .filter(|history| !self.departed.contains_key(*history)),
+            )
         {
             check_provenance_size(count + 1, bytes, name.len())?;
             count += 1;
             bytes += name.len();
         }
+        if !self.inherited.is_empty() || !other.inherited.is_empty() {
+            let inherited = self
+                .inherited
+                .iter()
+                .filter(|name| !other.evidence.contains(*name) || other.inherited.contains(*name))
+                .chain(other.inherited.iter().filter(|name| {
+                    !self.evidence.contains(*name) || self.inherited.contains(*name)
+                }))
+                .cloned()
+                .collect();
+            self.inherited = inherited;
+        }
         self.evidence.extend(other.evidence.iter().cloned());
         self.caveats.extend(other.caveats.iter().cloned());
+        for (history, marker) in &other.departed {
+            self.departed
+                .entry(history.clone())
+                .and_modify(|joined| joined.join(marker))
+                .or_insert(*marker);
+        }
         Ok(())
     }
 }
@@ -2712,6 +2878,7 @@ mod tests {
                 .map(|index| format!("e{index}"))
                 .collect(),
             caveats: BTreeSet::new(),
+            ..Provenance::default()
         };
         assert!(expression
             .evaluate_tracked_with_history(
@@ -3292,6 +3459,7 @@ mod tests {
                 .map(|index| format!("e{index}"))
                 .collect(),
             caveats: BTreeSet::new(),
+            ..Provenance::default()
         };
         assert!(parse("x")
             .unwrap()

@@ -442,7 +442,10 @@ test('explain, dependents and check reports have the declared fields', () => {
     [thermostat, [['read', { value: 17 }], ['read', { value: 25 }]], 'temperature@1'],
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']], 'approvals'],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
-    [WINDOWED, WINDOWED_EVENTS, 'sighting'],
+    // Before the last decide sighting@1 is retired; after it, departed
+    // (spec/caveat-departure-0.1.md).
+    [WINDOWED, WINDOWED_EVENTS.slice(0, 4), 'sighting'],
+    [WINDOWED, WINDOWED_EVENTS, 'sighting@1'],
   ]) {
     const session = real.open(source);
     const sent = events.map(([event, payload]) => {

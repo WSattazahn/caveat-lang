@@ -117,7 +117,36 @@ export declare class CaveatSession {
   view(): View;
   /** JSON text. Restore it with the exact source it came from. */
   save(): string;
+  /**
+   * The records departed since the last drain, oldest first, and an empty
+   * archive. The archive is not saved (spec/caveat-departure-0.1.md).
+   */
+  drainArchive(): ArchiveEntry[];
+  /** How many departed records wait to be drained. */
+  readonly undrained: number;
   close(): void;
+}
+
+/** Where a departed record was named when it departed. */
+export interface ArchiveHolder {
+  kind: 'state' | 'commitment' | 'series' | 'stream' | 'scheduled' | 'cue' | 'qualification';
+  name: string;
+  in: string;
+}
+
+/** A departed record as it was when it departed (spec/caveat-departure-0.1.md). */
+export interface ArchiveEntry {
+  record: string;
+  history: string;
+  number: number;
+  retired_at: number;
+  departed_at: number;
+  relations?: [string, string, string][];
+  qualifications?: Record<string, Provenance>;
+  reading?: ReadingOccurrence;
+  journal_entry?: DecisionJournalEntry;
+  withdrawal?: Withdrawal;
+  holders: ArchiveHolder[];
 }
 
 /** What `loadRuntimeFromDirectory` records; `loadRuntime` keeps whatever it is given. */
@@ -152,6 +181,8 @@ export interface RuntimeSessionHandle {
   snapshot(): string;
   view(): string;
   save(): string;
+  drain_archive?(): string;
+  undrained?(): number;
   free(): void;
 }
 
@@ -283,6 +314,27 @@ export interface CheckRelated {
 export interface Provenance {
   evidence: string[];
   caveats: string[];
+  /**
+   * Departed records of each windowed history, one marker per history in
+   * place of their names (spec/caveat-lineage-compaction-0.1.md). Absent
+   * unless a record has departed.
+   */
+  departed?: DepartureMarker[];
+  /**
+   * The names of `evidence` inherited through a selection or reopening
+   * qualification rather than read. Only a program with a window keeps it;
+   * absent when empty.
+   */
+  inherited?: string[];
+}
+
+/** At least `read` of `history`'s departed records numbered `from` to `through`, the last departing at `departed_at`. */
+export interface DepartureMarker {
+  history: string;
+  read: number;
+  from: number;
+  through: number;
+  departed_at: number;
 }
 
 export type BindingValue = number | boolean | string;
@@ -555,6 +607,13 @@ export interface EffectRetire {
   record: string;
 }
 
+/** A retired record that nothing pins leaving the session, reported after every other effect (spec/caveat-departure-0.1.md). */
+export interface EffectDepart {
+  kind: 'depart';
+  history: string;
+  record: string;
+}
+
 export type Effect =
   | EffectSample
   | EffectReveal
@@ -564,7 +623,8 @@ export type Effect =
   | EffectQualify
   | EffectRenew
   | EffectWithdraw
-  | EffectRetire;
+  | EffectRetire
+  | EffectDepart;
 
 export interface Control {
   event: string;

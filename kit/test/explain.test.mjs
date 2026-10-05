@@ -191,8 +191,11 @@ test('a permission is shown as what permitted a decision, apart from what it res
 });
 
 // A retired record is shown as it was, with the sequence at which it retired,
-// and dependents lists what still cites it (spec/caveat-windows-0.1.md).
-test('explain and dependents show retired records', async () => {
+// and dependents lists what still cites it (spec/caveat-windows-0.1.md). Once
+// nothing pins it, it departs: explain shows the marker that replaced it, and
+// dependents of the departed name lists what may rest on it
+// (spec/caveat-departure-0.1.md, spec/caveat-lineage-compaction-0.1.md).
+test('explain and dependents show retired and departed records', async () => {
   const { dependents, formatDependents } = await import('../lib/explain.mjs');
   const source = `claim seen; evidence glimpse from "a glimpse";
     readings sighting from glimpse window 2; decisions trust limit 4; journal window 2;
@@ -201,10 +204,10 @@ test('explain and dependents show retired records', async () => {
     on decide when committed(trust) reopen trust because latest(sighting);
     on decide commit trust because enough using history_count(sighting);`;
   const session = real.open(source);
-  for (const event of ['look', 'decide', 'look', 'look', 'decide']) session.dispatch(event, {});
+  for (const event of ['look', 'decide', 'look', 'look']) session.dispatch(event, {});
   const snapshot = session.snapshot();
-  session.close();
-  assert.deepEqual(snapshot.retired, { 'sighting@1': 4, 'journal@1': 5 });
+  // The journal's entry for trust@1 still cites sighting@1, so it stays.
+  assert.deepEqual(snapshot.retired, { 'sighting@1': 4 });
   assert.deepEqual(snapshot.windows, ['journal', 'sighting']);
   const report = explain(snapshot);
   assert.equal(report.evidence.find(item => item.id === 'sighting@1').retired_at, 4);
@@ -214,6 +217,27 @@ test('explain and dependents show retired records', async () => {
   const rests = dependents(snapshot, 'sighting');
   assert.deepEqual(rests.retired, [{ record: 'sighting@1', sequence: 4 }]);
   assert.ok(rests.decisions.some(item => item.id === 'trust@1' && item.via.includes('sighting@1')),
-    'the retired revision still rests on the retired reading');
+    'the revision still rests on the retired reading');
   assert.match(formatDependents(rests), /Retired\n {2}sighting@1 retired at #4/);
+
+  // The next decision retires that journal entry; nothing pins sighting@1, and
+  // it departs.
+  session.dispatch('decide', {});
+  const later = session.snapshot();
+  assert.equal(later.retired, undefined);
+  assert.deepEqual(later.effects.filter(effect => effect.kind === 'depart').map(effect => effect.record),
+    ['journal@1', 'sighting@1']);
+  assert.match(formatExplanation(explain(later)), /trust@1 = 1 {2}superseded\n {6}based on departed sighting@1 \(at #5\)/);
+  const departed = dependents(later, 'sighting@1');
+  assert.equal(departed.departed, true);
+  assert.deepEqual(departed.decisions.map(item => [item.id, item.basis]),
+    [['trust@1', 'may rest on'], ['trust@2', 'may rest on']]);
+  assert.match(formatDependents(departed), /sighting@1 has departed/);
+  assert.equal(session.undrained, 2);
+  const archive = session.drainArchive();
+  assert.deepEqual(archive.map(entry => entry.record), ['journal@1', 'sighting@1']);
+  assert.equal(session.undrained, 0);
+  assert.deepEqual(session.drainArchive(), []);
+  assert.ok(archive[1].holders.some(holder => holder.kind === 'commitment' && holder.name === 'trust@1' && holder.in === 'grounds'));
+  session.close();
 });

@@ -1,6 +1,7 @@
 // Types for explain.mjs: why a session is the way it is, and what rests on a
 // name. Both read a snapshot and never run a program.
 import type {
+  ArchiveEntry,
   BindingValue,
   CaveatErrorKind,
   DispatchRejected,
@@ -94,8 +95,18 @@ export interface ExplainedDisplay {
   cites: Provenance;
 }
 
+/** What `explain` may be given beside the snapshot. */
+export interface ExplainOptions {
+  /**
+   * Entries drained from the session's archive. With them, a decision's
+   * departure markers name the records its grounds and basis held
+   * (spec/caveat-departure-0.1.md).
+   */
+  archive?: ArchiveEntry[];
+}
+
 /** A structured explanation of `snapshot`; `events` lists what led to it, in order. */
-export declare function explain(snapshot: Snapshot, events?: ExplainEvent[]): ExplainReport;
+export declare function explain(snapshot: Snapshot, events?: ExplainEvent[], options?: ExplainOptions): ExplainReport;
 
 /** The explanation as text for a person. `title` names the program. */
 export declare function formatExplanation(report: ExplainReport, title?: string): string;
@@ -105,6 +116,8 @@ export interface DependentsReport {
   subject: string;
   kind: 'evidence' | 'caveat';
   sequence: number;
+  /** True when the subject is a departed record: what may rest on it is found through departure markers. */
+  departed?: true;
   /** Retired records the subject stands for, with the sequence at which each retired; absent when none. */
   retired?: RetiredRecord[];
   /** Query-matched withdrawn occurrences, in withdrawal order, even without dependents. */
@@ -124,7 +137,7 @@ export interface DependentDecision {
   id: string;
   value: number | null;
   status: RevisionStatus;
-  basis: 'grounds' | 'permission' | 'lineage';
+  basis: 'grounds' | 'permission' | 'lineage' | 'may rest on';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];
@@ -143,7 +156,7 @@ export interface DependentChange {
 export interface DependentValue {
   name: string;
   value: number;
-  basis: 'grounds' | 'lineage';
+  basis: 'grounds' | 'lineage' | 'may rest on';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];
@@ -152,7 +165,7 @@ export interface DependentValue {
 export interface DependentDisplay {
   name: string;
   value: BindingValue;
-  basis: 'cites' | 'lineage';
+  basis: 'cites' | 'lineage' | 'may rest on';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];

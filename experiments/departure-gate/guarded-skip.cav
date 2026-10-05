@@ -1,0 +1,14 @@
+# A guarded commit that skips forever (spec/caveat-departure-0.1.md,
+# "Pinned records across the corpus"): its guard reads every new sighting,
+# and nothing it reads may stay pinned because of it.
+claim seen;
+evidence glimpse from "a glimpse";
+readings sighting from glimpse window 2;
+decisions trust limit 8;
+event look v min 0 max 10;
+event decide;
+state last = 0;
+on look sample sighting = v supports seen;
+on look set last = latest(sighting);
+on decide when latest(sighting) > 100 commit trust because latest(sighting);
+bind hud.last = last;

@@ -7,6 +7,70 @@ export const EXPLAIN_SCHEMA = 'caveat-explain/0.1';
 
 const none = () => ({ evidence: [], caveats: [] });
 
+// Departed records (spec/caveat-departure-0.1.md). A record of a windowed
+// history is departed when the session no longer holds it: it is below the
+// history's oldest live record and not retired. The session holds a reading
+// stream's and a renewal's records in their occurrence lists.
+function heldRecords(snapshot) {
+  const held = new Map();
+  const add = (history, id) => {
+    const number = Number(id.slice(history.length + 1));
+    if (id.startsWith(`${history}@`) && Number.isInteger(number)) (held.get(history) ?? held.set(history, new Set()).get(history)).add(number);
+  };
+  for (const [name, stream] of Object.entries(snapshot.reading_streams ?? {})) {
+    held.set(name, held.get(name) ?? new Set());
+    for (const occurrence of stream.occurrences ?? []) add(name, occurrence.id);
+  }
+  for (const [name, renewal] of Object.entries(snapshot.renewals ?? {})) {
+    held.set(name, held.get(name) ?? new Set());
+    for (const occurrence of renewal.occurrences ?? []) add(name, occurrence);
+  }
+  return held;
+}
+
+// How many of a history's records from `from` to `through` have departed, or
+// null when the snapshot does not hold the history's records.
+function departedBetween(held, history, from, through) {
+  const records = held.get(history);
+  if (!records) return null;
+  let count = 0;
+  for (let number = from; number <= through; number += 1) if (!records.has(number)) count += 1;
+  return count;
+}
+
+// "read all 59 of departed witness_cave@1 to @59, the last at #412", or "read
+// at least 41 of ...", or the one name when the range is one record
+// (spec/caveat-lineage-compaction-0.1.md, "Explain, dependents and the view").
+function markerText(marker) {
+  const { history, read, from, through, departed_at: at, departed_between: total, records } = marker;
+  if (records?.length) return `departed ${records.join(', ')} (${records.length === 1 ? 'at' : 'the last at'} #${at})`;
+  if (from === through) return `departed ${history}@${from} (at #${at})`;
+  const amount = total === read ? `all ${read}` : `at least ${read}`;
+  return `read ${amount} of departed ${history}@${from} to @${through}, the last at #${at}`;
+}
+
+// A provenance with each marker given how many records its range holds that
+// departed and, from a drained archive, which records the holder named.
+function annotate(provenance, held, named = () => []) {
+  if (!provenance?.departed?.length) return provenance;
+  return {
+    ...provenance,
+    departed: provenance.departed.map(marker => {
+      // The archive names a record under the holders that held it when it
+      // departed. A marker merged into a later provenance has no such holder,
+      // so its records are named only when the archive accounts for all of
+      // them.
+      const found = named(marker);
+      const records = found.length === marker.read ? found : [];
+      return {
+        ...marker,
+        departed_between: departedBetween(held, marker.history, marker.from, marker.through),
+        ...(records.length ? { records } : {}),
+      };
+    }),
+  };
+}
+
 // The caveats that qualify each piece of observed evidence.
 function caveatsByEvidence(snapshot) {
   const caveats = {};
@@ -22,8 +86,22 @@ function caveatsByEvidence(snapshot) {
  * order, as `{event, payload, outcome}` where `outcome` is a dispatch outcome
  * without its snapshot.
  */
-export function explain(snapshot, events = []) {
+export function explain(snapshot, events = [], { archive = [] } = {}) {
   const qualifiedBy = caveatsByEvidence(snapshot);
+  const held = heldRecords(snapshot);
+  // A drained archive names exactly which departed records a decision's
+  // grounds or basis held (spec/caveat-departure-0.1.md, "The archive").
+  const heldBy = new Map();
+  for (const entry of archive) {
+    for (const holder of entry.holders ?? []) {
+      const key = `${holder.kind}\u0000${holder.name}\u0000${holder.in}`;
+      (heldBy.get(key) ?? heldBy.set(key, []).get(key)).push(entry);
+    }
+  }
+  const namedBy = (kind, name, field) => marker => (heldBy.get(`${kind}\u0000${name}\u0000${field}`) ?? [])
+    .filter(entry => entry.history === marker.history && entry.number >= marker.from && entry.number <= marker.through)
+    .sort((a, b) => a.number - b.number)
+    .map(entry => entry.record);
   // Withdrawn observations (spec/caveat-withdrawal-0.1.md), by evidence.
   const withdrawals = new Map((snapshot.withdrawals ?? []).map(({ evidence, because, sequence, event }) =>
     [evidence, { because, sequence, event }]));
@@ -67,13 +145,15 @@ export function explain(snapshot, events = []) {
         change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
       }));
       const reopened = history.some(entry => entry.change === 'reopened');
-      const grounds = snapshot.commitment_grounds?.[revision.id] ?? none();
+      const grounds = annotate(snapshot.commitment_grounds?.[revision.id] ?? none(), held,
+        namedBy('commitment', revision.id, 'grounds'));
       return {
         id: revision.id,
         value: snapshot.commitment_bases?.[revision.id]?.value ?? null,
         status: revision.id !== series.current ? 'superseded' : reopened ? 'reopened' : 'in force',
         grounds,
-        lineage: snapshot.commitment_bases?.[revision.id]?.provenance ?? none(),
+        lineage: annotate(snapshot.commitment_bases?.[revision.id]?.provenance ?? none(), held,
+          namedBy('commitment', revision.id, 'basis')),
         // What permitted it, frozen (spec/caveat-permission-0.1.md): not its
         // grounds, though its grant is in its lineage.
         permission: snapshot.commitment_permissions?.[revision.id] ?? null,
@@ -88,7 +168,7 @@ export function explain(snapshot, events = []) {
 
   const displayed = Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
     Object.entries(properties).map(([property, value]) => ({
-      name: `${target}.${property}`, value, cites: snapshot.binding_explanations?.[target]?.[property] ?? none(),
+      name: `${target}.${property}`, value, cites: annotate(snapshot.binding_explanations?.[target]?.[property] ?? none(), held),
     })));
 
   return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed, events, decisions, evidence, displayed };
@@ -97,7 +177,10 @@ export function explain(snapshot, events = []) {
 const list = values => (values.length ? values.join(', ') : 'nothing');
 const withdrawnNote = ({ sequence, because }) => `withdrawn at #${sequence} because ${because}`;
 const retiredNote = item => (item.retired_at === undefined ? '' : `  retired at #${item.retired_at}`);
-const withCaveats = ({ evidence, caveats }) => `${list(evidence)}${caveats.length ? ` (caveats: ${caveats.join(', ')})` : ''}`;
+const withCaveats = ({ evidence, caveats, departed = [] }) => {
+  const names = [...evidence, ...departed.map(markerText)];
+  return `${list(names)}${caveats.length ? ` (caveats: ${caveats.join(', ')})` : ''}`;
+};
 const show = value => (typeof value === 'string' ? JSON.stringify(value) : String(value));
 
 function outcomeText(outcome) {
@@ -134,7 +217,12 @@ export function formatExplanation(report, title = 'the program') {
         if (revoked) lines.push(`      ${grant} has since been ${withdrawnNote(revoked)}`);
       }
       const also = revision.lineage.evidence.filter(name => !revision.grounds.evidence.includes(name));
-      if (also.length) lines.push(`      could also have been influenced by ${list(also)}`);
+      const inGrounds = new Set((revision.grounds.departed ?? []).map(marker => JSON.stringify([marker.history, marker.read, marker.from, marker.through, marker.departed_at])));
+      const alsoDeparted = (revision.lineage.departed ?? [])
+        .filter(marker => !inGrounds.has(JSON.stringify([marker.history, marker.read, marker.from, marker.through, marker.departed_at])));
+      if (also.length || alsoDeparted.length) {
+        lines.push(`      could also have been influenced by ${list([...also, ...alsoDeparted.map(markerText)])}`);
+      }
       for (const entry of revision.history) {
         lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats: entry.caveats })}`);
       }
@@ -182,6 +270,23 @@ function resolveSubject(snapshot, subject) {
   return { kind: 'evidence', ids };
 }
 
+// The history and number of `subject` when it names a departed record of a
+// windowed history: a reading stream's or renewal's record the session no
+// longer holds, below its oldest held one. Null otherwise.
+function departedSubject(snapshot, subject) {
+  const at = subject.lastIndexOf('@');
+  if (at < 1) return null;
+  const history = subject.slice(0, at);
+  const number = Number(subject.slice(at + 1));
+  if (!Number.isInteger(number) || number < 1) return null;
+  const windows = new Set(snapshot.windows ?? []);
+  if (!windows.has(history)) return null;
+  const records = heldRecords(snapshot).get(history);
+  if (!records || records.has(number)) return null;
+  const oldest = Math.min(...records);
+  return number < oldest ? { history, number } : null;
+}
+
 /**
  * Everything in `snapshot` that rests on `subject`, which names evidence, a
  * reading stream or a caveat: the decisions and values based on it or that it
@@ -190,8 +295,15 @@ function resolveSubject(snapshot, subject) {
  * `explain`. Throws an Error when the program declares no such name.
  */
 export function dependents(snapshot, subject) {
-  const resolved = resolveSubject(snapshot, subject);
+  const departedRecord = departedSubject(snapshot, subject);
+  const resolved = departedRecord ? { kind: 'evidence', ids: new Set() } : resolveSubject(snapshot, subject);
   if (!resolved) throw new Error(`${subject} is not evidence, a reading stream or a caveat in this program`);
+  // A departed record is named in no provenance; a marker whose range covers
+  // its number says only that the value may rest on it
+  // (spec/caveat-lineage-compaction-0.1.md).
+  const covering = provenance => (departedRecord ? (provenance?.departed ?? [])
+    .filter(marker => marker.history === departedRecord.history
+      && marker.from <= departedRecord.number && departedRecord.number <= marker.through) : []);
   const via = provenance => {
     const names = resolved.kind === 'caveat' ? provenance?.caveats : provenance?.evidence;
     return (names ?? []).filter(name => resolved.ids.has(name));
@@ -200,7 +312,8 @@ export function dependents(snapshot, subject) {
     const direct = via(primary);
     if (direct.length) return { basis: primaryLabel, via: direct };
     const possible = via(lineage);
-    return possible.length ? { basis: 'lineage', via: possible } : null;
+    if (possible.length) return { basis: 'lineage', via: possible };
+    return covering(primary).length || covering(lineage).length ? { basis: 'may rest on', via: [subject] } : null;
   };
 
   // Report only withdrawals associated with this query. A caveat selects the
@@ -252,6 +365,7 @@ export function dependents(snapshot, subject) {
     .map(([record, sequence]) => ({ record, sequence }));
   return {
     schema: DEPENDENTS_SCHEMA, subject, kind: resolved.kind, sequence: snapshot.sequence,
+    ...(departedRecord ? { departed: true } : {}),
     ...(retired.length ? { retired } : {}),
     withdrawals, decisions, changes, values, displayed,
   };
@@ -260,7 +374,7 @@ export function dependents(snapshot, subject) {
 /** The dependents report as text for a person. `title` names the program. */
 export function formatDependents(report, title = 'the program', events = 0) {
   const through = names => (report.kind === 'caveat' ? `evidence with ${list(names)}` : list(names));
-  const label = { grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by' };
+  const label = { grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by', 'may rest on': 'may rest on' };
   const lines = [`What rests on ${report.subject} in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
   const withdrawalText = item => `${item.evidence} withdrawn at #${item.sequence} during ${item.event} because ${item.because}`;
   const section = (heading, items, line) => {
@@ -271,6 +385,7 @@ export function formatDependents(report, title = 'the program', events = 0) {
       for (const withdrawal of item.withdrawn ?? []) lines.push(`    ${withdrawalText(withdrawal)}`);
     }
   };
+  if (report.departed) lines.push('', `${report.subject} has departed: the session no longer holds it, so a value whose departure marker covers it may rest on it. A drained archive names the provenances that held it when it departed.`);
   if (report.retired?.length) section('Retired', report.retired, item => `${item.record} retired at #${item.sequence}`);
   if (report.withdrawals?.length) section('Withdrawals', report.withdrawals, withdrawalText);
   section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${through(item.via)}`);
