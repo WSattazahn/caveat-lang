@@ -387,6 +387,7 @@ The rc.13 rules carry over:
   refused as `evaluation/ungrounded_citation`, their passing versions do not,
   and no repository program reports it (a test walks them all). C005 stays
   reserved for member symbols; C007 was dropped with series windows.
+- PR 7b (#161) merged 2026-10-05 as `53aa6cb`.
 - PR 7c: the stray token "98.4%ULEB" removed from the Rule B verdict in
   `experiments/glowcap/RESULTS.md: L684`, which now reads "…dispatch under
   1 ms. Drift is higher…". The verdict and every number are unchanged; the
