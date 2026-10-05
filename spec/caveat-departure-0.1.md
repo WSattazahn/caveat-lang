@@ -49,10 +49,23 @@ its form: a marker could stand for one record, with `from` equal to
   play. A journal entry's `permitted_by` names the same grant, and pins it
   while the entry is in the window, so a series window that departs a revision
   leaves no exact citation of a departed grant.
-- **A withdrawal's reason** stays exact while the withdrawal is held, because
-  `withdrawn(E)` and the other withdrawal predicates carry the reason as their
-  evidence ([Withdrawal 0.1](caveat-withdrawal-0.1.md)). A withdrawal leaves
-  when its subject departs (below), so it pins nothing past its subject.
+- **A withdrawal's reason** stays exact while the withdrawal stands, because
+  the withdrawal predicates read it. "Each predicate carries the withdrawal's
+  reason as its evidence" ([Withdrawal 0.1](caveat-withdrawal-0.1.md)), so
+  `withdrawn(E)`, `withdrawn(latest(S))` and `rests_on_withdrawn(D)` supply
+  the reason into a guard's lineage, a `set`'s grounds and a `because`
+  citation. A read supplies a record, never a marker: markers arise only when
+  a record departs after it was read. If the reason had departed, the
+  predicate would have nothing to carry, and a `because` citing the reason
+  would be refused as `evaluation/ungrounded_citation`, a refusal departure
+  caused. The bound is one pinned reason per standing withdrawal. A withdrawal
+  stands only while its subject is held, and it leaves when its subject
+  departs (below).
+
+Both pins serve one invariant: **departure never changes an outcome.** A
+program accepts and refuses exactly the events it would with retirement alone,
+with the same refusal origins and codes. Departure shows only in the size of
+the save, `depart` effects, markers in explanations, and the archive.
 
 A renewable evidence's first occurrence is the evidence the program declares,
 such as `witness_cave`, which is `witness_cave@1`. The program's own
@@ -236,11 +249,20 @@ grounds". That is bounded by `journal window N` and is not a defect (owner,
 
 ## Gate
 
-Lineage Compaction 0.1's gate: round 7's C3 program with windows, on a runtime
+Two sweeps gate the departure implementation:
+
+- **The digest sweep.** For every program without a window, the seeded save
+  sweep's digests are identical before and after.
+- **The outcome sweep.** For every windowed program in the corpus, over the
+  same seeded runs, the sequence of dispatch outcomes (accepted, or the
+  refusal's origin and code) is the same on this profile as on rc.15's
+  retirement-only build (owner, 17:49 UTC). A missing pin shows up there as a
+  refusal rc.15 did not produce.
+
+Then Lineage Compaction 0.1's gate: round 7's C3 program with windows, on a runtime
 build, over `longplay.mjs`'s 60 cycles, the adapter's save bytes the same at 30
 and 60 cycles apart from the digits of growing numbers, with the raw bytes
-recorded beside them. For every program without a window, the seeded save
-sweep's digests are identical before and after.
+recorded beside them.
 
 ## Changes
 
@@ -253,4 +275,6 @@ sweep's digests are identical before and after.
   departure, the archive outside the save and the pinned grant at 17:47 UTC,
   with riders: a journal entry's `permitted_by` pins, the grant pin's bound and
   reason, the archive as a handover buffer, and C3 dispatch time measured with
-  an incremental pin check. Not implemented.
+  an incremental pin check. At 17:49 UTC the owner gave the withdrawal
+  reason's pin its reason, stated the invariant that departure never changes
+  an outcome, and added the outcome sweep. Not implemented.
