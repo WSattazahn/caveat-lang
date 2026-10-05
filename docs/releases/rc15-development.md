@@ -99,6 +99,19 @@ Made 2026-10-05 at 01:18 UTC, both as the plan recommended:
   and PR 6's harness shows the save flat only when the rule is followed.
   **If authors keep tripping the diagnostic, that is the evidence for a
   language rule in rc.16.**
+  *Replaced at 05:19 UTC the same day* (owner, message
+  cmsg_015odJFpwogpoW5yAoJxQmJwJbznyhsLVsQV7gh45YBq1C, option C on the PR 5
+  card). Building PR 5 showed that the chain does not come from `using`: the
+  runtime's check that the predecessor was reopened reads the predecessor,
+  and a read of a commitment carries its basis, so every revision's lineage
+  contains the one before it whatever the author writes. No authoring rule
+  avoids it. Cutting it only for windowed series would make what a revision
+  rests on depend on a storage declaration. So rc.15 has no series windows:
+  PR 4 ships windows for streams, renewables and the journal and records the
+  measurement; C007 is dropped. rc.16's first spec PR is the revision-lineage
+  rule for all series (a revision rests on its own `using`, the reopen's
+  reason and the predecessor by name), with the corpus sweep, and series
+  windows come after it, before round 8.
 - **Departure (PR 6) may slip to rc.16 (A).** The fixture decides, not the
   calendar. Rider: if the fixture fails, the departure branch stays open and
   this record carries the measured sizes, so rc.16 starts from the numbers.
@@ -148,12 +161,11 @@ record leaves the live graph (`observed(...)` false, relations inert for new
 reads, no new citation); its records stay in the session and the save; each
 retirement is an effect of the event that caused it; refused events retire
 nothing; numbering never reuses a name. `explain` and `dependents` show retired
-records with the sequence at which they retired. The spec states the basis
-chain as an authoring rule (owner decision above) and specifies the advisory
-`caveat check` diagnostic for a windowed series' commit that reads
-`committed()` or `reopened()` of its own series into `using`; the diagnostic
-ships with this PR. Restore validation for retired records: a retired record
-has no live relation; the schema stays `caveat-reactive-save/0.1` if the fields
+records with the sequence at which they retired. Decision series have no
+window in rc.15 (owner decision above, as replaced at 05:19 UTC): the spec
+records the chain measurement and the deferral to rc.16's revision-lineage
+rule. Restore
+validation for retired records: a retired record has no live relation; the schema stays `caveat-reactive-save/0.1` if the fields
 are additive and old saves restore unchanged, otherwise the note's F247
 argument applies and the spec says which.
 
@@ -255,8 +267,6 @@ build and the dispatch-path work.
 - **MCP session handles.** Still the owner's boundary decision. The plugin is
   live, so the first outside request for a live session over MCP is the signal
   to take it up; until then the stdio bridge stays stateless.
-- **A language rule for the basis chain**, if PR 4's diagnostic shows authors
-  tripping the authoring rule (owner, 2026-10-05).
 - **The register as a program**, **the third Lean theorem** (a rejected step
   preserves every field), **an OpenAI-hosted MCP endpoint** (needs a verified
   domain; not before a host asks).
@@ -356,3 +366,14 @@ The rc.13 rules carry over:
   (parry) is committed. The new boss-stance scenarios state those outcomes.
   Both join the corpus the repository's sweeps read (`git ls-files '*.cav'`,
   as `test:interface` does), and a kit test checks, tests and replays each.
+- PR 4: the windows specification, docs only. New
+  `spec/caveat-windows-0.1.md` (declarations, retirement, the `retired`
+  snapshot and save field, restore checks, and why decision series wait for
+  rc.16's revision-lineage rule); `Changes` entries in Reactive 0.5,
+  the decision journal, Renewal 0.1 and Save 0.1. Defaults chosen where the
+  plan left them open: a windowed history holds at most 65,536 records, live
+  and retired, until departure (refused with the existing `limit/history_limit`
+  or `limit/renewal_limit`); a scheduled qualification on an occurrence that
+  retires still applies, inertly; the schema stays
+  `caveat-reactive-save/0.1`, since `retired` is additive and old saves
+  restore unchanged.

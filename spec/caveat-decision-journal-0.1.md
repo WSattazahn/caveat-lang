@@ -45,7 +45,9 @@ adds one entry containing all its newly added witnesses in observation order.
 
 ## Guarantees
 
-- **Append-only.** Entries are never edited. A [late
+- **Append-only.** Entries are never edited. A program that declares
+  `journal window N` marks its oldest entries retired, which edits no entry
+  ([Windows 0.1](caveat-windows-0.1.md)). A [late
   qualification](caveat-late-qualification-0.1.md) does not rewrite them.
 - **Transactional.** A failed event appends nothing.
 - **No duplicates.** A reopening that repeats an existing reopening edge is
@@ -60,3 +62,9 @@ adds one entry containing all its newly added witnesses in observation order.
   {"decision": "trust", "commitment": "trust@2", "change": "committed", "because": ["taste_ruin", "absorb_ruin"], "caveats": ["tasted_in_dark"]}
 ]
 ```
+
+## Changes
+
+- 2026-10-05 (rc.15, specified): `journal window N` marks entries older than
+  the latest `N` retired ([Windows 0.1](caveat-windows-0.1.md)). A program
+  without it keeps every entry live, as before.
