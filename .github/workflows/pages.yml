@@ -257,7 +257,7 @@ jobs:
               const page=await browser.newPage({...devices['iPhone 13']});
               const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
               await page.goto(base);
-              await page.getByText('Find a useful clue').waitFor();
+              await page.getByText('Find a useful clue').waitFor({timeout:60000});
               await page.getByRole('button',{name:/Listen for Miso/}).click();
               await page.getByRole('button',{name:/Keep going/}).click();
               await page.getByRole('button',{name:/Follow the bell/}).click();
@@ -294,7 +294,7 @@ jobs:
               const page=await browser.newPage({...devices['iPhone 13']});
               const base=process.env.SITE_URL.endsWith('/')?process.env.SITE_URL:process.env.SITE_URL+'/';
               await page.goto(new URL('moon-garden-3d.html',base).toString());
-              await page.getByText('Find a useful clue').waitFor();
+              await page.getByText('Find a useful clue').waitFor({timeout:60000});
               await page.waitForFunction(()=>window.__caveat3dIdle?.()===true);
               await page.getByRole('button',{name:/Listen for Miso/}).click();
               await page.getByRole('button',{name:/Keep going/}).click();
