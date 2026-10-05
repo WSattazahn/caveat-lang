@@ -681,7 +681,7 @@ rather than left for a reader to find.
 
 **Rule B, the stated claim: not met, under all three readings.** It needs all
 of: a higher mutation score, lower drift, lower blind change cost, measure 1
-and measure 4 no worse, and dispatch under 1 ms. 98.4%ULEB Drift is higher
+and measure 4 no worse, and dispatch under 1 ms. Drift is higher
 for Caveat (51 against 28), and blind first-run correctness is worse (2
 against 4). Change cost in lines is lower and dispatch is under 1 ms.
 
