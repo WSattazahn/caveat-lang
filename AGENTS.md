@@ -36,7 +36,7 @@ host's permissions when acting on a result.
 [How to be a Caveatist agent](caveatism/agent/CAVEATIST.md) describes the
 practice around the language, and [the caveatist skill](caveatism/skills/caveatist/SKILL.md)
 carries it as a loadable skill. This is a practice an agent may adopt; it is not a requirement for using the language and changes nothing the runtime does.
-Install it with `npx skills add WSattazahn/caveat-lang`, or `claude plugin marketplace add WSattazahn/caveat-lang` then `claude plugin install caveat@caveat-lang`.
+Install it with `npx skills add WSattazahn/caveat-lang`, or `claude plugin marketplace add WSattazahn/caveat-lang` then `claude plugin install caveat@caveat-lang`. It is listed as `caveat` in Anthropic's plugin directory; the same plugin folder carries a manifest for OpenAI's plugin directory (ChatGPT and Codex), where it is not listed yet.
 
 ## Report a capability missing from a real integration
 

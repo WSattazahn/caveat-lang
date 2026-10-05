@@ -101,7 +101,7 @@ jobs:
         run: |
           cmp caveatism/skills/caveatist/SKILL.md skills/caveatist/SKILL.md
           cmp caveatism/skills/caveatist/SKILL.md plugins/caveat/skills/caveatist/SKILL.md
-          node -e 'for (const f of ["plugins/caveat/.claude-plugin/plugin.json", ".claude-plugin/marketplace.json", "server.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
+          node -e 'for (const f of ["plugins/caveat/.claude-plugin/plugin.json", "plugins/caveat/.codex-plugin/plugin.json", ".claude-plugin/marketplace.json", "server.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
       - name: TypeScript formatter compatibility
         run: >-
           npm exec --yes --package=typescript@5.9.3 -- tsc

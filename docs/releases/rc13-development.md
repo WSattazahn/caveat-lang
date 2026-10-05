@@ -319,6 +319,13 @@ The rc.12 rules carry over:
   Cowork and the Claude apps (added from Customize > Plugins on claude.ai).
   The directory follows `main` with a scheduled check; the icon has its own
   review.
+- OpenAI plugin: `plugins/caveat/.codex-plugin/plugin.json` packages the same
+  skill copy for OpenAI's plugin directory (ChatGPT and Codex) as a skills-only
+  plugin, with `assets/` logo and icon downscaled from the Mr. Caveat avatar and
+  a privacy page at `web/plugin-privacy.html`. Identity verification and the
+  upload at platform.openai.com/plugins are owner steps; no MCP server is
+  listed, because `caveat-lang mcp` is stdio and the directory's MCP path needs
+  a hosted HTTPS server.
 - PR 11 (the publish) opened: `docs/releases/v0.1.0-rc.13.md` holds the
   release notes, marked unpublished, and the README points to them. Publication
   goes through `publish-npm.yml` from the annotated tag `v0.1.0-rc.13` at this
