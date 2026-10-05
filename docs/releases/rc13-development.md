@@ -344,5 +344,9 @@ The rc.12 rules carry over:
   first-load timeout passing on re-run (#141). #138, merged after the tag, was
   reverted before publication (#140). `verify-publication` passed, and the
   owner then moved `next` to rc.13. See the [release record](v0.1.0-rc.13.md).
+- MCP Registry: the owner's publish on 2026-10-05 was refused (403), because
+  the registry matches the GitHub login's case and compares `mcpName` exactly,
+  and rc.13 shipped `io.github.wsattazahn/caveat-lang`. rc.14 carries the
+  corrected name; see `rc14-development.md`.
 
 Sources: the repository at `2ae3bb1`; the Version Lab dashboard snapshot of 2026-10-04 (Muse, measured on published npm artifacts; credibility 8/10 — it reads the published tarballs directly, but its probe code is not in this repository).
