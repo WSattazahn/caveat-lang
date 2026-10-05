@@ -170,8 +170,8 @@ on sighting commit trust because enough using history_count(sighting);
 
 The owner first made the chain an authoring rule (2026-10-05, 01:18 UTC),
 assuming it came only from `using`. The runtime showed that it follows from
-the reopening check, so no authoring rule could avoid it, and the owner
-chose the bound by retirement instead (2026-10-05). No check diagnostic is
+the reopening check, so no authoring rule could avoid it; the bound by
+retirement is the fix the owner asked for (2026-10-05, 05:16 UTC). No check diagnostic is
 specified for it. Departure's boundedness fixture (round 7's long-play
 harness, 60 regrowth cycles) runs on windowed programs as written.
 

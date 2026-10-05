@@ -99,12 +99,17 @@ Made 2026-10-05 at 01:18 UTC, both as the plan recommended:
   and PR 6's harness shows the save flat only when the rule is followed.
   **If authors keep tripping the diagnostic, that is the evidence for a
   language rule in rc.16.**
-  *Superseded (owner, 2026-10-05, on the PR 5 card): building PR 5 showed
-  that every revision's basis holds its predecessor's through the reopening
-  check (Reactive 0.5), whatever `using` reads, so no authoring rule avoids
-  the chain. The owner chose to cut it for windows: a retired record counts in
-  no new basis or grounds, as Windows 0.1's Retirement section already said,
-  so a window bounds every revision's basis. C007 is not added.*
+  *Changed at 05:16 UTC the same day.* Building PR 5 showed that every
+  revision's basis holds its predecessor's through the reopening check
+  (Reactive 0.5), whatever `using` reads, so no authoring rule avoids the
+  chain. Asked whether to cut it in the language, the owner answered "no if
+  you found a problem keep working on it" (message
+  cmsg_015odJFpwogpoW5yAoJxQmJwQugYsWxuefVinjpPYuWnHE). The fix: a retired
+  record counts in no new basis or grounds, as Windows 0.1's Retirement
+  section already said, so a window bounds every revision's basis. The rule
+  applies only once something retires, so no program without a window
+  changes. C007 is not added, because the pattern it warned about is bounded
+  too.
 - **Departure (PR 6) may slip to rc.16 (A).** The fixture decides, not the
   calendar. Rider: if the fixture fails, the departure branch stays open and
   this record carries the measured sizes, so rc.16 starts from the numbers.
