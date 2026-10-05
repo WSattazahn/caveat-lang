@@ -261,6 +261,12 @@ build and the dispatch-path work.
   protocol pre-registered the way round 7's was.
 - No re-reading of round 7, no measure dropped, no margin moved, and no README
   claim before round 8's record exists.
+- **View 0.2 is in rc.16.** The owner chose "In rc.16" on the PR 7 card on
+  2026-10-05 at 14:45 UTC. rc.16 implements
+  [`docs/design/view-0.2.md`](../design/view-0.2.md): ordered grounds,
+  `reopened` in place of `open`, and the delta view, with
+  `caveat-reactive-view/0.1` kept byte for byte. Round 8's hosts are written
+  against it.
 
 ## Direction (recorded, not scoped)
 
@@ -452,3 +458,5 @@ The rc.13 rules carry over:
   unpublished, and the README's candidate paragraph. The tag, the publish,
   the dist-tags and the MCP Registry update follow through the owner, and the
   publication record is written after `verify-publication` passes.
+- The owner chose "In rc.16" on the View 0.2 card (2026-10-05, 14:45 UTC);
+  the rc.16 direction above and the design note record it.
