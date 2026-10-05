@@ -562,6 +562,8 @@ export interface Control {
 export interface Clock {
   event: string;
   step: number;
+  /** Present, and true, only for a clock declared `integer` (spec/caveat-elapsed-0.1.md#integer-clocks). */
+  integer?: true;
 }
 
 export interface World {

@@ -311,3 +311,24 @@ The rc.13 rules carry over:
   binary64 clock fails as a fatal unclassified error ("qualify after requires
   a nonnegative number of seconds", `runtime/src/reactive.rs: L4119–4122`),
   though the event is rolled back; it goes to the Version Lab to register.
+- PR 2 (#157) merged 2026-10-05 as `e539223`, after the owner's review
+  approved it; the review's one sentence, that the bounds are checked first,
+  is in PR 3 with a fixture for each case.
+- PR 3: the integer clock in the runtime. `clock EVENT every STEP integer`
+  parses and loads with whole `STEP` and `dt` bounds and not on `tick`; a
+  literal `after` outside whole `0..2^53 − 1` is a load error; a fractional
+  `dt` inside the bounds is `input/payload_invalid`, and the bounds are
+  checked first, so any `dt` outside them is `input/bound_exceeded`; a
+  reading leaving `±(2^53 − 1)` is `evaluation/bound_exceeded` (9,007 steps of `1e12` fit, the 9,008th is
+  refused); a computed delay outside whole `0..2^53 − 1` is
+  `evaluation/expression`; restore refuses fractional or out-of-range clock
+  times; the clock metadata adds `integer: true` only when declared; `integer`
+  is a clock clause word the module linker never substitutes. Tests:
+  `runtime/tests/integer_clock.rs` (9), and a module linker test. Round 7's
+  four Caveat programs, converted to milliseconds under
+  `experiments/glowcap/round7/clock/`, each fade a taste on the exact step at
+  which 60,000 ms have passed. Gate: a new seeded sweep
+  (`runtime/examples/save_sweep.rs`, 8 runs of 150 events per program) over
+  the 103 repository programs that load as reactive programs, every outcome,
+  save and restored save hashed: 123,600 saves, digests identical between
+  `main` (`51590b4`) and this branch, no fatal outcome.

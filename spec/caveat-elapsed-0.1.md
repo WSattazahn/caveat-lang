@@ -85,7 +85,10 @@ scenario outcomes are exactly as specified above.
 - **Input.** A clock event's `dt` must be a whole number. A fraction inside the
   declared bounds is refused as `input/payload_invalid`, as a fraction for a
   typed parameter is; a value outside the bounds is still
-  `input/bound_exceeded` ([Dispatch 0.1](caveat-dispatch-0.1.md)).
+  `input/bound_exceeded` ([Dispatch 0.1](caveat-dispatch-0.1.md)). The
+  bounds are checked first: a whole number outside them and a fraction
+  outside them are both `input/bound_exceeded`, and only a fraction inside
+  them is `input/payload_invalid`.
 - **Reading.** `elapsed()` is a whole number of units within
   `±(2^53 − 1)` (`±9007199254740991`), the integers binary64 and a JSON host
   hold exactly, so every addition is exact. A clock event whose `dt` would take

@@ -29,7 +29,7 @@ test('the runtime lists were read', () => {
   // A reformatted list would read as empty and account for nothing.
   assert.ok(lists['link.rs RESERVED'].length >= 90);
   assert.ok(lists['link.rs CALLABLE'].length >= 15);
-  assert.deepEqual([...lists['tests/modules.rs POSITIONAL']].sort(), ['every', 'max', 'min', 'reset']);
+  assert.deepEqual([...lists['tests/modules.rs POSITIONAL']].sort(), ['every', 'integer', 'max', 'min', 'reset']);
   assert.ok(lists['tests/modules.rs OUTSIDE_MODULES'].length >= 15);
 });
 

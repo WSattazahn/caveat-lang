@@ -521,6 +521,11 @@ impl ReactiveSession {
         if self.source_clock_is_monotonic() && save.elapsed < 0.0 {
             return Err("elapsed time must be a nonnegative number".into());
         }
+        if self.integer_clock() && !whole_clock_reading(save.elapsed) {
+            return Err(format!(
+                "elapsed time on an integer clock must be a whole number within -{MAX_INTEGER_CLOCK}..{MAX_INTEGER_CLOCK}"
+            ));
+        }
         if save.sequence > MAX_SAVED_SEQUENCE {
             return Err(format!("sequence must be at most {MAX_SAVED_SEQUENCE}"));
         }
@@ -1627,6 +1632,15 @@ impl ReactiveSession {
             {
                 return Err("a scheduled qualification's times are not valid".into());
             }
+            if self.integer_clock()
+                && !(whole_clock_reading(scheduled.scheduled_at)
+                    && whole_clock_delay(scheduled.after))
+            {
+                return Err(
+                    "a scheduled qualification's times on an integer clock must be whole numbers in range"
+                        .into(),
+                );
+            }
             self.check_provenance(
                 "scheduled qualification",
                 &scheduled.guard,
@@ -2008,6 +2022,7 @@ impl ReactiveSession {
                             && previous.elapsed.is_some_and(|previous| previous != elapsed)
                     })
                     || (entry.sequence == save.sequence && elapsed != save.elapsed)
+                    || (self.integer_clock() && !whole_clock_reading(elapsed))
                 {
                     return Err(fail("entry elapsed time is inconsistent"));
                 }

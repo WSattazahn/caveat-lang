@@ -935,7 +935,7 @@ fn tag_offsets(source: &str) -> Vec<usize> {
         }
         // The other three declarations that carry a clause keyword have no
         // expression part at all: an event is a comma-separated list of
-        // `NAME min NUMBER max NUMBER`, a clock is `EVENT every STEP`, a
+        // `NAME min NUMBER max NUMBER`, a clock is `EVENT every STEP [integer]`, a
         // control is `NAME = EVENT [reset]`. Nothing else in those statements
         // can be written as one of these words, so every occurrence is the
         // clause keyword and none of them may be substituted. `state` needs
@@ -943,7 +943,7 @@ fn tag_offsets(source: &str) -> Vec<usize> {
         // legitimately call a module's own `min`.
         let clause: &[&str] = match shape.first().copied() {
             Some("event") => &["min", "max"],
-            Some("clock") => &["every"],
+            Some("clock") => &["every", "integer"],
             Some("control") => &["reset"],
             _ => &[],
         };

@@ -1059,6 +1059,10 @@
         {
           "name": "keyword.other.caveat",
           "match": "(?<![.\\w$])reset\\b(?=\\s*;)"
+        },
+        {
+          "name": "keyword.other.caveat",
+          "match": "(?<=\\d[ \\t])integer\\b(?=\\s*;)"
         }
       ]
     },

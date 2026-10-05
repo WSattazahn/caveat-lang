@@ -131,6 +131,7 @@ export const groups = [
     notKeyword: ['bind @.visible = 1;', 'entity e kind @ at p;', 'bind e.@.color = "#fff";'],
   },
   { name: 'clock steps', words: ['every'], probe: 'clock tick @ 1;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
+  { name: 'integer clocks', words: ['integer'], probe: 'clock tick every 16 @;', scope: 'keyword.other', notKeyword: ['state @ = 1;', 'set x = @;'] },
   { name: 'control resets', words: ['reset'], probe: 'control c = e @;', scope: 'keyword.other', notKeyword: ['state @ = 1;'] },
   {
     name: 'bounds',
