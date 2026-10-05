@@ -112,3 +112,35 @@ section factual, as `rc15-development.md` does.
   For the rc.16 adapter scaffold, when it is built (owner, 17:47 UTC): it
   drains the archive by default, and the kit exposes the number of undrained
   entries, so a host that never drains can see what it is accumulating.
+
+- PR 3: the `inherited` split travels through reads ([Lineage compaction
+  0.1](../../spec/caveat-lineage-compaction-0.1.md), "Save and restore"),
+  specified. Building departure showed that the 17:08 placement cannot keep
+  a restored session equal to the original. That placement put `inherited`
+  on a state's grounds and on the grounds of a revision in force. But a
+  `set` whose `because` reads a state, a reading or a commitment takes that
+  value's names, and a name the value inherited stays inherited in the new
+  grounds. A restore that dropped a lineage's `inherited` list would read
+  those names as own reads and pin them at the next `set`, so records the
+  original lets depart would stay. The runtime's own restore test failed in
+  exactly this way (`runtime/tests/restore_tables.rs`, "a genuine save with
+  every table restores": a series' selection qualifications held
+  `inherited: {gauge}` before the save and nothing after it).
+
+  The owner checked the diagnosis at 18:21 UTC. They set three requirements:
+  - the holders as a closed list in the write rule and the restore check;
+  - the rc.15-save paragraph rewritten holder by holder;
+  - the failing restore test checked in as a regression, with an rc.15 twin
+    showing a bounded over-pin rather than a refusal.
+
+  The spec now lists the 13 holders, which are every provenance the save
+  schema has, and gives each holder's over-pinning and the common bound.
+  Only grounds pin, so Departure 0.1's attribution is unchanged. The
+  regression and its twin test departure itself, so they land with the
+  departure implementation (PR 4), which is the first build that departs
+  anything.
+
+  The same review found that Departure 0.1's outcome sweep would pass
+  vacuously, because no tracked `.cav` file declares a window. The sweep now
+  names its population: the C3 program with windows, the two windowed kit
+  test programs and the runtime's window tests.

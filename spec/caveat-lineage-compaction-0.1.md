@@ -205,14 +205,49 @@ alone does not say which names were read. Restore cannot rederive the split:
 the qualifications that supplied the inherited names may have cleared since.
 A restored session that pinned every name would keep records the original
 let depart, and the two would diverge. So a save writes a grounds' inherited
-names under `inherited`, beside `evidence`. The field appears only on a state's
-grounds and on the grounds of a revision in force. It is written only for
-programs with a window, and is absent when the grounds inherited nothing.
-Without a window nothing departs and the split is never consulted, so those
-saves stay byte for byte as before. A state whose grounds carry `inherited` writes its
-grounds even when their names equal the lineage's. A name that is both an own
-read and inherited is an own read: it pins, and `inherited` lists only names
-that are not own reads.
+names under `inherited`, beside `evidence`.
+
+The split also travels through reads. When two provenances merge, a name is
+inherited in the result only if neither side read it itself. A read takes a
+reading stream's or decision series' selection qualifications, and a
+reopening qualification, as inherited whatever they hold. Every other value
+it reads passes its names on with their split as it holds them. So a `set`
+that reads a state whose lineage inherited a name writes that name into its
+grounds as inherited, and a restore that lost the state's list would write it
+there as an own read, which pins. The split must therefore survive on every
+provenance a later read can reach, not only on the grounds that pin.
+
+In a save of a program with a window, `inherited` may appear on exactly these
+provenances, and on no other:
+
+1. a state's lineage (`states.S.lineage`);
+2. a state's grounds (`states.S.grounds`);
+3. a commitment's basis (`commitment_bases.C.provenance`);
+4. a commitment's grounds (`commitment_grounds.C`);
+5. a reading's provenance (`reading_streams.S.occurrences[i].provenance`);
+6. a reading stream's selection qualifications
+   (`reading_streams.S.selection_qualifications`);
+7. a decision series' selection qualifications
+   (`decision_series.D.selection_qualifications`);
+8. a scheduled qualification's guard (`scheduled_qualifications[i].guard`);
+9. an observation qualification (`observation_qualifications.E`);
+10. an examination qualification (`examination_qualifications.C`);
+11. a reopening qualification (`reopening_qualifications.C`);
+12. a predicate qualification (`predicate_qualifications.P.N`);
+13. a cue's qualification (`cue_qualifications[i]`).
+
+These are all the provenances the save schema holds. A later profile that
+adds a provenance to the save adds it to this list. Only 2, and 4 for a
+commitment in force, pin, and only their own reads. The other holders never
+pin, so the list adds no pin and no category to Departure 0.1's attribution.
+
+Only a program with a window keeps the split at all. Without a window nothing
+departs, inherited names merge as any others, and those saves and snapshots
+stay byte for byte as before. The field is absent when a provenance inherited
+nothing. A state whose grounds carry `inherited` writes its grounds even when
+their names equal the lineage's. A name that is both an own read and
+inherited is an own read, and `inherited` lists only names that are not own
+reads. Snapshots show `inherited` wherever the session holds it.
 
 When an inherited name departs, it leaves both `evidence` and `inherited` and
 joins the grounds' marker for its history. Every name in `inherited` is
@@ -222,17 +257,47 @@ is cited, because it pins. The next `set` replaces the whole grounds, its
 `inherited` list and markers included, as it replaces the names today.
 
 A windowed save written by rc.15 has no `inherited` field, and none of its
-records have departed. Restore reads the missing field as "nothing
-inherited", so every name in such a grounds pins until the next `set`
-replaces the grounds and records the split. That can keep records longer than
-a session started on this profile would. It never loses one. No rc.15 session
-departed anything, so there is no original for the restored session to
-diverge from. The excess is bounded by what the save already holds, and a
-restored session converges as each state's next `set` writes a new grounds.
-The difference is between versions, not between a session on this profile
-and its own restore, so the save sweep's property holds. Because the field is
-absent when empty, an rc.15 save and a save on this profile with no
-inherited names look the same, and restore reads them the same way.
+records have departed. Restore reads each missing list as empty, so every
+name in every holder counts as an own read. That can keep records longer
+than a session started on this profile would. It never loses one, and no
+rc.15 session departed anything, so there is no original for the restored
+session to diverge from. The difference is between versions, not between a
+session on this profile and its own restore, so the save sweep's property
+holds.
+
+Only grounds pin, so the excess, called over-pinning here, arises in a
+grounds in one of two ways. Either the grounds was itself restored without
+its list, or a `set` or `commit` after the restore read a holder restored
+without its list and took the holder's names as own reads. Selection and
+reopening qualifications (6, 7 and 11) never do the second, because a read
+takes them as inherited anyway. How long it lasts, holder by holder:
+
+- **A state's grounds (2)** pins its restored names until the state's next
+  `set` replaces the grounds.
+- **A state's lineage (1)** passes its names on as own reads until the
+  state's next `set` replaces it.
+- **A commitment's grounds (4) in a decision series** pin their restored
+  names until a later revision supersedes the commitment. Its basis (3)
+  passes its names on as own reads for as long as a read reaches it.
+- **A commitment's grounds and basis outside a series** are frozen. Its
+  grounds over-pin for the rest of the session, by at most the names they
+  held at restore.
+- **A reading (5)** is read only while it is live. It passes its names on
+  until it retires.
+- **The qualifications 8, 9, 10, 12 and 13** pass their names on for as long
+  as they hold them.
+
+Over-pinning has one bound in every case. It names only records the restored
+save already held, because only holders restored without their lists carry
+a misread name, and they were all written before the restore. A read can
+copy a misread name into a holder written after the restore, but it cannot
+add a new one. A record that a session creates after the restore is never
+over-pinned, so over-pinning never grows with play. The holders above say
+when each source stops. Because a name can be copied, no fixed number of
+`set`s is guaranteed to end it, so the departure implementation measures
+the restored size instead of predicting it. Because the field is
+absent when empty, an rc.15 save and a save on this profile with no inherited
+names look the same, and restore reads them the same way.
 
 Restore refuses a save when:
 
@@ -247,9 +312,10 @@ Restore refuses a save when:
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
   commitment's grounds marker is not within its basis's;
-- a name in `inherited` is not also in the same grounds' `evidence`, or
-  `inherited` appears anywhere but a state's grounds or the grounds of a
-  revision in force, or in a save of a program without a window.
+- a name in `inherited` is not also in the same provenance's `evidence`;
+- `inherited` appears in a save of a program without a window. The 13
+  holders above are every provenance the schema has, so a field anywhere
+  else is already an unknown field, and restore refuses it as such.
 
 As with every restore check, a save that passes holds records the program
 could hold, not records events are shown to have produced
@@ -396,3 +462,16 @@ provenance read in its range.
   17:08 UTC the owner added the saved split of a grounds' own and inherited
   names (`inherited`), its restore check, and how restore reads a windowed
   rc.15 save. Not implemented.
+- 2026-10-05 (rc.16, the split travels through reads): implementing
+  departure showed that a read carries a value's inherited names into what it
+  writes. A restore that kept `inherited` only on a state's grounds and the
+  grounds of a revision in force would read every other holder's names as own
+  reads, and a later `set` would pin records the original lets depart. The
+  runtime's restore test failed in exactly this way. A save of a program with
+  a window now writes `inherited` on a closed list of 13 holders, which is
+  every provenance the save schema has. Restore checks each list against its
+  own `evidence`. The rc.15-save paragraph now gives, holder by holder, how
+  long over-pinning lasts and the bound that holds in every case. Only
+  grounds pin, so Departure 0.1's attribution gains no category. Programs
+  without a window keep no split, so their saves and snapshots are unchanged.
+  The owner checked the diagnosis and set these requirements at 18:21 UTC.

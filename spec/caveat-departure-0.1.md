@@ -253,11 +253,23 @@ Two sweeps gate the departure implementation:
 
 - **The digest sweep.** For every program without a window, the seeded save
   sweep's digests are identical before and after.
-- **The outcome sweep.** For every windowed program in the corpus, over the
-  same seeded runs, the sequence of dispatch outcomes (accepted, or the
-  refusal's origin and code) is the same on this profile as on rc.15's
-  retirement-only build (owner, 17:49 UTC). A missing pin shows up there as a
-  refusal rc.15 did not produce.
+- **The outcome sweep.** For every windowed program below, over the same
+  seeded runs, the sequence of dispatch outcomes (accepted, or the refusal's
+  origin and code) is the same on this profile as on rc.15's retirement-only
+  build (owner, 17:49 UTC). A missing pin shows up there as a refusal rc.15
+  did not produce. None of the corpus's tracked `.cav` files declares a
+  window, so the sweep names its population:
+  - round 7's C3 program with windows, derived as
+    `experiments/lineage-compaction/simulate.mjs` derives it (`renewable …
+    window 2` for each `limit 64`, and `journal window 6`), over
+    `longplay.mjs`'s 60 cycles and over seeded runs;
+  - the windowed programs in `kit/test/explain.test.mjs` and
+    `kit/test/types.test.mjs`;
+  - the program in `runtime/tests/windows.rs`.
+
+  An empty population would let the gate pass without testing anything, so
+  the sweep's record lists each program and its number of runs. A windowed
+  program added to the tracked corpus later joins it.
 
 Then Lineage Compaction 0.1's gate: round 7's C3 program with windows, on a runtime
 build, over `longplay.mjs`'s 60 cycles, the adapter's save bytes the same at 30
@@ -278,3 +290,8 @@ recorded beside them.
   an incremental pin check. At 17:49 UTC the owner gave the withdrawal
   reason's pin its reason, stated the invariant that departure never changes
   an outcome, and added the outcome sweep. Not implemented.
+- 2026-10-05 (rc.16, outcome sweep population): the outcome sweep named
+  "every windowed program in the corpus", but no tracked `.cav` file declares
+  a window, so as written it would pass on an empty population (owner, 18:21
+  UTC). It now names its programs, and its record lists them with their run
+  counts.
