@@ -312,6 +312,13 @@ The rc.12 rules carry over:
   `kit/package.json` gains `mcpName`, which rides rc.13's publish; the MCP
   Registry, community marketplace and directory submissions are owner steps
   after it.
+- Plugin directory: the owner submitted `plugins/caveat` (#143, icon #144) to
+  Anthropic's plugin directory through claude.ai/directory/manage on
+  2026-10-05 at 00:01 UTC. A reviewer approved it with no findings, and it was
+  published at `4f77b29` at about 00:10 UTC as `caveat`, for Claude Code,
+  Cowork and the Claude apps (added from Customize > Plugins on claude.ai).
+  The directory follows `main` with a scheduled check; the icon has its own
+  review.
 - PR 11 (the publish) opened: `docs/releases/v0.1.0-rc.13.md` holds the
   release notes, marked unpublished, and the README points to them. Publication
   goes through `publish-npm.yml` from the annotated tag `v0.1.0-rc.13` at this

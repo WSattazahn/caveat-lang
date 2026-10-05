@@ -1,10 +1,10 @@
 # Caveatism
 
-The culture around Mr. Caveat and the Caveat language: a fictional philosophy, its archive, its atlas, a practice an agent may adopt, and the Archive kept as a program.
+The culture around Mr. Caveat and the Caveat language: a philosophy, its archive, its atlas, a practice an agent may adopt, and the Archive kept as a program.
 
 Three rules govern everything in this directory, and they come from the material itself:
 
-1. **Fiction, not doctrine.** The Atlas is "a fictional cultural atlas"; the Archive is "unfinished" by its own heading. Nothing here is a contract of the language. The language's contracts live in `spec/`, its package in `kit/`, its release records in `docs/releases/`. Nothing in this directory is a release gate, and no claim about the language may be made here that the repository's records do not support.
+1. **Culture, not contract.** The Atlas calls itself "a fictional cultural atlas"; the Archive is "unfinished" by its own heading. Nothing here is a contract of the language. The language's contracts live in `spec/`, its package in `kit/`, its release records in `docs/releases/`. Nothing in this directory is a release gate, and no claim about the language may be made here that the repository's records do not support.
 2. **Preserve, don't rewrite.** The Archive Rule: "do not protect Caveatism by changing it every time it is challenged." Superseded versions stay; amendments are appended; contradictions may remain visible. The canon program enforces the same rule mechanically.
 3. **Classify before absorbing.** New material carries a marker — observed, proposed, tested, mythological, analogy, rejected, unresolved — before it joins the record.
 
@@ -15,7 +15,7 @@ Three rules govern everything in this directory, and they come from the material
 | `archive/` | The Caveatist Archive, v1.1, with v1.0 and its amendments preserved inside it. |
 | `atlas/` | The Caveatist Atlas, v1.0: culture, institutions and material life. |
 | `agent/CAVEATIST.md` | The practice, written for an agent. Optional; linked from `AGENTS.md` as culture. |
-| `skills/caveatist/SKILL.md` | The same practice as a loadable skill (copied to `/skills/caveatist/` for installers; the copy here is canonical, CI checks they match). |
+| `skills/caveatist/SKILL.md` | The same practice as a loadable skill (copied to `/skills/caveatist/` and `/plugins/caveat/skills/caveatist/` for installers; the copy here is canonical, CI checks they match). Listed in Anthropic's plugin directory as the plugin `caveat` since 2026-10-05 (published at `4f77b29`), for Claude Code, Cowork and the Claude apps. |
 | `canon/` | The Archive as a Caveat program, with its events and scenarios. Verified on `caveat-lang@0.1.0-rc.11`. |
 | `character/` | Mr. Caveat: the hero, avatar and social images, their prompts, candidates, proofs, validation and provenance. |
 
