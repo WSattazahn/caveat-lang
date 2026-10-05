@@ -81,3 +81,9 @@ section factual, as `rc15-development.md` does.
   provenance objects carry `departed` as the save does, because the view
   serializes the same provenance type. The simulation pins every name in a
   grounds, inherited ones included, so its figures can only overstate the save.
+
+  At 17:08 UTC the owner added one point before departure. A grounds' split
+  between its own reads and its inherited names must survive save and
+  restore, because a provenance is a flat set. The save therefore writes
+  `inherited` beside `evidence`, only for programs with a window, and restore
+  checks that every inherited name is also in `evidence`.

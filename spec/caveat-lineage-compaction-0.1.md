@@ -198,6 +198,34 @@ and a name is never reused. Saves of programs without a window never have
 predates this profile refuses a save with `departed`, as it refuses any field
 the schema lacks.
 
+A grounds' split between its own reads and the names it inherits through a
+qualification must survive save and restore. `Provenance` is a flat set
+(`runtime/src/reactive_expr.rs`: `evidence` and `caveats`), so a saved grounds
+alone does not say which names were read. Restore cannot rederive the split:
+the qualifications that supplied the inherited names may have cleared since.
+A restored session that pinned every name would keep records the original
+let depart, and the two would diverge. So a save writes a grounds' inherited
+names under `inherited`, beside `evidence`. The field appears only on a state's
+grounds and on the grounds of a revision in force. It is written only for
+programs with a window, and is absent when the grounds inherited nothing.
+Without a window nothing departs and the split is never consulted, so those
+saves stay byte for byte as before. A state whose grounds carry `inherited` writes its
+grounds even when their names equal the lineage's.
+
+When an inherited name departs, it leaves both `evidence` and `inherited` and
+joins the grounds' marker for its history. Every name in `inherited` is
+therefore still in `evidence`, and every marker in a grounds is inherited, as
+the rule in "What stays exact" requires. An own read never departs while it
+is cited, because it pins.
+
+A windowed save written by rc.15 has no `inherited` field, and none of its
+records have departed. Restore reads the missing field as "nothing
+inherited", so every name in such a grounds pins until the next `set`
+replaces the grounds and records the split. That can keep records longer than
+a session started on this profile would. It never loses one. No rc.15 session
+departed anything, so there is no original for the restored session to
+diverge from.
+
 Restore refuses a save when:
 
 - a marker names a history without a window, or one the program does not
@@ -210,7 +238,10 @@ Restore refuses a save when:
 - a provenance holds two markers for one history, or names a departed record
   exactly;
 - a grounds marker is not within the lineage's marker for its history, or a
-  commitment's grounds marker is not within its basis's.
+  commitment's grounds marker is not within its basis's;
+- a name in `inherited` is not also in the same grounds' `evidence`, or
+  `inherited` appears anywhere but a state's grounds or the grounds of a
+  revision in force, or in a save of a program without a window.
 
 As with every restore check, a save that passes holds records the program
 could hold, not records events are shown to have produced
@@ -353,5 +384,7 @@ provenance read in its range.
   owner chose the shape and its riders at 16:34 UTC. The owner's 17:00 UTC
   review fixed two points before merge: a grounds' own reads pin, while
   markers it inherits through a qualification pin nothing and are allowed;
-  and View 0.1 provenance objects carry `departed` as the save does. Not
-  implemented.
+  and View 0.1 provenance objects carry `departed` as the save does. At
+  17:08 UTC the owner added the saved split of a grounds' own and inherited
+  names (`inherited`), its restore check, and how restore reads a windowed
+  rc.15 save. Not implemented.
