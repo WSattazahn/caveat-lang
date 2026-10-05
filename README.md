@@ -1,18 +1,12 @@
 # CAVEAT Language
 
-The published preview is **0.1.0-rc.13**. See the
-[rc.13 release record](docs/releases/v0.1.0-rc.13.md) for what it changes.
+The published preview is **0.1.0-rc.14**. See the
+[rc.14 release record](docs/releases/v0.1.0-rc.14.md) for what it changes.
 
-> npm publication verified 2026-10-04T22:40:38.191Z: exact **caveat-lang@0.1.0-rc.13**,
-> tested Linux artifact SHA256 `f7f980d401cd53f338fc2dd4021364af53f52bc06bba613a3ffcb2e58351e9ed`.
-> `latest` and `next` name rc.13. Published by `publish-npm.yml` from tag `v0.1.0-rc.13` with an npm provenance attestation.
-> [Publication record](docs/releases/v0.1.0-rc.13-npm-publication.json).
-
-**0.1.0-rc.14** is a release candidate going through the attested publish
-route; it is not yet published, and the published preview remains rc.13. It
-corrects only the package's MCP server name. See the
-[rc.14 release notes](docs/releases/v0.1.0-rc.14.md) and the
-[rc.14 development record](docs/releases/rc14-development.md).
+> npm publication verified 2026-10-05T02:17:29.240Z: exact **caveat-lang@0.1.0-rc.14**,
+> tested Linux artifact SHA256 `9aab7b811666e5b43b6f7c96ad5116235241b08fbed395698476cc035bfd57bf`.
+> `latest` and `next` name rc.14. Published by `publish-npm.yml` from tag `v0.1.0-rc.14` with an npm provenance attestation.
+> [Publication record](docs/releases/v0.1.0-rc.14-npm-publication.json).
 
 
 **Programs that remember why.**
@@ -22,12 +16,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published preview, **0.1.0-rc.13**, in an empty directory with Node 20 or
+Try the published preview, **0.1.0-rc.14**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.13
+npm install caveat-lang@0.1.0-rc.14
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -39,9 +33,11 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-The [rc.13 verified publication record](docs/releases/v0.1.0-rc.13.md) identifies the
-published npm candidate. The [rc.13 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.13)
-retains the exact tested Linux tarball and its checksum. rc.13 reports a
+The [rc.14 verified publication record](docs/releases/v0.1.0-rc.14.md) identifies the
+published npm candidate. The [rc.14 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.14)
+retains the exact tested Linux tarball and its checksum. rc.14 changes only the
+package's MCP server name, so the MCP Registry lists it as
+`io.github.WSattazahn/caveat-lang`; the language is rc.13's. rc.13 reports a
 program's interface as JSON and writes TypeScript declarations from it
 (`caveat-lang types`), makes restore refuse a caveat the source cannot attach
 and a membership without its record, and turns `id_text` of a non-handle into a
@@ -49,7 +45,7 @@ refused event instead of a fatal failure. Restoring a save still does not
 authenticate its history. A refused operation is not completed; hosts must
 inspect its outcome. It adds no npm runtime dependency.
 
-With rc.13 installed, use `npx --no-install caveat-lang doctor` to check it and
+With rc.14 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.
