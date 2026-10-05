@@ -385,6 +385,8 @@ export const grammar = {
         },
         // `control NAME = EVENT reset;`
         { name: 'keyword.other.caveat', match: String.raw`${notProperty}reset\b(?=\s*;)` },
+        // `clock NAME every STEP integer;`: after the step's number.
+        { name: 'keyword.other.caveat', match: String.raw`(?<=\d[ \t])integer\b(?=\s*;)` },
       ],
     },
     // `min 0 max 100` declares a range; elsewhere min and max are functions.
