@@ -143,39 +143,42 @@ every restore check, a save that passes holds records the program could hold,
 not records events are shown to have produced
 ([Save 0.1](caveat-save-0.1.md)).
 
-## The basis chain: an authoring rule
+## The basis chain: bounded by retirement
 
-A `commit` whose `using` reads `committed(SERIES)` or `reopened(SERIES)` of
-its own series adds what the current revision retains and relies on to the
-new revision's basis ([Save 0.1](caveat-save-0.1.md)). Each revision's basis
-then holds the one before it, so a basis inside the window pins every
-occurrence the series was ever decided on, and the session grows with play
-even though every record retires.
+Since [Reactive 0.5](caveat-reactive-0.5.md), appending a revision depends on
+the check that its predecessor was reopened, and the new basis includes that
+check's provenance: the predecessor's basis among it. A `using` that reads
+`committed(SERIES)` or `reopened(SERIES)` adds it again
+([Save 0.1](caveat-save-0.1.md)). Each revision's basis therefore holds the
+one before it, whatever `using` reads, and without windows a long-running
+series' latest basis names every occurrence it was ever decided on.
 
-The owner decided on 2026-10-05 that this is an **authoring rule, not a
-language rule**: a windowed series' commits do not read `committed(...)` or
-`reopened(...)` of their own series into `using`. A language rule would change
-what grounds mean for every program to solve a problem only windowed series
-have. Decide each revision on the live readings instead:
+Retirement bounds the chain, because a retired record counts in no new basis
+or grounds (see Retirement): a revision committed after a record retired does
+not rest on it, though its predecessor's frozen basis still cites it. Every
+revision's basis then holds only records that were live when it was committed,
+and evidence that has no window. A windowed reading stream and a windowed
+series together keep every revision's basis within the stream's window, with
+no rule for authors to follow:
 
 ```caveat
--- Chains every earlier revision into the basis:
-on sighting commit trust because seen using if(committed(trust), latest(trust), 0) + 1;
--- Rests on the live window only:
-on sighting commit trust because seen using history_count(sighting);
+readings sighting from glimpse window 3;
+decisions trust window 2 reopened by sighting;
+on sighting commit trust because enough using history_count(sighting);
+-- trust@30 rests on sighting@28, sighting@29 and sighting@30 only.
 ```
 
-`caveat check` reports the pattern as advisory C007
-`windowed-basis-chain` ([Check 0.1](caveat-check-0.1.md)). Departure's
-boundedness fixture (round 7's long-play harness, 60 regrowth cycles) is run
-on a program that follows the rule. If authors keep tripping the warning,
-that is the evidence for a language rule in rc.16.
+The owner first made the chain an authoring rule (2026-10-05, 01:18 UTC),
+assuming it came only from `using`. The runtime showed that it follows from
+the reopening check, so no authoring rule could avoid it, and the owner
+chose the bound by retirement instead (2026-10-05). No check diagnostic is
+specified for it. Departure's boundedness fixture (round 7's long-play
+harness, 60 regrowth cycles) runs on windowed programs as written.
 
 ## Changes
 
 - 2026-10-05 (rc.15, specified): new profile. Declared windows on reading
   streams, decision series, renewable evidence and the journal; retirement as
   a reported, transactional effect that keeps every record; the `retired`
-  snapshot and save field; restore checks for retirements; the basis-chain
-  authoring rule with advisory C007. The runtime implements it from rc.15's
-  PR 5.
+  snapshot and save field; restore checks for retirements; the basis chain
+  bounded by retirement. The runtime implements it from rc.15's PR 5.

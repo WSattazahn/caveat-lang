@@ -99,6 +99,12 @@ Made 2026-10-05 at 01:18 UTC, both as the plan recommended:
   and PR 6's harness shows the save flat only when the rule is followed.
   **If authors keep tripping the diagnostic, that is the evidence for a
   language rule in rc.16.**
+  *Superseded (owner, 2026-10-05, on the PR 5 card): building PR 5 showed
+  that every revision's basis holds its predecessor's through the reopening
+  check (Reactive 0.5), whatever `using` reads, so no authoring rule avoids
+  the chain. The owner chose to cut it for windows: a retired record counts in
+  no new basis or grounds, as Windows 0.1's Retirement section already said,
+  so a window bounds every revision's basis. C007 is not added.*
 - **Departure (PR 6) may slip to rc.16 (A).** The fixture decides, not the
   calendar. Rider: if the fixture fails, the departure branch stays open and
   this record carries the measured sizes, so rc.16 starts from the numbers.
@@ -148,12 +154,9 @@ record leaves the live graph (`observed(...)` false, relations inert for new
 reads, no new citation); its records stay in the session and the save; each
 retirement is an effect of the event that caused it; refused events retire
 nothing; numbering never reuses a name. `explain` and `dependents` show retired
-records with the sequence at which they retired. The spec states the basis
-chain as an authoring rule (owner decision above) and specifies the advisory
-`caveat check` diagnostic for a windowed series' commit that reads
-`committed()` or `reopened()` of its own series into `using` (C007; C005 is
-reserved for member symbols). It is specified here and reports from PR 5,
-because no windowed series loads before PR 5 adds the declaration. Restore
+records with the sequence at which they retired. The spec bounds the basis
+chain by retirement (owner decision above, as superseded): a retired record
+counts in no new basis or grounds. Restore
 validation for retired records: a retired record has no live relation; the schema stays `caveat-reactive-save/0.1` if the fields
 are additive and old saves restore unchanged, otherwise the note's F247
 argument applies and the spec says which.
@@ -256,8 +259,6 @@ build and the dispatch-path work.
 - **MCP session handles.** Still the owner's boundary decision. The plugin is
   live, so the first outside request for a live session over MCP is the signal
   to take it up; until then the stdio bridge stays stateless.
-- **A language rule for the basis chain**, if PR 4's diagnostic shows authors
-  tripping the authoring rule (owner, 2026-10-05).
 - **The register as a program**, **the third Lean theorem** (a rejected step
   preserves every field), **an OpenAI-hosted MCP endpoint** (needs a verified
   domain; not before a host asks).
@@ -359,8 +360,8 @@ The rc.13 rules carry over:
   as `test:interface` does), and a kit test checks, tests and replays each.
 - PR 4: the windows specification, docs only. New
   `spec/caveat-windows-0.1.md` (declarations, retirement, the `retired`
-  snapshot and save field, restore checks, the basis-chain authoring rule);
-  C007 `windowed-basis-chain` in Check 0.1; `Changes` entries in Reactive 0.5,
+  snapshot and save field, restore checks, the basis chain bounded by
+  retirement); `Changes` entries in Reactive 0.5,
   the decision journal, Renewal 0.1 and Save 0.1. Defaults chosen where the
   plan left them open: a windowed history holds at most 65,536 records, live
   and retired, until departure (refused with the existing `limit/history_limit`
