@@ -375,6 +375,6 @@ three.js ships with its license as `vendor/THREE-LICENSE.txt`.
 
 ## Culture
 
-Caveatism is the fictional philosophy that grew up around Mr. Caveat, a mechanical fortune teller who always has a caveat; it lives in [`caveatism/`](caveatism/README.md) and is culture, not a contract of the language. The [Archive](caveatism/archive/The-Caveatist-Archive-v1.1.md) and [Atlas](caveatism/atlas/The-Caveatist-Atlas-v1.0.md) are its texts, and [the canon](caveatism/canon/README.md) keeps the Archive as a Caveat program with scenarios.
+Caveatism is the philosophy that grew up around Mr. Caveat, a mechanical fortune teller who always has a caveat; it lives in [`caveatism/`](caveatism/README.md) and is culture, not a contract of the language. The [Archive](caveatism/archive/The-Caveatist-Archive-v1.1.md) and [Atlas](caveatism/atlas/The-Caveatist-Atlas-v1.0.md) are its texts, and [the canon](caveatism/canon/README.md) keeps the Archive as a Caveat program with scenarios.
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](caveatism/character/mr-caveat-hero.png)
