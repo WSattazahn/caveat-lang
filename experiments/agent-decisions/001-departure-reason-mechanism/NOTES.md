@@ -125,7 +125,7 @@ carried it.**
   its evidence brought in, and find the evidence the retained caveat came
   from. This bears on 003, where `retaining` carries names only.
 
-**D004 — convention needed. A reading that was weighed and refuted is not in
+**D004 — practice gap after review (filed as convention needed). A reading that was weighed and refuted is not in
 the decision's lineage.**
 - Needed: the plan's "the reading stays in lineage" (skill step 2: lineage is
   everything that could have influenced the conclusion).
@@ -151,6 +151,9 @@ the decision's lineage.**
   line instead.
 - If fixed: one command answers both "what did this support?" and "what rests
   on it?". Low: `explain` already answers the first.
+
+Review verdicts (owner, 18:42 UTC) are in the
+[README](../README.md#review-of-001s-findings).
 
 ## Ledger item 4, re-tested
 
