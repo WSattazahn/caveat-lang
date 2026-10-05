@@ -1,0 +1,28 @@
+decision.cav after 4 events (sequence 4)
+
+Events
+    1  reviewer_reads  accepted
+    2  thread_checks  accepted
+    3  owner_concedes  accepted
+    4  owner_closes  accepted
+
+Decisions
+  close_170: 1 of at most 1
+    close_170@1 = 1  in force
+      based on withdrawal_L93 (caveats: ci_pending)
+      permitted by owner_acceptance
+      could also have been influenced by owner_acceptance
+      #4 owner_closes: committed because withdrawal_L93 (caveats: ci_pending)
+
+Evidence
+  mechanism_reopen supports reopen_strands  caveats: proposed, withdrawn  withdrawn at #3 because thread_correction
+  withdrawal_L93 supports reason_must_pin
+  thread_correction opposes reopen_strands
+  ci_e655a87 observed (no stance)  caveats: ci_pending
+  owner_acceptance observed (no stance)
+
+Displayed
+  decision.rests_on_withdrawn = false
+  decision.revisions = 1  because owner_acceptance, withdrawal_L93 (caveats: ci_pending)
+  decision.status = "closed for review at e655a87; CI on the head retained"  because owner_acceptance, withdrawal_L93 (caveats: ci_pending)
+  reading.withdrawn = true  because thread_correction

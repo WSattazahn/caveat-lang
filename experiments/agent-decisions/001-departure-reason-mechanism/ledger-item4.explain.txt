@@ -1,0 +1,20 @@
+ledger-item4.cav after 2 events (sequence 2)
+
+Events
+    1  read {"value":1}  accepted
+    2  correct  accepted
+
+Decisions
+  merge: 1 of at most 2
+    merge@1 = 1  reopened
+      based on checks@1
+      checks@1 has since been withdrawn at #2 because misread_note
+      #1 read: committed because checks@1
+      #2 correct: reopened because misread_note
+
+Evidence
+  checks@1 = 1 supports checks_pass  (#1 read)  caveats: withdrawn  withdrawn at #2 because misread_note
+  misread_note observed (no stance)
+
+Displayed
+  nothing bound

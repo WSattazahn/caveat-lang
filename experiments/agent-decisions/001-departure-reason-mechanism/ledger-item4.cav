@@ -1,0 +1,12 @@
+claim checks_pass;
+evidence ci from "a check result";
+evidence misread_note from "the result was misread";
+readings checks from ci limit 4;
+decisions merge limit 2;
+event read value min 0 max 1;
+event correct;
+on read sample checks = value supports checks_pass;
+on read when not committed(merge) commit merge because enough using latest(checks);
+on correct when not observed(misread_note) reveal misread_note;
+on correct withdraw latest(checks) because misread_note;
+on correct when committed(merge) and not reopened(merge) and rests_on_withdrawn(merge) reopen merge because misread_note;

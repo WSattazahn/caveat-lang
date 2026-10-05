@@ -1,0 +1,8 @@
+{
+  "name": "caveat-agent-decisions",
+  "private": true,
+  "description": "Dogfooding round 3: the threads' own decisions as Caveat programs, against the published package.",
+  "dependencies": {
+    "caveat-lang": "0.1.0-rc.15"
+  }
+}

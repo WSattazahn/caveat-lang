@@ -1,0 +1,44 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "decision.cav",
+  "scenarios": [
+    {"id": "S01", "title": "The record in order: the reading is withdrawn with the correction as its reason; the close rests on L93 alone and nothing reopens",
+     "steps": [
+       {"send": "reviewer_reads"}, {"send": "thread_checks"}, {"send": "owner_concedes"},
+       {"expect": {"/bindings/reading/withdrawn": true, "/bindings/decision/status": "open: #170 under review"}},
+       {"send": "owner_closes"},
+       {"expect": {"/bindings/decision/status": "closed for review at e655a87; CI on the head retained",
+                   "/bindings/decision/rests_on_withdrawn": false,
+                   "/bindings/decision/revisions": 1,
+                   "/decision_journal/0/because": ["withdrawal_L93"]}},
+       {"send": "owner_closes", "rejected": {"origin": "policy", "code": "reject"}}
+     ]},
+    {"id": "S02", "title": "Withdrawn after the close: the reading was never in the grounds, so nothing reopens",
+     "steps": [
+       {"send": "reviewer_reads"}, {"send": "thread_checks"}, {"send": "owner_closes"},
+       {"send": "owner_concedes"},
+       {"expect": {"/bindings/reading/withdrawn": true,
+                   "/bindings/decision/rests_on_withdrawn": false,
+                   "/bindings/decision/status": "closed for review at e655a87; CI on the head retained"}}
+     ]},
+    {"id": "S03", "title": "Counterfactual: withdrawing L93 itself would reopen the close, so S02's quiet is the rule working",
+     "steps": [
+       {"send": "reviewer_reads"}, {"send": "thread_checks"}, {"send": "owner_concedes"}, {"send": "owner_closes"},
+       {"send": "l93_rechecked"},
+       {"expect": {"/bindings/decision/rests_on_withdrawn": true,
+                   "/bindings/decision/status": "reopened: its grounds were withdrawn",
+                   "/bindings/decision/revisions": 1}}
+     ]},
+    {"id": "S04", "title": "Closing before the spec line is observed is refused and leaves nothing behind",
+     "steps": [
+       {"send": "owner_closes", "rejected": {"origin": "evaluation", "code": "unobserved_evidence"}},
+       {"expect": {"/bindings/decision/status": "open: #170 under review", "/bindings/decision/revisions": 0}}
+     ]},
+    {"id": "S05", "title": "The correction cannot withdraw the reading before the correction is observed",
+     "steps": [
+       {"send": "reviewer_reads"},
+       {"send": "owner_concedes", "rejected": {"origin": "evaluation", "code": "unobserved_evidence"}},
+       {"expect": {"/bindings/reading/withdrawn": false}}
+     ]}
+  ]
+}
