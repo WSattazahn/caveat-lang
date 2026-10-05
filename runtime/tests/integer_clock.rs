@@ -109,10 +109,13 @@ fn a_fractional_dt_on_an_integer_clock_is_refused_with_nothing_changed() {
     let result = refused(&source, &[("eat", "{}")], "step", r#"{"dt": 16.5}"#);
     assert_eq!(result["origin"], "input");
     assert_eq!(result["code"], "payload_invalid");
-    // Out of range keeps its code.
-    let result = refused(&source, &[], "step", r#"{"dt": 100.5}"#);
-    assert_eq!(result["code"], "bound_exceeded");
-    assert_eq!(result["origin"], "input");
+    // The bounds are checked first: out of range keeps its code, whole or
+    // fractional (spec/caveat-elapsed-0.1.md, Integer clocks, Input).
+    for dt in ["100.5", "101", "-0.5", "-1"] {
+        let result = refused(&source, &[], "step", &format!(r#"{{"dt": {dt}}}"#));
+        assert_eq!(result["code"], "bound_exceeded", "dt {dt}");
+        assert_eq!(result["origin"], "input", "dt {dt}");
+    }
 }
 
 #[test]
