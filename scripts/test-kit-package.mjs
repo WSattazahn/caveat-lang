@@ -62,6 +62,10 @@ const EXAMPLE = 'examples/agent-evidence';
 const EXAMPLE_FILES = ['README.md', 'QUALIFICATION.md', 'BRANCHING.md', 'test_branching.py', 'assessment.cav', 'caller.py', 'test_caller.py',
   'test_lifecycle.py', 'qualification.cav', 'test_qualification.py',
   'grounded_assessment.cav', 'grounds.py', 'test_grounds.py', 'save-text.mjs'].map(file => `${EXAMPLE}/${file}`);
+// Two small examples from the rc.14 dogfooding, each a program, its events and
+// its scenarios.
+const SMALL_EXAMPLES = [['reviewer-decision', 'rely'], ['boss-stance', 'boss']]
+  .flatMap(([folder, program]) => ['cav', 'events.jsonl', 'scenarios.json'].map(extension => `examples/${folder}/${program}.${extension}`));
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -131,8 +135,8 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...STAGED_DOCS.map(([, target]) => target),
-  ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, example, license and notices');
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...STAGED_DOCS.map(([, target]) => target),
+  ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
   tarball = path.join(run, packed.filename);

@@ -1,0 +1,48 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "boss.cav",
+  "scenarios": [
+    {"id": "B01", "title": "A second parry without a reopen is refused while the dodge is in force, and changes nothing",
+     "steps": [
+       {"send": "light_attack", "repeat": 3},
+       {"expect": {"/bindings/boss/stance": "parry", "/bindings/boss/revisions": 1}},
+       {"send": "cancel_into_heavy"},
+       {"expect": {"/bindings/boss/stance": "dodge", "/bindings/boss/revisions": 2,
+                   "/commitment_grounds/stance@2": {"evidence": ["feint"], "caveats": []}}},
+       {"send": "parry_again", "rejected": {"origin": "evaluation", "code": "decision_in_force"}},
+       {"expect": {"/bindings/boss/stance": "dodge", "/bindings/boss/revisions": 2}}
+     ]},
+    {"id": "B02", "title": "Switching back to parry reopens stance@2 because of the renewed rhythm, and earlier grounds stay frozen",
+     "steps": [
+       {"send": "light_attack", "repeat": 3},
+       {"send": "cancel_into_heavy"},
+       {"send": "light_attack", "repeat": 3},
+       {"expect": {"/bindings/boss/stance": "dodge", "/bindings/boss/revisions": 2}},
+       {"send": "tick", "payload": {"dt": 0.1}, "repeat": 600},
+       {"send": "light_attack"},
+       {"expect": {
+         "/decision_journal/3/commitment": "stance@2",
+         "/decision_journal/3/change": "reopened",
+         "/decision_journal/3/because": ["attack_rhythm@2"],
+         "/decision_journal/4/commitment": "stance@3",
+         "/decision_journal/4/change": "committed",
+         "/decision_journal/4/value": 1,
+         "/commitment_grounds/stance@1": {"evidence": ["attack_rhythm"], "caveats": ["read_from_inputs"]},
+         "/commitment_grounds/stance@2": {"evidence": ["feint"], "caveats": []},
+         "/commitment_grounds/stance@3": {"evidence": ["attack_rhythm@2"], "caveats": ["read_from_inputs"]}
+       }}
+     ]},
+    {"id": "B03", "title": "stance@3 stays in force: more attacks change nothing and a forced parry is refused",
+     "steps": [
+       {"send": "light_attack", "repeat": 3},
+       {"send": "cancel_into_heavy"},
+       {"send": "light_attack", "repeat": 3},
+       {"send": "tick", "payload": {"dt": 0.1}, "repeat": 600},
+       {"send": "light_attack", "repeat": 4},
+       {"expect": {"/bindings/boss/stance": "parry", "/bindings/boss/revisions": 3,
+                   "/decision_series/stance/current": "stance@3"}},
+       {"send": "parry_again", "rejected": {"origin": "evaluation", "code": "decision_in_force"}},
+       {"expect": {"/bindings/boss/stance": "parry", "/bindings/boss/revisions": 3}}
+     ]}
+  ]
+}

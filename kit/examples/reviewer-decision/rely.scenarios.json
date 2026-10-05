@@ -1,0 +1,27 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "rely.cav",
+  "scenarios": [
+    {"id": "R01", "title": "Deciding before the evidence is observed is refused and leaves nothing behind",
+     "steps": [
+       {"send": "decide", "rejected": {"origin": "evaluation", "code": "unobserved_evidence"}},
+       {"expect": {"/bindings/decision/status": "undecided", "/bindings/decision/revisions": 0}}
+     ]},
+    {"id": "R02", "title": "The decision rests on the readings and the record, caveats attached; the screenshot is lineage only",
+     "steps": [
+       {"send": "fetch_registry"}, {"send": "fetch_npm"}, {"send": "read_record"}, {"send": "see_socket"},
+       {"send": "decide"},
+       {"expect": {"/bindings/decision/status": "rely on rc.14, snapshot caveat retained",
+                   "/bindings/decision/revisions": 1,
+                   "/decision_journal/0/because": ["registry_api", "npm_view", "publication_record"]}},
+       {"send": "decide", "rejected": {"origin": "policy", "code": "reject"}}
+     ]},
+    {"id": "R03", "title": "A later reading withdraws the earlier one; the decision reopens and keeps its original grounds",
+     "steps": [
+       {"send": "fetch_registry"}, {"send": "fetch_npm"}, {"send": "read_record"}, {"send": "decide"},
+       {"send": "registry_changed"},
+       {"expect": {"/bindings/decision/status": "reopened: the registry reading was withdrawn",
+                   "/bindings/decision/revisions": 1}}
+     ]}
+  ]
+}

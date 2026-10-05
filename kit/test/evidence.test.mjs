@@ -112,3 +112,22 @@ test('every examples/*.scenarios.json passes', async () => {
     assert.equal(outcome.failed, 0, formatFileReport(outcome));
   }
 });
+
+// The kit's small examples (rc.15, from the rc.14 dogfooding): each program
+// checks clean, its scenarios pass, and its events file replays without a
+// fatal outcome.
+test('the kit examples check clean, pass their scenarios and replay their events', async () => {
+  const kitExamples = fileURLToPath(new URL('../examples/', import.meta.url));
+  for (const [directory, program] of [['reviewer-decision', 'rely'], ['boss-stance', 'boss']]) {
+    const folder = path.join(kitExamples, directory);
+    const source = await readFile(path.join(folder, `${program}.cav`), 'utf8');
+    assert.deepEqual(real.check(source).diagnostics, [], `${program}.cav checks clean`);
+    const outcome = await runScenarioFile(parseScenarioFile(await readFile(path.join(folder, `${program}.scenarios.json`), 'utf8')), {
+      runtime: real, file: `${program}.scenarios.json`, readSource: relative => readFile(path.resolve(folder, relative), 'utf8'),
+    });
+    assert.equal(outcome.failed, 0, formatFileReport(outcome));
+    assert.ok(outcome.passed >= 3, `${program}: three scenarios or more`);
+    const replay = spawnSync(process.execPath, [cli, 'replay', path.join(folder, `${program}.cav`), path.join(folder, `${program}.events.jsonl`)], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+    assert.equal(replay.status, 0, replay.stderr);
+  }
+});

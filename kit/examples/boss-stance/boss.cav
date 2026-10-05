@@ -1,0 +1,47 @@
+scene "One stance series: a boss can hold one defensive decision at a time, and switching it needs a reason.";
+
+claim predictable_melee;
+evidence attack_rhythm from "three light attacks in a row inside parry range";
+renewable attack_rhythm limit 64;
+evidence feint from "a light attack cancelled into a heavy";
+caveat read_from_inputs consequence material;
+read_from_inputs qualifies attack_rhythm;
+
+# One series. Its value encodes the stance: 1 = parry, 2 = dodge. A series
+# holds one revision in force at a time; a second commit without a reopen is
+# refused, and a reopen needs evidence.
+decisions stance limit 16;
+
+state light_count = 0 min 0 max 100;
+state wariness = 0 min 0 max 10;
+
+event light_attack;
+event cancel_into_heavy;
+event tick dt min 0 max 0.1;
+event parry_again;   # a host trying to force a second parry without a reason
+
+on tick set wariness = wariness - wariness * dt * 0.1;
+on light_attack set light_count = light_count + 1;
+on light_attack when light_count >= 3 + wariness and withdrawn(attack_rhythm) renew attack_rhythm;
+on light_attack when light_count >= 3 + wariness and not observed(attack_rhythm)
+  reveal attack_rhythm supports predictable_melee;
+# Switching back to parry reopens the dodge with the new rhythm as the reason, then decides.
+on light_attack when observed(attack_rhythm) and not withdrawn(attack_rhythm) and committed(stance) and not reopened(stance) and latest(stance) == 2
+  reopen stance because attack_rhythm;
+on light_attack when observed(attack_rhythm) and not withdrawn(attack_rhythm) and (not committed(stance) or reopened(stance))
+  commit stance because enough using qualified(1, attack_rhythm) retaining read_from_inputs;
+
+on cancel_into_heavy set wariness = wariness + 4;
+on cancel_into_heavy set light_count = 0;
+on cancel_into_heavy when not observed(feint) reveal feint opposes predictable_melee;
+on cancel_into_heavy when observed(attack_rhythm) and not withdrawn(attack_rhythm) withdraw attack_rhythm because feint;
+on cancel_into_heavy when committed(stance) and not reopened(stance) and rests_on_withdrawn(stance) reopen stance because feint;
+on cancel_into_heavy when reopened(stance) commit stance because enough using qualified(2, feint);
+
+# No reason, no switch: this is what the host cannot do.
+on parry_again commit stance because enough using qualified(1, attack_rhythm);
+
+bind boss.stance = "neutral";
+bind boss.stance = "parry" when committed(stance) and not reopened(stance) and latest(stance) == 1;
+bind boss.stance = "dodge" when committed(stance) and not reopened(stance) and latest(stance) == 2;
+bind boss.revisions = history_count(stance);

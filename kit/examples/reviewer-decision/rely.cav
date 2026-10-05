@@ -1,0 +1,56 @@
+scene "Reviewer's decision, 2026-10-05: the rc.15 record may rely on rc.14 as the registry-listed, npm-latest version.";
+
+# Claims. One per conclusion that others will act on.
+claim rc14_listed;    # The MCP Registry lists io.github.WSattazahn/caveat-lang at 0.1.0-rc.14, active and latest.
+claim rc14_on_npm;    # npm names rc.14 as latest and next, with an SLSA provenance attestation.
+
+# Evidence, named by its source. The first two I fetched myself; the third is
+# a record of the workflow's check; the fourth is the owner's screenshot.
+evidence registry_api from "GET registry.modelcontextprotocol.io/v0.1/servers?search=io.github.WSattazahn/caveat-lang, 03:06 UTC: active, isLatest, npm caveat-lang@0.1.0-rc.14";
+evidence npm_view from "npm view caveat-lang dist-tags, 03:21 UTC: latest = next = 0.1.0-rc.14; dist.attestations SLSA provenance v1";
+evidence publication_record from "docs/releases/v0.1.0-rc.14-npm-publication.json on main: status verified at 02:17 UTC, revision 51590b4";
+evidence socket_page from "owner's screenshot of Socket's rc.14 page and alerts: no alerts, published via GitHub Actions OIDC";
+evidence registry_api_later from "a later GET of the same registry query";
+
+# Caveats, attached to the evidence that carries them. A reading can go
+# stale; a record of someone else's check is observed as a record (Amendment 2).
+caveat snapshot consequence low;
+caveat secondhand consequence material;
+snapshot qualifies registry_api;
+snapshot qualifies npm_view;
+secondhand qualifies publication_record;
+secondhand qualifies socket_page;
+
+decisions rely limit 4;
+
+event fetch_registry;
+event fetch_npm;
+event read_record;
+event see_socket;
+event decide;
+event registry_changed;
+
+on fetch_registry when not observed(registry_api) reveal registry_api supports rc14_listed;
+on fetch_npm when not observed(npm_view) reveal npm_view supports rc14_on_npm;
+on read_record when not observed(publication_record) reveal publication_record supports rc14_on_npm;
+on see_socket when not observed(socket_page) reveal socket_page supports rc14_on_npm;
+
+# The decision rests on the two readings and the record; the screenshot stays
+# in lineage only (it bears on the alerts, not on the listing). It retains
+# the snapshot caveat, which is the one a later fetch can resolve.
+on decide when committed(rely) and not reopened(rely) reject "Already decided; reopen it with evidence first.";
+on decide commit rely because enough
+  using qualified(1, registry_api) + qualified(1, npm_view) + qualified(1, publication_record)
+  retaining snapshot;
+
+# If a later fetch disagrees, the earlier reading is withdrawn with the later
+# one as its reason, and the decision that rested on it reopens.
+on registry_changed when not observed(registry_api_later) reveal registry_api_later opposes rc14_listed;
+on registry_changed withdraw registry_api because registry_api_later;
+on registry_changed when committed(rely) and not reopened(rely) and rests_on_withdrawn(rely)
+  reopen rely because registry_api_later;
+
+bind decision.status = "undecided";
+bind decision.status = "rely on rc.14, snapshot caveat retained" when committed(rely) and not reopened(rely);
+bind decision.status = "reopened: the registry reading was withdrawn" when reopened(rely);
+bind decision.revisions = history_count(rely);
