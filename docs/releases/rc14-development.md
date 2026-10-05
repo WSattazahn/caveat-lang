@@ -1,6 +1,6 @@
 # CAVEAT 0.1.0-rc.14 development plan
 
-Status: development open, unpublished. rc.14 is a one-item release: it
+Status: published 2026-10-05; see the [release record](v0.1.0-rc.14.md). rc.14 is a one-item release: it
 corrects the package's MCP server name so the MCP Registry can list it. The
 feature release planned after rc.13 becomes rc.15. Keep the "Progress"
 section factual, as `rc13-development.md` does.
@@ -48,3 +48,14 @@ written: it says what rc.13 shipped.
 
 - Release PR: the version bump, the name correction, this plan and the
   release notes in `docs/releases/v0.1.0-rc.14.md`, marked unpublished.
+- Published 2026-10-05: tag `v0.1.0-rc.14` at `51590b4` (merge of #150), the
+  tarball from
+  [Runtime 37252199187](https://github.com/WSattazahn/caveat-lang/actions/runs/37252199187)
+  (SHA256 `9aab7b811666e5b43b6f7c96ad5116235241b08fbed395698476cc035bfd57bf`),
+  published by [publish-npm.yml run 37254432886](https://github.com/WSattazahn/caveat-lang/actions/runs/37254432886)
+  under `latest` with npm provenance, after the owner approved it in
+  `npm-publish`. `verify-publication` failed once on an attestation not yet
+  served by the registry and passed when re-run alone. The owner then moved
+  `next` to rc.14 and published `server.json` to the MCP Registry, which lists
+  `io.github.WSattazahn/caveat-lang` 0.1.0-rc.14. See the
+  [release record](v0.1.0-rc.14.md).

@@ -326,6 +326,16 @@ The rc.12 rules carry over:
   upload at platform.openai.com/plugins are owner steps; no MCP server is
   listed, because `caveat-lang mcp` is stdio and the directory's MCP path needs
   a hosted HTTPS server.
+- Archive Amendment 2, "The Attested Record" (the owner's text, 2026-10-05):
+  appended to the Caveatist Archive under the Archive Rule, which is now
+  `caveatism/archive/The-Caveatist-Archive-v1.2.md`; nothing above the v1.1
+  end line changed. The canon gains `attested_record`, `case_attested_record`
+  and `freeze_v1_2` (version 3 of `canon`) and scenario A08, verified on
+  `caveat-lang@0.1.0-rc.13`. Provenance: the
+  [Try the Caveat plugin](https://claude.ai/code/project/chan_015odJFpwogpoW5yAoJxQmJw?thread=cmsg_015odJFpwogpoW5yAoJxQmJwV8dwj7WP319N1yXuyfue2n)
+  thread, where the case arose, and the
+  [Installable Caveatist skill](https://claude.ai/code/project/chan_015odJFpwogpoW5yAoJxQmJw?thread=cmsg_015odJFpwogpoW5yAoJxQmJwGgDq4F6undzfqvC9RTF5wc)
+  thread, which recorded it.
 - PR 11 (the publish) opened: `docs/releases/v0.1.0-rc.13.md` holds the
   release notes, marked unpublished, and the README points to them. Publication
   goes through `publish-npm.yml` from the annotated tag `v0.1.0-rc.13` at this

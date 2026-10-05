@@ -12,7 +12,7 @@ Three rules govern everything in this directory, and they come from the material
 
 | Path | What it is |
 | --- | --- |
-| `archive/` | The Caveatist Archive, v1.1, with v1.0 and its amendments preserved inside it. |
+| `archive/` | The Caveatist Archive, v1.2, with v1.0, v1.1 and its amendments preserved inside it. |
 | `atlas/` | The Caveatist Atlas, v1.0: culture, institutions and material life. |
 | `agent/CAVEATIST.md` | The practice, written for an agent. Optional; linked from `AGENTS.md` as culture. |
 | `skills/caveatist/SKILL.md` | The same practice as a loadable skill (copied to `/skills/caveatist/` and `/plugins/caveat/skills/caveatist/` for installers; the copy here is canonical, CI checks they match). Listed in Anthropic's plugin directory as the plugin `caveat` since 2026-10-05 (published at `4f77b29`), for Claude Code, Cowork and the Claude apps. A Codex manifest in the same folder packages that copy for OpenAI's plugin directory (ChatGPT and Codex); not listed there yet. |

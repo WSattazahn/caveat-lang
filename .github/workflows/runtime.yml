@@ -102,6 +102,7 @@ jobs:
           cmp caveatism/skills/caveatist/SKILL.md skills/caveatist/SKILL.md
           cmp caveatism/skills/caveatist/SKILL.md plugins/caveat/skills/caveatist/SKILL.md
           node -e 'for (const f of ["plugins/caveat/.claude-plugin/plugin.json", "plugins/caveat/.codex-plugin/plugin.json", ".claude-plugin/marketplace.json", "server.json"]) JSON.parse(require("fs").readFileSync(f, "utf8"))'
+          node -e 'const c = JSON.parse(require("fs").readFileSync("plugins/caveat/.codex-plugin/plugin.json", "utf8")).interface.capabilities; if (!Array.isArray(c) || !c.every(x => typeof x === "string")) throw new Error("plugins/caveat/.codex-plugin/plugin.json: interface.capabilities must be a list of strings")'
       - name: TypeScript formatter compatibility
         run: >-
           npm exec --yes --package=typescript@5.9.3 -- tsc
