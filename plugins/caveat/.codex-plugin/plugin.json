@@ -13,11 +13,13 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Caveat",
-    "shortDescription": "Decide with the caveat attached",
+    "shortDescription": "Decide with caveats attached",
     "longDescription": "A practice for working with caveats, drawn from the Caveatist Archive. Mark what kind of statement you are adding (observed, tested, proposed, analogy, mythological, rejected, unresolved); state grounds separately from everything that influenced you; ask what changes if a caveat is true; decide with the unresolved caveats written into the decision; withdraw rather than erase. It works in prose. When the caveat-lang runtime is installed, it records the decision in a Caveat program instead, where explain prints what each decision rests on and dependents answers what changes if evidence is wrong. Culture, not contract: it changes how you work, not what any runtime does, and it is corrigible. Mr. Caveat, the mechanical fortune teller on the icon, is not an authority.",
     "developerName": "Walt Sattazahn",
     "category": "Productivity",
+    "capabilities": [],
     "websiteURL": "https://wsattazahn.github.io/caveat-lang/mr-caveat.html",
+    "supportURL": "https://github.com/WSattazahn/caveat-lang/issues",
     "privacyPolicyURL": "https://wsattazahn.github.io/caveat-lang/plugin-privacy.html",
     "defaultPrompt": [
       "Review this plan the Caveatist way: grounds, markers, what changes if each caveat is true.",
