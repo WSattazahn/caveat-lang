@@ -213,6 +213,12 @@ separate clone and [the recorded commands](../experiments/glowcap/RESULTS.md):
 `harness.mjs` appends to tracked `runs.jsonl`. Do not accidentally include new
 measurement logs as original trial evidence. Run timings after fuzz finishes.
 
+Before the tag, check the MCP server name against the GitHub login's exact
+case: `kit/package.json`'s `mcpName` and `server.json`'s `name` must both be
+`io.github.WSattazahn/caveat-lang`, and `server.json`'s versions must equal the
+kit version. `npm run check:kit-docs` enforces this; rc.13 shipped a lowercase
+login and could not be listed (see the [rc.14 development record](releases/rc14-development.md)).
+
 ### Pages deployment gap
 
 The original consolidation workflow rebuilt and deployed Pages independently

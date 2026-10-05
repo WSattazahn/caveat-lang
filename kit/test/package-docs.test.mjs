@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
-import { checkPackageDocuments, checkReadmeLinks, packageBlock, renderPackageDocument, trackedFiles, validatePackageDocument } from '../../scripts/kit-docs.mjs';
+import { checkPackageDocuments, checkReadmeLinks, checkRegistryIdentity, packageBlock, renderPackageDocument, trackedFiles, validatePackageDocument } from '../../scripts/kit-docs.mjs';
 
 const previous = { name: 'caveat-lang', version: '0.1.0-rc.8' };
 const candidate = { name: 'caveat-lang', version: '0.1.0-rc.9' };
@@ -109,4 +109,22 @@ test('the package README links resolve on npm and Socket', async () => {
 
   const links = checkReadmeLinks(await readFile(new URL('../README.md', import.meta.url), 'utf8'), trackedFiles(fileURLToPath(new URL('../../', import.meta.url))));
   assert(links.length >= 16, `expected the README's GitHub links, found ${links.length}`);
+});
+
+test('the MCP server name matches the GitHub login exactly and the versions agree (rc.14)', async () => {
+  const name = 'io.github.WSattazahn/caveat-lang';
+  const manifest = { ...candidate, mcpName: name };
+  const server = { name, version: candidate.version, packages: [{ registryType: 'npm', identifier: 'caveat-lang', version: candidate.version }] };
+  assert.deepEqual(checkRegistryIdentity(manifest, server), { name, version: candidate.version });
+  const lowercase = 'io.github.wsattazahn/caveat-lang';
+  assert.throws(() => checkRegistryIdentity({ ...manifest, mcpName: lowercase }, server), /mcpName must be/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, name: lowercase }), /server\.json: name must be/);
+  assert.throws(() => checkRegistryIdentity({ ...manifest, mcpName: undefined }, server), /mcpName must be/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, version: previous.version }), /version must equal/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, packages: [{ ...server.packages[0], version: previous.version }] }), /package version must equal/);
+  assert.throws(() => checkRegistryIdentity(manifest, { ...server, packages: [] }), /one npm package entry/);
+
+  const current = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+  const declared = JSON.parse(await readFile(new URL('../../server.json', import.meta.url), 'utf8'));
+  checkRegistryIdentity(current, declared);
 });

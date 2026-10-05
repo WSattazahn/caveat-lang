@@ -14,6 +14,10 @@ corrects only the package's MCP server name. See the
 [rc.14 release notes](docs/releases/v0.1.0-rc.14.md) and the
 [rc.14 development record](docs/releases/rc14-development.md).
 
+Development for **0.1.0-rc.15** is open and unpublished. See the
+[rc.15 development scope](docs/releases/rc15-development.md) for acceptance
+criteria and verification status.
+
 
 **Programs that remember why.**
 

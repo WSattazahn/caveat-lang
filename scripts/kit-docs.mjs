@@ -142,6 +142,23 @@ export function trackedFiles(repository) {
   return new Set(execFileSync('git', ['ls-files', '-z'], { cwd: repository, encoding: 'utf8' }).split('\0').filter(Boolean));
 }
 
+// The MCP Registry grants a GitHub login the namespace io.github.<login> in the
+// login's own case, and lists an npm package only when the published package's
+// mcpName equals the server name exactly. rc.13 shipped a lowercase login and
+// could not be listed; rc.14 was the fix release.
+export const MCP_SERVER_NAME = 'io.github.WSattazahn/caveat-lang';
+
+export function checkRegistryIdentity(manifest, server) {
+  const version = packageIdentity(manifest).slice(manifest.name.length + 1);
+  assert.equal(manifest.mcpName, MCP_SERVER_NAME, `kit/package.json: mcpName must be ${MCP_SERVER_NAME}, the GitHub login's exact case`);
+  assert.equal(server.name, MCP_SERVER_NAME, `server.json: name must be ${MCP_SERVER_NAME}, the GitHub login's exact case`);
+  assert.equal(server.version, version, 'server.json: version must equal the kit version');
+  const packages = (server.packages ?? []).filter(entry => entry.registryType === 'npm' && entry.identifier === manifest.name);
+  assert.equal(packages.length, 1, `server.json: expected one npm package entry for ${manifest.name}`);
+  assert.equal(packages[0].version, version, 'server.json: the npm package version must equal the kit version');
+  return { name: MCP_SERVER_NAME, version };
+}
+
 export async function checkPackageDocuments(directory, { write = false } = {}) {
   const manifest = JSON.parse(await readFile(path.join(directory, 'package.json'), 'utf8'));
   const reports = [];
@@ -163,4 +180,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   console.log(`${args[0] === '--write' ? 'Generated' : 'Checked'} ${reports.length} package documents for ${reports[0].identity}.`);
   const links = checkReadmeLinks(await readFile(path.join(kit, 'README.md'), 'utf8'), trackedFiles(path.resolve(kit, '..')));
   console.log(`Checked ${links.length} README links against the files tracked in the repository.`);
+  const server = JSON.parse(await readFile(path.join(kit, '..', 'server.json'), 'utf8'));
+  const registry = checkRegistryIdentity(JSON.parse(await readFile(path.join(kit, 'package.json'), 'utf8')), server);
+  console.log(`Checked the MCP server name ${registry.name} and version ${registry.version} in kit/package.json and server.json.`);
 }
