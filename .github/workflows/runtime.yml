@@ -62,11 +62,19 @@ jobs:
           key: wasm-bindgen-cli-0.2.104-${{ runner.os }}
       - run: cargo fmt --manifest-path runtime/Cargo.toml --all -- --check
       - run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets -- -D warnings
+      # The maximum supported call depth needs more stack in unoptimized tests.
+      # Keep the optimized runtime independently checked with the default stack.
       - run: cargo test --manifest-path runtime/Cargo.toml --all-targets
+        env:
+          RUST_MIN_STACK: 16777216
       - name: Lint the reactive-only runtime
         run: cargo clippy --manifest-path runtime/Cargo.toml --all-targets --no-default-features -- -D warnings
       - name: Test the reactive-only runtime
         run: cargo test --manifest-path runtime/Cargo.toml --all-targets --no-default-features
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Maximum supported call depth on the optimized default stack
+        run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
       - name: Third-party notices match the locked crates
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
@@ -124,6 +132,8 @@ jobs:
           path: |
             test-results/departure-gates.json
             test-results/*-sweep.txt
+            test-results/*-sweep-stderr.txt
+            test-results/compatibility-summary.json
             test-results/*-population.txt
             test-results/*-reviewed.json
           if-no-files-found: warn

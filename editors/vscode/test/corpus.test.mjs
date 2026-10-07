@@ -105,7 +105,7 @@ for (const file of files) {
     for (const head of statementHeads(text, classes)) {
       totals.heads += 1;
       const oneLine = fromNames.has(head.index) && !text.slice(head.index, fromNames.get(head.index)).includes('\n');
-      const expected = oneLine ? null : expectedHeadScope(head.word);
+      const expected = oneLine ? null : expectedHeadScope(head.word, text.slice(head.index + head.word.length));
       const got = scopes[head.index];
       if (expected) check(has(got, expected), head.index, `statement head ${head.word} should be ${expected}`);
       else check(!got.some(scope => /^(keyword|storage|support|constant)\./.test(scope)), head.index, `statement head ${head.word} is a name, not a keyword`);

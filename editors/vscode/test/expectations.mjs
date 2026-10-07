@@ -188,9 +188,12 @@ export const highlightedWords = new Set(groups
   .filter(entry => !entry.scope.startsWith('support.'))
   .flatMap(entry => entry.words));
 
-// The scope a statement head must have, if it is a keyword.
+// The scope a statement head must have, if it is a keyword. Positional
+// words need their following source too: journal is a declaration only in
+// `journal window N`, and remains a name in a relation or expression.
 const headOrder = ['statement heads of the other profiles', 'declarations', 'control', 'effects', 'logical operators'];
-export function expectedHeadScope(word) {
+export function expectedHeadScope(word, following = '') {
+  if (word === 'journal' && /^\s+window\b/.test(following)) return group('journal windows').scope;
   for (const name of headOrder) if (group(name).words.includes(word)) return group(name).scope;
   return null;
 }
