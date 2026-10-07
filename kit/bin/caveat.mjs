@@ -182,22 +182,26 @@ async function readInputs(program, eventsFile) {
 // describes the session before it.
 function sendAll(session, events, each = () => {}) {
   const sent = [];
+  const archive = [];
   let snapshot = session.snapshot();
   for (const { event, payload, line } of events) {
     try {
       const { snapshot: after, ...outcome } = session.dispatch(event, payload);
       sent.push({ event, payload, outcome });
-      if (outcome.outcome === 'accepted') snapshot = after;
+      if (outcome.outcome === 'accepted') {
+        snapshot = after;
+        for (const item of session.drainArchive()) archive.push(item);
+      }
       each({ event, payload, line, outcome, snapshot: outcome.outcome === 'accepted' ? after : null });
     } catch (error) {
       const outcome = { outcome: 'fatal', kind: error.kind ?? null, message: error.message };
       sent.push({ event, payload, outcome });
       each({ event, payload, line, outcome, snapshot: null });
-      return { sent, snapshot, failed: true };
+      return { sent, snapshot, archive, failed: true };
     }
   }
   session.close();
-  return { sent, snapshot, failed: false };
+  return { sent, snapshot, archive, failed: false };
 }
 
 async function openProgram(options, program, eventsFile) {
@@ -215,8 +219,8 @@ async function explainProgram(options) {
   const [program, eventsFile] = options.files;
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
-  const { sent, snapshot, failed } = sendAll(opened.session, opened.events);
-  const result = explain(snapshot, sent);
+  const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
+  const result = explain(snapshot, sent, { archive });
   if (options.json) console.log(JSON.stringify({ program, ...result }, null, 2));
   else {
     console.log(formatExplanation(result, path.basename(program)));
@@ -229,9 +233,9 @@ async function dependentsOf(options) {
   const [program, subject, eventsFile] = options.files;
   const opened = await openProgram(options, program, eventsFile);
   if (!opened) return 2;
-  const { sent, snapshot, failed } = sendAll(opened.session, opened.events);
+  const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
   let result;
-  try { result = dependents(snapshot, subject); } catch (error) { console.error(error.message); return 2; }
+  try { result = dependents(snapshot, subject, { archive }); } catch (error) { console.error(error.message); return 2; }
   if (options.json) console.log(JSON.stringify({ program, events: sent, ...result }, null, 2));
   else {
     console.log(formatDependents(result, path.basename(program), sent.length));

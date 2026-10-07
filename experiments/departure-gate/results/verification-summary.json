@@ -1,0 +1,45 @@
+{
+  "native": {
+    "all_targets_passed": 849,
+    "reactive_only_passed": 837,
+    "debug_test_stack_bytes": 16777216,
+    "current_release_maximum_depth_default_stack": "pass",
+    "clippy": "both profiles passed with -D warnings",
+    "format": "passed"
+  },
+  "kit": {
+    "tests_passed": 320,
+    "skipped": 0,
+    "strict_types": "passed",
+    "capability_checks": 4,
+    "package": "package-summary.json"
+  },
+  "chrome_pages": {
+    "glowcap": "pass",
+    "trail_rescue": "pass"
+  },
+  "wasm_consumers": [
+    "slime-glow",
+    "elapsed-clock",
+    "dispatch-outcomes",
+    "interface",
+    "glowcap",
+    "trail-rescue",
+    "before-rain",
+    "canon-validate",
+    "canon-check",
+    "canon-scenarios",
+    "scenario-conversion",
+    "sample002"
+  ],
+  "other_checks": [
+    "notices",
+    "kit-docs"
+  ],
+  "limits": [
+    "Windows Node24 local execution",
+    "Broader withdrawal cycle/chain boundedness unresolved; design only",
+    "Linux/Lean/reproducibility and remaining browser matrix use remote CI",
+    "No npm publication"
+  ]
+}

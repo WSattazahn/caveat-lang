@@ -15,6 +15,7 @@ default = ["games"]
 games = []
 
 [dependencies]
+sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }
 # float_roundtrip: parse every f64 exactly. The default rounds some 17-digit
 # numbers by one unit in the last place, so a restored clock drifted and a

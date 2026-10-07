@@ -118,11 +118,12 @@ export declare class CaveatSession {
   /** JSON text. Restore it with the exact source it came from. */
   save(): string;
   /**
-   * The records departed since the last drain, oldest first, and an empty
-   * archive. The archive is not saved (spec/caveat-departure-0.1.md).
+   * Drain departed record entries and provenance nodes accumulated since the
+   * last drain. Record entries retain departure order; proof nodes may refer
+   * to earlier chunks. The archive is not saved (spec/caveat-departure-0.1.md).
    */
   drainArchive(): ArchiveEntry[];
-  /** How many departed records wait to be drained. */
+  /** How many archive items (records plus provenance nodes) wait to be drained. */
   readonly undrained: number;
   close(): void;
 }
@@ -135,7 +136,8 @@ export interface ArchiveHolder {
 }
 
 /** A departed record as it was when it departed (spec/caveat-departure-0.1.md). */
-export interface ArchiveEntry {
+export interface ArchiveRecord {
+  kind?: never;
   record: string;
   history: string;
   number: number;
@@ -148,6 +150,24 @@ export interface ArchiveEntry {
   withdrawal?: Withdrawal;
   holders: ArchiveHolder[];
 }
+
+/** A host-drained membership node. Hashes establish consistency, not authenticity. */
+export type ArchiveProvenanceNode = {
+  kind: 'provenance';
+  id: string;
+  history: string;
+} & ({
+  operation: 'record';
+  source_id: string;
+  record: string;
+  departed_at: number;
+} | {
+  operation: 'union';
+  /** Sorted unique IDs of at least two parent nodes. */
+  parents: string[];
+});
+
+export type ArchiveEntry = ArchiveRecord | ArchiveProvenanceNode;
 
 /** What `loadRuntimeFromDirectory` records; `loadRuntime` keeps whatever it is given. */
 export interface RuntimeIdentity {
@@ -335,6 +355,8 @@ export interface DepartureMarker {
   from: number;
   through: number;
   departed_at: number;
+  /** Optional immutable root in the host-drained membership archive. */
+  archive_ref?: string;
 }
 
 export type BindingValue = number | boolean | string;

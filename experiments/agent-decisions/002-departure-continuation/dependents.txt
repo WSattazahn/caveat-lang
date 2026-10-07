@@ -1,0 +1,16 @@
+What rests on focused_checks in decision.cav after 5 events (sequence 5)
+
+Claims
+  focused_checks supports restore_correct
+
+Decisions
+  nothing
+
+Decision changes
+  nothing
+
+Values
+  nothing
+
+Displayed
+  nothing

@@ -1,0 +1,10 @@
+claim seen;
+evidence a from "a"; renewable a window 1;
+evidence b from "b"; renewable b window 1;
+event cycle;
+on cycle renew a;
+on cycle reveal a supports seen;
+on cycle renew b;
+on cycle reveal b supports seen;
+on cycle withdraw a because b;
+on cycle withdraw b because a;

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.16",
+  "distTag": "next",
+  "private": false,
+  "tarball": "caveat-lang-0.1.0-rc.16.tgz",
+  "size": 985936,
+  "sha256": "6a978f2594ae17b3dad95cd14cca921a352308ab59c4a4f233dd7368687e18e2",
+  "runtime": {
+    "reactiveWasmSha256": "daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59",
+    "revision": "7f551e5774d61ec9f88e0d603e5b01196597b00c",
+    "clean": false,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "check_names": [
+    "cliAliases",
+    "adoptionCommands",
+    "cliCollision",
+    "mcp",
+    "mcpStateless",
+    "install",
+    "license",
+    "docs",
+    "readme",
+    "command",
+    "library",
+    "attentionRestore",
+    "recovery",
+    "guide",
+    "workedExample",
+    "saveTextExample",
+    "agentEvidence",
+    "agentEvidenceRc7",
+    "browser"
+  ],
+  "browser": "154.0.8037.98",
+  "report_sha256": "7999d8112c91fd03cb0c7634cc7456292125225a06a9d36c235ea00d914f5a57",
+  "observed_exit_code": 0,
+  "note": "Fresh installed tarball, copied guides, Python clients and browser checks all completed. This is an unpublished working candidate, not release provenance."
+}

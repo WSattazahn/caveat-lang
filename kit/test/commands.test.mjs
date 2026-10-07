@@ -147,6 +147,12 @@ test('the release ledger replays rc.12 to its attached report', async () => {
   const { steps, report } = await run(await readFacts(path.join(ledger, 'release-rc12.facts.jsonl')));
   assert.deepEqual(steps.filter(step => step.outcome === 'rejected'), []);
   const attached = JSON.parse(await readFile(path.join(ledger, 'release-rc12.explain.json'), 'utf8'));
+  // rc.16 reports retained caveats separately. Add that field to the legacy
+  // expectation without modifying the historical receipt or dropping any
+  // of its fields from the comparison.
+  for (const series of attached.decisions) {
+    for (const revision of series.revisions) revision.retained = [...revision.grounds.caveats];
+  }
   for (const key of ['sequence', 'decisions', 'evidence', 'displayed']) assert.deepEqual(report[key], attached[key], key);
 });
 

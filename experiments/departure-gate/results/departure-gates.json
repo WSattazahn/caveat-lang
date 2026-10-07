@@ -1,0 +1,651 @@
+{
+  "passed": true,
+  "no_window": {
+    "programs": 146,
+    "executed": 116,
+    "skipped": 30,
+    "runs": 8,
+    "events": 150,
+    "sha256": "9ca78bbe1dfc44097092d7956d0d7b43a953c467715b3b962df2ddcccbaf58f9"
+  },
+  "windowed": {
+    "programs": [
+      "experiments/departure-gate/c3-windows.cav",
+      "experiments/departure-gate/guarded-skip.cav",
+      "experiments/departure-gate/kit-explain-window.cav",
+      "experiments/departure-gate/kit-types-window.cav",
+      "experiments/departure-gate/runtime-windows-world.cav",
+      "experiments/departure-gate/withdrawal-fixtures/acyclic.cav",
+      "experiments/departure-gate/withdrawal-fixtures/later-history-read.cav",
+      "experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav",
+      "experiments/departure-gate/withdrawal-fixtures/mutual.cav",
+      "experiments/departure-gate/withdrawal-fixtures/permission-root.cav",
+      "experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav",
+      "experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav",
+      "experiments/departure-gate/withdrawal-fixtures/self.cav"
+    ],
+    "runs_per_program": 32,
+    "events_per_run": 400,
+    "sha256": "c29cff3ac81a6cc095847e06959f52f702f0d83c7fc3495afd52154b15d058c3"
+  },
+  "c3": {
+    "sizes": {
+      "10": {
+        "adapter": 2658,
+        "raw": 25370,
+        "structure_sha256": "9d5dfa720e156e46a52d25d8cb3db141175f70b971aa510413354448a2777335"
+      },
+      "20": {
+        "adapter": 2666,
+        "raw": 25703,
+        "structure_sha256": "557d7b25a6b0546e545e57df23414747ae69a5b88e9b7d67c985fdd5c961d4bf"
+      },
+      "30": {
+        "adapter": 2646,
+        "raw": 25682,
+        "structure_sha256": "f254cb5b65e5f69181dcc9fbc8e2a59ac361e54ed7023c1361958ab85c186624"
+      },
+      "40": {
+        "adapter": 2662,
+        "raw": 25710,
+        "structure_sha256": "9d5dfa720e156e46a52d25d8cb3db141175f70b971aa510413354448a2777335"
+      },
+      "50": {
+        "adapter": 2670,
+        "raw": 25711,
+        "structure_sha256": "557d7b25a6b0546e545e57df23414747ae69a5b88e9b7d67c985fdd5c961d4bf"
+      },
+      "60": {
+        "adapter": 2646,
+        "raw": 25683,
+        "structure_sha256": "f254cb5b65e5f69181dcc9fbc8e2a59ac361e54ed7023c1361958ab85c186624"
+      }
+    },
+    "outcomes": {
+      "accepted": 44460,
+      "refused": 0,
+      "sha256": "640f53f770cd70f6a940e51822c0916d0967d8eb3c98bd104ce68225b46943a1"
+    },
+    "dispatch_us": {
+      "all": {
+        "events": 44460,
+        "median": 119.4,
+        "p99": 360.7,
+        "mean": 141
+      },
+      "cycles_1_10": {
+        "events": 7410,
+        "median": 117.3,
+        "p99": 393.8,
+        "mean": 134.8
+      },
+      "cycles_51_60": {
+        "events": 7410,
+        "median": 114.7,
+        "p99": 336.5,
+        "mean": 133.8
+      }
+    },
+    "archive": {
+      "checkpoints": {
+        "10": 203,
+        "20": 478,
+        "30": 753,
+        "40": 1028,
+        "50": 1303,
+        "60": 1578
+      },
+      "items": 1578,
+      "records": 1011,
+      "provenance_nodes": 567,
+      "serialized_bytes": 557347,
+      "node_process_memory_bytes_before_drain": {
+        "rss": 95531008,
+        "heapTotal": 28266496,
+        "heapUsed": 17154400,
+        "external": 8530725,
+        "arrayBuffers": 246121
+      },
+      "memory_note": "Serialized archive bytes are not resident heap size; process memory includes the entire workload and WASM.",
+      "undrained_after_drain": 0
+    }
+  },
+  "cross_restore": {
+    "runtime": {
+      "reactiveWasmSha256": "daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59",
+      "revision": "7f551e5774d61ec9f88e0d603e5b01196597b00c",
+      "clean": false,
+      "compiled": true,
+      "host": "x86_64-pc-windows-msvc"
+    },
+    "source_sha256": "7367b1377251ff45fb8bf25860676f0205afe139c8dd493528ba6e9fe2b4fd33",
+    "rc15_save_sha256": "9c552e08f5a6a311f77296f8140eac5415077c9952f2db59ca55a32725d2a4b7",
+    "state_count": 61,
+    "coverage": "Accepted witness/tick source paths checked against before/after state guards; not a runtime statement trace.",
+    "checkpoints": {
+      "at_restore": {
+        "events": 0,
+        "raw": 226589,
+        "adapter": 22182,
+        "states_written": []
+      },
+      "after_first_event": {
+        "events": 1,
+        "raw": 92588,
+        "adapter": 6530,
+        "states_written": [
+          "cave_eaten_by",
+          "cave_gone",
+          "cave_marked",
+          "cave_regrow",
+          "j1_cite",
+          "j1_code",
+          "j2_cite",
+          "j2_code",
+          "j3_cite",
+          "j3_code",
+          "j4_cite",
+          "j4_code",
+          "j5_cite",
+          "j5_code",
+          "j6_cite",
+          "j6_code",
+          "m1_contradiction",
+          "m1_support",
+          "next_memory",
+          "note_value",
+          "observation",
+          "observation_sort",
+          "recovery"
+        ]
+      },
+      "every_state_set": {
+        "events": 742,
+        "raw": 26513,
+        "adapter": 2698,
+        "states_written": [
+          "cave_eaten_by",
+          "cave_gone",
+          "cave_life",
+          "cave_marked",
+          "cave_regrow",
+          "cave_taste",
+          "glow",
+          "grove_eaten_by",
+          "grove_gone",
+          "grove_life",
+          "grove_marked",
+          "grove_regrow",
+          "grove_taste",
+          "heavy",
+          "j1_cite",
+          "j1_code",
+          "j2_cite",
+          "j2_code",
+          "j3_cite",
+          "j3_code",
+          "j4_cite",
+          "j4_code",
+          "j5_cite",
+          "j5_code",
+          "j6_cite",
+          "j6_code",
+          "m1_contradiction",
+          "m1_support",
+          "m2_contradiction",
+          "m2_support",
+          "m3_contradiction",
+          "m3_support",
+          "m4_contradiction",
+          "m4_support",
+          "m5_contradiction",
+          "m5_support",
+          "m6_contradiction",
+          "m6_support",
+          "next_memory",
+          "note_value",
+          "observation",
+          "observation_sort",
+          "pit_eaten_by",
+          "pit_gone",
+          "pit_life",
+          "pit_marked",
+          "pit_regrow",
+          "pit_taste",
+          "pool_eaten_by",
+          "pool_gone",
+          "pool_life",
+          "pool_marked",
+          "pool_regrow",
+          "pool_taste",
+          "recovery",
+          "ruin_eaten_by",
+          "ruin_gone",
+          "ruin_life",
+          "ruin_marked",
+          "ruin_regrow",
+          "ruin_taste"
+        ]
+      }
+    },
+    "archive": {
+      "items": 1609,
+      "serialized_bytes": 565994,
+      "undrained": 0
+    }
+  },
+  "pin_attribution": {
+    "package": "0.1.0-rc.16",
+    "runtime": {
+      "reactiveWasmSha256": "daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59",
+      "revision": "7f551e5774d61ec9f88e0d603e5b01196597b00c",
+      "clean": false,
+      "compiled": true,
+      "host": "x86_64-pc-windows-msvc"
+    },
+    "reports": [
+      {
+        "program": "c3-windows.cav",
+        "source_sha256": "7367b1377251ff45fb8bf25860676f0205afe139c8dd493528ba6e9fe2b4fd33",
+        "runs": 8,
+        "events_per_run": 4000,
+        "accepted": 5440,
+        "rejected": 26560,
+        "checkpoints": 320,
+        "maxima": {
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          }
+        },
+        "checkpoint_maximum": {
+          "run": 0,
+          "event": 100,
+          "retired": 0,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_start": {
+          "run": 0,
+          "event": 100,
+          "retired": 0,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_end": {
+          "run": 0,
+          "event": 4000,
+          "retired": 0,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        }
+      },
+      {
+        "program": "guarded-skip.cav",
+        "source_sha256": "1e9217d7670394fa3545fa0a40e4dc121984af7ee5137c6771d2cf514202a30f",
+        "runs": 8,
+        "events_per_run": 4000,
+        "accepted": 31993,
+        "rejected": 7,
+        "checkpoints": 320,
+        "maxima": {
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          }
+        },
+        "checkpoint_maximum": {
+          "run": 0,
+          "event": 100,
+          "retired": 0,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_start": {
+          "run": 0,
+          "event": 100,
+          "retired": 0,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_end": {
+          "run": 0,
+          "event": 4000,
+          "retired": 0,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        }
+      },
+      {
+        "program": "kit-explain-window.cav",
+        "source_sha256": "d708f3060f75cf52af6f3c1df40f3682188458443cf2517b362b9d7ffddeee1d",
+        "runs": 8,
+        "events_per_run": 4000,
+        "accepted": 16029,
+        "rejected": 15971,
+        "checkpoints": 320,
+        "maxima": {
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": 0,
+            "commitment in force": 2,
+            "journal entry": 2,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          }
+        },
+        "checkpoint_maximum": {
+          "run": 0,
+          "event": 100,
+          "retired": 2,
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@5",
+              "sighting@6"
+            ],
+            "journal entry": [
+              "sighting@5",
+              "sighting@6"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_start": {
+          "run": 0,
+          "event": 100,
+          "retired": 2,
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@5",
+              "sighting@6"
+            ],
+            "journal entry": [
+              "sighting@5",
+              "sighting@6"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_end": {
+          "run": 0,
+          "event": 4000,
+          "retired": 2,
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@5",
+              "sighting@6"
+            ],
+            "journal entry": [
+              "sighting@5",
+              "sighting@6"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        }
+      },
+      {
+        "program": "kit-types-window.cav",
+        "source_sha256": "52b13062dd69224c571c044c45099f9c7a4d874bc45a318f36edd93f69b04c04",
+        "runs": 8,
+        "events_per_run": 4000,
+        "accepted": 16061,
+        "rejected": 15939,
+        "checkpoints": 320,
+        "maxima": {
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": 0,
+            "commitment in force": 2,
+            "journal entry": 2,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          }
+        },
+        "checkpoint_maximum": {
+          "run": 0,
+          "event": 100,
+          "retired": 2,
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@15",
+              "sighting@16"
+            ],
+            "journal entry": [
+              "sighting@15",
+              "sighting@16"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_start": {
+          "run": 0,
+          "event": 100,
+          "retired": 2,
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@15",
+              "sighting@16"
+            ],
+            "journal entry": [
+              "sighting@15",
+              "sighting@16"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        },
+        "first_run_end": {
+          "run": 0,
+          "event": 4000,
+          "retired": 2,
+          "pinned": 2,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@15",
+              "sighting@16"
+            ],
+            "journal entry": [
+              "sighting@15",
+              "sighting@16"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [],
+          "unpinned_non_declarations": []
+        }
+      },
+      {
+        "program": "runtime-windows-world.cav",
+        "source_sha256": "ebd58adde737c829958aa3f3a14385525cb38c81b4fafaa6cd381e01aa035924",
+        "runs": 8,
+        "events_per_run": 4000,
+        "accepted": 19747,
+        "rejected": 12253,
+        "checkpoints": 320,
+        "maxima": {
+          "pinned": 6,
+          "by_provenance": {
+            "state grounds": 0,
+            "commitment in force": 3,
+            "journal entry": 6,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          }
+        },
+        "checkpoint_maximum": {
+          "run": 3,
+          "event": 400,
+          "retired": 7,
+          "pinned": 6,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@67",
+              "sighting@68",
+              "sighting@69"
+            ],
+            "journal entry": [
+              "sighting@63",
+              "sighting@64",
+              "sighting@65",
+              "sighting@67",
+              "sighting@68",
+              "sighting@69"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [
+            "taste"
+          ],
+          "unpinned_non_declarations": []
+        },
+        "first_run_start": {
+          "run": 0,
+          "event": 100,
+          "retired": 1,
+          "pinned": 0,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [],
+            "journal entry": [],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [
+            "taste"
+          ],
+          "unpinned_non_declarations": []
+        },
+        "first_run_end": {
+          "run": 0,
+          "event": 4000,
+          "retired": 5,
+          "pinned": 4,
+          "by_provenance": {
+            "state grounds": [],
+            "commitment in force": [
+              "sighting@56",
+              "sighting@57",
+              "sighting@58"
+            ],
+            "journal entry": [
+              "sighting@55",
+              "sighting@56",
+              "sighting@57",
+              "sighting@58"
+            ],
+            "scheduled qualification": [],
+            "permission grant": [],
+            "withdrawal reason": []
+          },
+          "declared_first_occurrences": [
+            "taste"
+          ],
+          "unpinned_non_declarations": []
+        }
+      }
+    ]
+  }
+}

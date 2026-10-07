@@ -4,7 +4,8 @@
 // --noEmit --strict --module nodenext --target es2022
 // --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
 import { typed } from '../lib/types.mjs';
-import type { CaveatRuntime } from '../lib/session.mjs';
+import type { ArchiveEntry, CaveatRuntime } from '../lib/session.mjs';
+import { dependents, explain } from '../lib/explain.mjs';
 import type { Program, ProgramEvent, Session, View } from './gauge.js';
 
 export function use(runtime: CaveatRuntime, source: string): void {
@@ -36,6 +37,19 @@ export function use(runtime: CaveatRuntime, source: string): void {
   // @ts-expect-error not a bound property
   view.bindings.gauge.valeu;
   const cited = view.binding_explanations.gauge?.value?.evidence;
+  const pending: number = session.undrained;
+  const archive: ArchiveEntry[] = session.drainArchive();
+  const explained = explain(session.snapshot(), [], { archive });
+  const records: string[] | undefined = explained.displayed[0]?.cites.departed?.[0]?.records;
+  dependents(session.snapshot(), 'reads', { archive });
+  for (const entry of archive) {
+    if (entry.kind === 'provenance') {
+      entry.id satisfies string;
+      if (entry.operation === 'union') entry.parents satisfies string[];
+      else entry.source_id satisfies string;
+    } else entry.record satisfies string;
+  }
+  void [pending, records];
 
   const outcome = session.dispatchView('read', { celsius: 3 });
   if (outcome.outcome === 'accepted') {

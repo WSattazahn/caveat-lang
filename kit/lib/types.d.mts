@@ -1,7 +1,7 @@
 // Types for types.mjs: declarations for one program from its interface
 // (spec/caveat-interface-0.1.md), and the typed session they describe.
 import type {
-  BindingValue, CaveatSession, DispatchOutcome, DispatchRejected, DispatchViewAccepted, ProgramInterface, Provenance, SessionState, Snapshot, View,
+  ArchiveEntry, BindingValue, CaveatSession, DispatchOutcome, DispatchRejected, DispatchViewAccepted, ProgramInterface, Provenance, SessionState, Snapshot, View,
 } from './session.mjs';
 
 export declare const INTERFACE_SCHEMA: 'caveat-interface/0.1';
@@ -35,6 +35,8 @@ export interface TypedSession<T extends ProgramTypes> {
   viewText: () => string;
   view: () => TypedView<T>;
   save: () => string;
+  drainArchive: () => ArchiveEntry[];
+  readonly undrained: number;
   close: () => void;
 }
 

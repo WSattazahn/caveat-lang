@@ -1,0 +1,1852 @@
+{
+  "schema": "caveat-withdrawal-retention-probe/1",
+  "measuredAt": "2026-10-07T20:30:16.941Z",
+  "scope": "Current runtime behavior plus fixture-only design eligibility diagnostics; no collection implementation or universal bound proven",
+  "runtime": {
+    "reactiveWasmSha256": "daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59",
+    "revision": "7f551e5774d61ec9f88e0d603e5b01196597b00c",
+    "clean": false,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "cycles": 1000,
+  "checkpoints": [
+    10,
+    30,
+    60,
+    300,
+    1000
+  ],
+  "reports": [
+    {
+      "name": "self",
+      "sourceSha256": "8bbba3379f30daa834824cb8bec29bf7dc4b573014e4c4a042ab0d0d2a78ab43",
+      "observations": {},
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 10,
+          "liveSaveBytes": 2313,
+          "saveSha256": "a2e936ee8362d510b967bd0d0c79b87d34fe8e45a163ab4b9c2cbd10178dd8e8",
+          "heldRenewalRecords": 11,
+          "withdrawals": 10,
+          "retired": 10,
+          "pinned": 9,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 9
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 2,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 9,
+            "proposedEligibleSha256": "361e27ebfc7f739127a67768cb8c3ab521eba01a66b45fe974dd0f16e982c0d3",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 30,
+          "liveSaveBytes": 6113,
+          "saveSha256": "7a5bf7df2e9a955bbe1043034c214ac3c1f93e66b9289bd96560e9322d6f851a",
+          "heldRenewalRecords": 31,
+          "withdrawals": 30,
+          "retired": 30,
+          "pinned": 29,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 29
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 2,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 29,
+            "proposedEligibleSha256": "283156ddcee6944a1fe3e78faec096334f550fc9c8e79162d60f5046b8068cfe",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 60,
+          "liveSaveBytes": 11813,
+          "saveSha256": "5496d2514d54d7b693bd8d3398bceda4bb79d849010124b29e3cc551f8f73e18",
+          "heldRenewalRecords": 61,
+          "withdrawals": 60,
+          "retired": 60,
+          "pinned": 59,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 59
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 2,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 59,
+            "proposedEligibleSha256": "1e6d525b35f8995780bfc3bf4d3dce2f4b6501aba012c963a034c02cf4d36508",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 300,
+          "liveSaveBytes": 59436,
+          "saveSha256": "88e62905dc64c3042c97f4a04fb676aa13346c446f24ae5077bcf8af309e8517",
+          "heldRenewalRecords": 301,
+          "withdrawals": 300,
+          "retired": 300,
+          "pinned": 299,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 299
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 2,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 299,
+            "proposedEligibleSha256": "06aec0b3c100f9a8436016ba07f82b3abfb229eeceb4bad572672a53037f5594",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1000,
+          "liveSaveBytes": 199459,
+          "saveSha256": "e6ce5ac9d6b41d1716daba9e09184b8af17ce90eaf501fb1184114aa29fd7e49",
+          "heldRenewalRecords": 1001,
+          "withdrawals": 1000,
+          "retired": 1000,
+          "pinned": 999,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 999
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 2,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 999,
+            "proposedEligibleSha256": "e824c447da71cc37d9e863df62d4cde90b9fc7c7eea53ccf360c9981ca1b99e4",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "mutual",
+      "sourceSha256": "434fd2619dd509e081d2b6fb1a152e8bee85e802adeb62af9286694a3eebc110",
+      "observations": {},
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 10,
+          "liveSaveBytes": 4367,
+          "saveSha256": "2ad84bc59357424bc1755c3b068954290622e8998c48db2cae107068fc2897de",
+          "heldRenewalRecords": 22,
+          "withdrawals": 20,
+          "retired": 20,
+          "pinned": 18,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 18
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 18,
+            "proposedEligibleSha256": "53a94b2957443ff46b13e1a256c83e6c74dc6423d7fdcb3867ebfd9705b7573f",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 30,
+          "liveSaveBytes": 11967,
+          "saveSha256": "03eb219bb82586e1ade74e711ea65e82c9e27178c1002b4f73f363763c6a5ace",
+          "heldRenewalRecords": 62,
+          "withdrawals": 60,
+          "retired": 60,
+          "pinned": 58,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 58
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 58,
+            "proposedEligibleSha256": "5c80169755b06c36372d382320ad8316908593f1093354788b479f43ef3449c5",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 60,
+          "liveSaveBytes": 23367,
+          "saveSha256": "e226d867685d37f9241fc0c4543fc012568c5a445a3498a7f914771417dab034",
+          "heldRenewalRecords": 122,
+          "withdrawals": 120,
+          "retired": 120,
+          "pinned": 118,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 118
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 118,
+            "proposedEligibleSha256": "5198dfff236ef1fb83b14f20c5325e76f2be68a6c5619ee435282996f3cc3599",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 300,
+          "liveSaveBytes": 118612,
+          "saveSha256": "d05532ab4fc2476118f6f19bcb965aa2d19a32cb92806a5ddb06c9007a46ab76",
+          "heldRenewalRecords": 602,
+          "withdrawals": 600,
+          "retired": 600,
+          "pinned": 598,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 598
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 598,
+            "proposedEligibleSha256": "669257d68f6b33700f9a3e46af3528ee061cf3d08930c6bfcef95dc0677075e1",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1000,
+          "liveSaveBytes": 398657,
+          "saveSha256": "8ce6ac4edbbaa4782a2d7c1795413f8981d8cba7e8d9e4b4b524f96a58fea81c",
+          "heldRenewalRecords": 2002,
+          "withdrawals": 2000,
+          "retired": 2000,
+          "pinned": 1998,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1998
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 1998,
+            "proposedEligibleSha256": "f8b8366d3fb4d7d2b65b1c2a42609e0bb3cc90d18aad26cc586377d99624ce4d",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "acyclic",
+      "sourceSha256": "94fec1a955ad92e81443a4951f62a553d58a088a19ee3cb36d96fb884d16678d",
+      "observations": {
+        "everyTransferredWithdrawalRelationshipExact": true
+      },
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 10,
+          "liveSaveBytes": 777,
+          "saveSha256": "ca8b18477937b49e53b0dec2f932a5baca5611e59a3766405718cc06a900779b",
+          "heldRenewalRecords": 2,
+          "withdrawals": 1,
+          "retired": 1,
+          "pinned": 0,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          },
+          "drainedRecords": 9,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 9,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 30,
+          "liveSaveBytes": 777,
+          "saveSha256": "438014976d65ebde0f3fb15c8c0e2071fd0e90d6b9c038aee8880c7d30745cae",
+          "heldRenewalRecords": 2,
+          "withdrawals": 1,
+          "retired": 1,
+          "pinned": 0,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          },
+          "drainedRecords": 29,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 29,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 60,
+          "liveSaveBytes": 777,
+          "saveSha256": "bea53306c9e052432d187107df5d7ff1a4e820879515c8c03a25c5d35d5fc272",
+          "heldRenewalRecords": 2,
+          "withdrawals": 1,
+          "retired": 1,
+          "pinned": 0,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          },
+          "drainedRecords": 59,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 59,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 300,
+          "liveSaveBytes": 790,
+          "saveSha256": "4a52a8fce3887c16e50005d99cbd5ea3aa6158a5bec557cb87607d8df58ffe7c",
+          "heldRenewalRecords": 2,
+          "withdrawals": 1,
+          "retired": 1,
+          "pinned": 0,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          },
+          "drainedRecords": 299,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 299,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1000,
+          "liveSaveBytes": 803,
+          "saveSha256": "db0ca1d2e85186c53c95c11bb69c22c70c07da7ad600704cb0eb059a3a10a520",
+          "heldRenewalRecords": 2,
+          "withdrawals": 1,
+          "retired": 1,
+          "pinned": 0,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 0
+          },
+          "drainedRecords": 999,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 999,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "reachable-chain",
+      "sourceSha256": "3f72957146439788d58082ae49296c8e3d4029adab25994dd0f0afed1e6233b1",
+      "observations": {},
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 11,
+          "liveSaveBytes": 4399,
+          "saveSha256": "9322e6a8ed51283dc2b22aaacacb6c1f78ef6ac81c49abd93fc36110bb884e62",
+          "heldRenewalRecords": 22,
+          "withdrawals": 20,
+          "retired": 20,
+          "pinned": 19,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 19
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 18,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 31,
+          "liveSaveBytes": 11999,
+          "saveSha256": "bcad8987c0a77dac749c8e05bd09e7becf2457fbe97b407e38397c18429bf9d6",
+          "heldRenewalRecords": 62,
+          "withdrawals": 60,
+          "retired": 60,
+          "pinned": 59,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 59
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 58,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 61,
+          "liveSaveBytes": 23399,
+          "saveSha256": "e1c28d1d8492d9d725fde3e97a0929db847235246c1ac7ec4bf663f42e90caeb",
+          "heldRenewalRecords": 122,
+          "withdrawals": 120,
+          "retired": 120,
+          "pinned": 119,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 119
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 118,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 301,
+          "liveSaveBytes": 118647,
+          "saveSha256": "a158b653fff5b7eb59bf9081a922a8d34e9e51e3806fcaba4fc0fb9d5d5c76ce",
+          "heldRenewalRecords": 602,
+          "withdrawals": 600,
+          "retired": 600,
+          "pinned": 599,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 599
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 598,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1001,
+          "liveSaveBytes": 398695,
+          "saveSha256": "2d8d1ecc6a9370c6b05c2ac0ffd6debde186d64c8d18129f17536a347df1f3e2",
+          "heldRenewalRecords": 2002,
+          "withdrawals": 2000,
+          "retired": 2000,
+          "pinned": 1999,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1999
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 1998,
+            "proposedEligibleCount": 0,
+            "proposedEligibleSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "self-own-ground",
+      "sourceSha256": "c056776097b9f62c6c52f109bd7b7611e93402e54390c11453211560c9646c07",
+      "observations": {
+        "refused": {
+          "schema": "caveat-dispatch/0.1",
+          "outcome": "rejected",
+          "origin": "policy",
+          "code": "reject",
+          "message": "retain the last root"
+        },
+        "bindingFailure": {
+          "schema": "caveat-dispatch/0.1",
+          "outcome": "rejected",
+          "origin": "evaluation",
+          "code": "expression",
+          "message": "binding hud.guard: division by zero in expression"
+        }
+      },
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 11,
+          "liveSaveBytes": 2469,
+          "saveSha256": "254e4c32eda58933241a87a457eec3d50b06bde982824e24072e67c6bdde1a6c",
+          "heldRenewalRecords": 11,
+          "withdrawals": 10,
+          "retired": 10,
+          "pinned": 9,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 9
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 8,
+            "proposedEligibleSha256": "e85ade9d59eeda6b93cf556ddfcfe90e8614a7d4eccf091707a2b39fd0bfc6e7",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 31,
+          "liveSaveBytes": 6269,
+          "saveSha256": "cab9711ce64c52224513f7349f707216359254f5acaf46521af49c206e6fd272",
+          "heldRenewalRecords": 31,
+          "withdrawals": 30,
+          "retired": 30,
+          "pinned": 29,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 29
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 28,
+            "proposedEligibleSha256": "69058c8f362f82c46be3b78ed048e833ade958ce3ac1b442d5ae11d4ab69dd0f",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 61,
+          "liveSaveBytes": 11969,
+          "saveSha256": "1c65d8be897782d2117fd9bf1b47bd3588c1a066bdfa47bed1248f8b969c025f",
+          "heldRenewalRecords": 61,
+          "withdrawals": 60,
+          "retired": 60,
+          "pinned": 59,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 59
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 58,
+            "proposedEligibleSha256": "bf20333298a47c21c28d3455ade08bd493c299ced5f5b7ce85767c67d07e49ac",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 301,
+          "liveSaveBytes": 59594,
+          "saveSha256": "215e088e2d4e9a01f53e7714bbf0d9619023e41b67317f06d29b1dfc0f8a8353",
+          "heldRenewalRecords": 301,
+          "withdrawals": 300,
+          "retired": 300,
+          "pinned": 299,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 299
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 298,
+            "proposedEligibleSha256": "814b92f16d45253e79d9b88e69676b0cef28a2340586432407dabf920061f1a3",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1001,
+          "liveSaveBytes": 199619,
+          "saveSha256": "4fe8b4ed19afac7f97fbcbb79c7918657ca6819e675469618e628b905a1c6bca",
+          "heldRenewalRecords": 1001,
+          "withdrawals": 1000,
+          "retired": 1000,
+          "pinned": 999,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 999
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 998,
+            "proposedEligibleSha256": "2b222a2986fe64ce934d7d683129f7564fc4cc67dc464b643fbd7243bbb004da",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "one-independent-ground-remains",
+          "acceptedEvents": 1002,
+          "liveSaveBytes": 199299,
+          "saveSha256": "ec03beac27c09c907f94074b201ad8375ab5f4cedc347c75e3d45f7cba630374",
+          "heldRenewalRecords": 1001,
+          "withdrawals": 1000,
+          "retired": 1000,
+          "pinned": 999,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 999
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 998,
+            "proposedEligibleSha256": "2b222a2986fe64ce934d7d683129f7564fc4cc67dc464b643fbd7243bbb004da",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "refusals-preserve-last-ground",
+          "acceptedEvents": 1002,
+          "liveSaveBytes": 199299,
+          "saveSha256": "ec03beac27c09c907f94074b201ad8375ab5f4cedc347c75e3d45f7cba630374",
+          "heldRenewalRecords": 1001,
+          "withdrawals": 1000,
+          "retired": 1000,
+          "pinned": 999,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 999
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 998,
+            "proposedEligibleSha256": "2b222a2986fe64ce934d7d683129f7564fc4cc67dc464b643fbd7243bbb004da",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "last-independent-ground-released",
+          "acceptedEvents": 1003,
+          "liveSaveBytes": 199221,
+          "saveSha256": "54181b9aa75824e6c563603f656ace16e217d4bd966f40b357f0067440040144",
+          "heldRenewalRecords": 1001,
+          "withdrawals": 1000,
+          "retired": 1000,
+          "pinned": 999,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 999
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 2,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 999,
+            "proposedEligibleSha256": "e824c447da71cc37d9e863df62d4cde90b9fc7c7eea53ccf360c9981ca1b99e4",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "mutual-own-ground",
+      "sourceSha256": "884cc8a7bc97c6cf6a863d7bbe037966d82ceaf70819f8ef5455109844ffc909",
+      "observations": {
+        "refused": {
+          "schema": "caveat-dispatch/0.1",
+          "outcome": "rejected",
+          "origin": "policy",
+          "code": "reject",
+          "message": "retain the last root"
+        },
+        "bindingFailure": {
+          "schema": "caveat-dispatch/0.1",
+          "outcome": "rejected",
+          "origin": "evaluation",
+          "code": "expression",
+          "message": "binding hud.guard: division by zero in expression"
+        }
+      },
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 11,
+          "liveSaveBytes": 4525,
+          "saveSha256": "29315a68c300a8f6bc509020e96ccf52b6e8d06a049ca9621646ab8131e7e203",
+          "heldRenewalRecords": 22,
+          "withdrawals": 20,
+          "retired": 20,
+          "pinned": 18,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 18
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 16,
+            "proposedEligibleSha256": "6ea34304a7bb380a2302756cce03eb173f374a17745cf00b2b94b4421b2037de",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 31,
+          "liveSaveBytes": 12125,
+          "saveSha256": "c090372f09c44f4986043438b60f6b1a4ff816dba0819cb009197e74e573c253",
+          "heldRenewalRecords": 62,
+          "withdrawals": 60,
+          "retired": 60,
+          "pinned": 58,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 58
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 56,
+            "proposedEligibleSha256": "99162af712e089e73b24cbc036945e5f3a3c4818aa5d291afaf087c1ba8bf51b",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 61,
+          "liveSaveBytes": 23525,
+          "saveSha256": "703668a2542bc85c7ef17da32cb5ecf7a660c2a4abdcac0b21ed61766e9bb4f1",
+          "heldRenewalRecords": 122,
+          "withdrawals": 120,
+          "retired": 120,
+          "pinned": 118,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 118
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 116,
+            "proposedEligibleSha256": "94a307c1a1a45107f3db0c69ce31e1e534e3920c43f0929abf9774683ec54e3e",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 301,
+          "liveSaveBytes": 118774,
+          "saveSha256": "8193fbf33f5a09a7de711e0ed7f3bff7c94a0e98142cd9d2ba1d32b62a7944c1",
+          "heldRenewalRecords": 602,
+          "withdrawals": 600,
+          "retired": 600,
+          "pinned": 598,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 598
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 596,
+            "proposedEligibleSha256": "cf67433dfe71685695e0d92efa3f2bb05a711b01108d9470954213e0918cf929",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1001,
+          "liveSaveBytes": 398823,
+          "saveSha256": "39cecaa98de00c98036c072254a50e032dcaf252af008a729f0c014c085ad93c",
+          "heldRenewalRecords": 2002,
+          "withdrawals": 2000,
+          "retired": 2000,
+          "pinned": 1998,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1998
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 1996,
+            "proposedEligibleSha256": "8809c8a7fa42620251da688a804a37b2bd68a12e77016fc43e93ed52f73b3427",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "one-independent-ground-remains",
+          "acceptedEvents": 1002,
+          "liveSaveBytes": 398264,
+          "saveSha256": "1242354d6f4e8be9b4645fe62f497a02b5ec2f00775fd8daf97341494e9694e5",
+          "heldRenewalRecords": 2002,
+          "withdrawals": 2000,
+          "retired": 2000,
+          "pinned": 1998,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1998
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 1996,
+            "proposedEligibleSha256": "8809c8a7fa42620251da688a804a37b2bd68a12e77016fc43e93ed52f73b3427",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "refusals-preserve-last-ground",
+          "acceptedEvents": 1002,
+          "liveSaveBytes": 398264,
+          "saveSha256": "1242354d6f4e8be9b4645fe62f497a02b5ec2f00775fd8daf97341494e9694e5",
+          "heldRenewalRecords": 2002,
+          "withdrawals": 2000,
+          "retired": 2000,
+          "pinned": 1998,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1998
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 2,
+            "proposedEligibleCount": 1996,
+            "proposedEligibleSha256": "8809c8a7fa42620251da688a804a37b2bd68a12e77016fc43e93ed52f73b3427",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": true
+            }
+          }
+        },
+        {
+          "label": "last-independent-ground-released",
+          "acceptedEvents": 1003,
+          "liveSaveBytes": 398186,
+          "saveSha256": "2ee533e0ae383564b4ce01ca85cd039d4f2e1c7cc789f979c4c2bb80f7c4e9d2",
+          "heldRenewalRecords": 2002,
+          "withdrawals": 2000,
+          "retired": 2000,
+          "pinned": 1998,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1998
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 4,
+            "reachableWithdrawnRetired": 0,
+            "proposedEligibleCount": 1998,
+            "proposedEligibleSha256": "f8b8366d3fb4d7d2b65b1c2a42609e0bb3cc90d18aad26cc586377d99624ce4d",
+            "firstPairReachable": {
+              "a@2": false,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "permission-root",
+      "sourceSha256": "89597344a261906df5bd69d50fa04b2e2c073424e092755d93f76afa58d13bb4",
+      "observations": {
+        "permissionDenied": {
+          "schema": "caveat-dispatch/0.1",
+          "outcome": "rejected",
+          "origin": "policy",
+          "code": "not_permitted",
+          "message": "event denied, rule 9: commit other is not permitted: a@1002 was withdrawn at #1001 because a@1002"
+        }
+      },
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 11,
+          "liveSaveBytes": 3273,
+          "saveSha256": "e56f3adb5d00c5663923952f73d0d288eed7ac269470a8265fc487e745a740e7",
+          "heldRenewalRecords": 12,
+          "withdrawals": 11,
+          "retired": 11,
+          "pinned": 10,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 1,
+            "scheduled qualification": 0,
+            "permission grant": 1,
+            "withdrawal reason": 10
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 9,
+            "proposedEligibleSha256": "3be98677a52cd523d62309993e56c38b5547fe990d13c3022c079bcc660be19c",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 31,
+          "liveSaveBytes": 7073,
+          "saveSha256": "ea94effbe61e149d08ad512610afbe2fa16cc7e178176836f4acf085a316b1ad",
+          "heldRenewalRecords": 32,
+          "withdrawals": 31,
+          "retired": 31,
+          "pinned": 30,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 1,
+            "scheduled qualification": 0,
+            "permission grant": 1,
+            "withdrawal reason": 30
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 29,
+            "proposedEligibleSha256": "92c813bbfb2fc773b56cb4119cfcd55eddf7863a81d609595e7d58adc48e82e3",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 61,
+          "liveSaveBytes": 12773,
+          "saveSha256": "0f8a2cb3f7b23ede92224f96ff4fd99a6955ff305d8e1929ad88c79846e3947a",
+          "heldRenewalRecords": 62,
+          "withdrawals": 61,
+          "retired": 61,
+          "pinned": 60,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 1,
+            "scheduled qualification": 0,
+            "permission grant": 1,
+            "withdrawal reason": 60
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 59,
+            "proposedEligibleSha256": "f6c70dce939a0a240a08476f8f1dc8571fc6a327b327cc98a932de9ef4fed30a",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 301,
+          "liveSaveBytes": 60406,
+          "saveSha256": "21ee5754339379d0e3c8020f1fbd7e3304df29de3f2f915471b7c79ffaa99d8e",
+          "heldRenewalRecords": 302,
+          "withdrawals": 301,
+          "retired": 301,
+          "pinned": 300,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 1,
+            "scheduled qualification": 0,
+            "permission grant": 1,
+            "withdrawal reason": 300
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 299,
+            "proposedEligibleSha256": "90594dda4ac7191d679982e3223f8a4bc9e9b2aabecdaccd7acb56698b2d77fe",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1001,
+          "liveSaveBytes": 200439,
+          "saveSha256": "e559ccd4d59af22c16d3d0af18f515ecf989c2e0017e3f86e8acc5d1c966d2ae",
+          "heldRenewalRecords": 1002,
+          "withdrawals": 1001,
+          "retired": 1001,
+          "pinned": 1000,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 1,
+            "scheduled qualification": 0,
+            "permission grant": 1,
+            "withdrawal reason": 1000
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 999,
+            "proposedEligibleSha256": "ac27a93c6af983951a18c166db73e606b891c2cae4634fb727bd60aaaeeea465",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "permission-status-and-refusal-preserved",
+          "acceptedEvents": 1002,
+          "liveSaveBytes": 200279,
+          "saveSha256": "ac48883ca9e5d5ac8c966346a7510e925e089fa90336d2b06d713ffa9d1d70eb",
+          "heldRenewalRecords": 1002,
+          "withdrawals": 1001,
+          "retired": 1001,
+          "pinned": 1000,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 1,
+            "scheduled qualification": 0,
+            "permission grant": 1,
+            "withdrawal reason": 1000
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 3,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 999,
+            "proposedEligibleSha256": "ac27a93c6af983951a18c166db73e606b891c2cae4634fb727bd60aaaeeea465",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "later-history-read",
+      "sourceSha256": "9016d5e735a896f740380d9c8a61ac9d79f36afe68008816cc3913670285c077",
+      "observations": {
+        "dynamicWithdrawalCaveat": true
+      },
+      "checkpoints": [
+        {
+          "label": "cycle-10",
+          "acceptedEvents": 11,
+          "liveSaveBytes": 2929,
+          "saveSha256": "a442420337dbaadf7a8c0d17fb888a06aabae2097b4977ad0c854096eff40ab5",
+          "heldRenewalRecords": 12,
+          "withdrawals": 11,
+          "retired": 11,
+          "pinned": 10,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 10
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 9,
+            "proposedEligibleSha256": "3be98677a52cd523d62309993e56c38b5547fe990d13c3022c079bcc660be19c",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-30",
+          "acceptedEvents": 31,
+          "liveSaveBytes": 6729,
+          "saveSha256": "bf886dc5451206794a4ee002cc0ad4452f86d5a481a0a52c94cdb2547ed5d080",
+          "heldRenewalRecords": 32,
+          "withdrawals": 31,
+          "retired": 31,
+          "pinned": 30,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 30
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 29,
+            "proposedEligibleSha256": "92c813bbfb2fc773b56cb4119cfcd55eddf7863a81d609595e7d58adc48e82e3",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-60",
+          "acceptedEvents": 61,
+          "liveSaveBytes": 12429,
+          "saveSha256": "0dea7ce497cce9e08f04d77e47fb86e9714ef45d42c4195662a744a7f244ff67",
+          "heldRenewalRecords": 62,
+          "withdrawals": 61,
+          "retired": 61,
+          "pinned": 60,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 60
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 59,
+            "proposedEligibleSha256": "f6c70dce939a0a240a08476f8f1dc8571fc6a327b327cc98a932de9ef4fed30a",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-300",
+          "acceptedEvents": 301,
+          "liveSaveBytes": 60062,
+          "saveSha256": "17e80d2370164f85c64e44e2b0811a3576046ca73e7b4cd7a69db4bf80cb2861",
+          "heldRenewalRecords": 302,
+          "withdrawals": 301,
+          "retired": 301,
+          "pinned": 300,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 300
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 299,
+            "proposedEligibleSha256": "90594dda4ac7191d679982e3223f8a4bc9e9b2aabecdaccd7acb56698b2d77fe",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "cycle-1000",
+          "acceptedEvents": 1001,
+          "liveSaveBytes": 200095,
+          "saveSha256": "60cc8d7eb21ddcf37a157f882098748197ae727fbff45768de5999f53a929dcf",
+          "heldRenewalRecords": 1002,
+          "withdrawals": 1001,
+          "retired": 1001,
+          "pinned": 1000,
+          "byProvenanceCounts": {
+            "state grounds": 0,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1000
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 999,
+            "proposedEligibleSha256": "ac27a93c6af983951a18c166db73e606b891c2cae4634fb727bd60aaaeeea465",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        },
+        {
+          "label": "later-history-read-still-withdrawn",
+          "acceptedEvents": 1002,
+          "liveSaveBytes": 199930,
+          "saveSha256": "e3d663348d66e10427a1d86afcb6f8028113780a375044cccfa1c139892766a2",
+          "heldRenewalRecords": 1002,
+          "withdrawals": 1001,
+          "retired": 1001,
+          "pinned": 1000,
+          "byProvenanceCounts": {
+            "state grounds": 1,
+            "commitment in force": 0,
+            "journal entry": 0,
+            "scheduled qualification": 0,
+            "permission grant": 0,
+            "withdrawal reason": 1000
+          },
+          "drainedRecords": 0,
+          "drainedNodes": 0,
+          "undrained": 0,
+          "undrainedTwinItems": 0,
+          "exactRestore": true,
+          "drainIndependent": true,
+          "draft": {
+            "scope": "Fixture-only conservative diagnostic; collection is not implemented",
+            "independentRootCount": 5,
+            "reachableWithdrawnRetired": 1,
+            "proposedEligibleCount": 999,
+            "proposedEligibleSha256": "ac27a93c6af983951a18c166db73e606b891c2cae4634fb727bd60aaaeeea465",
+            "firstPairReachable": {
+              "a@2": true,
+              "b@2": false
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "olderRestores": [
+    {
+      "name": "self",
+      "baselineIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "oldSaveBytes": 2313,
+      "oldSaveSha256": "a2e936ee8362d510b967bd0d0c79b87d34fe8e45a163ab4b9c2cbd10178dd8e8",
+      "restoredAndContinuedIdentically": true
+    },
+    {
+      "name": "mutual",
+      "baselineIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "oldSaveBytes": 4367,
+      "oldSaveSha256": "2ad84bc59357424bc1755c3b068954290622e8998c48db2cae107068fc2897de",
+      "restoredAndContinuedIdentically": true
+    },
+    {
+      "name": "reachable-chain",
+      "baselineIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "oldSaveBytes": 4399,
+      "oldSaveSha256": "9322e6a8ed51283dc2b22aaacacb6c1f78ef6ac81c49abd93fc36110bb884e62",
+      "restoredAndContinuedIdentically": true
+    }
+  ],
+  "checks": {
+    "currentRestore": true,
+    "rollback": true,
+    "drainIndependence": true,
+    "orderedArchiveEquality": true
+  },
+  "limits": [
+    "Oracle covers only these fixtures; production root/consumer completeness requires separate implementation review.",
+    "Save bytes measure serialized live state, not resident heap or collector latency.",
+    "Reachable withdrawal chains can grow with play; this proposal does not establish a universal window-only bound."
+  ]
+}

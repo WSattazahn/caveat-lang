@@ -63,9 +63,9 @@ test('a caveat reaches everything based on evidence it qualifies', () => {
   const snapshot = thermostatAfter([17, 25]);
   const report = dependents(snapshot, 'calibration_offset');
   assert.equal(report.kind, 'caveat');
-  assert.deepEqual(byKey(report.decisions, 'id'), expected(snapshot, ['calibration_offset'], 'caveats').decisions);
+  assert.deepEqual(byKey(report.decisions, 'id'), Object.fromEntries(Object.keys(expected(snapshot, ['calibration_offset'], 'caveats').decisions).map(id => [id, 'retained'])));
   assert.ok(report.decisions.length > 0);
-  assert.match(formatDependents(report, 'thermostat', 2), /heating@1 = 1 {2}superseded {2}based on evidence with calibration_offset/);
+  assert.match(formatDependents(report, 'thermostat', 2), /heating@1 = 1 {2}superseded {2}retaining: calibration_offset/);
 });
 
 test('a name the program does not declare is an error, and declared but unused is empty', () => {

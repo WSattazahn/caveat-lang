@@ -5,6 +5,7 @@ import type {
   BindingValue,
   CaveatErrorKind,
   DispatchRejected,
+  DepartureMarker,
   PermissionRecord,
   Provenance,
   Snapshot,
@@ -40,6 +41,8 @@ export interface ExplainReport {
 }
 
 export interface ExplainedSeries {
+  /** Present for a plain commitment without a declared revision history. */
+  kind?: 'plain';
   name: string;
   limit: number;
   current: string | null;
@@ -48,12 +51,26 @@ export interface ExplainedSeries {
 
 export type RevisionStatus = 'in force' | 'reopened' | 'superseded';
 
+export interface ExplainedDepartureMarker extends DepartureMarker {
+  departed_between: number | null;
+  /** Complete means structurally consistent membership, not authenticated history. */
+  archive_status: 'complete' | 'unavailable';
+  /** Present only when the archive has complete, consistent membership proof. */
+  records?: string[];
+}
+
+export interface ExplainedProvenance extends Omit<Provenance, 'departed'> {
+  departed?: ExplainedDepartureMarker[];
+}
+
 export interface ExplainedRevision {
   id: string;
   value: number | null;
   status: RevisionStatus;
-  grounds: Provenance;
-  lineage: Provenance;
+  grounds: ExplainedProvenance;
+  lineage: ExplainedProvenance;
+  /** Caveats retained by the commitment; no evidence-carrier is implied. */
+  retained: string[];
   /** What permitted it, frozen: not its grounds. */
   permission: PermissionRecord | null;
   /** Grounds withdrawn since the decision was made. */
@@ -92,15 +109,17 @@ export interface WithdrawalNote {
 export interface ExplainedDisplay {
   name: string;
   value: BindingValue;
-  cites: Provenance;
+  cites: ExplainedProvenance;
+  /** Present when displayed lineage contains departure markers, including uncited reads. */
+  lineage?: ExplainedProvenance;
 }
 
 /** What `explain` may be given beside the snapshot. */
 export interface ExplainOptions {
   /**
-   * Entries drained from the session's archive. With them, a decision's
-   * departure markers name the records its grounds and basis held
-   * (spec/caveat-departure-0.1.md).
+   * Entries drained from the session's archive. Exact names require the
+   * marker's complete, hash-consistent, source-matched provenance graph and
+   * its departed record entries. Incomplete/conflicting graphs stay ranges.
    */
   archive?: ArchiveEntry[];
 }
@@ -116,16 +135,26 @@ export interface DependentsReport {
   subject: string;
   kind: 'evidence' | 'caveat';
   sequence: number;
-  /** True when the subject is a departed record: what may rest on it is found through departure markers. */
+  /** True for a departed subject: complete archive membership is exact; unresolved markers report may rest on. */
   departed?: true;
   /** Retired records the subject stands for, with the sequence at which each retired; absent when none. */
   retired?: RetiredRecord[];
   /** Query-matched withdrawn occurrences, in withdrawal order, even without dependents. */
   withdrawals: Withdrawal[];
+  /** Withdrawals whose reason is selected by the query. */
+  reasonForWithdrawals: Withdrawal[];
+  /** Supporting/opposing relations from query-matched evidence. */
+  claims: DependentClaim[];
   decisions: DependentDecision[];
   changes: DependentChange[];
   values: DependentValue[];
   displayed: DependentDisplay[];
+}
+
+export interface DependentClaim {
+  evidence: string;
+  relation: 'supports' | 'opposes';
+  claim: string;
 }
 
 export interface RetiredRecord {
@@ -137,7 +166,7 @@ export interface DependentDecision {
   id: string;
   value: number | null;
   status: RevisionStatus;
-  basis: 'grounds' | 'permission' | 'lineage' | 'may rest on';
+  basis: 'grounds' | 'permission' | 'retained' | 'lineage' | 'may rest on';
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];
@@ -175,13 +204,15 @@ export interface DependentDisplay {
  * Everything in `snapshot` that rests on `subject`: evidence, a reading
  * stream or a caveat. Throws an Error when the program declares no such name.
  */
-export declare function dependents(snapshot: Snapshot, subject: string): DependentsReport;
+export declare function dependents(snapshot: Snapshot, subject: string, options?: ExplainOptions): DependentsReport;
 
 type FormattableDependent<T> = Omit<T, 'withdrawn'> & { withdrawn?: Withdrawal[] };
 
 /** Formatter input also accepts reports written before withdrawal annotations were added. */
-export type DependentsFormatInput = Omit<DependentsReport, 'withdrawals' | 'decisions' | 'changes' | 'values' | 'displayed'> & {
+export type DependentsFormatInput = Omit<DependentsReport, 'withdrawals' | 'reasonForWithdrawals' | 'claims' | 'decisions' | 'changes' | 'values' | 'displayed'> & {
   withdrawals?: Withdrawal[];
+  reasonForWithdrawals?: Withdrawal[];
+  claims?: DependentClaim[];
   decisions: FormattableDependent<DependentDecision>[];
   changes: FormattableDependent<DependentChange>[];
   values: FormattableDependent<DependentValue>[];

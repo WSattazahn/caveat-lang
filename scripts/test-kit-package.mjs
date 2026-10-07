@@ -55,7 +55,7 @@ const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { f
 // The kit's own documents, committed in kit/.
 const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session', 'types'];
+const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session', 'types'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -311,7 +311,7 @@ report.runtime = json.runtime;
 await writeFile(path.join(consumer, 'readings.jsonl'), '{"event":"read","payload":{"value":17}}\n{"event":"read","payload":{"value":99}}\n');
 const explained = node([cli, 'explain', 'thermostat_history.cav', 'readings.jsonl'], consumer);
 assert.equal(explained.status, 0, explained.stdout + explained.stderr);
-assert.match(explained.stdout, /heating@1 = 1 {2}in force\n {6}based on temperature@1 \(caveats: calibration_offset\)/);
+assert.match(explained.stdout, /heating@1 = 1 {2}in force\n {6}based on temperature@1\n {6}retaining: calibration_offset/);
 assert.match(explained.stdout, /read \{"value":99\} {2}refused \(input\/bound_exceeded\)/);
 const rests = node([cli, 'dependents', 'thermostat_history.cav', 'temperature@1', 'readings.jsonl'], consumer);
 assert.equal(rests.status, 0, rests.stdout + rests.stderr);

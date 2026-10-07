@@ -10,5 +10,5 @@ event decide;
 state last = 0;
 on look sample sighting = v supports seen;
 on look set last = latest(sighting);
-on decide when latest(sighting) > 100 commit trust because latest(sighting);
+on decide when latest(sighting) > 100 commit trust because enough using latest(sighting);
 bind hud.last = last;

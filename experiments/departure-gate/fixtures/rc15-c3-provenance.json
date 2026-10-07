@@ -1,0 +1,14 @@
+{
+  "package": "caveat-lang",
+  "version": "0.1.0-rc.15",
+  "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+  "npm_tarball_sha256": "789b40ddf5bd1f24f4bcd9eb319dbd453e00e9d1519a2282dcf3a93e6e88805f",
+  "reactive_wasm_sha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+  "source_sha256": "7367b1377251ff45fb8bf25860676f0205afe139c8dd493528ba6e9fe2b4fd33",
+  "save_sha256": "9c552e08f5a6a311f77296f8140eac5415077c9952f2db59ca55a32725d2a4b7",
+  "events": 44460,
+  "cycles": 60,
+  "created": "2026-10-07",
+  "host": "Windows x64, Node v24.11.1",
+  "notes": "Actual save text emitted by the verified published npm runtime through the C3 adapter. Not hand-constructed or reserialized. Package artifact identity was verified by the Evidence plugin bootstrap; no claim of authenticated source history."
+}

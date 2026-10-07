@@ -282,9 +282,16 @@ fn a_revision_basis_may_hold_a_departed_reading_through_its_predecessor() {
     }
     let after = shot(&game);
     let basis = &after["commitment_bases"]["trust@6"]["provenance"];
+    let mut marker = basis["departed"][0].clone();
+    let root = marker
+        .as_object_mut()
+        .unwrap()
+        .remove("archive_ref")
+        .unwrap();
+    assert_eq!(root.as_str().unwrap().len(), 64);
     assert_eq!(
-        basis["departed"],
-        json!([{"history": "sighting", "read": 2, "from": 1, "through": 2, "departed_at": 12}]),
+        marker,
+        json!({"history": "sighting", "read": 2, "from": 1, "through": 2, "departed_at": 12}),
         "{basis}"
     );
     assert!(basis["evidence"]

@@ -115,6 +115,18 @@ jobs:
           --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts
       - name: Developer kit session library and scenario runner
         run: npm run test:kit
+      - name: Departure save bound, exact rc.15 compatibility, and restore continuation
+        run: node experiments/departure-gate/run.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: departure-gates
+          path: |
+            test-results/departure-gates.json
+            test-results/*-sweep.txt
+            test-results/*-population.txt
+            test-results/*-reviewed.json
+          if-no-files-found: warn
       - name: Adoption scorer mutation controls (no trial agents)
         run: node --test experiments/agent-adoption/v1/checks.test.mjs
       - name: Adoption runner capture failure controls (no trial agents)

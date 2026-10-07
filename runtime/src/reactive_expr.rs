@@ -4,6 +4,7 @@
 //! epistemic graph. They cannot mutate state or invoke arbitrary host code.
 
 use crate::presentation::Number;
+use crate::reactive_archive::ArchiveTrace;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
@@ -120,20 +121,26 @@ pub struct Provenance {
 /// The departed records of one history that a provenance named: at least
 /// `read` of those numbered `from` to `through`, the last departing at
 /// `departed_at`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Marker {
     pub read: u64,
     pub from: u64,
     pub through: u64,
     pub departed_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive_ref: Option<ArchiveTrace>,
 }
 
 impl Marker {
     /// The join: order-independent, so a combined provenance does not depend
     /// on evaluation order. The overlap is not recorded, so `read` is the
     /// larger count, "at least".
-    pub fn join(&mut self, other: &Self) {
+    pub fn join(&mut self, other: &Self, history: &str) {
+        self.archive_ref = match (&self.archive_ref, &other.archive_ref) {
+            (Some(left), Some(right)) => Some(left.join(right, history)),
+            _ => None,
+        };
         self.read = self.read.max(other.read);
         self.from = self.from.min(other.from);
         self.through = self.through.max(other.through);
@@ -163,6 +170,8 @@ pub(crate) mod departure_markers {
         from: u64,
         through: u64,
         departed_at: u64,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        archive_ref: Option<crate::reactive_archive::ArchiveTrace>,
     }
 
     pub fn serialize<S: Serializer>(
@@ -175,6 +184,7 @@ pub(crate) mod departure_markers {
             from: marker.from,
             through: marker.through,
             departed_at: marker.departed_at,
+            archive_ref: marker.archive_ref.clone(),
         }))
     }
 
@@ -188,6 +198,7 @@ pub(crate) mod departure_markers {
                 from: named.from,
                 through: named.through,
                 departed_at: named.departed_at,
+                archive_ref: named.archive_ref,
             };
             if markers.insert(named.history, marker).is_some() {
                 return Err(serde::de::Error::custom(
@@ -251,14 +262,26 @@ impl Provenance {
     /// A record of `history` numbered `number` departs at `sequence`: if this
     /// provenance names it, the name leaves `evidence` and `inherited` and
     /// joins the history's marker. Returns whether it named it.
-    pub fn depart(&mut self, record: &str, history: &str, number: u64, sequence: u64) -> bool {
+    pub fn depart(
+        &mut self,
+        record: &str,
+        history: &str,
+        number: u64,
+        sequence: u64,
+        source_id: &str,
+    ) -> bool {
         if !self.evidence.remove(record) {
             return false;
         }
         self.inherited.remove(record);
+        let trace = ArchiveTrace::record(source_id, history, record, sequence);
         self.departed
             .entry(history.to_string())
             .and_modify(|marker| {
+                marker.archive_ref = marker
+                    .archive_ref
+                    .as_ref()
+                    .map(|root| root.join(&trace, history));
                 marker.read += 1;
                 marker.from = marker.from.min(number);
                 marker.through = marker.through.max(number);
@@ -269,6 +292,7 @@ impl Provenance {
                 from: number,
                 through: number,
                 departed_at: sequence,
+                archive_ref: Some(trace),
             });
         true
     }
@@ -347,8 +371,8 @@ impl Provenance {
         for (history, marker) in &other.departed {
             self.departed
                 .entry(history.clone())
-                .and_modify(|joined| joined.join(marker))
-                .or_insert(*marker);
+                .and_modify(|joined| joined.join(marker, history))
+                .or_insert_with(|| marker.clone());
         }
         Ok(())
     }

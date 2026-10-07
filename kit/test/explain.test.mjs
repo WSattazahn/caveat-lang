@@ -55,7 +55,7 @@ test('explain reports what the snapshot records, decision by decision', () => {
   assert.deepEqual(shown['temperature.text'].cites, snapshot.binding_explanations.temperature.text);
 
   const text = formatExplanation(report, 'thermostat');
-  assert.match(text, /heating@3 = 1 {2}in force\n {6}based on temperature@3 \(caveats: calibration_offset\)\n {6}could also have been influenced by temperature@1, temperature@2/);
+  assert.match(text, /heating@3 = 1 {2}in force\n {6}based on temperature@3\n {6}retaining: calibration_offset\n {6}could also have been influenced by temperature@1, temperature@2/);
   assert.match(text, /#2 read: reopened because temperature@2 \(caveats: calibration_offset\)/);
 });
 
@@ -233,11 +233,13 @@ test('explain and dependents show retired and departed records', async () => {
   assert.deepEqual(departed.decisions.map(item => [item.id, item.basis]),
     [['trust@1', 'may rest on'], ['trust@2', 'may rest on']]);
   assert.match(formatDependents(departed), /sighting@1 has departed/);
-  assert.equal(session.undrained, 2);
+  const undrained = session.undrained;
   const archive = session.drainArchive();
-  assert.deepEqual(archive.map(entry => entry.record), ['journal@1', 'sighting@1']);
+  assert.equal(undrained, archive.length);
+  const records = archive.filter(entry => entry.kind !== 'provenance');
+  assert.deepEqual(records.map(entry => entry.record), ['journal@1', 'sighting@1']);
   assert.equal(session.undrained, 0);
   assert.deepEqual(session.drainArchive(), []);
-  assert.ok(archive[1].holders.some(holder => holder.kind === 'commitment' && holder.name === 'trust@1' && holder.in === 'grounds'));
+  assert.ok(records[1].holders.some(holder => holder.kind === 'commitment' && holder.name === 'trust@1' && holder.in === 'grounds'));
   session.close();
 });

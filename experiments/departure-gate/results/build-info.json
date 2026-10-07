@@ -1,0 +1,15 @@
+{
+  "revision": "7f551e5774d61ec9f88e0d603e5b01196597b00c",
+  "clean": false,
+  "compiled": true,
+  "runtimeSourceFingerprint": "8d20715134565c8df04a321385145f170de4ab7457b5bcb0cc1ec245b0b805dc",
+  "runtimeArtifacts": {
+    "pkg/caveat_runtime.js": "9c20ae0c2f0b845f9ae95a733d1f47432ecce8f8704c68cb960e06e0215d8e64",
+    "pkg/caveat_runtime_bg.wasm": "34d61ba388ef25a27e76cfe481a98e52cd5aa5579c103e6c23923f7118b8519b",
+    "pkg-reactive/caveat_runtime.js": "a0fff7c2bc9df767502cb66f978bcc944fc65701cdeea14d7e37171c75118056",
+    "pkg-reactive/caveat_runtime_bg.wasm": "daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59"
+  },
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "host": "x86_64-pc-windows-msvc",
+  "wasmBindgen": "0.2.104"
+}

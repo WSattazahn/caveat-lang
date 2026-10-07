@@ -3,6 +3,23 @@
 //! spec/caveat-lineage-compaction-0.1.md.
 use super::*;
 
+/// Host-drained records and the provenance transfer nodes referring to them.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum ArchiveItem {
+    Record(Box<ArchiveEntry>),
+    Provenance(ArchiveProvenance),
+}
+
+impl ArchiveItem {
+    pub fn record(&self) -> Option<&ArchiveEntry> {
+        match self {
+            Self::Record(record) => Some(record),
+            Self::Provenance(_) => None,
+        }
+    }
+}
+
 /// A departed record as it was when it left, for the host to drain.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ArchiveEntry {
@@ -44,6 +61,7 @@ fn compact(
     provenance: &mut Provenance,
     departing: &BTreeMap<String, (String, u64)>,
     sequence: u64,
+    source_id: &str,
     holder: impl Fn() -> Holder,
     holders: &mut BTreeMap<String, Vec<Holder>>,
 ) {
@@ -58,7 +76,7 @@ fn compact(
         .collect::<Vec<_>>();
     for record in named {
         let (history, number) = &departing[&record];
-        provenance.depart(&record, history, *number, sequence);
+        provenance.depart(&record, history, *number, sequence, source_id);
         holders.entry(record).or_default().push(holder());
     }
 }
@@ -110,14 +128,9 @@ impl ReactiveSession {
             .map_or(2, |number| number as usize + 1)
     }
 
-    /// The records nothing may take from the session while it is cited, each
-    /// with what pins it. See spec/caveat-departure-0.1.md, "When a record
-    /// departs".
-    pub(crate) fn pins(&self) -> BTreeMap<String, BTreeSet<&'static str>> {
-        let mut pins: BTreeMap<String, BTreeSet<&'static str>> = BTreeMap::new();
-        let mut pin = |name: &String, by: &'static str| {
-            pins.entry(name.clone()).or_default().insert(by);
-        };
+    /// Enumerate pin sources only while loading/restoring or auditing the index.
+    /// Event mutations update the index directly, never by rescanning these sources.
+    fn for_each_pin(&self, mut pin: impl FnMut(&String, &'static str)) {
         for cell in self.states.cells.iter() {
             for name in cell.grounds.own_evidence() {
                 pin(name, "state grounds");
@@ -159,7 +172,78 @@ impl ReactiveSession {
         for withdrawal in self.withdrawals.iter() {
             pin(&withdrawal.because, "withdrawal reason");
         }
+    }
+
+    /// The records held by each kind of provenance, for restore validation and audits.
+    pub(crate) fn pins(&self) -> BTreeMap<String, BTreeSet<&'static str>> {
+        let mut pins: BTreeMap<String, BTreeSet<&'static str>> = BTreeMap::new();
+        self.for_each_pin(|name, by| {
+            pins.entry(name.clone()).or_default().insert(by);
+        });
         pins
+    }
+
+    pub(crate) fn rebuild_departure_index(&mut self) {
+        let mut counts = BTreeMap::new();
+        if self.windowed() {
+            self.for_each_pin(|name, _| *counts.entry(name.clone()).or_insert(0) += 1);
+        }
+        self.pin_counts = Arc::new(counts);
+        self.withdrawal_reasons = Arc::new(
+            self.withdrawals
+                .iter()
+                .map(|withdrawal| (withdrawal.evidence.clone(), withdrawal.because.clone()))
+                .collect(),
+        );
+        // rc.15 saves may contain unpinned retired records. Restore does not
+        // depart them; the next accepted event consumes these candidates.
+        self.departure_candidates = Arc::new(self.retired.keys().cloned().collect());
+    }
+
+    pub(crate) fn add_pin(&mut self, name: &str) {
+        if self.windowed() {
+            *Arc::make_mut(&mut self.pin_counts)
+                .entry(name.to_string())
+                .or_insert(0) += 1;
+        }
+    }
+
+    pub(crate) fn release_pin(&mut self, name: &str) {
+        if !self.windowed() {
+            return;
+        }
+        let counts = Arc::make_mut(&mut self.pin_counts);
+        let count = counts
+            .get_mut(name)
+            .expect("every released source had a pin");
+        *count -= 1;
+        if *count == 0 {
+            counts.remove(name);
+            if self.retired.contains_key(name) {
+                Arc::make_mut(&mut self.departure_candidates).insert(name.to_string());
+            }
+        }
+    }
+
+    pub(crate) fn pin_journal_entry(&mut self, entry: &JournalEntry) {
+        for name in entry.because.iter().chain(&entry.permitted_by) {
+            self.add_pin(name);
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    pub(crate) fn check_departure_index(&self) {
+        if self.windowed() {
+            let mut expected = BTreeMap::new();
+            self.for_each_pin(|name, _| *expected.entry(name.clone()).or_insert(0) += 1);
+            debug_assert_eq!(*self.pin_counts, expected, "incremental pin counts");
+            let reasons = self
+                .withdrawals
+                .iter()
+                .map(|withdrawal| (withdrawal.evidence.clone(), withdrawal.because.clone()))
+                .collect::<BTreeMap<_, _>>();
+            debug_assert_eq!(*self.withdrawal_reasons, reasons, "withdrawal pin sources");
+        }
     }
 
     /// The history and number of a retired record that may depart: not a
@@ -177,35 +261,22 @@ impl ReactiveSession {
 
     /// At the end of an event: every retired record that nothing pins
     /// departs. Reported after every other effect, by history and number.
-    pub(crate) fn depart_unpinned(&mut self, old: &Self) -> Result<(), String> {
-        if self.retired.is_empty() {
-            return Ok(());
-        }
-        // Only a record retired in this event, or one whose pin this event
-        // released, can depart now: with no retirement and no change to
-        // anything that pins, there is nothing to check. A restored session
-        // checks once, at its first event.
-        let unchanged = !self.departure_due
-            && Arc::ptr_eq(&self.retired, &old.retired)
-            && Arc::ptr_eq(&self.states.cells, &old.states.cells)
-            && Arc::ptr_eq(&self.commitment_grounds, &old.commitment_grounds)
-            && Arc::ptr_eq(&self.decision_series, &old.decision_series)
-            && Arc::ptr_eq(&self.journal, &old.journal)
-            && Arc::ptr_eq(&self.scheduled, &old.scheduled)
-            && Arc::ptr_eq(&self.commitment_permissions, &old.commitment_permissions)
-            && Arc::ptr_eq(&self.withdrawals, &old.withdrawals);
-        self.departure_due = false;
-        if unchanged {
-            return Ok(());
-        }
-        let pins = self.pins();
+    pub(crate) fn depart_unpinned(&mut self) -> Result<(), String> {
+        #[cfg(debug_assertions)]
+        self.check_departure_index();
         let mut departing = BTreeMap::new();
-        for record in self.retired.keys() {
-            if pins.contains_key(record) {
+        // Only retirements and released pins queue candidates. Resolve the
+        // complete withdrawal cascade before compaction so effects and archive
+        // entries are globally ordered, not ordered by cascade depth.
+        while let Some(record) = Arc::make_mut(&mut self.departure_candidates).pop_first() {
+            if !self.retired.contains_key(&record) || self.pin_counts.contains_key(&record) {
                 continue;
             }
-            if let Some(place) = self.departable(record) {
-                departing.insert(record.clone(), place);
+            if let Some(place) = self.departable(&record) {
+                if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
+                    self.release_pin(&reason);
+                }
+                departing.insert(record, place);
             }
         }
         if departing.is_empty() {
@@ -236,6 +307,7 @@ impl ReactiveSession {
                 &mut cell.value.provenance,
                 &departing,
                 sequence,
+                &self.source_id,
                 holder("state", &name, "lineage"),
                 &mut holders,
             );
@@ -243,6 +315,7 @@ impl ReactiveSession {
                 &mut cell.grounds,
                 &departing,
                 sequence,
+                &self.source_id,
                 holder("state", &name, "grounds"),
                 &mut holders,
             );
@@ -257,6 +330,7 @@ impl ReactiveSession {
                     &mut basis.provenance,
                     &departing,
                     sequence,
+                    &self.source_id,
                     holder("commitment", name, "basis"),
                     &mut holders,
                 );
@@ -272,6 +346,7 @@ impl ReactiveSession {
                     grounds,
                     &departing,
                     sequence,
+                    &self.source_id,
                     holder("commitment", name, "grounds"),
                     &mut holders,
                 );
@@ -289,6 +364,7 @@ impl ReactiveSession {
                     &mut stream.selection_qualifications,
                     &departing,
                     sequence,
+                    &self.source_id,
                     holder("stream", name, "selection_qualifications"),
                     &mut holders,
                 );
@@ -300,6 +376,7 @@ impl ReactiveSession {
                         &mut reading.provenance,
                         &departing,
                         sequence,
+                        &self.source_id,
                         holder("stream", &reading.id, "provenance"),
                         &mut holders,
                     );
@@ -316,6 +393,7 @@ impl ReactiveSession {
                     &mut series.selection_qualifications,
                     &departing,
                     sequence,
+                    &self.source_id,
                     holder("series", name, "selection_qualifications"),
                     &mut holders,
                 );
@@ -347,6 +425,7 @@ impl ReactiveSession {
                         provenance,
                         &departing,
                         sequence,
+                        &self.source_id,
                         holder("qualification", name, field),
                         &mut holders,
                     );
@@ -367,6 +446,7 @@ impl ReactiveSession {
                         provenance,
                         &departing,
                         sequence,
+                        &self.source_id,
                         holder("qualification", name, "predicate_qualifications"),
                         &mut holders,
                     );
@@ -383,6 +463,7 @@ impl ReactiveSession {
                     &mut scheduled.guard,
                     &departing,
                     sequence,
+                    &self.source_id,
                     holder("scheduled", &scheduled.evidence, "guard"),
                     &mut holders,
                 );
@@ -393,6 +474,7 @@ impl ReactiveSession {
                 provenance,
                 &departing,
                 sequence,
+                &self.source_id,
                 holder("cue", &index.to_string(), "qualifications"),
                 &mut holders,
             );
@@ -547,19 +629,158 @@ impl ReactiveSession {
                 history: entry.history.clone(),
                 record: entry.record.clone(),
             });
-            self.archive.push(entry);
+            self.archive.push(ArchiveItem::Record(Box::new(entry)));
         }
+        #[cfg(debug_assertions)]
+        self.check_departure_index();
         Ok(())
     }
 
     /// The departed records since the last drain, in the order they left.
     /// See spec/caveat-departure-0.1.md, "The archive".
-    pub fn drain_archive(&mut self) -> Vec<ArchiveEntry> {
+    pub fn drain_archive(&mut self) -> Vec<ArchiveItem> {
         std::mem::take(&mut self.archive)
     }
 
     /// How many departed records wait in the archive for the host to drain.
     pub fn undrained(&self) -> usize {
         self.archive.len()
+    }
+}
+
+fn settle_provenance(
+    provenance: &mut Provenance,
+    nodes: &mut Vec<ArchiveProvenance>,
+    seen: &mut BTreeSet<String>,
+) {
+    for marker in provenance.departed.values_mut() {
+        if let Some(root) = &mut marker.archive_ref {
+            root.settle(nodes, seen);
+            #[cfg(debug_assertions)]
+            debug_assert!(root.is_settled(), "live provenance retains only its root");
+        }
+    }
+}
+
+impl ReactiveSession {
+    /// Publish temporary pure-expression DAGs only after every event effect and
+    /// binding succeeds. Unchanged transaction maps already contain opaque roots.
+    /// Restore recomputes the same deterministic binding roots, then settles them
+    /// without publishing: its archive starts empty.
+    pub(crate) fn settle_archive_provenance(&mut self, old: Option<&Self>, publish: bool) {
+        if !self.windowed() {
+            return;
+        }
+        let mut nodes = Vec::new();
+        let mut seen = BTreeSet::new();
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.states.cells, &self.states.cells)) {
+            for cell in Arc::make_mut(&mut self.states.cells) {
+                if cell
+                    .value
+                    .provenance
+                    .departed
+                    .values()
+                    .chain(cell.grounds.departed.values())
+                    .all(|marker| {
+                        marker
+                            .archive_ref
+                            .as_ref()
+                            .is_none_or(|root| root.is_settled())
+                    })
+                {
+                    continue;
+                }
+                let cell = Arc::make_mut(cell);
+                settle_provenance(&mut cell.value.provenance, &mut nodes, &mut seen);
+                settle_provenance(&mut cell.grounds, &mut nodes, &mut seen);
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)) {
+            for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {
+                settle_provenance(&mut basis.provenance, &mut nodes, &mut seen);
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)) {
+            for grounds in Arc::make_mut(&mut self.commitment_grounds).values_mut() {
+                settle_provenance(grounds, &mut nodes, &mut seen);
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.reading_streams, &self.reading_streams)) {
+            for stream in Arc::make_mut(&mut self.reading_streams).values_mut() {
+                settle_provenance(&mut stream.selection_qualifications, &mut nodes, &mut seen);
+                for reading in &mut stream.occurrences {
+                    settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.decision_series, &self.decision_series)) {
+            for series in Arc::make_mut(&mut self.decision_series).values_mut() {
+                settle_provenance(&mut series.selection_qualifications, &mut nodes, &mut seen);
+            }
+        }
+        for (map, unchanged) in [
+            (
+                &mut self.observation_qualifications,
+                old.map(|old| &old.observation_qualifications),
+            ),
+            (
+                &mut self.examination_qualifications,
+                old.map(|old| &old.examination_qualifications),
+            ),
+            (
+                &mut self.reopening_qualifications,
+                old.map(|old| &old.reopening_qualifications),
+            ),
+        ] {
+            if unchanged.is_none_or(|old| !Arc::ptr_eq(old, map)) {
+                for provenance in Arc::make_mut(map).values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if old.is_none_or(|old| {
+            !Arc::ptr_eq(
+                &old.predicate_qualifications,
+                &self.predicate_qualifications,
+            )
+        }) {
+            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
+                for provenance in targets.values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.scheduled, &self.scheduled)) {
+            for scheduled in Arc::make_mut(&mut self.scheduled) {
+                settle_provenance(&mut scheduled.guard, &mut nodes, &mut seen);
+            }
+        }
+        for provenance in &mut self.cue_qualifications {
+            settle_provenance(provenance, &mut nodes, &mut seen);
+        }
+        for map in [
+            &mut self.binding_qualifications,
+            &mut self.binding_explanations,
+        ] {
+            for targets in map.values_mut() {
+                for provenance in targets.values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        for item in &mut self.archive {
+            if let ArchiveItem::Record(record) = item {
+                for provenance in record.qualifications.values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+                if let Some(reading) = &mut record.reading {
+                    settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if publish {
+            self.archive
+                .extend(nodes.into_iter().map(ArchiveItem::Provenance));
+        }
     }
 }

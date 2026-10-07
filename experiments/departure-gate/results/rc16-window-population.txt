@@ -1,0 +1,13 @@
+experiments/departure-gate/c3-windows.cav
+experiments/departure-gate/guarded-skip.cav
+experiments/departure-gate/kit-explain-window.cav
+experiments/departure-gate/kit-types-window.cav
+experiments/departure-gate/runtime-windows-world.cav
+experiments/departure-gate/withdrawal-fixtures/acyclic.cav
+experiments/departure-gate/withdrawal-fixtures/later-history-read.cav
+experiments/departure-gate/withdrawal-fixtures/mutual-own-ground.cav
+experiments/departure-gate/withdrawal-fixtures/mutual.cav
+experiments/departure-gate/withdrawal-fixtures/permission-root.cav
+experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav
+experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav
+experiments/departure-gate/withdrawal-fixtures/self.cav

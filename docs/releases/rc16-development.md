@@ -12,8 +12,9 @@ section factual, as `rc15-development.md` does.
   `latest` and `next` both name it, and the MCP Registry lists
   `io.github.WSattazahn/caveat-lang` 0.1.0-rc.15 as latest
   ([rc.15 release record](v0.1.0-rc.15.md)).
-- `kit/package.json` still says `0.1.0-rc.15`. The version moves to
-  `0.1.0-rc.16` with the first runtime change, not with this record.
+- At cycle opening, `kit/package.json` said `0.1.0-rc.15`. The departure
+  continuation now sets the kit and registry candidate to `0.1.0-rc.16`; this
+  is an unpublished checkout version, not a publication record.
 - PRs merge as merge commits, never squash. Merges reopened when `next` moved
   to rc.15 (owner, 2026-10-05 14:45 UTC: "move `next` by hand as for
   rc.13/rc.14, and only then let the thread resume merges").
@@ -34,6 +35,10 @@ section factual, as `rc15-development.md` does.
   stays open until departure lands.
 
 ## Progress
+
+The dated PR 1–4 entries below record the specification decisions before
+implementation. Current implementation and verification are recorded in the
+2026-10-07 continuation section at the end of this file.
 
 - PR 1: [Lineage compaction 0.1](../../spec/caveat-lineage-compaction-0.1.md),
   specified, not implemented. A value's own citations stay exact and pin their
@@ -160,3 +165,79 @@ section factual, as `rc15-development.md` does.
   holds a marker, since departure is a source mechanism that produces one.
   It still refuses every other reopening qualification that no `reopens`
   relation names. The departure implementation is now PR 5.
+
+## Continuation for review (2026-10-07)
+
+Claude's departure WIP `7f551e5` was preserved and continued on
+`codex/rc16-continuation`. This is the departure implementation (PR 5), with
+the kit/registry candidate bumped to rc.16; nothing here records npm publication.
+The current source contains:
+
+- incremental pin counts and retirement candidates, with transaction rollback
+  and a one-time restore rebuild;
+- cascading release of withdrawal-reason pins, so an immediate save after a
+  withdrawal-triggered departure restores;
+- restore checks for genuine same-event departed effects and retained retired
+  permission grants, while rejecting journal ordinals forged as evidence;
+- the owner's exact-archive amendment: bounded content-addressed roots in live
+  markers and host-drained record/union provenance nodes. Copies, merges,
+  overlap and replacement preserve exact membership with a complete matching
+  archive. Missing/incomplete/corrupt proof stays explicitly conservative;
+- archive-aware JS/TypeScript reports, CLI and inline-authoring replays,
+  persistent serve drain/count operations and caller-supplied archive queries,
+  and actual-browser reconstruction checks;
+- dogfooding D001–D005 follow-through (plain decisions, reverse withdrawal
+  reasons, retained-caveat wording, genuine read lineage, and support/opposition
+  edges), plus sample 002 of this continuation agent's observed decision.
+  Claude's unavailable private log has not been reconstructed or attributed.
+
+The [gate directory](../../experiments/departure-gate/README.md) supplies
+reproduction commands and actual receipts. Full native tests passed 849 tests;
+reactive-only tests passed 837. Both strict Clippy profiles and formatting
+passed. The Windows debug suites used a 16 MiB test-thread stack; the current
+optimized maximum-depth test passed with the default Windows stack. The
+reviewed kit suite passed 320 tests. WASM interface/dispatch, game-policy,
+registered scenarios, sample 002, notices and generated docs checks passed.
+The fresh installed package, copied guides, Python clients, Chrome archive
+transfer and Glowcap/Trail Rescue page checks passed. The candidate tarball
+is 985,936 bytes, SHA-256
+`6a978f2594ae17b3dad95cd14cca921a352308ab59c4a4f233dd7368687e18e2`.
+Remote CI remains an independently recorded check.
+
+No-window comparison covered 146 programs (116 executed, 30 explicitly
+skipped) over 8 seeds of 150 events. All outcome/save/restore digest rows
+matched the pinned rc.15 runtime. All 13 windowed fixtures, including the new
+withdrawal probes, matched rc.15 dispatch outcome rows over 32 seeds of 400
+events (416 rows). These are measured populations, not proofs for all programs.
+
+Current C3 adapter save sizes at 30 and 60 cycles are both 2,646 bytes; raw
+sizes are 25,682 and 25,683 with equal normalized live-save structure. All
+44,460 accepted outcomes match the published rc.15 baseline. The recorded
+last-ten-cycle median is 114.7 microseconds
+on this Windows Node24 host. The undrained archive contains 1,578 items
+(1,011 records, 567 provenance nodes), 557,347 serialized bytes; draining it
+does not change the save. This is separate historical storage and may grow.
+Process-memory readings are not isolated archive heap measurements.
+
+The exact published rc.15 C3 save restores at 226,589 raw / 22,182 adapter
+bytes, then measures 92,588 / 6,530 after the first event and 26,513 / 2,698
+after every one of 61 states has received a set (742 accepted events).
+The seeded pin census includes the forever-skipped commit fixture and reports
+the attribution categories rather than assuming pins are bounded.
+
+### Owner review still required: withdrawal reachability
+
+The 1,000-cycle probes found self-withdrawal retention of 999 retired records
+and mutual retention of 1,998 even with the archive drained after every event.
+A reachable chain retains 1,999; eliminating isolated cycles would therefore
+not establish a universal bound. The owner authorized the
+[design amendment and paired fixtures](../../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
+for review only. No collector, pin weakening, new rejection or withdrawal
+semantic change was implemented. The broad save-bound argument remains
+unresolved; exact own grounds and genuinely required reasons remain obligations.
+
+The build receipts identify a compiled dirty working build based on `7f551e5`
+with source fingerprint and WASM hashes, not a clean published release.
+Linux, Lean, independent reproducibility and the remaining browser matrix are
+remote CI/release checks. Series windows, View 0.2 and later rc.16 roadmap items
+have not been folded into this departure continuation.

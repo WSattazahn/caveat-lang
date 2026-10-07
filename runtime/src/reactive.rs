@@ -52,7 +52,8 @@ mod outcome;
 
 #[path = "reactive_departure.rs"]
 mod departure;
-pub use departure::{ArchiveEntry, Holder};
+pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
+pub use departure::{ArchiveEntry, ArchiveItem, Holder};
 
 #[path = "reactive_identifiers.rs"]
 mod identifiers;
@@ -1305,9 +1306,13 @@ pub struct ReactiveSession {
     /// Departed records the host has not drained, in the order they left. A
     /// handover buffer, not session state: nothing reads it, and a save does
     /// not hold it.
-    archive: Vec<ArchiveEntry>,
-    /// Set by restore: the next event checks every retired record once.
-    departure_due: bool,
+    archive: Vec<ArchiveItem>,
+    /// Source-specific reference counts and withdrawal edges, derived from
+    /// session state. Shared by transaction clones; never serialized.
+    pin_counts: Arc<BTreeMap<String, usize>>,
+    withdrawal_reasons: Arc<BTreeMap<String, String>>,
+    /// New retirements and retired records whose final pin was released.
+    departure_candidates: Arc<BTreeSet<String>>,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -1484,7 +1489,9 @@ impl ReactiveSession {
             retired: Arc::default(),
             journal_departed: 0,
             archive: Vec::new(),
-            departure_due: false,
+            pin_counts: Arc::default(),
+            withdrawal_reasons: Arc::default(),
+            departure_candidates: Arc::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -1955,6 +1962,7 @@ impl ReactiveSession {
         session
             .evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
+        session.rebuild_departure_index();
         Ok(session)
     }
 
@@ -3540,13 +3548,15 @@ impl ReactiveSession {
         }
         // Retired records nothing pins any more leave, before the bindings
         // read what cites them.
-        self.depart_unpinned(old)?;
+        self.depart_unpinned()?;
         // Binding failures roll back the same numeric/graph/cue transaction.
         let changes = Changes::between(old, self);
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
-        result
+        result?;
+        self.settle_archive_provenance(Some(old), true);
+        Ok(())
     }
 
     fn take_shown(&mut self) -> Shown {
@@ -4329,6 +4339,7 @@ impl ReactiveSession {
                             after,
                             guard: guard.union(&delay.provenance)?,
                         };
+                        self.add_pin(&scheduled.evidence);
                         Arc::make_mut(&mut self.scheduled).push(scheduled);
                     }
                 }
@@ -4359,6 +4370,11 @@ impl ReactiveSession {
                     .iter()
                     .any(|withdrawal| withdrawal.evidence == evidence)
                 {
+                    self.add_pin(&because);
+                    if self.windowed() {
+                        Arc::make_mut(&mut self.withdrawal_reasons)
+                            .insert(evidence.clone(), because.clone());
+                    }
                     Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
                         evidence: evidence.clone(),
                         because: because.clone(),
@@ -4447,6 +4463,17 @@ impl ReactiveSession {
                     )?,
                 };
                 let slot = self.states.slot(name).expect("validated state");
+                let previous_pins = self.states.cells[slot]
+                    .grounds
+                    .own_evidence()
+                    .cloned()
+                    .collect::<Vec<_>>();
+                for record in previous_pins {
+                    self.release_pin(&record);
+                }
+                for record in grounds.own_evidence() {
+                    self.add_pin(record);
+                }
                 self.states.set(
                     slot,
                     StateCell {
@@ -4598,6 +4625,18 @@ impl ReactiveSession {
                 } else {
                     None
                 };
+                if let Some(previous) = &previous {
+                    let released = self.commitment_grounds[previous]
+                        .own_evidence()
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    for record in released {
+                        self.release_pin(&record);
+                    }
+                }
+                for record in grounds.own_evidence() {
+                    self.add_pin(record);
+                }
                 Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
 
@@ -4643,6 +4682,7 @@ impl ReactiveSession {
                     },
                 );
                 if let Some(record) = &permission {
+                    self.add_pin(&record.grant);
                     Arc::make_mut(&mut self.commitment_permissions)
                         .insert(name.clone(), record.clone());
                 }
@@ -4677,6 +4717,7 @@ impl ReactiveSession {
                     permitted_by: permission.map(|record| record.grant),
                 };
                 self.retire_journal_entry();
+                self.pin_journal_entry(&entry);
                 Arc::make_mut(&mut self.journal).push(entry);
                 self.effects.push(EffectReport::Commit {
                     action: name,
@@ -4799,6 +4840,7 @@ impl ReactiveSession {
                         caveats: caveats.into_iter().collect(),
                         permitted_by: None,
                     };
+                    self.pin_journal_entry(&entry);
                     Arc::make_mut(&mut self.journal).push(entry);
                 }
             }
@@ -4866,6 +4908,7 @@ impl ReactiveSession {
         let (now, later): (Vec<_>, Vec<_>) = self.scheduled.iter().cloned().partition(due);
         self.scheduled = Arc::new(later);
         for scheduled in now {
+            self.release_pin(&scheduled.evidence);
             self.apply_qualification(&scheduled.evidence, &scheduled.caveat, &scheduled.guard)?;
         }
         Ok(())
@@ -5160,6 +5203,7 @@ impl ReactiveSession {
     }
 
     fn retire(&mut self, history: &str, record: String) {
+        Arc::make_mut(&mut self.departure_candidates).insert(record.clone());
         Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
         self.effects.push(EffectReport::Retire {
             history: history.to_string(),
@@ -5176,6 +5220,16 @@ impl ReactiveSession {
             .map(|index| self.journal_name(index))
             .collect::<Vec<_>>();
         if let Some(oldest) = self.oldest_live_beyond_window(&names, String::as_str, window) {
+            let index = names.iter().position(|name| name == &oldest).unwrap();
+            let released = self.journal[index]
+                .because
+                .iter()
+                .chain(&self.journal[index].permitted_by)
+                .cloned()
+                .collect::<Vec<_>>();
+            for record in released {
+                self.release_pin(&record);
+            }
             self.retire("journal", oldest);
         }
     }

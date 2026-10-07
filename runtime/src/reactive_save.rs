@@ -707,10 +707,12 @@ impl ReactiveSession {
         self.restore_states(&save.states, &observed, &caveats)?;
         self.restore_records(save, &observed, &caveats, &declared)?;
         self.restore_retired(save)?;
-        self.restore_permissions(save)?;
+        self.restore_permissions(save, &observed)?;
         self.restore_departures(save)?;
         self.evaluate_bindings(None)
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+        self.settle_archive_provenance(None, false);
+        Ok(())
     }
 
     /// Departure markers, inherited grounds and the departure rule: see
@@ -826,7 +828,7 @@ impl ReactiveSession {
         }
         // An older save may hold retired records nothing pins: they depart
         // at the next accepted event.
-        self.departure_due = windowed;
+        self.rebuild_departure_index();
         Ok(())
     }
 
@@ -1065,7 +1067,11 @@ impl ReactiveSession {
     /// Permission records must name restored commitments, known evidence,
     /// finite scope values and declared caveats, and agree with the journal's
     /// `permitted_by` in both directions.
-    fn restore_permissions(&mut self, save: &ReactiveSave) -> Result<(), String> {
+    fn restore_permissions(
+        &mut self,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         for (commitment, record) in &save.commitment_permissions {
             if !self.commitment_bases.contains_key(commitment) {
                 return Err(format!(
@@ -1095,7 +1101,9 @@ impl ReactiveSession {
             // was observed and is in the commitment's frozen lineage. Whether
             // it is still unwithdrawn, or still matches today's head, is not
             // checked: later changes do not rewrite the record.
-            if !self.predicate("observed", &record.grant)? {
+            // Retirement changes the live observed predicate, not whether
+            // this exact grant was observed when permission was recorded.
+            if self.require_observed(&record.grant, observed).is_err() {
                 return Err(format!(
                     "the permission of {commitment} names a grant that was never observed, {}",
                     record.grant
@@ -2287,11 +2295,14 @@ impl ReactiveSession {
                     relation,
                     target,
                 } => {
-                    self.require_kind(evidence, "evidence")?;
-                    self.require_observed(evidence, observed)?;
+                    let departed = self.departed_in_last_event(save, evidence);
+                    if !departed {
+                        self.require_kind(evidence, "evidence")?;
+                        self.require_observed(evidence, observed)?;
+                    }
                     match (relation, target) {
                         (None, None) => {
-                            if !self.observations.iter().any(|name| name == evidence) {
+                            if !departed && !self.observations.iter().any(|name| name == evidence) {
                                 return Err(
                                     "neutral reveal effect is missing its observation record"
                                         .into(),
@@ -2317,11 +2328,13 @@ impl ReactiveSession {
                                     )
                                 }
                             };
-                            if !self.graph.edges.iter().any(|edge| {
-                                edge.from == self.symbols[evidence]
-                                    && edge.to == self.symbols[target]
-                                    && edge.relation == stance
-                            }) {
+                            if !departed
+                                && !self.graph.edges.iter().any(|edge| {
+                                    edge.from == self.symbols[evidence]
+                                        && edge.to == self.symbols[target]
+                                        && edge.relation == stance
+                                })
+                            {
                                 return Err("reveal effect has no matching graph relation".into());
                             }
                         }
@@ -2344,10 +2357,9 @@ impl ReactiveSession {
                 // longer one; checked against the save below.
                 EffectReport::Retire { .. } | EffectReport::Depart { .. } => Vec::new(),
             };
-            if let Some(name) = names
-                .into_iter()
-                .find(|name| !self.symbols.contains_key(*name))
-            {
+            if let Some(name) = names.into_iter().find(|name| {
+                !self.symbols.contains_key(*name) && !self.departed_in_last_event(save, name)
+            }) {
                 return Err(format!("an effect names unknown {name}"));
             }
             self.check_effect_against_save(effect, save, observed)?;
@@ -2704,10 +2716,31 @@ impl ReactiveSession {
         reached
     }
 
+    /// An effect can name a record removed later in that same event only
+    /// when a departure report agrees with the save's actual history gap.
+    /// A missing symbol or an arbitrary departure report alone is insufficient.
+    fn departed_in_last_event(&self, save: &ReactiveSave, record: &str) -> bool {
+        let Some(history) =
+            departed_record(save, &self.windows, self.journal_window.is_some(), record)
+        else {
+            return false;
+        };
+        // These callers validate evidence fields. A departed journal entry
+        // is a reportable record, but cannot stand in for an evidence node.
+        if !self.reading_streams.contains_key(&history) && !self.renewals.contains_key(&history) {
+            return false;
+        }
+        save.effects.iter().any(|effect| {
+            matches!(effect,
+            EffectReport::Depart { history: reported, record: gone }
+                if reported == &history && gone == record)
+        })
+    }
+
     /// A saved effect must agree with what the rest of the save restored: its
     /// names have the kinds its place needs, and the relation, record or
-    /// spending it reports is there. Every effect leaves those behind, and
-    /// nothing later in the same event removes them.
+    /// spending it reports is there, unless a validated same-event departure
+    /// removed that record. The source must still be able to emit the effect.
     fn check_effect_against_save(
         &self,
         effect: &EffectReport,
@@ -2739,16 +2772,19 @@ impl ReactiveSession {
                         .iter()
                         .any(|occurrence| occurrence.id == *id)
                 });
-                if !listed {
+                let departed = self.departed_in_last_event(save, id);
+                if !listed && !departed {
                     return Err(fail("names no reading of its stream"));
                 }
-                named(self.require_observed(id, observed))?;
+                if !departed {
+                    named(self.require_observed(id, observed))?;
+                }
                 let stance = match relation.as_str() {
                     "supports" => Relation::Supports,
                     "opposes" => Relation::Opposes,
                     _ => return Err(fail("relation must be supports or opposes")),
                 };
-                if !related(id, stance, target) {
+                if !departed && !related(id, stance, target) {
                     return Err(fail("has no matching graph relation"));
                 }
             }
@@ -2779,15 +2815,21 @@ impl ReactiveSession {
             }
             EffectReport::Reopen { action, because } => {
                 named(self.require_commitment(action))?;
-                named(self.require_observed(because, observed))?;
-                if !related(because, Relation::Reopens, action) {
+                let departed = self.departed_in_last_event(save, because);
+                if !departed {
+                    named(self.require_observed(because, observed))?;
+                }
+                if !departed && !related(because, Relation::Reopens, action) {
                     return Err(fail("has no matching graph relation"));
                 }
             }
             EffectReport::Qualify { evidence, caveat } => {
-                named(self.require_kind(evidence, "evidence"))?;
+                let departed = self.departed_in_last_event(save, evidence);
+                if !departed {
+                    named(self.require_kind(evidence, "evidence"))?;
+                }
                 named(self.require_kind(caveat, "caveat"))?;
-                if !related(caveat, Relation::Qualifies, evidence) {
+                if !departed && !related(caveat, Relation::Qualifies, evidence) {
                     return Err(fail("has no matching graph relation"));
                 }
             }
@@ -2800,16 +2842,23 @@ impl ReactiveSession {
                         .renewals
                         .get(evidence)
                         .is_some_and(|occurrences| occurrences.contains(occurrence));
-                if !listed {
+                if !listed && !self.departed_in_last_event(save, occurrence) {
                     return Err(fail("names no occurrence of its renewals"));
                 }
             }
             EffectReport::Withdraw { evidence, because } => {
-                named(self.require_observed(evidence, observed))?;
-                named(self.require_observed(because, observed))?;
-                if !self.withdrawals.iter().any(|withdrawal| {
-                    withdrawal.evidence == *evidence && withdrawal.because == *because
-                }) {
+                let departed = self.departed_in_last_event(save, evidence);
+                if !departed {
+                    named(self.require_observed(evidence, observed))?;
+                }
+                if !self.departed_in_last_event(save, because) {
+                    named(self.require_observed(because, observed))?;
+                }
+                if !departed
+                    && !self.withdrawals.iter().any(|withdrawal| {
+                        withdrawal.evidence == *evidence && withdrawal.because == *because
+                    })
+                {
                     return Err(fail("has no matching withdrawal record"));
                 }
             }

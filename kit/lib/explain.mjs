@@ -3,6 +3,8 @@
 // displayed value with the evidence it cites. Pure: it reads a snapshot, and
 // the events that produced it, and never runs a program.
 
+import {archiveResolver} from './archive.mjs';
+
 export const EXPLAIN_SCHEMA = 'caveat-explain/0.1';
 
 const none = () => ({ evidence: [], caveats: [] });
@@ -33,8 +35,9 @@ function heldRecords(snapshot) {
 function departedBetween(held, history, from, through) {
   const records = held.get(history);
   if (!records) return null;
-  let count = 0;
-  for (let number = from; number <= through; number += 1) if (!records.has(number)) count += 1;
+  if (!Number.isSafeInteger(from) || !Number.isSafeInteger(through) || from < 1 || through < from) return null;
+  let count = through - from + 1;
+  for (const number of records) if (number >= from && number <= through) count--;
   return count;
 }
 
@@ -42,30 +45,29 @@ function departedBetween(held, history, from, through) {
 // at least 41 of ...", or the one name when the range is one record
 // (spec/caveat-lineage-compaction-0.1.md, "Explain, dependents and the view").
 function markerText(marker) {
-  const { history, read, from, through, departed_at: at, departed_between: total, records } = marker;
-  if (records?.length) return `departed ${records.join(', ')} (${records.length === 1 ? 'at' : 'the last at'} #${at})`;
-  if (from === through) return `departed ${history}@${from} (at #${at})`;
+  const { history, read, from, through, departed_at: at, departed_between: total, records, archive_status: status } = marker;
+  if (status === 'complete' && records?.length) return `departed ${records.join(', ')} (${records.length === 1 ? 'at' : 'the last at'} #${at}; archive membership reconstructed)`;
+  const unavailable = ' [marker summary; exact archive reconstruction unavailable]';
+  if (from === through) return `departed ${history}@${from} (at #${at})${unavailable}`;
   const amount = total === read ? `all ${read}` : `at least ${read}`;
-  return `read ${amount} of departed ${history}@${from} to @${through}, the last at #${at}`;
+  return `read ${amount} of departed ${history}@${from} to @${through}, the last at #${at}${unavailable}`;
 }
 
 // A provenance with each marker given how many records its range holds that
-// departed and, from a drained archive, which records the holder named.
-function annotate(provenance, held, named = () => []) {
+// departed and, from a complete drained provenance graph, its exact members.
+function annotate(provenance, held, named = () => null) {
   if (!provenance?.departed?.length) return provenance;
   return {
     ...provenance,
     departed: provenance.departed.map(marker => {
-      // The archive names a record under the holders that held it when it
-      // departed. A marker merged into a later provenance has no such holder,
-      // so its records are named only when the archive accounts for all of
-      // them.
-      const found = named(marker);
-      const records = found.length === marker.read ? found : [];
+      const total = departedBetween(held, marker.history, marker.from, marker.through);
+      const records = named(marker);
+      const {records: _oldRecords, archive_status: _oldStatus, ...plain} = marker;
       return {
-        ...marker,
-        departed_between: departedBetween(held, marker.history, marker.from, marker.through),
-        ...(records.length ? { records } : {}),
+        ...plain,
+        departed_between: total,
+        archive_status: records ? 'complete' : 'unavailable',
+        ...(records ? { records } : {}),
       };
     }),
   };
@@ -89,19 +91,7 @@ function caveatsByEvidence(snapshot) {
 export function explain(snapshot, events = [], { archive = [] } = {}) {
   const qualifiedBy = caveatsByEvidence(snapshot);
   const held = heldRecords(snapshot);
-  // A drained archive names exactly which departed records a decision's
-  // grounds or basis held (spec/caveat-departure-0.1.md, "The archive").
-  const heldBy = new Map();
-  for (const entry of archive) {
-    for (const holder of entry.holders ?? []) {
-      const key = `${holder.kind}\u0000${holder.name}\u0000${holder.in}`;
-      (heldBy.get(key) ?? heldBy.set(key, []).get(key)).push(entry);
-    }
-  }
-  const namedBy = (kind, name, field) => marker => (heldBy.get(`${kind}\u0000${name}\u0000${field}`) ?? [])
-    .filter(entry => entry.history === marker.history && entry.number >= marker.from && entry.number <= marker.through)
-    .sort((a, b) => a.number - b.number)
-    .map(entry => entry.record);
+  const archivedNames = archiveResolver(snapshot, archive);
   // Withdrawn observations (spec/caveat-withdrawal-0.1.md), by evidence.
   const withdrawals = new Map((snapshot.withdrawals ?? []).map(({ evidence, because, sequence, event }) =>
     [evidence, { because, sequence, event }]));
@@ -136,39 +126,53 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
   });
 
   const journal = snapshot.decision_journal ?? [];
+  const commitments = new Map((snapshot.commitments ?? []).map(item => [item.action, item]));
+  const describe = (id, current) => {
+    const history = journal.filter(entry => entry.commitment === id).map(entry => ({
+      change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
+    }));
+    const record = commitments.get(id);
+    // The current graph status survives journal retirement and recommitment.
+    const reopened = record ? record.open : history.at(-1)?.change === 'reopened';
+    const grounds = annotate(snapshot.commitment_grounds?.[id] ?? none(), held,
+      archivedNames);
+    return {
+      id,
+      value: snapshot.commitment_bases?.[id]?.value ?? null,
+      status: id !== current ? 'superseded' : reopened ? 'reopened' : 'in force',
+      grounds,
+      lineage: annotate(snapshot.commitment_bases?.[id]?.provenance ?? none(), held,
+        archivedNames),
+      retained: record?.retained ?? grounds.caveats,
+      permission: snapshot.commitment_permissions?.[id] ?? null,
+      withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
+        .map(name => ({ evidence: name, ...withdrawals.get(name) })),
+      history,
+    };
+  };
+  const seriesIds = new Set();
   const decisions = Object.entries(snapshot.decision_series ?? {}).map(([name, series]) => ({
     name,
     limit: series.limit,
     current: series.current,
     revisions: (series.revisions ?? []).map(revision => {
-      const history = journal.filter(entry => entry.commitment === revision.id).map(entry => ({
-        change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
-      }));
-      const reopened = history.some(entry => entry.change === 'reopened');
-      const grounds = annotate(snapshot.commitment_grounds?.[revision.id] ?? none(), held,
-        namedBy('commitment', revision.id, 'grounds'));
-      return {
-        id: revision.id,
-        value: snapshot.commitment_bases?.[revision.id]?.value ?? null,
-        status: revision.id !== series.current ? 'superseded' : reopened ? 'reopened' : 'in force',
-        grounds,
-        lineage: annotate(snapshot.commitment_bases?.[revision.id]?.provenance ?? none(), held,
-          namedBy('commitment', revision.id, 'basis')),
-        // What permitted it, frozen (spec/caveat-permission-0.1.md): not its
-        // grounds, though its grant is in its lineage.
-        permission: snapshot.commitment_permissions?.[revision.id] ?? null,
-        // Grounds withdrawn since the decision was made. The grounds themselves
-        // stay as they were.
-        withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
-          .map(name => ({ evidence: name, ...withdrawals.get(name) })),
-        history,
-      };
+      seriesIds.add(revision.id);
+      return describe(revision.id, series.current);
     }),
   }));
+  // A plain commit has one current record rather than a declared revision
+  // history. Keep its journal and reasons visible without inventing a series.
+  for (const { action } of commitments.values()) {
+    if (seriesIds.has(action)) continue;
+    decisions.push({ name: action, kind: 'plain', limit: 1, current: action,
+      revisions: [describe(action, action)] });
+  }
 
   const displayed = Object.entries(snapshot.bindings ?? {}).flatMap(([target, properties]) =>
     Object.entries(properties).map(([property, value]) => ({
-      name: `${target}.${property}`, value, cites: annotate(snapshot.binding_explanations?.[target]?.[property] ?? none(), held),
+      name: `${target}.${property}`, value, cites: annotate(snapshot.binding_explanations?.[target]?.[property] ?? none(), held, archivedNames),
+      ...(snapshot.binding_qualifications?.[target]?.[property]?.departed?.length
+        ? {lineage: annotate(snapshot.binding_qualifications[target][property], held, archivedNames)} : {}),
     })));
 
   return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed, events, decisions, evidence, displayed };
@@ -204,10 +208,13 @@ export function formatExplanation(report, title = 'the program') {
   lines.push('', 'Decisions');
   if (!report.decisions.length) lines.push('  none declared');
   for (const series of report.decisions) {
-    lines.push(`  ${series.name}: ${series.revisions.length} of at most ${series.limit}`);
+    lines.push(series.kind === 'plain' ? `  ${series.name}: plain commitment`
+      : `  ${series.name}: ${series.revisions.length} of at most ${series.limit}`);
     for (const revision of series.revisions) {
       lines.push(`    ${revision.id} = ${show(revision.value)}  ${revision.status}`);
-      lines.push(`      based on ${withCaveats(revision.grounds)}`);
+      lines.push(`      based on ${withCaveats({ ...revision.grounds, caveats: [] })}`);
+      const retained = revision.retained ?? revision.grounds.caveats;
+      if (retained.length) lines.push(`      retaining: ${list(retained)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);
       if (revision.permission) {
         const { grant, scope, caveats } = revision.permission;
@@ -217,14 +224,17 @@ export function formatExplanation(report, title = 'the program') {
         if (revoked) lines.push(`      ${grant} has since been ${withdrawnNote(revoked)}`);
       }
       const also = revision.lineage.evidence.filter(name => !revision.grounds.evidence.includes(name));
-      const inGrounds = new Set((revision.grounds.departed ?? []).map(marker => JSON.stringify([marker.history, marker.read, marker.from, marker.through, marker.departed_at])));
+      const markerIdentity = marker => JSON.stringify([marker.history, marker.read, marker.from, marker.through, marker.departed_at, marker.archive_ref, marker.records]);
+      const inGrounds = new Set((revision.grounds.departed ?? []).map(markerIdentity));
       const alsoDeparted = (revision.lineage.departed ?? [])
-        .filter(marker => !inGrounds.has(JSON.stringify([marker.history, marker.read, marker.from, marker.through, marker.departed_at])));
+        .filter(marker => !inGrounds.has(markerIdentity(marker)));
       if (also.length || alsoDeparted.length) {
         lines.push(`      could also have been influenced by ${list([...also, ...alsoDeparted.map(markerText)])}`);
       }
       for (const entry of revision.history) {
-        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats: entry.caveats })}`);
+        const caveats = entry.change === 'committed' ? [] : entry.caveats;
+        const retaining = entry.change === 'committed' && entry.caveats.length ? `; retaining: ${list(entry.caveats)}` : '';
+        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}`);
       }
     }
   }
@@ -240,8 +250,11 @@ export function formatExplanation(report, title = 'the program') {
   lines.push('', 'Displayed');
   if (!report.displayed.length) lines.push('  nothing bound');
   for (const item of report.displayed) {
-    const cited = item.cites.evidence.length || item.cites.caveats.length;
+    const cited = item.cites.evidence.length || item.cites.caveats.length || item.cites.departed?.length;
     lines.push(`  ${item.name} = ${show(item.value)}${cited ? `  because ${withCaveats(item.cites)}` : ''}`);
+    if (item.lineage && JSON.stringify(item.lineage) !== JSON.stringify(item.cites)) {
+      lines.push(`    could have been influenced by ${withCaveats(item.lineage)}`);
+    }
   }
   return lines.join('\n');
 }
@@ -267,24 +280,31 @@ function resolveSubject(snapshot, subject) {
   for (const [name, stream] of Object.entries(streams)) {
     if (name === subject || stream.template === subject) for (const reading of stream.occurrences ?? []) ids.add(reading.id);
   }
-  return { kind: 'evidence', ids };
+  const histories = new Set(Object.entries(streams)
+    .filter(([name, stream]) => name === subject || stream.template === subject).map(([name]) => name));
+  if (Object.hasOwn(snapshot.renewals ?? {}, subject)) histories.add(subject);
+  return { kind: 'evidence', ids, histories };
 }
 
 // The history and number of `subject` when it names a departed record of a
-// windowed history: a reading stream's or renewal's record the session no
-// longer holds, below its oldest held one. Null otherwise.
+// windowed history: an allocated ordinal the session no longer holds. Older
+// pinned records may surround a departed gap, so use the newest ordinal.
 function departedSubject(snapshot, subject) {
   const at = subject.lastIndexOf('@');
   if (at < 1) return null;
   const history = subject.slice(0, at);
-  const number = Number(subject.slice(at + 1));
-  if (!Number.isInteger(number) || number < 1) return null;
+  const ordinal = subject.slice(at + 1);
+  const number = Number(ordinal);
+  if (!Number.isSafeInteger(number) || number < 1 || ordinal !== String(number)) return null;
   const windows = new Set(snapshot.windows ?? []);
   if (!windows.has(history)) return null;
   const records = heldRecords(snapshot).get(history);
-  if (!records || records.has(number)) return null;
-  const oldest = Math.min(...records);
-  return number < oldest ? { history, number } : null;
+  if (!records || records.has(number) || Object.hasOwn(snapshot.retired ?? {}, subject)) return null;
+  // The first renewal occurrence keeps the declared name, never NAME@1.
+  if (number === 1 && Object.hasOwn(snapshot.renewals ?? {}, history)) return null;
+  let newest = 0;
+  for (const held of records) newest = Math.max(newest, held);
+  return number < newest ? { history, number } : null;
 }
 
 /**
@@ -294,26 +314,35 @@ function departedSubject(snapshot, subject) {
  * values that cite it or could have been influenced by it. The reverse of
  * `explain`. Throws an Error when the program declares no such name.
  */
-export function dependents(snapshot, subject) {
+export function dependents(snapshot, subject, {archive = []} = {}) {
   const departedRecord = departedSubject(snapshot, subject);
   const resolved = departedRecord ? { kind: 'evidence', ids: new Set() } : resolveSubject(snapshot, subject);
   if (!resolved) throw new Error(`${subject} is not evidence, a reading stream or a caveat in this program`);
-  // A departed record is named in no provenance; a marker whose range covers
-  // its number says only that the value may rest on it
-  // (spec/caveat-lineage-compaction-0.1.md).
-  const covering = provenance => (departedRecord ? (provenance?.departed ?? [])
-    .filter(marker => marker.history === departedRecord.history
-      && marker.from <= departedRecord.number && departedRecord.number <= marker.through) : []);
+  // A departed record no longer appears among the live evidence names. A
+  // complete archived graph establishes membership; an unresolved covering
+  // range says only that the value may rest on it.
+  const reconstruct = archiveResolver(snapshot, archive);
+  const covering = provenance => (provenance?.departed ?? []).filter(marker => departedRecord
+    ? marker.history === departedRecord.history && marker.from <= departedRecord.number && departedRecord.number <= marker.through
+    : resolved.histories?.has(marker.history));
   const via = provenance => {
     const names = resolved.kind === 'caveat' ? provenance?.caveats : provenance?.evidence;
-    return (names ?? []).filter(name => resolved.ids.has(name));
+    const exact = (names ?? []).filter(name => resolved.ids.has(name));
+    for (const marker of covering(provenance)) {
+      const records = reconstruct(marker);
+      if (departedRecord) {
+        if (records?.includes(subject)) exact.push(subject);
+      } else if (records) for (const record of records) exact.push(record);
+    }
+    return [...new Set(exact)];
   };
   const basis = (primary, primaryLabel, lineage) => {
     const direct = via(primary);
     if (direct.length) return { basis: primaryLabel, via: direct };
     const possible = via(lineage);
     if (possible.length) return { basis: 'lineage', via: possible };
-    return covering(primary).length || covering(lineage).length ? { basis: 'may rest on', via: [subject] } : null;
+    return [...covering(primary), ...covering(lineage)].some(marker => reconstruct(marker) === null)
+      ? { basis: 'may rest on', via: [subject] } : null;
   };
 
   // Report only withdrawals associated with this query. A caveat selects the
@@ -325,16 +354,27 @@ export function dependents(snapshot, subject) {
   const withdrawals = (snapshot.withdrawals ?? [])
     .filter(item => withdrawalIds.has(item.evidence))
     .map(({ evidence, because, sequence, event }) => ({ evidence, because, sequence, event }));
+  // Reverse the reason edge as well as showing withdrawals of the subject.
+  // An extra retained caveat never fabricates an evidence qualification.
+  const reasonIds = resolved.kind === 'caveat' ? withdrawalIds : resolved.ids;
+  const reasonForWithdrawals = (snapshot.withdrawals ?? [])
+    .filter(item => reasonIds.has(item.because))
+    .map(({ evidence, because, sequence, event }) => ({ evidence, because, sequence, event }));
+  const claims = (snapshot.relations ?? [])
+    .filter(item => reasonIds.has(item.from) && ['supports', 'opposes'].includes(item.relation))
+    .map(({ from, relation, to }) => ({ evidence: from, relation, claim: to }));
   const withdrawnVia = (found, provenance) => {
     const ids = new Set(resolved.kind === 'caveat' ? provenance?.evidence ?? [] : found.via);
     return withdrawals.filter(item => ids.has(item.evidence));
   };
 
-  const decisions = explain(snapshot).decisions.flatMap(series => series.revisions.flatMap(revision => {
+  const decisions = explain(snapshot, [], {archive}).decisions.flatMap(series => series.revisions.flatMap(revision => {
     // A grant is in the lineage, but its role is permission.
     const grant = revision.permission?.grant;
     const permitted = resolved.kind === 'evidence' && grant && resolved.ids.has(grant) && !via(revision.grounds).length;
-    const found = permitted ? { basis: 'permission', via: [grant] } : basis(revision.grounds, 'grounds', revision.lineage);
+    const retained = resolved.kind === 'caveat' && (revision.retained ?? []).includes(subject);
+    const found = retained ? { basis: 'retained', via: [subject] }
+      : permitted ? { basis: 'permission', via: [grant] } : basis(revision.grounds, 'grounds', revision.lineage);
     return found ? [{ id: revision.id, value: revision.value, status: revision.status, ...found,
       withdrawn: withdrawnVia(found, found.basis === 'grounds' ? revision.grounds : revision.lineage) }] : [];
   }));
@@ -367,14 +407,14 @@ export function dependents(snapshot, subject) {
     schema: DEPENDENTS_SCHEMA, subject, kind: resolved.kind, sequence: snapshot.sequence,
     ...(departedRecord ? { departed: true } : {}),
     ...(retired.length ? { retired } : {}),
-    withdrawals, decisions, changes, values, displayed,
+    withdrawals, reasonForWithdrawals, claims, decisions, changes, values, displayed,
   };
 }
 
 /** The dependents report as text for a person. `title` names the program. */
 export function formatDependents(report, title = 'the program', events = 0) {
-  const through = names => (report.kind === 'caveat' ? `evidence with ${list(names)}` : list(names));
-  const label = { grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by', 'may rest on': 'may rest on' };
+  const through = names => (report.kind === 'caveat' ? `caveat ${list(names)}` : list(names));
+  const label = { retained: 'retaining:', grounds: 'based on', cites: 'cites', permission: 'permitted by', lineage: 'could have been influenced by', 'may rest on': 'may rest on' };
   const lines = [`What rests on ${report.subject} in ${title} after ${events} event${events === 1 ? '' : 's'} (sequence ${report.sequence})`];
   const withdrawalText = item => `${item.evidence} withdrawn at #${item.sequence} during ${item.event} because ${item.because}`;
   const section = (heading, items, line) => {
@@ -385,11 +425,13 @@ export function formatDependents(report, title = 'the program', events = 0) {
       for (const withdrawal of item.withdrawn ?? []) lines.push(`    ${withdrawalText(withdrawal)}`);
     }
   };
-  if (report.departed) lines.push('', `${report.subject} has departed: the session no longer holds it, so a value whose departure marker covers it may rest on it. A drained archive names the provenances that held it when it departed.`);
+  if (report.departed) lines.push('', `${report.subject} has departed: complete archive provenance identifies exact membership; incomplete provenance is reported as may rest on. Archive consistency does not authenticate history.`);
   if (report.retired?.length) section('Retired', report.retired, item => `${item.record} retired at #${item.sequence}`);
   if (report.withdrawals?.length) section('Withdrawals', report.withdrawals, withdrawalText);
-  section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${through(item.via)}`);
-  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} because ${through(item.via)}`);
+  if (report.reasonForWithdrawals?.length) section('Withdrawals resting on this reason', report.reasonForWithdrawals, withdrawalText);
+  if (report.claims?.length) section('Claims', report.claims, item => `${item.evidence} ${item.relation} ${item.claim}`);
+  section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${item.basis === 'retained' ? list(item.via) : through(item.via)}`);
+  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} ${report.kind === 'caveat' && item.change === 'committed' ? 'retaining:' : 'because'} ${through(item.via)}`);
   section('Values', report.values, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   section('Displayed', report.displayed, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   return lines.join('\n');

@@ -110,6 +110,7 @@ function replay(runtime, source, events) {
   const session = runtime.open(source);
   let snapshot;
   const sent = [];
+  const archive = [];
   let failed = false;
   try {
     snapshot = session.snapshot();
@@ -117,14 +118,17 @@ function replay(runtime, source, events) {
       try {
         const { snapshot: after, ...outcome } = session.dispatch(event, payload);
         sent.push({ event, payload, outcome });
-        if (outcome.outcome === 'accepted') snapshot = after;
+        if (outcome.outcome === 'accepted') {
+          snapshot = after;
+          for (const item of session.drainArchive()) archive.push(item);
+        }
       } catch (error) {
         sent.push({ event, payload, outcome: { outcome: 'fatal', kind: error.kind ?? null, message: error.message } });
         failed = true;
         break;
       }
     }
-    return { snapshot, sent, failed };
+    return { snapshot, sent, archive, failed };
   } finally { session.close(); }
 }
 
@@ -201,10 +205,10 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
     if (error.kind !== 'load') throw new AuthoringError('runtime', error.message);
     return wrap(2, { program, loads: false, error: error.message });
   }
-  const { snapshot, sent, failed } = replayed;
-  if (operation === 'explain') return wrap(failed ? 1 : 0, { program, ...explain(snapshot, sent) });
+  const { snapshot, sent, archive, failed } = replayed;
+  if (operation === 'explain') return wrap(failed ? 1 : 0, { program, ...explain(snapshot, sent, { archive }) });
   try {
-    return wrap(failed ? 1 : 0, { program, events: sent, ...dependents(snapshot, args.subject) });
+    return wrap(failed ? 1 : 0, { program, events: sent, ...dependents(snapshot, args.subject, { archive }) });
   } catch (error) {
     return wrap(2, { program, subject: args.subject, error: error.message });
   }

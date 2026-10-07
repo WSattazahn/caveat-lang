@@ -168,10 +168,11 @@ export class CaveatSession {
   // The save is JSON text; restore it with the exact source it came from.
   save() { return this.#json(() => this.#inner.save(), 'save').text; }
 
-  // The records departed since the last drain, oldest first, and an empty
+  // The archive items produced since the last drain, and an empty
   // archive (spec/caveat-departure-0.1.md). The archive is not saved: a host
-  // that keeps the full history stores what it drains beside its saves. A
-  // runtime that predates departure departs nothing, so its archive is empty.
+  // that keeps exact history stores departed records and provenance nodes
+  // together beside its saves. A runtime that predates departure departs
+  // nothing, so its archive is empty.
   drainArchive() {
     if (typeof this.#inner.drain_archive !== 'function') {
       this.#usable();
@@ -182,7 +183,7 @@ export class CaveatSession {
     return value;
   }
 
-  // How many departed records wait to be drained.
+  // How many archive items (records and provenance nodes) await draining.
   get undrained() {
     if (typeof this.#inner.undrained !== 'function') {
       this.#usable();
