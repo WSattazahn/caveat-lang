@@ -23,6 +23,24 @@ The reusable baseline extraction is verified byte-for-byte against the pinned
 Git blobs before building. No executable is included in this evidence directory.
 Each report retains source, fixture and executable hashes and measurement times.
 
+[measured-inputs.json](measured-inputs.json) preserves exact input-byte
+provenance for reproduction. Git's clean status allows line-ending normalization;
+it does not assert that raw working-file bytes equal Git blobs. Of the 213
+recorded helper, fixture and runtime inputs, 13 observed Windows files differ
+from their canonical Git blobs only by CRLF versus LF. The manifest maps both
+SHA-256 values and includes base64 only for those differing observed bytes. Its
+Git source revision is `474183109a4283ce1ad5ffed2df8dcda748fc98c`; the measured
+runtime revision remains `c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853`.
+
+For exact-byte replay, reconstruct the listed paths in a separate reproduction
+directory from that Git revision, replacing only entries that provide
+`observed_bytes_base64`, then verify every `observed_sha256`. Compare recorded
+fingerprints against those reconstructed bytes, not a freshly normalized
+checkout. The scoped `-text` attributes preserve this directory's frozen
+receipt bytes, including the explicitly tracked capacity log. This manifest
+explains existing measurements; it changes no source semantics or measured
+result and does not relabel the old runs as a fresh reproduction.
+
 Native counts are requested Rust heap bytes, excluding allocator metadata,
 stacks and RSS. Dispatch peaks include transaction copies, ordinary departure,
 archive construction and collection; they are an upper bound, not an isolated
@@ -360,6 +378,7 @@ they do not authenticate arbitrary external reports or a unique session branch.
 | [door3d-qa.json](door3d-qa.json) | 895 | `cc7ddfb831c891057d85930ac8e93839a2e1f71d9541d75bb61de42f7e7a84f1` |
 | [installed-smoke.json](installed-smoke.json) | 1,416 | `f75caae91fa2b776da92f4104a96a1b5e882bebf45709059a6ea7d0c5f34dac7` |
 | [kit-verification.json](kit-verification.json) | 3,594 | `16aea26c4d455c56d24db19fa47272a2353c918fbf54387e6211077eb26f462c` |
+| [measured-inputs.json](measured-inputs.json) | 324,261 | `d9a7afc4b9adb6d2d8004bd6033e4d93caeef494a169427d3d775f4ad27aa1cd` |
 | [native-summary.json](native-summary.json) | 2,979 | `998b6277ee80280b4482e89c54d137b2584212c57d97e95ef98d763b1dec81a8` |
 | [package-report.json](package-report.json) | 12,300 | `44c01b9c7b8aafe08dd6487a4f7d7752b94a82efbb20517f0b734a91a3d42ccd` |
 | [pinned-reviewed.json](pinned-reviewed.json) | 11,088 | `0d33889138d195b1e0049dd5aea9eb3b2173bbe5adc03e6a00e5956f9cd750f2` |
