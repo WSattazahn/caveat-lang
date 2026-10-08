@@ -176,7 +176,8 @@ fn summary(samples: &[Sample]) -> serde_json::Value {
             .sum::<u64>()
     };
     json!({"extraction": {
-        "blocks":extraction_total(|p|p.blocks),"matches":extraction_total(|p|p.matches),"misses":extraction_total(|p|p.misses),
+        "blocks":extraction_total(|p|p.blocks),"batch_extractions":extraction_total(|p|p.batch_extractions),
+        "input_withdrawals":extraction_total(|p|p.input_withdrawals),"matches":extraction_total(|p|p.matches),"misses":extraction_total(|p|p.misses),
         "probes":extraction_total(|p|p.probes),"shifted_elements":extraction_total(|p|p.shifted_elements),
         "estimated_shifted_bytes":extraction_total(|p|p.estimated_shifted_bytes),"shared_cow_detaches":extraction_total(|p|p.shared_cow_detaches),
         "cow_cloned_elements":extraction_total(|p|p.cow_cloned_elements),"block_ns":extraction_total(|p|p.block_ns),

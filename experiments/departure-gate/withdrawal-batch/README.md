@@ -42,6 +42,28 @@ plain/instrumented difference. Do not subtract a guessed clock overhead or treat
 an isolated synthetic Vec benchmark as actual dispatch attribution. Production
 optimization begins only after this baseline profile is reviewed.
 
+## Candidate diagnostic scope
+
+The frozen Stage A recorder above times one search/removal block per departing
+subject. The candidate recorder times one batch: the read-only first-match scan,
+any shared-vector COW, stable extraction and sorting of moved withdrawals. The
+lexical merge attaching those records to archive entries remains outside
+`block_ns`, but inside `departure_ns` and whole apply time. `blocks` now counts
+batches; `batch_extractions` identifies that scope, and `input_withdrawals` totals
+the original vector lengths. Both added counters are exposed in phase summaries
+and small-phase samples. Frozen baseline receipts remain unchanged.
+
+Candidate `probes` directly counts membership decisions, once per original
+withdrawal; increments exist only in the native diagnostic feature. This does not
+count every BTreeMap/string comparison, COW visit or sorting move. Matches/misses
+still count departing subjects with/without withdrawals. Estimated shifted headers
+count survivors after the first removal, excluding COW, sorting and String
+payloads. Diagnostic block timings include probe-counter and sorting overhead;
+the unchanged target harness disables this diagnostic feature. For W original
+withdrawals, D departing records and K removed withdrawals, the candidate performs
+O(W log D) membership work, O(K log K) sorting and uses an O(K) temporary record
+buffer. These counts alone establish neither a latency gain nor a lower peak.
+
 ## Frozen target: eight balanced pairs
 
 The final target is the unchanged `release-mutual.cav`, 3,000 cycles, drain interval

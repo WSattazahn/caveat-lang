@@ -14,14 +14,24 @@ mod extraction_profile {
 
     #[derive(Debug, Copy, Clone, Default, Serialize)]
     pub struct WithdrawalExtractionProfile {
+        /// Candidate blocks are whole extraction batches; frozen baseline
+        /// blocks were one search/remove per departing subject.
         pub blocks: u64,
+        pub batch_extractions: u64,
+        pub input_withdrawals: u64,
+        /// Departing subjects with and without a standing withdrawal.
         pub matches: u64,
         pub misses: u64,
+        /// Exact calls deciding whether a standing withdrawal's subject departs.
         pub probes: u64,
+        /// Estimated survivor headers moved by stable extraction, excluding
+        /// removed-record sorting, COW clones and String payloads.
         pub shifted_elements: u64,
         pub estimated_shifted_bytes: u64,
         pub shared_cow_detaches: u64,
         pub cow_cloned_elements: u64,
+        /// Guarded COW, extraction and sorting; lexical archive attachment is
+        /// outside this block but remains in departure_ns and whole apply time.
         pub block_ns: u64,
         pub departure_ns: u64,
     }
@@ -29,6 +39,8 @@ mod extraction_profile {
     impl WithdrawalExtractionProfile {
         const ZERO: Self = Self {
             blocks: 0,
+            batch_extractions: 0,
+            input_withdrawals: 0,
             matches: 0,
             misses: 0,
             probes: 0,
@@ -51,33 +63,42 @@ mod extraction_profile {
         PROFILE.replace(WithdrawalExtractionProfile::ZERO)
     }
 
-    pub(super) struct Block {
+    pub(super) struct Batch {
         len: usize,
         shared: bool,
+        probes: u64,
         started: Instant,
     }
 
-    impl Block {
+    impl Batch {
         pub(super) fn new(len: usize, shared: bool) -> Self {
             Self {
                 len,
                 shared,
+                probes: 0,
                 started: Instant::now(),
             }
         }
 
-        pub(super) fn finish(self, index: Option<usize>) {
+        pub(super) fn probe(&mut self) {
+            self.probes += 1;
+        }
+
+        pub(super) fn finish(self, first: Option<usize>, matches: usize, departing: usize) {
             let ns = self.started.elapsed().as_nanos() as u64;
-            // Infer position's exact number of predicate calls; do not add
-            // a counter to the search predicate. Vec::remove shifts headers,
-            // not the String payloads, so moved bytes are an explicit estimate.
             let mut profile = PROFILE.get();
             profile.blocks += 1;
+            profile.batch_extractions += 1;
+            profile.input_withdrawals += self.len as u64;
             profile.block_ns += ns;
-            profile.probes += index.map_or(self.len, |index| index + 1) as u64;
-            if let Some(index) = index {
-                profile.matches += 1;
-                let shifted = (self.len - index - 1) as u64;
+            profile.probes += self.probes;
+            profile.matches += matches as u64;
+            profile.misses += (departing - matches) as u64;
+            if let Some(first) = first {
+                // Every survivor after the first removal moves left once.
+                // This estimates header copies, not allocated or copied bytes
+                // in String payloads, COW or the removed-record sort.
+                let shifted = (self.len - first - matches) as u64;
                 profile.shifted_elements += shifted;
                 profile.estimated_shifted_bytes +=
                     shifted * std::mem::size_of::<Withdrawal>() as u64;
@@ -85,8 +106,6 @@ mod extraction_profile {
                     profile.shared_cow_detaches += 1;
                     profile.cow_cloned_elements += self.len as u64;
                 }
-            } else {
-                profile.misses += 1;
             }
             PROFILE.set(profile);
         }
@@ -150,8 +169,11 @@ mod extraction_profile_tests {
         assert_eq!(rejected.matches, 6);
         assert_eq!(rejected.shared_cow_detaches, 1);
         assert_eq!(rejected.cow_cloned_elements, 8);
-        assert!(rejected.probes >= rejected.matches);
-        assert!(rejected.shifted_elements > 0);
+        assert_eq!(rejected.batch_extractions, 1);
+        assert_eq!(rejected.input_withdrawals, 8);
+        assert_eq!(rejected.probes, rejected.input_withdrawals);
+        assert_eq!(rejected.misses, 0);
+        assert_eq!(rejected.shifted_elements, 2);
         assert_eq!(session.save_json().unwrap(), saved);
         assert_eq!(session.undrained(), 0);
         assert_eq!(
@@ -163,6 +185,142 @@ mod extraction_profile_tests {
         assert_eq!(accepted.probes, rejected.probes);
         assert_eq!(accepted.shifted_elements, rejected.shifted_elements);
         assert_eq!(accepted.matches, rejected.matches);
+    }
+}
+
+/// Move matching withdrawals once, preserving the append order of survivors.
+/// The removed records use the departing map's lexical order for attachment;
+/// archive publication retains its separate history/number order.
+fn extract_departing_withdrawals(
+    withdrawals: &mut Arc<Vec<Withdrawal>>,
+    departing: &BTreeMap<String, (String, u64)>,
+) -> Vec<Withdrawal> {
+    #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+    let mut profile =
+        extraction_profile::Batch::new(withdrawals.len(), Arc::strong_count(withdrawals) > 1);
+    let mut is_departing = |withdrawal: &Withdrawal| {
+        #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+        profile.probe();
+        departing.contains_key(&withdrawal.evidence)
+    };
+    // Do not detach the shared vector or allocate a removal buffer if no
+    // withdrawal departs. The prefix and extraction suffix inspect each
+    // standing withdrawal exactly once; the first match is already known.
+    let first = withdrawals.iter().position(&mut is_departing);
+    let mut removed = if let Some(first) = first {
+        let mut known_first = true;
+        Arc::make_mut(withdrawals)
+            .extract_if(first.., |withdrawal| {
+                if std::mem::take(&mut known_first) {
+                    true
+                } else {
+                    is_departing(withdrawal)
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    // There is at most one authoritative withdrawal per subject, enforced on
+    // insertion and restore. Sorting moves headers, never clones record keys.
+    removed.sort_unstable_by(|a, b| a.evidence.cmp(&b.evidence));
+    #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+    profile.finish(first, removed.len(), departing.len());
+    removed
+}
+
+#[cfg(test)]
+mod withdrawal_extraction_tests {
+    use super::*;
+
+    fn withdrawals(names: &[&str]) -> Arc<Vec<Withdrawal>> {
+        Arc::new(
+            names
+                .iter()
+                .enumerate()
+                .map(|(index, name)| Withdrawal {
+                    evidence: (*name).into(),
+                    because: format!("reason{index}"),
+                    sequence: index as u64 + 1,
+                    event: format!("event{index}"),
+                })
+                .collect(),
+        )
+    }
+
+    fn departing(names: &[&str]) -> BTreeMap<String, (String, u64)> {
+        names
+            .iter()
+            .map(|name| ((*name).into(), ("history".into(), 1)))
+            .collect()
+    }
+
+    #[test]
+    fn no_match_keeps_the_shared_vector_and_needs_no_removal_buffer() {
+        for names in [vec![], vec!["b@1"], vec!["z@1", "a@2", "w@1"]] {
+            let mut held = withdrawals(&names);
+            let original = Arc::clone(&held);
+            let removed = extract_departing_withdrawals(&mut held, &departing(&["other@1"]));
+            assert!(Arc::ptr_eq(&held, &original));
+            assert!(removed.is_empty());
+            assert_eq!(removed.capacity(), 0);
+        }
+    }
+
+    #[test]
+    fn partial_extraction_moves_exact_records_and_preserves_survivor_order() {
+        let mut held = withdrawals(&["z@1", "a@2", "b@1", "a@10", "w@1"]);
+        let original = Arc::clone(&held);
+        let removed =
+            extract_departing_withdrawals(&mut held, &departing(&["a@2", "a@10", "other@1"]));
+        assert_eq!(
+            &*held,
+            &[
+                original[0].clone(),
+                original[2].clone(),
+                original[4].clone()
+            ]
+        );
+        assert_eq!(removed, [original[3].clone(), original[1].clone()]);
+        assert_eq!(original.len(), 5, "the transaction's original is unchanged");
+    }
+
+    #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+    #[test]
+    fn withdrawal_profile_counts_one_membership_decision_per_original_record() {
+        for (names, targets, matches, shifted) in [
+            (vec![], vec!["other@1"], 0, 0),
+            (vec!["z@1", "a@2", "w@1"], vec!["other@1"], 0, 0),
+            (vec!["z@1", "a@2", "w@1"], vec!["a@2", "other@1"], 1, 1),
+            (vec!["z@1", "a@2", "w@1"], vec!["z@1", "a@2", "w@1"], 3, 0),
+        ] {
+            let mut held = withdrawals(&names);
+            let original = Arc::clone(&held);
+            ReactiveSession::reset_withdrawal_extraction_profile();
+            let removed = extract_departing_withdrawals(&mut held, &departing(&targets));
+            let profile = ReactiveSession::take_withdrawal_extraction_profile();
+            assert_eq!(profile.blocks, 1);
+            assert_eq!(profile.batch_extractions, 1);
+            assert_eq!(profile.input_withdrawals, original.len() as u64);
+            assert_eq!(profile.probes, profile.input_withdrawals);
+            assert_eq!(profile.matches, matches);
+            assert_eq!(profile.misses, targets.len() as u64 - matches);
+            assert_eq!(profile.shifted_elements, shifted);
+            assert_eq!(
+                profile.estimated_shifted_bytes,
+                shifted * std::mem::size_of::<Withdrawal>() as u64
+            );
+            assert_eq!(removed.len() as u64, matches);
+            assert_eq!(profile.shared_cow_detaches, u64::from(matches > 0));
+            assert_eq!(
+                profile.cow_cloned_elements,
+                if matches > 0 {
+                    original.len() as u64
+                } else {
+                    0
+                }
+            );
+        }
     }
 }
 
@@ -693,6 +851,9 @@ impl ReactiveSession {
         {
             Arc::make_mut(&mut self.observations).retain(|name| !departing.contains_key(name));
         }
+        let mut withdrawals = extract_departing_withdrawals(&mut self.withdrawals, &departing)
+            .into_iter()
+            .peekable();
         let mut entries = BTreeMap::new();
         for (record, (history, number)) in &departing {
             let mut qualifications = BTreeMap::new();
@@ -719,19 +880,7 @@ impl ReactiveSession {
                 }
                 predicates.retain(|_, targets| !targets.is_empty());
             }
-            #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
-            let extraction = extraction_profile::Block::new(
-                self.withdrawals.len(),
-                Arc::strong_count(&self.withdrawals) > 1,
-            );
-            let withdrawal_index = self
-                .withdrawals
-                .iter()
-                .position(|withdrawal| &withdrawal.evidence == record);
-            let withdrawal =
-                withdrawal_index.map(|index| Arc::make_mut(&mut self.withdrawals).remove(index));
-            #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
-            extraction.finish(withdrawal_index);
+            let withdrawal = withdrawals.next_if(|withdrawal| &withdrawal.evidence == record);
             let mut reading = None;
             let mut journal_entry = None;
             if history == "journal"
@@ -783,6 +932,13 @@ impl ReactiveSession {
                 ),
             );
         }
+        debug_assert!(
+            withdrawals.peek().is_none(),
+            "every removed withdrawal has an archive entry"
+        );
+        // The exhausted IntoIter still owns its buffer. Free it before journal
+        // transfer and archive publication allocate their own output buffers.
+        drop(withdrawals);
         // Departing journal entries are the oldest held: nothing pins one.
         let journal_departing = entries.values().filter(|(journal, _)| *journal).count();
         if journal_departing > 0 {
