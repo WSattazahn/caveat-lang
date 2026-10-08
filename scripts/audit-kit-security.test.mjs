@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { auditKitSecurity, evaluateNpmAudit, evaluateRustAudit, parseSecurityArguments, validatePackageIdentity } from './audit-kit-security.mjs';
+import { auditKitSecurity, evaluateNpmAudit, evaluateRustAudit, parseSecurityArguments, validatePackageIdentity, stageRustAuditInputs } from './audit-kit-security.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 function artifact() {
@@ -103,4 +105,53 @@ test('an unavailable artifact produces a retained failure receipt instead of a c
   assert.ok(result.report.failures.some(failure => failure.startsWith('setup:')));
   const retained = JSON.parse(await readFile(path.join(result.directory, 'report.json'), 'utf8'));
   assert.deepEqual(retained, result.report);
+});
+
+
+test('recorded Rust audit inputs retain declared examples and pass actual Cargo fetch', async t => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-audit-staging-'));
+  // The test owns the exact mkdtemp result; no user paths are removed.
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const revision = 'b'.repeat(40);
+  const files = {
+    'runtime/Cargo.toml': '[package]\nname = "audit-staging-regression"\nversion = "0.0.0"\nedition = "2021"\n[features]\nprofile = []\n[[example]]\nname = "withdrawal_extraction_profile"\nrequired-features = ["profile"]\n[[example]]\nname = "nested"\n',
+    'runtime/Cargo.lock': 'version = 4\n[[package]]\nname = "audit-staging-regression"\nversion = "0.0.0"\n',
+    'runtime/examples/withdrawal_extraction_profile.rs': '// exact recorded example; never compiled\n',
+    'runtime/examples/nested/main.rs': '// exact recorded nested target; never compiled\n',
+  };
+  const examples = Object.keys(files).filter(file => file.startsWith('runtime/examples/'));
+  const inputs = await stageRustAuditInputs(directory, revision, examples, async file => {
+    assert.ok(Object.hasOwn(files, file), 'only declared recorded inputs may be read');
+    return Buffer.from(files[file]);
+  });
+  for (const input of inputs) {
+    assert.equal(input.buildRevision, revision);
+    const bytes = await readFile(path.join(directory, input.file));
+    assert.equal(bytes.toString(), files['runtime/' + input.file]);
+    assert.equal(input.sha256, digest(bytes));
+  }
+  const cargo = () => spawnSync('cargo', ['fetch', '--locked', '--offline', '--target', 'wasm32-unknown-unknown',
+    '--manifest-path', path.join(directory, 'Cargo.toml')], {
+    encoding: 'utf8', timeout: 120000, maxBuffer: 4 * 1024 * 1024, windowsHide: true,
+  });
+  const fetched = cargo();
+  assert.equal(fetched.error, undefined);
+  assert.equal(fetched.status, 0, fetched.stderr);
+  for (const file of ['Cargo.toml', 'Cargo.lock']) {
+    assert.equal((await readFile(path.join(directory, file))).toString(), files['runtime/' + file]);
+  }
+  // A missing gated target is an infrastructure error even without that feature.
+  await rm(path.join(directory, 'examples/withdrawal_extraction_profile.rs'));
+  const incomplete = cargo();
+  assert.notEqual(incomplete.status, 0);
+  assert.match(incomplete.stderr, /can't find.*withdrawal_extraction_profile/);
+});
+
+test('Rust audit staging refuses paths outside recorded examples and missing inputs', async t => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'caveat-audit-staging-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await assert.rejects(stageRustAuditInputs(directory, 'revision', ['runtime/examples/../Cargo.toml'],
+    async () => { throw new Error('must not read'); }), /inside runtime\/examples/);
+  await assert.rejects(stageRustAuditInputs(directory, 'revision', [],
+    async () => { throw new Error('missing recorded input'); }), /missing recorded input/);
 });

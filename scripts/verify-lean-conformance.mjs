@@ -698,6 +698,24 @@ export function checkedDecoderRejection(result, control) {
   }
 }
 
+export function stageMutantRuntime(sourceRoot, output) {
+  const workspace = mkdtempSync(join(output, 'runtime-mutant-'));
+  const mutantRoot = join(workspace, 'runtime');
+  mkdirSync(mutantRoot);
+  // Compile-time source includes remain reachable even without game exports.
+  for (const file of ['game/the_door_round2.cav', 'web/the_door_round2.cav']) {
+    const destination = join(workspace, file);
+    mkdirSync(dirname(destination), { recursive: true });
+    cpSync(join(sourceRoot, file), destination);
+  }
+  // Cargo validates every declared example even when building only the mutant
+  // runner. Keep nested example modules/data and future declared targets too.
+  for (const path of ['src', 'examples', 'Cargo.toml', 'Cargo.lock', 'prelude.cav']) {
+    cpSync(join(sourceRoot, 'runtime', path), join(mutantRoot, path), { recursive: true });
+  }
+  return mutantRoot;
+}
+
 export async function verifyConformance({ caseId } = {}) {
   const output = join(root, 'test-results', 'lean-conformance');
   mkdirSync(output, { recursive: true });
@@ -735,10 +753,11 @@ export async function verifyConformance({ caseId } = {}) {
     sourceHashes = () => {
       const sourcePaths = [
         ...filesBelow(join(root, 'runtime', 'src')),
+        ...filesBelow(join(root, 'runtime', 'examples')),
         ...filesBelow(join(root, 'proofs', 'lean')).filter(path => !path.includes('.lake')),
         ...filesBelow(join(root, 'kit', 'lib')),
         ...['runtime/Cargo.toml', 'runtime/Cargo.lock', 'runtime/prelude.cav',
-          'runtime/examples/lean_conformance.rs', 'scripts/lean-conformance-cases.mjs',
+          'scripts/lean-conformance-cases.mjs',
           'scripts/verify-lean-conformance.mjs', 'scripts/verify-lean-conformance.test.mjs', 'scripts/verify-lean.mjs',
           'scripts/lean-late-qualification-cases.mjs', 'scripts/lean-reopening-cases.mjs',
           'scripts/runtime-build-fingerprint.mjs', 'scripts/build-web.mjs', 'scripts/lean-runner-decoder-cases.mjs',
@@ -926,20 +945,7 @@ export async function verifyConformance({ caseId } = {}) {
 
     // A genuine compiled Rust mutant drops the same state-read metadata in both
     // lineage and grounds; no output projection or shadow evaluator fabricates it.
-    const mutantWorkspace = mkdtempSync(join(output, 'runtime-mutant-'));
-    const mutantRoot = join(mutantWorkspace, 'runtime');
-    mkdirSync(mutantRoot);
-    // Compile-time source includes remain reachable even without game exports.
-    for (const file of ['game/the_door_round2.cav', 'web/the_door_round2.cav']) {
-      const destination = join(mutantWorkspace, file);
-      mkdirSync(dirname(destination), { recursive: true });
-      cpSync(join(root, file), destination);
-    }
-    for (const path of ['src', 'Cargo.toml', 'Cargo.lock', 'prelude.cav']) {
-      cpSync(join(root, 'runtime', path), join(mutantRoot, path), { recursive: true });
-    }
-    mkdirSync(join(mutantRoot, 'examples'));
-    cpSync(join(root, 'runtime/examples/lean_conformance.rs'), join(mutantRoot, 'examples/lean_conformance.rs'));
+    const mutantRoot = stageMutantRuntime(root, output);
     // Each mutant changes exactly one file; every other mutable file is restored first.
     const originals = Object.fromEntries(['reactive_expr.rs', 'reactive.rs'].map(file =>
       [file, readFileSync(join(root, 'runtime/src', file), 'utf8')]));

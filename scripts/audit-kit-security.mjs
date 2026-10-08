@@ -110,6 +110,29 @@ async function npmCli() {
   throw new Error('Cannot locate npm-cli.js; run this gate through npm run audit:kit-security');
 }
 
+// Stage exact recorded build inputs for Cargo's dependency inventory. Declared
+// example targets must exist even though this audit never compiles the crate.
+export async function stageRustAuditInputs(directory, revision, examplePaths, readBuildFile) {
+  assert.ok(Array.isArray(examplePaths) && new Set(examplePaths).size === examplePaths.length,
+    'recorded example paths must be a unique list');
+  for (const file of examplePaths) {
+    assert.ok(typeof file === 'string' && file.startsWith('runtime/examples/') &&
+      !file.includes('\\') && file.split('/').every(part => part && part !== '.' && part !== '..'),
+    'recorded example path must stay inside runtime/examples');
+  }
+  await mkdir(path.join(directory, 'src'), { recursive: true });
+  await writeFile(path.join(directory, 'src/lib.rs'), '// Dependency inventory only; never compiled.\n');
+  const inputs = [];
+  for (const source of ['runtime/Cargo.toml', 'runtime/Cargo.lock', ...examplePaths]) {
+    const file = source.slice('runtime/'.length);
+    const bytes = await readBuildFile(source);
+    await mkdir(path.dirname(path.join(directory, file)), { recursive: true });
+    await writeFile(path.join(directory, file), bytes);
+    inputs.push({ file, sha256: sha256(bytes), buildRevision: revision });
+  }
+  return inputs;
+}
+
 export async function auditKitSecurity({ packageReport, auditBin, advisoryDb }) {
   packageReport = path.resolve(packageReport);
   const directory = path.join(ROOT, 'test-results', 'kit-security', `${now().replace(/[:.]/g, '-')}-${process.pid}`);
@@ -248,18 +271,16 @@ export async function auditKitSecurity({ packageReport, auditBin, advisoryDb }) 
         committedAt: await git('db-date', ['show', '-s', '--format=%cI', 'HEAD']) };
       const inputs = path.join(directory, 'rust-inputs');
       await mkdir(path.join(inputs, '.cargo'), { recursive: true });
-      await mkdir(path.join(inputs, 'src'));
       // Project-local config takes precedence over the user's global audit.toml.
       const configuration = '[advisories]\nignore = []\n[output]\nquiet = false\n';
       await writeFile(path.join(inputs, '.cargo/audit.toml'), configuration);
       await write('rust-audit-config.toml', configuration); // CI retains non-hidden receipt files.
-      await writeFile(path.join(inputs, 'src/lib.rs'), '// Dependency inventory only; never compiled.\n');
-      const inputFiles = [];
-      for (const file of ['Cargo.toml', 'Cargo.lock']) {
-        const bytes = (await command(`build-${file.replace('.', '-')}`, 'git', ['show', `${artifact.build.revision}:runtime/${file}`])).stdout;
-        await writeFile(path.join(inputs, file), bytes);
-        inputFiles.push({ file, sha256: sha256(bytes), buildRevision: artifact.build.revision });
-      }
+      const exampleListing = await command('build-example-paths', 'git',
+        ['ls-tree', '-r', '--name-only', '-z', artifact.build.revision, '--', 'runtime/examples']);
+      const examplePaths = String(exampleListing.stdout).split('\0').filter(Boolean);
+      const inputFiles = await stageRustAuditInputs(inputs, artifact.build.revision, examplePaths,
+        async file => (await command(`build-${file.replaceAll('/', '-').replaceAll('.', '-')}`, 'git',
+          ['show', `${artifact.build.revision}:${file}`])).stdout);
       // Fetch the exact recorded lock on fresh CI hosts before the offline tree.
       await command('fetch-build-crates', 'cargo', ['fetch', '--manifest-path', path.join(inputs, 'Cargo.toml'), '--locked', '--target', 'wasm32-unknown-unknown'], { cwd: inputs });
       // Resolves the recorded manifest/lock without changing either or compiling.
