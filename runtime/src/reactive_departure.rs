@@ -1,0 +1,1176 @@
+//! Departure: a retired record that nothing pins leaves the session for the
+//! archive the host drains. See spec/caveat-departure-0.1.md and
+//! spec/caveat-lineage-compaction-0.1.md.
+use super::*;
+
+// Native diagnostics live outside transactional state so failed dispatches can
+// be inspected. They are never serialized or enabled in ordinary/WASM builds.
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+mod extraction_profile {
+    use super::Withdrawal;
+    use serde::Serialize;
+    use std::cell::Cell;
+    use std::time::Instant;
+
+    #[derive(Debug, Copy, Clone, Default, Serialize)]
+    pub struct WithdrawalExtractionProfile {
+        /// Candidate blocks are whole extraction batches; frozen baseline
+        /// blocks were one search/remove per departing subject.
+        pub blocks: u64,
+        pub batch_extractions: u64,
+        pub input_withdrawals: u64,
+        /// Departing subjects with and without a standing withdrawal.
+        pub matches: u64,
+        pub misses: u64,
+        /// Exact calls deciding whether a standing withdrawal's subject departs.
+        pub probes: u64,
+        /// Estimated survivor headers moved by stable extraction, excluding
+        /// removed-record sorting, COW clones and String payloads.
+        pub shifted_elements: u64,
+        pub estimated_shifted_bytes: u64,
+        pub shared_cow_detaches: u64,
+        pub cow_cloned_elements: u64,
+        /// Guarded COW, extraction and sorting; lexical archive attachment is
+        /// outside this block but remains in departure_ns and whole apply time.
+        pub block_ns: u64,
+        pub departure_ns: u64,
+    }
+
+    impl WithdrawalExtractionProfile {
+        const ZERO: Self = Self {
+            blocks: 0,
+            batch_extractions: 0,
+            input_withdrawals: 0,
+            matches: 0,
+            misses: 0,
+            probes: 0,
+            shifted_elements: 0,
+            estimated_shifted_bytes: 0,
+            shared_cow_detaches: 0,
+            cow_cloned_elements: 0,
+            block_ns: 0,
+            departure_ns: 0,
+        };
+    }
+
+    thread_local! {
+        static PROFILE: Cell<WithdrawalExtractionProfile> = const {
+            Cell::new(WithdrawalExtractionProfile::ZERO)
+        };
+    }
+
+    pub(super) fn take() -> WithdrawalExtractionProfile {
+        PROFILE.replace(WithdrawalExtractionProfile::ZERO)
+    }
+
+    pub(super) struct Batch {
+        len: usize,
+        shared: bool,
+        probes: u64,
+        started: Instant,
+    }
+
+    impl Batch {
+        pub(super) fn new(len: usize, shared: bool) -> Self {
+            Self {
+                len,
+                shared,
+                probes: 0,
+                started: Instant::now(),
+            }
+        }
+
+        pub(super) fn probe(&mut self) {
+            self.probes += 1;
+        }
+
+        pub(super) fn finish(self, first: Option<usize>, matches: usize, departing: usize) {
+            let ns = self.started.elapsed().as_nanos() as u64;
+            let mut profile = PROFILE.get();
+            profile.blocks += 1;
+            profile.batch_extractions += 1;
+            profile.input_withdrawals += self.len as u64;
+            profile.block_ns += ns;
+            profile.probes += self.probes;
+            profile.matches += matches as u64;
+            profile.misses += (departing - matches) as u64;
+            if let Some(first) = first {
+                // Every survivor after the first removal moves left once.
+                // This estimates header copies, not allocated or copied bytes
+                // in String payloads, COW or the removed-record sort.
+                let shifted = (self.len - first - matches) as u64;
+                profile.shifted_elements += shifted;
+                profile.estimated_shifted_bytes +=
+                    shifted * std::mem::size_of::<Withdrawal>() as u64;
+                if self.shared {
+                    profile.shared_cow_detaches += 1;
+                    profile.cow_cloned_elements += self.len as u64;
+                }
+            }
+            PROFILE.set(profile);
+        }
+    }
+
+    pub(super) struct Departure(Instant);
+
+    impl Departure {
+        pub(super) fn start() -> Self {
+            Self(Instant::now())
+        }
+    }
+
+    impl Drop for Departure {
+        fn drop(&mut self) {
+            let ns = self.0.elapsed().as_nanos() as u64;
+            let mut profile = PROFILE.get();
+            profile.departure_ns += ns;
+            PROFILE.set(profile);
+        }
+    }
+}
+
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+pub use extraction_profile::WithdrawalExtractionProfile;
+
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+impl ReactiveSession {
+    /// Reset this thread's native diagnostic recorder before an apply call.
+    pub fn reset_withdrawal_extraction_profile() {
+        extraction_profile::take();
+    }
+
+    /// Read and reset diagnostics, including work done by rejected dispatches.
+    pub fn take_withdrawal_extraction_profile() -> WithdrawalExtractionProfile {
+        extraction_profile::take()
+    }
+}
+
+#[cfg(all(
+    test,
+    feature = "withdrawal-extraction-profile",
+    not(target_arch = "wasm32")
+))]
+mod extraction_profile_tests {
+    use super::*;
+
+    #[test]
+    fn withdrawal_profile_survives_rejected_transaction() {
+        let source =
+            include_str!("../../experiments/departure-gate/collector-fixtures/release-mutual.cav");
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        for _ in 0..4 {
+            session.apply("cycle", &BTreeMap::new()).unwrap();
+            session.drain_archive();
+        }
+        let saved = session.save_json().unwrap();
+        ReactiveSession::reset_withdrawal_extraction_profile();
+        assert!(session.apply("fail", &BTreeMap::new()).is_err());
+        let rejected = ReactiveSession::take_withdrawal_extraction_profile();
+        assert_eq!(rejected.matches, 6);
+        assert_eq!(rejected.shared_cow_detaches, 1);
+        assert_eq!(rejected.cow_cloned_elements, 8);
+        assert_eq!(rejected.batch_extractions, 1);
+        assert_eq!(rejected.input_withdrawals, 8);
+        assert_eq!(rejected.probes, rejected.input_withdrawals);
+        assert_eq!(rejected.misses, 0);
+        assert_eq!(rejected.shifted_elements, 2);
+        assert_eq!(session.save_json().unwrap(), saved);
+        assert_eq!(session.undrained(), 0);
+        assert_eq!(
+            ReactiveSession::take_withdrawal_extraction_profile().blocks,
+            0
+        );
+        session.apply("release", &BTreeMap::new()).unwrap();
+        let accepted = ReactiveSession::take_withdrawal_extraction_profile();
+        assert_eq!(accepted.probes, rejected.probes);
+        assert_eq!(accepted.shifted_elements, rejected.shifted_elements);
+        assert_eq!(accepted.matches, rejected.matches);
+    }
+}
+
+/// Move matching withdrawals once, preserving the append order of survivors.
+/// The removed records use the departing map's lexical order for attachment;
+/// archive publication retains its separate history/number order.
+fn extract_departing_withdrawals(
+    withdrawals: &mut Arc<Vec<Withdrawal>>,
+    departing: &BTreeMap<String, (String, u64)>,
+) -> Vec<Withdrawal> {
+    #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+    let mut profile =
+        extraction_profile::Batch::new(withdrawals.len(), Arc::strong_count(withdrawals) > 1);
+    let mut is_departing = |withdrawal: &Withdrawal| {
+        #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+        profile.probe();
+        departing.contains_key(&withdrawal.evidence)
+    };
+    // Do not detach the shared vector or allocate a removal buffer if no
+    // withdrawal departs. The prefix and extraction suffix inspect each
+    // standing withdrawal exactly once; the first match is already known.
+    let first = withdrawals.iter().position(&mut is_departing);
+    let mut removed = if let Some(first) = first {
+        let mut known_first = true;
+        Arc::make_mut(withdrawals)
+            .extract_if(first.., |withdrawal| {
+                if std::mem::take(&mut known_first) {
+                    true
+                } else {
+                    is_departing(withdrawal)
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    // There is at most one authoritative withdrawal per subject, enforced on
+    // insertion and restore. Sorting moves headers, never clones record keys.
+    removed.sort_unstable_by(|a, b| a.evidence.cmp(&b.evidence));
+    #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+    profile.finish(first, removed.len(), departing.len());
+    removed
+}
+
+#[cfg(test)]
+mod withdrawal_extraction_tests {
+    use super::*;
+
+    fn withdrawals(names: &[&str]) -> Arc<Vec<Withdrawal>> {
+        Arc::new(
+            names
+                .iter()
+                .enumerate()
+                .map(|(index, name)| Withdrawal {
+                    evidence: (*name).into(),
+                    because: format!("reason{index}"),
+                    sequence: index as u64 + 1,
+                    event: format!("event{index}"),
+                })
+                .collect(),
+        )
+    }
+
+    fn departing(names: &[&str]) -> BTreeMap<String, (String, u64)> {
+        names
+            .iter()
+            .map(|name| ((*name).into(), ("history".into(), 1)))
+            .collect()
+    }
+
+    #[test]
+    fn no_match_keeps_the_shared_vector_and_needs_no_removal_buffer() {
+        for names in [vec![], vec!["b@1"], vec!["z@1", "a@2", "w@1"]] {
+            let mut held = withdrawals(&names);
+            let original = Arc::clone(&held);
+            let removed = extract_departing_withdrawals(&mut held, &departing(&["other@1"]));
+            assert!(Arc::ptr_eq(&held, &original));
+            assert!(removed.is_empty());
+            assert_eq!(removed.capacity(), 0);
+        }
+    }
+
+    #[test]
+    fn partial_extraction_moves_exact_records_and_preserves_survivor_order() {
+        let mut held = withdrawals(&["z@1", "a@2", "b@1", "a@10", "w@1"]);
+        let original = Arc::clone(&held);
+        let removed =
+            extract_departing_withdrawals(&mut held, &departing(&["a@2", "a@10", "other@1"]));
+        assert_eq!(
+            &*held,
+            &[
+                original[0].clone(),
+                original[2].clone(),
+                original[4].clone()
+            ]
+        );
+        assert_eq!(removed, [original[3].clone(), original[1].clone()]);
+        assert_eq!(original.len(), 5, "the transaction's original is unchanged");
+    }
+
+    #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+    #[test]
+    fn withdrawal_profile_counts_one_membership_decision_per_original_record() {
+        for (names, targets, matches, shifted) in [
+            (vec![], vec!["other@1"], 0, 0),
+            (vec!["z@1", "a@2", "w@1"], vec!["other@1"], 0, 0),
+            (vec!["z@1", "a@2", "w@1"], vec!["a@2", "other@1"], 1, 1),
+            (vec!["z@1", "a@2", "w@1"], vec!["z@1", "a@2", "w@1"], 3, 0),
+        ] {
+            let mut held = withdrawals(&names);
+            let original = Arc::clone(&held);
+            ReactiveSession::reset_withdrawal_extraction_profile();
+            let removed = extract_departing_withdrawals(&mut held, &departing(&targets));
+            let profile = ReactiveSession::take_withdrawal_extraction_profile();
+            assert_eq!(profile.blocks, 1);
+            assert_eq!(profile.batch_extractions, 1);
+            assert_eq!(profile.input_withdrawals, original.len() as u64);
+            assert_eq!(profile.probes, profile.input_withdrawals);
+            assert_eq!(profile.matches, matches);
+            assert_eq!(profile.misses, targets.len() as u64 - matches);
+            assert_eq!(profile.shifted_elements, shifted);
+            assert_eq!(
+                profile.estimated_shifted_bytes,
+                shifted * std::mem::size_of::<Withdrawal>() as u64
+            );
+            assert_eq!(removed.len() as u64, matches);
+            assert_eq!(profile.shared_cow_detaches, u64::from(matches > 0));
+            assert_eq!(
+                profile.cow_cloned_elements,
+                if matches > 0 {
+                    original.len() as u64
+                } else {
+                    0
+                }
+            );
+        }
+    }
+}
+
+/// Host-drained records and the provenance transfer nodes referring to them.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum ArchiveItem {
+    Record(Box<ArchiveEntry>),
+    Provenance(ArchiveProvenance),
+}
+
+impl ArchiveItem {
+    pub fn record(&self) -> Option<&ArchiveEntry> {
+        match self {
+            Self::Record(record) => Some(record),
+            Self::Provenance(_) => None,
+        }
+    }
+}
+
+/// A departed record as it was when it left, for the host to drain.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ArchiveEntry {
+    pub record: String,
+    pub history: String,
+    pub number: u64,
+    pub retired_at: u64,
+    pub departed_at: u64,
+    /// The relations that left with it, as a save writes them.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub relations: Vec<[String; 3]>,
+    /// The provenance of each qualification it carried: `observation`,
+    /// `examination`, `reopening`, or a predicate's kind.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub qualifications: BTreeMap<String, Provenance>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reading: Option<ReadingOccurrence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub journal_entry: Option<JournalEntry>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub withdrawal: Option<Withdrawal>,
+    /// Every provenance that named it when it departed.
+    pub holders: Vec<Holder>,
+}
+
+/// A provenance that named a departed record: its kind, whose it is, and the
+/// field it is in.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct Holder {
+    pub kind: &'static str,
+    pub name: String,
+    #[serde(rename = "in")]
+    pub field: &'static str,
+}
+
+/// Compact one provenance for every departing record it names, noting it as
+/// a holder of each.
+fn compact(
+    provenance: &mut Provenance,
+    departing: &BTreeMap<String, (String, u64)>,
+    sequence: u64,
+    source_id: &str,
+    holder: impl Fn() -> Holder,
+    holders: &mut BTreeMap<String, Vec<Holder>>,
+) {
+    if provenance.evidence.is_empty() {
+        return;
+    }
+    let named = provenance
+        .evidence
+        .iter()
+        .filter(|name| departing.contains_key(*name))
+        .cloned()
+        .collect::<Vec<_>>();
+    for record in named {
+        let (history, number) = &departing[&record];
+        provenance.depart(&record, history, *number, sequence, source_id);
+        holders.entry(record).or_default().push(holder());
+    }
+}
+
+fn names_any(provenance: &Provenance, departing: &BTreeMap<String, (String, u64)>) -> bool {
+    provenance
+        .evidence
+        .iter()
+        .any(|name| departing.contains_key(name))
+}
+
+impl ReactiveSession {
+    /// Whether the program declares any window, the journal's included.
+    pub(crate) fn windowed(&self) -> bool {
+        !self.windows.is_empty() || self.journal_window.is_some()
+    }
+
+    /// Merge a selection or reopening qualification into `into`. Only a
+    /// program with a window keeps which names were inherited, since only
+    /// departure consults it; elsewhere the names merge as any others.
+    pub(crate) fn inherit(&self, into: &mut Provenance, from: &Provenance) -> Result<(), String> {
+        if self.windowed() {
+            into.merge_inherited(from)
+        } else {
+            into.merge(from)
+        }
+    }
+
+    /// The name of the `index`th journal entry the session holds, counting
+    /// from 0: entries that departed keep their numbers.
+    pub(crate) fn journal_name(&self, index: usize) -> String {
+        format!("journal@{}", self.journal_departed + index + 1)
+    }
+
+    /// The number the next record of a stream or renewable evidence takes:
+    /// one past its newest, whatever has departed.
+    pub(crate) fn next_stream_ordinal(&self, stream: &str) -> u64 {
+        self.reading_streams[stream]
+            .occurrences
+            .last()
+            .map_or(1, |reading| reading.ordinal + 1)
+    }
+
+    pub(crate) fn next_renewal_ordinal(&self, evidence: &str) -> usize {
+        self.renewals[evidence]
+            .occurrences
+            .last()
+            .and_then(|name| save::occurrence_number(name))
+            .map_or(2, |number| number as usize + 1)
+    }
+
+    /// Enumerate pin sources only while loading/restoring or auditing the index.
+    /// Event mutations update the index directly, never by rescanning these sources.
+    fn for_each_pin(&self, mut pin: impl FnMut(&String, &'static str)) {
+        for cell in self.states.cells.iter() {
+            for name in cell.grounds.own_evidence() {
+                pin(name, "state grounds");
+            }
+        }
+        // A series revision is in force while it is its series' current one;
+        // a commitment outside a series is in force once made.
+        let superseded = self
+            .decision_series
+            .values()
+            .flat_map(|series| {
+                series
+                    .revisions
+                    .iter()
+                    .filter(move |revision| series.current.as_ref() != Some(&revision.id))
+                    .map(|revision| revision.id.as_str())
+            })
+            .collect::<HashSet<_>>();
+        for (commitment, grounds) in self.commitment_grounds.iter() {
+            if !superseded.contains(commitment.as_str()) {
+                for name in grounds.own_evidence() {
+                    pin(name, "commitment in force");
+                }
+            }
+        }
+        for (index, entry) in self.journal.iter().enumerate() {
+            if !self.retired.contains_key(&self.journal_name(index)) {
+                for name in entry.because.iter().chain(&entry.permitted_by) {
+                    pin(name, "journal entry");
+                }
+            }
+        }
+        for scheduled in self.scheduled.iter() {
+            pin(&scheduled.evidence, "scheduled qualification");
+        }
+        for record in self.commitment_permissions.values() {
+            pin(&record.grant, "permission");
+        }
+        for withdrawal in self.withdrawals.iter() {
+            pin(&withdrawal.because, "withdrawal reason");
+        }
+    }
+
+    /// The records held by each kind of provenance, for restore validation and audits.
+    pub(crate) fn pins(&self) -> BTreeMap<String, BTreeSet<&'static str>> {
+        let mut pins: BTreeMap<String, BTreeSet<&'static str>> = BTreeMap::new();
+        self.for_each_pin(|name, by| {
+            pins.entry(name.clone()).or_default().insert(by);
+        });
+        pins
+    }
+
+    pub(crate) fn rebuild_departure_index(&mut self) {
+        let mut counts = BTreeMap::new();
+        if self.windowed() {
+            self.for_each_pin(|name, _| *counts.entry(name.clone()).or_insert(0) += 1);
+        }
+        self.pin_counts = Arc::new(counts);
+        self.withdrawal_reasons = Arc::new(
+            self.withdrawals
+                .iter()
+                .map(|withdrawal| (withdrawal.evidence.clone(), withdrawal.because.clone()))
+                .collect(),
+        );
+        // rc.15 saves may contain unpinned retired records. Restore does not
+        // depart them; the next accepted event consumes these candidates.
+        self.departure_candidates = Arc::new(self.retired.keys().cloned().collect());
+        self.rebuild_withdrawal_collector();
+    }
+
+    pub(crate) fn add_pin(&mut self, name: &str) {
+        if self.windowed() {
+            self.collector.queue(name);
+            *Arc::make_mut(&mut self.pin_counts)
+                .entry(name.to_string())
+                .or_insert(0) += 1;
+        }
+    }
+
+    pub(crate) fn release_pin(&mut self, name: &str) {
+        if !self.windowed() {
+            return;
+        }
+        self.collector.queue(name);
+        let counts = Arc::make_mut(&mut self.pin_counts);
+        let count = counts
+            .get_mut(name)
+            .expect("every released source had a pin");
+        *count -= 1;
+        if *count == 0 {
+            counts.remove(name);
+            if self.retired.contains_key(name) {
+                Arc::make_mut(&mut self.departure_candidates).insert(name.to_string());
+            }
+        }
+    }
+
+    pub(crate) fn pin_journal_entry(&mut self, entry: &JournalEntry) {
+        for name in entry.because.iter().chain(&entry.permitted_by) {
+            self.add_pin(name);
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    pub(crate) fn check_departure_index(&self) {
+        if self.windowed() {
+            let mut expected = BTreeMap::new();
+            self.for_each_pin(|name, _| *expected.entry(name.clone()).or_insert(0) += 1);
+            debug_assert_eq!(*self.pin_counts, expected, "incremental pin counts");
+            let reasons = self
+                .withdrawals
+                .iter()
+                .map(|withdrawal| (withdrawal.evidence.clone(), withdrawal.because.clone()))
+                .collect::<BTreeMap<_, _>>();
+            debug_assert_eq!(*self.withdrawal_reasons, reasons, "withdrawal pin sources");
+        }
+    }
+
+    /// The history and number of a retired record that may depart: not a
+    /// renewable evidence's declared first occurrence.
+    pub(super) fn departable(&self, record: &str) -> Option<(String, u64)> {
+        if let Some(number) = record
+            .strip_prefix("journal@")
+            .filter(|_| self.journal_window.is_some())
+        {
+            return Some(("journal".into(), number.parse().ok()?));
+        }
+        let (history, number) = save::occurrence_parts(record)?;
+        Some((history.to_string(), number as u64))
+    }
+
+    /// At the end of an event: every retired record that nothing pins
+    /// departs. Reported after every other effect, by history and number.
+    pub(crate) fn depart_unpinned(&mut self) -> Result<(), String> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::Collection);
+        #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+        let _departure_profile = extraction_profile::Departure::start();
+        #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+        let _renewal_departure_profile = renewal_profile::Departure::start();
+        #[cfg(debug_assertions)]
+        self.check_departure_index();
+        let mut departing = BTreeMap::new();
+        // Only retirements and released pins queue candidates. Resolve the
+        // complete withdrawal cascade before compaction so effects and archive
+        // entries are globally ordered, not ordered by cascade depth.
+        while let Some(record) = Arc::make_mut(&mut self.departure_candidates).pop_first() {
+            if !self.retired.contains_key(&record) || self.pin_counts.contains_key(&record) {
+                continue;
+            }
+            if let Some(place) = self.departable(&record) {
+                if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
+                    self.collector.withdrawal(&record, &reason, false);
+                    self.release_pin(&reason);
+                }
+                departing.insert(record, place);
+            }
+        }
+        self.collect_withdrawals(&mut departing);
+        if departing.is_empty() {
+            #[cfg(debug_assertions)]
+            self.check_withdrawal_collector();
+            return Ok(());
+        }
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::Compaction);
+        let sequence = self.sequence;
+        let mut holders: BTreeMap<String, Vec<Holder>> = BTreeMap::new();
+        let holder = |kind: &'static str, name: &str, field: &'static str| {
+            let name = name.to_string();
+            move || Holder {
+                kind,
+                name: name.clone(),
+                field,
+            }
+        };
+
+        // 1. Every provenance that names a departing record compacts.
+        for slot in 0..self.states.len() {
+            let cell = &self.states.cells[slot];
+            if !names_any(&cell.value.provenance, &departing)
+                && !names_any(&cell.grounds, &departing)
+            {
+                continue;
+            }
+            let name = self.states.names[slot].clone();
+            let cell = self.states.cell_mut(slot);
+            compact(
+                &mut cell.value.provenance,
+                &departing,
+                sequence,
+                &self.source_id,
+                holder("state", &name, "lineage"),
+                &mut holders,
+            );
+            compact(
+                &mut cell.grounds,
+                &departing,
+                sequence,
+                &self.source_id,
+                holder("state", &name, "grounds"),
+                &mut holders,
+            );
+        }
+        if self
+            .commitment_bases
+            .values()
+            .any(|basis| names_any(&basis.provenance, &departing))
+        {
+            for (name, basis) in Arc::make_mut(&mut self.commitment_bases).iter_mut() {
+                compact(
+                    &mut basis.provenance,
+                    &departing,
+                    sequence,
+                    &self.source_id,
+                    holder("commitment", name, "basis"),
+                    &mut holders,
+                );
+            }
+        }
+        if self
+            .commitment_grounds
+            .values()
+            .any(|grounds| names_any(grounds, &departing))
+        {
+            for (name, grounds) in Arc::make_mut(&mut self.commitment_grounds).iter_mut() {
+                compact(
+                    grounds,
+                    &departing,
+                    sequence,
+                    &self.source_id,
+                    holder("commitment", name, "grounds"),
+                    &mut holders,
+                );
+            }
+        }
+        if self.reading_streams.values().any(|stream| {
+            names_any(&stream.selection_qualifications, &departing)
+                || stream
+                    .occurrences
+                    .iter()
+                    .any(|reading| names_any(&reading.provenance, &departing))
+        }) {
+            for (name, stream) in Arc::make_mut(&mut self.reading_streams).iter_mut() {
+                compact(
+                    &mut stream.selection_qualifications,
+                    &departing,
+                    sequence,
+                    &self.source_id,
+                    holder("stream", name, "selection_qualifications"),
+                    &mut holders,
+                );
+                for reading in &mut stream.occurrences {
+                    if departing.contains_key(&reading.id) {
+                        continue;
+                    }
+                    compact(
+                        &mut reading.provenance,
+                        &departing,
+                        sequence,
+                        &self.source_id,
+                        holder("stream", &reading.id, "provenance"),
+                        &mut holders,
+                    );
+                }
+            }
+        }
+        if self
+            .decision_series
+            .values()
+            .any(|series| names_any(&series.selection_qualifications, &departing))
+        {
+            for (name, series) in Arc::make_mut(&mut self.decision_series).iter_mut() {
+                compact(
+                    &mut series.selection_qualifications,
+                    &departing,
+                    sequence,
+                    &self.source_id,
+                    holder("series", name, "selection_qualifications"),
+                    &mut holders,
+                );
+            }
+        }
+        for (field, map) in [
+            (
+                "observation_qualifications",
+                &mut self.observation_qualifications,
+            ),
+            (
+                "examination_qualifications",
+                &mut self.examination_qualifications,
+            ),
+            (
+                "reopening_qualifications",
+                &mut self.reopening_qualifications,
+            ),
+        ] {
+            if map
+                .values()
+                .any(|provenance| names_any(provenance, &departing))
+            {
+                for (name, provenance) in Arc::make_mut(map).iter_mut() {
+                    if departing.contains_key(name) {
+                        continue;
+                    }
+                    compact(
+                        provenance,
+                        &departing,
+                        sequence,
+                        &self.source_id,
+                        holder("qualification", name, field),
+                        &mut holders,
+                    );
+                }
+            }
+        }
+        if self.predicate_qualifications.values().any(|targets| {
+            targets
+                .values()
+                .any(|provenance| names_any(provenance, &departing))
+        }) {
+            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
+                for (name, provenance) in targets.iter_mut() {
+                    if departing.contains_key(name) {
+                        continue;
+                    }
+                    compact(
+                        provenance,
+                        &departing,
+                        sequence,
+                        &self.source_id,
+                        holder("qualification", name, "predicate_qualifications"),
+                        &mut holders,
+                    );
+                }
+            }
+        }
+        if self
+            .scheduled
+            .iter()
+            .any(|scheduled| names_any(&scheduled.guard, &departing))
+        {
+            for scheduled in Arc::make_mut(&mut self.scheduled).iter_mut() {
+                compact(
+                    &mut scheduled.guard,
+                    &departing,
+                    sequence,
+                    &self.source_id,
+                    holder("scheduled", &scheduled.evidence, "guard"),
+                    &mut holders,
+                );
+            }
+        }
+        for (index, provenance) in self.cue_qualifications.iter_mut().enumerate() {
+            compact(
+                provenance,
+                &departing,
+                sequence,
+                &self.source_id,
+                holder("cue", &index.to_string(), "qualifications"),
+                &mut holders,
+            );
+        }
+
+        // 2. Each record leaves the session, into its archive entry.
+        // Removal and payload construction are interleaved in this phase.
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::ArchiveConstructionAndRemoval);
+        let names = self
+            .symbols
+            .iter()
+            .map(|(name, id)| (*id, name.clone()))
+            .collect::<HashMap<_, _>>();
+        let ids = departing
+            .keys()
+            .filter_map(|record| self.symbols.get(record).map(|id| (*id, record.clone())))
+            .collect::<HashMap<_, _>>();
+        let mut relations: BTreeMap<String, Vec<[String; 3]>> = BTreeMap::new();
+        if !ids.is_empty() {
+            let graph = Arc::make_mut(&mut self.graph);
+            graph.edges.retain(|edge| {
+                let record = ids.get(&edge.from).or_else(|| ids.get(&edge.to));
+                let Some(record) = record else {
+                    return true;
+                };
+                relations.entry(record.clone()).or_default().push([
+                    names[&edge.from].clone(),
+                    relation_name(edge.relation).into(),
+                    names[&edge.to].clone(),
+                ]);
+                false
+            });
+            for id in ids.keys() {
+                graph.nodes.remove(id);
+                graph.origins.remove(id);
+            }
+            let symbols = Arc::make_mut(&mut self.symbols);
+            for record in ids.values() {
+                symbols.remove(record);
+            }
+        }
+        if self
+            .observations
+            .iter()
+            .any(|name| departing.contains_key(name))
+        {
+            Arc::make_mut(&mut self.observations).retain(|name| !departing.contains_key(name));
+        }
+        let mut withdrawals = extract_departing_withdrawals(&mut self.withdrawals, &departing)
+            .into_iter()
+            .peekable();
+        // Stage the final boxes so ordering retains handles rather than a
+        // full inline record buffer alongside the published archive.
+        let mut entries = BTreeMap::new();
+        for (record, (history, number)) in &departing {
+            let mut qualifications = BTreeMap::new();
+            for (kind, map) in [
+                ("observation", &mut self.observation_qualifications),
+                ("examination", &mut self.examination_qualifications),
+                ("reopening", &mut self.reopening_qualifications),
+            ] {
+                if map.contains_key(record) {
+                    qualifications
+                        .insert(kind.to_string(), Arc::make_mut(map).remove(record).unwrap());
+                }
+            }
+            if self
+                .predicate_qualifications
+                .values()
+                .any(|targets| targets.contains_key(record))
+            {
+                let predicates = Arc::make_mut(&mut self.predicate_qualifications);
+                for (kind, targets) in predicates.iter_mut() {
+                    if let Some(provenance) = targets.remove(record) {
+                        qualifications.insert(kind.clone(), provenance);
+                    }
+                }
+                predicates.retain(|_, targets| !targets.is_empty());
+            }
+            let withdrawal = withdrawals.next_if(|withdrawal| &withdrawal.evidence == record);
+            let mut reading = None;
+            let mut journal_entry = None;
+            if history == "journal"
+                && self.journal_window.is_some()
+                && record.starts_with("journal@")
+            {
+                journal_entry = Some(());
+            } else if let Some(stream) = self.reading_streams.get(history) {
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                let mut profile = renewal_profile::Block::readings(stream.occurrences.len());
+                let index = stream.occurrences.iter().position(|r| &r.id == record);
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.searched(index);
+                if let Some(index) = index {
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.start_cow(Arc::strong_count(&self.reading_streams) > 1);
+                    let streams = Arc::make_mut(&mut self.reading_streams);
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.finish_cow();
+                    reading = Some(streams.get_mut(history).unwrap().occurrences.remove(index));
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.removed();
+                }
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.finish(self.reading_streams.len(), || {
+                    self.reading_streams
+                        .values()
+                        .map(|stream| stream.occurrences.len())
+                        .sum()
+                });
+            } else if let Some(renewal) = self.renewals.get(history) {
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                let mut profile = renewal_profile::Block::renewals(renewal.occurrences.len());
+                let index = renewal.occurrences.iter().position(|name| name == record);
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.searched(index);
+                if let Some(index) = index {
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.start_cow(Arc::strong_count(&self.renewals) > 1);
+                    let renewals = Arc::make_mut(&mut self.renewals);
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.finish_cow();
+                    renewals.get_mut(history).unwrap().occurrences.remove(index);
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.removed();
+                }
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.finish(self.renewals.len(), || {
+                    self.renewals
+                        .values()
+                        .map(|renewal| renewal.occurrences.len())
+                        .sum()
+                });
+            }
+            let retired_at = Arc::make_mut(&mut self.retired)
+                .remove(record)
+                .expect("a departing record is retired");
+            let mut entry_holders = holders.remove(record).unwrap_or_default();
+            entry_holders.sort();
+            entries.insert(
+                record.clone(),
+                (
+                    journal_entry.is_some(),
+                    Box::new(ArchiveEntry {
+                        record: record.clone(),
+                        history: history.clone(),
+                        number: *number,
+                        retired_at,
+                        departed_at: sequence,
+                        relations: relations.remove(record).unwrap_or_default(),
+                        qualifications,
+                        reading,
+                        journal_entry: None,
+                        withdrawal,
+                        holders: entry_holders,
+                    }),
+                ),
+            );
+        }
+        debug_assert!(
+            withdrawals.peek().is_none(),
+            "every removed withdrawal has an archive entry"
+        );
+        // The exhausted IntoIter still owns its buffer. Free it before journal
+        // transfer and archive publication allocate their own output buffers.
+        drop(withdrawals);
+        // Departing journal entries are the oldest held: nothing pins one.
+        let journal_departing = entries.values().filter(|(journal, _)| *journal).count();
+        if journal_departing > 0 {
+            let journal = Arc::make_mut(&mut self.journal);
+            for (index, entry) in journal.drain(..journal_departing).enumerate() {
+                let name = format!("journal@{}", self.journal_departed + index + 1);
+                if let Some((_, archived)) = entries.get_mut(&name) {
+                    archived.journal_entry = Some(entry);
+                } else {
+                    return Err(format!("journal entry {name} departed out of order"));
+                }
+            }
+            self.journal_departed += journal_departing;
+        }
+
+        // 3. Reported after every other effect, by history and number.
+        let mut order = entries
+            .into_values()
+            .map(|(_, entry)| entry)
+            .collect::<Vec<_>>();
+        order.sort_by(|a, b| a.history.cmp(&b.history).then(a.number.cmp(&b.number)));
+        for entry in order {
+            self.effects.push(EffectReport::Depart {
+                history: entry.history.clone(),
+                record: entry.record.clone(),
+            });
+            self.archive.push(ArchiveItem::Record(entry));
+        }
+        self.collector_departed(&departing);
+        #[cfg(debug_assertions)]
+        {
+            self.check_departure_index();
+            self.check_withdrawal_collector();
+        }
+        Ok(())
+    }
+
+    /// The departed records since the last drain, in the order they left.
+    /// See spec/caveat-departure-0.1.md, "The archive".
+    pub fn drain_archive(&mut self) -> Vec<ArchiveItem> {
+        std::mem::take(&mut self.archive)
+    }
+
+    /// How many departed records wait in the archive for the host to drain.
+    pub fn undrained(&self) -> usize {
+        self.archive.len()
+    }
+}
+
+fn settle_provenance(
+    provenance: &mut Provenance,
+    nodes: &mut Vec<ArchiveProvenance>,
+    seen: &mut BTreeSet<String>,
+) {
+    for marker in provenance.departed.values_mut() {
+        if let Some(root) = &mut marker.archive_ref {
+            root.settle(nodes, seen);
+            #[cfg(debug_assertions)]
+            debug_assert!(root.is_settled(), "live provenance retains only its root");
+        }
+    }
+}
+
+impl ReactiveSession {
+    /// Publish temporary pure-expression DAGs only after every event effect and
+    /// binding succeeds. Unchanged transaction maps already contain opaque roots.
+    /// Restore recomputes the same deterministic binding roots, then settles them
+    /// without publishing: its archive starts empty.
+    pub(crate) fn settle_archive_provenance(&mut self, old: Option<&Self>, publish: bool) {
+        if !self.windowed() {
+            return;
+        }
+        let mut nodes = Vec::new();
+        let mut seen = BTreeSet::new();
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.states.cells, &self.states.cells)) {
+            for cell in Arc::make_mut(&mut self.states.cells) {
+                if cell
+                    .value
+                    .provenance
+                    .departed
+                    .values()
+                    .chain(cell.grounds.departed.values())
+                    .all(|marker| {
+                        marker
+                            .archive_ref
+                            .as_ref()
+                            .is_none_or(|root| root.is_settled())
+                    })
+                {
+                    continue;
+                }
+                let cell = Arc::make_mut(cell);
+                settle_provenance(&mut cell.value.provenance, &mut nodes, &mut seen);
+                settle_provenance(&mut cell.grounds, &mut nodes, &mut seen);
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_bases, &self.commitment_bases)) {
+            for basis in Arc::make_mut(&mut self.commitment_bases).values_mut() {
+                settle_provenance(&mut basis.provenance, &mut nodes, &mut seen);
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.commitment_grounds, &self.commitment_grounds)) {
+            for grounds in Arc::make_mut(&mut self.commitment_grounds).values_mut() {
+                settle_provenance(grounds, &mut nodes, &mut seen);
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.reading_streams, &self.reading_streams)) {
+            for stream in Arc::make_mut(&mut self.reading_streams).values_mut() {
+                settle_provenance(&mut stream.selection_qualifications, &mut nodes, &mut seen);
+                for reading in &mut stream.occurrences {
+                    settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.decision_series, &self.decision_series)) {
+            for series in Arc::make_mut(&mut self.decision_series).values_mut() {
+                settle_provenance(&mut series.selection_qualifications, &mut nodes, &mut seen);
+            }
+        }
+        for (map, unchanged) in [
+            (
+                &mut self.observation_qualifications,
+                old.map(|old| &old.observation_qualifications),
+            ),
+            (
+                &mut self.examination_qualifications,
+                old.map(|old| &old.examination_qualifications),
+            ),
+            (
+                &mut self.reopening_qualifications,
+                old.map(|old| &old.reopening_qualifications),
+            ),
+        ] {
+            if unchanged.is_none_or(|old| !Arc::ptr_eq(old, map)) {
+                for provenance in Arc::make_mut(map).values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if old.is_none_or(|old| {
+            !Arc::ptr_eq(
+                &old.predicate_qualifications,
+                &self.predicate_qualifications,
+            )
+        }) {
+            for targets in Arc::make_mut(&mut self.predicate_qualifications).values_mut() {
+                for provenance in targets.values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if old.is_none_or(|old| !Arc::ptr_eq(&old.scheduled, &self.scheduled)) {
+            for scheduled in Arc::make_mut(&mut self.scheduled) {
+                settle_provenance(&mut scheduled.guard, &mut nodes, &mut seen);
+            }
+        }
+        for provenance in &mut self.cue_qualifications {
+            settle_provenance(provenance, &mut nodes, &mut seen);
+        }
+        for map in [
+            &mut self.binding_qualifications,
+            &mut self.binding_explanations,
+        ] {
+            for targets in map.values_mut() {
+                for provenance in targets.values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        for item in &mut self.archive {
+            if let ArchiveItem::Record(record) = item {
+                // Isolated departed groups have no retained holder marker.
+                // Give every record the same existing source-scoped anchor.
+                if publish {
+                    crate::reactive_archive::ArchiveTrace::record(
+                        &self.source_id,
+                        &record.history,
+                        &record.record,
+                        record.departed_at,
+                    )
+                    .settle(&mut nodes, &mut seen);
+                }
+                for provenance in record.qualifications.values_mut() {
+                    settle_provenance(provenance, &mut nodes, &mut seen);
+                }
+                if let Some(reading) = &mut record.reading {
+                    settle_provenance(&mut reading.provenance, &mut nodes, &mut seen);
+                }
+            }
+        }
+        if publish {
+            self.archive
+                .extend(nodes.into_iter().map(ArchiveItem::Provenance));
+        }
+    }
+}

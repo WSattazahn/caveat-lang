@@ -1,0 +1,9 @@
+{
+  "recordedAt": "2026-10-08T06:34:21.3557404Z",
+  "prior": "run-001",
+  "priorContractSha256": "2df2484a1023eac47db404d9f616adfc5dd54eb971234ceee25108f7b16d5e3e",
+  "superseding": "run-002",
+  "supersedingContractSha256": "53044ddfe5bab62cfd28ac484a27412a0c68f3e521f9cff7c640b1f7a28f83aa",
+  "reason": "Superseded before any measurement: add successful raw stdout/stderr preservation and refuse existing/partial registration directories. Thresholds, matrix and baseline unchanged.",
+  "priorAttempts": 0
+}

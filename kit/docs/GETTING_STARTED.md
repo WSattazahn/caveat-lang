@@ -1,7 +1,7 @@
 # Getting started with CAVEAT Language
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.15`**.
+Package: **`caveat-lang@0.1.0-rc.16`**.
 <!-- /caveat-package:identity -->
 
 This guide starts from an empty directory and ends with a program that makes a
@@ -24,7 +24,7 @@ package version this guide accompanies:
 <!-- caveat-package:install -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.15
+npm install caveat-lang@0.1.0-rc.16
 ```
 <!-- /caveat-package:install -->
 
@@ -274,8 +274,9 @@ Events
 Decisions
   umbrella: 1 of at most 4
     umbrella@1 = 70  reopened
-      based on rain_chance@1 (caveats: forecast_is_old)
-      #1 read_forecast: committed because rain_chance@1 (caveats: forecast_is_old)
+      based on rain_chance@1
+      retaining: forecast_is_old
+      #1 read_forecast: committed because rain_chance@1; retaining: forecast_is_old
       #2 clear_sky: reopened because sky
 
 Evidence
@@ -301,6 +302,9 @@ npx --no-install caveat dependents umbrella.cav sky events.jsonl
 
 ```text
 What rests on sky in umbrella.cav after 4 events (sequence 3)
+
+Claims
+  sky opposes rain_likely
 
 Decisions
   nothing

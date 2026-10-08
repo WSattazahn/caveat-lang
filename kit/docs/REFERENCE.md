@@ -1,9 +1,9 @@
 # Caveat on one page
 
-A Caveat program keeps track of what each decision rests on. It declares what
-it reasons about. Events bring readings in, and rules record them, make
-decisions and reopen them. The runtime keeps every reading and every revision,
-and can say what each decision was based on and what permitted it.
+A Caveat program records decisions, their reasons and permissions. Events bring
+readings in; rules record, decide and reopen. `limit` histories retain their
+items and refuse additions at capacity. `window` histories retire older records;
+eligible records can depart into the [host archive](HISTORY.md).
 
 This page is the language in brief. The [worked example](WORKED_EXAMPLE.md)
 takes one complete program through every command, and the package's tests run
@@ -33,7 +33,7 @@ wrong thing, and a clean check is not a passing test.
 
 ## The core
 
-Readings are kept, and a decision is a series of revisions:
+This example keeps `limit` readings; a decision is a series of revisions:
 
 <!-- excerpt: frost.cav -->
 ```caveat

@@ -1,0 +1,15 @@
+claim seen;
+evidence a from "a"; renewable a window 1;
+evidence sample_source from "retained computation";
+readings kept from sample_source window 1;
+state result = 0;
+event initialize; event cycle; event probe;
+on initialize renew a;
+on initialize reveal a supports seen;
+on initialize sample kept = qualified(1, a) supports seen;
+on initialize withdraw a because a;
+on cycle renew a;
+on cycle reveal a supports seen;
+on cycle withdraw a because a;
+on probe set result = latest(kept);
+bind hud.withdrawn = has_caveat(result, withdrawn);

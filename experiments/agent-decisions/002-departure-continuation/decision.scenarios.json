@@ -1,0 +1,124 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "decision.cav",
+  "scenarios": [
+    {
+      "id": "S01",
+      "title": "Observed continuation starts with unresolved checks retained; not ready",
+      "steps": [
+        {
+          "send": "recover"
+        },
+        {
+          "send": "authorize"
+        },
+        {
+          "send": "reproduce"
+        },
+        {
+          "send": "begin"
+        },
+        {
+          "send": "focused_pass"
+        },
+        {
+          "expect": {
+            "/bindings/work/started": true,
+            "/bindings/work/ready": false
+          }
+        },
+        {
+          "send": "finish",
+          "rejected": {
+            "origin": "policy",
+            "code": "reject"
+          }
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Counterfactual full verification permits readiness; not an observed result",
+      "steps": [
+        {
+          "send": "recover"
+        },
+        {
+          "send": "authorize"
+        },
+        {
+          "send": "reproduce"
+        },
+        {
+          "send": "begin"
+        },
+        {
+          "send": "focused_pass"
+        },
+        {
+          "send": "verify"
+        },
+        {
+          "send": "finish"
+        },
+        {
+          "expect": {
+            "/bindings/work/ready": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Counterfactual correction withdraws the result without rewriting implementation grounds",
+      "steps": [
+        {
+          "send": "recover"
+        },
+        {
+          "send": "authorize"
+        },
+        {
+          "send": "reproduce"
+        },
+        {
+          "send": "begin"
+        },
+        {
+          "send": "focused_pass"
+        },
+        {
+          "send": "invalidate"
+        },
+        {
+          "expect": {
+            "/bindings/checks/withdrawn": true,
+            "/bindings/work/ready": false,
+            "/commitment_grounds/implementation@1/evidence": [
+              "saved_commit"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "A grant is required; source declarations are not authority",
+      "steps": [
+        {
+          "send": "recover"
+        },
+        {
+          "send": "reproduce"
+        },
+        {
+          "send": "begin",
+          "rejected": {
+            "origin": "policy",
+            "code": "not_permitted"
+          }
+        }
+      ]
+    }
+  ]
+}

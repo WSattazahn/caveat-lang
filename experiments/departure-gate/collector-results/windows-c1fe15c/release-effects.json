@@ -1,0 +1,231 @@
+{
+  "passed": true,
+  "scope": "Actual-WASM last-event effects, drain, exact restore and next accepted no-op; serialized bytes are not process heap.",
+  "runtime": {
+    "reactiveWasmSha256": "0554b21cbc24e9d094975ea53be05075ee1a1233a8e6719b4373f00cf8235bdb",
+    "revision": "c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "node": "v24.11.1",
+  "platform": "win32",
+  "rows": [
+    {
+      "kind": "self",
+      "cycles": 60,
+      "source_sha256": "22e1634bc3557cedb65adad81902f65489a92f45b6c4f4ed051242a3e9b6de67",
+      "after_release": {
+        "save_bytes": 3303,
+        "save_sha256": "7f0d35227be08c6f3baf1517b3a6244a6cd30a0cfb534095d4bc23a1ddc4dcdc",
+        "effects_bytes": 2825,
+        "effects": 59,
+        "departure_effects": 59,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 479,
+        "save_sha256": "1a5fffe5e32b90c5c5fea6d4e635431898a08f50fff1d5b8d21e4bca9e7f000d",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 118,
+        "records": 59,
+        "provenance_nodes": 59,
+        "serialized_bytes": 30136
+      }
+    },
+    {
+      "kind": "self",
+      "cycles": 300,
+      "source_sha256": "22e1634bc3557cedb65adad81902f65489a92f45b6c4f4ed051242a3e9b6de67",
+      "after_release": {
+        "save_bytes": 15034,
+        "save_sha256": "afbd9e1c992a577924e820f3204d3a408e3cce2968600c3032f993df7b88fdc6",
+        "effects_bytes": 14546,
+        "effects": 299,
+        "departure_effects": 299,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 489,
+        "save_sha256": "2afb6eeb9d3249c410225d134ea3e652cb693bf3c8c5e764197de3cccaf71175",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 598,
+        "records": 299,
+        "provenance_nodes": 299,
+        "serialized_bytes": 155422
+      }
+    },
+    {
+      "kind": "self",
+      "cycles": 1000,
+      "source_sha256": "22e1634bc3557cedb65adad81902f65489a92f45b6c4f4ed051242a3e9b6de67",
+      "after_release": {
+        "save_bytes": 49345,
+        "save_sha256": "9b06c947829f9ff8d4ac6c152d51e85cf53e31e056e5b5fc331a708861c88e48",
+        "effects_bytes": 48847,
+        "effects": 999,
+        "departure_effects": 999,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 499,
+        "save_sha256": "6b4d296c0ccdc66319d29fe05a7c0707e8fe55d00a4e55943cfefe7648149f84",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 1998,
+        "records": 999,
+        "provenance_nodes": 999,
+        "serialized_bytes": 523528
+      }
+    },
+    {
+      "kind": "self",
+      "cycles": 3000,
+      "source_sha256": "22e1634bc3557cedb65adad81902f65489a92f45b6c4f4ed051242a3e9b6de67",
+      "after_release": {
+        "save_bytes": 149345,
+        "save_sha256": "6b3f726b988e87c05c441f50b638fdad0337ea4dfa307b7ca10abde3d801f997",
+        "effects_bytes": 148847,
+        "effects": 2999,
+        "departure_effects": 2999,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 499,
+        "save_sha256": "d4aa640cc035548cdd087f1bfd3998b47138e06253e87da4a2038571e7fcef54",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 5998,
+        "records": 2999,
+        "provenance_nodes": 2999,
+        "serialized_bytes": 1591528
+      }
+    },
+    {
+      "kind": "mutual",
+      "cycles": 60,
+      "source_sha256": "6d44f340b0515b6c7dd3cdbdc880675c006624f1caa21f0378a450f0c9f8c8f0",
+      "after_release": {
+        "save_bytes": 6323,
+        "save_sha256": "ff7b9422fe2b92f277d3c3393e5096b54ccdcd9c8ff55019796c835c432a6307",
+        "effects_bytes": 5649,
+        "effects": 118,
+        "departure_effects": 118,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 675,
+        "save_sha256": "388ea3f1b4c71cfbd22fbbd62cdd1f2e86ff5639157deabb7db58fd36fef0eeb",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 236,
+        "records": 118,
+        "provenance_nodes": 118,
+        "serialized_bytes": 60271
+      }
+    },
+    {
+      "kind": "mutual",
+      "cycles": 300,
+      "source_sha256": "6d44f340b0515b6c7dd3cdbdc880675c006624f1caa21f0378a450f0c9f8c8f0",
+      "after_release": {
+        "save_bytes": 29783,
+        "save_sha256": "207bc5d154861d628d744d3290e52bcfc72f95d5ea90140c928e548ee9a936a2",
+        "effects_bytes": 29091,
+        "effects": 598,
+        "departure_effects": 598,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 693,
+        "save_sha256": "4e535abdb640a2ae781d258583e7db6610f3ff9a23789fbb82d6d23d1d33b603",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 1196,
+        "records": 598,
+        "provenance_nodes": 598,
+        "serialized_bytes": 310843
+      }
+    },
+    {
+      "kind": "mutual",
+      "cycles": 1000,
+      "source_sha256": "6d44f340b0515b6c7dd3cdbdc880675c006624f1caa21f0378a450f0c9f8c8f0",
+      "after_release": {
+        "save_bytes": 98403,
+        "save_sha256": "ef5fa969444477c3c428d71d40779180d312fc90384206892dad51700a438357",
+        "effects_bytes": 97693,
+        "effects": 1998,
+        "departure_effects": 1998,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 711,
+        "save_sha256": "eecbe2bf5e574fbffa253a4171195267887d84beaaddca50a88d6e5eee17e437",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 3996,
+        "records": 1998,
+        "provenance_nodes": 1998,
+        "serialized_bytes": 1047055
+      }
+    },
+    {
+      "kind": "mutual",
+      "cycles": 3000,
+      "source_sha256": "6d44f340b0515b6c7dd3cdbdc880675c006624f1caa21f0378a450f0c9f8c8f0",
+      "after_release": {
+        "save_bytes": 298403,
+        "save_sha256": "36b89f0fdc9963d61b5de04701fcbcbc4cd448d1e1da7e54edaa067717530b7b",
+        "effects_bytes": 297693,
+        "effects": 5998,
+        "departure_effects": 5998,
+        "retired_dynamic_records": 0
+      },
+      "after_following": {
+        "save_bytes": 711,
+        "save_sha256": "befbe28fc70944196a7a0939746db4b1850d82a3225f5a58ec982d66ff4c57d2",
+        "effects_bytes": 2,
+        "effects": 0,
+        "departure_effects": 0,
+        "retired_dynamic_records": 0
+      },
+      "release_archive": {
+        "items": 11996,
+        "records": 5998,
+        "provenance_nodes": 5998,
+        "serialized_bytes": 3183055
+      }
+    }
+  ]
+}

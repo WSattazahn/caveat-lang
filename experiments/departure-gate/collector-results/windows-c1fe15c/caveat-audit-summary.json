@@ -1,0 +1,73 @@
+{
+  "schema": "caveat-public-audit-summary/1",
+  "notice": "Redacted summary of a private local audit, not a standalone authenticated proof. No issuer key, receipt payload, output text or store ledger is included. Rerun the declared plan after transfer.",
+  "original_audit_sha256": "c03e8545d66cf0ea3732388b674b1391b6de128e6bba6e4d7eb4cfe270f01b24",
+  "accepted": true,
+  "as_of": "2026-10-08T00:58:29.849Z",
+  "problems": [],
+  "scope": "Unmerged collector draft: local Windows Node24 current-WASM archive consumer regressions and registered C3/compatibility/restore/pin evidence. Native complete suites, paired allocator measurements and remote CI are separately observed evidence, not this receipt scope. Excludes merge/release readiness, universal boundedness, authenticated history and exhaustive coverage.",
+  "version": "sha256:18b9690328afd542c3ea97418cbd7dee89945c566136cc6d8c6343f36dbcffe3",
+  "declared_coverage": [
+    {
+      "id": "archive-consumers",
+      "statement": "Execute current built WASM and host regressions for cycle archives, true withdrawal relationships, nested joins, explicit conservative incomplete/conflicting archive reports, exact membership transfer, restore, rollback, CLI, authoring and serve consumers. Finite cases; no authenticity or global archive completeness claim."
+    },
+    {
+      "id": "registered-gates",
+      "statement": "Rerun the registered 44,460-event C3 save and dispatch gate, exact published rc.15 restore and all61 source-derived state-write paths, and the5program pin/restore census. Compare separately observed protected native compatibility populations and outcome/save digests. Does not rebuild the native sweep receipts. C3 is fixture-specific, not a universal bound."
+    }
+  ],
+  "limits": [
+    "Local keyed receipts detect accidental edits/imports; anyone controlling the issuer key or executor can forge them. They are not independent attestation. Keep the store private; rerun after transfer.",
+    "The signed store ledger detects missing expected withdrawals and superseded receipts. A complete valid store rollback needs an independently retained audit/store sequence to detect; sequence and store ID alone do not prove freshness.",
+    "Input selection, scope and coverage are declared by the agent. Exit 0 proves only that the named command returned 0; it does not prove semantic test adequacy, all requirements, or arbitrary prose.",
+    "Only selected files are hashed before/after; transient changes, undeclared dependencies, services, toolchain contents and background descendants are not fully captured. Run trusted, finite commands within existing task authorization.",
+    "This adapter supports bounded tested_readiness only. It does not authenticate source truth, establish market demand, intercept replies, grant safety permission, or authorize external actions."
+  ],
+  "receipts": [
+    {
+      "check_id": "archive-consumers",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "--test",
+        "kit/test/archive-history-runtime.test.mjs",
+        "kit/test/archive-history.test.mjs",
+        "kit/test/archive-runtime.test.mjs",
+        "kit/test/archive-report.test.mjs",
+        "kit/test/archive.test.mjs",
+        "kit/test/explain.test.mjs",
+        "kit/test/dependents.test.mjs",
+        "kit/test/dogfooding.test.mjs",
+        "kit/test/serve.test.mjs"
+      ],
+      "started_at": "2026-10-08T00:58:07.848Z",
+      "finished_at": "2026-10-08T00:58:09.090Z",
+      "exit_code": 0,
+      "signal": null,
+      "error": null,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "complete": true,
+      "stdout_sha256": "d5fbcc374bf857772e511b6c129b087c820e10c8de9d01c1f5fcd5e2beea2d39",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check_id": "registered-gates",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "experiments/departure-gate/run.mjs",
+        "--skip-sweeps"
+      ],
+      "started_at": "2026-10-08T00:58:09.549Z",
+      "finished_at": "2026-10-08T00:58:29.601Z",
+      "exit_code": 0,
+      "signal": null,
+      "error": null,
+      "timed_out": false,
+      "output_limit_exceeded": false,
+      "complete": true,
+      "stdout_sha256": "55dd36e1766c3b4cbc110797f8a0503dbe8a447f2a8f61b49d2bd6b77a8223e9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

@@ -11,8 +11,10 @@ export const SERVE_SCHEMA = 'caveat-serve/0.1';
 const FIELDS = {
   dispatch: ['event', 'payload', 'snapshot'],
   snapshot: [],
-  explain: [],
-  dependents: ['of'],
+  drainArchive: [],
+  undrained: [],
+  explain: ['archive'],
+  dependents: ['of', 'archive'],
   save: [],
   restore: ['save'],
   close: [],
@@ -68,10 +70,16 @@ export function createServer({ runtime, source, program = null }) {
       return { ...outcome, sequence: after.sequence, ...(request.snapshot ? { snapshot: after } : {}) };
     }
     if (op === 'snapshot') return { snapshot: session.snapshot() };
-    if (op === 'explain') return { report: explain(session.snapshot(), events) };
+    if (op === 'drainArchive') return { archive: session.drainArchive() };
+    if (op === 'undrained') return { undrained: session.undrained };
+    if ((op === 'explain' || op === 'dependents') && request.archive !== undefined
+      && (!Array.isArray(request.archive) || !request.archive.every(isObject))) {
+      throw new RequestError('"archive" must be an array of archive item objects');
+    }
+    if (op === 'explain') return { report: explain(session.snapshot(), events, { archive: request.archive }) };
     if (op === 'dependents') {
       if (typeof request.of !== 'string' || !request.of) throw new RequestError('dependents needs "of", a name');
-      try { return { report: dependents(session.snapshot(), request.of) }; } catch (error) {
+      try { return { report: dependents(session.snapshot(), request.of, { archive: request.archive }) }; } catch (error) {
         if (error instanceof CaveatError) throw error;
         throw new RequestError(error.message);
       }

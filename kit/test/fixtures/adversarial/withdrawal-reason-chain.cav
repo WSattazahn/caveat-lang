@@ -1,0 +1,16 @@
+claim seen;
+evidence a from "synthetic a"; renewable a window 1;
+evidence b from "synthetic b"; renewable b window 1;
+caveat stale consequence material;
+state reason_read = 0;
+event initialize; event cycle; event probe;
+on initialize reveal b supports seen;
+on cycle renew a;
+on cycle reveal a supports seen;
+on cycle qualify a with stale;
+on cycle withdraw a because b;
+on cycle renew b;
+on cycle reveal b supports seen;
+on cycle withdraw b because a;
+on probe set reason_read = if(withdrawn(b),1,0);
+bind hud.reason = reason_read;

@@ -1,0 +1,20 @@
+{
+  "recordedAt": "2026-10-08T07:04:36.596Z",
+  "registeredSummary": "summary-2026-10-08T07-00-12.480Z.json",
+  "totalAttempts": 49,
+  "targetAttempts": 40,
+  "diagnosticAttempts": 9,
+  "targetRawStreamsVerified": 80,
+  "allSampledPhasePeaksAndFullCollectorWorkExactlyEqual": 114,
+  "allBeforeAfterRetainedAndSaveFieldsExactlyEqual": true,
+  "allArchiveFieldsExactlyEqual": true,
+  "candidateSourceFilesVerified": 141,
+  "baselineExeSha256": "c206c83292dc10e908246a3bace2d6d0dc3a1dc9b4a8b6c0c9126bc1edfe32fd",
+  "candidateExeSha256": "9f5a0a5af2b4073849d30fd7070380eb1341ea4ae9206828aa7fd755cb207909",
+  "reportSha256": "776ab0e8dfacb043ddc95a50698b3f6a8234f742c75d189aee2b103fa8b361a0",
+  "supplementSha256": "8e092ca27da9d6725eedc62c9c34647e1e9764f2688f19aa4ebf6fec2a3ea276",
+  "supplementMarkdownSha256": "452ee3f907a657c095669324c2d87dc12e6d31e12ccebc794dbd50e32fec22a7",
+  "registeredSummarySha256": "5b605f85f6d97a0b806919fc983f66e2e8764013970a61a6e97b8cf0ad4be52e",
+  "contractSha256": "53044ddfe5bab62cfd28ac484a27412a0c68f3e521f9cff7c640b1f7a28f83aa",
+  "passed": true
+}

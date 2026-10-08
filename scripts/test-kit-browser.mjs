@@ -35,6 +35,17 @@ const GROUNDS_SOURCE = `evidence chart from "chart"; evidence other from "indepe
   on consult set narrow = basis because nothing;
   on consult commit act because enough using basis;`;
 
+const ARCHIVE_SOURCE = `claim seen; evidence glimpse from "glimpse";
+  readings s from glimpse window 1;
+  state left = 0; state right = 0; state chosen = 0;
+  event look v min 1 max 5; event pick;
+  on look sample s = v supports seen;
+  on look when v < 5 and v != 3 and latest(s) > 0 set left = left;
+  on look when v < 5 and v != 2 and latest(s) > 0 set right = right;
+  on pick set chosen = right;
+  bind hud.chosen = chosen;
+  bind hud.union = left + right;`;
+
 // Executed in the page. The paths are URL prefixes on the test server.
 function pageCheck({ kit, runtime: runtimeBase, examples, clockSource }) {
   return `
@@ -87,7 +98,7 @@ try {
   const neutralView = neutral.dispatchView('consult');
   neutral.dispatch('age');
   const neutralRestored = runtime.restore(${JSON.stringify(NEUTRAL_SOURCE)}, neutral.save());
-  const { explain } = await import(${JSON.stringify(`${kit}explain.mjs`)});
+  const { explain, dependents } = await import(${JSON.stringify(`${kit}explain.mjs`)});
   const neutralEvidence = explain(neutralRestored.snapshot()).evidence;
   results.neutralObservation = neutralView.outcome === 'accepted' && neutralView.view.bindings.hud.seen
     && JSON.stringify(neutralRestored.snapshot()) === JSON.stringify(neutral.snapshot())
@@ -95,6 +106,27 @@ try {
     && neutralEvidence[0].claim === null && neutralEvidence[0].caveats.includes('stale');
   neutral.close();
   neutralRestored.close();
+
+  // Runtime-produced sparse roots, transferred after departure and consumed
+  // by the pure browser archive verifier (no Node crypto/runtime fallback).
+  const archived = runtime.open(${JSON.stringify(ARCHIVE_SOURCE)});
+  for (let v = 1; v <= 5; v++) archived.dispatch('look', { v });
+  const archive = archived.drainArchive();
+  archived.dispatch('pick');
+  archive.push(...archived.drainArchive());
+  const archiveRestored = runtime.restore(${JSON.stringify(ARCHIVE_SOURCE)}, archived.save());
+  const archiveSnapshot = archiveRestored.snapshot();
+  const display = explain(archiveSnapshot, [], { archive }).displayed;
+  const chosen = display.find(item => item.name === 'hud.chosen').lineage.departed[0];
+  const joined = display.find(item => item.name === 'hud.union').lineage.departed[0];
+  results.archiveTransfer = archive.some(item => item.kind === 'provenance')
+    && chosen.archive_status === 'complete' && JSON.stringify(chosen.records) === JSON.stringify(['s@1', 's@3', 's@4'])
+    && JSON.stringify(joined.records) === JSON.stringify(['s@1', 's@2', 's@3', 's@4'])
+    && dependents(archiveSnapshot, 's@3', { archive }).values.some(item => item.name === 'chosen' && item.basis === 'lineage')
+    && !dependents(archiveSnapshot, 's@2', { archive }).values.some(item => item.name === 'chosen')
+    && explain(archiveSnapshot).displayed.find(item => item.name === 'hud.chosen').lineage.departed[0].archive_status === 'unavailable'
+    && archiveRestored.undrained === 0;
+  archived.close(); archiveRestored.close();
 
   // Exercise the restore trust boundary through the public kit and actual WASM.
   // Every added name is valid and observed/declared; only subset inclusion fails.
@@ -219,7 +251,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }

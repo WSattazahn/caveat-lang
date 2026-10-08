@@ -1,0 +1,13 @@
+{
+  "name": "high-degree",
+  "cycles": 60,
+  "trial": 1,
+  "primary": false,
+  "order": [
+    "baseline",
+    "candidate"
+  ],
+  "exactNativeEquality": true,
+  "peaks": {},
+  "passed": true
+}

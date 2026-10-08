@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { checkedOutput, firstDifference, modelTrace, compare, dependencyDropMutation, unselectedBranchMutation,
   InfrastructureFailure, SemanticMismatch, runtimeTrace, verifyMutation, wasmTrace, assertSourceHashesUnchanged, checkedDecoderRejection,
   lateModelFrame, lateRuntimeFrame, lateRequest, verifyLateMutation, commitmentQualificationMutation,
-  reopenModelFrame, reopenRuntimeFrame, reopenRequest, verifyReopenMutation, reopenMutation } from './verify-lean-conformance.mjs';
+  reopenModelFrame, reopenRuntimeFrame, reopenRequest, verifyReopenMutation, reopenMutation, stageMutantRuntime } from './verify-lean-conformance.mjs';
 import { STATES, SCHEMA } from './lean-conformance-cases.mjs';
 import { LATE_SCHEMA, LATE_STATES, lateCases } from './lean-late-qualification-cases.mjs';
 import { REOPEN_SCHEMA, REOPEN_STATES, reopenCases } from './lean-reopening-cases.mjs';
@@ -467,4 +469,43 @@ test('the reopening mutation anchors fail closed', () => {
     assert.throws(() => reopenMutation(source + source, field), InfrastructureFailure);
   }
   assert.throws(() => reopenMutation(source, 'grounds'), InfrastructureFailure);
+});
+
+
+test('mutant staging builds its selected runner with feature-gated and nested example targets present', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'caveat-mutant-staging-'));
+  // This exact directory was created by the test; no user paths are removed.
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const source = join(directory, 'source');
+  const files = {
+    'runtime/Cargo.toml': '[package]\nname = "staging-regression"\nversion = "0.0.0"\nedition = "2021"\n[features]\nprofile = []\n[[example]]\nname = "withdrawal_extraction_profile"\nrequired-features = ["profile"]\n',
+    'runtime/Cargo.lock': 'version = 4\n[[package]]\nname = "staging-regression"\nversion = "0.0.0"\n',
+    'runtime/src/lib.rs': 'pub fn result() -> u32 { 7 }\n',
+    'runtime/prelude.cav': '# staging input\n',
+    'runtime/examples/lean_conformance.rs': 'fn main() { assert_eq!(staging_regression::result(), 7); }\n',
+    // Not enabled for this build, but Cargo still requires its target path.
+    'runtime/examples/withdrawal_extraction_profile.rs': 'compile_error!("must remain feature gated");\n',
+    'runtime/examples/nested/main.rs': 'mod support; fn main() { support::run(); }\n',
+    'runtime/examples/nested/support.rs': 'pub fn run() {}\n',
+    'game/the_door_round2.cav': '# game input\n',
+    'web/the_door_round2.cav': '# web input\n',
+  };
+  for (const [name, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(source, name)), { recursive: true });
+    writeFileSync(join(source, name), text);
+  }
+  const staged = stageMutantRuntime(source, directory);
+  for (const [name, text] of Object.entries(files)) {
+    assert.equal(readFileSync(join(dirname(staged), name), 'utf8'), text, name);
+  }
+  const manifest = join(staged, 'Cargo.toml');
+  const run = args => checkedOutput(spawnSync('cargo', args, {
+    encoding: 'utf8', timeout: 120000, maxBuffer: 4 * 1024 * 1024, windowsHide: true,
+  }), 'staged Cargo crate');
+  const metadata = JSON.parse(run(['metadata', '--locked', '--offline', '--no-deps', '--format-version', '1', '--manifest-path', manifest]));
+  assert.deepEqual(metadata.packages[0].targets.filter(target => target.kind.includes('example')).map(target => target.name).sort(),
+    ['lean_conformance', 'nested', 'withdrawal_extraction_profile']);
+  run(['build', '--locked', '--offline', '--no-default-features', '--manifest-path', manifest, '--example', 'lean_conformance']);
+  assert.equal(readFileSync(manifest, 'utf8'), files['runtime/Cargo.toml']);
+  assert.equal(readFileSync(join(staged, 'Cargo.lock'), 'utf8'), files['runtime/Cargo.lock']);
 });

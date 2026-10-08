@@ -286,11 +286,10 @@ test('outcomes have the declared shapes, and the declared codes and kinds are th
 
 // The structs the runtime serializes, field by field: a field it skips is
 // absent, and one it skips when empty is optional.
-async function rustShapes() {
+function readRustShapes(sources) {
   const found = new Map();
-  for (const file of ['reactive.rs', 'reactive_expr.rs', 'map.rs', 'game_session.rs']) {
-    const text = await readFile(path.join(repo, 'runtime', 'src', file), 'utf8');
-    for (const match of text.matchAll(/^pub (struct|enum) (\w+)(?:<[^>]*>)? \{\n([\s\S]*?)^\}/gm)) {
+  for (const text of sources) {
+    for (const match of text.matchAll(/^pub (struct|enum) (\w+)(?:<[^>]*>)? \{\r?\n([\s\S]*?)^\}/gm)) {
       const [, kind, name, body] = match;
       assert.ok(!found.has(name), `${name} is defined twice`);
       if (kind === 'struct') {
@@ -321,6 +320,36 @@ async function rustShapes() {
   }
   return found;
 }
+
+async function rustShapes() {
+  const files = ['reactive.rs', 'reactive_expr.rs', 'map.rs', 'game_session.rs'];
+  return readRustShapes(await Promise.all(files.map(file => readFile(path.join(repo, 'runtime', 'src', file), 'utf8'))));
+}
+
+test('Rust shape scanner preserves fields, serde attributes and variants with LF or CRLF', () => {
+  const source = `pub struct Example {
+    pub required: String,
+    #[serde(skip)]
+    pub hidden: String,
+    #[serde(rename = "shown", skip_serializing_if = "Option::is_none")]
+    pub maybe: Option<String>,
+}
+pub enum Choice {
+    Empty,
+    Value {
+        value: String,
+    },
+}
+`;
+  const expected = new Map([
+    ['Example', { required: new Set(['required']), optional: new Set(['shown']) }],
+    ['Choice', { variants: new Map([['Empty', new Set()], ['Value', new Set(['value'])]]) }],
+  ]);
+  const crlf = source.replaceAll('\n', '\r\n');
+  assert.deepEqual(readRustShapes([source]), expected);
+  assert.deepEqual(readRustShapes([crlf]), expected);
+  assert.throws(() => readRustShapes([source, crlf]), /Example is defined twice/);
+});
 
 const RUST_STRUCTS = {
   Snapshot: 'ReactiveSnapshot', View: 'ReactiveView', Provenance: 'Provenance', QualifiedValue: 'Tracked',
@@ -442,7 +471,13 @@ test('explain, dependents and check reports have the declared fields', () => {
     [thermostat, [['read', { value: 17 }], ['read', { value: 25 }]], 'temperature@1'],
     [PERMISSION, [['pushed', { commit: 'abc' }], ['check'], ['approved', { commit: 'abc' }], ['merge']], 'approvals'],
     [WITHDRAWAL, [['check'], ['decide'], ['misread']], 'checks'],
-    [WINDOWED, WINDOWED_EVENTS, 'sighting'],
+    ['claim c; evidence e from "check"; caveat doubt consequence low; event go; on go reveal e supports c; on go commit decide because enough using qualified(1, e) retaining doubt;', [['go']], 'e'],
+    // Before the last decide sighting@1 is retired; after it, departed
+    // (spec/caveat-departure-0.1.md).
+    [WINDOWED, WINDOWED_EVENTS.slice(0, 4), 'sighting'],
+    [WINDOWED, WINDOWED_EVENTS, 'sighting@1'],
+    ['claim seen; evidence glimpse from "glimpse"; readings s from glimpse window 1; state held = 0; event look; on look sample s = 1 supports seen; on look when latest(s) > 0 set held = held; bind hud.held = held;',
+      [['look'], ['look'], ['look']], 's@1'],
   ]) {
     const session = real.open(source);
     const sent = events.map(([event, payload]) => {
@@ -451,6 +486,11 @@ test('explain, dependents and check reports have the declared fields', () => {
     });
     explained.push(explain(session.snapshot(), sent));
     rests.push(dependents(session.snapshot(), subject));
+    const archive = session.drainArchive();
+    if (archive.length) {
+      explained.push(explain(session.snapshot(), sent, { archive }));
+      rests.push(dependents(session.snapshot(), subject, { archive }));
+    }
     session.close();
   }
   assertShape('ExplainReport', explained, { complete: true });
@@ -466,9 +506,13 @@ test('explain, dependents and check reports have the declared fields', () => {
   assertShape('WithdrawalNote', evidence.flatMap(item => item.withdrawn ?? []), { complete: true });
   assertShape('ExplainedDisplay', explained.flatMap(report => report.displayed), { complete: true });
   assertShape('ExplainEvent', explained.flatMap(report => report.events), { complete: true });
+  const archives = [...explained, ...rests].flatMap(report => report.archive ?? []);
+  assertShape('ArchivedHistory', archives, { complete: true });
+  assertShape('ArchivedHistoryRecord', archives.flatMap(report => report.records), { complete: true });
 
   assertShape('DependentsReport', rests, { complete: true });
   assertShape('RetiredRecord', rests.flatMap(item => item.retired ?? []), { complete: true });
+  assertShape('DependentClaim', rests.flatMap(item => item.claims), { complete: true });
   assertShape('DependentDecision', rests.flatMap(item => item.decisions), { complete: true });
   assertShape('DependentChange', rests.flatMap(item => item.changes), { complete: true });
   assertShape('DependentValue', rests.flatMap(item => item.values), { complete: true });
@@ -494,6 +538,7 @@ test('a server, its lines and its responses have the declared fields', () => {
     { id: 2, op: 'dispatch', event: 'read', payload: { value: 41 } },
     { id: 3, op: 'snapshot' }, { id: 4, op: 'explain' }, { id: 5, op: 'dependents', of: 'temperature@1' },
     { id: 6, op: 'save' }, { id: 7, op: 'dispatch', event: 'read' }, { id: 8, op: 'unknown' },
+    { id: 'undrained', op: 'undrained' }, { id: 'drainArchive', op: 'drainArchive' },
   ];
   const results = lines.map(line => server.handle(JSON.stringify(line)));
   results.push(server.handle(JSON.stringify({ id: 9, op: 'restore', save: results[5].response.save })));

@@ -1,0 +1,345 @@
+{
+  "package": "0.1.0-rc.16",
+  "source_sha256": "7367b1377251ff45fb8bf25860676f0205afe139c8dd493528ba6e9fe2b4fd33",
+  "runtime": {
+    "reactiveWasmSha256": "0554b21cbc24e9d094975ea53be05075ee1a1233a8e6719b4373f00cf8235bdb",
+    "revision": "c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "node": "v24.11.1",
+  "platform": "win32/x64",
+  "sizes": {
+    "10": {
+      "adapter": 2658,
+      "raw": 25370,
+      "structure_sha256": "9d5dfa720e156e46a52d25d8cb3db141175f70b971aa510413354448a2777335"
+    },
+    "20": {
+      "adapter": 2666,
+      "raw": 25703,
+      "structure_sha256": "557d7b25a6b0546e545e57df23414747ae69a5b88e9b7d67c985fdd5c961d4bf"
+    },
+    "30": {
+      "adapter": 2646,
+      "raw": 25682,
+      "structure_sha256": "f254cb5b65e5f69181dcc9fbc8e2a59ac361e54ed7023c1361958ab85c186624"
+    },
+    "40": {
+      "adapter": 2662,
+      "raw": 25710,
+      "structure_sha256": "9d5dfa720e156e46a52d25d8cb3db141175f70b971aa510413354448a2777335"
+    },
+    "50": {
+      "adapter": 2670,
+      "raw": 25711,
+      "structure_sha256": "557d7b25a6b0546e545e57df23414747ae69a5b88e9b7d67c985fdd5c961d4bf"
+    },
+    "60": {
+      "adapter": 2646,
+      "raw": 25683,
+      "structure_sha256": "f254cb5b65e5f69181dcc9fbc8e2a59ac361e54ed7023c1361958ab85c186624"
+    }
+  },
+  "pinned_records": {
+    "checkpoints": {
+      "10": {
+        "retired": 19,
+        "pinned": 5,
+        "by_provenance": {
+          "state grounds": [
+            "witness_pit@9"
+          ],
+          "commitment in force": [
+            "witness_cave"
+          ],
+          "journal entry": [
+            "witness_grove@9",
+            "witness_pit@8",
+            "witness_pool@9"
+          ],
+          "scheduled qualification": [],
+          "permission grant": [],
+          "withdrawal reason": []
+        },
+        "declared_first_occurrences": [
+          "absorb_cave",
+          "absorb_grove",
+          "absorb_pit",
+          "absorb_pool",
+          "absorb_ruin",
+          "taste_cave",
+          "taste_grove",
+          "taste_pit",
+          "taste_pool",
+          "taste_ruin",
+          "witness_cave",
+          "witness_grove",
+          "witness_pit",
+          "witness_pool",
+          "witness_ruin"
+        ],
+        "unpinned_non_declarations": []
+      },
+      "20": {
+        "retired": 19,
+        "pinned": 5,
+        "by_provenance": {
+          "state grounds": [
+            "witness_pit@19"
+          ],
+          "commitment in force": [
+            "witness_cave"
+          ],
+          "journal entry": [
+            "witness_grove@19",
+            "witness_pit@18",
+            "witness_pool@19"
+          ],
+          "scheduled qualification": [],
+          "permission grant": [],
+          "withdrawal reason": []
+        },
+        "declared_first_occurrences": [
+          "absorb_cave",
+          "absorb_grove",
+          "absorb_pit",
+          "absorb_pool",
+          "absorb_ruin",
+          "taste_cave",
+          "taste_grove",
+          "taste_pit",
+          "taste_pool",
+          "taste_ruin",
+          "witness_cave",
+          "witness_grove",
+          "witness_pit",
+          "witness_pool",
+          "witness_ruin"
+        ],
+        "unpinned_non_declarations": []
+      },
+      "30": {
+        "retired": 19,
+        "pinned": 5,
+        "by_provenance": {
+          "state grounds": [
+            "witness_pit@29"
+          ],
+          "commitment in force": [
+            "witness_cave"
+          ],
+          "journal entry": [
+            "witness_grove@29",
+            "witness_pit@28",
+            "witness_pool@29"
+          ],
+          "scheduled qualification": [],
+          "permission grant": [],
+          "withdrawal reason": []
+        },
+        "declared_first_occurrences": [
+          "absorb_cave",
+          "absorb_grove",
+          "absorb_pit",
+          "absorb_pool",
+          "absorb_ruin",
+          "taste_cave",
+          "taste_grove",
+          "taste_pit",
+          "taste_pool",
+          "taste_ruin",
+          "witness_cave",
+          "witness_grove",
+          "witness_pit",
+          "witness_pool",
+          "witness_ruin"
+        ],
+        "unpinned_non_declarations": []
+      },
+      "40": {
+        "retired": 19,
+        "pinned": 5,
+        "by_provenance": {
+          "state grounds": [
+            "witness_pit@39"
+          ],
+          "commitment in force": [
+            "witness_cave"
+          ],
+          "journal entry": [
+            "witness_grove@39",
+            "witness_pit@38",
+            "witness_pool@39"
+          ],
+          "scheduled qualification": [],
+          "permission grant": [],
+          "withdrawal reason": []
+        },
+        "declared_first_occurrences": [
+          "absorb_cave",
+          "absorb_grove",
+          "absorb_pit",
+          "absorb_pool",
+          "absorb_ruin",
+          "taste_cave",
+          "taste_grove",
+          "taste_pit",
+          "taste_pool",
+          "taste_ruin",
+          "witness_cave",
+          "witness_grove",
+          "witness_pit",
+          "witness_pool",
+          "witness_ruin"
+        ],
+        "unpinned_non_declarations": []
+      },
+      "50": {
+        "retired": 19,
+        "pinned": 5,
+        "by_provenance": {
+          "state grounds": [
+            "witness_pit@49"
+          ],
+          "commitment in force": [
+            "witness_cave"
+          ],
+          "journal entry": [
+            "witness_grove@49",
+            "witness_pit@48",
+            "witness_pool@49"
+          ],
+          "scheduled qualification": [],
+          "permission grant": [],
+          "withdrawal reason": []
+        },
+        "declared_first_occurrences": [
+          "absorb_cave",
+          "absorb_grove",
+          "absorb_pit",
+          "absorb_pool",
+          "absorb_ruin",
+          "taste_cave",
+          "taste_grove",
+          "taste_pit",
+          "taste_pool",
+          "taste_ruin",
+          "witness_cave",
+          "witness_grove",
+          "witness_pit",
+          "witness_pool",
+          "witness_ruin"
+        ],
+        "unpinned_non_declarations": []
+      },
+      "60": {
+        "retired": 19,
+        "pinned": 5,
+        "by_provenance": {
+          "state grounds": [
+            "witness_pit@59"
+          ],
+          "commitment in force": [
+            "witness_cave"
+          ],
+          "journal entry": [
+            "witness_grove@59",
+            "witness_pit@58",
+            "witness_pool@59"
+          ],
+          "scheduled qualification": [],
+          "permission grant": [],
+          "withdrawal reason": []
+        },
+        "declared_first_occurrences": [
+          "absorb_cave",
+          "absorb_grove",
+          "absorb_pit",
+          "absorb_pool",
+          "absorb_ruin",
+          "taste_cave",
+          "taste_grove",
+          "taste_pit",
+          "taste_pool",
+          "taste_ruin",
+          "witness_cave",
+          "witness_grove",
+          "witness_pit",
+          "witness_pool",
+          "witness_ruin"
+        ],
+        "unpinned_non_declarations": []
+      }
+    },
+    "maxima": {
+      "pinned": 5,
+      "by_provenance": {
+        "state grounds": 1,
+        "commitment in force": 1,
+        "journal entry": 3,
+        "scheduled qualification": 0,
+        "permission grant": 0,
+        "withdrawal reason": 0
+      }
+    }
+  },
+  "dispatch_us": {
+    "all": {
+      "events": 44460,
+      "median": 112,
+      "p99": 242.4,
+      "mean": 126.2
+    },
+    "cycles_1_10": {
+      "events": 7410,
+      "median": 107.6,
+      "p99": 305.7,
+      "mean": 120.2
+    },
+    "cycles_51_60": {
+      "events": 7410,
+      "median": 115.1,
+      "p99": 252.1,
+      "mean": 128.9
+    }
+  },
+  "outcomes": {
+    "accepted": 44460,
+    "refused": 0,
+    "sha256": "640f53f770cd70f6a940e51822c0916d0967d8eb3c98bd104ce68225b46943a1"
+  },
+  "effects": {
+    "reveal": 300,
+    "commit": 1,
+    "reopen": 150,
+    "renew": 900,
+    "retire": 1030,
+    "depart": 1011
+  },
+  "undrained": 2303,
+  "archive": {
+    "checkpoints": {
+      "10": 303,
+      "20": 703,
+      "30": 1103,
+      "40": 1503,
+      "50": 1903,
+      "60": 2303
+    },
+    "items": 2303,
+    "records": 1011,
+    "provenance_nodes": 1292,
+    "serialized_bytes": 722174,
+    "node_process_memory_bytes_before_drain": {
+      "rss": 95555584,
+      "heapTotal": 28266496,
+      "heapUsed": 13915248,
+      "external": 8858405,
+      "arrayBuffers": 246121
+    },
+    "memory_note": "Serialized archive bytes are not resident heap size; process memory includes the entire workload and WASM.",
+    "undrained_after_drain": 0
+  }
+}

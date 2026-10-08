@@ -1,0 +1,12 @@
+{
+  "name": "release-mutual",
+  "cycles": 3000,
+  "trial": 2,
+  "order": [
+    "diagnostic",
+    "baseline"
+  ],
+  "exactNativeEquality": true,
+  "peaks": {},
+  "passed": true
+}

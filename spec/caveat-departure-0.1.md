@@ -1,11 +1,25 @@
 # CAVEAT Departure 0.1 — when a retired record leaves the session
 
-Status: specified for rc.16, not implemented. It is the second half of the
+Status: implemented in the unpublished rc.16 continuation (2026-10-07);
+release verification is recorded in [the development record](../docs/releases/rc16-development.md). It is the second half of the
 owner's 2026-10-04 decision ([save forgetting](../docs/design/save-forgetting.md),
 option A, meaning 3), after [Windows 0.1](caveat-windows-0.1.md) and
 [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md). The order is the
 owner's (2026-10-05 16:40 UTC): lineage compaction, then departure, then the
 C3 gate on a runtime build.
+
+Collector draft note (2026-10-07): the owner has separately authorized a
+reviewable withdrawal-collection implementation on
+`codex/withdrawal-collector-draft`, based on `f5ec829`. The
+[draft contract and acceptance checklist](../docs/design/withdrawal-collector-draft.md)
+record its proposed additional candidates, conservative transfer vetoes,
+archive reporting and capacity-limit differences. On 2026-10-08 UTC the owner
+accepted repaired `3d77aa` as an experimental development baseline, including
+those explicit snapshot, scoped historical-completeness and capacity-only
+choices. This document retains the original ordinary-departure contract;
+the collector contract defines its accepted experimental overlay. Merge and
+release remain unapproved. Representation-only index compaction does not
+authorize changing either retention rule or the capacity admission timing.
 
 Windows 0.1 retires a windowed history's oldest records: they leave the live
 graph and stay in the session. Lineage Compaction 0.1 says what every citation
@@ -58,21 +72,39 @@ its form: a marker could stand for one record, with `from` equal to
   a record departs after it was read. If the reason had departed, the
   predicate would have nothing to carry, and a `because` citing the reason
   would be refused as `evaluation/ungrounded_citation`, a refusal departure
-  caused. The bound is one pinned reason per standing withdrawal. A withdrawal
+  caused. There is one pinned reason per standing withdrawal. A withdrawal
   stands only while its subject is held, and it leaves when its subject
-  departs (below).
+  departs (below). **Current qualification (2026-10-07): this per-withdrawal
+  count does not bound the number of standing withdrawals.** Valid self/mutual
+  cycles and reachable reason chains retain growing pinned sets; the
+  [withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
+  records the pre-collector measurements. Exact reasons and predicate behavior
+  remain required. The reviewed `f5ec829` baseline has no cycle collector; the
+  separately authorized [collector draft](../docs/design/withdrawal-collector-draft.md)
+  has its own evidence; the repaired experimental contract was accepted on 2026-10-08 as recorded there.
 
-Both pins serve one invariant: **departure never changes an outcome.** A
-program accepts and refuses exactly the events it would with retirement alone,
-with the same refusal origins and codes. Departure shows only in the size of
-the save, `depart` effects, markers in explanations, and the archive.
+Both pins serve one invariant: **ordinary departure preserves
+decision/evaluation outcomes.** For ordinary departure, a program accepts and
+refuses the same events as with retirement alone, with the same refusal origins
+and codes; departure appears in retained snapshots, save size, `depart` effects,
+markers and the archive.
 
+The accepted [collector capacity amendment](../docs/design/withdrawal-collector-draft.md)
+adds one explicit difference: a later event may succeed after an earlier
+accepted event freed held-record capacity. It retains the threshold, admission
+timing and rollback, and cannot rescue an already-refused event. The ordinary
+pin argument does not require retaining unreachable withdrawal cycles forever.
 A renewable evidence's first occurrence is the evidence the program declares,
 such as `witness_cave`, which is `witness_cave@1`. The program's own
 declarations name it and relate it, so it never departs: once retired, it
 stays retired. That keeps at most one retired record per renewable evidence
 in the session, a number the source fixes. Every other record of a windowed
 history is created by an event and can depart.
+
+Departure closes over pins released by departure itself. If departing a
+withdrawal's subject releases its reason, that reason departs in the same
+accepted event when no other pin remains. Reports retain the specified global
+history/number ordering; a work queue must not leak its processing order.
 
 A record retires and departs in the same event when nothing pins it. A record
 that a pin held departs at the end of the first event after which nothing
@@ -126,16 +158,20 @@ A program without a window never reports `depart`.
 
 The session keeps an append-only **archive** of departed records, in the order
 they departed. The host drains it: the runtime's `drain_archive()`, and the
-kit session's `drainArchive()`, return the entries departed since the last
+kit session's `drainArchive()`, return the departed-record and provenance items since the last
 drain and empty the archive. A host that needs the full history stores what it
 drains beside its saves. A host that does not can discard it.
 
 The archive is a handover buffer, not session state. No read, predicate,
 explanation or restore depends on it, so a save, a snapshot and a session
 fed the same events are the same whatever the host has drained. The archive
-is not part of the save. A save holds what is still in the
-session, so a program whose every growing history has a window has a save
-bounded by its windows, whatever the length of play. A host that saves
+is not part of the save. A save holds what is still in the session. The
+original argument that windows alone bound this retained state is unresolved:
+required withdrawal pins can grow even with a window on every growing history.
+The [withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
+records current measurements and the remaining contract questions. The owner's
+bounded-save requirement and C3 gate remain unchanged; neither archive draining
+nor compact marker representation proves the broader bound. A host that saves
 without draining keeps the undrained entries only in memory. Restore starts
 with an empty archive. Until it is drained, the archive grows in memory with
 play, which is the price of handing records over rather than erasing them.
@@ -174,8 +210,14 @@ An archive entry holds what the record was when it departed:
   Bindings are computed again from states rather than saved, so they are not
   holders.
 
-So `explain` over the session together with a drained archive names every
-record a value read. The session alone gives the range and count.
+Holder rows describe the instant of departure. Exact explanations after later
+copying, merging and replacement additionally use Lineage Compaction 0.1's
+[archive provenance references](caveat-lineage-compaction-0.1.md#archive-provenance-references-owner-amendment-2026-10-07).
+The same drain stream hands over those immutable membership nodes. `undrained`
+counts all pending items, including those nodes; it is not a departed-record
+count. Hosts retain the complete stream beside saves. A missing or inconsistent
+archive yields conservative range/count explanations, never exact-looking names.
+Exact membership does not authenticate the host's history.
 
 ## Snapshot, view and save
 
@@ -190,8 +232,12 @@ record a value read. The session alone gives the range and count.
   remaining records keep their names, so a stream's or renewal's departed
   records are the numbers below its oldest live record that are not in
   `retired`.
-- The save's `effects`, the last event's, may name a departed record in a
-  `retire` or `depart` effect. Those are reports, not citations.
+- The save's `effects`, the last event's, may name a record in a `sample`,
+  `renew`, `reveal`, `qualify`, `withdraw`, `reopen` or `retire` effect before
+  that record departs later in the same event. These reports are not pins.
+  Restore permits such a reference only when a corresponding valid `depart`
+  effect agrees with the source and the actual history gap in the save. An
+  arbitrary absent record or forged departure report is insufficient.
 
 Restore refuses a save when:
 

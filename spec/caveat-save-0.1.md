@@ -1,5 +1,15 @@
 # CAVEAT Save 0.1
 
+rc.16 amendment: [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
+defines `departed` markers and the `inherited` provenance split;
+[Departure 0.1](caveat-departure-0.1.md) defines departed journal counts and
+older-save continuation. The host archive is not part of the save. The
+[collector contract](../docs/design/withdrawal-collector-draft.md) defines
+additional collection after an accepted event, never during restore, and its
+snapshot/capacity distinctions. These implemented amendments supplement the
+original save format below; the [rc.16 candidate notes](../docs/releases/v0.1.0-rc.16.md)
+record their release status.
+
 A game has to save. Round 6 of the
 [glowcap benchmark](../experiments/glowcap/RESULTS.md) asked for save and
 resume, and the runtime had no way to restore a session, so the Caveat side

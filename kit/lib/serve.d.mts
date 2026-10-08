@@ -2,6 +2,7 @@
 // spec/caveat-serve-0.1.md. The module does no I/O.
 import type { DependentsReport, ExplainReport } from './explain.mjs';
 import type {
+  ArchiveEntry,
   CaveatErrorKind,
   CaveatRuntime,
   JsonValue,
@@ -43,6 +44,10 @@ export interface ServeResponse {
   snapshot?: Snapshot;
   report?: ExplainReport | DependentsReport;
   save?: string;
+  /** Host-owned archive items removed from the runtime by drainArchive. */
+  archive?: ArchiveEntry[];
+  /** Number of pending record entries plus provenance nodes. */
+  undrained?: number;
   error?: ServeError;
 }
 

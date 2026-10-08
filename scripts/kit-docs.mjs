@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 export const KIT_DOCUMENTS = [
   'README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md',
-  'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md',
+  'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md',
   'examples/agent-evidence/README.md', 'examples/agent-evidence/QUALIFICATION.md',
   'examples/agent-evidence/BRANCHING.md',
 ];

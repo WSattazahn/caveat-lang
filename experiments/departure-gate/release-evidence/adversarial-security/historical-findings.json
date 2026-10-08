@@ -1,0 +1,42 @@
+{
+  "schema": "caveat-historical-finding-inventory/1",
+  "scope": "Bounded local source-read search; no attached scripts or runtime executed.",
+  "findings": [
+    {"id":"F256","exactSourceRecovered":false,"exactExpectationRecovered":false,"parentRetrievedSummary":"tainted saves","status":"unavailable; do not label newly authored tests a replay"},
+    {"id":"F358","exactSourceRecovered":false,"exactExpectationRecovered":false,"parentRetrievedSummary":"nine mutants","status":"unavailable; do not infer which mutations or expected outcomes"},
+    {"id":"F362","exactSourceRecovered":false,"exactExpectationRecovered":false,"parentRetrievedSummary":"write-once withdrawal","status":"unavailable; do not conflate approved departure with reversal"},
+    {"id":"F363","exactSourceRecovered":false,"exactExpectationRecovered":false,"parentRetrievedSummary":"anchors","status":"unavailable; exact anchor case unknown"},
+    {"id":"F364","exactSourceRecovered":false,"exactExpectationRecovered":false,"parentRetrievedSummary":"anchors","status":"unavailable; exact anchor case unknown"}
+  ],
+  "textSearch": {
+    "root":"C:/Users/walte/Downloads",
+    "pattern":"\\bF[ -]?(256|358|362|363|364)\\b|finding.{0,8}(256|358|362|363|364)",
+    "caseInsensitive":true,
+    "extensions":["md","txt","json","csv","html","xml","mjs","js","cav","caveat"],
+    "matches":0
+  },
+  "archiveSearch": {
+    "method":"Read ZIP central-directory eligible regular text/XML members without extraction or execution; XML text flattened for split runs.",
+    "memberLimitBytes":12582912,
+    "archiveLimitBytes":104857600,
+    "privateKeyStoreAndNodeModulesNamesSkipped":true,
+    "archives":[
+      {"file":"caveat-examples.zip","eligibleTextMembers":3},
+      {"file":"caveat-openai-plugin (1).zip","eligibleTextMembers":3},
+      {"file":"caveat-openai-plugin.zip","eligibleTextMembers":3},
+      {"file":"caveatism-bundle.zip","eligibleTextMembers":22},
+      {"file":"caveatist-plugin-test.zip","eligibleTextMembers":2},
+      {"file":"Caveat_Archive_Early_Boxing_Independent_Review.zip","eligibleTextMembers":107},
+      {"file":"Mr-Caveat-fortune-ticket-review (1).zip","eligibleTextMembers":11},
+      {"file":"Mr-Caveat-fortune-ticket-review.zip","eligibleTextMembers":9},
+      {"file":"Mr_Caveat_New_3D_Game_Proposal_v0_1.docx","eligibleTextMembers":15},
+      {"file":"The_Caveatist_Archive_v1_1_Full.docx","eligibleTextMembers":13},
+      {"file":"The_Caveatist_Atlas_v1.docx","eligibleTextMembers":13},
+      {"file":"archive/caveat-evidence-review (1).xlsx","eligibleTextMembers":11},
+      {"file":"archive/caveat-evidence-review.xlsx","eligibleTextMembers":11}
+    ],
+    "matches":0
+  },
+  "otherSearchAttribution":"Parent reported no matching IDs in Caveat repository/continuation text and read the recent Muse summary from the app. Parent separately requested original finding location from the user.",
+  "limits":["Absence of these identifiers in this bounded search does not prove the findings do not exist.","No expectations are reconstructed from numbered labels or summaries.","New probes must be separately named and grounded in current source/contracts; historical expectations remain preserved as unavailable."]
+}

@@ -9,7 +9,7 @@ import {
 } from '../lib/explain.mjs';
 import type { Snapshot, Withdrawal } from '../lib/session.mjs';
 
-type LegacyReport = Omit<DependentsReport, 'withdrawals' | 'decisions' | 'changes' | 'values' | 'displayed'> & {
+type LegacyReport = Omit<DependentsReport, 'withdrawals' | 'reasonForWithdrawals' | 'claims' | 'decisions' | 'changes' | 'values' | 'displayed'> & {
   decisions: Omit<DependentDecision, 'withdrawn'>[];
   changes: Omit<DependentChange, 'withdrawn'>[];
   values: Omit<DependentValue, 'withdrawn'>[];
@@ -37,6 +37,8 @@ declare const snapshot: Snapshot;
 const current = dependents(snapshot, 'checks');
 formatDependents(current) satisfies string;
 current.withdrawals satisfies Withdrawal[];
+current.reasonForWithdrawals satisfies Withdrawal[];
+current.claims[0]!.relation satisfies 'supports' | 'opposes';
 current.decisions[0]!.withdrawn satisfies Withdrawal[];
 current.changes[0]!.withdrawn satisfies Withdrawal[];
 current.values[0]!.withdrawn satisfies Withdrawal[];

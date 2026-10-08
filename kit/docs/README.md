@@ -96,6 +96,19 @@ Background:
 - [Essence](reference/docs/CAVEAT_ESSENCE.md): the invariants any change to the
   language must keep.
 
+## History and long-running sessions
+
+- [History integration](HISTORY.md): drain and retain the host archive,
+  interpret exact versus conservative reports, and budget live and historical
+  storage separately.
+- [Windows](reference/spec/caveat-windows-0.1.md),
+  [lineage compaction](reference/spec/caveat-lineage-compaction-0.1.md) and
+  [departure](reference/spec/caveat-departure-0.1.md): retirement, exact own
+  grounds and records leaving a session.
+- [Withdrawal collector contract](reference/docs/design/withdrawal-collector-draft.md):
+  required reasons, conservative retention, historical report scope and
+  transactional collection.
+
 ## The kit
 
 - [Package README](../README.md): the `caveat` command, the session library,

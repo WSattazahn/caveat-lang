@@ -37,7 +37,7 @@ async function packageFiles() {
 }
 
 // The kit's own documents, whose links must all resolve inside the package.
-const KIT_DOCUMENTS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md',
+const KIT_DOCUMENTS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md',
   'examples/agent-evidence/README.md'];
 
 export function relativeLinks(markdown) {

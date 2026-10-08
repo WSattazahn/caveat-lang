@@ -1,0 +1,59 @@
+{
+  "schema": "caveat-independent-review-reuse/1",
+  "origin": "User-supplied independent review of PR176; authorship and initial execution are attributed to that review, not to this adapter.",
+  "attachedArchive": {
+    "file": "Caveat_PR176_Independent_Review.zip",
+    "sha256": "ade8e8f630481ce6fafd9c7d39f6dd98816fea58e69a449efdfc161fbb8059a7"
+  },
+  "originalHarness": {
+    "file": "caveat-pr176-review/independent-wasm-review.mjs",
+    "sha256": "d787d01f3244d2ba1d6af2e0c5dcf30246b7f2d5d8144e175171f0122658292d"
+  },
+  "portableHarness": {
+    "file": "caveat-pr176-review/run-review.mjs",
+    "sha256": "ad1b0d313a2dab79d9d59b5ce24cc1e30a394170d72266b8611fe84b8941dc07"
+  },
+  "originalResult": {
+    "file": "caveat-pr176-review/independent-results/result.json",
+    "sha256": "361f252fb8c587efa0593ed0c5d29e13035f103e8e87d03452e6959cb033a2b6"
+  },
+  "substantiveTestBodySha256": "b9b28682cb4767c69ec42cceb1e07bed2b5ed04ca9b23bc006f14c7512300439",
+  "bodyBoundary": "All bytes from function make(n,r){ through end of the supplied portable harness, including generator, cases, seeds, assertions, drains, restores and failure reporting.",
+  "originalReviewedRevisions": {
+    "before": "3d77aa27bcffa16f39818b2684e9afb3b102ed17",
+    "candidate": "c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3"
+  },
+  "loaderRevision": "c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3",
+  "loaderFiles": [
+    {
+      "file": "kit/lib/node.mjs",
+      "sha256": "5cd3fcee4caa1564657cb7956fc6d8ee3f2bb1f549d34a777c90cd16cd1898d3"
+    },
+    {
+      "file": "kit/lib/session.mjs",
+      "sha256": "a42dd63d8f7cf758aa0ae12ea514d341426b2d17a9fe9fc416a45b77823e929d"
+    }
+  ],
+  "changes": [
+    "Replace bundle-relative runtime paths with required --before/--candidate directories and exact --before-revision/--candidate-revision arguments.",
+    "Use the unchanged, hash-pinned C1 repository Node/session loader through a relative import.",
+    "Require clean compiled build-info and verify runtime glue/WASM hashes before loading; recheck all selected input bytes on successful completion.",
+    "Require a fresh user-selected output directory outside the checkout, preserving supplied and prior results.",
+    "Add provenance, selected artifact hashes, driver hash and timestamps to result metadata."
+  ],
+  "unchangedMatrix": {
+    "sourceShapes": 11,
+    "traces": 22,
+    "logicalSteps": 4096,
+    "dispatchExecutions": 16384,
+    "rejectedLogicalSteps": 396,
+    "restoredSessions": 604,
+    "acceptedRestoreDispatches": 604,
+    "expectedClosureChecks": 906
+  },
+  "limits": [
+    "Rerunning these cases does not add independent case coverage or constitute native allocation/latency profiling.",
+    "The original supplied bundle remains immutable outside the repository; manifest hashes establish byte consistency, not independent authenticity.",
+    "The external review used separately identified Linux CI merge builds. This adapter records the explicitly selected artifacts and never relabels those original binaries."
+  ]
+}

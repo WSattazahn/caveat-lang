@@ -1,5 +1,14 @@
 # CAVEAT View 0.1
 
+rc.16 amendment: provenance in View 0.1 may carry `departed` markers and the
+`inherited` split specified by [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md).
+Current retained snapshots can omit eligible departed records under
+[Departure 0.1](caveat-departure-0.1.md) and the
+[collector contract](../docs/design/withdrawal-collector-draft.md); archive-backed
+history is separate. These changes do not implement View 0.2 or a delta view.
+The [rc.16 scope amendment](../docs/releases/rc16-development.md#scope-amendment-for-release-preparation-2026-10-08)
+explicitly defers that API.
+
 `WebReactiveSession.dispatch` returns the full snapshot as pretty-printed JSON
 after every event. That includes the static world, every symbol, every
 event signature and the complete lineage of every value. On the glowcap beat

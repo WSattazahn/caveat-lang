@@ -1,9 +1,18 @@
 # CAVEAT Lineage Compaction 0.1 — what a record leaves behind when it departs
 
-Status: specified for rc.16, not implemented. It is the rule that
+Status: implemented in the unpublished rc.16 continuation (2026-10-07);
+release verification is recorded in [the development record](../docs/releases/rc16-development.md). It is the rule that
 [departure](../docs/design/save-forgetting.md) and series windows build on
 (owner, 2026-10-05 14:45 UTC; marker shape and riders 16:34 UTC, see
 [Decision](#decision)).
+
+Collector draft note (2026-10-07): the owner has authorized a separate
+reviewable implementation of additional withdrawal collection, based on
+`f5ec829`. Its [provisional contract](../docs/design/withdrawal-collector-draft.md)
+preserves exact own-ground pins and ordinary compaction while identifying the
+new candidate, archive and capacity-limit boundaries for review. This is not
+merge or release approval. The owner subsequently accepted the repaired experimental contract as recorded there; it does not resolve the broader
+retained-state bound discussed below.
 
 [Windows 0.1](caveat-windows-0.1.md) lets a history retire its oldest records.
 A retired record leaves the live graph but stays in the session, so a
@@ -69,9 +78,14 @@ skipped sample's or skipped series commit's guard. Those inherited names are
 not the value's own reads. They pin nothing and compact like lineage, so a
 grounds may hold a marker, and only through such a qualification.
 
-These are the reasons the language promises to keep. They are expected to be
-bounded by the source, not the run: a grounds replaces the one before at each
-`set`, and a history read supplies only live records. In C3's saves at 10, 30
+These are the reasons the language promises to keep. The original argument
+expected them to be bounded by the source, not the run: a grounds replaces the
+one before at each `set`, and a history read supplies only live records.
+**Current qualification (2026-10-07): this expectation is not a universal proof.**
+True own citations remain exact even when a program accumulates them; the
+[withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
+records additional withdrawal cycles and reachable reason chains whose pins
+grow with play. It proposes no change to this exact-own-ground requirement. In C3's saves at 10, 30
 and 60 cycles they pin five retired records each time: `trust@1`'s grounds
 (`witness_cave`) and four recent witnesses. The departure implementation counts pinned
 records across the corpus, so a program whose own citations grow with play is
@@ -146,23 +160,92 @@ still holds ([Explanations 0.2](caveat-explanations-0.2.md)).
 cannot grow with play. They are kept exactly. A departed record's
 qualifications stay in every provenance that carried them.
 
-**Bounded.** A compacting provenance holds at most one marker per windowed
-history, and a marker's size depends on numbers, not on how many records it
-covers. Pinned records are bounded by the source. A windowed history keeps at
-most `N` live records plus the retired records that have not yet departed. In
-a program where every growing history has a window, therefore, nothing in the
-session grows with the length of play except the digits of sequence and
-occurrence numbers.
+**Bounded marker representation; unresolved total-retention bound.** A
+compacting provenance holds at most one marker per windowed history, and a
+marker's size depends on numbers, not on how many records it covers. A windowed
+history keeps at most `N` live records plus the retired records that have not
+yet departed. The original inference that all pinned records are bounded by
+the source, and therefore the whole session by its windows, is unresolved:
+withdrawal self/mutual cycles and reachable reason chains retain a growing
+number of exact records in measured valid programs. See the
+[withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md).
+The owner's bounded-save requirement and registered C3 gate remain requirements;
+a passing C3 measurement is not a universal bound. No pin or own citation may
+be discarded merely to satisfy that expectation.
 
 ## The archive entry
 
 The departure specification defines the archive that the host drains. Under
 this profile, each departed record's archive entry also names the provenances
 that held it when it departed: the states, commitments, journal entries,
-withdrawals and permission records. Their number is bounded by the program's
-declarations and windows. So `explain` over the session together with a
-drained archive is exact: the range is what the session can say on its own,
-and the archive says which records were read. Nothing is erased, only moved.
+withdrawals and permission records. Their number follows the retained
+provenance holders. A universal bound from declarations and windows alone is
+not established while withdrawal retention can grow; see the
+[withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md).
+Holder rows describe the instant of departure. They cannot by themselves
+identify a holder's membership after copying, merging or replacement. Exact
+reconstruction additionally requires the provenance references below.
+
+## Archive provenance references (owner amendment, 2026-10-07)
+
+The exactness requirement in [Decision](#decision) is preserved. A complete,
+matching archive must reconstruct exact departed read membership after copying,
+merging and replacement, while keeping the live archive-reference
+representation bounded. The owner's whole-save boundedness requirement remains
+open for growing required pins, as qualified above; this amendment does not
+prove it. This adds no language syntax and no event replay mechanism.
+
+Each departure marker may carry `archive_ref`, a lowercase 64-character SHA-256
+digest. It identifies an immutable membership node in the host-drained archive.
+A copy keeps its reference; replacement keeps only the replacing value's
+reference. Combining two known references uses a union node with sorted,
+distinct parent references. Combining identical references reuses that reference.
+If any contributing marker has unknown membership, the result has no reference:
+an exact subset must not be represented as the complete set. A legacy marker
+without a reference stays conservative even when its holder name appears in the
+archive. The existing range/count merge remains a lower bound.
+
+The archive stream includes departed records and these provenance items:
+
+```json
+{"kind":"provenance","id":"<sha256>","history":"s","operation":"record","source_id":"<source identity>","record":"s@2","departed_at":9}
+{"kind":"provenance","id":"<sha256>","history":"s","operation":"union","parents":["<smaller id>","<larger id>"]}
+```
+
+The digest is SHA-256 of the UTF-8 encoding of the compact JSON array:
+
+- record: `["caveat-archive-provenance/0.1","record",source_id,history,record,departed_at]`;
+- union: `["caveat-archive-provenance/0.1","union",history,parents]`.
+
+A record node identifies the matching departed record by source, history,
+occurrence and departure sequence. A union has at least two sorted distinct
+parents and stays within one history. The digest describes a representation,
+not a canonical identity for a mathematical set: different valid union trees
+may resolve to the same set. Resolution deduplicates record names.
+
+Exact reconstruction requires every reachable node and record, consistent
+source identity and marker bounds, and valid digests. Missing nodes or records,
+conflicting duplicates, invalid structure or digests, cycles, or mismatched
+scope must yield an explicitly conservative explanation. It must not invent
+exact names from holder counts, marker counts or partial archive membership.
+These checks establish internal consistency, not authenticated execution or
+truth of the supplied archive.
+
+The live provenance retains at most one fixed-size reference per history.
+Temporary expression unions may carry nodes during an event; after an accepted
+event they are exported and all live holders retain only references. Rejected
+or failed events export nothing. Draining affects neither later evaluation nor
+save contents. Restore preserves references without requiring an archive and
+starts with an empty drain buffer; deterministic bindings recreate the same
+references as the saved session. Repeated snapshot/view/save calls do not append
+archive items. Programs without windows create neither markers nor nodes.
+
+The regression gate must distinguish the two executions in
+`copying_markers_after_departure_does_not_reconstruct_exact_archive_membership`:
+one copied value read `{s@1,s@2,s@4}`, the other `{s@1,s@3,s@4}`. It also covers
+overlapping unions, replacement, save/restore continuation and rejected-event
+rollback. C3 save bytes and dispatch time are measured with this metadata enabled;
+archive growth and undrained memory are reported separately from the live save.
 
 ## Explain, dependents and the view
 

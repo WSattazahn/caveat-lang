@@ -1,0 +1,36 @@
+{
+  "schema": "collector-baseline-save-fixtures/1",
+  "runtime": {
+    "reactiveWasmSha256": "daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59",
+    "revision": "f5ec8294efe2be24705f234ef75e5f5459aa5e89",
+    "clean": true,
+    "compiled": true,
+    "host": "x86_64-pc-windows-msvc"
+  },
+  "cases": [
+    {
+      "name": "self",
+      "source": "claim seen;\nevidence a from \"a\"; renewable a window 1;\nevent cycle;\non cycle renew a;\non cycle reveal a supports seen;\non cycle withdraw a because a;\n\nevent collector_noop; event collector_refuse;\non collector_refuse reject \"retain old save\";\n",
+      "source_sha256": "32e1a563f428fe1b43417b0f13671f8dd388f67ca6aaf46a700acf49b3e69781",
+      "save": "{\"schema\":\"caveat-reactive-save/0.1\",\"source_id\":\"fnv1a64:9ed2c447fa5452c7:243\",\"sequence\":3,\"last_event\":\"cycle\",\"elapsed\":0.0,\"states\":{},\"graph\":{\"nodes\":[{\"kind\":\"occurrence\",\"name\":\"a@2\"},{\"kind\":\"occurrence\",\"name\":\"a@3\"},{\"kind\":\"occurrence\",\"name\":\"a@4\"}],\"relations\":[[\"a@2\",\"supports\",\"seen\"],[\"withdrawn\",\"qualifies\",\"a@2\"],[\"a@3\",\"supports\",\"seen\"],[\"withdrawn\",\"qualifies\",\"a@3\"],[\"a@4\",\"supports\",\"seen\"],[\"withdrawn\",\"qualifies\",\"a@4\"]]},\"renewals\":{\"a\":[\"a\",\"a@2\",\"a@3\",\"a@4\"]},\"withdrawals\":[{\"evidence\":\"a@2\",\"because\":\"a@2\",\"sequence\":1,\"event\":\"cycle\"},{\"evidence\":\"a@3\",\"because\":\"a@3\",\"sequence\":2,\"event\":\"cycle\"},{\"evidence\":\"a@4\",\"because\":\"a@4\",\"sequence\":3,\"event\":\"cycle\"}],\"observation_qualifications\":{\"a@2\":{},\"a@3\":{},\"a@4\":{}},\"retired\":{\"a\":1,\"a@2\":2,\"a@3\":3},\"effects\":[{\"kind\":\"retire\",\"history\":\"a\",\"record\":\"a@3\"},{\"kind\":\"renew\",\"evidence\":\"a\",\"occurrence\":\"a@4\"},{\"kind\":\"reveal\",\"evidence\":\"a@4\",\"relation\":\"supports\",\"target\":\"seen\"},{\"kind\":\"withdraw\",\"evidence\":\"a@4\",\"because\":\"a@4\"}]}",
+      "save_sha256": "1c499e88040d03bfec87f74cdeb81e8c4338165a8537b99260b403baf9d77f99",
+      "events": [
+        "cycle",
+        "cycle",
+        "cycle"
+      ]
+    },
+    {
+      "name": "mutual",
+      "source": "claim seen;\nevidence a from \"a\"; renewable a window 1;\nevidence b from \"b\"; renewable b window 1;\nevent cycle;\non cycle renew a;\non cycle reveal a supports seen;\non cycle renew b;\non cycle reveal b supports seen;\non cycle withdraw a because b;\non cycle withdraw b because a;\n\nevent collector_noop; event collector_refuse;\non collector_refuse reject \"retain old save\";\n",
+      "source_sha256": "6baced184ab471d41d486cff2ea027fa18c6d20642143f6ef1337c60889fd6d6",
+      "save": "{\"schema\":\"caveat-reactive-save/0.1\",\"source_id\":\"fnv1a64:f1bacbda68b0ed87:368\",\"sequence\":3,\"last_event\":\"cycle\",\"elapsed\":0.0,\"states\":{},\"graph\":{\"nodes\":[{\"kind\":\"occurrence\",\"name\":\"a@2\"},{\"kind\":\"occurrence\",\"name\":\"b@2\"},{\"kind\":\"occurrence\",\"name\":\"a@3\"},{\"kind\":\"occurrence\",\"name\":\"b@3\"},{\"kind\":\"occurrence\",\"name\":\"a@4\"},{\"kind\":\"occurrence\",\"name\":\"b@4\"}],\"relations\":[[\"a@2\",\"supports\",\"seen\"],[\"b@2\",\"supports\",\"seen\"],[\"withdrawn\",\"qualifies\",\"a@2\"],[\"withdrawn\",\"qualifies\",\"b@2\"],[\"a@3\",\"supports\",\"seen\"],[\"b@3\",\"supports\",\"seen\"],[\"withdrawn\",\"qualifies\",\"a@3\"],[\"withdrawn\",\"qualifies\",\"b@3\"],[\"a@4\",\"supports\",\"seen\"],[\"b@4\",\"supports\",\"seen\"],[\"withdrawn\",\"qualifies\",\"a@4\"],[\"withdrawn\",\"qualifies\",\"b@4\"]]},\"renewals\":{\"a\":[\"a\",\"a@2\",\"a@3\",\"a@4\"],\"b\":[\"b\",\"b@2\",\"b@3\",\"b@4\"]},\"withdrawals\":[{\"evidence\":\"a@2\",\"because\":\"b@2\",\"sequence\":1,\"event\":\"cycle\"},{\"evidence\":\"b@2\",\"because\":\"a@2\",\"sequence\":1,\"event\":\"cycle\"},{\"evidence\":\"a@3\",\"because\":\"b@3\",\"sequence\":2,\"event\":\"cycle\"},{\"evidence\":\"b@3\",\"because\":\"a@3\",\"sequence\":2,\"event\":\"cycle\"},{\"evidence\":\"a@4\",\"because\":\"b@4\",\"sequence\":3,\"event\":\"cycle\"},{\"evidence\":\"b@4\",\"because\":\"a@4\",\"sequence\":3,\"event\":\"cycle\"}],\"observation_qualifications\":{\"a@2\":{},\"a@3\":{},\"a@4\":{},\"b@2\":{},\"b@3\":{},\"b@4\":{}},\"retired\":{\"a\":1,\"a@2\":2,\"a@3\":3,\"b\":1,\"b@2\":2,\"b@3\":3},\"effects\":[{\"kind\":\"retire\",\"history\":\"a\",\"record\":\"a@3\"},{\"kind\":\"renew\",\"evidence\":\"a\",\"occurrence\":\"a@4\"},{\"kind\":\"reveal\",\"evidence\":\"a@4\",\"relation\":\"supports\",\"target\":\"seen\"},{\"kind\":\"retire\",\"history\":\"b\",\"record\":\"b@3\"},{\"kind\":\"renew\",\"evidence\":\"b\",\"occurrence\":\"b@4\"},{\"kind\":\"reveal\",\"evidence\":\"b@4\",\"relation\":\"supports\",\"target\":\"seen\"},{\"kind\":\"withdraw\",\"evidence\":\"a@4\",\"because\":\"b@4\"},{\"kind\":\"withdraw\",\"evidence\":\"b@4\",\"because\":\"a@4\"}]}",
+      "save_sha256": "aaab9f263a30aa13a0f26262f97ddb769316fca4a4ad8a7b577bd9318f083ea5",
+      "events": [
+        "cycle",
+        "cycle",
+        "cycle"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "caveat-independent-review-reuse/1",
+  "origin": "User-supplied independent PR177 review. Original generator/assertions are reused unchanged; adapter is not additional independent case authorship.",
+  "originalHarness": {
+    "file": "caveat-pr177-review/batch-review.mjs",
+    "sha256": "a76d3c4ad2c77d73e6f6ce361079cebdf27ca1a1dcff2a99406e1f7e369f2e52"
+  },
+  "originalResult": {
+    "file": "caveat-pr177-review/batch-results/result.json",
+    "sha256": "4c0aa1d77b619f9056dadca7b853fccf1609f9d0e9f6b89991c5a650ca2360f4"
+  },
+  "substantiveTestBodySha256": "6cb52743adc5def2304bd4f4e75b9134ca646ab447847a313f5132bd65b53e1d",
+  "bodyBoundary": "All bytes from function prepare(n,sentinels,style){ through EOF, including generators, assertions, cases, order oracles, restores and failure reporting.",
+  "loaderFiles": [
+    {
+      "file": "kit/lib/node.mjs",
+      "sha256": "5cd3fcee4caa1564657cb7956fc6d8ee3f2bb1f549d34a777c90cd16cd1898d3"
+    },
+    {
+      "file": "kit/lib/session.mjs",
+      "sha256": "a42dd63d8f7cf758aa0ae12ea514d341426b2d17a9fe9fc416a45b77823e929d"
+    }
+  ],
+  "loaderEquivalence": "The selected repository node.mjs and session.mjs match both the PR176 pinned loader and the PR177 supplied candidate loader byte-for-byte.",
+  "originalReviewedRevisions": {
+    "before": "c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3",
+    "candidate": "055e2af0b411d8385941dd8522201e5afc73cb34"
+  },
+  "originalArtifactRevisions": {
+    "before": "8b1b07137ad7484b211a9c7c79320a0a8ac86b75",
+    "candidate": "47b3e20b7a31085026b65421bf9216c465df6807"
+  },
+  "unchangedMatrix": {
+    "sourceCases": 8,
+    "traces": 16,
+    "logicalSteps": 862,
+    "dispatchExecutions": 3448,
+    "rejectedLogicalSteps": 144,
+    "nonemptyArchiveBatches": 45,
+    "standingWithdrawalOracleChecks": 862,
+    "restoredSessions": 144,
+    "acceptedRestoreDispatches": 144,
+    "exactArchivedRecords": 502
+  },
+  "changes": [
+    "Use explicit clean compiled before/candidate directories and exact full revision arguments instead of original bundle-relative directories.",
+    "Use byte-identical hash-pinned repository loader through a portable relative import.",
+    "Require fresh output outside source checkout; verify runtime/build-info hashes and recheck selected inputs on success.",
+    "Record provenance, driver/input hashes and timestamps."
+  ],
+  "limits": [
+    "This is reuse of the supplied matrix, not new independent coverage or performance evidence.",
+    "No journal payload or reading-stream generator is added.",
+    "Original source and result remain immutable and retain their original CI merge artifact identities."
+  ],
+  "adapterDestination": "experiments/departure-gate/early-boxing/pr177-wasm-check.mjs"
+}

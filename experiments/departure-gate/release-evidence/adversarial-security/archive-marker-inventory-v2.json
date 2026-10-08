@@ -1,0 +1,204 @@
+{
+  "scope": "New repository-derived probes; not replicas of unavailable Muse F findings. Frozen expectations before first execution.",
+  "marker": [
+    {
+      "id": "M01",
+      "title": "unknown history",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M02",
+      "title": "declared non-history",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M03",
+      "title": "from below one",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M04",
+      "title": "inverted range",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M05",
+      "title": "live occurrence endpoint",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M06",
+      "title": "zero read",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M07",
+      "title": "read exceeds departed range",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M08",
+      "title": "zero departure sequence",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M09",
+      "title": "future departure sequence",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M10",
+      "title": "fractional range",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M11",
+      "title": "malformed archive reference",
+      "expected": "candidate restore refusal; rc15 markers not applicable"
+    },
+    {
+      "id": "M12",
+      "title": "duplicate same-history markers",
+      "expected": "candidate restore refusal"
+    },
+    {
+      "id": "M13",
+      "title": "grounds marker outside basis",
+      "expected": "candidate restore refusal"
+    },
+    {
+      "id": "M14",
+      "title": "well-formed missing archive root",
+      "expected": "candidate restore accepted; exact membership unavailable"
+    },
+    {
+      "id": "M15",
+      "title": "optional archive reference omitted",
+      "expected": "candidate restore accepted; conservative marker rendering"
+    },
+    {
+      "id": "M00",
+      "title": "authentic save and continued execution",
+      "expected": "both cells accepted; exact same-cell save/snapshot/continuation"
+    }
+  ],
+  "archive": [
+    {
+      "id": "A00",
+      "title": "complete",
+      "expected": "complete supplied closure, unauthenticated"
+    },
+    {
+      "id": "A01",
+      "title": "missing-reason-record",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A02",
+      "title": "missing-reason-node",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A03",
+      "title": "conflicting-reason-record",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A04",
+      "title": "foreign-source-node",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A05",
+      "title": "wrong-subject",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A06",
+      "title": "missing-reason-field",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A07",
+      "title": "absent-reason",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A08",
+      "title": "future-withdrawal",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A09",
+      "title": "zero-withdrawal",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A10",
+      "title": "fractional-withdrawal",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A11",
+      "title": "future-departure",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A12",
+      "title": "inverted-retirement",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A13",
+      "title": "invalid-relation-kind",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A14",
+      "title": "unrelated-edge",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A15",
+      "title": "malformed-nested-provenance",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A16",
+      "title": "conflicting-leaf",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A17",
+      "title": "identical-duplicates",
+      "expected": "complete supplied closure, unauthenticated"
+    },
+    {
+      "id": "A18",
+      "title": "consistent-payload-edit",
+      "expected": "complete supplied closure, unauthenticated"
+    },
+    {
+      "id": "A19",
+      "title": "reversed-conflicting-record",
+      "expected": "dependent record unavailable without exact-looking payload"
+    },
+    {
+      "id": "A20",
+      "title": "reversed-conflicting-leaf",
+      "expected": "dependent record unavailable without exact-looking payload"
+    }
+  ],
+  "independentComponent": "Unrelated z@1 remains complete with value 7 for every archive mutation.",
+  "combinations": [
+    "immediate drain",
+    "delayed drain",
+    "saved/restored snapshot"
+  ],
+  "limits": [
+    "No agent/tool/prompt-injection test.",
+    "rc15 has no departure/archive API; actual retained withdrawals remain checked as approved lifecycle contrast.",
+    "Payload consistency is not authentication.",
+    "No performance claim."
+  ]
+}

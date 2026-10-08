@@ -35,9 +35,22 @@ do these things. Caveat leaves each one to a rule the author writes.
 
 ## What grows the save
 
-States do not grow the save: a state holds one number however often it
-changes. Evidence, reading occurrences, renewals and the decision journal do
-grow it, because each is kept with its history. So let rules decide when
+A state's numeric slot holds one current number, but its grounds and lineage
+can retain growing history. Evidence occurrences, reading occurrences, renewals
+and journal entries also consume storage. A history declared with `limit`
+retains its recorded items and refuses additions at its capacity. A `window`
+retires older records; rc.16 departure and collection can remove eligible
+retired records from the session while the host retains their archive.
+
+Windows do not give a universal save bound: exact own grounds, reachable
+withdrawal-reason chains and conservative retention can keep older records.
+Compaction can bound particular lineage representations without bounding every
+required dependency. Live retained memory, temporary peaks, save size and host
+archive storage are separate costs. See the
+[history integration guide](../kit/docs/HISTORY.md) for draining, exact versus
+conservative explanations and save/restore responsibilities.
+
+So let rules decide when
 inputs become evidence, and do not let the frame rate decide. For example,
 `on hit set hits = hits + 1;` followed by
 `on hit when hits >= 3 and not observed(rhythm) reveal rhythm supports …;`

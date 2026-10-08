@@ -1,0 +1,18 @@
+claim seen;
+evidence sensor from "synthetic sensor";
+evidence other from "synthetic other";
+caveat stale consequence material;
+caveat extra consequence low;
+stale qualifies sensor;
+readings r from sensor window 1;
+readings kept from sensor window 1;
+event record; event advance; event skip; event decide; event continue;
+on record reveal other;
+on record sample r = 1 supports seen;
+on record sample kept = latest(r) supports seen;
+on advance sample r = 2 supports seen;
+on skip when qualified(0, other) > 0 sample kept = 3 supports seen;
+on decide commit trust because enough using latest(kept);
+on continue reopen trust because other;
+on continue sample r = 4 supports seen;
+on continue sample kept = latest(r) supports seen;

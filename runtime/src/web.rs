@@ -87,6 +87,17 @@ impl WebReactiveSession {
         self.inner.save_json()
     }
 
+    /// The records departed since the last drain, as a JSON array, and an
+    /// empty archive. See spec/caveat-departure-0.1.md, "The archive".
+    pub fn drain_archive(&mut self) -> String {
+        serde_json::to_string(&self.inner.drain_archive()).expect("finite archive entries")
+    }
+
+    /// How many departed records wait in the archive.
+    pub fn undrained(&self) -> usize {
+        self.inner.undrained()
+    }
+
     /// A session of `source` resumed from a save, without replaying events.
     pub fn restore(source: &str, saved: &str) -> Result<WebReactiveSession, String> {
         Ok(Self {

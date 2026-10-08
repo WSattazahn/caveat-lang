@@ -1,0 +1,375 @@
+{
+  "name": "release-mutual",
+  "cycles": 60,
+  "trial": 1,
+  "order": [
+    "f5",
+    "before",
+    "candidate"
+  ],
+  "exactNativeEquality": true,
+  "targets": {},
+  "passed": true,
+  "rows": {
+    "f5": {
+      "before_release": {
+        "retained_rust_heap_bytes": 188510,
+        "retired_dynamic_records": 118,
+        "save_sha256": "f12185d62606baf86caf8c8d4a186d7311368e12f811bdb0023ea23fabab8fc6",
+        "serialized_save_bytes": 24320,
+        "undrained": 0,
+        "withdrawals": 120
+      },
+      "after_release": {
+        "retained_rust_heap_bytes": 176333,
+        "retired_dynamic_records": 118,
+        "save_sha256": "02fed495c8705029b14051a881f01ebaf55016eb9f8dcaed2c74087d2649f20c",
+        "serialized_save_bytes": 23101,
+        "undrained": 0,
+        "withdrawals": 120
+      },
+      "growth": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 159209,
+        "max_ns": 221600,
+        "mean_ns": 112068,
+        "median_ns": 107300,
+        "p99_ns": 221600,
+        "samples": 60
+      },
+      "growth_last_10_percent": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 159209,
+        "max_ns": 221600,
+        "mean_ns": 198900,
+        "median_ns": 199400,
+        "p99_ns": 221600,
+        "samples": 6
+      },
+      "steady": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 934,
+        "max_ns": 7300,
+        "mean_ns": 862,
+        "median_ns": 800,
+        "p99_ns": 1100,
+        "samples": 100
+      },
+      "unrelated_changes": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 122428,
+        "max_ns": 125300,
+        "mean_ns": 80756,
+        "median_ns": 79800,
+        "p99_ns": 102300,
+        "samples": 100
+      },
+      "failed_release": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 11401,
+        "max_ns": 47200,
+        "mean_ns": 30633,
+        "median_ns": 22700,
+        "p99_ns": 47200,
+        "samples": 3
+      },
+      "release": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 11404,
+        "max_ns": 27200,
+        "mean_ns": 27200,
+        "median_ns": 27200,
+        "p99_ns": 27200,
+        "samples": 1
+      }
+    },
+    "before": {
+      "before_release": {
+        "retained_rust_heap_bytes": 342771,
+        "retired_dynamic_records": 118,
+        "save_sha256": "f12185d62606baf86caf8c8d4a186d7311368e12f811bdb0023ea23fabab8fc6",
+        "serialized_save_bytes": 24320,
+        "undrained": 0,
+        "withdrawals": 120
+      },
+      "after_release": {
+        "retained_rust_heap_bytes": 118276,
+        "retired_dynamic_records": 0,
+        "save_sha256": "fd0c24fe64e5a8e95b93bf8c9bcf5d6dc236b9f9681b758f3deca504b162f86e",
+        "serialized_save_bytes": 6503,
+        "undrained": 0,
+        "withdrawals": 2
+      },
+      "growth": {
+        "collector_work": {
+          "candidates_examined": 3662,
+          "collected": 0,
+          "dirty_owners": 780,
+          "edges_visited": 14160,
+          "max_work_items": 180,
+          "references_scanned": 7558,
+          "vertices_visited": 3540
+        },
+        "max_dispatch_additional_heap_bytes": 320424,
+        "max_ns": 470800,
+        "mean_ns": 232448,
+        "median_ns": 220500,
+        "p99_ns": 470800,
+        "samples": 60
+      },
+      "growth_last_10_percent": {
+        "collector_work": {
+          "candidates_examined": 690,
+          "collected": 0,
+          "dirty_owners": 78,
+          "edges_visited": 2712,
+          "max_work_items": 180,
+          "references_scanned": 1404,
+          "vertices_visited": 678
+        },
+        "max_dispatch_additional_heap_bytes": 320424,
+        "max_ns": 470800,
+        "mean_ns": 439600,
+        "median_ns": 446100,
+        "p99_ns": 470800,
+        "samples": 6
+      },
+      "steady": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 934,
+        "max_ns": 9200,
+        "mean_ns": 936,
+        "median_ns": 900,
+        "p99_ns": 1100,
+        "samples": 100
+      },
+      "unrelated_changes": {
+        "collector_work": {
+          "candidates_examined": 100,
+          "collected": 0,
+          "dirty_owners": 200,
+          "edges_visited": 0,
+          "max_work_items": 1,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 122428,
+        "max_ns": 129700,
+        "mean_ns": 61242,
+        "median_ns": 59900,
+        "p99_ns": 114500,
+        "samples": 100
+      },
+      "failed_release": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 638708,
+        "max_ns": 945500,
+        "mean_ns": 900833,
+        "median_ns": 889700,
+        "p99_ns": 945500,
+        "samples": 3
+      },
+      "release": {
+        "collector_work": {
+          "candidates_examined": 120,
+          "collected": 118,
+          "dirty_owners": 8,
+          "edges_visited": 236,
+          "max_work_items": 296,
+          "references_scanned": 118,
+          "vertices_visited": 118
+        },
+        "max_dispatch_additional_heap_bytes": 638495,
+        "max_ns": 1043500,
+        "mean_ns": 1043500,
+        "median_ns": 1043500,
+        "p99_ns": 1043500,
+        "samples": 1
+      }
+    },
+    "candidate": {
+      "before_release": {
+        "retained_rust_heap_bytes": 238803,
+        "retired_dynamic_records": 118,
+        "save_sha256": "f12185d62606baf86caf8c8d4a186d7311368e12f811bdb0023ea23fabab8fc6",
+        "serialized_save_bytes": 24320,
+        "undrained": 0,
+        "withdrawals": 120
+      },
+      "after_release": {
+        "retained_rust_heap_bytes": 116412,
+        "retired_dynamic_records": 0,
+        "save_sha256": "fd0c24fe64e5a8e95b93bf8c9bcf5d6dc236b9f9681b758f3deca504b162f86e",
+        "serialized_save_bytes": 6503,
+        "undrained": 0,
+        "withdrawals": 2
+      },
+      "growth": {
+        "collector_work": {
+          "candidates_examined": 3662,
+          "collected": 0,
+          "dirty_owners": 780,
+          "edges_visited": 14160,
+          "max_work_items": 180,
+          "references_scanned": 7558,
+          "vertices_visited": 3540
+        },
+        "max_dispatch_additional_heap_bytes": 210544,
+        "max_ns": 454800,
+        "mean_ns": 238830,
+        "median_ns": 228400,
+        "p99_ns": 454800,
+        "samples": 60
+      },
+      "growth_last_10_percent": {
+        "collector_work": {
+          "candidates_examined": 690,
+          "collected": 0,
+          "dirty_owners": 78,
+          "edges_visited": 2712,
+          "max_work_items": 180,
+          "references_scanned": 1404,
+          "vertices_visited": 678
+        },
+        "max_dispatch_additional_heap_bytes": 210544,
+        "max_ns": 446100,
+        "mean_ns": 434066,
+        "median_ns": 443800,
+        "p99_ns": 446100,
+        "samples": 6
+      },
+      "steady": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 934,
+        "max_ns": 8400,
+        "mean_ns": 909,
+        "median_ns": 800,
+        "p99_ns": 1100,
+        "samples": 100
+      },
+      "unrelated_changes": {
+        "collector_work": {
+          "candidates_examined": 100,
+          "collected": 0,
+          "dirty_owners": 200,
+          "edges_visited": 0,
+          "max_work_items": 1,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 122428,
+        "max_ns": 144900,
+        "mean_ns": 86566,
+        "median_ns": 85500,
+        "p99_ns": 117100,
+        "samples": 100
+      },
+      "failed_release": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 563548,
+        "max_ns": 950800,
+        "mean_ns": 914300,
+        "median_ns": 907400,
+        "p99_ns": 950800,
+        "samples": 3
+      },
+      "release": {
+        "collector_work": {
+          "candidates_examined": 120,
+          "collected": 118,
+          "dirty_owners": 8,
+          "edges_visited": 236,
+          "max_work_items": 296,
+          "references_scanned": 118,
+          "vertices_visited": 118
+        },
+        "max_dispatch_additional_heap_bytes": 563335,
+        "max_ns": 1008100,
+        "mean_ns": 1008100,
+        "median_ns": 1008100,
+        "p99_ns": 1008100,
+        "samples": 1
+      }
+    }
+  }
+}

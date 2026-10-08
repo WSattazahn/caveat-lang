@@ -13,8 +13,30 @@ crate-type = ["cdylib", "rlib"]
 # build without them: cargo build --no-default-features.
 default = ["games"]
 games = []
+# Opt-in native diagnostics; no saved or WASM diagnostic fields.
+collector-metrics = []
+# Temporary native attribution only; excluded from ordinary and WASM builds.
+withdrawal-extraction-profile = ["collector-metrics"]
+renewal-removal-profile = ["collector-metrics"]
+# Fixed native event boundaries; does not enable per-record clocks.
+event-phase-profile = ["collector-metrics"]
+# Separate allocation-origin mode disables the phase clocks.
+event-phase-origins = ["event-phase-profile"]
+
+[[example]]
+name = "withdrawal_extraction_profile"
+required-features = ["withdrawal-extraction-profile"]
+
+[[example]]
+name = "renewal_removal_profile"
+required-features = ["renewal-removal-profile"]
+
+[[example]]
+name = "event_phase_profile"
+required-features = ["event-phase-profile"]
 
 [dependencies]
+sha2 = "0.10"
 serde = { version = "1", features = ["derive"] }
 # float_roundtrip: parse every f64 exactly. The default rounds some 17-digit
 # numbers by one unit in the last place, so a restored clock drifted and a

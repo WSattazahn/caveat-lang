@@ -1,0 +1,291 @@
+{
+  "name": "self",
+  "cycles": 3000,
+  "trial": 2,
+  "order": [
+    "before",
+    "candidate",
+    "f5"
+  ],
+  "exactNativeEquality": true,
+  "targets": {},
+  "passed": true,
+  "rows": {
+    "before": {
+      "before_release": {
+        "retained_rust_heap_bytes": 15475,
+        "retired_dynamic_records": 0,
+        "save_sha256": "162864cc534d61d7a2d4e69c1cf71a93e758502942f28e24ad5d80a4139a1150",
+        "serialized_save_bytes": 965,
+        "undrained": 0,
+        "withdrawals": 1
+      },
+      "after_release": {
+        "retained_rust_heap_bytes": 15475,
+        "retired_dynamic_records": 0,
+        "save_sha256": "162864cc534d61d7a2d4e69c1cf71a93e758502942f28e24ad5d80a4139a1150",
+        "serialized_save_bytes": 965,
+        "undrained": 0,
+        "withdrawals": 1
+      },
+      "growth": {
+        "collector_work": {
+          "candidates_examined": 6000,
+          "collected": 2999,
+          "dirty_owners": 6000,
+          "edges_visited": 5998,
+          "max_work_items": 3,
+          "references_scanned": 8998,
+          "vertices_visited": 2999
+        },
+        "max_dispatch_additional_heap_bytes": 22232,
+        "max_ns": 118300,
+        "mean_ns": 12852,
+        "median_ns": 12700,
+        "p99_ns": 16500,
+        "samples": 3000
+      },
+      "growth_last_10_percent": {
+        "collector_work": {
+          "candidates_examined": 600,
+          "collected": 300,
+          "dirty_owners": 600,
+          "edges_visited": 600,
+          "max_work_items": 3,
+          "references_scanned": 900,
+          "vertices_visited": 300
+        },
+        "max_dispatch_additional_heap_bytes": 22232,
+        "max_ns": 16600,
+        "mean_ns": 12400,
+        "median_ns": 12400,
+        "p99_ns": 13100,
+        "samples": 300
+      },
+      "steady": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 604,
+        "max_ns": 8500,
+        "mean_ns": 958,
+        "median_ns": 900,
+        "p99_ns": 1300,
+        "samples": 100
+      },
+      "unrelated_changes": {
+        "collector_work": {
+          "candidates_examined": 100,
+          "collected": 0,
+          "dirty_owners": 200,
+          "edges_visited": 0,
+          "max_work_items": 1,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 17548,
+        "max_ns": 12100,
+        "mean_ns": 8167,
+        "median_ns": 8100,
+        "p99_ns": 11500,
+        "samples": 100
+      },
+      "failed_release": {
+        "samples": 0
+      },
+      "release": {
+        "samples": 0
+      }
+    },
+    "candidate": {
+      "before_release": {
+        "retained_rust_heap_bytes": 14541,
+        "retired_dynamic_records": 0,
+        "save_sha256": "162864cc534d61d7a2d4e69c1cf71a93e758502942f28e24ad5d80a4139a1150",
+        "serialized_save_bytes": 965,
+        "undrained": 0,
+        "withdrawals": 1
+      },
+      "after_release": {
+        "retained_rust_heap_bytes": 14541,
+        "retired_dynamic_records": 0,
+        "save_sha256": "162864cc534d61d7a2d4e69c1cf71a93e758502942f28e24ad5d80a4139a1150",
+        "serialized_save_bytes": 965,
+        "undrained": 0,
+        "withdrawals": 1
+      },
+      "growth": {
+        "collector_work": {
+          "candidates_examined": 6000,
+          "collected": 2999,
+          "dirty_owners": 6000,
+          "edges_visited": 5998,
+          "max_work_items": 3,
+          "references_scanned": 8998,
+          "vertices_visited": 2999
+        },
+        "max_dispatch_additional_heap_bytes": 20650,
+        "max_ns": 248700,
+        "mean_ns": 12467,
+        "median_ns": 12200,
+        "p99_ns": 16300,
+        "samples": 3000
+      },
+      "growth_last_10_percent": {
+        "collector_work": {
+          "candidates_examined": 600,
+          "collected": 300,
+          "dirty_owners": 600,
+          "edges_visited": 600,
+          "max_work_items": 3,
+          "references_scanned": 900,
+          "vertices_visited": 300
+        },
+        "max_dispatch_additional_heap_bytes": 20650,
+        "max_ns": 15700,
+        "mean_ns": 12003,
+        "median_ns": 11900,
+        "p99_ns": 13400,
+        "samples": 300
+      },
+      "steady": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 604,
+        "max_ns": 9700,
+        "mean_ns": 991,
+        "median_ns": 900,
+        "p99_ns": 3800,
+        "samples": 100
+      },
+      "unrelated_changes": {
+        "collector_work": {
+          "candidates_examined": 100,
+          "collected": 0,
+          "dirty_owners": 200,
+          "edges_visited": 0,
+          "max_work_items": 1,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 17548,
+        "max_ns": 11400,
+        "mean_ns": 8121,
+        "median_ns": 8100,
+        "p99_ns": 9200,
+        "samples": 100
+      },
+      "failed_release": {
+        "samples": 0
+      },
+      "release": {
+        "samples": 0
+      }
+    },
+    "f5": {
+      "before_release": {
+        "retained_rust_heap_bytes": 2998952,
+        "retired_dynamic_records": 2999,
+        "save_sha256": "c36905cfdaf959785a505080ba674ce846e0c37a47076e271c9f6c22db8ac65e",
+        "serialized_save_bytes": 619712,
+        "undrained": 0,
+        "withdrawals": 3000
+      },
+      "after_release": {
+        "retained_rust_heap_bytes": 2998952,
+        "retired_dynamic_records": 2999,
+        "save_sha256": "c36905cfdaf959785a505080ba674ce846e0c37a47076e271c9f6c22db8ac65e",
+        "serialized_save_bytes": 619712,
+        "undrained": 0,
+        "withdrawals": 3000
+      },
+      "growth": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 3064847,
+        "max_ns": 5138000,
+        "mean_ns": 1117828,
+        "median_ns": 1114200,
+        "p99_ns": 2300600,
+        "samples": 3000
+      },
+      "growth_last_10_percent": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 3064847,
+        "max_ns": 3236800,
+        "mean_ns": 1973703,
+        "median_ns": 1939000,
+        "p99_ns": 2728300,
+        "samples": 300
+      },
+      "steady": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 497,
+        "max_ns": 15900,
+        "mean_ns": 913,
+        "median_ns": 700,
+        "p99_ns": 2700,
+        "samples": 100
+      },
+      "unrelated_changes": {
+        "collector_work": {
+          "candidates_examined": 0,
+          "collected": 0,
+          "dirty_owners": 0,
+          "edges_visited": 0,
+          "max_work_items": 0,
+          "references_scanned": 0,
+          "vertices_visited": 0
+        },
+        "max_dispatch_additional_heap_bytes": 2434414,
+        "max_ns": 2619900,
+        "mean_ns": 1783110,
+        "median_ns": 1702200,
+        "p99_ns": 2510500,
+        "samples": 100
+      },
+      "failed_release": {
+        "samples": 0
+      },
+      "release": {
+        "samples": 0
+      }
+    }
+  }
+}

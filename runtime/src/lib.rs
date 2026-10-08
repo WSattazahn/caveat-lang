@@ -9,6 +9,7 @@ pub mod map;
 pub mod parser;
 pub mod presentation;
 pub mod reactive;
+mod reactive_archive;
 mod reactive_expr;
 pub mod repeat;
 pub mod session;

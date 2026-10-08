@@ -103,6 +103,7 @@ fn input_numbers_and_provenance_are_checked_even_for_ignored_parameters() {
         provenance: Provenance {
             evidence: ["x".repeat(65_537)].into_iter().collect(),
             caveats: Default::default(),
+            ..Provenance::default()
         },
     };
     assert!(library.call("ignored", &[malformed]).is_err());

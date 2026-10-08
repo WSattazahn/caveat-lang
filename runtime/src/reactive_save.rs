@@ -82,6 +82,10 @@ pub struct ReactiveSave {
     /// that retired each. See spec/caveat-windows-0.1.md.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub retired: BTreeMap<String, u64>,
+    /// How many of the journal's oldest entries have departed. See
+    /// spec/caveat-departure-0.1.md.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub journal_departed: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resources: Option<SavedResources>,
     /// The last event's effects and cues, so the view is the same after resuming.
@@ -92,6 +96,10 @@ pub struct ReactiveSave {
     pub cues: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cue_qualifications: Vec<Compact>,
+}
+
+fn is_zero(count: &u64) -> bool {
+    *count == 0
 }
 
 fn deserialize_observations<'de, D: serde::Deserializer<'de>>(
@@ -127,23 +135,57 @@ impl From<&Provenance> for Compact {
     }
 }
 
+fn markers<S: serde::Serializer>(
+    markers: &&BTreeMap<String, crate::reactive_expr::Marker>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    crate::reactive_expr::departure_markers::serialize(markers, serializer)
+}
+
 impl Serialize for Compact {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::SerializeMap;
-        let mut map = serializer.serialize_map(None)?;
-        if !self.0.evidence.is_empty() {
-            map.serialize_entry("evidence", &self.0.evidence)?;
+        #[derive(Serialize)]
+        struct Written<'a> {
+            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+            evidence: &'a BTreeSet<String>,
+            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+            caveats: &'a BTreeSet<String>,
+            #[serde(skip_serializing_if = "BTreeMap::is_empty", serialize_with = "markers")]
+            departed: &'a BTreeMap<String, crate::reactive_expr::Marker>,
+            #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+            inherited: &'a BTreeSet<String>,
         }
-        if !self.0.caveats.is_empty() {
-            map.serialize_entry("caveats", &self.0.caveats)?;
+        Written {
+            evidence: &self.0.evidence,
+            caveats: &self.0.caveats,
+            departed: &self.0.departed,
+            inherited: &self.0.inherited,
         }
-        map.end()
+        .serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for Compact {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Provenance::deserialize(deserializer).map(Self)
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Saved {
+            #[serde(default)]
+            evidence: BTreeSet<String>,
+            #[serde(default)]
+            caveats: BTreeSet<String>,
+            #[serde(default, with = "crate::reactive_expr::departure_markers")]
+            departed: BTreeMap<String, crate::reactive_expr::Marker>,
+            #[serde(default)]
+            inherited: BTreeSet<String>,
+        }
+        let saved = Saved::deserialize(deserializer)?;
+        Ok(Self(Provenance {
+            evidence: saved.evidence,
+            caveats: saved.caveats,
+            departed: saved.departed,
+            inherited: saved.inherited,
+        }))
     }
 }
 
@@ -281,6 +323,19 @@ fn check_grounds_within_lineage(
             ));
         }
     }
+    // A grounds marker lies within the lineage's for its history
+    // (spec/caveat-lineage-compaction-0.1.md, "Meaning").
+    for (history, marker) in &grounds.departed {
+        if !lineage
+            .departed
+            .get(history)
+            .is_some_and(|outer| outer.contains(marker))
+        {
+            return Err(format!(
+                "{what} grounds hold departed {history} records outside its lineage"
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -353,10 +408,96 @@ fn effect_kind(effect: &EffectReport) -> &'static str {
         EffectReport::Renew { .. } => "renew",
         EffectReport::Withdraw { .. } => "withdraw",
         EffectReport::Retire { .. } => "retire",
+        EffectReport::Depart { .. } => "depart",
     }
 }
 
-fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
+/// The records of a windowed history a save holds, by number, and the number
+/// of its oldest live record. A number below that one that the save does not
+/// hold has departed. See spec/caveat-departure-0.1.md.
+struct Held {
+    numbers: BTreeSet<u64>,
+    oldest_live: u64,
+}
+
+impl Held {
+    fn of(
+        save: &ReactiveSave,
+        windows: &BTreeSet<String>,
+        journal: bool,
+        history: &str,
+    ) -> Option<Self> {
+        let is_journal = journal && history == "journal";
+        if !is_journal && !windows.contains(history) {
+            return None;
+        }
+        let names: Vec<String> = if is_journal {
+            (1..=save.decision_journal.len() as u64)
+                .map(|index| format!("journal@{}", save.journal_departed + index))
+                .collect()
+        } else if let Some(stream) = save.reading_streams.get(history) {
+            stream.occurrences.iter().map(|o| o.id.clone()).collect()
+        } else {
+            save.renewals
+                .get(history)
+                .cloned()
+                .unwrap_or_else(|| vec![history.to_string()])
+        };
+        let number = |name: &str| occurrence_number(name).unwrap_or(0);
+        let numbers = names
+            .iter()
+            .map(|name| number(name))
+            .collect::<BTreeSet<_>>();
+        let oldest_live = names
+            .iter()
+            .find(|name| !save.retired.contains_key(*name))
+            .map_or_else(|| numbers.last().map_or(1, |n| n + 1), |name| number(name));
+        Some(Self {
+            numbers,
+            oldest_live,
+        })
+    }
+
+    fn departed(&self, number: u64) -> bool {
+        number >= 1 && number < self.oldest_live && !self.numbers.contains(&number)
+    }
+
+    /// How many records numbered `from` to `through` have departed.
+    fn departed_between(&self, from: u64, through: u64) -> u64 {
+        let held = self.numbers.range(from..=through).count() as u64;
+        (through - from + 1).saturating_sub(held)
+    }
+
+    /// Whether any record has departed.
+    fn any_departed(&self) -> bool {
+        self.oldest_live > 1 && self.departed_between(1, self.oldest_live - 1) > 0
+    }
+}
+
+/// The history of `record` if it is a departed record of a windowed history.
+fn departed_record(
+    save: &ReactiveSave,
+    windows: &BTreeSet<String>,
+    journal: bool,
+    record: &str,
+) -> Option<String> {
+    let (history, number) = match record.strip_prefix("journal@").filter(|_| journal) {
+        Some(number) => ("journal", number.parse::<u64>().ok()?),
+        None => {
+            let (history, number) = occurrence_parts(record)?;
+            (history, number as u64)
+        }
+    };
+    let held = Held::of(save, windows, journal, history)?;
+    held.departed(number).then(|| history.to_string())
+}
+
+/// A renewal occurrence's number: the declared name is 1, `NAME@N` is N.
+pub(super) fn occurrence_number(name: &str) -> Option<u64> {
+    Some(occurrence_parts(name).map_or(1, |(_, number)| number as u64))
+}
+
+pub(super) fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
     let (base, ordinal) = name.rsplit_once('@')?;
     let ordinal: usize = ordinal.parse().ok()?;
     (ordinal >= 1 && ordinal.to_string() == name[base.len() + 1..]).then_some((base, ordinal))
@@ -428,13 +569,16 @@ impl ReactiveSession {
                 .states
                 .names()
                 .zip(self.states.cells.iter().zip(self.loaded.states.iter()))
-                .filter(|(_, (cell, loaded))| !Arc::ptr_eq(cell, loaded) && !cell.same(loaded))
+                .filter(|(_, (cell, loaded))| {
+                    !Arc::ptr_eq(cell, loaded) && !Self::saved_same(cell, loaded)
+                })
                 .map(|(name, (cell, _))| {
+                    let lineage = Compact::from(&cell.value.provenance);
+                    let grounds = Compact::from(&cell.grounds);
                     let state = SavedState {
                         value: cell.value.value,
-                        lineage: (&cell.value.provenance).into(),
-                        grounds: (cell.grounds != cell.value.provenance)
-                            .then(|| (&cell.grounds).into()),
+                        grounds: (grounds != lineage).then_some(grounds),
+                        lineage,
                     };
                     (name.clone(), state)
                 })
@@ -446,7 +590,11 @@ impl ReactiveSession {
                 open,
             },
             commitment_bases: (*self.commitment_bases).clone(),
-            commitment_grounds: compact_map(&self.commitment_grounds),
+            commitment_grounds: self
+                .commitment_grounds
+                .iter()
+                .map(|(name, grounds)| (name.clone(), Compact::from(grounds)))
+                .collect(),
             reading_streams: (*self.reading_streams).clone(),
             decision_series: (*self.decision_series).clone(),
             renewals: self
@@ -470,6 +618,7 @@ impl ReactiveSession {
                 .collect(),
             decision_journal: (*self.journal).clone(),
             retired: (*self.retired).clone(),
+            journal_departed: self.journal_departed as u64,
             resources: self.resources.as_ref().map(|ledger| SavedResources {
                 remaining: ledger.remaining,
                 spent: ledger.spent,
@@ -479,6 +628,14 @@ impl ReactiveSession {
             cues: self.cues.iter().map(|cue| cue.id().to_string()).collect(),
             cue_qualifications: self.cue_qualifications.iter().map(Compact::from).collect(),
         })
+    }
+
+    /// Whether a save may leave a state out as the program loaded it: the
+    /// same value and provenances.
+    fn saved_same(cell: &StateCell, loaded: &StateCell) -> bool {
+        cell.value.value.to_bits() == loaded.value.value.to_bits()
+            && cell.value.provenance == loaded.value.provenance
+            && cell.grounds == loaded.grounds
     }
 
     pub fn save_json(&self) -> Result<String, String> {
@@ -550,9 +707,129 @@ impl ReactiveSession {
         self.restore_states(&save.states, &observed, &caveats)?;
         self.restore_records(save, &observed, &caveats, &declared)?;
         self.restore_retired(save)?;
-        self.restore_permissions(save)?;
+        self.restore_permissions(save, &observed)?;
+        self.restore_departures(save)?;
         self.evaluate_bindings(None)
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+        self.settle_archive_provenance(None, false);
+        Ok(())
+    }
+
+    /// Departure markers, inherited grounds and the departure rule: see
+    /// spec/caveat-lineage-compaction-0.1.md and spec/caveat-departure-0.1.md,
+    /// "Save and restore".
+    fn restore_departures(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        let journal = self.journal_window.is_some();
+        let windowed = self.windowed();
+        // Every provenance the save holds.
+        let mut provenances: Vec<(String, &Provenance)> = Vec::new();
+        for (name, state) in &save.states {
+            provenances.push((format!("state {name}"), &state.lineage.0));
+            if let Some(grounds) = &state.grounds {
+                provenances.push((format!("state {name} grounds"), &grounds.0));
+            }
+        }
+        for (name, basis) in &save.commitment_bases {
+            provenances.push((format!("commitment {name}"), &basis.provenance));
+        }
+        for (name, grounds) in &save.commitment_grounds {
+            provenances.push((format!("commitment {name} grounds"), &grounds.0));
+        }
+        for (name, stream) in &save.reading_streams {
+            provenances.push((
+                format!("reading stream {name}"),
+                &stream.selection_qualifications,
+            ));
+            for reading in &stream.occurrences {
+                provenances.push((format!("reading {}", reading.id), &reading.provenance));
+            }
+        }
+        for (name, series) in &save.decision_series {
+            provenances.push((
+                format!("decision series {name}"),
+                &series.selection_qualifications,
+            ));
+        }
+        for scheduled in &save.scheduled_qualifications {
+            provenances.push(("scheduled qualification".into(), &scheduled.guard));
+        }
+        for (what, records) in [
+            ("observation", &save.observation_qualifications),
+            ("examination", &save.examination_qualifications),
+            ("reopening", &save.reopening_qualifications),
+        ] {
+            for (name, provenance) in records {
+                provenances.push((format!("{what} of {name}"), &provenance.0));
+            }
+        }
+        for (kind, targets) in &save.predicate_qualifications {
+            for (name, provenance) in targets {
+                provenances.push((format!("{kind}({name})"), &provenance.0));
+            }
+        }
+        for (id, provenance) in save.cues.iter().zip(&save.cue_qualifications) {
+            provenances.push((format!("cue {id}"), &provenance.0));
+        }
+        let mut any_marker = false;
+        for (what, provenance) in &provenances {
+            if !provenance.inherited.is_empty() {
+                if !windowed {
+                    return Err(format!("{what} cannot record inherited names"));
+                }
+                if let Some(name) = provenance.inherited.difference(&provenance.evidence).next() {
+                    return Err(format!("{what} inherited {name}, which it does not hold"));
+                }
+            }
+            for (history, marker) in &provenance.departed {
+                any_marker = true;
+                let held = Held::of(save, &self.windows, journal, history).ok_or_else(|| {
+                    format!("{what} holds departed records of {history}, which has no window")
+                })?;
+                if marker.from < 1
+                    || marker.from > marker.through
+                    || !held.departed(marker.from)
+                    || !held.departed(marker.through)
+                {
+                    return Err(format!(
+                        "{what}: {history}'s departed range is not of departed records"
+                    ));
+                }
+                if marker.read < 1
+                    || marker.read > held.departed_between(marker.from, marker.through)
+                {
+                    return Err(format!(
+                        "{what}: {history}'s departed range counts none, or more records than departed"
+                    ));
+                }
+                if marker.departed_at == 0 || marker.departed_at > save.sequence {
+                    return Err(format!("{what}: {history} departed out of sequence"));
+                }
+            }
+        }
+        // Whatever departed, departure took every retired record nothing
+        // pinned at the end of the event the save follows. A renewable
+        // evidence's declared first occurrence never departs.
+        let departed = any_marker
+            || save.journal_departed > 0
+            || self.windows.iter().any(|history| {
+                Held::of(save, &self.windows, journal, history)
+                    .is_some_and(|held| held.any_departed())
+            });
+        self.journal_departed = save.journal_departed as usize;
+        if departed {
+            let pins = self.pins();
+            if let Some(record) = self.retired.keys().find(|record| {
+                !pins.contains_key(*record) && !self.renewals.contains_key(record.as_str())
+            }) {
+                return Err(format!(
+                    "retired {record} is pinned by nothing, so it would have departed"
+                ));
+            }
+        }
+        // An older save may hold retired records nothing pins: they depart
+        // at the next accepted event.
+        self.rebuild_departure_index();
+        Ok(())
     }
 
     /// The windowed history a retired record belongs to, as the save holds
@@ -564,11 +841,12 @@ impl ReactiveSession {
             .strip_prefix("journal@")
             .filter(|_| self.journal_window.is_some())
         {
-            let index: usize = index.parse().ok()?;
-            return (index >= 1
+            let index: u64 = index.parse().ok()?;
+            let departed = save.journal_departed;
+            return (index > departed
                 && index.to_string() == record["journal@".len()..]
-                && index <= save.decision_journal.len())
-            .then(|| "journal".to_string());
+                && index - departed <= save.decision_journal.len() as u64)
+                .then(|| "journal".to_string());
         }
         let base = occurrence_parts(record).map_or(record, |(base, _)| base);
         if !self.windows.contains(base) {
@@ -598,8 +876,9 @@ impl ReactiveSession {
                 .strip_prefix("journal@")
                 .filter(|_| self.journal_window.is_some())
             {
-                let index: usize = index.parse().unwrap_or(0);
-                return save.decision_journal[index - 1].sequence;
+                let index: u64 = index.parse().unwrap_or(0);
+                return save.decision_journal[(index - save.journal_departed - 1) as usize]
+                    .sequence;
             }
             let base = occurrence_parts(record).map_or(record, |(base, _)| base);
             if let Some(stream) = save.reading_streams.get(base) {
@@ -620,17 +899,32 @@ impl ReactiveSession {
             }
         }
         // Each windowed history's live records are exactly its newest
-        // min(N, total): the retired ones a prefix, retired oldest first.
+        // min(N, newest): the retired ones before them, retired oldest first.
+        // Departed records leave gaps only below the oldest live one
+        // (spec/caveat-departure-0.1.md).
         let check = |history: &str, records: Vec<String>, window: usize| -> Result<(), String> {
             let retired = records
                 .iter()
                 .take_while(|record| save.retired.contains_key(*record))
                 .count();
             let live = records.len() - retired;
+            let number = |record: &str| -> u64 {
+                record
+                    .rsplit_once('@')
+                    .and_then(|(_, number)| number.parse().ok())
+                    .unwrap_or(1)
+            };
+            let newest = records.last().map_or(0, |record| number(record));
+            let live_numbers = records[retired..].iter().map(|record| number(record));
+            let contiguous = live_numbers
+                .clone()
+                .zip(live_numbers.skip(1))
+                .all(|(older, newer)| newer == older + 1);
             if records[retired..]
                 .iter()
                 .any(|record| save.retired.contains_key(record))
-                || live != records.len().min(window)
+                || live as u64 != newest.min(window as u64)
+                || !contiguous
             {
                 return Err(format!(
                     "{history} does not keep exactly its newest {window} records live"
@@ -660,10 +954,13 @@ impl ReactiveSession {
             }
         }
         if let Some(window) = self.journal_window {
-            let records = (1..=save.decision_journal.len())
-                .map(|index| format!("journal@{index}"))
+            let departed = save.journal_departed;
+            let records = (1..=save.decision_journal.len() as u64)
+                .map(|index| format!("journal@{}", departed + index))
                 .collect();
             check("journal", records, window)?;
+        } else if save.journal_departed != 0 {
+            return Err("journal_departed needs journal window".into());
         }
         // No reopening after a record retired names it as its reason. A later
         // basis may still hold it through one that already cites it, such as
@@ -770,7 +1067,11 @@ impl ReactiveSession {
     /// Permission records must name restored commitments, known evidence,
     /// finite scope values and declared caveats, and agree with the journal's
     /// `permitted_by` in both directions.
-    fn restore_permissions(&mut self, save: &ReactiveSave) -> Result<(), String> {
+    fn restore_permissions(
+        &mut self,
+        save: &ReactiveSave,
+        observed: &HashSet<NodeId>,
+    ) -> Result<(), String> {
         for (commitment, record) in &save.commitment_permissions {
             if !self.commitment_bases.contains_key(commitment) {
                 return Err(format!(
@@ -800,7 +1101,9 @@ impl ReactiveSession {
             // was observed and is in the commitment's frozen lineage. Whether
             // it is still unwithdrawn, or still matches today's head, is not
             // checked: later changes do not rewrite the record.
-            if !self.predicate("observed", &record.grant)? {
+            // Retirement changes the live observed predicate, not whether
+            // this exact grant was observed when permission was recorded.
+            if self.require_observed(&record.grant, observed).is_err() {
                 return Err(format!(
                     "the permission of {commitment} names a grant that was never observed, {}",
                     record.grant
@@ -1531,13 +1834,20 @@ impl ReactiveSession {
         caveats: &CaveatSources,
     ) -> Result<(), String> {
         for name in &provenance.caveats {
+            // A departed record's qualifications stay with what carried it,
+            // so its history's marker can account for one.
             let attachable = caveats.unpaired.contains(name)
-                || provenance.evidence.iter().any(|evidence| {
-                    caveats
-                        .attachable
-                        .get(self.source_evidence(evidence))
-                        .is_some_and(|attachable| attachable.contains(name))
-                });
+                || provenance
+                    .evidence
+                    .iter()
+                    .map(|evidence| self.source_evidence(evidence))
+                    .chain(provenance.departed.keys().map(String::as_str))
+                    .any(|evidence| {
+                        caveats
+                            .attachable
+                            .get(evidence)
+                            .is_some_and(|attachable| attachable.contains(name))
+                    });
             if !attachable {
                 return Err(format!("{what}: {name} cannot qualify any of its evidence"));
             }
@@ -1637,8 +1947,21 @@ impl ReactiveSession {
             {
                 return Err(format!("reading stream {name} does not match the program"));
             }
+            // Numbered from 1 in order; a windowed stream's departed readings
+            // leave gaps (spec/caveat-departure-0.1.md).
+            let windowed = self.windows.contains(name);
+            let mut last = 0;
             for (index, occurrence) in stream.occurrences.iter().enumerate() {
-                if occurrence.id != format!("{name}@{}", index + 1) {
+                let expected = if windowed {
+                    occurrence.ordinal
+                } else {
+                    index as u64 + 1
+                };
+                // Without a window this is the check rc.15 made, by name alone.
+                let in_order =
+                    !windowed || (occurrence.ordinal == expected && occurrence.ordinal > last);
+                last = occurrence.ordinal;
+                if !in_order || occurrence.id != format!("{name}@{expected}") {
                     return Err(format!(
                         "reading stream {name} occurrence {} is out of order",
                         occurrence.id
@@ -1718,8 +2041,16 @@ impl ReactiveSession {
                     "renewable {name} occurrences do not match the program"
                 ));
             }
-            for (ordinal, occurrence) in occurrences.iter().enumerate().skip(1) {
-                if *occurrence != format!("{name}@{}", ordinal + 1) {
+            let windowed = self.windows.contains(name);
+            let mut last = 1;
+            for (index, occurrence) in occurrences.iter().enumerate().skip(1) {
+                let number = occurrence_parts(occurrence)
+                    .filter(|(base, _)| base == name)
+                    .map_or(0, |(_, number)| number);
+                let expected = if windowed { number } else { index + 1 };
+                let in_order = !windowed || number > last;
+                last = number;
+                if !in_order || *occurrence != format!("{name}@{expected}") {
                     return Err(format!(
                         "renewable {name} occurrence {occurrence} is out of order"
                     ));
@@ -1740,22 +2071,18 @@ impl ReactiveSession {
                 continue;
             };
             if let Some(stream) = save.reading_streams.get(base) {
-                if stream
-                    .occurrences
-                    .get(ordinal - 1)
-                    .map(|occurrence| &occurrence.id)
-                    != Some(name)
-                {
+                if !stream.occurrences.iter().any(|occurrence| {
+                    occurrence.id == *name && occurrence.ordinal == ordinal as u64
+                }) {
                     return Err(format!(
                         "reading stream {base} occurrence {name} is not in its occurrences"
                     ));
                 }
             } else if self.renewals.contains_key(base)
-                && save
+                && !save
                     .renewals
                     .get(base)
-                    .and_then(|occurrences| occurrences.get(ordinal - 1))
-                    != Some(name)
+                    .is_some_and(|occurrences| occurrences.contains(name))
             {
                 return Err(format!(
                     "renewable {base} occurrence {name} is not in its renewals"
@@ -1832,7 +2159,17 @@ impl ReactiveSession {
                             ..
                         })
                     ),
-                    _ => id.is_some_and(|id| reopened.contains(id)),
+                    // A cause that departed took its `reopens` relation with
+                    // it, and the qualification holds the cause as a marker
+                    // (spec/caveat-departure-0.1.md).
+                    _ => id.is_some_and(|id| {
+                        reopened.contains(id)
+                            || !provenance.0.departed.is_empty()
+                                && matches!(
+                                    self.graph.nodes.get(id),
+                                    Some(NodeKind::Commitment { open: true, .. })
+                                )
+                    }),
                 };
                 if !fits {
                     let kind = match what {
@@ -1958,11 +2295,14 @@ impl ReactiveSession {
                     relation,
                     target,
                 } => {
-                    self.require_kind(evidence, "evidence")?;
-                    self.require_observed(evidence, observed)?;
+                    let departed = self.departed_in_last_event(save, evidence);
+                    if !departed {
+                        self.require_kind(evidence, "evidence")?;
+                        self.require_observed(evidence, observed)?;
+                    }
                     match (relation, target) {
                         (None, None) => {
-                            if !self.observations.iter().any(|name| name == evidence) {
+                            if !departed && !self.observations.iter().any(|name| name == evidence) {
                                 return Err(
                                     "neutral reveal effect is missing its observation record"
                                         .into(),
@@ -1988,11 +2328,13 @@ impl ReactiveSession {
                                     )
                                 }
                             };
-                            if !self.graph.edges.iter().any(|edge| {
-                                edge.from == self.symbols[evidence]
-                                    && edge.to == self.symbols[target]
-                                    && edge.relation == stance
-                            }) {
+                            if !departed
+                                && !self.graph.edges.iter().any(|edge| {
+                                    edge.from == self.symbols[evidence]
+                                        && edge.to == self.symbols[target]
+                                        && edge.relation == stance
+                                })
+                            {
                                 return Err("reveal effect has no matching graph relation".into());
                             }
                         }
@@ -2011,13 +2353,13 @@ impl ReactiveSession {
                 EffectReport::Qualify { evidence, caveat } => vec![evidence, caveat],
                 EffectReport::Renew { occurrence, .. } => vec![occurrence],
                 EffectReport::Withdraw { evidence, because } => vec![evidence, because],
-                // A journal entry is no symbol; checked against the save below.
-                EffectReport::Retire { .. } => Vec::new(),
+                // A journal entry is no symbol, and a departed record no
+                // longer one; checked against the save below.
+                EffectReport::Retire { .. } | EffectReport::Depart { .. } => Vec::new(),
             };
-            if let Some(name) = names
-                .into_iter()
-                .find(|name| !self.symbols.contains_key(*name))
-            {
+            if let Some(name) = names.into_iter().find(|name| {
+                !self.symbols.contains_key(*name) && !self.departed_in_last_event(save, name)
+            }) {
                 return Err(format!("an effect names unknown {name}"));
             }
             self.check_effect_against_save(effect, save, observed)?;
@@ -2144,6 +2486,25 @@ impl ReactiveSession {
         let mut previous: Option<&JournalEntry> = None;
         let mut latest_elapsed = None;
         let mut last_committed_node = None;
+        // With departed entries, the journal begins partway: a commitment
+        // with no held `committed` entry was made in one that departed, and
+        // its series' history before the window is no longer held
+        // (spec/caveat-departure-0.1.md).
+        let partial = save.journal_departed > 0;
+        let held_commits = save
+            .decision_journal
+            .iter()
+            .filter(|entry| entry.change == "committed")
+            .map(|entry| entry.commitment.as_str())
+            .collect::<HashSet<_>>();
+        let before_window = |name: &str| {
+            partial
+                && !held_commits.contains(name)
+                && self
+                    .symbols
+                    .get(name)
+                    .is_some_and(|id| *id > self.loaded.last_node)
+        };
         for entry in &save.decision_journal {
             self.require_commitment(&entry.commitment)?;
             if !matches!(entry.change.as_str(), "committed" | "reopened") {
@@ -2215,17 +2576,25 @@ impl ReactiveSession {
                     if revision.sequence != entry.sequence || revision.event != entry.event {
                         return Err(fail("commitment disagrees with its revision record"));
                     }
-                    if revision.previous.as_deref() != current.get(entry.decision.as_str()).copied()
-                        || revision
-                            .previous
-                            .as_deref()
-                            .is_some_and(|name| !reopened.contains_key(name))
+                    let tracked = current.get(entry.decision.as_str()).copied();
+                    let follows = match (revision.previous.as_deref(), tracked) {
+                        (previous, Some(_)) => previous == tracked,
+                        (Some(previous), None) => before_window(previous),
+                        (None, None) => true,
+                    };
+                    if !follows
+                        || revision.previous.as_deref().is_some_and(|name| {
+                            !reopened.contains_key(name) && !before_window(name)
+                        })
                     {
                         return Err(fail("revision has no preceding reopened commitment"));
                     }
                     current.insert(&entry.decision, &entry.commitment);
-                } else if current.get(entry.decision.as_str()).copied()
-                    != Some(entry.commitment.as_str())
+                } else if current
+                    .get(entry.decision.as_str())
+                    .map_or(!before_window(&entry.commitment), |current| {
+                        *current != entry.commitment.as_str()
+                    })
                 {
                     return Err(fail("reopening is not of the current revision"));
                 }
@@ -2245,12 +2614,21 @@ impl ReactiveSession {
                     .commitment_grounds
                     .get(&entry.commitment)
                     .ok_or_else(|| fail("commitment has no frozen grounds"))?;
-                if basis.is_none() || grounds.0 != provenance {
+                // The journal represents the exact evidence and caveats of
+                // grounds, not their departure markers or inherited-name
+                // bookkeeping. Keep that full provenance in the grounds:
+                // its basis containment and marker/inherited validity are
+                // checked separately by restore_records/restore_departures.
+                if basis.is_none()
+                    || grounds.0.evidence != provenance.evidence
+                    || grounds.0.caveats != provenance.caveats
+                {
                     return Err(fail("commitment witnesses differ from its frozen grounds"));
                 }
             } else {
                 if entry.because.is_empty()
                     || (!committed.contains(entry.commitment.as_str())
+                        && !before_window(&entry.commitment)
                         && self.symbols[&entry.commitment] > self.loaded.last_node)
                 {
                     return Err(fail("reopening has no cause or preceding commitment"));
@@ -2276,7 +2654,7 @@ impl ReactiveSession {
             for (index, revision) in series.revisions.iter().enumerate() {
                 if revision.ordinal != index as u64 + 1
                     || revision.id != format!("{name}@{}", index + 1)
-                    || !committed.contains(revision.id.as_str())
+                    || !(committed.contains(revision.id.as_str()) || before_window(&revision.id))
                 {
                     return Err(fail("revision identity/order has no matching commitment"));
                 }
@@ -2286,7 +2664,10 @@ impl ReactiveSession {
             let Some(NodeKind::Commitment { open, .. }) = self.graph.nodes.get(id) else {
                 continue;
             };
-            if *id > self.loaded.last_node && !committed.contains(name.as_str()) {
+            if *id > self.loaded.last_node
+                && !committed.contains(name.as_str())
+                && !before_window(name)
+            {
                 return Err(fail("created commitment has no journal entry"));
             }
             let causes = reopened.get(name.as_str()).cloned().unwrap_or_default();
@@ -2302,7 +2683,15 @@ impl ReactiveSession {
                 .iter()
                 .map(|name| self.symbols[*name])
                 .collect::<Vec<_>>();
-            if edges != recorded || (*id > self.loaded.last_node && *open != !causes.is_empty()) {
+            // Reopenings recorded in departed entries leave their relations
+            // ahead of the held ones, or leave with a departed cause.
+            let agrees = if partial {
+                edges.ends_with(&recorded)
+                    && (*id <= self.loaded.last_node || *open || causes.is_empty())
+            } else {
+                edges == recorded && (*id <= self.loaded.last_node || *open != causes.is_empty())
+            };
+            if !agrees {
                 return Err(fail("reopening history differs from the graph"));
             }
         }
@@ -2335,10 +2724,31 @@ impl ReactiveSession {
         reached
     }
 
+    /// An effect can name a record removed later in that same event only
+    /// when a departure report agrees with the save's actual history gap.
+    /// A missing symbol or an arbitrary departure report alone is insufficient.
+    fn departed_in_last_event(&self, save: &ReactiveSave, record: &str) -> bool {
+        let Some(history) =
+            departed_record(save, &self.windows, self.journal_window.is_some(), record)
+        else {
+            return false;
+        };
+        // These callers validate evidence fields. A departed journal entry
+        // is a reportable record, but cannot stand in for an evidence node.
+        if !self.reading_streams.contains_key(&history) && !self.renewals.contains_key(&history) {
+            return false;
+        }
+        save.effects.iter().any(|effect| {
+            matches!(effect,
+            EffectReport::Depart { history: reported, record: gone }
+                if reported == &history && gone == record)
+        })
+    }
+
     /// A saved effect must agree with what the rest of the save restored: its
     /// names have the kinds its place needs, and the relation, record or
-    /// spending it reports is there. Every effect leaves those behind, and
-    /// nothing later in the same event removes them.
+    /// spending it reports is there, unless a validated same-event departure
+    /// removed that record. The source must still be able to emit the effect.
     fn check_effect_against_save(
         &self,
         effect: &EffectReport,
@@ -2370,16 +2780,19 @@ impl ReactiveSession {
                         .iter()
                         .any(|occurrence| occurrence.id == *id)
                 });
-                if !listed {
+                let departed = self.departed_in_last_event(save, id);
+                if !listed && !departed {
                     return Err(fail("names no reading of its stream"));
                 }
-                named(self.require_observed(id, observed))?;
+                if !departed {
+                    named(self.require_observed(id, observed))?;
+                }
                 let stance = match relation.as_str() {
                     "supports" => Relation::Supports,
                     "opposes" => Relation::Opposes,
                     _ => return Err(fail("relation must be supports or opposes")),
                 };
-                if !related(id, stance, target) {
+                if !departed && !related(id, stance, target) {
                     return Err(fail("has no matching graph relation"));
                 }
             }
@@ -2410,15 +2823,21 @@ impl ReactiveSession {
             }
             EffectReport::Reopen { action, because } => {
                 named(self.require_commitment(action))?;
-                named(self.require_observed(because, observed))?;
-                if !related(because, Relation::Reopens, action) {
+                let departed = self.departed_in_last_event(save, because);
+                if !departed {
+                    named(self.require_observed(because, observed))?;
+                }
+                if !departed && !related(because, Relation::Reopens, action) {
                     return Err(fail("has no matching graph relation"));
                 }
             }
             EffectReport::Qualify { evidence, caveat } => {
-                named(self.require_kind(evidence, "evidence"))?;
+                let departed = self.departed_in_last_event(save, evidence);
+                if !departed {
+                    named(self.require_kind(evidence, "evidence"))?;
+                }
                 named(self.require_kind(caveat, "caveat"))?;
-                if !related(caveat, Relation::Qualifies, evidence) {
+                if !departed && !related(caveat, Relation::Qualifies, evidence) {
                     return Err(fail("has no matching graph relation"));
                 }
             }
@@ -2431,24 +2850,43 @@ impl ReactiveSession {
                         .renewals
                         .get(evidence)
                         .is_some_and(|occurrences| occurrences.contains(occurrence));
-                if !listed {
+                if !listed && !self.departed_in_last_event(save, occurrence) {
                     return Err(fail("names no occurrence of its renewals"));
                 }
             }
             EffectReport::Withdraw { evidence, because } => {
-                named(self.require_observed(evidence, observed))?;
-                named(self.require_observed(because, observed))?;
-                if !self.withdrawals.iter().any(|withdrawal| {
-                    withdrawal.evidence == *evidence && withdrawal.because == *because
-                }) {
+                let departed = self.departed_in_last_event(save, evidence);
+                if !departed {
+                    named(self.require_observed(evidence, observed))?;
+                }
+                if !self.departed_in_last_event(save, because) {
+                    named(self.require_observed(because, observed))?;
+                }
+                if !departed
+                    && !self.withdrawals.iter().any(|withdrawal| {
+                        withdrawal.evidence == *evidence && withdrawal.because == *because
+                    })
+                {
                     return Err(fail("has no matching withdrawal record"));
                 }
             }
             EffectReport::Retire { history, record } => {
-                if save.retired.get(record) != Some(&save.sequence)
-                    || self.history_of_record(save, record).as_deref() != Some(history.as_str())
-                {
+                // A record can retire and depart in the same event.
+                let departed_now = save.effects.iter().any(|effect| {
+                    matches!(effect, EffectReport::Depart { record: gone, .. } if gone == record)
+                });
+                let retired_now = save.retired.get(record) == Some(&save.sequence)
+                    && self.history_of_record(save, record).as_deref() == Some(history.as_str());
+                if !retired_now && !departed_now {
                     return Err(fail("names no record the last event retired"));
+                }
+            }
+            EffectReport::Depart { history, record } => {
+                if departed_record(save, &self.windows, self.journal_window.is_some(), record)
+                    .as_deref()
+                    != Some(history.as_str())
+                {
+                    return Err(fail("names no departed record of its history"));
                 }
             }
         }
@@ -2589,15 +3027,19 @@ impl ReactiveSession {
                 history == evidence
             }
             _ => false,
-        }) || matches!(effect, EffectReport::Qualify { evidence, caveat }
-        if last_event.is_some() && last_event == self.time_event.as_deref()
-            && self.reached_effects(None).iter().any(|reached| {
-                matches!(reached, Effect::Qualify {
-                    evidence: source,
-                    caveat: added,
-                    after: Some(_),
-                } if named(evidence, source) && caveat == added)
-            }))
+        }) || matches!(effect, EffectReport::Depart { .. })
+            // Any accepted event can release a pin, and a restored session's
+            // first event departs what an older save kept.
+            && self.windowed()
+            || matches!(effect, EffectReport::Qualify { evidence, caveat }
+            if last_event.is_some() && last_event == self.time_event.as_deref()
+                && self.reached_effects(None).iter().any(|reached| {
+                    matches!(reached, Effect::Qualify {
+                        evidence: source,
+                        caveat: added,
+                        after: Some(_),
+                    } if named(evidence, source) && caveat == added)
+                }))
     }
 
     /// Ignore conditions (their historical values are unavailable), but require

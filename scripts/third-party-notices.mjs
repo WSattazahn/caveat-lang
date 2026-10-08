@@ -36,8 +36,11 @@ const sections = [];
 for (const crate of [...linked.values()].sort((a, b) => a.name.localeCompare(b.name))) {
   if (!/\bMIT\b/.test(crate.license)) throw new Error(`${crate.name} ${crate.version} is not available under MIT: ${crate.license}`);
   const directory = directories.get(`${crate.name} ${crate.version}`);
-  const mit = path.join(directory, 'LICENSE-MIT');
-  if (!existsSync(mit)) throw new Error(`${crate.name} ${crate.version} has no LICENSE-MIT in ${directory}`);
+  // generic-array 0.14.7 ships its MIT notice under LICENSE (verified in
+  // the locked crate); preserve that notice rather than assuming a filename.
+  const notice = crate.name === 'generic-array' && crate.version === '0.14.7' ? 'LICENSE' : 'LICENSE-MIT';
+  const mit = path.join(directory, notice);
+  if (!existsSync(mit)) throw new Error(`${crate.name} ${crate.version} has no ${notice} in ${directory}`);
   const texts = [['MIT', await readFile(mit, 'utf8')]];
   if (/Unicode/.test(crate.license)) texts.push(['Unicode-3.0', await readFile(path.join(directory, 'LICENSE-UNICODE'), 'utf8')]);
   sections.push([

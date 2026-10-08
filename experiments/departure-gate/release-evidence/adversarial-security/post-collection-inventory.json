@@ -1,0 +1,115 @@
+{
+  "schema": "caveat-post-collection-probes/1",
+  "scope": "New source-derived P probes; not replicas of the unlocated F findings. No runtime or semantic edits.",
+  "driverSha256": "fbdbe4b09743caf53109d708af6c679ef8adfe6bd3a832dc57074ef3a52ab0c2",
+  "sourceSha256": "d5f85f7268f718964734ee2b08f9af858c965eb5ec936da3b90bd9ab769e74fd",
+  "trace": [
+    "start",
+    "advance",
+    "skip",
+    "decide"
+  ],
+  "cells": [
+    "rc15",
+    "candidate"
+  ],
+  "controls": [
+    {
+      "id": "P00",
+      "cells": [
+        "rc15",
+        "candidate"
+      ],
+      "expected": "Authentic same-cell exact restore; state-rooted original b@2 withdrawal; rejected final binding preserves save and snapshot, and candidate undrained archive; accepted continuation and root release match same-cell restored session. rc15 archive handover is unsupported, not a runtime-tested empty archive."
+    },
+    {
+      "id": "P01",
+      "cells": [
+        "candidate"
+      ],
+      "expected": "Actual advance collected a@2 while b@2 remained independently rooted; genuine r@1 departure markers and exact original withdrawal archive."
+    },
+    {
+      "id": "P02",
+      "cells": [
+        "rc15-to-candidate"
+      ],
+      "expected": "Authentic rc15 save restores without collection; rejected continuation changes nothing; accepted continuation collects isolated a@2, retains b@2 and its original reason, and remains restorable."
+    }
+  ],
+  "mutants": [
+    {
+      "id": "P10",
+      "title": "duplicate same-history marker after genuine collection",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P11",
+      "title": "marker endpoint names still-held r@2",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P12",
+      "title": "marker archive reference is uppercase hex",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P13",
+      "title": "remaining withdrawal subject replaced with departed a@2",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P14",
+      "title": "remaining withdrawal reason replaced with departed a@2",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P15",
+      "title": "remove only remaining withdrawal ledger record",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P16",
+      "title": "remove only remaining withdrawal graph edge",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P17",
+      "title": "duplicate remaining withdrawal ledger record",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P18",
+      "title": "remaining withdrawal has zero sequence",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    },
+    {
+      "id": "P19",
+      "title": "remaining withdrawal names declared non-producing event",
+      "cell": "candidate",
+      "expected": "restore refusal with kind restore; an accepted mutant is a failed probe"
+    }
+  ],
+  "contracts": [
+    "spec/caveat-lineage-compaction-0.1.md:385-405",
+    "spec/caveat-withdrawal-0.1.md:110-122",
+    "spec/caveat-departure-0.1.md:66-76,104-111,153-170",
+    "docs/design/withdrawal-collector-draft.md:34-40,64-69"
+  ],
+  "limits": [
+    "No authenticated replay or host integrity claim.",
+    "No prompt-injection or tool-permission probe.",
+    "rc15 has no departure markers or archive handover; candidate-only mutants are not run as rc15 format tests.",
+    "Every mutation is applied independently to one authentic post-collection save; no expectation of whole cross-version snapshot equality.",
+    "All source numbers are positive integers or zero; authentic controls preserve save text exactly."
+  ]
+}

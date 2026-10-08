@@ -1,5 +1,6 @@
-//! Declared windows retire the oldest live record of a history and keep it
-//! (spec/caveat-windows-0.1.md).
+//! Declared windows retire the oldest live record of a history, which
+//! departs once nothing pins it (spec/caveat-windows-0.1.md,
+//! spec/caveat-departure-0.1.md).
 use caveat_runtime::reactive::ReactiveSession;
 use caveat_runtime::web::WebReactiveSession;
 use serde_json::{json, Value};
@@ -60,20 +61,34 @@ fn a_window_retires_the_oldest_reading_and_reads_only_live_ones() {
     );
     look(&mut game, 4.0);
     let after = shot(&game);
-    assert_eq!(after["retired"], json!({"sighting@1": 4}));
+    let kinds = |shot: &Value| {
+        shot["effects"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|effect| effect["kind"].as_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
     assert_eq!(
         after["effects"][0],
         json!({"kind": "retire", "history": "sighting", "record": "sighting@1"}),
         "retirement is reported before the sample that caused it"
     );
-    assert_eq!(after["effects"][1]["kind"], "sample");
+    assert_eq!(kinds(&after), ["retire", "sample", "depart"]);
+    // Nothing cites sighting@1, so it departs in the same event
+    // (spec/caveat-departure-0.1.md).
+    assert_eq!(
+        after["effects"][2],
+        json!({"kind": "depart", "history": "sighting", "record": "sighting@1"}),
+        "departure is reported after every other effect"
+    );
+    assert!(after.get("retired").is_none(), "{after}");
     assert_eq!(after["bindings"]["hud"]["count"], 3.0);
     assert_eq!(after["bindings"]["hud"]["first"], 2.0);
     assert_eq!(after["bindings"]["hud"]["sum"], 9.0);
-    // The record stays, and names continue.
     assert_eq!(
         after["reading_streams"]["sighting"]["occurrences"][0]["id"],
-        "sighting@1"
+        "sighting@2"
     );
     look(&mut game, 5.0);
     let later = shot(&game);
@@ -81,7 +96,7 @@ fn a_window_retires_the_oldest_reading_and_reads_only_live_ones() {
         later["reading_streams"]["sighting"]["current"], "sighting@5",
         "a name is never reused"
     );
-    assert_eq!(later["retired"], json!({"sighting@1": 4, "sighting@2": 5}));
+    assert_eq!(later["effects"][2]["record"], "sighting@2");
 }
 
 #[test]
@@ -108,10 +123,9 @@ fn the_journal_keeps_its_newest_entries() {
         go(&mut game, "decide");
     }
     let after = shot(&game);
-    assert_eq!(
-        after["retired"],
-        json!({"journal@1": 4, "journal@2": 4, "journal@3": 5, "journal@4": 5}),
-        "{after}"
+    assert!(
+        after.get("retired").is_none(),
+        "a retired journal entry departs at once: {after}"
     );
     assert_eq!(after["decision_series"]["trust"]["current"], "trust@4");
     let kinds = after["effects"]
@@ -122,15 +136,15 @@ fn the_journal_keeps_its_newest_entries() {
         .collect::<Vec<_>>();
     assert_eq!(
         kinds,
-        ["retire", "reopen", "retire", "commit"],
+        ["retire", "reopen", "retire", "commit", "depart", "depart"],
         "each retirement comes before the effect that adds a record"
     );
+    assert_eq!(after["effects"][4]["record"], "journal@3");
+    assert_eq!(after["effects"][5]["record"], "journal@4");
     assert_eq!(after["bindings"]["hud"]["decided"], 4.0);
-    assert_eq!(
-        after["decision_journal"].as_array().unwrap().len(),
-        7,
-        "a retired journal entry stays in the journal"
-    );
+    assert_eq!(after["decision_journal"].as_array().unwrap().len(), 3);
+    let save: Value = serde_json::from_str(&game.save_json().unwrap()).unwrap();
+    assert_eq!(save["journal_departed"], 4);
 }
 
 #[test]
@@ -166,30 +180,28 @@ fn a_save_with_retirements_restores_and_a_forged_one_is_refused() {
     let restored = ReactiveSession::restore_json(WORLD, &save).unwrap();
     assert_eq!(shot(&restored), shot(&game));
     assert_eq!(restored.save_json().unwrap(), save);
+    let held: Value = serde_json::from_str(&save).unwrap();
+    // A renewable's declared first occurrence never departs.
+    assert!(held["retired"].get("taste").is_some(), "{held}");
 
     let edit = |change: &dyn Fn(&mut Value)| {
         let mut forged: Value = serde_json::from_str(&save).unwrap();
         change(&mut forged);
         ReactiveSession::restore_json(WORLD, &forged.to_string())
     };
-    // A gap: a newer record retired while an older one is live.
+    // A live record retired: fewer live records than the window.
     assert!(edit(&|save| {
-        let retired = save["retired"].as_object_mut().unwrap();
-        retired.remove("sighting@1");
-        retired.insert("sighting@2".into(), json!(5));
+        save["retired"]["sighting@2"] = json!(5);
     })
     .is_err());
     // More live records than the window.
     assert!(edit(&|save| {
-        save["retired"]
-            .as_object_mut()
-            .unwrap()
-            .remove("sighting@1");
+        save["retired"].as_object_mut().unwrap().remove("taste");
     })
     .is_err());
     // Dated in the future.
     assert!(edit(&|save| {
-        save["retired"]["sighting@1"] = json!(10_000);
+        save["retired"]["taste"] = json!(10_000);
     })
     .is_err());
     // A history without a window: the program has none, so any name it does
@@ -258,23 +270,36 @@ fn a_reopen_whose_evidence_retired_still_reads_and_restores() {
 }
 
 // Since Reactive 0.5 a revision's basis holds its predecessor's, through the
-// check that the predecessor was reopened, whatever `using` reads. A retired
-// reading reaches a new basis that way, and the save still restores
-// (spec/caveat-windows-0.1.md, "Decision series: not in rc.15").
+// check that the predecessor was reopened, whatever `using` reads. A departed
+// reading reaches a new basis that way as its history's marker, and the save
+// still restores (spec/caveat-lineage-compaction-0.1.md).
 #[test]
-fn a_revision_basis_may_hold_a_retired_reading_through_its_predecessor() {
+fn a_revision_basis_may_hold_a_departed_reading_through_its_predecessor() {
     let mut game = session();
     for v in 0..6 {
         look(&mut game, f64::from(v));
         go(&mut game, "decide");
     }
     let after = shot(&game);
-    let basis = &after["commitment_bases"]["trust@6"]["provenance"]["evidence"];
-    assert!(
-        basis.as_array().unwrap().contains(&json!("sighting@1")),
+    let basis = &after["commitment_bases"]["trust@6"]["provenance"];
+    let mut marker = basis["departed"][0].clone();
+    let root = marker
+        .as_object_mut()
+        .unwrap()
+        .remove("archive_ref")
+        .unwrap();
+    assert_eq!(root.as_str().unwrap().len(), 64);
+    assert_eq!(
+        marker,
+        json!({"history": "sighting", "read": 2, "from": 1, "through": 2, "departed_at": 12}),
         "{basis}"
     );
-    assert_eq!(after["retired"]["sighting@1"], 7);
+    assert!(basis["evidence"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("sighting@3")));
+    // The journal's commit of trust@5 still cites sighting@3, so it stays.
+    assert_eq!(after["retired"], json!({"sighting@3": 11}));
     let save = game.save_json().unwrap();
     let restored = ReactiveSession::restore_json(WORLD, &save).unwrap();
     assert_eq!(shot(&restored), after);

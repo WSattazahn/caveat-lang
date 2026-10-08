@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-08T01:07:02.368Z",
+  "workflowSha256": "24c8b9f395c95ba6d5f1395a50a6795481371a4d85c4e2b8fb2eef03d8ca2500",
+  "extractedScriptSha256": "dad63d03fa34574a206df169e813ab9adca60975a51ca86a5f0b3f5005938d07",
+  "browser": "WebKit",
+  "browserVersion": "26.0",
+  "node": "v24.11.1",
+  "platform": "win32",
+  "routes": [
+    "inspect-latch",
+    "inspect-camera",
+    "continue",
+    "retreat",
+    "stairwell",
+    "wait",
+    "reroute"
+  ],
+  "expectedBadge": "CAVEAT · THE DOOR",
+  "corruptedBadgeRejected": true,
+  "screenshots": [
+    "door-inspect-camera-00.png",
+    "door-inspect-latch-00.png",
+    "door-open-continue-00.png",
+    "door-open-continue-final.png",
+    "door-open-retreat-00.png",
+    "door-open-retreat-final.png",
+    "door-open-stairwell-00.png",
+    "door-open-stairwell-final.png",
+    "door-reroute-00.png",
+    "door-wait-00.png"
+  ],
+  "passed": true
+}

@@ -1,0 +1,30 @@
+decision.cav after 5 events (sequence 5)
+
+Events
+    1  recover  accepted
+    2  authorize  accepted
+    3  reproduce  accepted
+    4  begin  accepted
+    5  focused_pass  accepted
+
+Decisions
+  implementation: 1 of at most 2
+    implementation@1 = 1  in force
+      based on saved_commit
+      retaining: full_checks_pending, archive_contract_open
+      permitted by owner_go
+      could also have been influenced by owner_go
+      #4 begin: committed because saved_commit; retaining: archive_contract_open, full_checks_pending
+  readiness: 0 of at most 2
+
+Evidence
+  saved_commit supports recoverable
+  handoff observed (no stance)
+  owner_go observed (no stance)
+  failing_regression opposes restore_correct
+  focused_checks supports restore_correct
+
+Displayed
+  checks.withdrawn = false
+  work.ready = false
+  work.started = true  because owner_go, saved_commit (caveats: archive_contract_open, full_checks_pending)

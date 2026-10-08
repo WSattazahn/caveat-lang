@@ -41,3 +41,21 @@
 *.ogg  binary
 *.wav  binary
 *.mp4  binary
+
+# Frozen measurement receipts retain the observed bytes (including Windows
+# log/JSON line endings) so their published SHA-256 values survive checkout.
+experiments/departure-gate/collector-results/** -text whitespace=cr-at-eol
+# Terminal receipts also keep their original trailing blank output lines.
+experiments/departure-gate/collector-results/**/*.log whitespace=cr-at-eol,-blank-at-eof
+
+# Frozen index-compaction observations retain their recorded bytes.
+experiments/departure-gate/index-compaction/results/** -text whitespace=cr-at-eol
+
+# Keep the independently authored regression body byte-exact for its provenance self-check.
+experiments/departure-gate/withdrawal-batch/independent-wasm-check.mjs -text
+
+# Preserve the recorded withdrawal-extraction observations and stream hashes.
+experiments/departure-gate/withdrawal-batch/results/** -text whitespace=cr-at-eol,-blank-at-eof
+
+# Frozen release-preparation observations preserve their original bytes.
+experiments/departure-gate/release-evidence/** -text whitespace=cr-at-eol,-blank-at-eof

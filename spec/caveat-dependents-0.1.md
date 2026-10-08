@@ -72,3 +72,29 @@ sequence at which it retired.
 See [Withdrawal](caveat-withdrawal-0.1.md),
 [Permission](caveat-permission-0.1.md), and
 [Grounds](caveat-explanations-0.2.md) for the underlying contracts.
+
+## Dogfooding reporting additions (rc.16)
+
+Plain commitments appear alongside declared decision series in `explain` and
+`dependents`; a plain commitment is one current record, not an invented revision
+history. `explain` marks its group `kind: "plain"`, with one revision and a
+limit of 1. Its status uses the snapshot's commitment `open` flag, including
+when the journal no longer holds its reopening entry.
+
+Two additive arrays preserve the `caveat-dependents/0.1` schema:
+
+- `reasonForWithdrawals`: withdrawals whose `because` occurrence the query
+  selects. These are different from `withdrawals`, which lists withdrawal of
+  the subject itself. Records retain withdrawal-ledger order and the same
+  `{ evidence, because, sequence, event }` shape. Caveat queries match only
+  explicit qualification edges on the reason; retention alone invents none.
+- `claims`: actual supporting/opposing relations from selected evidence,
+  as `{ evidence, relation, claim }`. This reports what the observation
+  supported or opposed, not whether the claim is true. Caveat queries select
+  only evidence explicitly qualified by that caveat.
+
+Each explained revision adds `retained`, from the commitment record. A query
+for a caveat retained by a decision labels that match `basis: "retained"`.
+The human text says `retaining: NAME`, without claiming an evidence carrier.
+The original grounds and lineage objects are kept as recorded, including their
+caveat channels. Older formatter inputs can omit the additive arrays.

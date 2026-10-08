@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { groups, notSourceWords } from './expectations.mjs';
+import { expectedHeadScope, groups, notSourceWords } from './expectations.mjs';
+import { statementHeads } from './reference.mjs';
 import { has, scopesOf } from './tokenize.mjs';
 
 const runtime = new URL('../../../runtime/', import.meta.url);
@@ -61,6 +62,24 @@ async function scopesAt(probe, word) {
   const scopes = await scopesOf(text);
   return scopes.slice(probe.indexOf('@'), probe.indexOf('@') + word.length);
 }
+
+test('journal window statement heads agree with the tokenizer without reserving the name', async () => {
+  for (const text of ['journal window 2;', 'state x = 0; journal window 3;', 'journal\twindow 8;']) {
+    const head = statementHeads(text).find(item => item.word === 'journal');
+    assert.ok(head);
+    const expected = expectedHeadScope(head.word, text.slice(head.index + head.word.length));
+    assert.equal(expected, 'keyword.other');
+    assert.ok(has((await scopesOf(text))[head.index], expected));
+  }
+  for (const text of ['journal supports seen;', 'journal(1);', 'journal_window;']) {
+    const [head] = statementHeads(text);
+    assert.equal(expectedHeadScope(head.word, text.slice(head.index + head.word.length)), null);
+    assert.equal(keywordLike((await scopesOf(text))[head.index]), false);
+  }
+  for (const probe of ['state @ = 1;', 'on tick set x = @;', 'bind hud.@ = 1;']) {
+    for (const scopes of await scopesAt(probe, 'journal')) assert.equal(keywordLike(scopes), false);
+  }
+});
 
 for (const group of [...groups, { name: 'not source words', ...notSourceWords }]) {
   test(group.name, async () => {

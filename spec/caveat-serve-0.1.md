@@ -28,8 +28,10 @@ are skipped.
 | --- | --- | --- |
 | `dispatch` | `event`, optional `payload` object, optional `snapshot: true` | `outcome` (`accepted` or `rejected`), `origin`, `code` and `message` when rejected, `sequence`, and `snapshot` when asked for |
 | `snapshot` | | `snapshot` |
-| `explain` | | `report`: the `caveat-explain/0.1` report of the session, listing the events sent since it opened or was restored |
-| `dependents` | `of`: evidence, a reading stream or a caveat | `report`: the `caveat-dependents/0.1` report of what rests on it |
+| `drainArchive` | | `archive`: departed record entries and provenance nodes; empties the session's pending archive |
+| `undrained` | | `undrained`: the number of pending archive items (records plus provenance nodes) |
+| `explain` | optional `archive`: array of archive item objects | `report`: the `caveat-explain/0.1` report of the session, listing the events sent since it opened or was restored |
+| `dependents` | `of`: evidence, a reading stream or a caveat; optional `archive`: array of archive item objects | `report`: the `caveat-dependents/0.1` report of what rests on it |
 | `save` | | `save`: the text of the session's save |
 | `restore` | `save`: text from `save` | `sequence`. The restored session replaces the current one. |
 | `close` | | none. The server then exits with status 0. |
@@ -62,9 +64,28 @@ what refused it. The session is unchanged, as for every rejection.
 When standard input ends without `close`, the server closes the session and
 exits with status 0.
 
+## Host-owned archive (rc.16)
+
+The host periodically calls `drainArchive` and stores the returned items
+together beside its saves. Proof nodes may refer to items from earlier drains.
+The server keeps no extra archive copy. Draining changes neither the snapshot
+nor the save; `undrained` and all explanation requests are read-only. A restored
+session starts with an empty pending archive, because saves contain compact
+provenance roots, not the host's archived records or proof graph.
+
+For exact departed membership, pass the accumulated archive to `explain` or
+`dependents`. The array is used only for that request and is not retained by the
+server. An omitted archive or an incomplete, conflicting or corrupt graph
+produces explicitly conservative marker summaries. Complete reconstruction
+requires the marker's hash-consistent graph and matching record entries; it
+does not authenticate the historical evidence. See
+[Departure 0.1](caveat-departure-0.1.md). A supplied archive that is not an array
+of objects is a request error and changes nothing.
+
 ## Limits
 
 One server holds one session of one program. Requests are answered in order,
 one at a time. The `explain` report's event list covers only this server's
-requests since the session opened or was last restored; the snapshot itself
-holds the full history.
+requests since the session opened or was last restored. Windowed snapshots
+retain live records and compact departed summaries; exact departed history
+requires the archive kept by the host.

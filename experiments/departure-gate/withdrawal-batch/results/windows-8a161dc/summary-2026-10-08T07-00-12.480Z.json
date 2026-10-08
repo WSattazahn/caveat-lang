@@ -1,0 +1,552 @@
+{
+  "recordedAt": "2026-10-08T07:00:12.480Z",
+  "complete": true,
+  "passed": true,
+  "targets": {
+    "release": {
+      "values": [
+        {
+          "trial": 1,
+          "B": 76247000,
+          "C": 52458900,
+          "ratio": 0.688012643120385
+        },
+        {
+          "trial": 2,
+          "B": 74705600,
+          "C": 57133900,
+          "ratio": 0.7647873787239511
+        },
+        {
+          "trial": 3,
+          "B": 72027100,
+          "C": 58670300,
+          "ratio": 0.8145586869386662
+        },
+        {
+          "trial": 4,
+          "B": 70741000,
+          "C": 56066600,
+          "ratio": 0.7925615979417876
+        },
+        {
+          "trial": 5,
+          "B": 73978200,
+          "C": 56665600,
+          "ratio": 0.7659770040363242
+        },
+        {
+          "trial": 6,
+          "B": 70049600,
+          "C": 57938800,
+          "ratio": 0.8271110755807314
+        },
+        {
+          "trial": 7,
+          "B": 70331900,
+          "C": 58438700,
+          "ratio": 0.8308989235325649
+        },
+        {
+          "trial": 8,
+          "B": 76305700,
+          "C": 56621400,
+          "ratio": 0.7420336881779473
+        }
+      ],
+      "Bmedian": 73002650,
+      "Cmedian": 56899750,
+      "ratioOfMedians": 0.7794203361110864,
+      "pairedMedianRatio": 0.7792693009890559,
+      "passed": true
+    },
+    "failed_release": {
+      "values": [
+        {
+          "trial": 1,
+          "B": 70305600,
+          "C": 50394800,
+          "ratio": 0.7167963860631301
+        },
+        {
+          "trial": 2,
+          "B": 73619900,
+          "C": 54088200,
+          "ratio": 0.7346953744843446
+        },
+        {
+          "trial": 3,
+          "B": 70389800,
+          "C": 55929400,
+          "ratio": 0.794566826443604
+        },
+        {
+          "trial": 4,
+          "B": 67001800,
+          "C": 53884100,
+          "ratio": 0.8042186926321382
+        },
+        {
+          "trial": 5,
+          "B": 73419600,
+          "C": 51369500,
+          "ratio": 0.6996701153370489
+        },
+        {
+          "trial": 6,
+          "B": 67222400,
+          "C": 52329200,
+          "ratio": 0.7784488503832055
+        },
+        {
+          "trial": 7,
+          "B": 65823800,
+          "C": 53651800,
+          "ratio": 0.8150820827724926
+        },
+        {
+          "trial": 8,
+          "B": 66805100,
+          "C": 50686000,
+          "ratio": 0.7587145292799502
+        }
+      ],
+      "Bmedian": 68764000,
+      "Cmedian": 52990500,
+      "ratioOfMedians": 0.7706139840614274,
+      "pairedMedianRatio": 0.7685816898315778,
+      "passed": true
+    }
+  },
+  "comparisons": [
+    {
+      "file": "target/release-mutual-3000-t1-comparison.json",
+      "sha256": "64e412c31c268ad7e5987f5cf8521aa7af6928ad05904b42778c657845611fd4",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 1,
+        "primary": true,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t2-comparison.json",
+      "sha256": "92c25ea7c506f01c655a223afc6e20aefe28f7bb8041fbe768a2b01c32e03e5a",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 2,
+        "primary": true,
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t3-comparison.json",
+      "sha256": "5f1c5f7ab8c0534e1b49e6f0ee30042eca888427346483f13326f0b99f41bcb6",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 3,
+        "primary": true,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t4-comparison.json",
+      "sha256": "f37bd7c71c810a4f2c833d11c59a00ab6e38c4ead21a196be5501f0563721d45",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 4,
+        "primary": true,
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t5-comparison.json",
+      "sha256": "d27cc380053199d7f19cab6e3ec294b1ce402b1863bfd791a1299bd121d7a4a6",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 5,
+        "primary": true,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t6-comparison.json",
+      "sha256": "206005dee3febf66ca17a50fb17c71ed597ae4c618c7ecc416fcf335565f1a58",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 6,
+        "primary": true,
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t7-comparison.json",
+      "sha256": "1c9c061e22f42a4da99a8ef17f1fbadf31eaf5033b8dd36102e57f59e36efa3b",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 7,
+        "primary": true,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-3000-t8-comparison.json",
+      "sha256": "99f50765f4f7723496735fceb2f8a91164cfaf64e40f8c2a7d6dfa1cb217af2a",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 3000,
+        "trial": 8,
+        "primary": true,
+        "order": [
+          "candidate",
+          "baseline"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {
+          "release": {
+            "B": 27403251,
+            "C": 27403251,
+            "passed": true
+          },
+          "failed_release": {
+            "B": 27403464,
+            "C": 27403464,
+            "passed": true
+          }
+        },
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-1-t1-comparison.json",
+      "sha256": "8f20b2c4e167cb5320a23ca0c2838844d46e4fc17752d08e08a472e38c8af1e2",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 1,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-2-t1-comparison.json",
+      "sha256": "9a7446e1dc7a4d5b6e1fc9ab8890eab63428b1d78566f5acfb7947629a14d865",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 2,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-60-t1-comparison.json",
+      "sha256": "5ef87bffef5fd05524be7667a2908cc79acf98c6ad05609d3c790d9f874cdf97",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 60,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-300-t1-comparison.json",
+      "sha256": "312d0dec3f14a65930f9abcdb6b0d3c86987bbd0f59a7dc2f0927da5ad087fb3",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 300,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-mutual-1000-t1-comparison.json",
+      "sha256": "92993f56b32baed79ad9d340e28003fc90cb2c6ca349eb62742c3ed40ee3fd5c",
+      "data": {
+        "name": "release-mutual",
+        "cycles": 1000,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-self-60-t1-comparison.json",
+      "sha256": "07fc9d90b7de84ff4ddad2cbfec8feb980ea1d72f92421be897ae965490e6ef8",
+      "data": {
+        "name": "release-self",
+        "cycles": 60,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/release-self-3000-t1-comparison.json",
+      "sha256": "ee782dd405d8443b2ac75d9f934414c97a44f22e32055e77414e6d18923ca970",
+      "data": {
+        "name": "release-self",
+        "cycles": 3000,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/high-degree-60-t1-comparison.json",
+      "sha256": "84bc62fd01c8f2b772625755ed46cd10a6242643987b2c9cbf7bfe6ea7bca187",
+      "data": {
+        "name": "high-degree",
+        "cycles": 60,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/high-degree-1000-t1-comparison.json",
+      "sha256": "0eced5b8766b53c867e5c3b12a6886123862972a421a6b9a269f2872c0a89a8a",
+      "data": {
+        "name": "high-degree",
+        "cycles": 1000,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/reachable-chain-3000-t1-comparison.json",
+      "sha256": "cae38b25eeb2d1719175b15d68a28ac156a149706e4e06975fa7a694cf21ca27",
+      "data": {
+        "name": "reachable-chain",
+        "cycles": 3000,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/self-60-t1-comparison.json",
+      "sha256": "08e128b43502036ff3a8bd3beaf6ae8f93a733dd25a528cf00f95edff663907b",
+      "data": {
+        "name": "self",
+        "cycles": 60,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    },
+    {
+      "file": "target/mutual-60-t1-comparison.json",
+      "sha256": "5781a06ba7d8d26f49688eb231ddace08fcbdc0ebada971d747d603aae655f36",
+      "data": {
+        "name": "mutual",
+        "cycles": 60,
+        "trial": 1,
+        "primary": false,
+        "order": [
+          "baseline",
+          "candidate"
+        ],
+        "exactNativeEquality": true,
+        "peaks": {},
+        "passed": true
+      }
+    }
+  ],
+  "contractSha256": "53044ddfe5bab62cfd28ac484a27412a0c68f3e521f9cff7c640b1f7a28f83aa"
+}

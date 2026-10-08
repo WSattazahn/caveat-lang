@@ -1,0 +1,161 @@
+{
+  "name": "high-degree",
+  "cycles": 60,
+  "trial": 1,
+  "variant": "f5",
+  "revision": "f5ec8294efe2be24705f234ef75e5f5459aa5e89",
+  "executableSha256": "27cd7b3e68a21a0633e2abe8effc7568529fca1ac3555e005df41fcc4453b8c4",
+  "fixtureSha256": "f3fd8fe258e926dab76a7793187215915037f67bc95317ec50556b1344eace4f",
+  "harnessSha256": "1e6de5ad17ca4c6b06e2eef91c7ff65f73774e0cdb9a6d4fa73af1053c0b1357",
+  "startedAt": "2026-10-08T04:55:51.161Z",
+  "finishedAt": "2026-10-08T04:55:51.270Z",
+  "command": [
+    "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\index-compaction\\native-v1\\f5-collector_profile.exe",
+    "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\index-compaction\\native-v1\\fixtures\\high-degree.cav",
+    "60",
+    "release",
+    "1",
+    "100"
+  ],
+  "data": {
+    "after_release": {
+      "retained_rust_heap_bytes": 175291,
+      "retired_dynamic_records": 60,
+      "save_sha256": "92cce49f29d175593d35477c1062984a486183bb9479ef55374d796f6528209f",
+      "serialized_save_bytes": 16835,
+      "undrained": 0,
+      "withdrawals": 60
+    },
+    "archive": {
+      "growth_ndjson_bytes": 398814,
+      "growth_nodes": 0,
+      "growth_records": 1947,
+      "items_at_growth_end": 0,
+      "max_heap_freed_by_drain": 52914,
+      "max_undrained_items": 33,
+      "ndjson_bytes": 426629,
+      "ndjson_sha256": "8d24078d1ca865a34d353245c218c6cc57e6290605e8898464d20e95bcc9646f",
+      "provenance_nodes": 0,
+      "records": 2062
+    },
+    "before_release": {
+      "retained_rust_heap_bytes": 237687,
+      "retired_dynamic_records": 76,
+      "save_sha256": "f9fe9af0cff396ea2e587cd3433ae69fa64231282badae0b41bc75f83e16c095",
+      "serialized_save_bytes": 23584,
+      "undrained": 0,
+      "withdrawals": 76
+    },
+    "cycles": 60,
+    "drain_every": 1,
+    "failed_release": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 158606,
+      "max_ns": 139600,
+      "mean_ns": 132833,
+      "median_ns": 135200,
+      "p99_ns": 139600,
+      "samples": 3
+    },
+    "growth": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 276874,
+      "max_ns": 787200,
+      "mean_ns": 640298,
+      "median_ns": 658700,
+      "p99_ns": 787200,
+      "samples": 60
+    },
+    "growth_last_10_percent": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 276874,
+      "max_ns": 787200,
+      "mean_ns": 740383,
+      "median_ns": 758000,
+      "p99_ns": 787200,
+      "samples": 6
+    },
+    "instrumented": false,
+    "latency_scope": "native apply transaction, no snapshot serialization; allocator accounting and optional work counters enabled; short release sample p99 is descriptive, not a reliable tail estimate",
+    "memory_scope": "requested Rust heap bytes; excludes allocator overhead, stacks and RSS; dispatch peak includes transaction/archive and upper-bounds collector temporary allocations; exact collector-only bytes not isolated",
+    "mode": "release",
+    "release": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 158393,
+      "max_ns": 175800,
+      "mean_ns": 175800,
+      "median_ns": 175800,
+      "p99_ns": 175800,
+      "samples": 1
+    },
+    "schema": "caveat-collector-native-profile/1",
+    "source": "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\index-compaction\\native-v1\\fixtures\\high-degree.cav",
+    "source_sha256": "793640308d381ae3fbd2759cd595a51d139695104f547e346d785dcb7edc64c2",
+    "steady": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 15761,
+      "max_ns": 27900,
+      "mean_ns": 1111,
+      "median_ns": 800,
+      "p99_ns": 4000,
+      "samples": 100
+    },
+    "unrelated_changes": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 102451,
+      "max_ns": 77200,
+      "mean_ns": 54152,
+      "median_ns": 53500,
+      "p99_ns": 77100,
+      "samples": 100
+    }
+  }
+}

@@ -34,7 +34,7 @@ Each sample directory `NNN-slug/` holds `decision.cav`, `events.jsonl`,
 | Sample | Decision | Kind | Owner |
 | --- | --- | --- | --- |
 | [001](001-departure-reason-mechanism/NOTES.md) | #170's mechanism correction: a departed withdrawal reason strands a citation | retro-fit, written after the fact | Dogfooding round 3 thread |
-| 002 | the departure PR's own decision | live | rc.15 development thread, its own PR |
+| [002](002-departure-continuation/NOTES.md) | continuation of the departure PR; earlier private log unavailable | live continuation | continuation agent |
 | 003 | the next owner card that drops or defers something | live | Dogfooding round 3 thread |
 
 ## Findings
@@ -95,3 +95,11 @@ signal.
 - Ledger item 4, withdrawing a wrong observation (`../agent-ledger/README.md`
   L100): **resolved on rc.15** by Withdrawal 0.1, for named evidence and for a
   reading. Receipts in [001's notes](001-departure-reason-mechanism/NOTES.md#ledger-item-4-re-tested).
+
+## 2026-10-07 continuation
+
+The owner authorized work on the departure handoff, plugin setup and the
+dogfooding findings. D001, D002, D003 and D005 now have candidate kit fixes and
+regressions in `kit/test/dogfooding.test.mjs`; D004 has a practice clarification
+in all three skill copies. Publication and final verification are recorded in
+`docs/releases/rc16-development.md`; a candidate fix here is not a publication.

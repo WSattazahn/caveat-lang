@@ -1,0 +1,1275 @@
+{
+  "schema": "caveat-new-withdrawal-probes/1",
+  "at": "2026-10-08T21:02:33.450Z",
+  "planSha256": "1a6583c365076c32982700da9a0bfcb5f5e4f45ed9cbd76286bd734668753f2c",
+  "driverSha256": "ff4c017cf25b9cf26ecc1966da94431edd3d3dad434120aa42ad0eb7f5b378f7",
+  "cellsSha256": "a6f604418050d1aa7dc6aa0406513c58a865768cc6e1a2ee53df79615cc99613",
+  "ledgerSha256": "1cc7af7b18c3bd183090a0c80ecd163a36532dfbc2720e27569053127ce57149",
+  "originalFindingReplicas": false,
+  "sourcePolicy": "NEW W IDs; original F sources unavailable at freeze",
+  "rows": [
+    {
+      "id": "W01",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Unmodified withdrawal save restores exactly and continues identically.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.056Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:163:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W01",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Unmodified withdrawal save restores exactly and continues identically.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.083Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:163:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W02",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal subject is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.096Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W02",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal subject is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.105Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W03",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal reason is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.114Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W03",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal reason is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.123Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W04",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved subject, with matching withdrawn edge and source event, is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.133Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W04",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved subject, with matching withdrawn edge and source event, is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.143Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W05",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved reason, with matching source event, is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.155Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W05",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved reason, with matching source event, is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.164Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W06",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Duplicate withdrawal target is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.173Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W06",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Duplicate withdrawal target is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.182Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W07",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Zero withdrawal sequence is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.190Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W07",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Zero withdrawal sequence is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.199Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W08",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal sequence after save sequence is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.211Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W08",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal sequence after save sequence is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.220Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W09",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Undeclared withdrawal event is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.228Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W09",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Undeclared withdrawal event is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.237Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W10",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared event with no reachable withdrawal is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.245Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W10",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared event with no reachable withdrawal is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.255Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W11",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal record without its withdrawn graph edge is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.266Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W11",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal record without its withdrawn graph edge is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.276Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W12",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawn graph edge without its record is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.284Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W12",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawn graph edge without its record is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.293Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W13",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal-record field is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.302Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W13",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal-record field is refused.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.313Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W14",
+      "cell": "candidate",
+      "classification": "known-host-trust-limit",
+      "expectation": "Source-possible edited withdrawal metadata is accepted even when that source guard was false; restore does not authenticate history.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.321Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W14",
+      "cell": "rc15",
+      "classification": "known-host-trust-limit",
+      "expectation": "Source-possible edited withdrawal metadata is accepted even when that source guard was false; restore does not authenticate history.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.331Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W15",
+      "cell": "candidate",
+      "classification": "known-host-trust-limit",
+      "expectation": "Coordinated withdrawal-record and graph-edge omission is accepted; restore does not authenticate history.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.340Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W15",
+      "cell": "rc15",
+      "classification": "known-host-trust-limit",
+      "expectation": "Coordinated withdrawal-record and graph-edge omission is accepted; restore does not authenticate history.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.350Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W16",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Repeated withdrawal before and after restore keeps the first exact record/reason and emits no repeated withdraw effect; reason qualification remains.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.358Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:172:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W16",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Repeated withdrawal before and after restore keeps the first exact record/reason and emits no repeated withdraw effect; reason qualification remains.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.367Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:172:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W17",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Policy refusal and late binding failure roll back withdrawal and preserve snapshot/save.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.377Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:192:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W17",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Policy refusal and late binding failure roll back withdrawal and preserve snapshot/save.",
+      "sourceSha256": "37243e185164fb8ad094f9685f0b2f5001c0a10171717e45aa404738227f33c3",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.386Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic withdrawal probes\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:192:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W18",
+      "cell": "candidate",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Two own-ground holders pin the self-reason across restore; failed last-root releases roll back; accepted final release archives it only in candidate, while rc15 retains history.",
+      "sourceSha256": "a1305318c7792c0769ff52002e89ffdb5a04b831bc9ac41e75449644a61e3b95",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.394Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic root-release probe",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic root-release probe\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:208:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W18",
+      "cell": "rc15",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Two own-ground holders pin the self-reason across restore; failed last-root releases roll back; accepted final release archives it only in candidate, while rc15 retains history.",
+      "sourceSha256": "a1305318c7792c0769ff52002e89ffdb5a04b831bc9ac41e75449644a61e3b95",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.403Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic root-release probe",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic root-release probe\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:208:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W19",
+      "cell": "candidate",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Restore while historical holder pins reason; later read retains withdrawn/stale lineage and own grounds; final holder removal archives exact reason/reading only in candidate.",
+      "sourceSha256": "5e4761df0f96eb366bfd5b2a35d79f22038fcf503bef08ce228c71268482a175",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.412Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic retained-history/qualification probe.\nclaim seen",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic retained-history/qualification probe.\nclaim seen\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:240:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W19",
+      "cell": "rc15",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Restore while historical holder pins reason; later read retains withdrawn/stale lineage and own grounds; final holder removal archives exact reason/reading only in candidate.",
+      "sourceSha256": "5e4761df0f96eb366bfd5b2a35d79f22038fcf503bef08ce228c71268482a175",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.420Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic retained-history/qualification probe.\nclaim seen",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic retained-history/qualification probe.\nclaim seen\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:240:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W20",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Distinct required withdrawal reason chain survives four cycles, restore and continuation; predicate carries actual qualified reason.",
+      "sourceSha256": "ddc817493bc3541c19ce60856c08722d50fa499923a64b10f5c5e19fd58fad08",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.428Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic distinct required-reason chain, four cycles plus continuation.\nclaim seen",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic distinct required-reason chain, four cycles plus continuation.\nclaim seen\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:275:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W20",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Distinct required withdrawal reason chain survives four cycles, restore and continuation; predicate carries actual qualified reason.",
+      "sourceSha256": "ddc817493bc3541c19ce60856c08722d50fa499923a64b10f5c5e19fd58fad08",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:02:33.442Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "line 1, column 1: cannot parse statement: -- NEW synthetic distinct required-reason chain, four cycles plus continuation.\nclaim seen",
+        "stack": "CaveatError: line 1, column 1: cannot parse statement: -- NEW synthetic distinct required-reason chain, four cycles plus continuation.\nclaim seen\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:275:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    }
+  ],
+  "differential": [
+    {
+      "id": "W01",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W02",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W03",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W04",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W05",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W06",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W07",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W08",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W09",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W10",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W11",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W12",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W13",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W14",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W15",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W16",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W17",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W18",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W19",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W20",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    }
+  ],
+  "pass": false
+}

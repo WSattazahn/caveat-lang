@@ -11,7 +11,7 @@ use crate::presentation::Number;
 use crate::reactive_expr::{
     self, EvalError, EvalFailure, Expr, FunctionDef, HistoryRead, Reads, Value, ValueType,
 };
-pub use crate::reactive_expr::{Provenance, Tracked};
+pub use crate::reactive_expr::{Marker, Provenance, Tracked};
 use crate::{Attention, Consequence, EpistemicGraph, NodeId, NodeKind, Relation, StopReason};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -49,6 +49,32 @@ pub use save::{
 
 #[path = "reactive_outcome.rs"]
 mod outcome;
+
+#[path = "reactive_collector.rs"]
+mod collector;
+#[path = "reactive_departure.rs"]
+mod departure;
+pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
+#[cfg(feature = "collector-metrics")]
+pub use collector::WithdrawalCollectionMetrics;
+use collector::{CollectorOwner, WithdrawalCollector};
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+pub use departure::WithdrawalExtractionProfile;
+pub use departure::{ArchiveEntry, ArchiveItem, Holder};
+
+#[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+#[path = "reactive_renewal_profile.rs"]
+mod renewal_profile;
+#[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+pub use renewal_profile::{RemovalProfile, RenewalRemovalProfile};
+
+#[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+#[path = "reactive_event_profile.rs"]
+mod event_profile;
+#[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+pub use event_profile::{
+    current_event_phase_index, EventPhase, EventPhaseProfile, EVENT_PHASE_COUNT, EVENT_PHASE_NAMES,
+};
 
 #[path = "reactive_identifiers.rs"]
 mod identifiers;
@@ -1044,6 +1070,12 @@ pub enum EffectReport {
         history: String,
         record: String,
     },
+    /// A retired record that nothing pins left the session for the archive.
+    /// See spec/caveat-departure-0.1.md.
+    Depart {
+        history: String,
+        record: String,
+    },
 }
 
 /// One `reopened by` trigger: a reading stream, optionally only its readings
@@ -1289,6 +1321,20 @@ pub struct ReactiveSession {
     /// Each retired record, with the sequence of the event that retired it.
     /// A journal entry is named `journal@K`, K counting from 1.
     retired: Arc<BTreeMap<String, u64>>,
+    /// How many of the oldest journal entries have departed: entry `i` held
+    /// is `journal@(journal_departed + i + 1)`. See spec/caveat-departure-0.1.md.
+    journal_departed: usize,
+    /// Departed records the host has not drained, in the order they left. A
+    /// handover buffer, not session state: nothing reads it, and a save does
+    /// not hold it.
+    archive: Vec<ArchiveItem>,
+    /// Source-specific reference counts and withdrawal edges, derived from
+    /// session state. Shared by transaction clones; never serialized.
+    pin_counts: Arc<BTreeMap<String, usize>>,
+    withdrawal_reasons: Arc<BTreeMap<String, String>>,
+    /// New retirements and retired records whose final pin was released.
+    departure_candidates: Arc<BTreeSet<String>>,
+    collector: WithdrawalCollector,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -1463,6 +1509,12 @@ impl ReactiveSession {
             windows: Arc::default(),
             journal_window: None,
             retired: Arc::default(),
+            journal_departed: 0,
+            archive: Vec::new(),
+            pin_counts: Arc::default(),
+            withdrawal_reasons: Arc::default(),
+            departure_candidates: Arc::default(),
+            collector: WithdrawalCollector::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -1933,6 +1985,7 @@ impl ReactiveSession {
         session
             .evaluate_bindings(None)
             .map_err(|error| error.to_string())?;
+        session.rebuild_departure_index();
         Ok(session)
     }
 
@@ -2980,7 +3033,8 @@ impl ReactiveSession {
         // every reached record's basis and guards for leaving history unchanged.
         // Indexed reads retain the selected record plus current selection guards.
         if let Some(stream) = self.reading_streams.get(name) {
-            let mut provenance = stream.selection_qualifications.clone();
+            let mut provenance = Provenance::default();
+            self.inherit(&mut provenance, &stream.selection_qualifications)?;
             let live = &stream.occurrences[self.live_start(&stream.occurrences, |r| &r.id)..];
             let value = match query {
                 HistoryRead::Count => {
@@ -3007,7 +3061,8 @@ impl ReactiveSession {
             )?);
         }
         if let Some(series) = self.decision_series.get(name) {
-            let mut provenance = series.selection_qualifications.clone();
+            let mut provenance = Provenance::default();
+            self.inherit(&mut provenance, &series.selection_qualifications)?;
             let live = &series.revisions[self.live_start(&series.revisions, |r| &r.id)..];
             let value = match query {
                 HistoryRead::Count => {
@@ -3050,9 +3105,11 @@ impl ReactiveSession {
                 .ok_or_else(|| format!("reading stream {name} has no reached sample"))?;
             return Tracked::new(
                 reading.value,
-                self.with_current_withdrawals(
-                    reading.provenance.union(&stream.selection_qualifications)?,
-                )?,
+                self.with_current_withdrawals({
+                    let mut provenance = reading.provenance.clone();
+                    self.inherit(&mut provenance, &stream.selection_qualifications)?;
+                    provenance
+                })?,
             );
         }
         if let Some(series) = self.decision_series.get(name) {
@@ -3066,9 +3123,11 @@ impl ReactiveSession {
                 .ok_or_else(|| format!("current decision {current} has no numeric using value"))?;
             return Tracked::new(
                 value,
-                self.with_current_withdrawals(
-                    basis.provenance.union(&series.selection_qualifications)?,
-                )?,
+                self.with_current_withdrawals({
+                    let mut provenance = basis.provenance.clone();
+                    self.inherit(&mut provenance, &series.selection_qualifications)?;
+                    provenance
+                })?,
             );
         }
         Err(format!("unknown history {name}"))
@@ -3080,6 +3139,7 @@ impl ReactiveSession {
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        self.collector_effect(effect);
         if let Effect::Call { name, .. } = effect {
             budget.enter()?;
             let procedures = Arc::clone(&self.procedures);
@@ -3315,6 +3375,8 @@ impl ReactiveSession {
     /// An identifier parameter takes the handle of an identifier the session
     /// already holds: numbers cannot name a new one.
     pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let _profile = event_profile::Scope::enter(EventPhase::ApplyWrapper);
         self.apply_classified(event, parameters, Vec::new())
             .map_err(|error| error.to_string())
     }
@@ -3327,6 +3389,10 @@ impl ReactiveSession {
         parameters: &BTreeMap<String, f64>,
         new_identifiers: Vec<String>,
     ) -> Result<(), DispatchFailure> {
+        // Declared before staged state: its guard outlives implicit rollback
+        // destruction, while successful assignment drops the old state in place.
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::TransactionPreparation);
         let signature = self.events.get(event).ok_or_else(|| {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
@@ -3421,7 +3487,11 @@ impl ReactiveSession {
             ));
         }
         let shown = self.take_shown();
+        // The archive stays out of the transaction's copy: the event appends
+        // to an empty one, kept only if it succeeds.
+        let archive = std::mem::take(&mut self.archive);
         let mut next = self.clone();
+        self.archive = archive;
         next.put_shown(shown);
         if !new_identifiers.is_empty() {
             let identifiers = Arc::make_mut(&mut next.identifiers);
@@ -3431,10 +3501,17 @@ impl ReactiveSession {
         }
         match next.run_event(self, event, parameters) {
             Ok(()) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::CommitCleanup);
+                let mut archive = std::mem::take(&mut self.archive);
+                archive.append(&mut next.archive);
                 *self = next;
+                self.archive = archive;
                 Ok(())
             }
             Err(error) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
                 Err(error)
             }
@@ -3449,6 +3526,9 @@ impl ReactiveSession {
         event: &str,
         parameters: &BTreeMap<String, f64>,
     ) -> Result<(), DispatchFailure> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
+        self.collector_begin();
         self.effects.clear();
         self.cues.clear();
         self.cue_qualifications.clear();
@@ -3503,12 +3583,21 @@ impl ReactiveSession {
             );
             result.map_err(|error| error.context(format!("event {event}, rule {}", index + 1)))?;
         }
+        // Retired records nothing pins any more leave, before the bindings
+        // read what cites them.
+        self.depart_unpinned()?;
         // Binding failures roll back the same numeric/graph/cue transaction.
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::BindingEvaluation);
         let changes = Changes::between(old, self);
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
-        result
+        result?;
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::FinalSettlement);
+        self.settle_archive_provenance(Some(old), true);
+        Ok(())
     }
 
     fn take_shown(&mut self) -> Shown {
@@ -3988,7 +4077,9 @@ impl ReactiveSession {
             let provenance = if stream.current.is_some() {
                 self.latest(name)?.provenance
             } else {
-                stream.selection_qualifications.clone()
+                let mut provenance = Provenance::default();
+                self.inherit(&mut provenance, &stream.selection_qualifications)?;
+                provenance
             };
             return Tracked::new(stream.current.is_some(), provenance);
         }
@@ -3999,7 +4090,7 @@ impl ReactiveSession {
                 } else {
                     Tracked::plain(false)
                 };
-                result.provenance.merge(&series.selection_qualifications)?;
+                self.inherit(&mut result.provenance, &series.selection_qualifications)?;
                 if let Some(dependency) = self
                     .predicate_qualifications
                     .get(kind)
@@ -4039,7 +4130,7 @@ impl ReactiveSession {
                     .map(|basis| basis.provenance.clone())
                     .unwrap_or_default();
                 if let Some(reopening) = self.reopening_qualifications.get(name) {
-                    provenance.merge(reopening)?;
+                    self.inherit(&mut provenance, reopening)?;
                 }
                 let by_id = self
                     .symbols
@@ -4097,6 +4188,7 @@ impl ReactiveSession {
         {
             return;
         }
+        self.collector_dirty(CollectorOwner::Record(name.into()));
         let dependencies = Arc::make_mut(&mut self.predicate_qualifications);
         let targets = dependencies.get_mut(kind).expect("checked above");
         targets.remove(name);
@@ -4112,6 +4204,7 @@ impl ReactiveSession {
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        self.collector_effect(effect);
         match effect {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
@@ -4160,8 +4253,8 @@ impl ReactiveSession {
             } => {
                 self.history_room(stream)?;
                 self.retire_oldest(stream);
+                let ordinal = self.next_stream_ordinal(stream);
                 let readings = &self.reading_streams[stream];
-                let ordinal = readings.occurrences.len() as u64 + 1;
                 let name = format!("{stream}@{ordinal}");
                 if self.symbols.contains_key(&name) {
                     return Err(format!("generated reading identity {name} already exists").into());
@@ -4289,6 +4382,8 @@ impl ReactiveSession {
                             after,
                             guard: guard.union(&delay.provenance)?,
                         };
+                        self.add_pin(&scheduled.evidence);
+                        self.collector_schedule(&scheduled, true);
                         Arc::make_mut(&mut self.scheduled).push(scheduled);
                     }
                 }
@@ -4319,6 +4414,12 @@ impl ReactiveSession {
                     .iter()
                     .any(|withdrawal| withdrawal.evidence == evidence)
                 {
+                    self.add_pin(&because);
+                    if self.windowed() {
+                        Arc::make_mut(&mut self.withdrawal_reasons)
+                            .insert(evidence.clone(), because.clone());
+                        self.collector.withdrawal(&evidence, &because, true);
+                    }
                     Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
                         evidence: evidence.clone(),
                         because: because.clone(),
@@ -4335,8 +4436,8 @@ impl ReactiveSession {
             Effect::Renew { evidence } => {
                 self.history_room(evidence)?;
                 self.retire_oldest(evidence);
+                let ordinal = self.next_renewal_ordinal(evidence);
                 let renewal = &self.renewals[evidence];
-                let ordinal = renewal.occurrences.len() + 1;
                 let name = format!("{evidence}@{ordinal}");
                 if self.symbols.contains_key(&name) {
                     return Err(format!("generated occurrence {name} already exists").into());
@@ -4407,6 +4508,17 @@ impl ReactiveSession {
                     )?,
                 };
                 let slot = self.states.slot(name).expect("validated state");
+                let previous_pins = self.states.cells[slot]
+                    .grounds
+                    .own_evidence()
+                    .cloned()
+                    .collect::<Vec<_>>();
+                for record in previous_pins {
+                    self.release_pin(&record);
+                }
+                for record in grounds.own_evidence() {
+                    self.add_pin(record);
+                }
                 self.states.set(
                     slot,
                     StateCell {
@@ -4558,6 +4670,18 @@ impl ReactiveSession {
                 } else {
                     None
                 };
+                if let Some(previous) = &previous {
+                    let released = self.commitment_grounds[previous]
+                        .own_evidence()
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    for record in released {
+                        self.release_pin(&record);
+                    }
+                }
+                for record in grounds.own_evidence() {
+                    self.add_pin(record);
+                }
                 Arc::make_mut(&mut self.commitment_grounds).insert(name.clone(), grounds);
                 provenance.merge(&Provenance::from_names([], retaining.iter().cloned())?)?;
 
@@ -4595,6 +4719,10 @@ impl ReactiveSession {
                         self.symbols[evidence],
                     );
                 }
+                self.collector_reopens(
+                    &name,
+                    &provenance.evidence.iter().cloned().collect::<Vec<_>>(),
+                );
                 Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
                     CommitmentBasis {
@@ -4603,6 +4731,7 @@ impl ReactiveSession {
                     },
                 );
                 if let Some(record) = &permission {
+                    self.add_pin(&record.grant);
                     Arc::make_mut(&mut self.commitment_permissions)
                         .insert(name.clone(), record.clone());
                 }
@@ -4637,6 +4766,7 @@ impl ReactiveSession {
                     permitted_by: permission.map(|record| record.grant),
                 };
                 self.retire_journal_entry();
+                self.pin_journal_entry(&entry);
                 Arc::make_mut(&mut self.journal).push(entry);
                 self.effects.push(EffectReport::Commit {
                     action: name,
@@ -4724,9 +4854,10 @@ impl ReactiveSession {
                     })
                     .collect::<Vec<_>>();
                 if !because.is_empty() {
+                    self.collector_reopens(&current, &because);
                     let mut basis = cause.union(guard)?;
                     if let Some(series) = self.decision_series.get(action) {
-                        basis.merge(&series.selection_qualifications)?;
+                        self.inherit(&mut basis, &series.selection_qualifications)?;
                     }
                     self.clear_predicate_dependency("reopened", &current);
                     Arc::make_mut(&mut self.reopening_qualifications)
@@ -4759,10 +4890,12 @@ impl ReactiveSession {
                         caveats: caveats.into_iter().collect(),
                         permitted_by: None,
                     };
+                    self.pin_journal_entry(&entry);
                     Arc::make_mut(&mut self.journal).push(entry);
                 }
             }
         }
+        self.collector_effect(effect);
         Ok(())
     }
 
@@ -4797,6 +4930,7 @@ impl ReactiveSession {
             if !(in_value || in_grounds) {
                 continue;
             }
+            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
             let cell = self.states.cell_mut(slot);
             if in_value {
                 cell.value.provenance.merge(&added)?;
@@ -4826,6 +4960,8 @@ impl ReactiveSession {
         let (now, later): (Vec<_>, Vec<_>) = self.scheduled.iter().cloned().partition(due);
         self.scheduled = Arc::new(later);
         for scheduled in now {
+            self.collector_schedule(&scheduled, false);
+            self.release_pin(&scheduled.evidence);
             self.apply_qualification(&scheduled.evidence, &scheduled.caveat, &scheduled.guard)?;
         }
         Ok(())
@@ -5120,6 +5256,8 @@ impl ReactiveSession {
     }
 
     fn retire(&mut self, history: &str, record: String) {
+        self.collector.queue(&record);
+        Arc::make_mut(&mut self.departure_candidates).insert(record.clone());
         Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
         self.effects.push(EffectReport::Retire {
             history: history.to_string(),
@@ -5132,10 +5270,20 @@ impl ReactiveSession {
         let Some(window) = self.journal_window else {
             return;
         };
-        let names = (1..=self.journal.len())
-            .map(|index| format!("journal@{index}"))
+        let names = (0..self.journal.len())
+            .map(|index| self.journal_name(index))
             .collect::<Vec<_>>();
         if let Some(oldest) = self.oldest_live_beyond_window(&names, String::as_str, window) {
+            let index = names.iter().position(|name| name == &oldest).unwrap();
+            let released = self.journal[index]
+                .because
+                .iter()
+                .chain(&self.journal[index].permitted_by)
+                .cloned()
+                .collect::<Vec<_>>();
+            for record in released {
+                self.release_pin(&record);
+            }
             self.retire("journal", oldest);
         }
     }

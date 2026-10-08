@@ -1,0 +1,15 @@
+claim seen;
+evidence a from "synthetic a";
+renewable a window 1;
+evidence template from "synthetic template";
+readings r from template window 1;
+readings z from template window 1;
+event create; event advance;
+on create renew a;
+on create reveal a supports seen;
+on create withdraw a because a;
+on create when withdrawn(a) sample r = 1 supports seen;
+on create sample z = 7 supports seen;
+on advance renew a;
+on advance sample r = 2 supports seen;
+on advance sample z = 8 supports seen;

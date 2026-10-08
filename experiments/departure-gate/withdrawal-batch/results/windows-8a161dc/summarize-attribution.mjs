@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import {readFileSync,readdirSync,writeFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import path from 'node:path';
+const dir=process.argv[2];assert(dir);
+const read=file=>JSON.parse(readFileSync(path.join(dir,file),'utf8'));
+const hash=file=>createHash('sha256').update(readFileSync(path.join(dir,file))).digest('hex');
+const save=(file,value)=>writeFileSync(path.join(dir,file),value,{flag:'wx'});
+const median=values=>{const s=[...values].sort((a,b)=>a-b),n=s.length;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;};
+const contract=read('contract.json'),identity=read('diagnostic.json'),build=read('diagnostic-build.json');
+const rows=contract.diagnosticMatrix.map(cell=>{
+  const key=`diagnostic/${cell.name}-${cell.cycles}-t${cell.trial}`;
+  const comparison=read(`${key}-comparison.json`);assert(comparison.passed);
+  const diagnosticReceipt=read(`${key}-diagnostic.json`),d=diagnosticReceipt.data;
+  assert.equal(d.schema,'caveat-withdrawal-extraction-diagnostic/1');
+  assert.equal(d.diagnostic_only,true);assert.equal(d.release.samples,1);assert.equal(d.failed_release.samples,3);
+  for(const stream of ['stdout','stderr'])assert.equal(hash(diagnosticReceipt[stream].file),diagnosticReceipt[stream].sha256);
+  const baseline=cell.order.includes('baseline')?read(`${key}-baseline.json`).data:null;
+  const phase=name=>{const samples=d[name].extraction.small_phase_samples;assert.equal(samples.length,d[name].samples);return {applyNs:samples.map(s=>s.ns),blockNs:samples.map(s=>s.extraction.block_ns),blockShare:samples.map(s=>s.extraction.block_ns/s.ns),departureNs:samples.map(s=>s.extraction.departure_ns),stats:samples.map(s=>s.extraction)};};
+  return {...cell,exactNativeEquality:comparison.exactNativeEquality,baseline,diagnostic:d,release:phase('release'),rejected:phase('failed_release')};
+});
+const paired=rows.filter(r=>r.baseline);
+const summary=Object.fromEntries(['release','rejected'].map(phase=>{
+  const plainPhase=phase==='release'?'release':'failed_release';
+  const observations=paired.map(row=>({trial:row.trial,plainApplyNs:row.baseline[plainPhase].median_ns,diagnosticApplyNs:median(row[phase].applyNs),diagnosticBlockNs:median(row[phase].blockNs),diagnosticBlockShare:median(row[phase].blockShare),diagnosticDepartureNs:median(row[phase].departureNs)}));
+  return [phase,{observations,medianPlainApplyNs:median(observations.map(o=>o.plainApplyNs)),medianDiagnosticApplyNs:median(observations.map(o=>o.diagnosticApplyNs)),medianDiagnosticBlockNs:median(observations.map(o=>o.diagnosticBlockNs)),medianDiagnosticBlockShare:median(observations.map(o=>o.diagnosticBlockShare)),minDiagnosticBlockShare:Math.min(...observations.map(o=>o.diagnosticBlockShare)),maxDiagnosticBlockShare:Math.max(...observations.map(o=>o.diagnosticBlockShare))}];
+}));
+const files=['contract.json','diagnostic.json','diagnostic-build.json','diagnostic-build.stdout.txt','diagnostic-build.stderr.txt','attempts.jsonl',...readdirSync(path.join(dir,'diagnostic')).map(file=>`diagnostic/${file}`)];
+const result={schema:'withdrawal-attribution-summary/1',recordedAt:new Date().toISOString(),diagnosticProcesses:6,plainProcesses:3,baselineRevision:contract.baseline.revision,diagnosticRevision:identity.revision,executableSha256:identity.sha256,build,rows,summary,manifest:files.sort().map(file=>({file,sha256:hash(file)})),limits:contract.limits};
+save('attribution-summary.json',JSON.stringify(result,null,2)+'\n');
+const ms=n=>(n/1e6).toFixed(4),num=n=>n.toLocaleString('en-US');
+const lines=['# Baseline withdrawal extraction attribution','',`Baseline ${contract.baseline.revision}; diagnostic source ${identity.revision}. Six diagnostic and three plain control processes completed. No production optimization is included.`, '', 'All three large matched pairs have exact native save/archive/inventory/work equality. Every raw stdout/stderr, command, exit status and hash is preserved. Small diagnostic processes also execute the unchanged rollback assertions; they have no same-size plain process in this stage.', '', '| Cycles / trial | Successful probes | Shifted elements | Estimated shifted header bytes | COW detaches / cloned elements |','|---|---:|---:|---:|---|'];
+for(const row of rows){const p=row.release.stats[0];lines.push(`| ${row.cycles} / ${row.trial} | ${num(p.probes)} | ${num(p.shifted_elements)} | ${num(p.estimated_shifted_bytes)} | ${p.shared_cow_detaches} / ${num(p.cow_cloned_elements)} |`);}
+lines.push('', 'Three rejected attempts in each process retain their individual diagnostic counters despite transactional rollback; complete per-attempt values are in JSON.', '', '| Phase / trial | Plain apply ms | Diagnostic apply ms | Diagnostic block ms | Block / diagnostic apply | Diagnostic departure ms |','|---|---:|---:|---:|---:|---:|');
+for(const [phase,value] of Object.entries(summary))for(const o of value.observations)lines.push(`| ${phase} / ${o.trial} | ${ms(o.plainApplyNs)} | ${ms(o.diagnosticApplyNs)} | ${ms(o.diagnosticBlockNs)} | ${(100*o.diagnosticBlockShare).toFixed(2)}% | ${ms(o.diagnosticDepartureNs)} |`);
+lines.push('', 'Successful rows are single observations; rejected rows use each process’s median of three observations (block shares are medians of per-attempt fractions). Across the three processes:', '', '| Phase | Median plain apply ms | Median diagnostic apply ms | Median block ms | Median block share (observed process range) |','|---|---:|---:|---:|---|');
+for(const [phase,s] of Object.entries(summary))lines.push(`| ${phase} | ${ms(s.medianPlainApplyNs)} | ${ms(s.medianDiagnosticApplyNs)} | ${ms(s.medianDiagnosticBlockNs)} | ${(100*s.medianDiagnosticBlockShare).toFixed(2)}% (${(100*s.minDiagnosticBlockShare).toFixed(2)}–${(100*s.maxDiagnosticBlockShare).toFixed(2)}%) |`);
+lines.push('', 'The block timer covers the original position/Arc::make_mut/Vec::remove path, including its first COW. Exact probes are inferred from index/length without a counter inside the search predicate. Shifted bytes describe Withdrawal headers only; this is not measured memory traffic. Clock reads, TLS updates, and different diagnostic sample representation perturb the diagnostic process. No guessed overhead is subtracted. These shares support a scoped optimization hypothesis, not a promised speedup or the final >=20% gate.', '', 'The final registered target remains the unmodified collector_profile executable, eight balanced matched pairs, both latency-ratio criteria and per-pair successful/rejected peak limits. Baseline attribution is preserved even if the later target misses. No end-to-end performance acceptance follows from these diagnostics.','');
+save('ATTRIBUTION.md',lines.join('\n'));
+console.log(JSON.stringify({rows:rows.length,processes:9,summary,summarySha256:hash('attribution-summary.json'),reportSha256:hash('ATTRIBUTION.md')},null,2));
