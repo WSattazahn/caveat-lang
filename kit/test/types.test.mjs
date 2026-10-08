@@ -286,11 +286,10 @@ test('outcomes have the declared shapes, and the declared codes and kinds are th
 
 // The structs the runtime serializes, field by field: a field it skips is
 // absent, and one it skips when empty is optional.
-async function rustShapes() {
+function readRustShapes(sources) {
   const found = new Map();
-  for (const file of ['reactive.rs', 'reactive_expr.rs', 'map.rs', 'game_session.rs']) {
-    const text = await readFile(path.join(repo, 'runtime', 'src', file), 'utf8');
-    for (const match of text.matchAll(/^pub (struct|enum) (\w+)(?:<[^>]*>)? \{\n([\s\S]*?)^\}/gm)) {
+  for (const text of sources) {
+    for (const match of text.matchAll(/^pub (struct|enum) (\w+)(?:<[^>]*>)? \{\r?\n([\s\S]*?)^\}/gm)) {
       const [, kind, name, body] = match;
       assert.ok(!found.has(name), `${name} is defined twice`);
       if (kind === 'struct') {
@@ -321,6 +320,36 @@ async function rustShapes() {
   }
   return found;
 }
+
+async function rustShapes() {
+  const files = ['reactive.rs', 'reactive_expr.rs', 'map.rs', 'game_session.rs'];
+  return readRustShapes(await Promise.all(files.map(file => readFile(path.join(repo, 'runtime', 'src', file), 'utf8'))));
+}
+
+test('Rust shape scanner preserves fields, serde attributes and variants with LF or CRLF', () => {
+  const source = `pub struct Example {
+    pub required: String,
+    #[serde(skip)]
+    pub hidden: String,
+    #[serde(rename = "shown", skip_serializing_if = "Option::is_none")]
+    pub maybe: Option<String>,
+}
+pub enum Choice {
+    Empty,
+    Value {
+        value: String,
+    },
+}
+`;
+  const expected = new Map([
+    ['Example', { required: new Set(['required']), optional: new Set(['shown']) }],
+    ['Choice', { variants: new Map([['Empty', new Set()], ['Value', new Set(['value'])]]) }],
+  ]);
+  const crlf = source.replaceAll('\n', '\r\n');
+  assert.deepEqual(readRustShapes([source]), expected);
+  assert.deepEqual(readRustShapes([crlf]), expected);
+  assert.throws(() => readRustShapes([source, crlf]), /Example is defined twice/);
+});
 
 const RUST_STRUCTS = {
   Snapshot: 'ReactiveSnapshot', View: 'ReactiveView', Provenance: 'Provenance', QualifiedValue: 'Tracked',
