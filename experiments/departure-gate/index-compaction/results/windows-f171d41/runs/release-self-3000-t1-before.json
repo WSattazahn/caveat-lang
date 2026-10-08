@@ -1,0 +1,161 @@
+{
+  "name": "release-self",
+  "cycles": 3000,
+  "trial": 1,
+  "variant": "before",
+  "revision": "3d77aa27bcffa16f39818b2684e9afb3b102ed17",
+  "executableSha256": "c0bf892c2cb618b377c38a14206bc56244d891c561f0684fceeb8b0aa8b0a9c5",
+  "fixtureSha256": "24632031e5bfba1c7391254bb2817c490558fce3b843b131f4118e32589d7263",
+  "harnessSha256": "1e6de5ad17ca4c6b06e2eef91c7ff65f73774e0cdb9a6d4fa73af1053c0b1357",
+  "startedAt": "2026-10-08T04:52:45.540Z",
+  "finishedAt": "2026-10-08T04:52:54.125Z",
+  "command": [
+    "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\index-compaction\\native-v1\\before-collector_profile.exe",
+    "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\index-compaction\\native-v1\\fixtures\\release-self.cav",
+    "3000",
+    "release",
+    "1",
+    "100"
+  ],
+  "data": {
+    "after_release": {
+      "retained_rust_heap_bytes": 1488288,
+      "retired_dynamic_records": 0,
+      "save_sha256": "01296a9c8cb727ae94865372fe11c5ca5da692d49e65a3c553e8acae1acb8f94",
+      "serialized_save_bytes": 149525,
+      "undrained": 0,
+      "withdrawals": 1
+    },
+    "archive": {
+      "growth_ndjson_bytes": 0,
+      "growth_nodes": 0,
+      "growth_records": 0,
+      "items_at_growth_end": 0,
+      "max_heap_freed_by_drain": 8057687,
+      "max_undrained_items": 5998,
+      "ndjson_bytes": 1637039,
+      "ndjson_sha256": "ea46fadd45ce309fb8c98d6f6adb3f3938ea1bbdd94f3b35e101ee9bfd0247b7",
+      "provenance_nodes": 3098,
+      "records": 3098
+    },
+    "before_release": {
+      "retained_rust_heap_bytes": 7227642,
+      "retired_dynamic_records": 2999,
+      "save_sha256": "b46f96a04d262b948081471ca339cde92257c7db841334bf4658604826d84136",
+      "serialized_save_bytes": 646070,
+      "undrained": 0,
+      "withdrawals": 3000
+    },
+    "cycles": 3000,
+    "drain_every": 1,
+    "failed_release": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 15551826,
+      "max_ns": 27240800,
+      "mean_ns": 26629600,
+      "median_ns": 26941100,
+      "p99_ns": 27240800,
+      "samples": 3
+    },
+    "growth": {
+      "collector_work": {
+        "candidates_examined": 751506,
+        "collected": 0,
+        "dirty_owners": 33000,
+        "edges_visited": 2994020,
+        "max_work_items": 501,
+        "references_scanned": 9008999,
+        "vertices_visited": 748505
+      },
+      "max_dispatch_additional_heap_bytes": 7076955,
+      "max_ns": 8511600,
+      "mean_ns": 2757325,
+      "median_ns": 2643700,
+      "p99_ns": 6240700,
+      "samples": 3000
+    },
+    "growth_last_10_percent": {
+      "collector_work": {
+        "candidates_examined": 105150,
+        "collected": 0,
+        "dirty_owners": 3300,
+        "edges_visited": 419400,
+        "max_work_items": 501,
+        "references_scanned": 1710900,
+        "vertices_visited": 104850
+      },
+      "max_dispatch_additional_heap_bytes": 7076955,
+      "max_ns": 8511600,
+      "mean_ns": 4892078,
+      "median_ns": 4843200,
+      "p99_ns": 6969100,
+      "samples": 300
+    },
+    "instrumented": true,
+    "latency_scope": "native apply transaction, no snapshot serialization; allocator accounting and optional work counters enabled; short release sample p99 is descriptive, not a reliable tail estimate",
+    "memory_scope": "requested Rust heap bytes; excludes allocator overhead, stacks and RSS; dispatch peak includes transaction/archive and upper-bounds collector temporary allocations; exact collector-only bytes not isolated",
+    "mode": "release",
+    "release": {
+      "collector_work": {
+        "candidates_examined": 3000,
+        "collected": 2999,
+        "dirty_owners": 8,
+        "edges_visited": 5998,
+        "max_work_items": 5998,
+        "references_scanned": 2999,
+        "vertices_visited": 2999
+      },
+      "max_dispatch_additional_heap_bytes": 15551613,
+      "max_ns": 30038200,
+      "mean_ns": 30038200,
+      "median_ns": 30038200,
+      "p99_ns": 30038200,
+      "samples": 1
+    },
+    "schema": "caveat-collector-native-profile/1",
+    "source": "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\index-compaction\\native-v1\\fixtures\\release-self.cav",
+    "source_sha256": "8b728d7f5b58e0881bb8cbfeab336a0caa480c15d83d5712840f6cf77d1dc470",
+    "steady": {
+      "collector_work": {
+        "candidates_examined": 0,
+        "collected": 0,
+        "dirty_owners": 0,
+        "edges_visited": 0,
+        "max_work_items": 0,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 499,
+      "max_ns": 15400,
+      "mean_ns": 912,
+      "median_ns": 800,
+      "p99_ns": 1100,
+      "samples": 100
+    },
+    "unrelated_changes": {
+      "collector_work": {
+        "candidates_examined": 100,
+        "collected": 0,
+        "dirty_owners": 200,
+        "edges_visited": 0,
+        "max_work_items": 1,
+        "references_scanned": 0,
+        "vertices_visited": 0
+      },
+      "max_dispatch_additional_heap_bytes": 2434415,
+      "max_ns": 1436300,
+      "mean_ns": 1235492,
+      "median_ns": 1233300,
+      "p99_ns": 1311100,
+      "samples": 100
+    }
+  }
+}

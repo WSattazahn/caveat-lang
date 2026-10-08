@@ -1,0 +1,6 @@
+claim seen;
+evidence a from "a"; renewable a window 1;
+event cycle;
+on cycle renew a;
+on cycle reveal a supports seen;
+on cycle withdraw a because a;

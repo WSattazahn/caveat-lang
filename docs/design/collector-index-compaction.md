@@ -95,3 +95,14 @@ Ease of authoring, integration, discovery and use by people and agents remains
 on the product agenda. Improve the existing qualified-computation, explanation,
 authored-action and reconsideration paths without narrowing Caveat to release
 checking or adding a wrapper without an observed need.
+
+## Recorded native result
+
+The clean implementation revision `f171d41e9beae588c480f09fc5c03afc7487efb4`
+passes both registered targets in all three matched trials: 75.6121% less
+collector-added retained requested heap and 69.7047% less collector-added
+growth peak. All 99 native executions passed the registered exact save/archive
+comparisons. The [frozen report](../../experiments/departure-gate/index-compaction/results/windows-f171d41/REPORT.md)
+records absolute bytes, regressions, timing variation, source and executable
+identity, and remaining storage costs. Final semantic, compatibility, installed
+package and CI gates are separate evidence, not implied by the native result.

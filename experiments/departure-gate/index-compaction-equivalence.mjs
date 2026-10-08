@@ -97,7 +97,10 @@ try {
     const restoreBranch = saved => {
       const x = Before.restore(source, saved), y = Candidate.restore(source, saved);
       inspect(x, y); assert.equal(x.save(), saved);
-      same(JSON.parse(x.dispatch_outcome('profile_probe', '{}')), JSON.parse(y.dispatch_outcome('profile_probe', '{}')), 'restored following outcome');
+      const restoredBefore = JSON.parse(x.dispatch_outcome('profile_probe', '{}'));
+      const restoredCandidate = JSON.parse(y.dispatch_outcome('profile_probe', '{}'));
+      same(restoredBefore, restoredCandidate, 'restored following outcome');
+      assert.equal(restoredBefore.outcome, 'accepted', 'Restored no-op must be accepted');
       inspect(x, y); drain(x, y); x.free(); y.free(); report.counts.restoreBranches++;
     };
     context = { name: plan.name, drainEvery, step: 'load' };

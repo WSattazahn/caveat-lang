@@ -1,0 +1,284 @@
+{
+  "schema": "caveat-index-compaction-contract/1",
+  "preparedAt": "2026-10-08T04:41:21.923Z",
+  "harnessSha256": "1e6de5ad17ca4c6b06e2eef91c7ff65f73774e0cdb9a6d4fa73af1053c0b1357",
+  "driverSha256": "429e06faa0ba33ad245317e87c87a39755db67c3f756f90cf07b128ffa29b273",
+  "variants": {
+    "f5": {
+      "revision": "f5ec8294efe2be24705f234ef75e5f5459aa5e89",
+      "sha256": "27cd7b3e68a21a0633e2abe8effc7568529fca1ac3555e005df41fcc4453b8c4",
+      "metrics": false,
+      "file": "f5-collector_profile.exe",
+      "originalPath": "C:\\Dev\\caveat-lang\\test-results\\collector-profile-final\\baseline-collector_profile.exe",
+      "buildArgv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--example",
+        "collector_profile",
+        "--no-default-features"
+      ]
+    },
+    "before": {
+      "revision": "3d77aa27bcffa16f39818b2684e9afb3b102ed17",
+      "sha256": "c0bf892c2cb618b377c38a14206bc56244d891c561f0684fceeb8b0aa8b0a9c5",
+      "metrics": true,
+      "file": "before-collector_profile.exe",
+      "originalPath": "C:\\Dev\\GPT_SandBox_Web\\.cache\\caveat-continuation\\review-a630396\\memory-successor-3d77aa\\3d77aa-collector_profile.exe",
+      "buildArgv": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--example",
+        "collector_profile",
+        "--no-default-features",
+        "--features",
+        "collector-metrics"
+      ]
+    }
+  },
+  "workloads": [
+    {
+      "name": "self",
+      "source": "experiments/departure-gate/withdrawal-fixtures/self.cav",
+      "file": "fixtures/self.cav",
+      "sha256": "8bbba3379f30daa834824cb8bec29bf7dc4b573014e4c4a042ab0d0d2a78ab43",
+      "mode": "plain"
+    },
+    {
+      "name": "mutual",
+      "source": "experiments/departure-gate/withdrawal-fixtures/mutual.cav",
+      "file": "fixtures/mutual.cav",
+      "sha256": "434fd2619dd509e081d2b6fb1a152e8bee85e802adeb62af9286694a3eebc110",
+      "mode": "plain"
+    },
+    {
+      "name": "reachable-chain",
+      "source": "experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav",
+      "file": "fixtures/reachable-chain.cav",
+      "sha256": "3f72957146439788d58082ae49296c8e3d4029adab25994dd0f0afed1e6233b1",
+      "mode": "initialize"
+    },
+    {
+      "name": "release-self",
+      "source": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "file": "fixtures/release-self.cav",
+      "sha256": "24632031e5bfba1c7391254bb2817c490558fce3b843b131f4118e32589d7263",
+      "mode": "release"
+    },
+    {
+      "name": "release-mutual",
+      "source": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "file": "fixtures/release-mutual.cav",
+      "sha256": "65cd79392e30c1fc1dfc81cbcfd30a936f909acdb49ab723b733cfb4c87a9917",
+      "mode": "release"
+    },
+    {
+      "name": "high-degree",
+      "source": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "file": "fixtures/high-degree.cav",
+      "sha256": "f3fd8fe258e926dab76a7793187215915037f67bc95317ec50556b1344eace4f",
+      "mode": "release"
+    }
+  ],
+  "matrix": [
+    {
+      "name": "self",
+      "cycles": 60,
+      "trial": 1
+    },
+    {
+      "name": "self",
+      "cycles": 300,
+      "trial": 1
+    },
+    {
+      "name": "self",
+      "cycles": 1000,
+      "trial": 1
+    },
+    {
+      "name": "self",
+      "cycles": 3000,
+      "trial": 1
+    },
+    {
+      "name": "self",
+      "cycles": 3000,
+      "trial": 2
+    },
+    {
+      "name": "self",
+      "cycles": 3000,
+      "trial": 3
+    },
+    {
+      "name": "mutual",
+      "cycles": 60,
+      "trial": 1
+    },
+    {
+      "name": "mutual",
+      "cycles": 300,
+      "trial": 1
+    },
+    {
+      "name": "mutual",
+      "cycles": 1000,
+      "trial": 1
+    },
+    {
+      "name": "mutual",
+      "cycles": 3000,
+      "trial": 1
+    },
+    {
+      "name": "mutual",
+      "cycles": 3000,
+      "trial": 2
+    },
+    {
+      "name": "mutual",
+      "cycles": 3000,
+      "trial": 3
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 60,
+      "trial": 1
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 300,
+      "trial": 1
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 1000,
+      "trial": 1
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 3000,
+      "trial": 1
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 3000,
+      "trial": 2
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 3000,
+      "trial": 3
+    },
+    {
+      "name": "release-self",
+      "cycles": 60,
+      "trial": 1
+    },
+    {
+      "name": "release-self",
+      "cycles": 300,
+      "trial": 1
+    },
+    {
+      "name": "release-self",
+      "cycles": 1000,
+      "trial": 1
+    },
+    {
+      "name": "release-self",
+      "cycles": 3000,
+      "trial": 1
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 60,
+      "trial": 1
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 300,
+      "trial": 1
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 1000,
+      "trial": 1
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 1
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 2
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 3
+    },
+    {
+      "name": "high-degree",
+      "cycles": 60,
+      "trial": 1
+    },
+    {
+      "name": "high-degree",
+      "cycles": 300,
+      "trial": 1
+    },
+    {
+      "name": "high-degree",
+      "cycles": 1000,
+      "trial": 1
+    },
+    {
+      "name": "high-degree",
+      "cycles": 1000,
+      "trial": 2
+    },
+    {
+      "name": "high-degree",
+      "cycles": 1000,
+      "trial": 3
+    }
+  ],
+  "nativeRuns": 99,
+  "settings": {
+    "drainEvery": 1,
+    "unchangedProbes": 100,
+    "unrelatedProbes": 100,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "platform": "win32",
+    "arch": "x64",
+    "order": "Trial 1 f5/before/candidate; trial 2 before/candidate/f5; trial 3 candidate/f5/before. All executions serial, quiet local verification required."
+  },
+  "targets": {
+    "population": "reachable-chain, 3000 cycles, all three matched trials",
+    "retained": "before_release.retained_rust_heap_bytes",
+    "growthPeak": "growth.max_dispatch_additional_heap_bytes",
+    "formula": "For each target and matched trial: F=fresh original f5; B=fresh repaired 3d; C=candidate. Require B>F, and (C-F)/(B-F)<=0.5. Candidate ceiling=floor(F+(B-F)/2). Both targets must pass in all three trials.",
+    "requiredReduction": 0.5,
+    "resetPolicy": "Never overwrite runs, erase failures, change the denominator, or substitute saved bytes/timing. A revised implementation uses a new directory preserving the prior result."
+  },
+  "comparisons": "Before/candidate exact native save and ordered archive hashes/counts. Required reachable-chain save also equals f5. Full snapshots checked by a separate WASM driver; native work counters are diagnostics except exact collected counts.",
+  "limits": [
+    "Requested Rust heap excludes allocator internals, stacks and RSS.",
+    "Growth peak is whole-dispatch additional allocation, not collector-only bytes.",
+    "Native apply timings include allocator/counter overhead, omit snapshot serialization, and do not establish browser/WASM latency.",
+    "f5 lacks collector-metrics and uses the original no-feature build; its zero counters mean unavailable.",
+    "High-degree repeats a fixed 16-owner/16-subject shape; its cycle sweep is not a degree-scaling or universal bound claim.",
+    "Release-self has one sample at each size; repeated successful release-mutual timing has three samples per variant, not a stable population p99."
+  ]
+}

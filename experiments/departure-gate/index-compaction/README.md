@@ -162,3 +162,17 @@ Capacity-after-release checks and layout/degree diagnostics, if added, must rema
 separate from this unchanged primary harness and be labeled with their own inputs.
 Use observed diagnostics to explain costs; do not infer representation gains from
 the number of records collected or add unmeasured optimizations to satisfy a target.
+
+## Captured Windows result
+
+See [the frozen report](results/windows-f171d41/REPORT.md) and its complete raw
+receipts. Both memory targets passed in all three target trials; all 99 native
+runs passed exact native comparisons. These are measurements of clean source
+`f171d41`, not a release or unrestricted-workload approval.
+
+The optional `node experiments/departure-gate/index-compaction/summarize.mjs OUTPUT`
+creates the detailed allocation/timing tables and raw-file hash manifest after a
+new registered matrix run. It requires the frozen executables and refuses to
+overwrite its outputs. Executables are preserved in the local evidence bundle,
+not committed as repository source. Repository receipt bytes retain their recorded
+line endings through the scoped `.gitattributes` rule.
