@@ -270,7 +270,9 @@ fn the_archive_hands_each_departed_record_over_once() {
         send(&mut game, "look", Some(v));
     }
     let archive = serde_json::to_value(game.drain_archive()).unwrap();
-    assert_eq!(archive.as_array().unwrap().len(), 1, "{archive}");
+    assert_eq!(archive.as_array().unwrap().len(), 2, "{archive}");
+    assert_eq!(archive[1]["operation"], "record");
+    assert_eq!(archive[1]["record"], "sighting@1");
     assert_eq!(archive[0]["record"], "sighting@1");
     assert_eq!(archive[0]["retired_at"], 4);
     assert_eq!(archive[0]["departed_at"], 4);
@@ -447,7 +449,7 @@ fn a_binding_failure_rolls_back_the_whole_departure_cascade_and_archive() {
     assert_eq!(game.save_json().unwrap(), before);
     assert!(game.drain_archive().is_empty());
     send(&mut game, "look", None);
-    assert_eq!(game.drain_archive().len(), 2);
+    assert_eq!(records(game.drain_archive()).len(), 2);
     ReactiveSession::restore_json(&source, &game.save_json().unwrap()).unwrap();
 }
 
@@ -474,7 +476,7 @@ fn effects_can_report_records_that_depart_later_in_the_same_event() {
     let saved = game.save_json().unwrap();
     let restored = ReactiveSession::restore_json(SAME_EVENT_DEPARTURE, &saved).unwrap();
     assert_eq!(game.snapshot(), restored.snapshot());
-    assert_eq!(game.drain_archive().len(), 2);
+    assert_eq!(records(game.drain_archive()).len(), 2);
     let save: Value = serde_json::from_str(&saved).unwrap();
     let mut forged = save.clone();
     forged["effects"]

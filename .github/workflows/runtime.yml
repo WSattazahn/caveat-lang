@@ -75,6 +75,12 @@ jobs:
           RUST_MIN_STACK: 16777216
       - name: Maximum supported call depth on the optimized default stack
         run: cargo test --release --manifest-path runtime/Cargo.toml --test dispatch_outcomes the_maximum_valid_procedure_depth_still_dispatches -- --exact
+      - name: Withdrawal collector diagnostics and paired retention cases
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_collection
+        env:
+          RUST_MIN_STACK: 16777216
+      - name: Withdrawal collector at the real storage capacity
+        run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
       - name: Third-party notices match the locked crates
         run: node scripts/third-party-notices.mjs --check
       - name: Pages deployment gate refuses untested or stale artifacts
@@ -685,7 +691,7 @@ jobs:
           const {webkit,devices}=require('playwright');
           (async()=>{const browser=await webkit.launch();try{
             async function waitIdle(p){await p.waitForFunction(()=>window.__caveatIdle?.()===true,null,{timeout:15000})}
-            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();const badge=await p.locator('.badge').innerText();if(badge!=='CAVEAT · THE DOOR')throw Error('The Door badge text has incorrect encoding: '+JSON.stringify(badge));await waitIdle(p);await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
+            async function fresh(name){const p=await browser.newPage({...devices['iPhone 13']});await p.goto('http://127.0.0.1:4173/3d.html');await p.getByText('Emergency alarm. Leave this floor.').waitFor();const badge=await p.locator('.badge').innerText();if(badge!=='CAVEAT Â· THE DOOR')throw Error('The Door badge text has incorrect encoding: '+JSON.stringify(badge));await waitIdle(p);await p.screenshot({path:`door-${name}-00.png`,fullPage:true});return p}
             async function click(p,re){const b=p.getByRole('button',{name:re});await b.waitFor();await b.click();await waitIdle(p)}
             await (async()=>{const p=await fresh('inspect-latch');await click(p,/Inspect latch/);await p.close()})();
             await (async()=>{const p=await fresh('inspect-camera');await click(p,/Check camera/);await p.close()})();

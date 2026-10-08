@@ -8,6 +8,14 @@ option A, meaning 3), after [Windows 0.1](caveat-windows-0.1.md) and
 owner's (2026-10-05 16:40 UTC): lineage compaction, then departure, then the
 C3 gate on a runtime build.
 
+Collector draft note (2026-10-07): the owner has separately authorized a
+reviewable withdrawal-collection implementation on
+`codex/withdrawal-collector-draft`, based on `f5ec829`. The
+[draft contract and acceptance checklist](../docs/design/withdrawal-collector-draft.md)
+record its proposed additional candidates, conservative transfer vetoes,
+archive reporting and capacity-limit differences. They are not yet accepted
+replacements for this baseline contract; merge and release remain unapproved.
+
 Windows 0.1 retires a windowed history's oldest records: they leave the live
 graph and stay in the session. Lineage Compaction 0.1 says what every citation
 keeps once a record has departed. This profile says **when** a retired record
@@ -65,8 +73,10 @@ its form: a marker could stand for one record, with `from` equal to
   count does not bound the number of standing withdrawals.** Valid self/mutual
   cycles and reachable reason chains retain growing pinned sets; the
   [withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
-  measures this and proposes a rule for review only. Exact reason pins and
-  predicate behavior remain required; no collection change is implemented.
+  records the pre-collector measurements. Exact reasons and predicate behavior
+  remain required. The reviewed `f5ec829` baseline has no cycle collector; the
+  separately authorized [collector draft](../docs/design/withdrawal-collector-draft.md)
+  must earn its own evidence and semantic acceptance.
 
 Both pins serve one invariant: **departure never changes an outcome.** A
 program accepts and refuses exactly the events it would with retirement alone,

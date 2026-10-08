@@ -458,7 +458,10 @@ test('explain, dependents and check reports have the declared fields', () => {
     explained.push(explain(session.snapshot(), sent));
     rests.push(dependents(session.snapshot(), subject));
     const archive = session.drainArchive();
-    if (archive.length) explained.push(explain(session.snapshot(), sent, { archive }));
+    if (archive.length) {
+      explained.push(explain(session.snapshot(), sent, { archive }));
+      rests.push(dependents(session.snapshot(), subject, { archive }));
+    }
     session.close();
   }
   assertShape('ExplainReport', explained, { complete: true });
@@ -474,6 +477,9 @@ test('explain, dependents and check reports have the declared fields', () => {
   assertShape('WithdrawalNote', evidence.flatMap(item => item.withdrawn ?? []), { complete: true });
   assertShape('ExplainedDisplay', explained.flatMap(report => report.displayed), { complete: true });
   assertShape('ExplainEvent', explained.flatMap(report => report.events), { complete: true });
+  const archives = [...explained, ...rests].flatMap(report => report.archive ?? []);
+  assertShape('ArchivedHistory', archives, { complete: true });
+  assertShape('ArchivedHistoryRecord', archives.flatMap(report => report.records), { complete: true });
 
   assertShape('DependentsReport', rests, { complete: true });
   assertShape('RetiredRecord', rests.flatMap(item => item.retired ?? []), { complete: true });

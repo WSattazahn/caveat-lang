@@ -2,6 +2,7 @@
 // name. Both read a snapshot and never run a program.
 import type {
   ArchiveEntry,
+  ArchiveRecord,
   BindingValue,
   CaveatErrorKind,
   DispatchRejected,
@@ -38,6 +39,37 @@ export interface ExplainReport {
   decisions: ExplainedSeries[];
   evidence: ExplainedEvidence[];
   displayed: ExplainedDisplay[];
+  /** Draft archive-backed history, separate from all snapshot-backed fields. */
+  archive?: ArchivedHistory;
+}
+
+/**
+ * Draft report contract: complete checks only the named dependency closure of
+ * supplied records. It never proves archive inventory completeness, payload
+ * authenticity, absence of other edges, or unique same-source execution.
+ */
+export interface ArchivedHistory {
+  scope: 'provided records and their referenced closure';
+  authenticated: false;
+  records: ArchivedHistoryRecord[];
+  /** Required records or membership roots not reconstructable from this input. */
+  unresolved: string[];
+  /** Known archived withdrawals; query-matched in a dependents report. */
+  withdrawals: Withdrawal[];
+  /** Present for dependents: known archived withdrawals with a selected reason. */
+  reasonForWithdrawals?: Withdrawal[];
+  /** Typed historical edges, deduplicated across supplied complete records. */
+  relations: {from: string; relation: string; to: string}[];
+}
+
+export interface ArchivedHistoryRecord {
+  record: string;
+  /** Completeness is scoped to supplied referenced closure, not global history. */
+  status: 'complete' | 'unavailable';
+  dependencies: string[];
+  unresolved: string[];
+  /** Present only for a source-matched entry with consistent referenced closure. */
+  entry?: ArchiveRecord;
 }
 
 export interface ExplainedSeries {
@@ -120,6 +152,9 @@ export interface ExplainOptions {
    * Entries drained from the session's archive. Exact names require the
    * marker's complete, hash-consistent, source-matched provenance graph and
    * its departed record entries. Incomplete/conflicting graphs stay ranges.
+   * Draft historical rendering additionally joins supplied record payloads in
+   * a separate archive section. Source-scoped leaves do not authenticate those
+   * payloads or prove the supplied archive is exhaustive.
    */
   archive?: ArchiveEntry[];
 }
@@ -149,6 +184,8 @@ export interface DependentsReport {
   changes: DependentChange[];
   values: DependentValue[];
   displayed: DependentDisplay[];
+  /** Draft historical query results; live lists above retain their meaning. */
+  archive?: ArchivedHistory;
 }
 
 export interface DependentClaim {

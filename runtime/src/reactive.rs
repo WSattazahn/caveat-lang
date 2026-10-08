@@ -50,9 +50,14 @@ pub use save::{
 #[path = "reactive_outcome.rs"]
 mod outcome;
 
+#[path = "reactive_collector.rs"]
+mod collector;
 #[path = "reactive_departure.rs"]
 mod departure;
 pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
+#[cfg(feature = "collector-metrics")]
+pub use collector::WithdrawalCollectionMetrics;
+use collector::{CollectorOwner, WithdrawalCollector};
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
 
 #[path = "reactive_identifiers.rs"]
@@ -1313,6 +1318,7 @@ pub struct ReactiveSession {
     withdrawal_reasons: Arc<BTreeMap<String, String>>,
     /// New retirements and retired records whose final pin was released.
     departure_candidates: Arc<BTreeSet<String>>,
+    collector: WithdrawalCollector,
     cue_definitions: Arc<BTreeMap<String, Cue>>,
     cues: Vec<Cue>,
     cue_qualifications: Vec<Provenance>,
@@ -1492,6 +1498,7 @@ impl ReactiveSession {
             pin_counts: Arc::default(),
             withdrawal_reasons: Arc::default(),
             departure_candidates: Arc::default(),
+            collector: WithdrawalCollector::default(),
             cue_definitions: Arc::new(BTreeMap::new()),
             cues: Vec::new(),
             cue_qualifications: Vec::new(),
@@ -3116,6 +3123,7 @@ impl ReactiveSession {
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        self.collector_effect(effect);
         if let Effect::Call { name, .. } = effect {
             budget.enter()?;
             let procedures = Arc::clone(&self.procedures);
@@ -3492,6 +3500,7 @@ impl ReactiveSession {
         event: &str,
         parameters: &BTreeMap<String, f64>,
     ) -> Result<(), DispatchFailure> {
+        self.collector_begin();
         self.effects.clear();
         self.cues.clear();
         self.cue_qualifications.clear();
@@ -4147,6 +4156,7 @@ impl ReactiveSession {
         {
             return;
         }
+        self.collector_dirty(CollectorOwner::Record(name.into()));
         let dependencies = Arc::make_mut(&mut self.predicate_qualifications);
         let targets = dependencies.get_mut(kind).expect("checked above");
         targets.remove(name);
@@ -4162,6 +4172,7 @@ impl ReactiveSession {
         guard: &Provenance,
         budget: &mut ExecutionBudget,
     ) -> Result<(), DispatchFailure> {
+        self.collector_effect(effect);
         match effect {
             Effect::Call { name, arguments } => {
                 let procedures = Arc::clone(&self.procedures);
@@ -4340,6 +4351,7 @@ impl ReactiveSession {
                             guard: guard.union(&delay.provenance)?,
                         };
                         self.add_pin(&scheduled.evidence);
+                        self.collector_schedule(&scheduled, true);
                         Arc::make_mut(&mut self.scheduled).push(scheduled);
                     }
                 }
@@ -4374,6 +4386,7 @@ impl ReactiveSession {
                     if self.windowed() {
                         Arc::make_mut(&mut self.withdrawal_reasons)
                             .insert(evidence.clone(), because.clone());
+                        self.collector.withdrawal(&evidence, &because, true);
                     }
                     Arc::make_mut(&mut self.withdrawals).push(Withdrawal {
                         evidence: evidence.clone(),
@@ -4674,6 +4687,10 @@ impl ReactiveSession {
                         self.symbols[evidence],
                     );
                 }
+                self.collector_reopens(
+                    &name,
+                    &provenance.evidence.iter().cloned().collect::<Vec<_>>(),
+                );
                 Arc::make_mut(&mut self.commitment_bases).insert(
                     name.clone(),
                     CommitmentBasis {
@@ -4805,6 +4822,7 @@ impl ReactiveSession {
                     })
                     .collect::<Vec<_>>();
                 if !because.is_empty() {
+                    self.collector_reopens(&current, &because);
                     let mut basis = cause.union(guard)?;
                     if let Some(series) = self.decision_series.get(action) {
                         self.inherit(&mut basis, &series.selection_qualifications)?;
@@ -4845,6 +4863,7 @@ impl ReactiveSession {
                 }
             }
         }
+        self.collector_effect(effect);
         Ok(())
     }
 
@@ -4879,6 +4898,7 @@ impl ReactiveSession {
             if !(in_value || in_grounds) {
                 continue;
             }
+            self.collector_dirty(CollectorOwner::State(self.states.names[slot].clone()));
             let cell = self.states.cell_mut(slot);
             if in_value {
                 cell.value.provenance.merge(&added)?;
@@ -4908,6 +4928,7 @@ impl ReactiveSession {
         let (now, later): (Vec<_>, Vec<_>) = self.scheduled.iter().cloned().partition(due);
         self.scheduled = Arc::new(later);
         for scheduled in now {
+            self.collector_schedule(&scheduled, false);
             self.release_pin(&scheduled.evidence);
             self.apply_qualification(&scheduled.evidence, &scheduled.caveat, &scheduled.guard)?;
         }
@@ -5203,6 +5224,7 @@ impl ReactiveSession {
     }
 
     fn retire(&mut self, history: &str, record: String) {
+        self.collector.queue(&record);
         Arc::make_mut(&mut self.departure_candidates).insert(record.clone());
         Arc::make_mut(&mut self.retired).insert(record.clone(), self.sequence);
         self.effects.push(EffectReport::Retire {

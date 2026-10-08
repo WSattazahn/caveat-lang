@@ -3,11 +3,25 @@
 // displayed value with the evidence it cites. Pure: it reads a snapshot, and
 // the events that produced it, and never runs a program.
 
-import {archiveResolver} from './archive.mjs';
+import {archiveResolver, archiveHistory} from './archive.mjs';
 
 export const EXPLAIN_SCHEMA = 'caveat-explain/0.1';
 
 const none = () => ({ evidence: [], caveats: [] });
+
+// Include every persisted/output provenance holder without treating archive
+// payloads as live snapshot data. Iterative for deeply nested host objects.
+function departureMarkers(snapshot) {
+  const pending = [snapshot], seen = new Set(), markers = [];
+  while (pending.length) {
+    const value = pending.pop();
+    if (!value || typeof value !== 'object' || seen.has(value)) continue;
+    seen.add(value);
+    if (Array.isArray(value.departed)) for (const marker of value.departed) markers.push(marker);
+    for (const [key, child] of Object.entries(value)) if (key !== 'departed' && child && typeof child === 'object') pending.push(child);
+  }
+  return markers;
+}
 
 // Departed records (spec/caveat-departure-0.1.md). A record of a windowed
 // history is departed when the session no longer holds it: it is below the
@@ -175,7 +189,9 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
         ? {lineage: annotate(snapshot.binding_qualifications[target][property], held, archivedNames)} : {}),
     })));
 
-  return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed, events, decisions, evidence, displayed };
+  const historical = archiveHistory(snapshot, archive, departureMarkers(snapshot));
+  return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed, events, decisions, evidence, displayed,
+    ...(historical ? {archive: historical} : {}) };
 }
 
 const list = values => (values.length ? values.join(', ') : 'nothing');
@@ -186,6 +202,24 @@ const withCaveats = ({ evidence, caveats, departed = [] }) => {
   return `${list(names)}${caveats.length ? ` (caveats: ${caveats.join(', ')})` : ''}`;
 };
 const show = value => (typeof value === 'string' ? JSON.stringify(value) : String(value));
+
+function formatArchive(lines, archive) {
+  if (!archive) return;
+  lines.push('', 'Archived history (provided records and their referenced closure; not authenticated or proven exhaustive)');
+  for (const row of archive.records) {
+    if (row.status !== 'complete') {
+      lines.push(`  ${row.record}: archive reconstruction unavailable (${list(row.unresolved)})`);
+      continue;
+    }
+    const entry = row.entry;
+    lines.push(`  ${row.record}: retired at #${entry.retired_at}, departed at #${entry.departed_at}; supplied referenced closure complete`);
+    if (entry.reading) lines.push(`    archived value ${show(entry.reading.value)} (#${entry.reading.sequence} ${entry.reading.event})`);
+    if (entry.withdrawal) lines.push(`    ${withdrawnNote(entry.withdrawal)} during ${entry.withdrawal.event}`);
+    if (row.dependencies.length) lines.push(`    references ${list(row.dependencies)}`);
+  }
+  for (const name of archive.unresolved) lines.push(`  ${name}: archive reconstruction unavailable`);
+  for (const relation of archive.relations) lines.push(`  archived relation: ${relation.from} ${relation.relation} ${relation.to}`);
+}
 
 function outcomeText(outcome) {
   if (outcome.outcome === 'accepted') return 'accepted';
@@ -256,6 +290,7 @@ export function formatExplanation(report, title = 'the program') {
       lines.push(`    could have been influenced by ${withCaveats(item.lineage)}`);
     }
   }
+  formatArchive(lines, report.archive);
   return lines.join('\n');
 }
 
@@ -368,7 +403,9 @@ export function dependents(snapshot, subject, {archive = []} = {}) {
     return withdrawals.filter(item => ids.has(item.evidence));
   };
 
-  const decisions = explain(snapshot, [], {archive}).decisions.flatMap(series => series.revisions.flatMap(revision => {
+  // `via` above resolves each marker using this query's archive. Describing
+  // current decisions needs no second full historical archive reconstruction.
+  const decisions = explain(snapshot).decisions.flatMap(series => series.revisions.flatMap(revision => {
     // A grant is in the lineage, but its role is permission.
     const grant = revision.permission?.grant;
     const permitted = resolved.kind === 'evidence' && grant && resolved.ids.has(grant) && !via(revision.grounds).length;
@@ -403,11 +440,18 @@ export function dependents(snapshot, subject, {archive = []} = {}) {
   const retired = Object.entries(snapshot.retired ?? {})
     .filter(([record]) => resolved.ids.has(record))
     .map(([record, sequence]) => ({ record, sequence }));
+  const required = departureMarkers(snapshot).filter(marker => departedRecord
+    ? marker.history === departedRecord.history && marker.from <= departedRecord.number && departedRecord.number <= marker.through
+    : resolved.histories?.has(marker.history));
+  if (departedRecord) required.push(subject);
+  const historical = archiveHistory(snapshot, archive, required,
+    {kind: resolved.kind, names: new Set([...resolved.ids, ...(departedRecord ? [subject] : [])]), histories: resolved.histories});
   return {
     schema: DEPENDENTS_SCHEMA, subject, kind: resolved.kind, sequence: snapshot.sequence,
     ...(departedRecord ? { departed: true } : {}),
     ...(retired.length ? { retired } : {}),
     withdrawals, reasonForWithdrawals, claims, decisions, changes, values, displayed,
+    ...(historical ? {archive: historical} : {}),
   };
 }
 
@@ -434,6 +478,7 @@ export function formatDependents(report, title = 'the program', events = 0) {
   section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} ${report.kind === 'caveat' && item.change === 'committed' ? 'retaining:' : 'because'} ${through(item.via)}`);
   section('Values', report.values, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   section('Displayed', report.displayed, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
+  formatArchive(lines, report.archive);
   return lines.join('\n');
 }
 

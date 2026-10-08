@@ -13,6 +13,8 @@ crate-type = ["cdylib", "rlib"]
 # build without them: cargo build --no-default-features.
 default = ["games"]
 games = []
+# Opt-in native diagnostics; no saved or WASM diagnostic fields.
+collector-metrics = []
 
 [dependencies]
 sha2 = "0.10"

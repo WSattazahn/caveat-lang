@@ -6,6 +6,14 @@ release verification is recorded in [the development record](../docs/releases/rc
 (owner, 2026-10-05 14:45 UTC; marker shape and riders 16:34 UTC, see
 [Decision](#decision)).
 
+Collector draft note (2026-10-07): the owner has authorized a separate
+reviewable implementation of additional withdrawal collection, based on
+`f5ec829`. Its [provisional contract](../docs/design/withdrawal-collector-draft.md)
+preserves exact own-ground pins and ordinary compaction while identifying the
+new candidate, archive and capacity-limit boundaries for review. This is not
+final semantic, merge or release approval, and it does not resolve the broader
+retained-state bound discussed below.
+
 [Windows 0.1](caveat-windows-0.1.md) lets a history retire its oldest records.
 A retired record leaves the live graph but stays in the session, so a
 windowed program's save still grows. Departure, the second half of the

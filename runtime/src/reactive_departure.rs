@@ -198,10 +198,12 @@ impl ReactiveSession {
         // rc.15 saves may contain unpinned retired records. Restore does not
         // depart them; the next accepted event consumes these candidates.
         self.departure_candidates = Arc::new(self.retired.keys().cloned().collect());
+        self.rebuild_withdrawal_collector();
     }
 
     pub(crate) fn add_pin(&mut self, name: &str) {
         if self.windowed() {
+            self.collector.queue(name);
             *Arc::make_mut(&mut self.pin_counts)
                 .entry(name.to_string())
                 .or_insert(0) += 1;
@@ -212,6 +214,7 @@ impl ReactiveSession {
         if !self.windowed() {
             return;
         }
+        self.collector.queue(name);
         let counts = Arc::make_mut(&mut self.pin_counts);
         let count = counts
             .get_mut(name)
@@ -248,7 +251,7 @@ impl ReactiveSession {
 
     /// The history and number of a retired record that may depart: not a
     /// renewable evidence's declared first occurrence.
-    fn departable(&self, record: &str) -> Option<(String, u64)> {
+    pub(super) fn departable(&self, record: &str) -> Option<(String, u64)> {
         if let Some(number) = record
             .strip_prefix("journal@")
             .filter(|_| self.journal_window.is_some())
@@ -274,12 +277,16 @@ impl ReactiveSession {
             }
             if let Some(place) = self.departable(&record) {
                 if let Some(reason) = Arc::make_mut(&mut self.withdrawal_reasons).remove(&record) {
+                    self.collector.withdrawal(&record, &reason, false);
                     self.release_pin(&reason);
                 }
                 departing.insert(record, place);
             }
         }
+        self.collect_withdrawals(&mut departing);
         if departing.is_empty() {
+            #[cfg(debug_assertions)]
+            self.check_withdrawal_collector();
             return Ok(());
         }
         let sequence = self.sequence;
@@ -631,8 +638,12 @@ impl ReactiveSession {
             });
             self.archive.push(ArchiveItem::Record(Box::new(entry)));
         }
+        self.collector_departed(&departing);
         #[cfg(debug_assertions)]
-        self.check_departure_index();
+        {
+            self.check_departure_index();
+            self.check_withdrawal_collector();
+        }
         Ok(())
     }
 
@@ -770,6 +781,17 @@ impl ReactiveSession {
         }
         for item in &mut self.archive {
             if let ArchiveItem::Record(record) = item {
+                // Isolated departed groups have no retained holder marker.
+                // Give every record the same existing source-scoped anchor.
+                if publish {
+                    crate::reactive_archive::ArchiveTrace::record(
+                        &self.source_id,
+                        &record.history,
+                        &record.record,
+                        record.departed_at,
+                    )
+                    .settle(&mut nodes, &mut seen);
+                }
                 for provenance in record.qualifications.values_mut() {
                     settle_provenance(provenance, &mut nodes, &mut seen);
                 }

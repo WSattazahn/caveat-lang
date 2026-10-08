@@ -41,6 +41,15 @@ export function use(runtime: CaveatRuntime, source: string): void {
   const archive: ArchiveEntry[] = session.drainArchive();
   const explained = explain(session.snapshot(), [], { archive });
   const records: string[] | undefined = explained.displayed[0]?.cites.departed?.[0]?.records;
+  if (explained.archive) {
+    explained.archive.authenticated satisfies false;
+    explained.archive.scope satisfies 'provided records and their referenced closure';
+    for (const record of explained.archive.records) {
+      record.status satisfies 'complete' | 'unavailable';
+      record.dependencies satisfies string[];
+      record.entry?.withdrawal?.because satisfies string | undefined;
+    }
+  }
   dependents(session.snapshot(), 'reads', { archive });
   for (const entry of archive) {
     if (entry.kind === 'provenance') {

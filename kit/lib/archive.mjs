@@ -111,12 +111,200 @@ export function archiveResolver(snapshot, archive = []) {
     return result;
   }
   return marker => {
-    if (!object(marker) || typeof marker.archive_ref !== 'string' || !HEX.test(marker.archive_ref)
+    if (!object(marker) || typeof marker.history !== 'string' || typeof marker.archive_ref !== 'string' || !HEX.test(marker.archive_ref)
       || !integer(marker.from) || !integer(marker.through) || !integer(marker.read)
       || !integer(marker.departed_at) || marker.departed_at > snapshot.sequence) return null;
     const found = expand(marker.archive_ref, marker.history);
     if (!found?.length || found.length < marker.read || found[0].number !== marker.from
       || found.at(-1).number !== marker.through || found.reduce((latest, entry) => Math.max(latest, entry.departed_at), 0) !== marker.departed_at) return null;
     return found.map(entry => entry.record);
+  };
+}
+
+// Draft historical reporting. This is deliberately separate from membership:
+// leaves bind a source/name/departure, not payload bytes or archive inventory.
+// "complete" below means the referenced closure of the supplied entries only.
+const relationKinds = new Set(['supports', 'opposes', 'qualifies', 'in_context', 'retains', 'reopens', 'relies_on']);
+const strings = value => Array.isArray(value) && value.every(item => typeof item === 'string');
+const recordOrder = (a, b) => (typeof a.history === 'string' ? a.history : '').localeCompare(typeof b.history === 'string' ? b.history : '')
+  || (integer(a.number) && integer(b.number) ? a.number - b.number : 0) || a.record.localeCompare(b.record);
+
+/** Internal report builder; never substitutes archived data into a live snapshot. */
+export function archiveHistory(snapshot, archive = [], required = [], query = null) {
+  const entries = new Map(), conflicts = new Set();
+  for (const item of Array.isArray(archive) ? archive : []) {
+    if (!object(item) || item.kind === 'provenance' || typeof item.record !== 'string') continue;
+    try {
+      if (entries.has(item.record) && canonical(entries.get(item.record)) !== canonical(item)) conflicts.add(item.record);
+    } catch { conflicts.add(item.record); }
+    entries.set(item.record, item);
+  }
+  const resolve = archiveResolver(snapshot, archive);
+  const held = new Set((snapshot.symbols ?? []).map(item => item.name));
+  for (const name of snapshot.observations ?? []) held.add(name);
+  for (const name of Object.keys(snapshot.retired ?? {})) held.add(name);
+  for (const stream of Object.values(snapshot.reading_streams ?? {})) for (const item of stream.occurrences ?? []) held.add(item.id);
+  for (const renewal of Object.values(snapshot.renewals ?? {})) for (const name of renewal.occurrences ?? []) held.add(name);
+  for (const item of snapshot.commitments ?? []) held.add(item.action);
+  const windows = new Set(snapshot.windows ?? []);
+  const newest = new Map();
+  const allocated = (history, name) => {
+    const ordinal = Number(name.slice(history.length + 1));
+    if (name.startsWith(history + '@') && integer(ordinal)) newest.set(history, Math.max(newest.get(history) ?? 0, ordinal));
+  };
+  for (const [history, stream] of Object.entries(snapshot.reading_streams ?? {})) for (const item of stream.occurrences ?? []) allocated(history, item.id);
+  for (const [history, renewal] of Object.entries(snapshot.renewals ?? {})) for (const name of renewal.occurrences ?? []) allocated(history, name);
+  const rows = new Map(), relations = new Map();
+  const markerMissing = marker => 'archive_ref:' + (typeof marker?.archive_ref === 'string' ? marker.archive_ref
+    : `${typeof marker?.history === 'string' ? marker.history : '?'}@${integer(marker?.from) ? marker.from : '?'}`);
+  const requiredNames = new Set(), requiredMissing = new Set();
+  for (const item of required) {
+    if (typeof item === 'string') requiredNames.add(item);
+    else {
+      const names = resolve(item);
+      if (names) for (const name of names) requiredNames.add(name);
+      else requiredMissing.add(markerMissing(item));
+    }
+  }
+  for (const entry of entries.values()) {
+    const row = {record: entry.record, entry, dependencies: new Set(), unresolved: new Set()};
+    rows.set(entry.record, row);
+    const need = name => {
+      if (typeof name !== 'string' || !name) { row.unresolved.add(entry.record); return; }
+      if (name !== entry.record) row.dependencies.add(name);
+    };
+    const names = value => {
+      if (!strings(value)) { row.unresolved.add(entry.record); return; }
+      for (const name of value) need(name);
+    };
+    const provenance = value => {
+      if (!object(value) || Object.keys(value).some(key => !['evidence', 'caveats', 'inherited', 'departed'].includes(key))) {
+        row.unresolved.add(entry.record); return;
+      }
+      names(value.evidence); names(value.caveats);
+      if (value.inherited !== undefined) names(value.inherited);
+      if (value.departed !== undefined) {
+        if (!Array.isArray(value.departed)) { row.unresolved.add(entry.record); return; }
+        for (const marker of value.departed) {
+          const members = resolve(marker);
+          if (members) for (const name of members) need(name);
+          else row.unresolved.add(markerMissing(marker));
+        }
+      }
+    };
+    const leaf = {operation: 'record', source_id: snapshot.source_id, history: entry.history, record: entry.record, departed_at: entry.departed_at};
+    const marker = typeof entry.history === 'string' && integer(entry.number) && integer(entry.departed_at)
+      ? {history: entry.history, from: entry.number, through: entry.number, read: 1, departed_at: entry.departed_at, archive_ref: archiveNodeId(leaf)} : null;
+    const allowed = ['record', 'history', 'number', 'retired_at', 'departed_at', 'relations', 'qualifications', 'reading', 'journal_entry', 'withdrawal', 'holders'];
+    if (conflicts.has(entry.record) || held.has(entry.record) || !windows.has(entry.history)
+      || ((entry.history !== 'journal' || Object.hasOwn(snapshot.reading_streams ?? {}, 'journal') || Object.hasOwn(snapshot.renewals ?? {}, 'journal'))
+        && (!newest.has(entry.history) || entry.number >= newest.get(entry.history)
+        || (entry.number === 1 && Object.hasOwn(snapshot.renewals ?? {}, entry.history))))
+      || Object.keys(entry).some(key => !allowed.includes(key)) || !resolve(marker)) row.unresolved.add(entry.record);
+    if (!Array.isArray(entry.holders) || entry.holders.some(holder => !object(holder)
+      || !['state','commitment','series','stream','scheduled','cue','qualification'].includes(holder.kind)
+      || typeof holder.name !== 'string' || typeof holder.in !== 'string')) row.unresolved.add(entry.record);
+    if (entry.relations !== undefined) {
+      if (!Array.isArray(entry.relations)) row.unresolved.add(entry.record);
+      else for (const relation of entry.relations) {
+        if (!strings(relation) || relation.length !== 3 || !relationKinds.has(relation[1])
+          || (relation[0] !== entry.record && relation[2] !== entry.record)) { row.unresolved.add(entry.record); continue; }
+        need(relation[0]); need(relation[2]);
+        const key = JSON.stringify(relation);
+        if (!relations.has(key)) relations.set(key, {from: relation[0], relation: relation[1], to: relation[2], owners: new Set()});
+        relations.get(key).owners.add(entry.record);
+      }
+    }
+    if (entry.qualifications !== undefined) {
+      if (!object(entry.qualifications)) row.unresolved.add(entry.record);
+      else for (const value of Object.values(entry.qualifications)) provenance(value);
+    }
+    if (entry.reading !== undefined) {
+      const reading = entry.reading;
+      if (!object(reading) || reading.id !== entry.record || reading.ordinal !== entry.number
+        || !integer(reading.sequence) || reading.sequence > entry.retired_at || typeof reading.event !== 'string'
+        || !Number.isFinite(reading.value) || typeof reading.relation !== 'string' || typeof reading.claim !== 'string') row.unresolved.add(entry.record);
+      else { provenance(reading.provenance); if (reading.claim) need(reading.claim); }
+    }
+    if (entry.withdrawal !== undefined) {
+      const withdrawal = entry.withdrawal;
+      if (!object(withdrawal) || withdrawal.evidence !== entry.record || !integer(withdrawal.sequence)
+        || withdrawal.sequence > entry.departed_at || typeof withdrawal.event !== 'string') row.unresolved.add(entry.record);
+      else need(withdrawal.because);
+    }
+    if (entry.journal_entry !== undefined) {
+      const journal = entry.journal_entry;
+      if (!object(journal) || !integer(journal.sequence) || journal.sequence > entry.retired_at
+        || !['committed','reopened'].includes(journal.change) || typeof journal.event !== 'string') row.unresolved.add(entry.record);
+      else {
+        need(journal.decision); need(journal.commitment); names(journal.because); names(journal.caveats);
+        if (journal.permitted_by !== undefined) need(journal.permitted_by);
+      }
+    }
+  }
+  // An edge is archived once, under either departing endpoint. Join it from
+  // both records without inventing an inverse semantic relationship.
+  for (const relation of relations.values()) {
+    for (const [name, other] of [[relation.from, relation.to], [relation.to, relation.from]]) {
+      const row = rows.get(name);
+      if (!row) continue;
+      if (other !== name) row.dependencies.add(other);
+      for (const owner of relation.owners) if (owner !== name) row.dependencies.add(owner);
+    }
+  }
+  // Propagate invalid/missing dependencies backwards once. Valid self/mutual
+  // cycles terminate without recursive traversal or quadratic closure copies.
+  const reverse = new Map(), pending = [];
+  for (const row of rows.values()) {
+    for (const name of row.dependencies) {
+      if (rows.has(name)) (reverse.get(name) ?? reverse.set(name, new Set()).get(name)).add(row.record);
+      else if (!held.has(name)) row.unresolved.add(name);
+    }
+    if (row.unresolved.size) pending.push(row.record);
+  }
+  const bad = new Set(pending);
+  for (let index = 0; index < pending.length; index++) {
+    for (const name of reverse.get(pending[index]) ?? []) {
+      rows.get(name).unresolved.add(pending[index]);
+      if (!bad.has(name)) { bad.add(name); pending.push(name); }
+    }
+  }
+  const selected = new Set(requiredNames);
+  const selects = name => query?.names.has(name) || (query?.histories?.has(entries.get(name)?.history));
+  const selectedEvidence = new Set();
+  if (query?.kind === 'caveat') {
+    for (const relation of [...(snapshot.relations ?? []), ...relations.values()]) {
+      if (relation.relation === 'qualifies' && query.names.has(relation.from)) selectedEvidence.add(relation.to);
+    }
+  }
+  const matches = name => query?.kind === 'caveat' ? selectedEvidence.has(name) : selects(name);
+  for (const row of rows.values()) {
+    if (!query || matches(row.record) || matches(row.entry.withdrawal?.because)) selected.add(row.record);
+  }
+  // Include cross-record payloads needed to review each selected record.
+  const queue = [...selected];
+  for (let index = 0; index < queue.length; index++) {
+    const row = rows.get(queue[index]);
+    if (!row) { if (!held.has(queue[index])) requiredMissing.add(queue[index]); continue; }
+    for (const name of row.dependencies) if (rows.has(name) && !selected.has(name)) { selected.add(name); queue.push(name); }
+  }
+  const result = [...selected].filter(name => rows.has(name)).map(name => rows.get(name)).sort((a, b) => recordOrder(a.entry, b.entry));
+  if (!result.length && !requiredMissing.size) return null;
+  const complete = new Set(result.filter(row => !bad.has(row.record)).map(row => row.record));
+  const withdrawals = result.filter(row => complete.has(row.record) && row.entry.withdrawal && (!query || matches(row.record)))
+    .map(row => row.entry.withdrawal).sort((a, b) => a.sequence - b.sequence || a.evidence.localeCompare(b.evidence));
+  const reasonForWithdrawals = query ? result.filter(row => complete.has(row.record) && row.entry.withdrawal && matches(row.entry.withdrawal.because))
+    .map(row => row.entry.withdrawal).sort((a, b) => a.sequence - b.sequence || a.evidence.localeCompare(b.evidence)) : undefined;
+  return {
+    scope: 'provided records and their referenced closure', authenticated: false,
+    records: result.map(row => ({record: row.record, status: bad.has(row.record) ? 'unavailable' : 'complete',
+      dependencies: [...row.dependencies].sort(), unresolved: [...row.unresolved].sort(),
+      ...(!bad.has(row.record) ? {entry: row.entry} : {})})),
+    unresolved: [...requiredMissing].sort(), withdrawals,
+    ...(reasonForWithdrawals ? {reasonForWithdrawals} : {}),
+    relations: [...relations.values()].filter(item => [...item.owners].some(name => complete.has(name))
+      && (!query || (query.kind === 'caveat' ? query.names.has(item.from) : matches(item.from) || matches(item.to))))
+      .map(({from, relation, to}) => ({from, relation, to}))
+      .sort((a, b) => a.from.localeCompare(b.from) || a.relation.localeCompare(b.relation) || a.to.localeCompare(b.to)),
   };
 }
