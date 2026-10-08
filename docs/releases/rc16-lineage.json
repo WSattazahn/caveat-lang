@@ -1,0 +1,22 @@
+{
+  "schema": "caveat-release-lineage/0.1",
+  "version": "0.1.0-rc.16",
+  "state": "release-preparation",
+  "published": false,
+  "releaseTag": null,
+  "preserveCommitAncestry": true,
+  "integrationIdentity": "Exact review revision and tested package hashes are recorded in the release-candidate report; this source file cannot name its own final commit.",
+  "stages": [
+    {"id":"published-rc15","version":"0.1.0-rc.15","revision":"3a88ba0f80d563b4493840dc7bd7e195329b8302","published":true,"record":"v0.1.0-rc.15.md"},
+    {"id":"merged-specifications","revision":"9a2d1dd391b29385ee34ce24242d3b15a44856f4"},
+    {"id":"departure-baseline","revision":"f5ec8294efe2be24705f234ef75e5f5459aa5e89","review":"https://github.com/WSattazahn/caveat-lang/pull/174"},
+    {"id":"repaired-collector","revision":"3d77aa27bcffa16f39818b2684e9afb3b102ed17","review":"https://github.com/WSattazahn/caveat-lang/pull/175"},
+    {"id":"index-compaction","revision":"c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3","review":"https://github.com/WSattazahn/caveat-lang/pull/176"},
+    {"id":"withdrawal-batch-extraction","revision":"055e2af0b411d8385941dd8522201e5afc73cb34","review":"https://github.com/WSattazahn/caveat-lang/pull/177"},
+    {"id":"renewal-profiling-scanner-portability","revision":"677ad1365398fe37bb24ff8fb6cfbae82d3ef5b5"},
+    {"id":"event-phase-profiling","revision":"11c2a6a741609d3b640f27224ab6c9943b07f72c"},
+    {"id":"early-archive-boxing","revision":"590fae59aa4295ac5209f930a1e58ac152bd4603"}
+  ],
+  "deferred": ["View 0.2", "series windows", "remaining unimplemented feature work"],
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on"
+}

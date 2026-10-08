@@ -53,7 +53,7 @@ const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 
 const shipped = file => packDocs.reference.includes(file);
 const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md'];
 // The library's modules, each with its TypeScript declarations.
 const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session', 'types'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such

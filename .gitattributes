@@ -56,3 +56,6 @@ experiments/departure-gate/withdrawal-batch/independent-wasm-check.mjs -text
 
 # Preserve the recorded withdrawal-extraction observations and stream hashes.
 experiments/departure-gate/withdrawal-batch/results/** -text whitespace=cr-at-eol,-blank-at-eof
+
+# Frozen release-preparation observations preserve their original bytes.
+experiments/departure-gate/release-evidence/** -text whitespace=cr-at-eol,-blank-at-eof

@@ -1,8 +1,34 @@
 # CAVEAT 0.1.0-rc.16 development plan
 
-Status: development open, unpublished. This file records the owner's direction
+Status: release preparation, unpublished. This file records the owner's direction
 for rc.16 as given so far and the cycle's progress. Keep the "Progress"
 section factual, as `rc15-development.md` does.
+
+## Scope amendment for release preparation (2026-10-08)
+
+The owner now approves shipping the reviewed history-management, collector and
+performance improvements as rc.16, through `590fae59aa4295ac5209f930a1e58ac152bd4603`
+and the integration closeout. **View 0.2, series windows and the remaining
+unimplemented feature work move to the next cycle.** This supersedes the
+earlier View 0.2 inclusion below for release scope; that original decision and
+its delta-view gate remain intact as the historical plan.
+
+The accepted experimental collector contract remains the semantic baseline,
+including the explicit departed-snapshot, supplied-history completeness and
+capacity-only choices. Review branches may now be pushed. Final integration,
+merge, tags and publication still require the owner's decision; no optional
+optimization is authorized by release preparation.
+
+The [rc.16 candidate notes](v0.1.0-rc.16.md) consolidate the shipping scope,
+compatibility limits, completed high-degree confirmation, adversarial coverage
+and remaining release gates. In particular, the successful high-degree release
+crossed the fixed 5% trigger (+6.67115%, +15.45 microseconds median paired
+difference); the recommendation is to retain the improvement with that stated
+restriction. It is not an outstanding request to rerun the experiment.
+
+The dated sections below preserve earlier development states and permissions;
+their historical counts and package identities are not the final integrated
+candidate's release evidence.
 
 ## Starting point
 

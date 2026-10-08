@@ -1,0 +1,277 @@
+{
+  "schema": "caveat-new-withdrawal-plan/1",
+  "at": "2026-10-08T21:03:44.886Z",
+  "provenance": "NEW W01-W20 synthetic probes. No original F-series reproduction claimed; original sources unavailable at freeze.",
+  "execution": "Exactly 20 probes in both separately loaded frozen WASM cells (40 cell attempts). Each attempt has a fresh runtime instance; preserve failures and continue this finite inventory. No timing or performance inference.",
+  "command": "node tests/withdrawal-probes.mjs --root . --plan withdrawal-plan-003.json --out fresh-results.json",
+  "preparationCorrection": "001 inputs used unsupported -- comments: all attempts failed at load. 002 removed only four fixture headers and added an explicit driver plan filename; W18-W20 passed both cells, W01-W17 failed static fixture validation because unseen had no possible revealing rule. 003 adds an unexecuted observe_unseen event/rule, keeping unseen unobserved in all measured histories. W expectations unchanged; all prior inputs/plans/results preserved.",
+  "scope": "Withdrawal save consistency, first-record authority, true reasons and own grounds/qualifications across live historical holders, rollback, restore and approved collection. Host trust limits are accepted controls, not authenticated history. Candidate-only archive behavior is not an rc15 API failure.",
+  "contracts": [
+    "spec/caveat-withdrawal-0.1.md",
+    "spec/caveat-save-0.1.md",
+    "spec/caveat-departure-0.1.md",
+    "spec/caveat-lineage-compaction-0.1.md",
+    "docs/design/withdrawal-collector-draft.md"
+  ],
+  "priorCoverage": [
+    "runtime/tests/withdrawal.rs",
+    "runtime/tests/withdrawal_collection.rs",
+    "runtime/tests/restore_capability.rs",
+    "experiments/departure-gate/withdrawal-fixtures/self-own-ground.cav",
+    "experiments/departure-gate/withdrawal-fixtures/later-history-read.cav",
+    "experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav"
+  ],
+  "comparison": "Both cells must individually meet each frozen expectation. Shared projections compare only reason records, live values, own grounds and qualifiers; W18/W19 lifecycle fields and archives are intentionally not forced equal between versions. Each cell must produce exact original/restored continuation and ordered archive equality where available.",
+  "rejection": "Malformed saves must throw kind restore; arbitrary load/fatal/assertion errors never count as successful rejection. Each malformed case restores an unmodified positive-control save first.",
+  "evidence": "Per-attempt source plus every save, snapshot, dispatch outcome, restore input/error and available archive drain retained as exclusive files. Append-only attempt ledger; output paths refuse overwrite. Outer recorder preserves stdout/stderr and verifies all cell bytes before/after.",
+  "limitations": "Finite synthetic probes only. Known source-possible false historical guard and coordinated omission controls do not authenticate history. Required chain length is four cycles plus one continuation; no graph-size or adversarial completeness claim. Original F256/F358/F362/F363/F364 mapping waits for exact inputs.",
+  "cellsSha256": "a6f604418050d1aa7dc6aa0406513c58a865768cc6e1a2ee53df79615cc99613",
+  "inputs": [
+    {
+      "file": "tests/withdrawal-probes.mjs",
+      "sha256": "be48960858e5eafcd28792a766faa62c63d982c735901b111d254b072cfa2e82"
+    },
+    {
+      "file": "tests/freeze-withdrawal-plan.mjs",
+      "sha256": "7816ff831449d0c5a875f03d06397a5726bea32262278c06d5100e4030a8fd03"
+    },
+    {
+      "file": "fixtures/withdrawal-static.cav",
+      "sha256": "896f31ea4a5b4a592afdeeb97ea8e1e40f7bd6fc9a5236f9c3157f32186fe289"
+    },
+    {
+      "file": "fixtures/withdrawal-own-grounds.cav",
+      "sha256": "84ca11d3f92325a8b6daeaaecec8b6bb2202a37c2068f2444f981ed34cb5b648"
+    },
+    {
+      "file": "fixtures/withdrawal-history.cav",
+      "sha256": "4eb0be9541e8f526040a1b4986e1c4cee5e8a7ccf4511764269e917de683e297"
+    },
+    {
+      "file": "fixtures/withdrawal-reason-chain.cav",
+      "sha256": "37bec69829905c6536008d3a254ca2aa469cb5a18332dc071d8dfb4921ee02c6"
+    }
+  ],
+  "cases": [
+    {
+      "id": "W01",
+      "fixture": "withdrawal-static.cav",
+      "classification": "unchanged-guarantee",
+      "expectation": "Unmodified withdrawal save restores exactly and continues identically.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W02",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal subject is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W03",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal reason is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W04",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved subject, with matching withdrawn edge and source event, is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W05",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved reason, with matching source event, is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W06",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Duplicate withdrawal target is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W07",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Zero withdrawal sequence is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W08",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal sequence after save sequence is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W09",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Undeclared withdrawal event is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W10",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared event with no reachable withdrawal is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W11",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal record without its withdrawn graph edge is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W12",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawn graph edge without its record is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W13",
+      "fixture": "withdrawal-static.cav",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal-record field is refused.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W14",
+      "fixture": "withdrawal-static.cav",
+      "classification": "known-host-trust-limit",
+      "expectation": "Source-possible edited withdrawal metadata is accepted even when that source guard was false; restore does not authenticate history.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W15",
+      "fixture": "withdrawal-static.cav",
+      "classification": "known-host-trust-limit",
+      "expectation": "Coordinated withdrawal-record and graph-edge omission is accepted; restore does not authenticate history.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W16",
+      "fixture": "withdrawal-static.cav",
+      "classification": "unchanged-guarantee",
+      "expectation": "Repeated withdrawal before and after restore keeps the first exact record/reason and emits no repeated withdraw effect; reason qualification remains.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W17",
+      "fixture": "withdrawal-static.cav",
+      "classification": "unchanged-guarantee",
+      "expectation": "Policy refusal and late binding failure roll back withdrawal and preserve snapshot/save.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W18",
+      "fixture": "withdrawal-own-grounds.cav",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Two own-ground holders pin the self-reason across restore; failed last-root releases roll back; accepted final release archives it only in candidate, while rc15 retains history.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W19",
+      "fixture": "withdrawal-history.cav",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Restore while historical holder pins reason; later read retains withdrawn/stale lineage and own grounds; final holder removal archives exact reason/reading only in candidate.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    },
+    {
+      "id": "W20",
+      "fixture": "withdrawal-reason-chain.cav",
+      "classification": "unchanged-guarantee",
+      "expectation": "Distinct required withdrawal reason chain survives four cycles, restore and continuation; predicate carries actual qualified reason.",
+      "cells": [
+        "candidate",
+        "rc15"
+      ],
+      "originalFindingReplica": false
+    }
+  ]
+}

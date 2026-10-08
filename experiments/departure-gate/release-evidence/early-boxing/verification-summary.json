@@ -1,0 +1,300 @@
+{
+  "checks": [
+    {
+      "id": "kit",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js",
+        "run",
+        "test:kit"
+      ],
+      "exit": 0,
+      "coverage": "Full developer kit against current clean ordinary WASM; includes archive reconstruction/journal/restore tests.",
+      "rustResults": null,
+      "tapResults": {
+        "tests": 335,
+        "pass": 335,
+        "fail": 0,
+        "skipped": 0
+      },
+      "stdoutSha256": "00f44c9e3cca127ba757d05f235ab11e07b130419dff0fb41959221e3ec1c3a7",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "departure",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "experiments/departure-gate/run.mjs"
+      ],
+      "exit": 0,
+      "coverage": "Registered C3 bound/dispatch, exact published rc15 restore, pins, whole-corpus no-window digest and windowed outcome sweeps.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "9614bb917793a2d2be61b4834ad4ffc9ef61187e04be2c66ef43c4dfe2fd6b00",
+      "stderrSha256": "1dc9605b358bd37e699c5584671b8d7e6012939458d96c3bba9adfa743bee52d"
+    },
+    {
+      "id": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0,
+      "coverage": "Complete runtime formatting.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "full-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "coverage": "Strict ordinary full runtime lint.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "3aa883d4c1b1b7837c6abd699c49cabb4e3508b894a63cc356acd115a18a1abf"
+    },
+    {
+      "id": "reactive-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--all-targets",
+        "--no-default-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "coverage": "Strict ordinary reactive runtime lint.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "cb2af10dc848f33354dcdf1732abaa4a74a6bbb7b14b737b0f499229b5cfabd9"
+    },
+    {
+      "id": "full-native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--all-targets"
+      ],
+      "exit": 0,
+      "coverage": "Full native regression suites with explicit16MiB debug test stack; ignored capacity test has a separate release gate.",
+      "rustResults": {
+        "passed": 883,
+        "failed": 0,
+        "ignored": 1
+      },
+      "tapResults": null,
+      "stdoutSha256": "655bd4c7aa5fed877622f4ab1019cce4c5d9697e51ea2190ab77ae27233c449b",
+      "stderrSha256": "22e57633760c2a97836f7190924ac4a4be426ad495b9fcdfa17b178b084c9af6"
+    },
+    {
+      "id": "reactive-native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--all-targets",
+        "--no-default-features"
+      ],
+      "exit": 0,
+      "coverage": "Reactive native regression suites with explicit16MiB debug test stack.",
+      "rustResults": {
+        "passed": 871,
+        "failed": 0,
+        "ignored": 1
+      },
+      "tapResults": null,
+      "stdoutSha256": "5c8d897f309462483b56697b9fa0de1c2ec381f72c78a63ddb79e61447ed3153",
+      "stderrSha256": "79cb4a6de0450f9a955e462318ea6fcfc63fdf21d5354c200783c1baae1a9b5f"
+    },
+    {
+      "id": "collector-native",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "collector-metrics",
+        "--test",
+        "withdrawal_collection",
+        "--test",
+        "collector_index_compaction",
+        "--test",
+        "withdrawal_batch_extraction"
+      ],
+      "exit": 0,
+      "coverage": "Paired collection/retention, high-degree/index, ordered extraction and rollback regression cases.",
+      "rustResults": {
+        "passed": 24,
+        "failed": 0,
+        "ignored": 0
+      },
+      "tapResults": null,
+      "stdoutSha256": "6070c95c5af22bbc2af4b848ac49a25e541a3841a87ee794c82d433824751b1b",
+      "stderrSha256": "865d37c84bf03a459ce7a04eb8a37d76a0cfa14f0988044bd72fc2e75b5341c4"
+    },
+    {
+      "id": "optimized-depth",
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--test",
+        "dispatch_outcomes",
+        "the_maximum_valid_procedure_depth_still_dispatches",
+        "--",
+        "--exact"
+      ],
+      "exit": 0,
+      "coverage": "Maximum supported procedure depth on optimized default stack.",
+      "rustResults": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "tapResults": null,
+      "stdoutSha256": "e9b0c063004f15655776f8a92c594ffb511864881257ac7dd9d5bb1443d61c89",
+      "stderrSha256": "ece56854faf9f34809b469b375b67679dfa3520a5857a2809397e51fe353d0fd"
+    },
+    {
+      "id": "capacity",
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "collector-metrics",
+        "--test",
+        "withdrawal_capacity",
+        "--",
+        "--ignored",
+        "--nocapture"
+      ],
+      "exit": 0,
+      "coverage": "Real65536-record storage threshold: admission refusal remains preappend and atomic, prior collection frees capacity.",
+      "rustResults": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      },
+      "tapResults": null,
+      "stdoutSha256": "dc4d5cd312ec47c5411a372ab11b6c8c0d658ceb7309436643662e83e6a22e1f",
+      "stderrSha256": "b2a2427e5f0097778dfec2a85c24d09b7923ff8484a1eb16fd67d503e363aaab"
+    },
+    {
+      "id": "withdrawal-profile",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "runtime/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "withdrawal-extraction-profile",
+        "--lib",
+        "withdrawal_profile"
+      ],
+      "exit": 0,
+      "coverage": "Existing native withdrawal diagnostic recorder tests.",
+      "rustResults": {
+        "passed": 2,
+        "failed": 0,
+        "ignored": 0
+      },
+      "tapResults": null,
+      "stdoutSha256": "c99a386e4e058ba0998785bdea75715ed75f6428e7d8f555f6cdd34c24b2162c",
+      "stderrSha256": "14b9dbe5349f62492697ba14ae0bb934966f0c8ac29472f2727cb925862211e4"
+    },
+    {
+      "id": "matrix176",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "experiments/departure-gate/withdrawal-batch/independent-wasm-check.mjs",
+        "--before=C:/Dev/caveat-lang/test-results/early-boxing-before-11c2a6a/pkg-reactive",
+        "--candidate=C:/Dev/caveat-lang/dist/pkg-reactive",
+        "--before-revision=11c2a6a741609d3b640f27224ab6c9943b07f72c",
+        "--candidate-revision=590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "--output=C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/early-boxing/matrix176"
+      ],
+      "exit": 0,
+      "coverage": "Reused independently authored22-trace matrix: outcomes/snapshots/views/exact saves/ordered archives/rollback/restore/retention. Finite current-artifact comparison, not newly authored tests.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "aa9d95fc6da0ad3d95c7377aa467e111439a4e9ee605a5130b5dc5e6ce90da47",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "matrix177",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "experiments/departure-gate/early-boxing/pr177-wasm-check.mjs",
+        "--before=C:/Dev/caveat-lang/test-results/early-boxing-before-11c2a6a/pkg-reactive",
+        "--candidate=C:/Dev/caveat-lang/dist/pkg-reactive",
+        "--before-revision=11c2a6a741609d3b640f27224ab6c9943b07f72c",
+        "--candidate-revision=590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "--output=C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/early-boxing/matrix177"
+      ],
+      "exit": 0,
+      "coverage": "Reused independently authored16-trace extraction/order matrix; artifact selection and reporting adapted with body hash preserved.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "6052accf0a98f1a1facb14f58f4af49d001543349d19dff6b7d98a14321d58ca",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "kit-browser",
+      "command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:/Program Files/nodejs/node_modules/npm/bin/npm-cli.js",
+        "run",
+        "test:kit-browser"
+      ],
+      "exit": 0,
+      "coverage": "Real installed Chrome: runtime loading, dispatch/views, archives/explanations, refusal atomicity and save/restore through kit integration.",
+      "rustResults": null,
+      "tapResults": null,
+      "stdoutSha256": "fd5b94223871ffaf8de7ce3ee88a1a55099034f6cc79f9e5bb3c46914b9f5d5f",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope": "Suite execution counts overlap; not unique coverage."
+}

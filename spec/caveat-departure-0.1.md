@@ -81,13 +81,19 @@ its form: a marker could stand for one record, with `from` equal to
   records the pre-collector measurements. Exact reasons and predicate behavior
   remain required. The reviewed `f5ec829` baseline has no cycle collector; the
   separately authorized [collector draft](../docs/design/withdrawal-collector-draft.md)
-  must earn its own evidence and semantic acceptance.
+  has its own evidence; the repaired experimental contract was accepted on 2026-10-08 as recorded there.
 
-Both pins serve one invariant: **departure never changes an outcome.** A
-program accepts and refuses exactly the events it would with retirement alone,
-with the same refusal origins and codes. Departure shows only in the size of
-the save, `depart` effects, markers in explanations, and the archive.
+Both pins serve one invariant: **ordinary departure preserves
+decision/evaluation outcomes.** For ordinary departure, a program accepts and
+refuses the same events as with retirement alone, with the same refusal origins
+and codes; departure appears in retained snapshots, save size, `depart` effects,
+markers and the archive.
 
+The accepted [collector capacity amendment](../docs/design/withdrawal-collector-draft.md)
+adds one explicit difference: a later event may succeed after an earlier
+accepted event freed held-record capacity. It retains the threshold, admission
+timing and rollback, and cannot rescue an already-refused event. The ordinary
+pin argument does not require retaining unreachable withdrawal cycles forever.
 A renewable evidence's first occurrence is the evidence the program declares,
 such as `witness_cave`, which is `witness_cave@1`. The program's own
 declarations name it and relate it, so it never departs: once retired, it

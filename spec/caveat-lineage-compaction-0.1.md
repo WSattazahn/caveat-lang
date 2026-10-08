@@ -11,7 +11,7 @@ reviewable implementation of additional withdrawal collection, based on
 `f5ec829`. Its [provisional contract](../docs/design/withdrawal-collector-draft.md)
 preserves exact own-ground pins and ordinary compaction while identifying the
 new candidate, archive and capacity-limit boundaries for review. This is not
-final semantic, merge or release approval, and it does not resolve the broader
+merge or release approval. The owner subsequently accepted the repaired experimental contract as recorded there; it does not resolve the broader
 retained-state bound discussed below.
 
 [Windows 0.1](caveat-windows-0.1.md) lets a history retire its oldest records.

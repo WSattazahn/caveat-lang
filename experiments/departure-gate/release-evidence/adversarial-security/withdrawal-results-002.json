@@ -1,0 +1,2938 @@
+{
+  "schema": "caveat-new-withdrawal-probes/1",
+  "at": "2026-10-08T21:03:21.480Z",
+  "planSha256": "6ab1f2ee5b7ec274dc5d5ef6ced991307f9bd5c2399f675bc00dabd4ebb18b70",
+  "driverSha256": "be48960858e5eafcd28792a766faa62c63d982c735901b111d254b072cfa2e82",
+  "cellsSha256": "a6f604418050d1aa7dc6aa0406513c58a865768cc6e1a2ee53df79615cc99613",
+  "ledgerSha256": "3f7b2ea795716a496689912b77727b0e7f2e9f8cfff0daccd11ac2d537fa1c6a",
+  "originalFindingReplicas": false,
+  "sourcePolicy": "NEW W IDs; original F sources unavailable at freeze",
+  "rows": [
+    {
+      "id": "W01",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Unmodified withdrawal save restores exactly and continues identically.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.825Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:163:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W01",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Unmodified withdrawal save restores exactly and continues identically.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.863Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:163:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W02",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal subject is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.887Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W02",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal subject is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.898Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W03",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal reason is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.907Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W03",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal reason is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.917Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W04",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved subject, with matching withdrawn edge and source event, is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.928Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W04",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved subject, with matching withdrawn edge and source event, is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.938Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W05",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved reason, with matching source event, is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.947Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W05",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared but unobserved reason, with matching source event, is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.957Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W06",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Duplicate withdrawal target is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.966Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W06",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Duplicate withdrawal target is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.976Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W07",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Zero withdrawal sequence is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.985Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W07",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Zero withdrawal sequence is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:20.996Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W08",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal sequence after save sequence is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.006Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W08",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal sequence after save sequence is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.017Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W09",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Undeclared withdrawal event is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.026Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W09",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Undeclared withdrawal event is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.036Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W10",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared event with no reachable withdrawal is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.045Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W10",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Declared event with no reachable withdrawal is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.056Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W11",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal record without its withdrawn graph edge is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.065Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W11",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawal record without its withdrawn graph edge is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.075Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W12",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawn graph edge without its record is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.085Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W12",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Withdrawn graph edge without its record is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.103Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W13",
+      "cell": "candidate",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal-record field is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.114Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W13",
+      "cell": "rc15",
+      "classification": "malformed-save-rejected",
+      "expectation": "Unknown withdrawal-record field is refused.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.123Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W14",
+      "cell": "candidate",
+      "classification": "known-host-trust-limit",
+      "expectation": "Source-possible edited withdrawal metadata is accepted even when that source guard was false; restore does not authenticate history.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.132Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W14",
+      "cell": "rc15",
+      "classification": "known-host-trust-limit",
+      "expectation": "Source-possible edited withdrawal metadata is accepted even when that source guard was false; restore does not authenticate history.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.145Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W15",
+      "cell": "candidate",
+      "classification": "known-host-trust-limit",
+      "expectation": "Coordinated withdrawal-record and graph-edge omission is accepted; restore does not authenticate history.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.154Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W15",
+      "cell": "rc15",
+      "classification": "known-host-trust-limit",
+      "expectation": "Coordinated withdrawal-record and graph-edge omission is accepted; restore does not authenticate history.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.163Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:134:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W16",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Repeated withdrawal before and after restore keeps the first exact record/reason and emits no repeated withdraw effect; reason qualification remains.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.173Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:172:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W16",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Repeated withdrawal before and after restore keeps the first exact record/reason and emits no repeated withdraw effect; reason qualification remains.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.187Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at staticBase (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:119:17)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:172:15)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W17",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Policy refusal and late binding failure roll back withdrawal and preserve snapshot/save.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.197Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/candidate/lib/session.mjs:238:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:192:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W17",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Policy refusal and late binding failure roll back withdrawal and preserve snapshot/save.",
+      "sourceSha256": "4c4f96abad2d64216c83924009c010906000f8c567106794fb21aaeaa1a543d4",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.206Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "pass": false,
+      "failure": {
+        "name": "CaveatError",
+        "kind": "load",
+        "code": null,
+        "message": "event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads",
+        "stack": "CaveatError: event unobserved_reason, rule 9: withdraw because unseen needs unseen observed, but nothing observes it: no rule reveals it and it is not observed when the program loads\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/cells/rc15/lib/session.mjs:213:15)\n    at Object.open (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:76:32)\n    at probe (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:192:19)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:338:34)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      },
+      "artifacts": []
+    },
+    {
+      "id": "W18",
+      "cell": "candidate",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Two own-ground holders pin the self-reason across restore; failed last-root releases roll back; accepted final release archives it only in candidate, while rc15 retains history.",
+      "sourceSha256": "84ca11d3f92325a8b6daeaaecec8b6bb2202a37c2068f2444f981ed34cb5b648",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.217Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "observedClass": "eligible-reason-archived",
+      "projection": {
+        "retainedRecord": {
+          "evidence": "a@2",
+          "because": "a@2",
+          "sequence": 1,
+          "event": "cycle"
+        },
+        "ownGrounds": {
+          "evidence": [
+            "a@2"
+          ],
+          "caveats": [
+            "withdrawn"
+          ]
+        },
+        "finalFirst": 0,
+        "finalSecond": 0
+      },
+      "lifecycle": {
+        "activeRetiredReason": false,
+        "archivedRecords": [
+          "a@2"
+        ]
+      },
+      "pass": true,
+      "artifacts": [
+        {
+          "label": "open-snapshot",
+          "file": "001-open-snapshot.json",
+          "bytes": 2826,
+          "sha256": "8614c21802e0cb59dfe7043b8bef1171e0c5e974b2ee41198a88627b9c2b9957"
+        },
+        {
+          "label": "open-save",
+          "file": "002-open.save.json",
+          "bytes": 130,
+          "sha256": "f371afe7311d2b093451bb80310edd31fb147db6ce9c42774064555f4755e080"
+        },
+        {
+          "label": "event-cycle",
+          "file": "003-event-cycle.json",
+          "bytes": 4881,
+          "sha256": "4a39da60a6d45cc2331766c1b302e9371ea8461be3599e0dff03fec872e69983"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "004-cycle-snapshot.json",
+          "bytes": 3849,
+          "sha256": "b8cb33ca7896aa07a6b3b7af40d906b5b10ab6f6f2ad4e6b5a6edc551d468e15"
+        },
+        {
+          "label": "cycle-save",
+          "file": "005-cycle.save.json",
+          "bytes": 668,
+          "sha256": "4f9cd945fbc95702c5382dac020ddb3bfd2e752750a3def4edf6e19b5ea86577"
+        },
+        {
+          "label": "event-hold",
+          "file": "006-event-hold.json",
+          "bytes": 4695,
+          "sha256": "ed7525f129acdd80b18467791a0cc513ab0eae23659028a86f2c653dd12673b0"
+        },
+        {
+          "label": "hold-snapshot",
+          "file": "007-hold-snapshot.json",
+          "bytes": 3688,
+          "sha256": "0707624cc99c0b581733fcb5800ca24470c288885996bc1e7d1eafc881ccce1f"
+        },
+        {
+          "label": "hold-save",
+          "file": "008-hold.save.json",
+          "bytes": 587,
+          "sha256": "a9d4e168ad089f35ea5a69a0de027f6b785454be649cd5157a41ba594394437c"
+        },
+        {
+          "label": "event-cycle",
+          "file": "009-event-cycle.json",
+          "bytes": 5895,
+          "sha256": "ecd79b1cf2f01e3963e577511c934456d93532366f81639a5057b5075c1ba01b"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "010-cycle-snapshot.json",
+          "bytes": 4667,
+          "sha256": "d0a7e229cde77a91808f623d121bd162a7c5eee068ebf068b6205d1b6f49ae0c"
+        },
+        {
+          "label": "cycle-save",
+          "file": "011-cycle.save.json",
+          "bytes": 1004,
+          "sha256": "3a1abf808ea7fbd233fe86dd44ade0a0543eabe499190bd830c69736518c8e2b"
+        },
+        {
+          "label": "event-release_first",
+          "file": "012-event-release_first.json",
+          "bytes": 5317,
+          "sha256": "56434b238a8fe37306b97bcee3e9a0ac12fa3a6ed596e52d67201f5099b58b13"
+        },
+        {
+          "label": "release_first-snapshot",
+          "file": "013-release_first-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "release_first-save",
+          "file": "014-release_first.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "restore-input",
+          "file": "015-restore-input.json",
+          "bytes": 1247,
+          "sha256": "912975275194c99a33b63faea45a79997d47464b39da2b8ab650f67e7876207f"
+        },
+        {
+          "label": "restore-snapshot",
+          "file": "016-restore-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "restore-save",
+          "file": "017-restore.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "before-release-archive",
+          "file": "018-before-release-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-refuse",
+          "file": "019-event-refuse.json",
+          "bytes": 209,
+          "sha256": "db60ca31985aac5d2c760c50e7348985615986dd9c2075e74f214df2701bee13"
+        },
+        {
+          "label": "refuse-snapshot",
+          "file": "020-refuse-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "refuse-save",
+          "file": "021-refuse.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "refuse-archive",
+          "file": "022-refuse-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-fail",
+          "file": "023-event-fail.json",
+          "bytes": 244,
+          "sha256": "30277043705efdc783ff2e62125b56e537e55dc18ba431da56e95cc9ca860a38"
+        },
+        {
+          "label": "fail-snapshot",
+          "file": "024-fail-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "fail-save",
+          "file": "025-fail.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "fail-archive",
+          "file": "026-fail-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-release_last",
+          "file": "027-event-release_last.json",
+          "bytes": 4546,
+          "sha256": "2dc393690afd487a3b63111a35230dd89f4d493fb0f3484bff9618ee2125c249"
+        },
+        {
+          "label": "release_last-snapshot",
+          "file": "028-release_last-snapshot.json",
+          "bytes": 3571,
+          "sha256": "338d8301b5c933b0c093875d51db7978bc2cd6117ee1dd6ff29ae93dd17fabb4"
+        },
+        {
+          "label": "release_last-save",
+          "file": "029-release_last.save.json",
+          "bytes": 500,
+          "sha256": "a2cf5fd014671ea7bf3a13e664123009de424473f7166ddef37ad10985dd578e"
+        },
+        {
+          "label": "event-refuse",
+          "file": "030-event-refuse.json",
+          "bytes": 209,
+          "sha256": "db60ca31985aac5d2c760c50e7348985615986dd9c2075e74f214df2701bee13"
+        },
+        {
+          "label": "refuse-snapshot",
+          "file": "031-refuse-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "refuse-save",
+          "file": "032-refuse.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "refuse-archive",
+          "file": "033-refuse-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-fail",
+          "file": "034-event-fail.json",
+          "bytes": 244,
+          "sha256": "30277043705efdc783ff2e62125b56e537e55dc18ba431da56e95cc9ca860a38"
+        },
+        {
+          "label": "fail-snapshot",
+          "file": "035-fail-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "fail-save",
+          "file": "036-fail.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "fail-archive",
+          "file": "037-fail-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-release_last",
+          "file": "038-event-release_last.json",
+          "bytes": 4546,
+          "sha256": "2dc393690afd487a3b63111a35230dd89f4d493fb0f3484bff9618ee2125c249"
+        },
+        {
+          "label": "release_last-snapshot",
+          "file": "039-release_last-snapshot.json",
+          "bytes": 3571,
+          "sha256": "338d8301b5c933b0c093875d51db7978bc2cd6117ee1dd6ff29ae93dd17fabb4"
+        },
+        {
+          "label": "release_last-save",
+          "file": "040-release_last.save.json",
+          "bytes": 500,
+          "sha256": "a2cf5fd014671ea7bf3a13e664123009de424473f7166ddef37ad10985dd578e"
+        },
+        {
+          "label": "final-archive",
+          "file": "041-final-archive.json",
+          "bytes": 775,
+          "sha256": "8b631f04c33b5879b0e8d4015cc2dde2752a8b79342d04b089b21d743a94fc1c"
+        },
+        {
+          "label": "restored-final-archive",
+          "file": "042-restored-final-archive.json",
+          "bytes": 775,
+          "sha256": "8b631f04c33b5879b0e8d4015cc2dde2752a8b79342d04b089b21d743a94fc1c"
+        },
+        {
+          "label": "after-release-roundtrip-input",
+          "file": "043-after-release-roundtrip-input.json",
+          "bytes": 817,
+          "sha256": "4e9f516f10d4fb39b2127d181194125907501c161c44012f940684cf48d0dd2a"
+        },
+        {
+          "label": "after-release-roundtrip-snapshot",
+          "file": "044-after-release-roundtrip-snapshot.json",
+          "bytes": 3571,
+          "sha256": "338d8301b5c933b0c093875d51db7978bc2cd6117ee1dd6ff29ae93dd17fabb4"
+        },
+        {
+          "label": "after-release-roundtrip-save",
+          "file": "045-after-release-roundtrip.save.json",
+          "bytes": 500,
+          "sha256": "a2cf5fd014671ea7bf3a13e664123009de424473f7166ddef37ad10985dd578e"
+        }
+      ]
+    },
+    {
+      "id": "W18",
+      "cell": "rc15",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Two own-ground holders pin the self-reason across restore; failed last-root releases roll back; accepted final release archives it only in candidate, while rc15 retains history.",
+      "sourceSha256": "84ca11d3f92325a8b6daeaaecec8b6bb2202a37c2068f2444f981ed34cb5b648",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.278Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "observedClass": "retired-reason-kept",
+      "projection": {
+        "retainedRecord": {
+          "evidence": "a@2",
+          "because": "a@2",
+          "sequence": 1,
+          "event": "cycle"
+        },
+        "ownGrounds": {
+          "evidence": [
+            "a@2"
+          ],
+          "caveats": [
+            "withdrawn"
+          ]
+        },
+        "finalFirst": 0,
+        "finalSecond": 0
+      },
+      "lifecycle": {
+        "activeRetiredReason": true,
+        "archivedRecords": null
+      },
+      "pass": true,
+      "artifacts": [
+        {
+          "label": "open-snapshot",
+          "file": "001-open-snapshot.json",
+          "bytes": 2826,
+          "sha256": "8614c21802e0cb59dfe7043b8bef1171e0c5e974b2ee41198a88627b9c2b9957"
+        },
+        {
+          "label": "open-save",
+          "file": "002-open.save.json",
+          "bytes": 130,
+          "sha256": "f371afe7311d2b093451bb80310edd31fb147db6ce9c42774064555f4755e080"
+        },
+        {
+          "label": "event-cycle",
+          "file": "003-event-cycle.json",
+          "bytes": 4881,
+          "sha256": "4a39da60a6d45cc2331766c1b302e9371ea8461be3599e0dff03fec872e69983"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "004-cycle-snapshot.json",
+          "bytes": 3849,
+          "sha256": "b8cb33ca7896aa07a6b3b7af40d906b5b10ab6f6f2ad4e6b5a6edc551d468e15"
+        },
+        {
+          "label": "cycle-save",
+          "file": "005-cycle.save.json",
+          "bytes": 668,
+          "sha256": "4f9cd945fbc95702c5382dac020ddb3bfd2e752750a3def4edf6e19b5ea86577"
+        },
+        {
+          "label": "event-hold",
+          "file": "006-event-hold.json",
+          "bytes": 4695,
+          "sha256": "ed7525f129acdd80b18467791a0cc513ab0eae23659028a86f2c653dd12673b0"
+        },
+        {
+          "label": "hold-snapshot",
+          "file": "007-hold-snapshot.json",
+          "bytes": 3688,
+          "sha256": "0707624cc99c0b581733fcb5800ca24470c288885996bc1e7d1eafc881ccce1f"
+        },
+        {
+          "label": "hold-save",
+          "file": "008-hold.save.json",
+          "bytes": 587,
+          "sha256": "a9d4e168ad089f35ea5a69a0de027f6b785454be649cd5157a41ba594394437c"
+        },
+        {
+          "label": "event-cycle",
+          "file": "009-event-cycle.json",
+          "bytes": 5895,
+          "sha256": "ecd79b1cf2f01e3963e577511c934456d93532366f81639a5057b5075c1ba01b"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "010-cycle-snapshot.json",
+          "bytes": 4667,
+          "sha256": "d0a7e229cde77a91808f623d121bd162a7c5eee068ebf068b6205d1b6f49ae0c"
+        },
+        {
+          "label": "cycle-save",
+          "file": "011-cycle.save.json",
+          "bytes": 1004,
+          "sha256": "3a1abf808ea7fbd233fe86dd44ade0a0543eabe499190bd830c69736518c8e2b"
+        },
+        {
+          "label": "event-release_first",
+          "file": "012-event-release_first.json",
+          "bytes": 5317,
+          "sha256": "56434b238a8fe37306b97bcee3e9a0ac12fa3a6ed596e52d67201f5099b58b13"
+        },
+        {
+          "label": "release_first-snapshot",
+          "file": "013-release_first-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "release_first-save",
+          "file": "014-release_first.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "restore-input",
+          "file": "015-restore-input.json",
+          "bytes": 1247,
+          "sha256": "912975275194c99a33b63faea45a79997d47464b39da2b8ab650f67e7876207f"
+        },
+        {
+          "label": "restore-snapshot",
+          "file": "016-restore-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "restore-save",
+          "file": "017-restore.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "event-refuse",
+          "file": "018-event-refuse.json",
+          "bytes": 209,
+          "sha256": "db60ca31985aac5d2c760c50e7348985615986dd9c2075e74f214df2701bee13"
+        },
+        {
+          "label": "refuse-snapshot",
+          "file": "019-refuse-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "refuse-save",
+          "file": "020-refuse.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "event-fail",
+          "file": "021-event-fail.json",
+          "bytes": 244,
+          "sha256": "30277043705efdc783ff2e62125b56e537e55dc18ba431da56e95cc9ca860a38"
+        },
+        {
+          "label": "fail-snapshot",
+          "file": "022-fail-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "fail-save",
+          "file": "023-fail.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "event-release_last",
+          "file": "024-event-release_last.json",
+          "bytes": 5179,
+          "sha256": "c58c8d165cb8e1125fe956bc77cc01a765d2b6749a8ec7cbde23d3bc4d8a9c48"
+        },
+        {
+          "label": "release_last-snapshot",
+          "file": "025-release_last-snapshot.json",
+          "bytes": 4096,
+          "sha256": "9aa5290227ac27e3b95a3f77ea0e3d9abe435600264e893ae2e8bfca362c5e4a"
+        },
+        {
+          "label": "release_last-save",
+          "file": "026-release_last.save.json",
+          "bytes": 621,
+          "sha256": "6219b9b2fc5796c79c15c35edb5db72766fc4e651ef0be62e1d03b03db8fd3d8"
+        },
+        {
+          "label": "event-refuse",
+          "file": "027-event-refuse.json",
+          "bytes": 209,
+          "sha256": "db60ca31985aac5d2c760c50e7348985615986dd9c2075e74f214df2701bee13"
+        },
+        {
+          "label": "refuse-snapshot",
+          "file": "028-refuse-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "refuse-save",
+          "file": "029-refuse.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "event-fail",
+          "file": "030-event-fail.json",
+          "bytes": 244,
+          "sha256": "30277043705efdc783ff2e62125b56e537e55dc18ba431da56e95cc9ca860a38"
+        },
+        {
+          "label": "fail-snapshot",
+          "file": "031-fail-snapshot.json",
+          "bytes": 4201,
+          "sha256": "04f29720c7ef76b82d11047701eb5bde9737cf0ddc8e400b61975d06b9750c30"
+        },
+        {
+          "label": "fail-save",
+          "file": "032-fail.save.json",
+          "bytes": 699,
+          "sha256": "33661cf7d620f8dccbae46565f06774942dbcc823e410cff44f11d4867e098a1"
+        },
+        {
+          "label": "event-release_last",
+          "file": "033-event-release_last.json",
+          "bytes": 5179,
+          "sha256": "c58c8d165cb8e1125fe956bc77cc01a765d2b6749a8ec7cbde23d3bc4d8a9c48"
+        },
+        {
+          "label": "release_last-snapshot",
+          "file": "034-release_last-snapshot.json",
+          "bytes": 4096,
+          "sha256": "9aa5290227ac27e3b95a3f77ea0e3d9abe435600264e893ae2e8bfca362c5e4a"
+        },
+        {
+          "label": "release_last-save",
+          "file": "035-release_last.save.json",
+          "bytes": 621,
+          "sha256": "6219b9b2fc5796c79c15c35edb5db72766fc4e651ef0be62e1d03b03db8fd3d8"
+        },
+        {
+          "label": "after-release-roundtrip-input",
+          "file": "036-after-release-roundtrip-input.json",
+          "bytes": 1074,
+          "sha256": "8eb9a45dd25ffaf5bb007269e6f76659b59c31b773c3749685229162a0a9cdf4"
+        },
+        {
+          "label": "after-release-roundtrip-snapshot",
+          "file": "037-after-release-roundtrip-snapshot.json",
+          "bytes": 4096,
+          "sha256": "9aa5290227ac27e3b95a3f77ea0e3d9abe435600264e893ae2e8bfca362c5e4a"
+        },
+        {
+          "label": "after-release-roundtrip-save",
+          "file": "038-after-release-roundtrip.save.json",
+          "bytes": 621,
+          "sha256": "6219b9b2fc5796c79c15c35edb5db72766fc4e651ef0be62e1d03b03db8fd3d8"
+        }
+      ]
+    },
+    {
+      "id": "W19",
+      "cell": "candidate",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Restore while historical holder pins reason; later read retains withdrawn/stale lineage and own grounds; final holder removal archives exact reason/reading only in candidate.",
+      "sourceSha256": "4eb0be9541e8f526040a1b4986e1c4cee5e8a7ccf4511764269e917de683e297",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.336Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "observedClass": "read-preserved-then-archived",
+      "projection": {
+        "result": {
+          "value": 1,
+          "provenance": {
+            "evidence": [
+              "a@2",
+              "kept@1"
+            ],
+            "caveats": [
+              "stale",
+              "withdrawn"
+            ]
+          }
+        },
+        "grounds": {
+          "evidence": [
+            "a@2",
+            "kept@1"
+          ],
+          "caveats": [
+            "stale",
+            "withdrawn"
+          ]
+        },
+        "old": {
+          "evidence": "a@2",
+          "because": "a@2",
+          "sequence": 1,
+          "event": "initialize"
+        }
+      },
+      "lifecycle": {
+        "activeRetiredReason": false,
+        "archivedRecords": [
+          "a@2",
+          "kept@1"
+        ]
+      },
+      "pass": true,
+      "artifacts": [
+        {
+          "label": "open-snapshot",
+          "file": "001-open-snapshot.json",
+          "bytes": 3176,
+          "sha256": "8be608447e93bc32feb02d29442c98c3391c7cacf91709140edd22fe51bd9f1c"
+        },
+        {
+          "label": "open-save",
+          "file": "002-open.save.json",
+          "bytes": 284,
+          "sha256": "fbae8556aa1580fc17870eeae950aee7604dd29386e76cfafaa484cc90127f22"
+        },
+        {
+          "label": "event-initialize",
+          "file": "003-event-initialize.json",
+          "bytes": 6712,
+          "sha256": "76039c0601e72edfbbb1becb3d615bac59783460aa6c59b9c78806c04910a11a"
+        },
+        {
+          "label": "initialize-snapshot",
+          "file": "004-initialize-snapshot.json",
+          "bytes": 5387,
+          "sha256": "b94647d6bb80913c14ced3cab5e9b0ab5a0d7c3837830c9ab547f95923f294cc"
+        },
+        {
+          "label": "initialize-save",
+          "file": "005-initialize.save.json",
+          "bytes": 1305,
+          "sha256": "ba74b9b307aa6cd81ca98186c097936219ce4bc8f64e5930f2fac0bb7f463f49"
+        },
+        {
+          "label": "event-cycle",
+          "file": "006-event-cycle.json",
+          "bytes": 7151,
+          "sha256": "9e221b3d5a6388e33ee7344a5be6384890015d65f8badf2970cb8d88a126a729"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "007-cycle-snapshot.json",
+          "bytes": 5751,
+          "sha256": "ef28f59f43f8807c120de94acc724f65e687ff0887223b5f1db5f958495afbc7"
+        },
+        {
+          "label": "cycle-save",
+          "file": "008-cycle.save.json",
+          "bytes": 1331,
+          "sha256": "d790cd86ade531b34ef0d11c167fe5e59f6762cba93c0e3a913e73c94bb81c0e"
+        },
+        {
+          "label": "live-history-holder-input",
+          "file": "009-live-history-holder-input.json",
+          "bytes": 2424,
+          "sha256": "863e5fe8aea9d06d74195dfe0d347ee06ef20715471b8b8f19b47503917f1f18"
+        },
+        {
+          "label": "live-history-holder-snapshot",
+          "file": "010-live-history-holder-snapshot.json",
+          "bytes": 5751,
+          "sha256": "ef28f59f43f8807c120de94acc724f65e687ff0887223b5f1db5f958495afbc7"
+        },
+        {
+          "label": "live-history-holder-save",
+          "file": "011-live-history-holder.save.json",
+          "bytes": 1331,
+          "sha256": "d790cd86ade531b34ef0d11c167fe5e59f6762cba93c0e3a913e73c94bb81c0e"
+        },
+        {
+          "label": "while-held-archive",
+          "file": "012-while-held-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-probe",
+          "file": "013-event-probe.json",
+          "bytes": 7393,
+          "sha256": "b26bb1c9e7ddb8126b7b2c3bf033dcdd2750c4cdd2ee25ee502a07ccb685fc66"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "014-probe-snapshot.json",
+          "bytes": 5937,
+          "sha256": "0e4cc261342cc54bb3d71ae8eedcba541b58c47726e535acaeb0ad75bc80c32c"
+        },
+        {
+          "label": "probe-save",
+          "file": "015-probe.save.json",
+          "bytes": 1189,
+          "sha256": "c338252f9f0c2ee96e1051961af9cb2dbe91dc25133735599e2d24a6a5971cf8"
+        },
+        {
+          "label": "event-clear",
+          "file": "016-event-clear.json",
+          "bytes": 6693,
+          "sha256": "6b16c0d8782d1eeb0aecfdf41beab84a7d9106494d5df79a7a3678027a41d18a"
+        },
+        {
+          "label": "clear-snapshot",
+          "file": "017-clear-snapshot.json",
+          "bytes": 5381,
+          "sha256": "5c2a1fb46a244d3d6a2a435a1b16004587ff8d51ee5c7bd53b876239544cf1bf"
+        },
+        {
+          "label": "clear-save",
+          "file": "018-clear.save.json",
+          "bytes": 1095,
+          "sha256": "f25e300d66cdd6d315c6bef52c3d0abdab66ed8b222499048e60857a5f4f189d"
+        },
+        {
+          "label": "event-replace",
+          "file": "019-event-replace.json",
+          "bytes": 6195,
+          "sha256": "4dc450f336f5b2b87522e93f5d640ce475ca48f57a6ad1ae643c3be261509d00"
+        },
+        {
+          "label": "replace-snapshot",
+          "file": "020-replace-snapshot.json",
+          "bytes": 4969,
+          "sha256": "b411a15e32fb0a46f519990329c441133e67bc87caa42ce458f19ddb255021e9"
+        },
+        {
+          "label": "replace-save",
+          "file": "021-replace.save.json",
+          "bytes": 1093,
+          "sha256": "912656ce396e4c8f95cf4f1a85d6f1856be5e421bd55d94bb5419ea37521b9a7"
+        },
+        {
+          "label": "event-probe",
+          "file": "022-event-probe.json",
+          "bytes": 7393,
+          "sha256": "b26bb1c9e7ddb8126b7b2c3bf033dcdd2750c4cdd2ee25ee502a07ccb685fc66"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "023-probe-snapshot.json",
+          "bytes": 5937,
+          "sha256": "0e4cc261342cc54bb3d71ae8eedcba541b58c47726e535acaeb0ad75bc80c32c"
+        },
+        {
+          "label": "probe-save",
+          "file": "024-probe.save.json",
+          "bytes": 1189,
+          "sha256": "c338252f9f0c2ee96e1051961af9cb2dbe91dc25133735599e2d24a6a5971cf8"
+        },
+        {
+          "label": "event-clear",
+          "file": "025-event-clear.json",
+          "bytes": 6693,
+          "sha256": "6b16c0d8782d1eeb0aecfdf41beab84a7d9106494d5df79a7a3678027a41d18a"
+        },
+        {
+          "label": "clear-snapshot",
+          "file": "026-clear-snapshot.json",
+          "bytes": 5381,
+          "sha256": "5c2a1fb46a244d3d6a2a435a1b16004587ff8d51ee5c7bd53b876239544cf1bf"
+        },
+        {
+          "label": "clear-save",
+          "file": "027-clear.save.json",
+          "bytes": 1095,
+          "sha256": "f25e300d66cdd6d315c6bef52c3d0abdab66ed8b222499048e60857a5f4f189d"
+        },
+        {
+          "label": "event-replace",
+          "file": "028-event-replace.json",
+          "bytes": 6195,
+          "sha256": "4dc450f336f5b2b87522e93f5d640ce475ca48f57a6ad1ae643c3be261509d00"
+        },
+        {
+          "label": "replace-snapshot",
+          "file": "029-replace-snapshot.json",
+          "bytes": 4969,
+          "sha256": "b411a15e32fb0a46f519990329c441133e67bc87caa42ce458f19ddb255021e9"
+        },
+        {
+          "label": "replace-save",
+          "file": "030-replace.save.json",
+          "bytes": 1093,
+          "sha256": "912656ce396e4c8f95cf4f1a85d6f1856be5e421bd55d94bb5419ea37521b9a7"
+        },
+        {
+          "label": "holder-released-archive",
+          "file": "031-holder-released-archive.json",
+          "bytes": 1830,
+          "sha256": "a7e7f92b4a428302c771de404034c46c57d7c3fd13376092cb17fac57db682ca"
+        },
+        {
+          "label": "restored-holder-released-archive",
+          "file": "032-restored-holder-released-archive.json",
+          "bytes": 1830,
+          "sha256": "a7e7f92b4a428302c771de404034c46c57d7c3fd13376092cb17fac57db682ca"
+        },
+        {
+          "label": "after-holder-release-input",
+          "file": "033-after-holder-release-input.json",
+          "bytes": 1886,
+          "sha256": "1faa6c16737065c8772607a4e969529f145e89c7ac463836874241d1ad44374a"
+        },
+        {
+          "label": "after-holder-release-snapshot",
+          "file": "034-after-holder-release-snapshot.json",
+          "bytes": 4969,
+          "sha256": "b411a15e32fb0a46f519990329c441133e67bc87caa42ce458f19ddb255021e9"
+        },
+        {
+          "label": "after-holder-release-save",
+          "file": "035-after-holder-release.save.json",
+          "bytes": 1093,
+          "sha256": "912656ce396e4c8f95cf4f1a85d6f1856be5e421bd55d94bb5419ea37521b9a7"
+        }
+      ]
+    },
+    {
+      "id": "W19",
+      "cell": "rc15",
+      "classification": "approved-lifecycle-difference",
+      "expectation": "Restore while historical holder pins reason; later read retains withdrawn/stale lineage and own grounds; final holder removal archives exact reason/reading only in candidate.",
+      "sourceSha256": "4eb0be9541e8f526040a1b4986e1c4cee5e8a7ccf4511764269e917de683e297",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.371Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "observedClass": "read-preserved-history-kept",
+      "projection": {
+        "result": {
+          "value": 1,
+          "provenance": {
+            "evidence": [
+              "a@2",
+              "kept@1"
+            ],
+            "caveats": [
+              "stale",
+              "withdrawn"
+            ]
+          }
+        },
+        "grounds": {
+          "evidence": [
+            "a@2",
+            "kept@1"
+          ],
+          "caveats": [
+            "stale",
+            "withdrawn"
+          ]
+        },
+        "old": {
+          "evidence": "a@2",
+          "because": "a@2",
+          "sequence": 1,
+          "event": "initialize"
+        }
+      },
+      "lifecycle": {
+        "activeRetiredReason": true,
+        "archivedRecords": null
+      },
+      "pass": true,
+      "artifacts": [
+        {
+          "label": "open-snapshot",
+          "file": "001-open-snapshot.json",
+          "bytes": 3176,
+          "sha256": "8be608447e93bc32feb02d29442c98c3391c7cacf91709140edd22fe51bd9f1c"
+        },
+        {
+          "label": "open-save",
+          "file": "002-open.save.json",
+          "bytes": 284,
+          "sha256": "fbae8556aa1580fc17870eeae950aee7604dd29386e76cfafaa484cc90127f22"
+        },
+        {
+          "label": "event-initialize",
+          "file": "003-event-initialize.json",
+          "bytes": 6712,
+          "sha256": "76039c0601e72edfbbb1becb3d615bac59783460aa6c59b9c78806c04910a11a"
+        },
+        {
+          "label": "initialize-snapshot",
+          "file": "004-initialize-snapshot.json",
+          "bytes": 5387,
+          "sha256": "b94647d6bb80913c14ced3cab5e9b0ab5a0d7c3837830c9ab547f95923f294cc"
+        },
+        {
+          "label": "initialize-save",
+          "file": "005-initialize.save.json",
+          "bytes": 1305,
+          "sha256": "ba74b9b307aa6cd81ca98186c097936219ce4bc8f64e5930f2fac0bb7f463f49"
+        },
+        {
+          "label": "event-cycle",
+          "file": "006-event-cycle.json",
+          "bytes": 7151,
+          "sha256": "9e221b3d5a6388e33ee7344a5be6384890015d65f8badf2970cb8d88a126a729"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "007-cycle-snapshot.json",
+          "bytes": 5751,
+          "sha256": "ef28f59f43f8807c120de94acc724f65e687ff0887223b5f1db5f958495afbc7"
+        },
+        {
+          "label": "cycle-save",
+          "file": "008-cycle.save.json",
+          "bytes": 1331,
+          "sha256": "d790cd86ade531b34ef0d11c167fe5e59f6762cba93c0e3a913e73c94bb81c0e"
+        },
+        {
+          "label": "live-history-holder-input",
+          "file": "009-live-history-holder-input.json",
+          "bytes": 2424,
+          "sha256": "863e5fe8aea9d06d74195dfe0d347ee06ef20715471b8b8f19b47503917f1f18"
+        },
+        {
+          "label": "live-history-holder-snapshot",
+          "file": "010-live-history-holder-snapshot.json",
+          "bytes": 5751,
+          "sha256": "ef28f59f43f8807c120de94acc724f65e687ff0887223b5f1db5f958495afbc7"
+        },
+        {
+          "label": "live-history-holder-save",
+          "file": "011-live-history-holder.save.json",
+          "bytes": 1331,
+          "sha256": "d790cd86ade531b34ef0d11c167fe5e59f6762cba93c0e3a913e73c94bb81c0e"
+        },
+        {
+          "label": "event-probe",
+          "file": "012-event-probe.json",
+          "bytes": 7393,
+          "sha256": "b26bb1c9e7ddb8126b7b2c3bf033dcdd2750c4cdd2ee25ee502a07ccb685fc66"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "013-probe-snapshot.json",
+          "bytes": 5937,
+          "sha256": "0e4cc261342cc54bb3d71ae8eedcba541b58c47726e535acaeb0ad75bc80c32c"
+        },
+        {
+          "label": "probe-save",
+          "file": "014-probe.save.json",
+          "bytes": 1189,
+          "sha256": "c338252f9f0c2ee96e1051961af9cb2dbe91dc25133735599e2d24a6a5971cf8"
+        },
+        {
+          "label": "event-clear",
+          "file": "015-event-clear.json",
+          "bytes": 6693,
+          "sha256": "6b16c0d8782d1eeb0aecfdf41beab84a7d9106494d5df79a7a3678027a41d18a"
+        },
+        {
+          "label": "clear-snapshot",
+          "file": "016-clear-snapshot.json",
+          "bytes": 5381,
+          "sha256": "5c2a1fb46a244d3d6a2a435a1b16004587ff8d51ee5c7bd53b876239544cf1bf"
+        },
+        {
+          "label": "clear-save",
+          "file": "017-clear.save.json",
+          "bytes": 1095,
+          "sha256": "f25e300d66cdd6d315c6bef52c3d0abdab66ed8b222499048e60857a5f4f189d"
+        },
+        {
+          "label": "event-replace",
+          "file": "018-event-replace.json",
+          "bytes": 7868,
+          "sha256": "6eab7c332f3331b624f239f27e01dadcde8d0f54c45294da4b598a7e5dffd3cc"
+        },
+        {
+          "label": "replace-snapshot",
+          "file": "019-replace-snapshot.json",
+          "bytes": 6358,
+          "sha256": "bbd5acbc72e8854b7cbf090e703e5fac8590f85037c3e535016e086556f193bd"
+        },
+        {
+          "label": "replace-save",
+          "file": "020-replace.save.json",
+          "bytes": 1508,
+          "sha256": "a6051664219b581e27bde93578e608f469bdc65dcb67f596156827293ec1e603"
+        },
+        {
+          "label": "event-probe",
+          "file": "021-event-probe.json",
+          "bytes": 7393,
+          "sha256": "b26bb1c9e7ddb8126b7b2c3bf033dcdd2750c4cdd2ee25ee502a07ccb685fc66"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "022-probe-snapshot.json",
+          "bytes": 5937,
+          "sha256": "0e4cc261342cc54bb3d71ae8eedcba541b58c47726e535acaeb0ad75bc80c32c"
+        },
+        {
+          "label": "probe-save",
+          "file": "023-probe.save.json",
+          "bytes": 1189,
+          "sha256": "c338252f9f0c2ee96e1051961af9cb2dbe91dc25133735599e2d24a6a5971cf8"
+        },
+        {
+          "label": "event-clear",
+          "file": "024-event-clear.json",
+          "bytes": 6693,
+          "sha256": "6b16c0d8782d1eeb0aecfdf41beab84a7d9106494d5df79a7a3678027a41d18a"
+        },
+        {
+          "label": "clear-snapshot",
+          "file": "025-clear-snapshot.json",
+          "bytes": 5381,
+          "sha256": "5c2a1fb46a244d3d6a2a435a1b16004587ff8d51ee5c7bd53b876239544cf1bf"
+        },
+        {
+          "label": "clear-save",
+          "file": "026-clear.save.json",
+          "bytes": 1095,
+          "sha256": "f25e300d66cdd6d315c6bef52c3d0abdab66ed8b222499048e60857a5f4f189d"
+        },
+        {
+          "label": "event-replace",
+          "file": "027-event-replace.json",
+          "bytes": 7868,
+          "sha256": "6eab7c332f3331b624f239f27e01dadcde8d0f54c45294da4b598a7e5dffd3cc"
+        },
+        {
+          "label": "replace-snapshot",
+          "file": "028-replace-snapshot.json",
+          "bytes": 6358,
+          "sha256": "bbd5acbc72e8854b7cbf090e703e5fac8590f85037c3e535016e086556f193bd"
+        },
+        {
+          "label": "replace-save",
+          "file": "029-replace.save.json",
+          "bytes": 1508,
+          "sha256": "a6051664219b581e27bde93578e608f469bdc65dcb67f596156827293ec1e603"
+        },
+        {
+          "label": "after-holder-release-input",
+          "file": "030-after-holder-release-input.json",
+          "bytes": 2813,
+          "sha256": "3d2ee521e97820e818ad09a45e532c777fff6c2f0198248777e64f9810a2db57"
+        },
+        {
+          "label": "after-holder-release-snapshot",
+          "file": "031-after-holder-release-snapshot.json",
+          "bytes": 6358,
+          "sha256": "bbd5acbc72e8854b7cbf090e703e5fac8590f85037c3e535016e086556f193bd"
+        },
+        {
+          "label": "after-holder-release-save",
+          "file": "032-after-holder-release.save.json",
+          "bytes": 1508,
+          "sha256": "a6051664219b581e27bde93578e608f469bdc65dcb67f596156827293ec1e603"
+        }
+      ]
+    },
+    {
+      "id": "W20",
+      "cell": "candidate",
+      "classification": "unchanged-guarantee",
+      "expectation": "Distinct required withdrawal reason chain survives four cycles, restore and continuation; predicate carries actual qualified reason.",
+      "sourceSha256": "37bec69829905c6536008d3a254ca2aa469cb5a18332dc071d8dfb4921ee02c6",
+      "sourceRevision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.402Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "52e17a54eb1be7f17aad6fc51be3a6a2db3308fad6970a817b59547c51c99cbe",
+        "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-pc-windows-msvc"
+      },
+      "observedClass": "required-chain-preserved",
+      "projection": {
+        "withdrawals": [
+          {
+            "evidence": "a@2",
+            "because": "b",
+            "sequence": 2,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@2",
+            "because": "a@2",
+            "sequence": 2,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@3",
+            "because": "b@2",
+            "sequence": 3,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@3",
+            "because": "a@3",
+            "sequence": 3,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@4",
+            "because": "b@3",
+            "sequence": 4,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@4",
+            "because": "a@4",
+            "sequence": 4,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@5",
+            "because": "b@4",
+            "sequence": 5,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@5",
+            "because": "a@5",
+            "sequence": 5,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@6",
+            "because": "b@5",
+            "sequence": 7,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@6",
+            "because": "a@6",
+            "sequence": 7,
+            "event": "cycle"
+          }
+        ],
+        "value": {
+          "value": 1,
+          "provenance": {
+            "evidence": [
+              "a@6"
+            ],
+            "caveats": [
+              "stale",
+              "withdrawn"
+            ]
+          }
+        },
+        "grounds": {
+          "evidence": [
+            "a@6"
+          ],
+          "caveats": [
+            "stale",
+            "withdrawn"
+          ]
+        },
+        "hud": {
+          "reason": 1
+        }
+      },
+      "pass": true,
+      "artifacts": [
+        {
+          "label": "open-snapshot",
+          "file": "001-open-snapshot.json",
+          "bytes": 2733,
+          "sha256": "aaf96e2c5ea8f15b612c480dad293c199663be46a220531d0c00a113e4059f2a"
+        },
+        {
+          "label": "open-save",
+          "file": "002-open.save.json",
+          "bytes": 130,
+          "sha256": "7cc363c78f815bd98721795a4697d4789f69b8695ab60261a33a7112bf81614a"
+        },
+        {
+          "label": "event-initialize",
+          "file": "003-event-initialize.json",
+          "bytes": 3850,
+          "sha256": "981e4bbda249c2651bbe6c26b663e5c2daa897172a9c78ad877813adf835e8c8"
+        },
+        {
+          "label": "initialize-snapshot",
+          "file": "004-initialize-snapshot.json",
+          "bytes": 3025,
+          "sha256": "870ba753b33ff9d082cdb7db18a1b36d80dc5b29695552c33ad7581a019e088b"
+        },
+        {
+          "label": "initialize-save",
+          "file": "005-initialize.save.json",
+          "bytes": 314,
+          "sha256": "ada5457abacff8c939b88269904ca5d2b76e6051768c5fb28c38e577b7d31279"
+        },
+        {
+          "label": "event-cycle",
+          "file": "006-event-cycle.json",
+          "bytes": 6373,
+          "sha256": "449a61913cc4c4778684407b373eece161d8bb8cdf2927eed23e75f984ae9305"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "007-cycle-snapshot.json",
+          "bytes": 5085,
+          "sha256": "bd8be5a47acedcba7e0418e0aeb65ea1301488a45bf30ee1bd86cb745796a89a"
+        },
+        {
+          "label": "cycle-save",
+          "file": "008-cycle.save.json",
+          "bytes": 1186,
+          "sha256": "f5ea9e98a5c52a02d7a603a6a7ff616657bc079fa0e2373aabd52aed96dda415"
+        },
+        {
+          "label": "event-cycle",
+          "file": "009-event-cycle.json",
+          "bytes": 7992,
+          "sha256": "34e20058dfdcb7556d2d2ab3c2d65dcfe17ca03a725696d0b2023a474bcc32b5"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "010-cycle-snapshot.json",
+          "bytes": 6416,
+          "sha256": "0947d9fcd88bed327bbfdb8204b0f32bf3b2b95c3cdbd94d54572bc9f8d22f53"
+        },
+        {
+          "label": "cycle-save",
+          "file": "011-cycle.save.json",
+          "bytes": 1580,
+          "sha256": "07c01d5c7e2afda244b64a132926bfcb8edc5544d902fc50196b8004f333c851"
+        },
+        {
+          "label": "event-cycle",
+          "file": "012-event-cycle.json",
+          "bytes": 9605,
+          "sha256": "3e91dda5de6d687322068deba89e0d452dda32b4122fbbaea257b6d24a2da2db"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "013-cycle-snapshot.json",
+          "bytes": 7741,
+          "sha256": "95c867ed0369b89123d72870378f694eb901efef193ff0a693671fb5decf8048"
+        },
+        {
+          "label": "cycle-save",
+          "file": "014-cycle.save.json",
+          "bytes": 1968,
+          "sha256": "e709a6120b2e1f591623434e4d8cb9eb84007e5a9ca81b6a6957c69409fe5e2a"
+        },
+        {
+          "label": "event-cycle",
+          "file": "015-event-cycle.json",
+          "bytes": 11218,
+          "sha256": "ad680e901f8051dba21ae8a8cfec999c49d23aabade5206dcabf6b88758e5160"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "016-cycle-snapshot.json",
+          "bytes": 9066,
+          "sha256": "bce6a4e4802351524d1657433e19d32e7b456883bf993bcae00f814cf30bb067"
+        },
+        {
+          "label": "cycle-save",
+          "file": "017-cycle.save.json",
+          "bytes": 2356,
+          "sha256": "8302627658db15cbba1bbe72d68c913de4c3506727b9c9e49fd22c1982e45dac"
+        },
+        {
+          "label": "required-chain-input",
+          "file": "018-required-chain-input.json",
+          "bytes": 4429,
+          "sha256": "fd855fa36a721a32f96ea7ff8ab95f28d49613cdbfc739602e728c9e277d4c81"
+        },
+        {
+          "label": "required-chain-snapshot",
+          "file": "019-required-chain-snapshot.json",
+          "bytes": 9066,
+          "sha256": "bce6a4e4802351524d1657433e19d32e7b456883bf993bcae00f814cf30bb067"
+        },
+        {
+          "label": "required-chain-save",
+          "file": "020-required-chain.save.json",
+          "bytes": 2356,
+          "sha256": "8302627658db15cbba1bbe72d68c913de4c3506727b9c9e49fd22c1982e45dac"
+        },
+        {
+          "label": "event-probe",
+          "file": "021-event-probe.json",
+          "bytes": 10571,
+          "sha256": "0428759a81cdf5f48c7b0fc9866d32dd5d44eda3cb5454d774c0ad5f23f0fb94"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "022-probe-snapshot.json",
+          "bytes": 8531,
+          "sha256": "27401788e5c0ee623e918c62a83d0a058893b321abad1056a588a6d6f8fa8f91"
+        },
+        {
+          "label": "probe-save",
+          "file": "023-probe.save.json",
+          "bytes": 1933,
+          "sha256": "db0748fd5527a1a28bbe57f731273b8aa21e1392955917ab5be85d724cd6f9ed"
+        },
+        {
+          "label": "required-chain-archive",
+          "file": "024-required-chain-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-cycle",
+          "file": "025-event-cycle.json",
+          "bytes": 13201,
+          "sha256": "4554eff5958097c7801b5708a8426a03fca221089d1fd943d3f134fbdffe9648"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "026-cycle-snapshot.json",
+          "bytes": 10681,
+          "sha256": "deb429b559f755fcd906e634b157ae2f9ab7cc027a7a9889a9c240850d19246f"
+        },
+        {
+          "label": "cycle-save",
+          "file": "027-cycle.save.json",
+          "bytes": 2834,
+          "sha256": "29cb99d62115fca463c5ee41693f92a41535ea4d21b6d6eeb0be010066ad8875"
+        },
+        {
+          "label": "event-probe",
+          "file": "028-event-probe.json",
+          "bytes": 12184,
+          "sha256": "acb5a7ae9706c8e3c69b1dbc5791cbd2dc028f6a93bd0a63d08ed43ce62c4147"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "029-probe-snapshot.json",
+          "bytes": 9856,
+          "sha256": "59bd57abd248e1f7642f7b17c8cabb771996e1636482db2fb17e00410b8f5c1b"
+        },
+        {
+          "label": "probe-save",
+          "file": "030-probe.save.json",
+          "bytes": 2321,
+          "sha256": "cd5bdf3f15a55dc8fd47a453496e5bf433f5d9d0982f476d5df834ebf347de51"
+        },
+        {
+          "label": "continued-chain-archive",
+          "file": "031-continued-chain-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-probe",
+          "file": "032-event-probe.json",
+          "bytes": 10571,
+          "sha256": "0428759a81cdf5f48c7b0fc9866d32dd5d44eda3cb5454d774c0ad5f23f0fb94"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "033-probe-snapshot.json",
+          "bytes": 8531,
+          "sha256": "27401788e5c0ee623e918c62a83d0a058893b321abad1056a588a6d6f8fa8f91"
+        },
+        {
+          "label": "probe-save",
+          "file": "034-probe.save.json",
+          "bytes": 1933,
+          "sha256": "db0748fd5527a1a28bbe57f731273b8aa21e1392955917ab5be85d724cd6f9ed"
+        },
+        {
+          "label": "required-chain-archive",
+          "file": "035-required-chain-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "event-cycle",
+          "file": "036-event-cycle.json",
+          "bytes": 13201,
+          "sha256": "4554eff5958097c7801b5708a8426a03fca221089d1fd943d3f134fbdffe9648"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "037-cycle-snapshot.json",
+          "bytes": 10681,
+          "sha256": "deb429b559f755fcd906e634b157ae2f9ab7cc027a7a9889a9c240850d19246f"
+        },
+        {
+          "label": "cycle-save",
+          "file": "038-cycle.save.json",
+          "bytes": 2834,
+          "sha256": "29cb99d62115fca463c5ee41693f92a41535ea4d21b6d6eeb0be010066ad8875"
+        },
+        {
+          "label": "event-probe",
+          "file": "039-event-probe.json",
+          "bytes": 12184,
+          "sha256": "acb5a7ae9706c8e3c69b1dbc5791cbd2dc028f6a93bd0a63d08ed43ce62c4147"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "040-probe-snapshot.json",
+          "bytes": 9856,
+          "sha256": "59bd57abd248e1f7642f7b17c8cabb771996e1636482db2fb17e00410b8f5c1b"
+        },
+        {
+          "label": "probe-save",
+          "file": "041-probe.save.json",
+          "bytes": 2321,
+          "sha256": "cd5bdf3f15a55dc8fd47a453496e5bf433f5d9d0982f476d5df834ebf347de51"
+        },
+        {
+          "label": "continued-chain-archive",
+          "file": "042-continued-chain-archive.json",
+          "bytes": 3,
+          "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+        },
+        {
+          "label": "continued-chain-roundtrip-input",
+          "file": "043-continued-chain-roundtrip-input.json",
+          "bytes": 4566,
+          "sha256": "8f48af9ceaa4dab7c1149558bc17740113fc701614fa01f46a0c691369088e95"
+        },
+        {
+          "label": "continued-chain-roundtrip-snapshot",
+          "file": "044-continued-chain-roundtrip-snapshot.json",
+          "bytes": 9856,
+          "sha256": "59bd57abd248e1f7642f7b17c8cabb771996e1636482db2fb17e00410b8f5c1b"
+        },
+        {
+          "label": "continued-chain-roundtrip-save",
+          "file": "045-continued-chain-roundtrip.save.json",
+          "bytes": 2321,
+          "sha256": "cd5bdf3f15a55dc8fd47a453496e5bf433f5d9d0982f476d5df834ebf347de51"
+        }
+      ]
+    },
+    {
+      "id": "W20",
+      "cell": "rc15",
+      "classification": "unchanged-guarantee",
+      "expectation": "Distinct required withdrawal reason chain survives four cycles, restore and continuation; predicate carries actual qualified reason.",
+      "sourceSha256": "37bec69829905c6536008d3a254ca2aa469cb5a18332dc071d8dfb4921ee02c6",
+      "sourceRevision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "originalFindingReplica": false,
+      "at": "2026-10-08T21:03:21.445Z",
+      "loadedRuntimeIdentity": {
+        "reactiveWasmSha256": "29edda09e93f61381049b5bb614a77d74bf22873ca37fef40da014dbe2fed577",
+        "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+        "clean": true,
+        "compiled": true,
+        "host": "x86_64-unknown-linux-gnu"
+      },
+      "observedClass": "required-chain-preserved",
+      "projection": {
+        "withdrawals": [
+          {
+            "evidence": "a@2",
+            "because": "b",
+            "sequence": 2,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@2",
+            "because": "a@2",
+            "sequence": 2,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@3",
+            "because": "b@2",
+            "sequence": 3,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@3",
+            "because": "a@3",
+            "sequence": 3,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@4",
+            "because": "b@3",
+            "sequence": 4,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@4",
+            "because": "a@4",
+            "sequence": 4,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@5",
+            "because": "b@4",
+            "sequence": 5,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@5",
+            "because": "a@5",
+            "sequence": 5,
+            "event": "cycle"
+          },
+          {
+            "evidence": "a@6",
+            "because": "b@5",
+            "sequence": 7,
+            "event": "cycle"
+          },
+          {
+            "evidence": "b@6",
+            "because": "a@6",
+            "sequence": 7,
+            "event": "cycle"
+          }
+        ],
+        "value": {
+          "value": 1,
+          "provenance": {
+            "evidence": [
+              "a@6"
+            ],
+            "caveats": [
+              "stale",
+              "withdrawn"
+            ]
+          }
+        },
+        "grounds": {
+          "evidence": [
+            "a@6"
+          ],
+          "caveats": [
+            "stale",
+            "withdrawn"
+          ]
+        },
+        "hud": {
+          "reason": 1
+        }
+      },
+      "pass": true,
+      "artifacts": [
+        {
+          "label": "open-snapshot",
+          "file": "001-open-snapshot.json",
+          "bytes": 2733,
+          "sha256": "aaf96e2c5ea8f15b612c480dad293c199663be46a220531d0c00a113e4059f2a"
+        },
+        {
+          "label": "open-save",
+          "file": "002-open.save.json",
+          "bytes": 130,
+          "sha256": "7cc363c78f815bd98721795a4697d4789f69b8695ab60261a33a7112bf81614a"
+        },
+        {
+          "label": "event-initialize",
+          "file": "003-event-initialize.json",
+          "bytes": 3850,
+          "sha256": "981e4bbda249c2651bbe6c26b663e5c2daa897172a9c78ad877813adf835e8c8"
+        },
+        {
+          "label": "initialize-snapshot",
+          "file": "004-initialize-snapshot.json",
+          "bytes": 3025,
+          "sha256": "870ba753b33ff9d082cdb7db18a1b36d80dc5b29695552c33ad7581a019e088b"
+        },
+        {
+          "label": "initialize-save",
+          "file": "005-initialize.save.json",
+          "bytes": 314,
+          "sha256": "ada5457abacff8c939b88269904ca5d2b76e6051768c5fb28c38e577b7d31279"
+        },
+        {
+          "label": "event-cycle",
+          "file": "006-event-cycle.json",
+          "bytes": 6373,
+          "sha256": "449a61913cc4c4778684407b373eece161d8bb8cdf2927eed23e75f984ae9305"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "007-cycle-snapshot.json",
+          "bytes": 5085,
+          "sha256": "bd8be5a47acedcba7e0418e0aeb65ea1301488a45bf30ee1bd86cb745796a89a"
+        },
+        {
+          "label": "cycle-save",
+          "file": "008-cycle.save.json",
+          "bytes": 1186,
+          "sha256": "f5ea9e98a5c52a02d7a603a6a7ff616657bc079fa0e2373aabd52aed96dda415"
+        },
+        {
+          "label": "event-cycle",
+          "file": "009-event-cycle.json",
+          "bytes": 7992,
+          "sha256": "34e20058dfdcb7556d2d2ab3c2d65dcfe17ca03a725696d0b2023a474bcc32b5"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "010-cycle-snapshot.json",
+          "bytes": 6416,
+          "sha256": "0947d9fcd88bed327bbfdb8204b0f32bf3b2b95c3cdbd94d54572bc9f8d22f53"
+        },
+        {
+          "label": "cycle-save",
+          "file": "011-cycle.save.json",
+          "bytes": 1580,
+          "sha256": "07c01d5c7e2afda244b64a132926bfcb8edc5544d902fc50196b8004f333c851"
+        },
+        {
+          "label": "event-cycle",
+          "file": "012-event-cycle.json",
+          "bytes": 9605,
+          "sha256": "3e91dda5de6d687322068deba89e0d452dda32b4122fbbaea257b6d24a2da2db"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "013-cycle-snapshot.json",
+          "bytes": 7741,
+          "sha256": "95c867ed0369b89123d72870378f694eb901efef193ff0a693671fb5decf8048"
+        },
+        {
+          "label": "cycle-save",
+          "file": "014-cycle.save.json",
+          "bytes": 1968,
+          "sha256": "e709a6120b2e1f591623434e4d8cb9eb84007e5a9ca81b6a6957c69409fe5e2a"
+        },
+        {
+          "label": "event-cycle",
+          "file": "015-event-cycle.json",
+          "bytes": 11218,
+          "sha256": "ad680e901f8051dba21ae8a8cfec999c49d23aabade5206dcabf6b88758e5160"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "016-cycle-snapshot.json",
+          "bytes": 9066,
+          "sha256": "bce6a4e4802351524d1657433e19d32e7b456883bf993bcae00f814cf30bb067"
+        },
+        {
+          "label": "cycle-save",
+          "file": "017-cycle.save.json",
+          "bytes": 2356,
+          "sha256": "8302627658db15cbba1bbe72d68c913de4c3506727b9c9e49fd22c1982e45dac"
+        },
+        {
+          "label": "required-chain-input",
+          "file": "018-required-chain-input.json",
+          "bytes": 4429,
+          "sha256": "fd855fa36a721a32f96ea7ff8ab95f28d49613cdbfc739602e728c9e277d4c81"
+        },
+        {
+          "label": "required-chain-snapshot",
+          "file": "019-required-chain-snapshot.json",
+          "bytes": 9066,
+          "sha256": "bce6a4e4802351524d1657433e19d32e7b456883bf993bcae00f814cf30bb067"
+        },
+        {
+          "label": "required-chain-save",
+          "file": "020-required-chain.save.json",
+          "bytes": 2356,
+          "sha256": "8302627658db15cbba1bbe72d68c913de4c3506727b9c9e49fd22c1982e45dac"
+        },
+        {
+          "label": "event-probe",
+          "file": "021-event-probe.json",
+          "bytes": 10571,
+          "sha256": "0428759a81cdf5f48c7b0fc9866d32dd5d44eda3cb5454d774c0ad5f23f0fb94"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "022-probe-snapshot.json",
+          "bytes": 8531,
+          "sha256": "27401788e5c0ee623e918c62a83d0a058893b321abad1056a588a6d6f8fa8f91"
+        },
+        {
+          "label": "probe-save",
+          "file": "023-probe.save.json",
+          "bytes": 1933,
+          "sha256": "db0748fd5527a1a28bbe57f731273b8aa21e1392955917ab5be85d724cd6f9ed"
+        },
+        {
+          "label": "event-cycle",
+          "file": "024-event-cycle.json",
+          "bytes": 13201,
+          "sha256": "4554eff5958097c7801b5708a8426a03fca221089d1fd943d3f134fbdffe9648"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "025-cycle-snapshot.json",
+          "bytes": 10681,
+          "sha256": "deb429b559f755fcd906e634b157ae2f9ab7cc027a7a9889a9c240850d19246f"
+        },
+        {
+          "label": "cycle-save",
+          "file": "026-cycle.save.json",
+          "bytes": 2834,
+          "sha256": "29cb99d62115fca463c5ee41693f92a41535ea4d21b6d6eeb0be010066ad8875"
+        },
+        {
+          "label": "event-probe",
+          "file": "027-event-probe.json",
+          "bytes": 12184,
+          "sha256": "acb5a7ae9706c8e3c69b1dbc5791cbd2dc028f6a93bd0a63d08ed43ce62c4147"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "028-probe-snapshot.json",
+          "bytes": 9856,
+          "sha256": "59bd57abd248e1f7642f7b17c8cabb771996e1636482db2fb17e00410b8f5c1b"
+        },
+        {
+          "label": "probe-save",
+          "file": "029-probe.save.json",
+          "bytes": 2321,
+          "sha256": "cd5bdf3f15a55dc8fd47a453496e5bf433f5d9d0982f476d5df834ebf347de51"
+        },
+        {
+          "label": "event-probe",
+          "file": "030-event-probe.json",
+          "bytes": 10571,
+          "sha256": "0428759a81cdf5f48c7b0fc9866d32dd5d44eda3cb5454d774c0ad5f23f0fb94"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "031-probe-snapshot.json",
+          "bytes": 8531,
+          "sha256": "27401788e5c0ee623e918c62a83d0a058893b321abad1056a588a6d6f8fa8f91"
+        },
+        {
+          "label": "probe-save",
+          "file": "032-probe.save.json",
+          "bytes": 1933,
+          "sha256": "db0748fd5527a1a28bbe57f731273b8aa21e1392955917ab5be85d724cd6f9ed"
+        },
+        {
+          "label": "event-cycle",
+          "file": "033-event-cycle.json",
+          "bytes": 13201,
+          "sha256": "4554eff5958097c7801b5708a8426a03fca221089d1fd943d3f134fbdffe9648"
+        },
+        {
+          "label": "cycle-snapshot",
+          "file": "034-cycle-snapshot.json",
+          "bytes": 10681,
+          "sha256": "deb429b559f755fcd906e634b157ae2f9ab7cc027a7a9889a9c240850d19246f"
+        },
+        {
+          "label": "cycle-save",
+          "file": "035-cycle.save.json",
+          "bytes": 2834,
+          "sha256": "29cb99d62115fca463c5ee41693f92a41535ea4d21b6d6eeb0be010066ad8875"
+        },
+        {
+          "label": "event-probe",
+          "file": "036-event-probe.json",
+          "bytes": 12184,
+          "sha256": "acb5a7ae9706c8e3c69b1dbc5791cbd2dc028f6a93bd0a63d08ed43ce62c4147"
+        },
+        {
+          "label": "probe-snapshot",
+          "file": "037-probe-snapshot.json",
+          "bytes": 9856,
+          "sha256": "59bd57abd248e1f7642f7b17c8cabb771996e1636482db2fb17e00410b8f5c1b"
+        },
+        {
+          "label": "probe-save",
+          "file": "038-probe.save.json",
+          "bytes": 2321,
+          "sha256": "cd5bdf3f15a55dc8fd47a453496e5bf433f5d9d0982f476d5df834ebf347de51"
+        },
+        {
+          "label": "continued-chain-roundtrip-input",
+          "file": "039-continued-chain-roundtrip-input.json",
+          "bytes": 4566,
+          "sha256": "8f48af9ceaa4dab7c1149558bc17740113fc701614fa01f46a0c691369088e95"
+        },
+        {
+          "label": "continued-chain-roundtrip-snapshot",
+          "file": "040-continued-chain-roundtrip-snapshot.json",
+          "bytes": 9856,
+          "sha256": "59bd57abd248e1f7642f7b17c8cabb771996e1636482db2fb17e00410b8f5c1b"
+        },
+        {
+          "label": "continued-chain-roundtrip-save",
+          "file": "041-continued-chain-roundtrip.save.json",
+          "bytes": 2321,
+          "sha256": "cd5bdf3f15a55dc8fd47a453496e5bf433f5d9d0982f476d5df834ebf347de51"
+        }
+      ]
+    }
+  ],
+  "differential": [
+    {
+      "id": "W01",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W02",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W03",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W04",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W05",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W06",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W07",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W08",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W09",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W10",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W11",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W12",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W13",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W14",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W15",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W16",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W17",
+      "pass": false,
+      "failure": {
+        "name": "AssertionError",
+        "kind": null,
+        "code": "ERR_ASSERTION",
+        "message": "one or both cells failed its frozen expectation",
+        "stack": "AssertionError [ERR_ASSERTION]: one or both cells failed its frozen expectation\n    at file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:348:11\n    at Array.map (<anonymous>)\n    at main (file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:346:30)\n    at async file:///C:/Dev/GPT_SandBox_Web/.cache/caveat-continuation/adversarial-security/tests/withdrawal-probes.mjs:356:90"
+      }
+    },
+    {
+      "id": "W18",
+      "pass": true,
+      "scope": "shared guarantee projection only; lifecycle fields explicitly excluded"
+    },
+    {
+      "id": "W19",
+      "pass": true,
+      "scope": "shared guarantee projection only; lifecycle fields explicitly excluded"
+    },
+    {
+      "id": "W20",
+      "pass": true,
+      "scope": "shared guarantee projection only; lifecycle fields explicitly excluded"
+    }
+  ],
+  "pass": false
+}

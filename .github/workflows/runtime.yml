@@ -81,6 +81,12 @@ jobs:
           RUST_MIN_STACK: 16777216
       - name: Native withdrawal-extraction diagnostic recorder
         run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features withdrawal-extraction-profile --lib withdrawal_profile
+      - name: Native renewal-removal diagnostic recorder
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features renewal-removal-profile --lib renewal_profile
+      - name: Native event-phase diagnostic recorder
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-profile --lib event_profile
+      - name: Native event-phase allocation-origin mode
+        run: cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --features event-phase-origins --lib event_profile
       - name: Withdrawal collector at the real storage capacity
         run: cargo test --release --locked --manifest-path runtime/Cargo.toml --no-default-features --features collector-metrics --test withdrawal_capacity -- --ignored --nocapture
       - name: Third-party notices match the locked crates

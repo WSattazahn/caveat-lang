@@ -198,7 +198,7 @@ npx --no-install caveat-lang init my-project
 `caveat serve program.cav` keeps one session open. It reads requests from
 standard input, one JSON object per line, and answers each on standard output.
 The operations are `dispatch`, `snapshot`, `explain`, `dependents`, `save`,
-`restore` and `close`.
+`restore`, `drainArchive`, `undrained` and `close`.
 
 ```text
 > {"id":1,"op":"dispatch","event":"read_forecast","payload":{"chance":70}}
@@ -286,6 +286,21 @@ const runtime = await loadRuntime({
   wasm: new URL('./node_modules/caveat-lang/runtime/caveat_runtime_bg.wasm', location.href),
 });
 ```
+
+## Retain history outside the live session
+
+rc.16 adds `session.drainArchive()` and the `session.undrained` count for
+windowed programs. Keep drained record entries and provenance nodes separately
+from saves if you need exact departed history. `explain` and `dependents` accept
+the accumulated archive; incomplete or conflicting evidence remains explicitly
+conservative. Historical completeness is scoped to supplied records and their
+referenced dependencies, not authenticated or exhaustive session history.
+
+Current snapshots may omit legitimately departed records. Exact own grounds
+and required reasons remain retention obligations, and reachable reason chains
+can still grow. Window sizes alone do not bound live memory or saves. See the
+[history integration guide](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/HISTORY.md)
+for archive persistence, restore, report interpretation and workload limits.
 
 ## TypeScript and bundlers
 

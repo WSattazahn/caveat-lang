@@ -1,0 +1,16 @@
+claim seen;
+evidence a from "synthetic a"; renewable a window 1;
+state first = 0; state second = 0; state divisor = 1;
+event cycle; event hold; event release_first; event release_last; event refuse; event fail;
+on cycle renew a;
+on cycle reveal a supports seen;
+on cycle withdraw a because a;
+on hold set first = qualified(1,a);
+on hold set second = qualified(1,a);
+on release_first set first = 0;
+on release_last set second = 0;
+on refuse set second = 0;
+on refuse reject "retain the last root";
+on fail set second = 0;
+on fail set divisor = 0;
+bind hud.guard = 1 / divisor;
