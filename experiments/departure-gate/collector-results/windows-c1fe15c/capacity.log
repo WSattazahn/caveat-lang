@@ -1,0 +1,10 @@
+   Compiling caveat-runtime v0.1.0 (C:\Dev\caveat-lang\runtime)
+    Finished `release` profile [optimized] target(s) in 45.18s
+     Running tests\withdrawal_capacity.rs (runtime\target\release\deps\withdrawal_capacity-dae6e965799079ac.exe)
+
+running 1 test
+synthesized valid-input candidate: held=65536, bytes=14306948
+test capacity_refusal_is_preappend_and_atomic_then_prior_collection_frees_room ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.33s
+
