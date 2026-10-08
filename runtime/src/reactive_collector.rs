@@ -144,7 +144,11 @@ impl WithdrawalCollector {
                     }
                 }
             }
-            Arc::make_mut(&mut self.incoming).remove(record);
+            // Unrelated departures must not copy the shared reverse index
+            // merely to remove a key that is absent from it.
+            if self.incoming.contains_key(record) {
+                Arc::make_mut(&mut self.incoming).remove(record);
+            }
         }
         for record in departing.keys() {
             self.replace(CollectorOwner::Record(record.clone()), BTreeSet::new());
@@ -571,5 +575,56 @@ impl ReactiveSession {
             self.collector.pending, rebuilt.collector.pending,
             "collector scheduled sources"
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn forget_absent_record_preserves_shared_indexes() {
+        let owner = CollectorOwner::State("kept".into());
+        let mut original = WithdrawalCollector::default();
+        original.replace(owner, BTreeSet::from(["held@2".into()]));
+        let mut transaction = original.clone();
+
+        transaction.forget(&BTreeMap::from([(
+            "unrelated@2".into(),
+            ("unrelated".into(), 2),
+        )]));
+
+        assert_eq!(transaction.incoming, original.incoming);
+        assert_eq!(transaction.owners, original.owners);
+        assert!(Arc::ptr_eq(&transaction.incoming, &original.incoming));
+        assert!(Arc::ptr_eq(&transaction.owners, &original.owners));
+    }
+
+    #[test]
+    fn forget_present_record_preserves_original_shared_indexes() {
+        let owner = CollectorOwner::State("kept".into());
+        let references = BTreeSet::from(["held@2".into(), "other@2".into()]);
+        let mut original = WithdrawalCollector::default();
+        original.replace(owner.clone(), references.clone());
+        let mut transaction = original.clone();
+
+        transaction.forget(&BTreeMap::from([("held@2".into(), ("held".into(), 2))]));
+
+        assert_eq!(original.owners.get(&owner), Some(&references));
+        assert_eq!(
+            original.incoming.get("held@2"),
+            Some(&BTreeSet::from([owner.clone()]))
+        );
+        assert_eq!(
+            transaction.owners.get(&owner),
+            Some(&BTreeSet::from(["other@2".into()]))
+        );
+        assert!(!transaction.incoming.contains_key("held@2"));
+        assert_eq!(
+            transaction.incoming.get("other@2"),
+            Some(&BTreeSet::from([owner]))
+        );
+        assert!(!Arc::ptr_eq(&transaction.incoming, &original.incoming));
+        assert!(!Arc::ptr_eq(&transaction.owners, &original.owners));
     }
 }

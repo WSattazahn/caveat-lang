@@ -115,3 +115,78 @@ test('CLI, authoring and explicit serve archive queries carry collector history 
     assert.ok(malformed.archive.records.every(row => row.status === 'unavailable'));
   } finally { server.close(); }
 });
+
+test('actual decision-series and plain journal archives resolve held decision identities conservatively', () => {
+  for (const series of [true, false]) {
+    const source = `evidence reason from "reason";
+${series ? 'decisions choice limit 2;' : ''} journal window 1;
+event init; event revise;
+on init reveal reason;
+on init commit choice because enough;
+on revise reopen choice because reason;
+${series ? 'on revise commit choice because enough;' : ''}
+`;
+    const session = real.open(source);
+    let restored;
+    try {
+      for (const event of ['init', 'revise']) assert.equal(session.dispatch(event).outcome, 'accepted');
+      const snapshot = session.snapshot(), archive = session.drainArchive();
+      const history = explain(snapshot, [], {archive}).archive;
+      assert.equal(history.records.length, series ? 2 : 1);
+      assert.ok(history.records.every(row => row.status === 'complete'), JSON.stringify(history.records));
+      assert.deepEqual(history.unresolved, []);
+      for (const row of history.records) {
+        assert.equal(row.entry.journal_entry.decision, 'choice');
+        assert.equal(row.entry.journal_entry.commitment, series ? 'choice@1' : 'choice');
+      }
+      if (series) {
+        assert.ok(Object.hasOwn(snapshot.decision_series, 'choice'));
+        assert.ok(!snapshot.symbols.some(symbol => symbol.name === 'choice'), 'series declarations are distinct from revision symbols');
+      }
+      restored = real.restore(source, session.save());
+      assert.deepEqual(explain(restored.snapshot(), [], {archive}).archive, history);
+
+      const first = archive.find(item => item.record === 'journal@1' && item.kind !== 'provenance');
+      const unavailable = supplied => {
+        const row = explain(snapshot, [], {archive: supplied}).archive.records.find(item => item.record === first.record);
+        assert.equal(row.status, 'unavailable');
+        assert.equal(row.entry, undefined);
+        return row;
+      };
+      unavailable(archive.filter(item => !(item.kind === 'provenance' && item.record === first.record)));
+      unavailable([...archive, {...first, retired_at: first.retired_at + 1}]);
+      for (const [field, name] of [['decision', 'missing_choice'], ['commitment', 'choice@99']]) {
+        const supplied = archive.map(item => item === first ? {...first, journal_entry: {...first.journal_entry, [field]: name}} : item);
+        assert.ok(unavailable(supplied).unresolved.includes(name), 'a declaration does not validate a missing name or revision');
+      }
+    } finally { session.close(); restored?.close(); }
+  }
+});
+
+
+test('actual reading archives reject a withdrawal before sampling but accept same-event withdrawal', () => {
+  const source = `claim c; evidence reason from "reason"; evidence sensor from "sensor";
+readings r from sensor window 1;
+event init; event sample; event withdraw; event together;
+on init reveal reason;
+on sample sample r = 1 supports c;
+on withdraw withdraw latest(r) because reason;
+on together sample r = 1 supports c;
+on together withdraw latest(r) because reason;
+`;
+  for (const events of [['init', 'sample', 'withdraw', 'sample'], ['init', 'together', 'sample']]) {
+    const session = real.open(source);
+    try {
+      for (const event of events) assert.equal(session.dispatch(event).outcome, 'accepted');
+      const snapshot = session.snapshot(), archive = session.drainArchive();
+      const authentic = explain(snapshot, [], {archive}).archive;
+      assert.ok(authentic.records.every(row => row.status === 'complete'));
+      const modified = archive.map(entry => entry.withdrawal
+        ? {...entry, withdrawal: {...entry.withdrawal, sequence: 1, event: 'init'}} : entry);
+      const report = explain(snapshot, [], {archive: modified}).archive;
+      assert.equal(report.records.find(row => row.record === 'r@1').status, 'unavailable');
+      assert.deepEqual(report.withdrawals, []);
+      assert.deepEqual(report.relations, []);
+    } finally { session.close(); }
+  }
+});

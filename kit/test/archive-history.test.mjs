@@ -133,3 +133,78 @@ test('future occurrences cannot bypass departure validation by naming their hist
     assert.equal(explain(snapshot, [], {archive: [entry, node]}).archive.records[0].status, 'unavailable');
   }
 });
+
+
+function chronologyFixture() {
+  const value = fixture();
+  value.one.relations = []; value.one.qualifications = {};
+  value.one.reading.provenance = p();
+  value.two.relations = []; delete value.two.withdrawal;
+  value.two.reading = {...value.one.reading, id: 'h@2', ordinal: 2, sequence: 7};
+  const row = (archive = value.archive, name = 'h@1') => explain(value.snapshot, [], {archive}).archive.records.find(item => item.record === name);
+  return {...value, row};
+}
+
+test('withdrawals require already-created reading subjects and archived or held reasons when creation is known', () => {
+  for (const location of ['subject', 'archived reason', 'held reason']) {
+    for (const sequence of [7, 8]) {
+      const {snapshot, one, two, leaves, archive, row} = chronologyFixture();
+      let supplied = archive;
+      if (location === 'subject') one.reading.sequence = sequence;
+      else two.reading.sequence = sequence;
+      if (location === 'held reason') {
+        snapshot.reading_streams.h.occurrences.unshift(two.reading);
+        supplied = [one, leaves[0]];
+      }
+      const found = row(supplied);
+      assert.equal(found.status, sequence === 7 ? 'complete' : 'unavailable', location);
+      if (sequence === 8) assert.equal(found.entry, undefined);
+    }
+  }
+});
+
+test('frozen reading provenance uses creation time while late metadata and markers keep their own meanings', () => {
+  for (const membership of ['direct', 'inherited', 'marker']) {
+    for (const sequence of [4, 5]) {
+      const {one, two, marker, row} = chronologyFixture();
+      delete one.withdrawal;
+      two.reading.sequence = sequence;
+      one.reading.provenance = membership === 'marker' ? {...p(), departed: [marker(1)]}
+        : {...p(['h@2']), ...(membership === 'inherited' ? {inherited: ['h@2']} : {})};
+      assert.equal(row().status, sequence === 4 ? 'complete' : 'unavailable', membership);
+    }
+  }
+  const {snapshot, one, two, leaves, row} = chronologyFixture();
+  delete one.withdrawal;
+  one.qualifications.observation = p(['h@2']);
+  assert.equal(row().status, 'complete', 'late metadata may reference evidence created after the frozen reading');
+  snapshot.reading_streams.h.occurrences.unshift({...two.reading, sequence: 11});
+  assert.equal(row([one, leaves[0]]).status, 'unavailable', 'even untimed metadata cannot reference creation after departure');
+});
+
+test('journal references use their change sequence and agree with known decision revisions', () => {
+  for (const field of ['because', 'permitted_by', 'revision']) {
+    for (const sequence of [7, 8]) {
+      const {snapshot, two, leaves, row} = chronologyFixture();
+      snapshot.windows.push('journal');
+      snapshot.decision_series.choice = {revisions: [{id: 'choice@1', sequence: field === 'revision' ? sequence : 7, event: 'decide'}]};
+      snapshot.commitments.push({action: 'choice@1', open: true, retained: []});
+      two.reading.sequence = field === 'revision' ? 7 : sequence;
+      const journal = {record: 'journal@1', history: 'journal', number: 1, retired_at: 8, departed_at: 10, holders: [],
+        journal_entry: {decision: 'choice', commitment: 'choice@1', change: 'reopened', sequence: 7, event: 'decide',
+          because: field === 'because' ? ['h@2'] : [], caveats: [], ...(field === 'permitted_by' ? {permitted_by: 'h@2'} : {})}};
+      const leaf = {kind: 'provenance', operation: 'record', source_id, history: 'journal', record: 'journal@1', departed_at: 10};
+      leaf.id = archiveNodeId(leaf);
+      const supplied = [two, leaves[1], journal, leaf];
+      assert.equal(row(supplied, journal.record).status, sequence === 7 ? 'complete' : 'unavailable', field);
+      if (field === 'revision' && sequence === 7) {
+        journal.journal_entry.change = 'committed';
+        assert.equal(row(supplied, journal.record).status, 'complete');
+        journal.journal_entry.sequence = 8;
+        assert.equal(row(supplied, journal.record).status, 'unavailable', 'the same committed revision has one frozen creation sequence');
+        journal.journal_entry.sequence = 7; journal.journal_entry.event = 'other_event';
+        assert.equal(row(supplied, journal.record).status, 'unavailable', 'a committed revision must name its recorded event');
+      }
+    }
+  }
+});

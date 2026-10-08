@@ -146,6 +146,8 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
   for (const stream of Object.values(snapshot.reading_streams ?? {})) for (const item of stream.occurrences ?? []) held.add(item.id);
   for (const renewal of Object.values(snapshot.renewals ?? {})) for (const name of renewal.occurrences ?? []) held.add(name);
   for (const item of snapshot.commitments ?? []) held.add(item.action);
+  // Journal decisions name the series declaration, separate from its revision symbols.
+  for (const name of Object.keys(snapshot.decision_series ?? {})) held.add(name);
   const windows = new Set(snapshot.windows ?? []);
   const newest = new Map();
   const allocated = (history, name) => {
@@ -154,6 +156,24 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
   };
   for (const [history, stream] of Object.entries(snapshot.reading_streams ?? {})) for (const item of stream.occurrences ?? []) allocated(history, item.id);
   for (const [history, renewal] of Object.entries(snapshot.renewals ?? {})) for (const name of renewal.occurrences ?? []) allocated(history, name);
+  // Only immutable, explicitly recorded creation times constrain references.
+  // Declared evidence/renewals have no such timestamp here; equal sequences do
+  // not establish order within an event, and marker departure times are later.
+  const created = new Map(), revisions = new Map();
+  const creation = (name, sequence) => {
+    if (typeof name === 'string' && integer(sequence)) created.set(name, Math.max(created.get(name) ?? 0, sequence));
+  };
+  for (const stream of Object.values(snapshot.reading_streams ?? {})) {
+    for (const reading of stream.occurrences ?? []) creation(reading.id, reading.sequence);
+  }
+  for (const [decision, series] of Object.entries(snapshot.decision_series ?? {})) {
+    for (const revision of series.revisions ?? []) {
+      creation(revision.id, revision.sequence);
+      revisions.set(revision.id, {...revision, decision});
+    }
+  }
+  for (const entry of entries.values()) if (entry.reading?.id === entry.record) creation(entry.record, entry.reading.sequence);
+  const future = (name, sequence) => integer(sequence) && created.has(name) && created.get(name) > sequence;
   const rows = new Map(), relations = new Map();
   const markerMissing = marker => 'archive_ref:' + (typeof marker?.archive_ref === 'string' ? marker.archive_ref
     : `${typeof marker?.history === 'string' ? marker.history : '?'}@${integer(marker?.from) ? marker.from : '?'}`);
@@ -169,25 +189,26 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
   for (const entry of entries.values()) {
     const row = {record: entry.record, entry, dependencies: new Set(), unresolved: new Set()};
     rows.set(entry.record, row);
-    const need = name => {
+    const need = (name, sequence = entry.departed_at) => {
       if (typeof name !== 'string' || !name) { row.unresolved.add(entry.record); return; }
       if (name !== entry.record) row.dependencies.add(name);
+      if (future(name, sequence)) row.unresolved.add(name);
     };
-    const names = value => {
+    const names = (value, sequence = entry.departed_at) => {
       if (!strings(value)) { row.unresolved.add(entry.record); return; }
-      for (const name of value) need(name);
+      for (const name of value) need(name, sequence);
     };
-    const provenance = value => {
+    const provenance = (value, sequence = entry.departed_at) => {
       if (!object(value) || Object.keys(value).some(key => !['evidence', 'caveats', 'inherited', 'departed'].includes(key))) {
         row.unresolved.add(entry.record); return;
       }
-      names(value.evidence); names(value.caveats);
-      if (value.inherited !== undefined) names(value.inherited);
+      names(value.evidence, sequence); names(value.caveats, sequence);
+      if (value.inherited !== undefined) names(value.inherited, sequence);
       if (value.departed !== undefined) {
         if (!Array.isArray(value.departed)) { row.unresolved.add(entry.record); return; }
         for (const marker of value.departed) {
           const members = resolve(marker);
-          if (members) for (const name of members) need(name);
+          if (members) for (const name of members) need(name, sequence);
           else row.unresolved.add(markerMissing(marker));
         }
       }
@@ -224,21 +245,25 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
       if (!object(reading) || reading.id !== entry.record || reading.ordinal !== entry.number
         || !integer(reading.sequence) || reading.sequence > entry.retired_at || typeof reading.event !== 'string'
         || !Number.isFinite(reading.value) || typeof reading.relation !== 'string' || typeof reading.claim !== 'string') row.unresolved.add(entry.record);
-      else { provenance(reading.provenance); if (reading.claim) need(reading.claim); }
+      else { provenance(reading.provenance, reading.sequence); if (reading.claim) need(reading.claim, reading.sequence); }
     }
     if (entry.withdrawal !== undefined) {
       const withdrawal = entry.withdrawal;
       if (!object(withdrawal) || withdrawal.evidence !== entry.record || !integer(withdrawal.sequence)
         || withdrawal.sequence > entry.departed_at || typeof withdrawal.event !== 'string') row.unresolved.add(entry.record);
-      else need(withdrawal.because);
+      else { need(withdrawal.evidence, withdrawal.sequence); need(withdrawal.because, withdrawal.sequence); }
     }
     if (entry.journal_entry !== undefined) {
       const journal = entry.journal_entry;
       if (!object(journal) || !integer(journal.sequence) || journal.sequence > entry.retired_at
         || !['committed','reopened'].includes(journal.change) || typeof journal.event !== 'string') row.unresolved.add(entry.record);
       else {
-        need(journal.decision); need(journal.commitment); names(journal.because); names(journal.caveats);
-        if (journal.permitted_by !== undefined) need(journal.permitted_by);
+        need(journal.decision, journal.sequence); need(journal.commitment, journal.sequence);
+        names(journal.because, journal.sequence); names(journal.caveats, journal.sequence);
+        if (journal.permitted_by !== undefined) need(journal.permitted_by, journal.sequence);
+        const revision = revisions.get(journal.commitment);
+        if (revision && (revision.decision !== journal.decision || (journal.change === 'committed'
+          && (revision.sequence !== journal.sequence || revision.event !== journal.event)))) row.unresolved.add(journal.commitment);
       }
     }
   }
@@ -257,6 +282,7 @@ export function archiveHistory(snapshot, archive = [], required = [], query = nu
   const reverse = new Map(), pending = [];
   for (const row of rows.values()) {
     for (const name of row.dependencies) {
+      if (future(name, row.entry.departed_at)) row.unresolved.add(name);
       if (rows.has(name)) (reverse.get(name) ?? reverse.set(name, new Set()).get(name)).add(row.record);
       else if (!held.has(name)) row.unresolved.add(name);
     }

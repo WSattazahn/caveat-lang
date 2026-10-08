@@ -2614,7 +2614,15 @@ impl ReactiveSession {
                     .commitment_grounds
                     .get(&entry.commitment)
                     .ok_or_else(|| fail("commitment has no frozen grounds"))?;
-                if basis.is_none() || grounds.0 != provenance {
+                // The journal represents the exact evidence and caveats of
+                // grounds, not their departure markers or inherited-name
+                // bookkeeping. Keep that full provenance in the grounds:
+                // its basis containment and marker/inherited validity are
+                // checked separately by restore_records/restore_departures.
+                if basis.is_none()
+                    || grounds.0.evidence != provenance.evidence
+                    || grounds.0.caveats != provenance.caveats
+                {
                     return Err(fail("commitment witnesses differ from its frozen grounds"));
                 }
             } else {
