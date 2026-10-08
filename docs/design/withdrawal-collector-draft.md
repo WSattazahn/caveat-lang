@@ -1,15 +1,20 @@
 # Withdrawal collector — reviewable draft contract
 
-Status: **implementation authorized for review; semantic acceptance pending**,
-2026-10-07. The owner explicitly authorized work on
-`codex/withdrawal-collector-draft`, created from
-`f5ec8294efe2be24705f234ef75e5f5459aa5e89`. PR #174 and its baseline remain
-separate. This grant permits a reviewable implementation and its evidence; it
-does not approve merge, release, a universal boundedness claim, or every
-provisional choice below. Earlier pasted external review text was feedback,
-not the implementation grant.
+Status: **repaired collector accepted as an experimental development baseline**,
+2026-10-08 UTC, at `3d77aa27bcffa16f39818b2684e9afb3b102ed17` in PR #175.
+The owner explicitly accepted departed-record snapshot changes, the scoped
+historical-completeness API and the capacity-only admission difference below.
+Required reasons, qualifications, current decisions/permissions and atomic
+rollback remain protected. This is not merge, publication, release or rc.16
+readiness approval, and supplies no unrestricted interactive-workload guarantee.
+PR #174 remains unchanged at `f5ec8294efe2be24705f234ef75e5f5459aa5e89`.
 
-The implementation source is frozen for verification at
+A separate representation-only [index-compaction follow-up](collector-index-compaction.md)
+is authorized from the repaired baseline. It must preserve these experimental
+semantics, retention eligibility, exact saves and ordered archive outputs.
+No further semantic change is authorized by that performance task.
+
+Historical provenance: the first collector implementation was frozen for measurement at
 `c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853`; later documentation receipts do not
 change that measured source identity. The
 [source inventory](../../experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md)
@@ -40,7 +45,7 @@ own grounds, independently required history, and conservatively protected
 regions. Archive storage is separate from live session storage and still grows
 when a host retains history.
 
-## Provisional decisions implemented for review
+## Experimental decisions retained by the accepted baseline
 
 ### D1. Additional candidates leave ordinary departure unchanged
 
@@ -104,7 +109,7 @@ host snapshots are not roots. The semantic inputs of recomputed bindings still
 are covered by their real holders. No host archive lookup participates in
 source execution or retention.
 
-This provisional rule deliberately over-retains some histories. Optimizing a
+This experimental rule deliberately over-retains some histories. Optimizing a
 veto away requires a separate consumer/transfer argument and paired test; no
 CPython analogy or reference-count argument substitutes for that proof.
 
@@ -230,15 +235,16 @@ current status and permission results, and accepted/refused classification with
 origin/code. Compare exact historical dependencies through the complete matching
 archive rather than accepting a subset or a marker range as equality.
 
-There is one named **provisional capacity-only difference**: removing extra
+There is one named **experimentally approved capacity-only difference**: removing extra
 records can let a future event fit below `MAX_WINDOWED_RECORDS`, where the
 retaining baseline would return its held-history limit refusal. Keep
 `history_room` at its existing pre-append point. The collector does not run early
 to rescue an event already refused there, change the threshold, or suppress
 other refusals. At the limit, compare each implementation against its actual
-held count and verify atomic rollback. Final owner acceptance of this scoped
-outcome difference remains required; the broad baseline phrase “departure never
-changes an outcome” must not be used to hide it.
+held count and verify atomic rollback. The owner accepted this scoped
+outcome difference for continued experimental development on 2026-10-08 UTC;
+the broad baseline phrase “departure never changes an outcome” must not be
+used to hide it. Other refusal conditions and admission timing are unchanged.
 
 Programs without any window remain byte-compatible in outcomes, snapshots,
 views and saves, with no departures or archive items. Existing ordinary
@@ -317,10 +323,20 @@ old design probe does not discharge a draft row. Failed checks remain recorded.
 Evidence must distinguish native and WASM behavior, debug index verification,
 release performance, direct API calls and rendered host explanations. Source
 review and tests complement one another; neither proves all future programs
-bounded. Final review must decide whether the provisional semantic/API choices
-are acceptable and whether known conservative limits are sufficiently explicit.
+bounded. The owner accepted the named snapshot, historical-reporting and
+capacity choices for the repaired experimental baseline. Any broader contract
+or supported-workload claim needs its own decision and measured resource budget.
 
-## Working acceptance evidence map
+## Historical implementation evidence map
+
+The following entries preserve the original c1/late-draft verification record;
+their checkpoint-specific pending labels are historical. Independent review of
+`a630396` identified three correctness defects and one unnecessary index copy.
+The repaired `3d77aa` passed all 18 final CI checks and fresh native, kit,
+compatibility, restore, C3 and installed-package verification, as recorded in
+[PR #175](https://github.com/WSattazahn/caveat-lang/pull/175).
+Those results do not relabel the measured c1 artifacts below or verify the
+subsequent index-compaction implementation.
 
 This is a preliminary map of **specific observed assertions**, not a declaration
 that C01–C20 are accepted. Preliminary native tests ran against the evolving

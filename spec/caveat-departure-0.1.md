@@ -13,8 +13,13 @@ reviewable withdrawal-collection implementation on
 `codex/withdrawal-collector-draft`, based on `f5ec829`. The
 [draft contract and acceptance checklist](../docs/design/withdrawal-collector-draft.md)
 record its proposed additional candidates, conservative transfer vetoes,
-archive reporting and capacity-limit differences. They are not yet accepted
-replacements for this baseline contract; merge and release remain unapproved.
+archive reporting and capacity-limit differences. On 2026-10-08 UTC the owner
+accepted repaired `3d77aa` as an experimental development baseline, including
+those explicit snapshot, scoped historical-completeness and capacity-only
+choices. This document retains the original ordinary-departure contract;
+the collector contract defines its accepted experimental overlay. Merge and
+release remain unapproved. Representation-only index compaction does not
+authorize changing either retention rule or the capacity admission timing.
 
 Windows 0.1 retires a windowed history's oldest records: they leave the live
 graph and stay in the session. Lineage Compaction 0.1 says what every citation

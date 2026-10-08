@@ -9,9 +9,12 @@ Status: **reviewable implementation draft authorized, 2026-10-07**. After the
 design-only review, the owner explicitly authorized implementing a collector
 draft on `codex/withdrawal-collector-draft`, starting at `f5ec829`; PR #174 is
 preserved. The earlier pasted external review was feedback, not that grant.
-The current grant covers the reviewable draft, not merge, release or final
-semantic approval. Proposed decisions and acceptance obligations are recorded
-in [the collector draft contract](../../docs/design/withdrawal-collector-draft.md).
+Update, 2026-10-08 UTC: the owner accepted repaired `3d77aa` as the experimental
+development baseline, including the explicit snapshot, historical-completeness
+and capacity-only choices. Merge, publication, release and unrestricted-workload
+claims remain unapproved. The separately authorized index-compaction task must
+preserve this root/dependency boundary. Decisions and evidence are recorded in
+[the collector contract](../../docs/design/withdrawal-collector-draft.md).
 This inventory supplements [the earlier reachability proposal](WITHDRAWAL-REACHABILITY-DESIGN.md)
 and narrows its sentence about making all retained computational containers'
 exact dependencies roots.

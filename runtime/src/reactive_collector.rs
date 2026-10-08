@@ -22,6 +22,134 @@ impl CollectorOwner {
     }
 }
 
+// Keep the common low-degree indexes compact without making high-degree
+// mutation linear. All forms have the same sorted, unique iteration order;
+// canonical promotion/demotion also makes equality independent of history.
+const SMALL_REFERENCE_LIMIT: usize = 8;
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+enum CollectorSet<T> {
+    #[default]
+    Empty,
+    One(T),
+    Small(Vec<T>),
+    Many(BTreeSet<T>),
+}
+
+impl<T: Ord> CollectorSet<T> {
+    fn len(&self) -> usize {
+        match self {
+            Self::Empty => 0,
+            Self::One(_) => 1,
+            Self::Small(values) => values.len(),
+            Self::Many(values) => values.len(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty)
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &T> {
+        let (small, many): (&[T], Option<&BTreeSet<T>>) = match self {
+            Self::Empty => (&[], None),
+            Self::One(value) => (std::slice::from_ref(value), None),
+            Self::Small(values) => (values, None),
+            Self::Many(values) => (&[], Some(values)),
+        };
+        small.iter().chain(many.into_iter().flatten())
+    }
+
+    fn insert(&mut self, value: T) -> bool {
+        match self {
+            Self::Empty => *self = Self::One(value),
+            Self::One(existing) if *existing == value => return false,
+            Self::One(_) => {
+                let Self::One(existing) = std::mem::take(self) else {
+                    unreachable!()
+                };
+                let pair = if existing < value {
+                    [existing, value]
+                } else {
+                    [value, existing]
+                };
+                *self = Self::Small(Vec::from(pair));
+            }
+            Self::Small(values) => match values.binary_search(&value) {
+                Ok(_) => return false,
+                Err(index) if values.len() < SMALL_REFERENCE_LIMIT => values.insert(index, value),
+                Err(_) => {
+                    let mut many: BTreeSet<_> = std::mem::take(values).into_iter().collect();
+                    many.insert(value);
+                    *self = Self::Many(many);
+                }
+            },
+            Self::Many(values) => return values.insert(value),
+        }
+        true
+    }
+
+    fn remove<Q>(&mut self, value: &Q) -> bool
+    where
+        T: std::borrow::Borrow<Q>,
+        Q: Ord + ?Sized,
+    {
+        match self {
+            Self::Empty => false,
+            Self::One(existing) => {
+                if <T as std::borrow::Borrow<Q>>::borrow(existing) != value {
+                    return false;
+                }
+                *self = Self::Empty;
+                true
+            }
+            Self::Small(values) => {
+                let Ok(index) = values.binary_search_by(|existing| existing.borrow().cmp(value))
+                else {
+                    return false;
+                };
+                values.remove(index);
+                if values.len() == 1 {
+                    *self = Self::One(values.pop().unwrap());
+                }
+                true
+            }
+            Self::Many(values) => {
+                if !values.remove(value) {
+                    return false;
+                }
+                if values.len() == SMALL_REFERENCE_LIMIT {
+                    *self = Self::Small(std::mem::take(values).into_iter().collect());
+                }
+                true
+            }
+        }
+    }
+}
+
+impl<T: Ord> Extend<T> for CollectorSet<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, values: I) {
+        for value in values {
+            self.insert(value);
+        }
+    }
+}
+
+impl<T: Ord> FromIterator<T> for CollectorSet<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(values: I) -> Self {
+        let mut references = Self::default();
+        references.extend(values);
+        references
+    }
+}
+
+#[cfg(test)]
+impl<T: Ord, const N: usize> From<[T; N]> for CollectorSet<T> {
+    fn from(values: [T; N]) -> Self {
+        values.into_iter().collect()
+    }
+}
+
 /// Diagnostics describe the last accepted event, not rejected attempts.
 /// `peak_work_items` counts live algorithm work-set entries, not heap bytes.
 #[cfg(feature = "collector-metrics")]
@@ -38,9 +166,12 @@ pub struct WithdrawalCollectionMetrics {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(super) struct WithdrawalCollector {
-    owners: Arc<BTreeMap<CollectorOwner, BTreeSet<String>>>,
-    incoming: Arc<BTreeMap<String, BTreeSet<CollectorOwner>>>,
-    reasons: Arc<BTreeMap<String, BTreeSet<String>>>,
+    owners: Arc<BTreeMap<CollectorOwner, CollectorSet<String>>>,
+    incoming: Arc<BTreeMap<String, CollectorSet<CollectorOwner>>>,
+    // Only multiplicity is needed to distinguish withdrawal pins from roots.
+    // Exact subject -> reason identities remain in withdrawal_reasons and
+    // Record owner references, and in the authoritative withdrawal records.
+    reasons: Arc<BTreeMap<String, usize>>,
     pending: Arc<BTreeMap<String, BTreeMap<String, usize>>>,
     dirty: BTreeSet<CollectorOwner>,
     queued: BTreeSet<String>,
@@ -62,29 +193,60 @@ impl WithdrawalCollector {
         self.queued.insert(record.into());
     }
 
-    fn replace(&mut self, owner: CollectorOwner, references: BTreeSet<String>) {
-        let previous = self.owners.get(&owner).cloned().unwrap_or_default();
-        if previous == references {
+    fn replace(&mut self, owner: CollectorOwner, references: CollectorSet<String>) {
+        // Compare borrowed sets before any copy-on-write, including when this
+        // owner has no references. Keep the old set borrowed for the diff too.
+        if self
+            .owners
+            .get(&owner)
+            .map_or(references.is_empty(), |previous| previous == &references)
+        {
             return;
         }
         if let Some(record) = owner.record() {
             self.queue(record);
         }
         let incoming = Arc::make_mut(&mut self.incoming);
-        for name in previous.difference(&references) {
-            self.queued.insert(name.clone());
-            let owners = incoming.get_mut(name).expect("indexed reference");
-            owners.remove(&owner);
-            if owners.is_empty() {
-                incoming.remove(name);
+        {
+            // Both iterators are ordered. Merge once instead of looking up
+            // each old/new member again when an owner has many references.
+            let mut previous = self
+                .owners
+                .get(&owner)
+                .into_iter()
+                .flat_map(CollectorSet::iter)
+                .peekable();
+            let mut next = references.iter().peekable();
+            loop {
+                let order = match (previous.peek(), next.peek()) {
+                    (Some(before), Some(after)) => before.cmp(after),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => break,
+                };
+                let (name, add) = match order {
+                    std::cmp::Ordering::Less => (previous.next().unwrap(), false),
+                    std::cmp::Ordering::Greater => (next.next().unwrap(), true),
+                    std::cmp::Ordering::Equal => {
+                        previous.next();
+                        next.next();
+                        continue;
+                    }
+                };
+                self.queued.insert(name.clone());
+                if add {
+                    incoming
+                        .entry(name.clone())
+                        .or_default()
+                        .insert(owner.clone());
+                } else {
+                    let owners = incoming.get_mut(name).expect("indexed reference");
+                    owners.remove(&owner);
+                    if owners.is_empty() {
+                        incoming.remove(name);
+                    }
+                }
             }
-        }
-        for name in references.difference(&previous) {
-            self.queued.insert(name.clone());
-            incoming
-                .entry(name.clone())
-                .or_default()
-                .insert(owner.clone());
         }
         let owners = Arc::make_mut(&mut self.owners);
         if references.is_empty() {
@@ -96,14 +258,15 @@ impl WithdrawalCollector {
 
     pub(super) fn withdrawal(&mut self, subject: &str, reason: &str, add: bool) {
         let reverse = Arc::make_mut(&mut self.reasons);
+        // Callers add only the first withdrawal of a subject, and remove only
+        // after removing its authoritative subject -> reason entry. Duplicate
+        // language effects therefore never increment this derived count.
         if add {
-            reverse
-                .entry(reason.into())
-                .or_default()
-                .insert(subject.into());
-        } else if let Some(subjects) = reverse.get_mut(reason) {
-            subjects.remove(subject);
-            if subjects.is_empty() {
+            *reverse.entry(reason.into()).or_default() += 1;
+        } else {
+            let count = reverse.get_mut(reason).expect("indexed withdrawal reason");
+            *count -= 1;
+            if *count == 0 {
                 reverse.remove(reason);
             }
         }
@@ -126,9 +289,9 @@ impl WithdrawalCollector {
         // Visit their inverse references instead of scanning the session.
         for record in departing.keys() {
             let incoming = self.incoming.get(record).cloned().unwrap_or_default();
-            for owner in incoming {
+            for owner in incoming.iter() {
                 metric!(self, references_scanned, 1);
-                if let CollectorOwner::Pending(target) = &owner {
+                if let CollectorOwner::Pending(target) = owner {
                     let pending = Arc::make_mut(&mut self.pending);
                     if let Some(refs) = pending.get_mut(target) {
                         refs.remove(record);
@@ -137,10 +300,10 @@ impl WithdrawalCollector {
                         }
                     }
                 }
-                if let Some(refs) = Arc::make_mut(&mut self.owners).get_mut(&owner) {
+                if let Some(refs) = Arc::make_mut(&mut self.owners).get_mut(owner) {
                     refs.remove(record);
                     if refs.is_empty() {
-                        Arc::make_mut(&mut self.owners).remove(&owner);
+                        Arc::make_mut(&mut self.owners).remove(owner);
                     }
                 }
             }
@@ -151,8 +314,14 @@ impl WithdrawalCollector {
             }
         }
         for record in departing.keys() {
-            self.replace(CollectorOwner::Record(record.clone()), BTreeSet::new());
-            self.replace(CollectorOwner::Graph(record.clone()), BTreeSet::new());
+            self.replace(
+                CollectorOwner::Record(record.clone()),
+                CollectorSet::default(),
+            );
+            self.replace(
+                CollectorOwner::Graph(record.clone()),
+                CollectorSet::default(),
+            );
         }
         self.dirty.clear();
         // Every affected component was considered against the full prospective
@@ -271,8 +440,8 @@ impl ReactiveSession {
         self.collector.replace(owner, refs);
     }
 
-    fn collector_references(&self, owner: &CollectorOwner) -> (BTreeSet<String>, usize) {
-        let mut references = BTreeSet::new();
+    fn collector_references(&self, owner: &CollectorOwner) -> (CollectorSet<String>, usize) {
+        let mut references = CollectorSet::default();
         let mut scanned = 0;
         let mut include = |provenance: &Provenance| {
             scanned += provenance.evidence.len();
@@ -388,11 +557,10 @@ impl ReactiveSession {
                 .cloned()
                 .map(CollectorOwner::Record),
         );
-        for (subject, reason) in self.withdrawal_reasons.iter() {
-            Arc::make_mut(&mut self.collector.reasons)
+        for reason in self.withdrawal_reasons.values() {
+            *Arc::make_mut(&mut self.collector.reasons)
                 .entry(reason.clone())
-                .or_default()
-                .insert(subject.clone());
+                .or_default() += 1;
         }
         for owner in owners {
             self.collector
@@ -464,12 +632,12 @@ impl ReactiveSession {
                     continue;
                 }
                 metric!(self.collector, vertices_visited, 1);
-                let reason_pins = self.collector.reasons.get(&record).map_or(0, BTreeSet::len);
+                let reason_pins = self.collector.reasons.get(&record).copied().unwrap_or(0);
                 if self.pin_counts.get(&record).copied().unwrap_or(0) > reason_pins {
                     roots.insert(record.clone());
                 }
                 if let Some(incoming) = self.collector.incoming.get(&record) {
-                    for owner in incoming {
+                    for owner in incoming.iter() {
                         metric!(self.collector, edges_visited, 1);
                         match owner.record() {
                             Some(name) if departing.contains_key(name) => {}
@@ -489,7 +657,7 @@ impl ReactiveSession {
                     .owners
                     .get(&CollectorOwner::Record(record.clone()))
                 {
-                    for name in outgoing {
+                    for name in outgoing.iter() {
                         metric!(self.collector, edges_visited, 1);
                         if self.collector_eligible(name, departing) && !region.contains(name) {
                             pending.insert(name.clone());
@@ -511,7 +679,7 @@ impl ReactiveSession {
                     continue;
                 }
                 if let Some(outgoing) = self.collector.owners.get(&CollectorOwner::Record(record)) {
-                    for name in outgoing {
+                    for name in outgoing.iter() {
                         metric!(self.collector, edges_visited, 1);
                         if region.contains(name) && !reachable.contains(name) {
                             roots.insert(name.clone());
@@ -582,11 +750,102 @@ impl ReactiveSession {
 mod tests {
     use super::*;
 
+    fn assert_same_references(actual: &CollectorSet<String>, expected: &BTreeSet<String>) {
+        assert_eq!(
+            actual.iter().collect::<Vec<_>>(),
+            expected.iter().collect::<Vec<_>>()
+        );
+        assert_eq!(actual.len(), expected.len());
+        assert_eq!(actual.is_empty(), expected.is_empty());
+        assert_eq!(actual, &expected.iter().cloned().collect());
+    }
+
+    #[test]
+    fn compact_reference_transitions_match_an_ordered_set() {
+        let mut actual = CollectorSet::default();
+        let mut expected = BTreeSet::new();
+        // Grow and shrink through every representation boundary, in different
+        // orders, with duplicate additions and absent removals at each step.
+        for _ in 0..3 {
+            for number in (0..32).rev() {
+                let name = format!("record@{number:02}");
+                assert_eq!(actual.insert(name.clone()), expected.insert(name.clone()));
+                assert!(!actual.insert(name));
+                assert_same_references(&actual, &expected);
+            }
+            let original = actual.clone();
+            for step in 0..32 {
+                let name = format!("record@{:02}", (step * 17) % 32);
+                assert_eq!(actual.remove(name.as_str()), expected.remove(name.as_str()));
+                assert!(!actual.remove(name.as_str()));
+                assert_same_references(&actual, &expected);
+                assert_eq!(original.len(), 32, "mutating a clone preserves its source");
+            }
+        }
+
+        // Mixed membership changes exercise promotion after demotion, rather
+        // than only monotonically growing or emptying a set.
+        let mut seed = 73_u32;
+        for _ in 0..1024 {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            let name = format!("record@{:02}", (seed >> 16) % 32);
+            if seed & 0x100 != 0 {
+                assert_eq!(actual.insert(name.clone()), expected.insert(name));
+            } else {
+                assert_eq!(actual.remove(name.as_str()), expected.remove(name.as_str()));
+            }
+            assert_same_references(&actual, &expected);
+        }
+    }
+
+    #[test]
+    fn unchanged_references_preserve_shared_indexes_and_do_not_queue_work() {
+        for count in [1, 2, SMALL_REFERENCE_LIMIT, SMALL_REFERENCE_LIMIT + 1, 32] {
+            let owner = CollectorOwner::Record("holder@2".into());
+            let references: CollectorSet<_> = (0..count).map(|n| format!("record@{n}")).collect();
+            let mut original = WithdrawalCollector::default();
+            original.replace(owner.clone(), references.clone());
+            original.queued.clear();
+            let mut transaction = original.clone();
+
+            transaction.replace(owner, references);
+            transaction.replace(
+                CollectorOwner::Graph("absent".into()),
+                CollectorSet::default(),
+            );
+
+            assert!(transaction.queued.is_empty());
+            assert!(transaction.dirty.is_empty());
+            assert!(Arc::ptr_eq(&transaction.owners, &original.owners));
+            assert!(Arc::ptr_eq(&transaction.incoming, &original.incoming));
+            assert_eq!(transaction, original);
+        }
+    }
+
+    #[test]
+    fn withdrawal_counts_remove_one_subject_at_a_time_and_rollback_with_clone() {
+        let mut original = WithdrawalCollector::default();
+        original.withdrawal("subject@2", "reason@2", true);
+        original.withdrawal("subject@3", "reason@2", true);
+        original.withdrawal("reason@2", "reason@2", true);
+        assert_eq!(original.reasons.get("reason@2"), Some(&3));
+
+        let mut transaction = original.clone();
+        transaction.withdrawal("subject@2", "reason@2", false);
+        assert_eq!(transaction.reasons.get("reason@2"), Some(&2));
+        transaction.withdrawal("subject@3", "reason@2", false);
+        assert_eq!(transaction.reasons.get("reason@2"), Some(&1));
+        transaction.withdrawal("reason@2", "reason@2", false);
+        assert!(!transaction.reasons.contains_key("reason@2"));
+        assert_eq!(original.reasons.get("reason@2"), Some(&3));
+        assert!(!Arc::ptr_eq(&transaction.reasons, &original.reasons));
+    }
+
     #[test]
     fn forget_absent_record_preserves_shared_indexes() {
         let owner = CollectorOwner::State("kept".into());
         let mut original = WithdrawalCollector::default();
-        original.replace(owner, BTreeSet::from(["held@2".into()]));
+        original.replace(owner, CollectorSet::from(["held@2".into()]));
         let mut transaction = original.clone();
 
         transaction.forget(&BTreeMap::from([(
@@ -603,7 +862,7 @@ mod tests {
     #[test]
     fn forget_present_record_preserves_original_shared_indexes() {
         let owner = CollectorOwner::State("kept".into());
-        let references = BTreeSet::from(["held@2".into(), "other@2".into()]);
+        let references = CollectorSet::from(["held@2".into(), "other@2".into()]);
         let mut original = WithdrawalCollector::default();
         original.replace(owner.clone(), references.clone());
         let mut transaction = original.clone();
@@ -613,16 +872,16 @@ mod tests {
         assert_eq!(original.owners.get(&owner), Some(&references));
         assert_eq!(
             original.incoming.get("held@2"),
-            Some(&BTreeSet::from([owner.clone()]))
+            Some(&CollectorSet::from([owner.clone()]))
         );
         assert_eq!(
             transaction.owners.get(&owner),
-            Some(&BTreeSet::from(["other@2".into()]))
+            Some(&CollectorSet::from(["other@2".into()]))
         );
         assert!(!transaction.incoming.contains_key("held@2"));
         assert_eq!(
             transaction.incoming.get("other@2"),
-            Some(&BTreeSet::from([owner]))
+            Some(&CollectorSet::from([owner]))
         );
         assert!(!Arc::ptr_eq(&transaction.incoming, &original.incoming));
         assert!(!Arc::ptr_eq(&transaction.owners, &original.owners));
