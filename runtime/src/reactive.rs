@@ -62,6 +62,12 @@ use collector::{CollectorOwner, WithdrawalCollector};
 pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
 
+#[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+#[path = "reactive_renewal_profile.rs"]
+mod renewal_profile;
+#[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+pub use renewal_profile::{RemovalProfile, RenewalRemovalProfile};
+
 #[path = "reactive_identifiers.rs"]
 mod identifiers;
 

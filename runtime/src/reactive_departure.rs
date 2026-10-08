@@ -588,6 +588,8 @@ impl ReactiveSession {
     pub(crate) fn depart_unpinned(&mut self) -> Result<(), String> {
         #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
         let _departure_profile = extraction_profile::Departure::start();
+        #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+        let _renewal_departure_profile = renewal_profile::Departure::start();
         #[cfg(debug_assertions)]
         self.check_departure_index();
         let mut departing = BTreeMap::new();
@@ -889,23 +891,51 @@ impl ReactiveSession {
             {
                 journal_entry = Some(());
             } else if let Some(stream) = self.reading_streams.get(history) {
-                if let Some(index) = stream.occurrences.iter().position(|r| &r.id == record) {
-                    reading = Some(
-                        Arc::make_mut(&mut self.reading_streams)
-                            .get_mut(history)
-                            .unwrap()
-                            .occurrences
-                            .remove(index),
-                    );
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                let mut profile = renewal_profile::Block::readings(stream.occurrences.len());
+                let index = stream.occurrences.iter().position(|r| &r.id == record);
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.searched(index);
+                if let Some(index) = index {
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.start_cow(Arc::strong_count(&self.reading_streams) > 1);
+                    let streams = Arc::make_mut(&mut self.reading_streams);
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.finish_cow();
+                    reading = Some(streams.get_mut(history).unwrap().occurrences.remove(index));
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.removed();
                 }
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.finish(self.reading_streams.len(), || {
+                    self.reading_streams
+                        .values()
+                        .map(|stream| stream.occurrences.len())
+                        .sum()
+                });
             } else if let Some(renewal) = self.renewals.get(history) {
-                if let Some(index) = renewal.occurrences.iter().position(|name| name == record) {
-                    Arc::make_mut(&mut self.renewals)
-                        .get_mut(history)
-                        .unwrap()
-                        .occurrences
-                        .remove(index);
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                let mut profile = renewal_profile::Block::renewals(renewal.occurrences.len());
+                let index = renewal.occurrences.iter().position(|name| name == record);
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.searched(index);
+                if let Some(index) = index {
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.start_cow(Arc::strong_count(&self.renewals) > 1);
+                    let renewals = Arc::make_mut(&mut self.renewals);
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.finish_cow();
+                    renewals.get_mut(history).unwrap().occurrences.remove(index);
+                    #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                    profile.removed();
                 }
+                #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
+                profile.finish(self.renewals.len(), || {
+                    self.renewals
+                        .values()
+                        .map(|renewal| renewal.occurrences.len())
+                        .sum()
+                });
             }
             let retired_at = Arc::make_mut(&mut self.retired)
                 .remove(record)

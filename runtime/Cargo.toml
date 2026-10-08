@@ -17,10 +17,15 @@ games = []
 collector-metrics = []
 # Temporary native attribution only; excluded from ordinary and WASM builds.
 withdrawal-extraction-profile = ["collector-metrics"]
+renewal-removal-profile = ["collector-metrics"]
 
 [[example]]
 name = "withdrawal_extraction_profile"
 required-features = ["withdrawal-extraction-profile"]
+
+[[example]]
+name = "renewal_removal_profile"
+required-features = ["renewal-removal-profile"]
 
 [dependencies]
 sha2 = "0.10"
