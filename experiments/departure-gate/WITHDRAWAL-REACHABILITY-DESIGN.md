@@ -1,10 +1,15 @@
 # Withdrawal reachability — proposal for review
 
-Status (2026-10-07): design only. The owner requested a proposal, not a runtime
-change. No collector, new withdrawal rejection, pin weakening, or revised save
-validation is implemented here. The current departure and exact-reason rules
-remain authoritative until an amendment is approved. The C3 registered gate
-and exact own-ground requirements remain unchanged.
+Historical status (initial 2026-10-07 proposal): the owner requested design
+only, and no collector was implemented by this proposal. Its fixtures and
+measurements remain evidence for their identified pre-collector build. The
+owner later authorized a separate reviewable implementation on
+`codex/withdrawal-collector-draft`, now frozen at
+`c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853`. The
+[draft contract and evidence map](../../docs/design/withdrawal-collector-draft.md)
+record that implementation and its provisional differences. Final semantic
+acceptance, merge and release remain pending; the C3 registered gate and exact
+own-ground requirements remain unchanged.
 
 ## Measured problem and limits
 
@@ -15,13 +20,13 @@ address them from outside the group. The subject must not become an independent
 root merely because its withdrawal has a reason or because the reason has a
 withdrawal. That would restate the cycle rather than establish reachability.
 
-The accompanying `withdrawal-retention.mjs` observes the existing runtime. It
+The accompanying `withdrawal-retention.mjs` observed the identified baseline runtime. It
 drains one session after every event, retains another session's entire archive,
 and compares outcomes, views, saves and the final ordered archive. The small
 `draftReachability` diagnostic covers the included fixtures only; it never
 deletes a record and is not a proof of complete language reachability.
 
-Current Windows WASM SHA-256:
+Measured pre-collector Windows WASM SHA-256:
 `daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59`.
 The build records revision `7f551e5774d61ec9f88e0d603e5b01196597b00c`, dirty,
 compiled. `withdrawal-retention-results.json` records source/save digests and

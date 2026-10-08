@@ -171,7 +171,7 @@ implementation. Current implementation and verification are recorded in the
 Claude's departure WIP `7f551e5` was preserved and continued on
 `codex/rc16-continuation`. This is the departure implementation (PR 5), with
 the kit/registry candidate bumped to rc.16; nothing here records npm publication.
-The current source contains:
+The recorded pre-collector continuation contains:
 
 - incremental pin counts and retirement candidates, with transaction rollback
   and a one-time restore rebuild;
@@ -210,7 +210,7 @@ matched the pinned rc.15 runtime. All 13 windowed fixtures, including the new
 withdrawal probes, matched rc.15 dispatch outcome rows over 32 seeds of 400
 events (416 rows). These are measured populations, not proofs for all programs.
 
-Current C3 adapter save sizes at 30 and 60 cycles are both 2,646 bytes; raw
+That continuation's C3 adapter save sizes at 30 and 60 cycles are both 2,646 bytes; raw
 sizes are 25,682 and 25,683 with equal normalized live-save structure. All
 44,460 accepted outcomes match the published rc.15 baseline. The recorded
 last-ten-cycle median is 114.7 microseconds
@@ -225,18 +225,24 @@ after every one of 61 states has received a set (742 accepted events).
 The seeded pin census includes the forever-skipped commit fixture and reports
 the attribution categories rather than assuming pins are bounded.
 
-### Owner review still required: withdrawal reachability
+### Withdrawal reachability: baseline finding and separate draft
 
 The 1,000-cycle probes found self-withdrawal retention of 999 retired records
 and mutual retention of 1,998 even with the archive drained after every event.
 A reachable chain retains 1,999; eliminating isolated cycles would therefore
-not establish a universal bound. The owner authorized the
+not establish a universal bound. At that stage the owner authorized the
 [design amendment and paired fixtures](../../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
-for review only. No collector, pin weakening, new rejection or withdrawal
-semantic change was implemented. The broad save-bound argument remains
-unresolved; exact own grounds and genuinely required reasons remain obligations.
+for design review only; that baseline continuation implemented no collector.
+The owner subsequently authorized a separate reviewable implementation on
+`codex/withdrawal-collector-draft`, frozen for verification at
+`c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853`. The
+[collector contract and evidence map](../design/withdrawal-collector-draft.md)
+record the provisional retention/archive/capacity differences and their actual
+checks. Merge and release remain unauthorized, and final semantic acceptance
+is still required. The broad save-bound argument remains unresolved; exact own
+grounds and required true reasons remain obligations.
 
-The build receipts identify a compiled dirty working build based on `7f551e5`
+The earlier continuation build receipts identify a compiled dirty working build based on `7f551e5`
 with source fingerprint and WASM hashes, not a clean published release.
 Linux, Lean, independent reproducibility and the remaining browser matrix are
 remote CI/release checks. Series windows, View 0.2 and later rc.16 roadmap items

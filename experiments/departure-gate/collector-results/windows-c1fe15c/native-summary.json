@@ -1,0 +1,70 @@
+{
+  "schema": "collector-native-gates/1",
+  "runtime_commit": "c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853",
+  "runtime_diff_from_commit": false,
+  "checks": [
+    {
+      "kind": "tests",
+      "profile": "full",
+      "command": "cargo test --locked --manifest-path runtime/Cargo.toml --all-targets",
+      "environment": {
+        "RUST_MIN_STACK": "16777216"
+      },
+      "exit_code": 0,
+      "passed": 869,
+      "failed": 0,
+      "ignored": 1,
+      "binaries": 82,
+      "receipt": "test-results/collector-final-native-full-tests.log"
+    },
+    {
+      "kind": "clippy",
+      "profile": "full",
+      "command": "cargo clippy --locked --manifest-path runtime/Cargo.toml --all-targets -- -D warnings",
+      "exit_code": 0,
+      "receipt": "test-results/collector-final-native-full-clippy.log"
+    },
+    {
+      "kind": "tests",
+      "profile": "reactive",
+      "command": "cargo test --locked --manifest-path runtime/Cargo.toml --no-default-features --all-targets",
+      "environment": {
+        "RUST_MIN_STACK": "16777216"
+      },
+      "exit_code": 0,
+      "passed": 857,
+      "failed": 0,
+      "ignored": 1,
+      "binaries": 82,
+      "receipt": "test-results/collector-final-native-reactive-tests.log"
+    },
+    {
+      "kind": "clippy",
+      "profile": "reactive",
+      "command": "cargo clippy --locked --manifest-path runtime/Cargo.toml --no-default-features --all-targets -- -D warnings",
+      "exit_code": 0,
+      "receipt": "test-results/collector-final-native-reactive-clippy.log"
+    },
+    {
+      "kind": "format",
+      "command": "cargo fmt --manifest-path runtime/Cargo.toml --all -- --check",
+      "exit_code": 0,
+      "receipt": "test-results/collector-final-native-fmt.log"
+    }
+  ],
+  "source_sha256": {
+    "runtime/Cargo.toml": "ac7e836099ed2e8778d68d3c4063f8fbc294533d758320513dfdfafc3fd1b846",
+    "runtime/src/reactive.rs": "3e3591d99567b4c67317ac6cbeb9c147ae3e388167f580c2ad34cf84816ce69a",
+    "runtime/src/reactive_collector.rs": "1230633ba51fffff81fb3b5f298b9adb66fe7667a48831c66dc25821dd460ad1",
+    "runtime/src/reactive_departure.rs": "c85c84ac4e9d8adfd5896783ac7279dafe0a2c00e613112e83f46e711ef9b0a3",
+    "runtime/tests/departure.rs": "e64daceb034cff4bdf0ca4d7bb019dd446a3291a6337171f4f4f3ba0073735d5",
+    "runtime/tests/withdrawal_collection.rs": "cfd94fd9eb1da6aee0fdc286bf71a9f879aa7f721b251440899cf50053e6ab84",
+    "runtime/tests/withdrawal_capacity.rs": "93f39177691a8c39027077ee831ff2233618431e32e983f6e104dcdcce07dc9a"
+  },
+  "notes": [
+    "Debug test threads use the documented 16MiB Windows stack.",
+    "These ordinary all-targets runs do not enable collector-metrics.",
+    "The real65,536-record capacity test is intentionally ignored here and has a separate explicit release-mode receipt managed by the parent task.",
+    "Prior failed/provisional logs remain preserved; this summary covers the final named receipts only."
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "schema": "caveat-collector-kit-verification/1",
+  "recordedAt": "2026-10-08T00:47:01.7892698Z",
+  "revision": "c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853",
+  "buildClean": true,
+  "reactiveWasmSha256": "0554b21cbc24e9d094975ea53be05075ee1a1233a8e6719b4373f00cf8235bdb",
+  "node": "v24.11.1",
+  "platform": "win32",
+  "changesDuringVerification": [],
+  "checks": [
+    {
+      "command": "node --test kit/test/archive-history-runtime.test.mjs kit/test/archive-runtime.test.mjs kit/test/archive-history.test.mjs kit/test/archive.test.mjs kit/test/archive-report.test.mjs kit/test/explain.test.mjs kit/test/dependents.test.mjs kit/test/types.test.mjs kit/test/serve.test.mjs",
+      "cwd": "C:/Dev/caveat-lang",
+      "exitCode": 0,
+      "tests": 56,
+      "passed": 56,
+      "failed": 0,
+      "milliseconds": 2025.9047,
+      "log": "collector-kit-focused.log"
+    },
+    {
+      "command": "node C:/Dev/GPT_SandBox_Web/node_modules/typescript/bin/tsc --noEmit --strict --module nodenext --target es2022 --lib ES2022,ESNext.Disposable,DOM kit/type-tests/program-types.mts kit/type-tests/dependents-format.mts",
+      "compilerVersion": "6.0.3",
+      "cwd": "C:/Dev/caveat-lang",
+      "exitCode": 0,
+      "log": "collector-kit-types.log"
+    },
+    {
+      "command": "npm run test",
+      "cwd": "C:/Dev/caveat-lang/kit",
+      "exitCode": 0,
+      "tests": 329,
+      "passed": 329,
+      "failed": 0,
+      "skipped": 0,
+      "milliseconds": 118711.0892,
+      "execution": "authorized unrestricted rerun",
+      "log": "collector-kit-full-unrestricted.log"
+    },
+    {
+      "command": "PLAYWRIGHT_CHANNEL=chrome node scripts/test-kit-package.mjs",
+      "cwd": "C:/Dev/caveat-lang",
+      "exitCode": 0,
+      "browser": "154.0.8037.98",
+      "log": "collector-kit-package.log",
+      "report": "C:/Dev/caveat-lang/test-results/kit-package/2026-10-08T00-56-46-517Z/report.json"
+    },
+    {
+      "command": "node .cache/caveat-continuation/collector-installed-smoke.mjs C:/Dev/caveat-lang/test-results/kit-package/2026-10-08T00-56-46-517Z/consumer",
+      "cwd": "C:/Dev/GPT_SandBox_Web",
+      "exitCode": 0,
+      "browser": "154.0.8037.98",
+      "cases": [
+        "mutual withdrawal reasons",
+        "nested reading and withdrawal joins",
+        "restored history",
+        "missing archive conservative",
+        "snapshot live lists unchanged"
+      ],
+      "report": "collector-installed-smoke.json",
+      "log": "collector-installed-smoke.log"
+    }
+  ],
+  "initialAttempt": {
+    "command": "npm run test",
+    "cwd": "C:/Dev/caveat-lang/kit",
+    "exitCode": 1,
+    "passed": 321,
+    "failed": 8,
+    "reason": "Sandbox EPERM on test-results fixtures and Python temporary directories",
+    "log": "collector-kit-full.log"
+  },
+  "packageStatus": "passed",
+  "package": {
+    "path": "C:/Dev/caveat-lang/test-results/kit-package/2026-10-08T00-56-46-517Z/caveat-lang-0.1.0-rc.16.tgz",
+    "bytes": 1011990,
+    "sha256": "8aa06bcd179dfaebfac45a70f28566c0af451fb468b0468f874d9edd3fb89f83",
+    "reportSha256": "44c01b9c7b8aafe08dd6487a4f7d7752b94a82efbb20517f0b734a91a3d42ccd",
+    "buildInfoSha256": "446ca8f17ec7264b150e04dc8bb65c349b441cbcb482af13db2bfa207491b7c8",
+    "temporaryStagingRemoved": true
+  },
+  "harnessAdjustment": "First ephemeral installed-smoke attempt failed its Playwright CommonJS import; corrected only the .cache harness and reran successfully. First log retained as collector-installed-smoke-first.log.",
+  "completedAt": "2026-10-08T01:00:38.2233263Z"
+}

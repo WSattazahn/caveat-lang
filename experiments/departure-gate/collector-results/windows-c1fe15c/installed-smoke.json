@@ -1,0 +1,78 @@
+{
+  "at": "2026-10-08T00:57:56.615Z",
+  "consumer": "C:\\Dev\\caveat-lang\\test-results\\kit-package\\2026-10-08T00-56-46-517Z\\consumer",
+  "revision": "c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853",
+  "clean": true,
+  "wasmSha256": "0554b21cbc24e9d094975ea53be05075ee1a1233a8e6719b4373f00cf8235bdb",
+  "node": "v24.11.1",
+  "browser": "154.0.8037.98",
+  "nodeResults": {
+    "mutual": {
+      "records": [
+        "a@2",
+        "b@2"
+      ],
+      "withdrawals": [
+        [
+          "a@2",
+          "b@2"
+        ],
+        [
+          "b@2",
+          "a@2"
+        ]
+      ],
+      "restored": true,
+      "missingConservative": true
+    },
+    "nested": {
+      "records": [
+        "a@2",
+        "r@1"
+      ],
+      "withdrawals": [
+        [
+          "a@2",
+          "a@2"
+        ]
+      ],
+      "restored": true,
+      "missingConservative": true
+    }
+  },
+  "browserResults": {
+    "mutual": {
+      "records": [
+        "a@2",
+        "b@2"
+      ],
+      "withdrawals": [
+        [
+          "a@2",
+          "b@2"
+        ],
+        [
+          "b@2",
+          "a@2"
+        ]
+      ],
+      "restored": true,
+      "missingConservative": true
+    },
+    "nested": {
+      "records": [
+        "a@2",
+        "r@1"
+      ],
+      "withdrawals": [
+        [
+          "a@2",
+          "a@2"
+        ]
+      ],
+      "restored": true,
+      "missingConservative": true
+    }
+  },
+  "errors": []
+}

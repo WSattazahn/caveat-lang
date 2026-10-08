@@ -9,7 +9,10 @@ does not approve merge, release, a universal boundedness claim, or every
 provisional choice below. Earlier pasted external review text was feedback,
 not the implementation grant.
 
-The [source inventory](../../experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md)
+The implementation source is frozen for verification at
+`c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853`; later documentation receipts do not
+change that measured source identity. The
+[source inventory](../../experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md)
 records baseline consumers and mutation sites. The earlier
 [reachability proposal](../../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
 and [measurements](../../experiments/departure-gate/withdrawal-retention-results.json)
@@ -320,31 +323,96 @@ are acceptable and whether known conservative limits are sufficiently explicit.
 ## Working acceptance evidence map
 
 This is a preliminary map of **specific observed assertions**, not a declaration
-that C01–C20 are accepted. Native tests below ran against the evolving dirty
-draft based on `f5ec829`; a frozen source identity and final rerun remain pending.
-The original failed attempt remains in its log. Current collector WASM,
-package/browser, baseline comparison and performance results are not yet recorded
-here. No baseline result is substituted for a collector result.
+that C01–C20 are accepted. Preliminary native tests ran against the evolving
+draft based on `f5ec829`. The final source is now frozen at `c1fe15c`; clean-build
+artifact identity is captured below. Reruns remain pending only where explicitly
+stated. The original failed attempt remains in its log. WASM host-consumer
+results and measured profile comparison are recorded separately. Registered
+C3/corpus gates, package/Chrome checks and the scoped CAVEAT audit have now
+passed locally. Remote c1 CI is reported separately: core semantics, runtime proofs,
+reproducible WASM and both worker checks pass. Legacy Door 3D QA failed
+(run 37708806805, job 113095624904) because c1 corrupted the workflow
+assertion's expected badge encoding. A one-line ASCII JavaScript escape repair
+preserves the assertion; WF7 passes the exact local WebKit route harness.
+The workflow repair is commit `440ae92`; the old head finished 17/18 checks
+with this sole failure. Remote CI for the corrected final head remains pending. No baseline result
+substitutes for a collector result.
+
+Clean build identity from `dist/build-info.json`: revision
+`c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853`, `clean:true`, `compiled:true`,
+runtime source fingerprint
+`09cabbda0c0277c991f396357693692fad063145bc594849a2a90b21e7eb16be`.
+Full WASM SHA-256 is
+`06f6fbac21b9a0e1c066b9dad80a80d89683f4d8b2b796c43e7f9c850857b131`;
+reactive-only WASM is
+`0554b21cbc24e9d094975ea53be05075ee1a1233a8e6719b4373f00cf8235bdb`.
+Compiler: Rust `1.98.1`, host `x86_64-pc-windows-msvc`, wasm-bindgen `0.2.104`.
+This identifies the compiled draft, not a release. Draft PR #175 is stacked on
+unchanged PR #174; neither this record nor a passing check authorizes merging
+or publishing.
+
+Durable copies of the profile, build, release-effects, native summary and
+capacity receipts, with reproduction details and their raw hashes, are in
+[the Windows c1fe15c evidence directory](../../experiments/departure-gate/collector-results/windows-c1fe15c/README.md).
 
 Receipt identifiers used below:
 
-- **N19:** `cargo test --locked --manifest-path runtime/Cargo.toml --features
-  collector-metrics --test withdrawal_collection`, observed **19/19 passed** in
-  `test-results/collector-draft-collection-tests.log`. Tests are in
+- **F869:** Final native full-profile run observed **869 passed**, including
+  all 20 collector tests and 20 departure tests, in
+  `test-results/collector-final-native-full-tests.log` (one ignored capacity
+  test; 82 test binaries). Command: set `RUST_MIN_STACK=16777216`, then
+  `cargo test --locked --manifest-path runtime/Cargo.toml --all-targets`.
+  The large ignored
+  capacity gate remains separately required. Strict Clippy passed for full
+  and reactive-only profiles (`collector-final-native-full-clippy.log` and
+  `collector-final-native-reactive-clippy.log`); formatting passed
+  (`collector-final-native-fmt.log`). Commands were
+  `cargo clippy --locked --manifest-path runtime/Cargo.toml --all-targets -- -D warnings`,
+  the same with `--no-default-features` before `--all-targets`, and
+  `cargo fmt --manifest-path runtime/Cargo.toml --all -- --check`.
+  Reactive-only tests also passed **857/857**, with one ignored capacity test
+  and 82 binaries, using `cargo test --locked --manifest-path runtime/Cargo.toml
+  --no-default-features --all-targets` and the same stack setting. The exact
+  commands, exit codes and final source hashes are recorded in
+  `test-results/collector-final-native-summary.json`; runtime source matches
+  `c1fe15c`. These default/reactive feature runs do not replace the
+  `collector-metrics` assertions in N20.
+  This broad gate supplements the named assertions below; it does not imply
+  every acceptance property was tested.
+- **N20/O20:** `cargo test --locked --manifest-path runtime/Cargo.toml --features
+  collector-metrics --test withdrawal_collection --test departure`, observed
+  **20/20 collector and 20/20 departure tests passed** in
+  `test-results/collector-draft-focused-final.log`. Collector tests are in
   [`withdrawal_collection.rs`](../../runtime/tests/withdrawal_collection.rs).
-  The log identifies a debug native binary; its final source hash is pending.
-- **O20:** The departure portion of
-  `test-results/collector-draft-focused.log` observed **20/20 passed** in
-  [`departure.rs`](../../runtime/tests/departure.rs). The same log also preserves
+  Departure tests are in [`departure.rs`](../../runtime/tests/departure.rs).
+  This is the final debug working-source run whose files are included in
+  `c1fe15c`, not a substitute for the clean artifact receipt.
+- **Earlier attempts:** `test-results/collector-draft-focused.log` preserves
   the earlier collector attempt with **9/11 passed and two failures**: an incorrect
   `hud` assertion path and an invalid fixture attempting permission with an
-  already-withdrawn grant. N19 records the corrected tests; this mixed log is
-  not an all-green gate or final source receipt.
+  already-withdrawn grant, alongside 20 passing departure tests. The later
+  collection log records 19 passing tests. N20 adds the restored uncreated
+  commitment-owner regression. The original mixed log is not an all-green gate.
 - **U68:** `test-results/collector-draft-consumers.log` observed **68/68 passed**
   across `decision_journal`, `grounds`, `late_qualification`, `permission`,
   `qualification_dependencies`, `reactive_procedures`, `windows` and `withdrawal`.
-  Only named assertions below contribute to each row. Exact invocation and
-  final source identity still need to be attached.
+  Invocation: `cargo test --locked --manifest-path runtime/Cargo.toml --features
+  collector-metrics --test withdrawal --test qualification_dependencies --test
+  late_qualification --test decision_journal --test permission --test
+  reactive_procedures --test windows --test grounds`. Only named assertions
+  below contribute to each row; F869 reran these functional assertions at the
+  frozen source.
+- **K1:** The explicit ignored release test
+  `capacity_refusal_is_preappend_and_atomic_then_prior_collection_frees_room`
+  in [`withdrawal_capacity.rs`](../../runtime/tests/withdrawal_capacity.rs)
+  passed at the real **65,536 held-record threshold**, using a synthesized
+  source-possible **14,306,948-byte** save through the normal restore validator.
+  Final `test-results/collector-final-capacity.log` records **1/1 passed in
+  17.33s**, using `cargo test --release --locked --manifest-path runtime/Cargo.toml
+  --no-default-features --features collector-metrics --test withdrawal_capacity
+  -- --ignored --nocapture`. The earlier 19.69s pre-freeze result remains in
+  `collector-draft-capacity.log`; it is superseded for final-source verification.
+  The synthetic large save is not an authenticated historical run.
 - **H13:** `node --test C:/Dev/caveat-lang/kit/test/archive-history.test.mjs
   C:/Dev/caveat-lang/kit/test/archive.test.mjs`, independently observed **13/13
   passed** with Node `v24.11.1`. Private receipts under
@@ -354,38 +422,176 @@ Receipt identifiers used below:
   command, UTC times and unchanged before/after SHA-256 hashes for both helper
   implementations and tests. These are synthetic host-helper tests, not WASM
   collector execution.
+- **W56:** Actual clean collector reactive-WASM host checks passed **56/56**
+  in private `collector-kit-focused.log` under the same Vessel cache directory.
+  Command: `node --test kit/test/archive-history-runtime.test.mjs
+  kit/test/archive-runtime.test.mjs kit/test/archive-history.test.mjs
+  kit/test/archive.test.mjs kit/test/archive-report.test.mjs
+  kit/test/explain.test.mjs kit/test/dependents.test.mjs kit/test/types.test.mjs
+  kit/test/serve.test.mjs`. It uses the clean `c1fe15c` reactive WASM hash recorded
+  above. The three actual-collector tests named below passed, including real
+  CLI/authoring/serve paths; existing sparse/copy/replace/overlap/family archive
+  cases passed too. T329 records full kit completion; BPK records installed
+  package and actual Chrome execution.
+- **T329:** `npm run test` in `C:/Dev/caveat-lang/kit` passed **329/329**, with
+  zero failed/skipped tests, in **118.711s** against the clean built runtime.
+  Private `collector-kit-full-unrestricted.log` records the authorized rerun.
+  The original `collector-kit-full.log` preserves eight sandbox permission
+  failures (`EPERM`/Windows temporary-directory access); the rerun passed
+  without source changes. This is not browser rendering or package validation.
+- **P62:** Native release profiles compare clean `f5ec829` and clean `c1fe15c`
+  with the same harness SHA-256
+  `1e6de5ad17ca4c6b06e2eef91c7ff65f73774e0cdb9a6d4fa73af1053c0b1357`.
+  Commands: `node experiments/departure-gate/collector-profile.mjs
+  --only=baseline --baseline-root=test-results/collector-profile-smoke/baseline-source
+  --output=test-results/collector-profile-final`, then the same with
+  `--only=candidate`. The harness verifies the reused baseline source's Git
+  blobs. Five workloads at 60/300/1000/3000 cycles, three trials each, plus two
+  late-drain runs produce **62 passing paired rows**. Reports are
+  `test-results/collector-profile-final/{baseline,candidate,comparison}.json`.
+  The comparison proves its named fixture assertions, not corpus-wide outcome
+  equivalence. Executable hashes and all per-trial measurements are retained.
+- **E8:** `test-results/collector-release-effects.json` reports **eight passing
+  actual-WASM rows** (self/mutual at 60/300/1000/3000): release, drain, exact
+  restore and following accepted no-op, using the clean reactive artifact
+  identified above. It isolates serialized last-event effect bytes from
+  retired-record counts; it is not a heap measurement.
+- **M8:** Eight final native allocation-state rows in
+  `test-results/collector-release-memory-reproduced/report.json` verify unchanged
+  `c1fe15c` runtime/build inputs and the standard build fingerprint before and
+  after execution. Reproduce with `node experiments/departure-gate/collector-memory.mjs
+  --output test-results/collector-release-memory-reproduction`. This separately
+  hashed supplemental harness was added after the runtime source freeze. Each
+  row has zero retired dynamic records/effects after the accepted no-op,
+  identical logical save hashes across restore, and zero residual requested
+  bytes after dropping the final session. A durable copy is
+  `collector-results/windows-c1fe15c/release-memory.json` under the departure gate.
+
+- **G15:** Registered `node experiments/departure-gate/run.mjs` passes on
+  clean c1 artifacts: 146 no-window programs (116 executed, 30 skipped) with
+  exact rc.15 dispatch/save/restored-save digests; 15 windowed fixtures × 32
+  seeds yield 480 matching outcome rows. The C3 fixture has 44,460 matching
+  accepted outcomes and 2,646-byte adapter saves at 30/60 cycles. The final
+  recorder rerun `run.mjs --skip-sweeps` reuses the protected native sweep
+  receipts and supplies the consistent frozen C3/restore/pin batch here; late
+  C3 median/p99 are 115.1/252.1µs. Exact published rc.15 restore reaches all 61
+  source-derived state-write paths; five programs complete the registered pin
+  census. Public `departure-gates.json` and its component JSON reports retain
+  that batch. Path/guard checking is not an instruction-coverage trace.
+- **BPK:** `PLAYWRIGHT_CHANNEL=chrome node scripts/test-kit-package.mjs`
+  passes the installed CLI/library/guides/Python/browser checks. The private
+  1,011,990-byte tarball has SHA-256
+  `8aa06bcd179dfaebfac45a70f28566c0af451fb468b0468f874d9edd3fb89f83`.
+  Node 24.11.1 and actual Chrome 154.0.8037.98 additionally agree on mutual
+  reasons, nested reading/withdrawal joins, restore, missing-archive handling
+  and unchanged live lists. Public `kit-verification.json`,
+  `package-report.json` and `installed-smoke.json` record these observations.
+  The 57-test Python caller has one documented POSIX-only child skip; its
+  separate 21-test surface passes. This is execution/report-consumer evidence,
+  not a visual-design acceptance claim. The temporary package staging was
+  removed; no release was published.
+- **A2:** The bounded local CAVEAT audit at 2026-10-08T00:58:29.849Z returned
+  literal `accepted:true` at private store sequence 2. It reran 50 named
+  current-WASM/archive-consumer tests and the registered gate command with
+  protected native sweep inputs. Public `audit-plan.json` declares its inputs
+  and commands; `caveat-audit-summary.json` exposes status, scope, limitations
+  and command/output hashes without private keys, ledger or output text. This
+  redacted summary is not a standalone authenticated proof. Native/profile
+  checks, package/browser evidence and remote CI are separate from its scope.
+
+- **WF7:** The c1 remote Legacy Door 3D QA failure was caused by an
+  accidentally misencoded expected badge in `.github/workflows/runtime.yml`,
+  not an observed DOM mismatch. Replacing the middle dot in the JavaScript
+  assertion with ASCII `\u00b7` preserves the exact expected value. The
+  extracted corrected workflow script passes all seven routes in WebKit 26.0
+  on Windows and captures ten screenshots. Public `door3d-qa.json` records
+  workflow/script hashes and the successful corruption-negative assertion.
+  Screenshots remain in the local QA artifact directory. This workflow-only
+  correction is later than c1 and does not change measured runtime inputs;
+  repair commit `440ae92` records the one-line fix. Local success does not
+  substitute for the pending corrected-head CI run.
+
+- **Q192:** The independently reviewed
+  [`current-computation.mjs`](../../experiments/departure-gate/current-computation.mjs)
+  pairs the pinned clean f5 reactive WASM (`daab2c71023777a3a9e5dc72f7882c653147c4acb445470368cecd76ed30bc59`)
+  with clean c1 (`0554b21cbc24e9d094975ea53be05075ee1a1233a8e6719b4373f00cf8235bdb`).
+  All 15 registered fixtures × 32 runs × 400 attempts pass: 480 full initial
+  snapshots and 192,000 current-computation/outcome comparisons, comprising
+  142,393 accepted and 49,607 refused attempts. Baseline has 45,247 departures;
+  candidate has 113,856. Public `current-computation.json` records exact
+  projection paths, exclusions, sources, artifacts, harness hash and per-run
+  input/result digests. All 480 per-run accepted/refused counts also match the
+  registered native sweep. State/binding values, caveats, actual own grounds,
+  current decision/permission fields, current history members, cues and
+  scheduled scalar fields compare with types, array order and negative zero
+  preserved. Full historical provenance and raw retired/departed inventories
+  are excluded; this is not proof of every future trace or unselected field.
+  Both artifacts, all fixture bytes and the harness remain unchanged through
+  execution. The diagnostic driver is later than c1, not a runtime change.
 
 | Row | Specific observed evidence | Remaining evidence / scope limit |
 | --- | --- | --- |
-| C01 | N19 `isolated_self_and_mutual_cycles_depart_with_both_directions_archived`: 16 cycles each, exact archived self/mutual reasons, one leaf per record and only declaration retirement remaining. | Long runs and actual WASM/host reports pending; this is finite native coverage. |
-| C02 | N19 `reachable_chain_survives_and_unchanged_events_do_not_trace_it`; `permission_grants_and_historical_commitment_bases_keep_exact_reasons`; self/mutual own-ground release tests. | Long retained-chain memory/latency and paired baseline comparisons pending. |
-| C03 | N19 `final_independent_root_release_collects_and_failures_roll_back` and `a_mutual_group_waits_for_two_roots_and_archives_atomically_after_retry` retain after first release, collect after final accepted release. | Final frozen-build receipt pending. |
-| C04 | The same N19 self/mutual tests cover explicit refusal and final-binding failure; mutual case preserves a preexisting undrained batch through retry. `failed_due_event_keeps_pending_target_and_guard_indexes` covers a failed due event. | Classified baseline outcome comparison and final measured large-region failed release pending. |
-| C05 | N19 `pending_target_pins_survive_until_the_last_scheduled_application`, `pending_guard_lineage_and_its_transfer_are_conservative_roots`, and `failed_due_event_keeps_pending_target_and_guard_indexes`; O20 `each_scheduled_target_pins_until_its_own_qualification_applies`. | Final frozen-build receipt pending; no claim about every schedule. |
-| C06 | N19 `journal_retirement_releases_only_its_pin_while_other_owners_retain`; U68 `the_journal_records_each_decision_change_in_order`, `the_journal_keeps_its_newest_entries`; O20 archive ordering assertions. | Under D2, commit/reopen references remain in a held basis/graph and grants in held permission records. A cycle's final *journal-only* root is therefore not manufactured as a fixture; retirement must preserve these other roots. Broader paired baseline journal population pending. |
-| C07 | N19 `permission_grants_and_historical_commitment_bases_keep_exact_reasons`, `reopened_commitment_keeps_reason_graph_and_current_status`; O20 `permission_grants_remain_pinned_after_a_revision_is_superseded`; U68 `permission_withdrawn_asks_about_the_grant_recorded_on_the_current_revision`, `a_missing_withdrawn_or_mismatched_grant_is_refused_and_the_session_goes_on`. | Collector-specific explicit-citation checks and paired baseline classified outcomes pending. |
-| C08 | N19 `transferred_skipped_guard_lineage_vetoes_only_additional_collection`, `procedure_arguments_and_skipped_procedure_guards_keep_their_actual_holders`, `stream_and_series_selection_holders_veto_until_successful_overwrite`; series case correctly retains transferred basis after selection reset. | Final frozen-build receipt pending. The test does not falsely demand clearing a still-held basis. |
-| C09 | N19 `record_owned_qualification_inside_a_cycle_is_not_an_external_root`, `declaration_qualifiers_are_roots_and_successful_predicate_clear_releases`, `reopened_commitment_keeps_reason_graph_and_current_status`; U68 `everything_built_on_the_evidence_gains_the_caveat` and `qualifying_is_idempotent_reported_and_atomic`. Debug events audit collector indexes against rebuilt maps. | Mutation inventory review complements these finite paths; universal path coverage is not claimed. |
-| C10 | N19 `later_readable_history_preserves_the_reason_until_the_holder_departs` checks later withdrawn predicate, reason retention and exact archived reading provenance; `explicit_citations_keep_exact_old_membership_and_refuse_current_alias_substitution` accepts the held old member, refuses current-alias substitution with `evaluation/ungrounded_citation`, preserves save on refusal and collects after clear. U68 `reading_withdrawn_history_again_keeps_the_withdrawal`. | Final frozen-build and paired baseline receipt pending; finite citation paths only. |
-| C11 | N19 `authentic_older_saves_rebuild_without_collecting_until_an_accepted_event` uses captured `f5ec829` **and published rc.15** self/mutual saves, preserves save/no archive on load and refused event, then collects on accepted no-op. Other N19 cases restore current saves. O20 forged marker/inherited tests; U68 forged retirement/permission/withdrawal tests. | Final collector source identity pending. Each old fixture retains its own runtime identity; the versions are not conflated. |
-| C12 | N19 `isolated_self_and_mutual_cycles_depart_with_both_directions_archived` compares per-event drain against late drain for identical save and concatenated archive. Mutual retry test preserves preexisting archive. O20 `the_archive_hands_each_departed_record_over_once` and `transfer_metadata_is_transactional_and_read_queries_do_not_publish_it`. | Actual collector WASM drain/restore reports and longer drain schedules pending. |
-| C13 | N19 `ordinary_departing_holder_releases_a_cycle_in_the_same_batch`, conditional-qualification archive assertion and exact self/mutual reasons; O20 `archive_roots_reconstruct_post_departure_copies_replacements_and_overlap`; H13 `archive history joins mutual withdrawals, once-stored relations and nested payload markers without changing live reports`. | Real collector WASM nested closure, CLI/authoring/serve and rendered historical reports pending. |
-| C14 | H13 missing/conflicting/source mismatch cases, malformed-object regressions, future occurrence check including `journal`-named stream, duplicate/cycle/copy determinism, and `consistent payload edits and omitted unrelated records cannot prove authenticity or global completeness`. | Actual runtime-produced archive counterparts and final host integration receipt pending; authentication/exhaustiveness remains explicitly unsupported. |
-| C15 | N19 later-read and reopened-commitment tests assert binding/status preservation and snapshot equality after restore. Debug `run_event` invokes `check_incremental_bindings` against full evaluation, including these success/failure paths. H13 compares historical-report current fields with no-archive current fields. | Paired baseline snapshot projection and current WASM consumer evidence pending; raw retired/departed representation equality is intentionally outside D5. |
-| C16 | O20 existing ordinary departure assertions; N19 `ordinary_departing_holder_releases_a_cycle_in_the_same_batch`; U68 `a_program_without_a_window_saves_no_retired_field`. | Full registered no-window byte comparison and ordinary baseline population on final collector build pending. A single no-window test is not the corpus gate. |
-| C17 | Source review confirms `history_room` remains pre-append; D5 specifies the proposed difference. | Actual full-capacity accepted/refused/rollback boundary test pending. Source review alone does not discharge this row. |
-| C18 | N19 retained-chain idle test observes zero vertices/edges/candidates on unchanged events with metrics enabled. D6 identifies COW copying separately from these counters. | Five workloads at 60/300/1000/3000, three repetitions; actual requested Rust live heap/dispatch peak; collector temporary-memory upper bound versus work-set counts; unrelated tiny renewal, failed release and unchanged registered C3 pending. No measured cost claimed yet. |
-| C19 | H13 host helper tests observed. Kit owner reports strict NodeNext/type checks, awaiting persisted command/build receipt. | Actual collector WASM tests, full native/kit/package gates and browser evidence pending. |
-| C20 | Independent source review resolved graph-owner kind question; rebuild ReliesOn coverage and pending-guard compaction index issues were corrected. Independent malformed archive and future ordinal regressions pass H13. | Final frozen diff/source review and receipt identity pending; review is bounded by inspected consumers and cases. |
+| C01 | N20 `isolated_self_and_mutual_cycles_depart_with_both_directions_archived`: 16 cycles each, exact archived self/mutual reasons, one leaf per record and only declaration retirement remaining. | P62 extends isolated self/mutual to 3,000 cycles with zero retired dynamic records; W56/E8 exercise actual WASM. This remains finite fixture coverage. |
+| C02 | N20 `reachable_chain_survives_and_unchanged_events_do_not_trace_it`; `permission_grants_and_historical_commitment_bases_keep_exact_reasons`; self/mutual own-ground release tests. | P62 preserves the entire reachable-chain save and reports its growing memory/cost; conservative retention and its overhead remain an owner tradeoff. |
+| C03 | N20 `final_independent_root_release_collects_and_failures_roll_back` and `a_mutual_group_waits_for_two_roots_and_archives_atomically_after_retry` retain after first release, collect after final accepted release. | F869 reruns these finite functional cases at frozen source; semantic acceptance remains separate. |
+| C04 | The same N20 self/mutual tests cover explicit refusal and final-binding failure; mutual case preserves a preexisting undrained batch through retry. `failed_due_event_keeps_pending_target_and_guard_indexes` covers a failed due event. | P62 measures repeated large-region final-binding failures with unchanged save/no archive. G15 adds 480 passing classified-outcome rows; finite fixtures do not prove arbitrary schedules. |
+| C05 | N20 `pending_target_pins_survive_until_the_last_scheduled_application`, `pending_guard_lineage_and_its_transfer_are_conservative_roots`, and `failed_due_event_keeps_pending_target_and_guard_indexes`; O20 `each_scheduled_target_pins_until_its_own_qualification_applies`. | F869 reruns these named paths at frozen source; no claim about every schedule. |
+| C06 | N20 `journal_retirement_releases_only_its_pin_while_other_owners_retain`; U68 `the_journal_records_each_decision_change_in_order`, `the_journal_keeps_its_newest_entries`; O20 archive ordering assertions. | Under D2, commit/reopen references remain in a held basis/graph and grants in held permission records. A cycle's final *journal-only* root is therefore not manufactured as a fixture; retirement must preserve these other roots. G15 includes the registered windowed outcome population; it does not independently compare every possible journal payload. |
+| C07 | N20 `permission_grants_and_historical_commitment_bases_keep_exact_reasons`, `reopened_commitment_keeps_reason_graph_and_current_status`; O20 `permission_grants_remain_pinned_after_a_revision_is_superseded`; U68 `permission_withdrawn_asks_about_the_grant_recorded_on_the_current_revision`, `a_missing_withdrawn_or_mismatched_grant_is_refused_and_the_session_goes_on`. | N20 explicit-citation checks pass; G15 adds paired baseline classified outcomes within its named population. |
+| C08 | N20 `transferred_skipped_guard_lineage_vetoes_only_additional_collection`, `procedure_arguments_and_skipped_procedure_guards_keep_their_actual_holders`, `stream_and_series_selection_holders_veto_until_successful_overwrite`; series case correctly retains transferred basis after selection reset. | F869 reruns these finite functional cases at frozen source; semantic acceptance remains separate. The test does not falsely demand clearing a still-held basis. |
+| C09 | N20 `a_skipped_uncreated_commitment_is_a_real_owner_on_restore_and_clear`, `record_owned_qualification_inside_a_cycle_is_not_an_external_root`, `declaration_qualifiers_are_roots_and_successful_predicate_clear_releases`, `reopened_commitment_keeps_reason_graph_and_current_status`; U68 `everything_built_on_the_evidence_gains_the_caveat` and `qualifying_is_idempotent_reported_and_atomic`. Debug events audit collector indexes against rebuilt maps. | Mutation inventory review complements these finite paths; universal path coverage is not claimed. |
+| C10 | N20 `later_readable_history_preserves_the_reason_until_the_holder_departs` checks later withdrawn predicate, reason retention and exact archived reading provenance; `explicit_citations_keep_exact_old_membership_and_refuse_current_alias_substitution` accepts the held old member, refuses current-alias substitution with `evaluation/ungrounded_citation`, preserves save on refusal and collects after clear. U68 `reading_withdrawn_history_again_keeps_the_withdrawal`. | F869 reruns these finite citation paths. G15 compares its registered corpus outcomes, not a newly claimed baseline pair for every citation assertion. |
+| C11 | N20 `authentic_older_saves_rebuild_without_collecting_until_an_accepted_event` uses captured `f5ec829` **and published rc.15** self/mutual saves, preserves save/no archive on load and refused event, then collects on accepted no-op. Other N20 cases restore current saves. O20 forged marker/inherited tests; U68 forged retirement/permission/withdrawal tests. | Frozen collector source and F869 are recorded. G15 additionally restores the published rc.15 C3 save across all 61 source-derived state-write paths. Each old fixture retains its own runtime identity; the versions are not conflated. |
+| C12 | N20 `isolated_self_and_mutual_cycles_depart_with_both_directions_archived` compares per-event drain against late drain for identical save and concatenated archive. Mutual retry test preserves preexisting archive. O20 `the_archive_hands_each_departed_record_over_once` and `transfer_metadata_is_transactional_and_read_queries_do_not_publish_it`. | W56/E8 observe actual WASM drain/restore. P62 self/mutual 1,000-cycle per-event versus late drains have identical final save and archive NDJSON hashes. |
+| C13 | N20 `ordinary_departing_holder_releases_a_cycle_in_the_same_batch`, conditional-qualification archive assertion and exact self/mutual reasons; O20 `archive_roots_reconstruct_post_departure_copies_replacements_and_overlap`; H13 `archive history joins mutual withdrawals, once-stored relations and nested payload markers without changing live reports`. | W56 passes real collector nested closure and CLI/authoring/serve paths. BPK executes installed-package mutual/nested historical reports, restore and missing archive cases in actual Chrome and Node with equal results. |
+| C14 | H13 missing/conflicting/source mismatch cases, malformed-object regressions, future occurrence check including `journal`-named stream, duplicate/cycle/copy determinism, and `consistent payload edits and omitted unrelated records cannot prove authenticity or global completeness`. | W56 adds runtime-produced missing-dependency and restore/no-archive cases. BPK passes package and actual Chrome consumers; authentication/exhaustiveness remains explicitly unsupported. |
+| C15 | N20 later-read and reopened-commitment tests assert binding/status preservation and snapshot equality after restore. Debug `run_event` invokes `check_incremental_bindings` against full evaluation, including these success/failure paths. H13 compares historical-report current fields with no-archive current fields. | W56 verifies current live report fields and restored snapshot reports. BPK preserves live report lists; G15 adds complete no-window save/dispatch digests. Q192 independently pairs f5/c1 actual WASM for all 15 registered windowed fixtures: 480 full initial snapshots and 192,000 exact current-computation/outcome comparisons pass. The report lists every selected field and omitted provenance/history field; this closes the finite population gap, not a general equivalence proof. Raw retired/departed equality is outside D5. |
+| C16 | O20 existing ordinary departure assertions; N20 `ordinary_departing_holder_releases_a_cycle_in_the_same_batch`; U68 `a_program_without_a_window_saves_no_retired_field`. | G15 passes the complete delivered no-window population: 146 programs, 116 executed/30 skipped, exact dispatch/save/restored-save digests; 15 windowed fixtures produce 480 matching outcome rows. |
+| C17 | K1 final-source release gate exercises normal restore, classified `limit/renewal_limit` refusal with unchanged save and empty archive at 65,536 held records, then accepted no-op collection and a later successful allocation retry. Source review confirms `history_room` remains pre-append. | Final explicit gate passed; capacity-only outcome difference remains a named semantic choice requiring owner acceptance. |
+| C18 | N20 retained-chain idle test observes zero vertices/edges/candidates on unchanged events with metrics enabled. D6 identifies COW copying separately from these counters. | P62 completes five workloads/three repetitions with requested Rust heap, dispatch peaks, actual work-set counts, unrelated tiny renewal and failed release. E8 explains last-event save growth. G15 passes the registered C3 gate and M8 records retained allocation capacity after effects clear. Collector-only temporary bytes are not isolated; no universal bound follows. |
+| C19 | F869 plus 857 reactive-only tests, strict Clippy/fmt, W56 and T329 observed. Strict NodeNext/type checks passed. | BPK package/actual Chrome checks and A2 scoped audit pass. WF7 passes the exact WebKit harness after repairing c1's wrongly encoded expected badge literal. Remote corrected-head CI remains pending; owner semantic/cost acceptance is still required. |
+| C20 | Final source diff `f5ec829..c1fe15c` independently reviewed. Resolved graph-owner kind question; corrected rebuild ReliesOn coverage, pending-guard compaction and pre-symbol predicate-owner rebuild. Independent malformed archive and future ordinal regressions pass H13. No new actionable issue found in this pass. | Local artifact checks are complete as recorded in G15/BPK/A2; review is bounded by inspected consumers and cases, not a universal correctness proof. |
 
-The planned actual-WASM cases are in
+The executed actual-WASM cases are in
 [`archive-history-runtime.test.mjs`](../../kit/test/archive-history-runtime.test.mjs):
 `actual collector self/mutual cycle archives preserve both true reasons and independent live statuses`,
 `actual simultaneous reading/withdrawal departures join nested payload references across records`,
 and `CLI, authoring and explicit serve archive queries carry collector history without server retention`.
-Their existence is not execution evidence.
+W56 records execution of all three on the identified clean collector WASM; BPK
+adds installed-package execution in Node and Chrome.
 
 ## Decisions still gated after a passing draft
+
+### Measured costs for the owner's contract review
+
+P62 and E8 make several tradeoffs concrete. These are Windows single-host
+measurements with counting-allocator/counter overhead, not portable latency
+guarantees or a universal boundedness proof.
+
+| Property | Observed result | Review consequence |
+| --- | --- | --- |
+| Isolated self/mutual growth | At 3,000 cycles, zero retired dynamic records. Native profiled saves are 965/1,177 bytes respectively, versus 619,712/1,238,671 baseline bytes. | The draft removes these unreachable groups under its conservative contract. It does not establish that every program is bounded. |
+| Required reachable chain | At 3,000 cycles, 5,998 retired dynamic records remain; both versions save exactly 1,238,709 bytes with equal save hashes. Requested retained Rust heap is 13,413,126 candidate versus 6,004,653 baseline bytes. | Exact true reasons survive; indexes add substantial live-memory cost where collection cannot help. |
+| Tiny unrelated renewal beside that chain | Across three trials, candidate median 6.052–7.949ms; baseline 4.019–6.739ms. Candidate visits zero region vertices/edges but peaks at 7,652,584 additional requested heap bytes, versus 4,865,371 baseline. | Region counters alone understate whole-event work. Existing ordinary departure plus transaction/index copying still scale with retained state; the timing ranges are descriptive. |
+| Synchronous final release of mutual groups | The three 3,000-cycle final-release samples are 89.876, 97.889 and 115.684ms; each collects 5,998 records, visits 5,998 vertices / 11,996 edges, peaks at 14,996 work-set entries and 31,128,319 additional requested heap bytes. | Same-event atomic collection can be expensive. Three samples do not estimate a stable p99. Whole-dispatch peak bounds but does not isolate collector temporary allocations. |
+| Immediate post-release serialization | E8's actual-WASM mutual 3,000 release has zero retired dynamic records but a 298,403-byte save containing 5,998 departure effects. After the next accepted no-op, it saves 711 bytes and zero effects. The native profiled variant saves 298,583 immediately because it adds probe source/state. | Last-event effects remain observable/saveable until the next event. A small retired set does not imply an immediately small save; clearing effects early would be a separate semantics change. |
+
+Draining the host archive is independent of these live/save observations. E8's
+mutual 3,000 handover contains 5,998 records and 5,998 provenance nodes totaling
+3,183,055 serialized bytes. That exact historical storage still grows if retained
+by a host. M8 shows that after the next accepted no-op, zero retired dynamic
+records/effects can still retain **2,669,587 requested Rust heap bytes** for the
+3,000 mutual case, versus **43,018** after restoring the identical logical save
+and dropping the original. Self measures **1,353,448** versus **40,071**. All
+eight runs return to zero residual requested session bytes after final drop.
+Source review identifies retained vector capacities, but the probe does not
+isolate every container's share. This is resident allocation cost, not retained
+logical records or an automatic-restore recommendation. The native injected
+no-op name produces a 713-byte mutual save versus E8's 711-byte WASM save;
+distinct source hashes make these different workloads, not a compatibility
+mismatch. Saved bytes alone do not establish released allocation capacity.
+
+### Remaining approval boundary
 
 The owner still reviews the candidate/transfer-veto boundary, conservative
 over-retention, synchronous worst-case cost, archived withdrawal rendering API,

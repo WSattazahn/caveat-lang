@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "baseline_revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+  "baseline_source": "C:\\Users\\walte\\AppData\\Local\\Temp\\caveat-rc15-compatibility-tQeIEF",
+  "current_revision": "c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853",
+  "platform": "win32",
+  "architecture": "x64",
+  "source_bytes": "Both binaries read the same current checkout; no cross-platform saved digest comparison.",
+  "corpus_sha256": "2abb487bc720fc5d032d54cfa9d8a8136651e3463eb963d7bb138443b3ac8f0b",
+  "sweep_examples": {
+    "save_sweep": "ac63fb9236cb9595fb790b43c44036285eb272f3547bd7f94ddc669e3f8831af",
+    "outcome_sweep": "b9ea218cc6f55949a740e72f5a8cacf3839c7f419289c83cbed90282fa874676"
+  },
+  "no_window": {
+    "programs": 146,
+    "executed": 116,
+    "skipped": 30,
+    "runs": 8,
+    "events": 150,
+    "sha256": "9ca78bbe1dfc44097092d7956d0d7b43a953c467715b3b962df2ddcccbaf58f9"
+  },
+  "windowed": {
+    "programs": 15,
+    "rows": 480,
+    "runs": 32,
+    "events": 400,
+    "sha256": "324b6edec6f033310a3d3282069fe606e705f8158fe959666a3099830f2f6519"
+  }
+}

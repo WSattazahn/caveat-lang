@@ -2,7 +2,10 @@
 
 This directory holds the registered C3 gate, compatibility sweeps, authentic
 published rc.15 restore fixture, pin census, and the separate withdrawal
-reachability proposal. The rc.16 continuation is unpublished.
+reachability proposal and the separate collector implementation draft. The
+rc.16 continuation is unpublished. The collector source is frozen for review
+at `c1fe15cfcb1cac6c069ba5b00f1c7238df7e9853` on
+`codex/withdrawal-collector-draft`; merge and release are not authorized.
 
 ## Reproduce
 
@@ -72,7 +75,7 @@ normalized structure). The published rc.15 baseline grows from 11,870 to
 outcome digest. Dispatch timings in the reports are single-host observations,
 not a controlled cross-machine performance claim.
 
-The current C3 archive holds 1,578 items: 1,011 departed records and 567
+That recorded continuation's C3 archive holds 1,578 items: 1,011 departed records and 567
 provenance nodes, totaling 557,347 serialized JSON bytes. Draining leaves zero
 pending items and the saved session unchanged. This historical data grows
 outside the save. Process-memory readings include the entire Node/WASM
@@ -95,13 +98,18 @@ history. Without complete proof, explanation text is explicitly conservative.
 
 ## Broader boundedness remains unresolved
 
-The registered C3 result is not a universal save-bound proof. Current pin
-semantics retain self/mutual withdrawal cycles and reachable reason chains.
+The registered C3 result is not a universal save-bound proof. The recorded
+pre-collector runtime retains self/mutual withdrawal cycles and reachable
+reason chains.
 [WITHDRAWAL-REACHABILITY-DESIGN.md](WITHDRAWAL-REACHABILITY-DESIGN.md) proposes
 independent roots and required dependency edges for review. Its eight fixtures
-and 1,000-cycle measurements observe the current runtime; no collector has
-been implemented. The owner explicitly requires review before any such
-semantic change. Exact own grounds, true required withdrawal reasons,
+and 1,000-cycle measurements observe their identified pre-collector dirty
+runtime; they are preserved historical evidence, not measurements of the draft.
+The owner subsequently authorized the separate reviewable collector draft.
+[Its contract and acceptance map](../../docs/design/withdrawal-collector-draft.md)
+identify the provisional semantic choices, current tests and pending gates.
+Final semantic acceptance, merge and release remain gated. Exact own grounds,
+true required withdrawal reasons,
 permissions, source-observable behavior and complete archive reconstruction
 remain requirements. Reachable chains can still grow after isolated cycles
 are collected.
