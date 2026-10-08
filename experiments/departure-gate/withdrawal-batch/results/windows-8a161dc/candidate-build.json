@@ -1,0 +1,596 @@
+{
+  "revision": "8a161dcdfdc8a2a5b3ca43b4183552401002cca7",
+  "runtimeGitTree": "aec511bf3ee147a79391f90674446eff9c7f393e",
+  "startedAt": "2026-10-08T06:51:06.210Z",
+  "finishedAt": "2026-10-08T06:52:27.316Z",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "argv": [
+    "cargo",
+    "build",
+    "--release",
+    "--locked",
+    "--manifest-path",
+    "runtime/Cargo.toml",
+    "--example",
+    "collector_profile",
+    "--no-default-features",
+    "--features",
+    "collector-metrics"
+  ],
+  "cwd": "C:/Dev/caveat-lang",
+  "status": 0,
+  "error": null,
+  "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderrSha256": "66c0c51b0d9faef41373a6656f5cd8f0213a433ada3ec45f30b1302aaf9e2ad6",
+  "executableSha256": "9f5a0a5af2b4073849d30fd7070380eb1341ea4ae9206828aa7fd755cb207909",
+  "inputs": [
+    {
+      "file": "game/README.md",
+      "sha256": "34fcd3704360a3e3c52f692104f7faf14936b938b6def428ddd5f137f6952ace"
+    },
+    {
+      "file": "game/before_the_rain.cav",
+      "sha256": "1095051cfa38728c05864d03128221aacf648019dc5a14c45470e8942fe6935c"
+    },
+    {
+      "file": "game/before_the_rain.scenarios.json",
+      "sha256": "769442ccf72a38fac15628842b191973a29c4c5c882457a30c7dcc2f60afb4d1"
+    },
+    {
+      "file": "game/glowcap.cav",
+      "sha256": "50b864f53ae909389874a6b3927fa25573ff92993a233318f6ee7a0114f004e4"
+    },
+    {
+      "file": "game/light_the_way.cav",
+      "sha256": "eaa23132237f03fd5894e42bf62d100a2618ee965b936c72b3578245e0b3ab61"
+    },
+    {
+      "file": "game/missing_dumpling.cav",
+      "sha256": "503b46ba13df2a2455d8e3e5a2f43f2fee3a8101dd4672a7a4522358f41297a3"
+    },
+    {
+      "file": "game/moon_garden.cav",
+      "sha256": "d813b94cee1eeb72949df2f19750ff409c6351251d564d40453fc335eedd88bf"
+    },
+    {
+      "file": "game/the_door.cav",
+      "sha256": "1f5d3d77899ddb44ae5ac7675d6880c1cd4146eebfd20dc74dc4eb0cae4fe7f6"
+    },
+    {
+      "file": "game/the_door_round2.cav",
+      "sha256": "e087f3820d416d2d826bd6540b94628de245552132fc38cc3d83dd9423e5abb2"
+    },
+    {
+      "file": "game/the_last_beacon.cav",
+      "sha256": "1b92211bd40df65a5aab5bd37f393d43d00b982bebe1fac81a9ae5cb8dc37934"
+    },
+    {
+      "file": "game/trail_rescue.cav",
+      "sha256": "9744ae625637b109c7e2a29fe4ad39216f8d75df0166252eba8d5243fd7c591b"
+    },
+    {
+      "file": "runtime/Cargo.lock",
+      "sha256": "acad80cd9621d774c58642442aa96cdb646b39660855f4b67eba78427b2c5aff"
+    },
+    {
+      "file": "runtime/Cargo.toml",
+      "sha256": "c44bd64bfd895c7bddc0f0535fadeda68c1df99c0ae257f18121093f57540d95"
+    },
+    {
+      "file": "runtime/examples/canonical_001.rs",
+      "sha256": "78e7baa8d3626e49bb08c91ea299f2778e5f92772a5d05fc506e8e82b5db1431"
+    },
+    {
+      "file": "runtime/examples/canonical_002.rs",
+      "sha256": "10963a64c18794a96e134311d78153a33bce79f81f8a5239e52c8cb3c1117912"
+    },
+    {
+      "file": "runtime/examples/canonical_003.rs",
+      "sha256": "b8c93c2850609c1df7f4ceafa45eabe76d3984b20be0f2be45d1935f401306f4"
+    },
+    {
+      "file": "runtime/examples/collector_profile.rs",
+      "sha256": "1e6de5ad17ca4c6b06e2eef91c7ff65f73774e0cdb9a6d4fa73af1053c0b1357"
+    },
+    {
+      "file": "runtime/examples/collector_release_memory.rs",
+      "sha256": "48409281c31f0e92dbb14c8936b5cf9d8a4197635bceda7129536e8806c47f2b"
+    },
+    {
+      "file": "runtime/examples/lean_conformance.rs",
+      "sha256": "b0c3ce0d0f0731c85d5017c8e7db3364c8756ac83d0ae018425d25d3e7371dd6"
+    },
+    {
+      "file": "runtime/examples/outcome_sweep.rs",
+      "sha256": "b9ea218cc6f55949a740e72f5a8cacf3839c7f419289c83cbed90282fa874676"
+    },
+    {
+      "file": "runtime/examples/profile_dispatch.rs",
+      "sha256": "412bd6b203e7ef7209c2070729c1d6b3ef480d60ba72fad1b4783643909fd633"
+    },
+    {
+      "file": "runtime/examples/save_sweep.rs",
+      "sha256": "ac63fb9236cb9595fb790b43c44036285eb272f3547bd7f94ddc669e3f8831af"
+    },
+    {
+      "file": "runtime/examples/withdrawal_extraction_profile.rs",
+      "sha256": "2b1c5267dd6580161fcb9a474eb0466fa13561dc7a32654221933ae99c808c92"
+    },
+    {
+      "file": "runtime/prelude.cav",
+      "sha256": "017c7e6bd06fc70afdf049c43da753b63984478db8113fd544c4b94d74ab5864"
+    },
+    {
+      "file": "runtime/src/action_runtime.rs",
+      "sha256": "4109f7d66d937a6c9f374f3aba7a07f7243287d6e7de04c103c838a182517728"
+    },
+    {
+      "file": "runtime/src/ast.rs",
+      "sha256": "8766abcb7185d4d74512e9cf1b6f97f08e05101dd491ef056258a446c2fbb84b"
+    },
+    {
+      "file": "runtime/src/bin/caveat-map.rs",
+      "sha256": "e2dff90bf4b29da1ef371e6f26e22d81f7edbf9b732f140b38e443dd488ba91d"
+    },
+    {
+      "file": "runtime/src/bin/caveat-reactive.rs",
+      "sha256": "ffaae1484bd6f9f06eea574765392c4232ef732fcd40fe6a31e88a84e093c135"
+    },
+    {
+      "file": "runtime/src/bin/caveat-rs.rs",
+      "sha256": "2d84e7d07e936b95389879e20ddf57190783ae349e7ff03d6b6305228d9bd24a"
+    },
+    {
+      "file": "runtime/src/bin/caveat.rs",
+      "sha256": "487765515523f72b5ac551145a026b427139ebc3d667e65a57f5aef4f9b3d377"
+    },
+    {
+      "file": "runtime/src/caveat_rs.rs",
+      "sha256": "e26d02df341efe429593941d13ec918d5353d1584e209270fb7f651e7cac289b"
+    },
+    {
+      "file": "runtime/src/eval.rs",
+      "sha256": "21d87857ba91713542a69d771d6cebda19cb55fcf4c2b7dd921e0593ca1d9175"
+    },
+    {
+      "file": "runtime/src/game_session.rs",
+      "sha256": "3c56f8e3911e4e6c23e11c5feec48be1fc02e1e751d58c6afc098577e4b8288f"
+    },
+    {
+      "file": "runtime/src/graphics.rs",
+      "sha256": "1f65e82c804201e3edfa9249a97792ff80537e17445369fbfd6ce018d3aef5d6"
+    },
+    {
+      "file": "runtime/src/lib.rs",
+      "sha256": "ada3778b40f1ab1a38670fd2f6ddb0d3721278ec54c964197f55a9089e60b3cc"
+    },
+    {
+      "file": "runtime/src/link.rs",
+      "sha256": "ef31b9d437726b9f3255710947afa347cf021e455d00b2ebe40e23a7c803d03a"
+    },
+    {
+      "file": "runtime/src/map.rs",
+      "sha256": "4e4000ae33e469740a1e4b13a388edb2f37ad1975f67beed0efe622a38c1386a"
+    },
+    {
+      "file": "runtime/src/parser.rs",
+      "sha256": "3846be50a69c71e8877b8e3c1301c622d6f1d89a4aaa2d441999061606f59d3e"
+    },
+    {
+      "file": "runtime/src/presentation.rs",
+      "sha256": "3a2f7476095664d9690b13126dc1d566489d06102dce6e7ef59fe467a22c6f37"
+    },
+    {
+      "file": "runtime/src/reactive.rs",
+      "sha256": "4ad66814a5117d96a2c7964e0625e346005f606fbfc8ddf8006b66eb5c9a019d"
+    },
+    {
+      "file": "runtime/src/reactive_archive.rs",
+      "sha256": "13bc68fdb926d43f9a6e795afb7dc110ce7c2c66c3d128db8baa5c6074807fd5"
+    },
+    {
+      "file": "runtime/src/reactive_check.rs",
+      "sha256": "e59fce14322235fc5abbccf52fce1dbbb3a04b12a92d98d3e2a94a247065c897"
+    },
+    {
+      "file": "runtime/src/reactive_collector.rs",
+      "sha256": "806dee13ccdbaf153148417e6bce8f9ca0e6e8ba888bdc16f414a5da77cc137f"
+    },
+    {
+      "file": "runtime/src/reactive_departure.rs",
+      "sha256": "251bdb0309bfaed48ad2ab080a486688840d8a0888e361fdbb9715594719a2f6"
+    },
+    {
+      "file": "runtime/src/reactive_expr.rs",
+      "sha256": "e8f16de9be38ce00a4c00b6a05b0022a93296194953e0014061a0c664f4bb20e"
+    },
+    {
+      "file": "runtime/src/reactive_identifiers.rs",
+      "sha256": "a9e46addf0599905a96ead63df1b043e5f77039e3736318dfcd22b87d597a493"
+    },
+    {
+      "file": "runtime/src/reactive_interface.rs",
+      "sha256": "79c4467c1f62d79c2fba04abc5e1cc231c306a059582993aa01270b4bfe088d1"
+    },
+    {
+      "file": "runtime/src/reactive_outcome.rs",
+      "sha256": "0a8ae520394935393940769965140de7c454b27095afd2436868fa1c203eae62"
+    },
+    {
+      "file": "runtime/src/reactive_save.rs",
+      "sha256": "9a2172ba0107114e7fd85b9455806c615dd800a15ac0c9488fc4a9467cce899f"
+    },
+    {
+      "file": "runtime/src/repeat.rs",
+      "sha256": "bd78dc6f72bcceb528b68807788b8e7ce5eff776ca12ad8d3aa57881a9e2e109"
+    },
+    {
+      "file": "runtime/src/session.rs",
+      "sha256": "6a9f23fa8f7f9ace0527026c5e2c814f3ae4f39fc72d7840db2110d088706c38"
+    },
+    {
+      "file": "runtime/src/source_library.rs",
+      "sha256": "c45649e9197e8a228719626919543d4d0b97090a89c752d8af4167e174377312"
+    },
+    {
+      "file": "runtime/src/web.rs",
+      "sha256": "6cc53c7905e98ea0d5c56828e4d86aee785708aaa1f9cf397957888e2712010a"
+    },
+    {
+      "file": "runtime/src/web_games.rs",
+      "sha256": "4455330ba8d3f92b36b7d7b4b26b8dbd8b5b23f1834d3927044b09a518089564"
+    },
+    {
+      "file": "runtime/src/web_source_library.rs",
+      "sha256": "f254cb347930924fd4ebe80cc324f9dad4734a668640f012d828631c02fa058c"
+    },
+    {
+      "file": "runtime/src/world3d.rs",
+      "sha256": "914f77db66679a606dc4b464281333743094d04e867585bec45a7bef03d98e7e"
+    },
+    {
+      "file": "runtime/tests/action_plans.rs",
+      "sha256": "533fbcb03bab77c1891612cdad4995fe2a68459fc9041476addc576bd0dda874"
+    },
+    {
+      "file": "runtime/tests/authoring_diagnostics.rs",
+      "sha256": "2eca084dd5fa58b208f7b21546370eb7ca2c35d3c19b9d07c98d6182e2077744"
+    },
+    {
+      "file": "runtime/tests/authorship.rs",
+      "sha256": "3d061f506479f0e1069788675d3b0116e43dd200f4e75fc051d665212cec7c25"
+    },
+    {
+      "file": "runtime/tests/binding_explanations.rs",
+      "sha256": "863c138df61d95dbeff4bcba84d96bdf18aa18eab934e7307b606dfd7d57f1a9"
+    },
+    {
+      "file": "runtime/tests/caveat_map.rs",
+      "sha256": "2314348d36aca5ab90e0427b18d5ad87a12c564db4a13020c90fb53c2ac1c71c"
+    },
+    {
+      "file": "runtime/tests/caveat_rs.rs",
+      "sha256": "206b1912be52532dcfa49269da7c20a5d509b014afab0158dd17382b49411d92"
+    },
+    {
+      "file": "runtime/tests/check.rs",
+      "sha256": "8158f4035230db31cfe554317729e5f0ab67b0146fc3d8733774492891b6df46"
+    },
+    {
+      "file": "runtime/tests/collector_index_compaction.rs",
+      "sha256": "cd44a042e50488311bf15c9b1979bbbc373174b17ef96e32a4d2b024ee97f4bf"
+    },
+    {
+      "file": "runtime/tests/decision_journal.rs",
+      "sha256": "dad8ab77197105d6cd89784639c6830f22ffb3213d245a4ae3df8758b6940ab5"
+    },
+    {
+      "file": "runtime/tests/define.rs",
+      "sha256": "e9839411a647f68a054cca35ecd4ce6a159ec73a5d14cc5ec5ff43093d64ebfd"
+    },
+    {
+      "file": "runtime/tests/departure.rs",
+      "sha256": "e64daceb034cff4bdf0ca4d7bb019dd446a3291a6337171f4f4f3ba0073735d5"
+    },
+    {
+      "file": "runtime/tests/departure_journal_restore.rs",
+      "sha256": "594e23cd1a9931933f91ee5f8af99cf3004685c4b0d0dfadbc872ce9d5def5e5"
+    },
+    {
+      "file": "runtime/tests/dispatch_outcomes.rs",
+      "sha256": "4a7fda491724b8a26e304ee815558ff443ebfff3e8162d713160f54a289599b0"
+    },
+    {
+      "file": "runtime/tests/elapsed_clock.rs",
+      "sha256": "6b6c4bb1906d9c23dccbe248bfd96920134ef0e0fa14ca7b98f06d7b4ef1bbdd"
+    },
+    {
+      "file": "runtime/tests/epistemic_actions.rs",
+      "sha256": "c449b29ff2b6af05c1896ddfd7794d4ad24e32090f0c7e82c45027d0243230f2"
+    },
+    {
+      "file": "runtime/tests/eval_errors.rs",
+      "sha256": "8b477801350f250ff84356f029aedf02510c3c4a076e43bc08f0b2dcadc88c49"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c2-cr16-first.cav",
+      "sha256": "f9193bdc3fea6ea051630e1e60369b0bcac2a0d280097ddfbec7de3356820091"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c2-cr16-fixed.cav",
+      "sha256": "113e33f3fedc40c611ff11dc8aeedb369d63c54d734870b62c77ae339ac8d9d2"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c3-cr16-first.cav",
+      "sha256": "39c7a47bb6f2e471f9b482994744a3da974cb7cd9859df51cd23f3cd32ef4d73"
+    },
+    {
+      "file": "runtime/tests/fixtures/c006-round7-c3-cr16-fixed.cav",
+      "sha256": "8325b802989e9e5fafcc7b99fb2aa0f35ed220a57b42d0bdd8ac2db82ca80658"
+    },
+    {
+      "file": "runtime/tests/fixtures/collector-baseline-f5ec829.json",
+      "sha256": "7659bd5c6f2008392f5288e5e2cf9f266f7dfad30f31f900679c6d0597c65e0d"
+    },
+    {
+      "file": "runtime/tests/fixtures/collector-baseline-rc15.json",
+      "sha256": "f91a64ea5ff4c054f6473668bb81031bf0c341148d684e7d454bd973108edfc9"
+    },
+    {
+      "file": "runtime/tests/fixtures/f268-rc11-wide-grounds.cav",
+      "sha256": "6b57ec4f76c1a9a6d672f5b3b0b010c3e9898524bcbaa18ae5b3c031c3308a01"
+    },
+    {
+      "file": "runtime/tests/fixtures/f268-rc11-wide-grounds.save.json",
+      "sha256": "e743ceb592532fd4b9f22207eb908774b0d643cd03f20402076f68a379980b17"
+    },
+    {
+      "file": "runtime/tests/fixtures/interface/glowcap-c1.json",
+      "sha256": "34d4656b47a289c4be4bbee36065eea4d4c16a4957345c25a9240624adca9d89"
+    },
+    {
+      "file": "runtime/tests/fixtures/interface/ledger-identifiers.json",
+      "sha256": "e5018cd7079b9a11bd1188624b28b24bb0c69c30baeb0b09ba791ff841ddb71c"
+    },
+    {
+      "file": "runtime/tests/fixtures/rc2-thermostat.cav",
+      "sha256": "374241b1d9d7528092b5ad7e216d6e0a8baecdb38b0ca29d96953665fefc29f6"
+    },
+    {
+      "file": "runtime/tests/fixtures/rc2-thermostat.save.json",
+      "sha256": "2244c213cf255d8c7af636018f22e8e3e7df4ac8562de824e5d0cc2754f7a554"
+    },
+    {
+      "file": "runtime/tests/function_limit.rs",
+      "sha256": "a86807e0daca87db5ec361316a3d5dfc524e262dafce2d5f5948b3113e309827"
+    },
+    {
+      "file": "runtime/tests/game_cli.rs",
+      "sha256": "b1fcfd00feda454354107d148a59eb81c8a6dd63ff6d679f78a8f42f44c064ff"
+    },
+    {
+      "file": "runtime/tests/game_session.rs",
+      "sha256": "47017a479bdedfa7216c012ae4ef7de188ff3a8642144e7400c6c62504c69a43"
+    },
+    {
+      "file": "runtime/tests/grounds.rs",
+      "sha256": "d618fa7cae6447d5d2c4b307b0971514008e35fa824f317ed3ac8e566a0c93b9"
+    },
+    {
+      "file": "runtime/tests/grounds_restore.rs",
+      "sha256": "e1e904afa1c674d0bc99d6917659f54d0a7d14e70b7a5aec4c9c63890dedfda8"
+    },
+    {
+      "file": "runtime/tests/history_computation.rs",
+      "sha256": "dcfb9a2116afd60ce8c16bcdee7e2540e04c2f5db152b9f82ba9cf7906c9f4ce"
+    },
+    {
+      "file": "runtime/tests/identifiers.rs",
+      "sha256": "43db058ec1b9bf4ca053dcccdfad5ce4ef4e2329f2ff5f8d4c37a0e6ad7ac7d5"
+    },
+    {
+      "file": "runtime/tests/integer_clock.rs",
+      "sha256": "81fcb7fa81108670de452b12197547ccfafc19b6de4a858e81d5de5cf5a1c56b"
+    },
+    {
+      "file": "runtime/tests/interface.rs",
+      "sha256": "32ca7909da05ec1ab135a8f3be5ac8bf195efbc2be3c6305ae379c8f97f0d1b1"
+    },
+    {
+      "file": "runtime/tests/investigation_history.rs",
+      "sha256": "8d051995945928d83c24e7170b283efa23503a013625474fdeb06c6af9c4c5dd"
+    },
+    {
+      "file": "runtime/tests/journal_restore_validation.rs",
+      "sha256": "c1ed007aba26882bbeccfe9a4a14621b2e95b705c58459fbf048a5e89cdbe2c7"
+    },
+    {
+      "file": "runtime/tests/late_qualification.rs",
+      "sha256": "a6ef72739635f41347b8d03d4d644b57a49d87e6aaf3a037c26f0daceb4c819c"
+    },
+    {
+      "file": "runtime/tests/light_the_way.rs",
+      "sha256": "ea0d67f3d67c8c14876c5d96657ae7b623b473bb7af2018dec6d47d1213b06f5"
+    },
+    {
+      "file": "runtime/tests/light_the_way_input.rs",
+      "sha256": "434e9562999e88dc1928fc6d885c2aaacaddb6cb06835b19ef626fe3883b0c9a"
+    },
+    {
+      "file": "runtime/tests/modules.rs",
+      "sha256": "e1f6a2b13b8a3e8ccb6265553c23aceed5b42ab1a38853cf9c5e0f47be400794"
+    },
+    {
+      "file": "runtime/tests/neutral_reveal.rs",
+      "sha256": "476dca8718c3dbbec156e0ef0553a851e40bad435be3acff70cdcb7783510aa7"
+    },
+    {
+      "file": "runtime/tests/observation_order.rs",
+      "sha256": "cb18652a00a9af5a5b450b30b0f6f6153adda999c66929103a6250c30de10939"
+    },
+    {
+      "file": "runtime/tests/parameter_grounds.rs",
+      "sha256": "783865cca6ae3963dd30c81088bf4550b45530e415d68f50580b26d9e022c495"
+    },
+    {
+      "file": "runtime/tests/parser_text.rs",
+      "sha256": "c9d5af9bc07ec130624ac66a02647c193099edf501bdac5b9120533560c0e31d"
+    },
+    {
+      "file": "runtime/tests/permission.rs",
+      "sha256": "1a047880dd69c08682e185485aedc905316bc4ee7c030d6a9e8017bb82577adc"
+    },
+    {
+      "file": "runtime/tests/presentation.rs",
+      "sha256": "edbfcf0ee4c8c7c5bd26b38e84bffaab5083dd5ce59642584484a0a2ba460beb"
+    },
+    {
+      "file": "runtime/tests/procedure_symbols.rs",
+      "sha256": "3051ec86bbcb6379c1424be07114bd54ded986368473e13923f7501effbeb6de"
+    },
+    {
+      "file": "runtime/tests/qualification_dependencies.rs",
+      "sha256": "1a7a78f3743b4ed925ef7fe6897f4e6f31e17e8e1d3922759a16aa244eb4a53c"
+    },
+    {
+      "file": "runtime/tests/qualified_values.rs",
+      "sha256": "0b58bbf32e1f933f76c662df221c95a2ad4d8740d2ce27ff5d9ee0debf96a10c"
+    },
+    {
+      "file": "runtime/tests/reactive.rs",
+      "sha256": "50f56dd9109a45897bdc07067584868ee0b67ca8f50d8f739a4a3dd7174af91a"
+    },
+    {
+      "file": "runtime/tests/reactive_cli.rs",
+      "sha256": "aaab25ab73cb90f0578c670b2ad6c316cf8ed5b6effdbd846a41fe9782e42bd7"
+    },
+    {
+      "file": "runtime/tests/reactive_history.rs",
+      "sha256": "13f1408e9a42525f34791db7acb3bf28ef28da2e738c92f5fe3664f61c3f9d32"
+    },
+    {
+      "file": "runtime/tests/reactive_procedures.rs",
+      "sha256": "4800252c202615ca1e6eea1a1b414b3df6361110bba4e7b239bb50adda34e70f"
+    },
+    {
+      "file": "runtime/tests/reactive_text.rs",
+      "sha256": "eef429fd25c68db407f3821864f440b3c57be5b060db9435201460a281e060aa"
+    },
+    {
+      "file": "runtime/tests/reactive_view.rs",
+      "sha256": "cb0724b7a098f6ebd5e4df13b58290d6cfd01ffb66511738493263f6ea9455a3"
+    },
+    {
+      "file": "runtime/tests/reject.rs",
+      "sha256": "75b21c1076b948da56634318be6f5a7f7db720383aa5528f4c5b2aeeea5260f8"
+    },
+    {
+      "file": "runtime/tests/renewal.rs",
+      "sha256": "e0f0d87ea3e32f67793e59f447c38acf2c9ba63aec3a6433a451d6eb443e3515"
+    },
+    {
+      "file": "runtime/tests/reopening_triggers.rs",
+      "sha256": "aeb82be5c323b576ef7a07b2aac9dde1c02c36a0414e5837ab583b1a99be6a08"
+    },
+    {
+      "file": "runtime/tests/repetition.rs",
+      "sha256": "f525569893b8ebf872e38f2e7fda73f23680593b331ab460928414d868535dd3"
+    },
+    {
+      "file": "runtime/tests/restore_attention.rs",
+      "sha256": "d371f5457b75bac1ec275dddf6b7fc0a9e2707021325580b8ee97bef01b78309"
+    },
+    {
+      "file": "runtime/tests/restore_capability.rs",
+      "sha256": "b790354d93ed5dbaab32b0d2609e1915f9c0e1b87b24775d7453c8a076c68980"
+    },
+    {
+      "file": "runtime/tests/restore_caveats.rs",
+      "sha256": "870effc942fc04dde5c25648d784197216ec43f79088541119ae9a2394c0b384"
+    },
+    {
+      "file": "runtime/tests/restore_membership.rs",
+      "sha256": "63860d6f296037705f859ff4106a334884fec8717af63b13c02030c2a2aeeaf5"
+    },
+    {
+      "file": "runtime/tests/restore_tables.rs",
+      "sha256": "bd019bda6cdeb7627a84446eb35aa237bcf54a739b0a77d47c3d29f3ba8fdf81"
+    },
+    {
+      "file": "runtime/tests/routed_repetition.rs",
+      "sha256": "03a61070ed6dcacf1626807c0e40eafeccec90266dda9d0127d13e0b3d616921"
+    },
+    {
+      "file": "runtime/tests/save_restore.rs",
+      "sha256": "a44c2f07c899f96de69e874438045cd5ee7ed0d4b1e43328567c81fb28db23ee"
+    },
+    {
+      "file": "runtime/tests/slime_glow_ability.rs",
+      "sha256": "2a417d94103f6c0c5272f84b717aa291bb209a4f1106e5c4b44eaea6e23279be"
+    },
+    {
+      "file": "runtime/tests/source_library.rs",
+      "sha256": "db323e3e4f49dc3895d68ce2c962952735f848ac7ac2bfaec0b7d6888c384221"
+    },
+    {
+      "file": "runtime/tests/source_motion.rs",
+      "sha256": "0c7dbcb1bc74d9d34288621fdba68a561c5b4cf46d28f857b4c99371953fec40"
+    },
+    {
+      "file": "runtime/tests/squeeze_affordance.rs",
+      "sha256": "d6687131a5309b42b29e6ef35b7fff1b01ea455cad350a3c8b454c01023204dd"
+    },
+    {
+      "file": "runtime/tests/state_caveats.rs",
+      "sha256": "2b19e54f3ed2d21a085088e636debb5a7c3a2b7ca040132845306de1fa41d97a"
+    },
+    {
+      "file": "runtime/tests/the_last_beacon.rs",
+      "sha256": "8922296a22a45701357b399d3a200fdfa684382d2f5c4f3ec15591fbd50fbcd8"
+    },
+    {
+      "file": "runtime/tests/thermostat_history.rs",
+      "sha256": "1dda0e8324ae7d81645ab2921a4c9bd32634be67a271fb7cf712d6d03e88d8b2"
+    },
+    {
+      "file": "runtime/tests/typed_parameters.rs",
+      "sha256": "2b46cfe799b6b267d8223fae593ac92c6d59f650a0202bbc9c821f22788318f9"
+    },
+    {
+      "file": "runtime/tests/ventilation_controller.rs",
+      "sha256": "1b417ffbacfe68b6a5a376ce0914e05f5133a2a2190f18f341cdcce75e94e29d"
+    },
+    {
+      "file": "runtime/tests/verification_outcomes.rs",
+      "sha256": "01cf9fee1d102f3ede56c6214ef8f4ac688e63953b0a2f564c61d3a8f2c71e2f"
+    },
+    {
+      "file": "runtime/tests/windows.rs",
+      "sha256": "8339e40c9582c0e18b23faf188f22a6a67d701bd6c2723dfd4dcfc4364832cae"
+    },
+    {
+      "file": "runtime/tests/withdrawal.rs",
+      "sha256": "e7c0e2aca99d57b5c721d321d0834be3bdd8d6b5a6d013cc81cc6748510898fb"
+    },
+    {
+      "file": "runtime/tests/withdrawal_batch_extraction.rs",
+      "sha256": "649797bd38defb176bf43ccfa8ee062d51d8cc3c1dded145fe81d5324ed1b689"
+    },
+    {
+      "file": "runtime/tests/withdrawal_capacity.rs",
+      "sha256": "93f39177691a8c39027077ee831ff2233618431e32e983f6e104dcdcce07dc9a"
+    },
+    {
+      "file": "runtime/tests/withdrawal_collection.rs",
+      "sha256": "cfd94fd9eb1da6aee0fdc286bf71a9f879aa7f721b251440899cf50053e6ab84"
+    },
+    {
+      "file": "rust-toolchain.toml",
+      "sha256": "36504a3d89cadff5c7c35c049cedf2a827f79e5630c467a95ab777f5b53125ee"
+    }
+  ],
+  "inputsStable": true,
+  "headAfter": "8a161dcdfdc8a2a5b3ca43b4183552401002cca7",
+  "trackedDiffAfter": "",
+  "diagnosticFeatureEnabled": false
+}

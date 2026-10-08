@@ -1,0 +1,2 @@
+   Compiling caveat-runtime v0.1.0 (C:\Dev\caveat-lang\runtime)
+    Finished `release` profile [optimized] target(s) in 1m 19s

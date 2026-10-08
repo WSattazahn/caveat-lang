@@ -1,0 +1,24 @@
+{
+  "name": "release-mutual",
+  "cycles": 3000,
+  "trial": 6,
+  "primary": true,
+  "order": [
+    "candidate",
+    "baseline"
+  ],
+  "exactNativeEquality": true,
+  "peaks": {
+    "release": {
+      "B": 27403251,
+      "C": 27403251,
+      "passed": true
+    },
+    "failed_release": {
+      "B": 27403464,
+      "C": 27403464,
+      "passed": true
+    }
+  },
+  "passed": true
+}

@@ -1,0 +1,13 @@
+{
+  "recordedAt": "2026-10-08T06:43:08.256Z",
+  "attempts": 9,
+  "rawStreamsVerified": 18,
+  "fullCollectorWorkComparisons": 18,
+  "rejectedCounterComparisons": 18,
+  "baselineExeSha256": "c206c83292dc10e908246a3bace2d6d0dc3a1dc9b4a8b6c0c9126bc1edfe32fd",
+  "diagnosticExeSha256": "4c7791a31239195acd17075993c1acec97ae29ecf35a1205d344a64acbcc8254",
+  "reportSha256": "cee0522927c3c7b9998780b412b4d3726ebb7b1a101c90518aef27b052c061cc",
+  "summarySha256": "dbb699ce01ba15b66e7fb16540db0c45fffbc999671302654549ef8268a84e1f",
+  "contractSha256": "53044ddfe5bab62cfd28ac484a27412a0c68f3e521f9cff7c640b1f7a28f83aa",
+  "passed": true
+}

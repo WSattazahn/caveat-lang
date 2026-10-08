@@ -1,0 +1,28 @@
+{
+  "revision": "cb5faadfa2a9b40a11764c303f475fffb981a9f8",
+  "runtimeGitTree": "5a998d6813612b88f31d700f06730d10af1c9883",
+  "startedAt": "2026-10-08T06:36:00.063Z",
+  "finishedAt": "2026-10-08T06:37:19.907Z",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "argv": [
+    "cargo",
+    "build",
+    "--release",
+    "--locked",
+    "--manifest-path",
+    "runtime/Cargo.toml",
+    "--example",
+    "withdrawal_extraction_profile",
+    "--no-default-features",
+    "--features",
+    "withdrawal-extraction-profile"
+  ],
+  "cwd": "C:/Dev/caveat-lang",
+  "status": 0,
+  "error": null,
+  "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderrSha256": "8a72063b85951dfd660f4175060adbe6053266920372bcfe6e98b77f0a058e0c",
+  "executableSha256": "4c7791a31239195acd17075993c1acec97ae29ecf35a1205d344a64acbcc8254",
+  "headAfter": "cb5faadfa2a9b40a11764c303f475fffb981a9f8",
+  "trackedDiffAfter": ""
+}

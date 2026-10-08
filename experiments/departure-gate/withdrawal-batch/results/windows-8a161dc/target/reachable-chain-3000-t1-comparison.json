@@ -1,0 +1,13 @@
+{
+  "name": "reachable-chain",
+  "cycles": 3000,
+  "trial": 1,
+  "primary": false,
+  "order": [
+    "baseline",
+    "candidate"
+  ],
+  "exactNativeEquality": true,
+  "peaks": {},
+  "passed": true
+}

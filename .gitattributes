@@ -53,3 +53,6 @@ experiments/departure-gate/index-compaction/results/** -text whitespace=cr-at-eo
 
 # Keep the independently authored regression body byte-exact for its provenance self-check.
 experiments/departure-gate/withdrawal-batch/independent-wasm-check.mjs -text
+
+# Preserve the recorded withdrawal-extraction observations and stream hashes.
+experiments/departure-gate/withdrawal-batch/results/** -text whitespace=cr-at-eol,-blank-at-eof

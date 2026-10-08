@@ -151,3 +151,21 @@ already authorized these measurements. Successful and failed stdout/stderr are
 preserved as exclusive sidecar files with hashes and exit status. Registration
 requires an entirely new directory, even after a partial setup. Stage A results, target results, full semantic checks and final CI are
 separate receipts with separate scopes.
+
+## Recorded native result
+
+The [frozen result](results/windows-8a161dc/REPORT.md) records clean candidate
+`8a161dcdfdc8a2a5b3ca43b4183552401002cca7` against the accepted c1d8fea baseline.
+Both registered latency criteria pass: ratio-of-process-medians reductions are
+22.0580% successful and 22.9386% rejected; paired-median reductions are 22.0731%
+and 23.1418%. Every primary additional requested-heap peak is unchanged at
+27,403,251 / 27,403,464 bytes. All 20 native matched save/archive comparisons pass.
+
+All 49 attribution/control/target attempts and their raw streams are retained.
+Small-case slower timings, attribution overhead, absolute retained/archive bytes
+and finite measurement limits are included, not excluded from the report.
+The supplementary analysis scripts retain their original task paths; the portable
+registered driver above reproduces fresh runs in a new output directory.
+The native result is separate from final-head semantic, integration and CI checks.
+The evidence-only review commit does not change the measured runtime tree
+`aec511bf3ee147a79391f90674446eff9c7f393e`.

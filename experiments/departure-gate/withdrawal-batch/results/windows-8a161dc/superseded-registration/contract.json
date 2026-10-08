@@ -1,0 +1,271 @@
+{
+  "schema": "withdrawal-batch-measurement/1",
+  "registeredAt": "2026-10-08T06:31:23.917Z",
+  "baseline": {
+    "revision": "c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3",
+    "executable": "c206c83292dc10e908246a3bace2d6d0dc3a1dc9b4a8b6c0c9126bc1edfe32fd",
+    "harness": "1e6de5ad17ca4c6b06e2eef91c7ff65f73774e0cdb9a6d4fa73af1053c0b1357",
+    "runtimeTree": "907b6ae90b73bf536bc78c9346d4fb2e8f8dcdd3",
+    "file": "baseline.exe",
+    "buildArgv": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--manifest-path",
+      "runtime/Cargo.toml",
+      "--example",
+      "collector_profile",
+      "--no-default-features",
+      "--features",
+      "collector-metrics"
+    ]
+  },
+  "driverSha256": "3ae7bc7178024d83793fc8a2c498e3679097b329379bf24cf3882b5785912203",
+  "fixtures": [
+    {
+      "name": "release-mutual",
+      "source": "experiments/departure-gate/collector-fixtures/release-mutual.cav",
+      "file": "fixtures/release-mutual.cav",
+      "sha256": "65cd79392e30c1fc1dfc81cbcfd30a936f909acdb49ab723b733cfb4c87a9917",
+      "mode": "release"
+    },
+    {
+      "name": "release-self",
+      "source": "experiments/departure-gate/collector-fixtures/release-self.cav",
+      "file": "fixtures/release-self.cav",
+      "sha256": "24632031e5bfba1c7391254bb2817c490558fce3b843b131f4118e32589d7263",
+      "mode": "release"
+    },
+    {
+      "name": "high-degree",
+      "source": "experiments/departure-gate/index-compaction/high-degree.cav",
+      "file": "fixtures/high-degree.cav",
+      "sha256": "f3fd8fe258e926dab76a7793187215915037f67bc95317ec50556b1344eace4f",
+      "mode": "release"
+    },
+    {
+      "name": "reachable-chain",
+      "source": "experiments/departure-gate/withdrawal-fixtures/reachable-chain.cav",
+      "file": "fixtures/reachable-chain.cav",
+      "sha256": "3f72957146439788d58082ae49296c8e3d4029adab25994dd0f0afed1e6233b1",
+      "mode": "initialize"
+    },
+    {
+      "name": "self",
+      "source": "experiments/departure-gate/withdrawal-fixtures/self.cav",
+      "file": "fixtures/self.cav",
+      "sha256": "8bbba3379f30daa834824cb8bec29bf7dc4b573014e4c4a042ab0d0d2a78ab43",
+      "mode": "plain"
+    },
+    {
+      "name": "mutual",
+      "source": "experiments/departure-gate/withdrawal-fixtures/mutual.cav",
+      "file": "fixtures/mutual.cav",
+      "sha256": "434fd2619dd509e081d2b6fb1a152e8bee85e802adeb62af9286694a3eebc110",
+      "mode": "plain"
+    }
+  ],
+  "targetMatrix": [
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 1,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 2,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 3,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 4,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 5,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 6,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 7,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 8,
+      "primary": true
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 1,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 2,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 60,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 300,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 1000,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "release-self",
+      "cycles": 60,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "release-self",
+      "cycles": 3000,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "high-degree",
+      "cycles": 60,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "high-degree",
+      "cycles": 1000,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "reachable-chain",
+      "cycles": 3000,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "self",
+      "cycles": 60,
+      "trial": 1,
+      "primary": false
+    },
+    {
+      "name": "mutual",
+      "cycles": 60,
+      "trial": 1,
+      "primary": false
+    }
+  ],
+  "diagnosticMatrix": [
+    {
+      "name": "release-mutual",
+      "cycles": 60,
+      "trial": 1,
+      "order": [
+        "diagnostic"
+      ]
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 300,
+      "trial": 1,
+      "order": [
+        "diagnostic"
+      ]
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 1000,
+      "trial": 1,
+      "order": [
+        "diagnostic"
+      ]
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 1,
+      "order": [
+        "baseline",
+        "diagnostic"
+      ]
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 2,
+      "order": [
+        "diagnostic",
+        "baseline"
+      ]
+    },
+    {
+      "name": "release-mutual",
+      "cycles": 3000,
+      "trial": 3,
+      "order": [
+        "baseline",
+        "diagnostic"
+      ]
+    }
+  ],
+  "targetProcesses": 40,
+  "diagnosticProcesses": 9,
+  "settings": {
+    "drainEvery": 1,
+    "probes": 100,
+    "platform": "win32",
+    "arch": "x64",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "order": "Primary odd pair baseline/candidate; even pair candidate/baseline; all executions serial on quiet machine."
+  },
+  "targets": {
+    "population": "release-mutual3000, eight fresh matched pairs",
+    "success": "release.median_ns (one successful release per process)",
+    "rejected": "failed_release.median_ns (median of three rejected attempts per process)",
+    "latency": "For success and rejected separately, require median(C)/median(B)<=0.8 AND median of eight paired C/B ratios<=0.8. No pooling reconstructed samples.",
+    "peak": "In every primary pair, successful and rejected max_dispatch_additional_heap_bytes C<=B, separately. No tolerance, averaging, or aggregate maximum substitution.",
+    "supplemental": "No extra acceptance threshold; report every phase absolute peak and any growth/small-case increase prominently.",
+    "failurePolicy": "Preserve every attempt and failure. No reruns, changed thresholds, reset baseline, or favorable subset. New implementation uses a new directory."
+  },
+  "limits": [
+    "Requested heap excludes allocator internals, stacks and RSS.",
+    "Dispatch peaks include copies, collector work, departure and archive; not isolated collector scratch.",
+    "Native apply omits snapshot serialization/browser/WASM work.",
+    "Diagnostic per-block clocks/TLS stores perturb timing; diagnostic executable is never used for target acceptance.",
+    "Position result implies exact predicate-call count; shifted bytes estimate moved Withdrawal headers, not String payloads or measured traffic.",
+    "N16 high-degree cycles repeat a fixed shape, not increasing degree."
+  ]
+}
