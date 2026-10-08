@@ -5,6 +5,8 @@
   "published": false,
   "releaseTag": null,
   "preserveCommitAncestry": true,
+  "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/178",
+  "integrationBranch": "codex/rc16-release-prep",
   "integrationIdentity": "Exact review revision and tested package hashes are recorded in the release-candidate report; this source file cannot name its own final commit.",
   "stages": [
     {"id":"published-rc15","version":"0.1.0-rc.15","revision":"3a88ba0f80d563b4493840dc7bd7e195329b8302","published":true,"record":"v0.1.0-rc.15.md"},

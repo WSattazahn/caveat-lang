@@ -12,7 +12,7 @@
       "skip",
       "decide"
     ],
-    "source": "post-collection.cav"
+    "source": "post-collection.cav.txt"
   },
   "originalDrivers": {
     "archive-marker-probes.mjs": "1db33394d96327a0abe70b5246b17453090453ffe25a25bd7986d81c24c84759",
@@ -21,16 +21,16 @@
   },
   "files": {
     "marker-journal.cav": {
-      "sha256": "b069b286f2ffd479096fc74ca9c48eea163a09ea2a924d8d58ca1f64d497bbda",
-      "bytes": 728
+      "sha256": "a49fe2e5eb1fd429473f537330025173eb6f08435b1684d76fc19396cb482cb8",
+      "bytes": 754
     },
     "nested-withdrawal.cav": {
       "sha256": "ab26d39952b30d2801dfd3de4d2cf63632f8700f6de189a134e25bdecea93d1d",
       "bytes": 486
     },
     "post-collection.cav": {
-      "sha256": "d5f85f7268f718964734ee2b08f9af858c965eb5ec936da3b90bd9ab769e74fd",
-      "bytes": 1123
+      "sha256": "7006dde7335fba0b0f23383b7ff3482e7373abd4032faf8bd0fa5ea2be51460a",
+      "bytes": 1149
     },
     "post-collection.rc15.save.json": {
       "sha256": "bfc54f45154b4b1a0d20237426b9392d1d4ecaf9fc111f0d043acfa0fad6d018",
@@ -51,6 +51,34 @@
     "withdrawal-static.cav": {
       "sha256": "896f31ea4a5b4a592afdeeb97ea8e1e40f7bd6fc9a5236f9c3157f32186fe289",
       "bytes": 1191
+    },
+    "marker-journal.cav.txt": {
+      "sha256": "b069b286f2ffd479096fc74ca9c48eea163a09ea2a924d8d58ca1f64d497bbda",
+      "bytes": 728
+    },
+    "post-collection.cav.txt": {
+      "sha256": "d5f85f7268f718964734ee2b08f9af858c965eb5ec936da3b90bd9ab769e74fd",
+      "bytes": 1123
+    }
+  },
+  "sweepDerivatives": {
+    "marker-journal.cav": {
+      "original": "marker-journal.cav.txt",
+      "originalSha256": "b069b286f2ffd479096fc74ca9c48eea163a09ea2a924d8d58ca1f64d497bbda",
+      "replacement": {
+        "from": "on decide commit trust",
+        "to": "on decide when not committed(trust) commit trust"
+      },
+      "reason": "The frozen trace fixture commits plain trust once. Repeated arbitrary decide events otherwise hit the documented unclassified duplicate plain-commit error in both rc.15 and rc.16. The derivative explicitly makes decide idempotent for the tracked-program sweeps."
+    },
+    "post-collection.cav": {
+      "original": "post-collection.cav.txt",
+      "originalSha256": "d5f85f7268f718964734ee2b08f9af858c965eb5ec936da3b90bd9ab769e74fd",
+      "replacement": {
+        "from": "on decide commit trust",
+        "to": "on decide when not committed(trust) commit trust"
+      },
+      "reason": "The frozen trace fixture commits plain trust once. Repeated arbitrary decide events otherwise hit the documented unclassified duplicate plain-commit error in both rc.15 and rc.16. The derivative explicitly makes decide idempotent for the tracked-program sweeps."
     }
   }
 }

@@ -7,11 +7,11 @@ import test from 'node:test';
 import {real} from './helpers.mjs';
 import {explain} from '../lib/explain.mjs';
 
-const source = await readFile(new URL('fixtures/adversarial/post-collection.cav', import.meta.url), 'utf8');
+const source = await readFile(new URL('fixtures/adversarial/post-collection.cav.txt', import.meta.url), 'utf8');
 const oldSave = await readFile(new URL('fixtures/adversarial/post-collection.rc15.save.json', import.meta.url), 'utf8');
 const provenance = JSON.parse(await readFile(new URL('fixtures/adversarial/provenance.json', import.meta.url), 'utf8'));
 const sha = value => createHash('sha256').update(value).digest('hex');
-assert.equal(sha(source), provenance.files['post-collection.cav'].sha256);
+assert.equal(sha(source), provenance.files['post-collection.cav.txt'].sha256);
 assert.equal(sha(oldSave), provenance.files['post-collection.rc15.save.json'].sha256);
 
 const trace = ['start', 'advance', 'skip', 'decide'];

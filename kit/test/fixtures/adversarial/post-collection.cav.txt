@@ -22,7 +22,7 @@ on advance renew a;
 on advance renew b;
 on advance sample r = 2 supports seen;
 on skip when qualified(0, other) > 0 sample kept = 3 supports seen;
-on decide when not committed(trust) commit trust because enough using latest(kept);
+on decide commit trust because enough using latest(kept);
 on fail set held = 0;
 on fail set divisor = 0;
 on continue set counter = counter + 1;

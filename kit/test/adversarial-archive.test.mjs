@@ -8,7 +8,7 @@ import {explain, formatExplanation, dependents} from '../lib/explain.mjs';
 import {archiveNodeId} from '../lib/archive.mjs';
 
 const copy = value => structuredClone(value);
-const markerSource = await readFile(new URL('fixtures/adversarial/marker-journal.cav', import.meta.url), 'utf8');
+const markerSource = await readFile(new URL('fixtures/adversarial/marker-journal.cav.txt', import.meta.url), 'utf8');
 const nestedSource = await readFile(new URL('fixtures/adversarial/nested-withdrawal.cav', import.meta.url), 'utf8');
 const accepted = (session, event) => assert.equal(session.dispatch(event).outcome, 'accepted', event);
 const paths = [['commitment_grounds', 'trust'], ['commitment_bases', 'trust', 'provenance']];
