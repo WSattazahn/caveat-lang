@@ -863,6 +863,8 @@ impl ReactiveSession {
         let mut withdrawals = extract_departing_withdrawals(&mut self.withdrawals, &departing)
             .into_iter()
             .peekable();
+        // Stage the final boxes so ordering retains handles rather than a
+        // full inline record buffer alongside the published archive.
         let mut entries = BTreeMap::new();
         for (record, (history, number)) in &departing {
             let mut qualifications = BTreeMap::new();
@@ -953,7 +955,7 @@ impl ReactiveSession {
                 record.clone(),
                 (
                     journal_entry.is_some(),
-                    ArchiveEntry {
+                    Box::new(ArchiveEntry {
                         record: record.clone(),
                         history: history.clone(),
                         number: *number,
@@ -965,7 +967,7 @@ impl ReactiveSession {
                         journal_entry: None,
                         withdrawal,
                         holders: entry_holders,
-                    },
+                    }),
                 ),
             );
         }
@@ -1002,7 +1004,7 @@ impl ReactiveSession {
                 history: entry.history.clone(),
                 record: entry.record.clone(),
             });
-            self.archive.push(ArchiveItem::Record(Box::new(entry)));
+            self.archive.push(ArchiveItem::Record(entry));
         }
         self.collector_departed(&departing);
         #[cfg(debug_assertions)]
