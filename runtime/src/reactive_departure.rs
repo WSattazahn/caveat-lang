@@ -3,6 +3,169 @@
 //! spec/caveat-lineage-compaction-0.1.md.
 use super::*;
 
+// Native diagnostics live outside transactional state so failed dispatches can
+// be inspected. They are never serialized or enabled in ordinary/WASM builds.
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+mod extraction_profile {
+    use super::Withdrawal;
+    use serde::Serialize;
+    use std::cell::Cell;
+    use std::time::Instant;
+
+    #[derive(Debug, Copy, Clone, Default, Serialize)]
+    pub struct WithdrawalExtractionProfile {
+        pub blocks: u64,
+        pub matches: u64,
+        pub misses: u64,
+        pub probes: u64,
+        pub shifted_elements: u64,
+        pub estimated_shifted_bytes: u64,
+        pub shared_cow_detaches: u64,
+        pub cow_cloned_elements: u64,
+        pub block_ns: u64,
+        pub departure_ns: u64,
+    }
+
+    impl WithdrawalExtractionProfile {
+        const ZERO: Self = Self {
+            blocks: 0,
+            matches: 0,
+            misses: 0,
+            probes: 0,
+            shifted_elements: 0,
+            estimated_shifted_bytes: 0,
+            shared_cow_detaches: 0,
+            cow_cloned_elements: 0,
+            block_ns: 0,
+            departure_ns: 0,
+        };
+    }
+
+    thread_local! {
+        static PROFILE: Cell<WithdrawalExtractionProfile> = const {
+            Cell::new(WithdrawalExtractionProfile::ZERO)
+        };
+    }
+
+    pub(super) fn take() -> WithdrawalExtractionProfile {
+        PROFILE.replace(WithdrawalExtractionProfile::ZERO)
+    }
+
+    pub(super) struct Block {
+        len: usize,
+        shared: bool,
+        started: Instant,
+    }
+
+    impl Block {
+        pub(super) fn new(len: usize, shared: bool) -> Self {
+            Self {
+                len,
+                shared,
+                started: Instant::now(),
+            }
+        }
+
+        pub(super) fn finish(self, index: Option<usize>) {
+            let ns = self.started.elapsed().as_nanos() as u64;
+            // Infer position's exact number of predicate calls; do not add
+            // a counter to the search predicate. Vec::remove shifts headers,
+            // not the String payloads, so moved bytes are an explicit estimate.
+            let mut profile = PROFILE.get();
+            profile.blocks += 1;
+            profile.block_ns += ns;
+            profile.probes += index.map_or(self.len, |index| index + 1) as u64;
+            if let Some(index) = index {
+                profile.matches += 1;
+                let shifted = (self.len - index - 1) as u64;
+                profile.shifted_elements += shifted;
+                profile.estimated_shifted_bytes +=
+                    shifted * std::mem::size_of::<Withdrawal>() as u64;
+                if self.shared {
+                    profile.shared_cow_detaches += 1;
+                    profile.cow_cloned_elements += self.len as u64;
+                }
+            } else {
+                profile.misses += 1;
+            }
+            PROFILE.set(profile);
+        }
+    }
+
+    pub(super) struct Departure(Instant);
+
+    impl Departure {
+        pub(super) fn start() -> Self {
+            Self(Instant::now())
+        }
+    }
+
+    impl Drop for Departure {
+        fn drop(&mut self) {
+            let ns = self.0.elapsed().as_nanos() as u64;
+            let mut profile = PROFILE.get();
+            profile.departure_ns += ns;
+            PROFILE.set(profile);
+        }
+    }
+}
+
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+pub use extraction_profile::WithdrawalExtractionProfile;
+
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+impl ReactiveSession {
+    /// Reset this thread's native diagnostic recorder before an apply call.
+    pub fn reset_withdrawal_extraction_profile() {
+        extraction_profile::take();
+    }
+
+    /// Read and reset diagnostics, including work done by rejected dispatches.
+    pub fn take_withdrawal_extraction_profile() -> WithdrawalExtractionProfile {
+        extraction_profile::take()
+    }
+}
+
+#[cfg(all(
+    test,
+    feature = "withdrawal-extraction-profile",
+    not(target_arch = "wasm32")
+))]
+mod extraction_profile_tests {
+    use super::*;
+
+    #[test]
+    fn withdrawal_profile_survives_rejected_transaction() {
+        let source =
+            include_str!("../../experiments/departure-gate/collector-fixtures/release-mutual.cav");
+        let mut session = ReactiveSession::from_source(source).unwrap();
+        for _ in 0..4 {
+            session.apply("cycle", &BTreeMap::new()).unwrap();
+            session.drain_archive();
+        }
+        let saved = session.save_json().unwrap();
+        ReactiveSession::reset_withdrawal_extraction_profile();
+        assert!(session.apply("fail", &BTreeMap::new()).is_err());
+        let rejected = ReactiveSession::take_withdrawal_extraction_profile();
+        assert_eq!(rejected.matches, 6);
+        assert_eq!(rejected.shared_cow_detaches, 1);
+        assert_eq!(rejected.cow_cloned_elements, 8);
+        assert!(rejected.probes >= rejected.matches);
+        assert!(rejected.shifted_elements > 0);
+        assert_eq!(session.save_json().unwrap(), saved);
+        assert_eq!(session.undrained(), 0);
+        assert_eq!(
+            ReactiveSession::take_withdrawal_extraction_profile().blocks,
+            0
+        );
+        session.apply("release", &BTreeMap::new()).unwrap();
+        let accepted = ReactiveSession::take_withdrawal_extraction_profile();
+        assert_eq!(accepted.probes, rejected.probes);
+        assert_eq!(accepted.shifted_elements, rejected.shifted_elements);
+        assert_eq!(accepted.matches, rejected.matches);
+    }
+}
+
 /// Host-drained records and the provenance transfer nodes referring to them.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(untagged)]
@@ -265,6 +428,8 @@ impl ReactiveSession {
     /// At the end of an event: every retired record that nothing pins
     /// departs. Reported after every other effect, by history and number.
     pub(crate) fn depart_unpinned(&mut self) -> Result<(), String> {
+        #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+        let _departure_profile = extraction_profile::Departure::start();
         #[cfg(debug_assertions)]
         self.check_departure_index();
         let mut departing = BTreeMap::new();
@@ -554,11 +719,19 @@ impl ReactiveSession {
                 }
                 predicates.retain(|_, targets| !targets.is_empty());
             }
-            let withdrawal = self
+            #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+            let extraction = extraction_profile::Block::new(
+                self.withdrawals.len(),
+                Arc::strong_count(&self.withdrawals) > 1,
+            );
+            let withdrawal_index = self
                 .withdrawals
                 .iter()
-                .position(|withdrawal| &withdrawal.evidence == record)
-                .map(|index| Arc::make_mut(&mut self.withdrawals).remove(index));
+                .position(|withdrawal| &withdrawal.evidence == record);
+            let withdrawal =
+                withdrawal_index.map(|index| Arc::make_mut(&mut self.withdrawals).remove(index));
+            #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+            extraction.finish(withdrawal_index);
             let mut reading = None;
             let mut journal_entry = None;
             if history == "journal"

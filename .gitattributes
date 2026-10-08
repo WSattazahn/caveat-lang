@@ -50,3 +50,6 @@ experiments/departure-gate/collector-results/**/*.log whitespace=cr-at-eol,-blan
 
 # Frozen index-compaction observations retain their recorded bytes.
 experiments/departure-gate/index-compaction/results/** -text whitespace=cr-at-eol
+
+# Keep the independently authored regression body byte-exact for its provenance self-check.
+experiments/departure-gate/withdrawal-batch/independent-wasm-check.mjs -text

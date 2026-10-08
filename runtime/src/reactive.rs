@@ -58,6 +58,8 @@ pub use crate::reactive_archive::{ArchiveOperation, ArchiveProvenance};
 #[cfg(feature = "collector-metrics")]
 pub use collector::WithdrawalCollectionMetrics;
 use collector::{CollectorOwner, WithdrawalCollector};
+#[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
+pub use departure::WithdrawalExtractionProfile;
 pub use departure::{ArchiveEntry, ArchiveItem, Holder};
 
 #[path = "reactive_identifiers.rs"]

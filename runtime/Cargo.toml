@@ -15,6 +15,12 @@ default = ["games"]
 games = []
 # Opt-in native diagnostics; no saved or WASM diagnostic fields.
 collector-metrics = []
+# Temporary native attribution only; excluded from ordinary and WASM builds.
+withdrawal-extraction-profile = ["collector-metrics"]
+
+[[example]]
+name = "withdrawal_extraction_profile"
+required-features = ["withdrawal-extraction-profile"]
 
 [dependencies]
 sha2 = "0.10"
