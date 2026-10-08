@@ -18,6 +18,10 @@ collector-metrics = []
 # Temporary native attribution only; excluded from ordinary and WASM builds.
 withdrawal-extraction-profile = ["collector-metrics"]
 renewal-removal-profile = ["collector-metrics"]
+# Fixed native event boundaries; does not enable per-record clocks.
+event-phase-profile = ["collector-metrics"]
+# Separate allocation-origin mode disables the phase clocks.
+event-phase-origins = ["event-phase-profile"]
 
 [[example]]
 name = "withdrawal_extraction_profile"
@@ -26,6 +30,10 @@ required-features = ["withdrawal-extraction-profile"]
 [[example]]
 name = "renewal_removal_profile"
 required-features = ["renewal-removal-profile"]
+
+[[example]]
+name = "event_phase_profile"
+required-features = ["event-phase-profile"]
 
 [dependencies]
 sha2 = "0.10"

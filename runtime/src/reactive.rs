@@ -68,6 +68,14 @@ mod renewal_profile;
 #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
 pub use renewal_profile::{RemovalProfile, RenewalRemovalProfile};
 
+#[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+#[path = "reactive_event_profile.rs"]
+mod event_profile;
+#[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+pub use event_profile::{
+    current_event_phase_index, EventPhase, EventPhaseProfile, EVENT_PHASE_COUNT, EVENT_PHASE_NAMES,
+};
+
 #[path = "reactive_identifiers.rs"]
 mod identifiers;
 
@@ -3367,6 +3375,8 @@ impl ReactiveSession {
     /// An identifier parameter takes the handle of an identifier the session
     /// already holds: numbers cannot name a new one.
     pub fn apply(&mut self, event: &str, parameters: &BTreeMap<String, f64>) -> Result<(), String> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let _profile = event_profile::Scope::enter(EventPhase::ApplyWrapper);
         self.apply_classified(event, parameters, Vec::new())
             .map_err(|error| error.to_string())
     }
@@ -3379,6 +3389,10 @@ impl ReactiveSession {
         parameters: &BTreeMap<String, f64>,
         new_identifiers: Vec<String>,
     ) -> Result<(), DispatchFailure> {
+        // Declared before staged state: its guard outlives implicit rollback
+        // destruction, while successful assignment drops the old state in place.
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::TransactionPreparation);
         let signature = self.events.get(event).ok_or_else(|| {
             DispatchFailure::rejected(
                 RejectionOrigin::Input,
@@ -3487,6 +3501,8 @@ impl ReactiveSession {
         }
         match next.run_event(self, event, parameters) {
             Ok(()) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::CommitCleanup);
                 let mut archive = std::mem::take(&mut self.archive);
                 archive.append(&mut next.archive);
                 *self = next;
@@ -3494,6 +3510,8 @@ impl ReactiveSession {
                 Ok(())
             }
             Err(error) => {
+                #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+                profile.switch(EventPhase::RollbackCleanup);
                 self.put_shown(next.take_shown());
                 Err(error)
             }
@@ -3508,6 +3526,8 @@ impl ReactiveSession {
         event: &str,
         parameters: &BTreeMap<String, f64>,
     ) -> Result<(), DispatchFailure> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::Evaluation);
         self.collector_begin();
         self.effects.clear();
         self.cues.clear();
@@ -3567,11 +3587,15 @@ impl ReactiveSession {
         // read what cites them.
         self.depart_unpinned()?;
         // Binding failures roll back the same numeric/graph/cue transaction.
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::BindingEvaluation);
         let changes = Changes::between(old, self);
         let result = self.evaluate_bindings(Some(&changes));
         #[cfg(debug_assertions)]
         self.check_incremental_bindings(&result);
         result?;
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::FinalSettlement);
         self.settle_archive_provenance(Some(old), true);
         Ok(())
     }

@@ -586,6 +586,8 @@ impl ReactiveSession {
     /// At the end of an event: every retired record that nothing pins
     /// departs. Reported after every other effect, by history and number.
     pub(crate) fn depart_unpinned(&mut self) -> Result<(), String> {
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        let mut profile = event_profile::Scope::enter(EventPhase::Collection);
         #[cfg(all(feature = "withdrawal-extraction-profile", not(target_arch = "wasm32")))]
         let _departure_profile = extraction_profile::Departure::start();
         #[cfg(all(feature = "renewal-removal-profile", not(target_arch = "wasm32")))]
@@ -614,6 +616,8 @@ impl ReactiveSession {
             self.check_withdrawal_collector();
             return Ok(());
         }
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::Compaction);
         let sequence = self.sequence;
         let mut holders: BTreeMap<String, Vec<Holder>> = BTreeMap::new();
         let holder = |kind: &'static str, name: &str, field: &'static str| {
@@ -813,6 +817,9 @@ impl ReactiveSession {
         }
 
         // 2. Each record leaves the session, into its archive entry.
+        // Removal and payload construction are interleaved in this phase.
+        #[cfg(all(feature = "event-phase-profile", not(target_arch = "wasm32")))]
+        profile.switch(EventPhase::ArchiveConstructionAndRemoval);
         let names = self
             .symbols
             .iter()
