@@ -1,8 +1,33 @@
 # CAVEAT 0.1.0-rc.16 development plan
 
-Status: release preparation, unpublished. This file records the owner's direction
-for rc.16 as given so far and the cycle's progress. Keep the "Progress"
-section factual, as `rc15-development.md` does.
+Status: published on npm, with registry/provenance/fresh-install verification
+complete. This file preserves the owner's direction and the cycle's progress;
+the dated development entries below are historical, not current publication status.
+
+## Publication closeout (2026-10-08 Pacific; 2026-10-09 UTC)
+
+The owner authorized integration and approved the `npm-publish` environment.
+PR #178 merged at `3cc7b0f66a5b7dafe3d5a166bd20953fa74ce5f4`, preserving the
+reviewed commits. Annotated tag `v0.1.0-rc.16` names that revision. Main Runtime
+run `37858332503` tested the exact Linux package subsequently published by
+`publish-npm.yml` run `37863281824`. Verification passed at `2026-10-09T00:14:32.379Z`:
+registry bytes/integrity, provenance, signatures and all ten verification
+commands passed. The [release record](v0.1.0-rc.16.md) and
+[publication JSON](v0.1.0-rc.16-npm-publication.json) identify the exact artifact.
+
+At verification, `latest` names rc.16 and `next` remains rc.15. The GitHub
+prerelease is a separate closeout step; npm publication does not create it.
+#174 was automatically marked merged when its commits entered main through
+#178; its original head and evidence remain intact. At the owner's request,
+superseded review pages #175–#177 were closed with comments identifying their
+integration and publication. Their remote branches, original commits, evidence
+and review history remain preserved. The site-only #179 draft remains open,
+separate, and outside this release.
+
+The narrowed scope below shipped. View 0.2, series windows and unimplemented
+feature work remain deferred. Required-chain memory growth, conservative
+retention, allocation capacity, bulk costs and archive growth remain active
+engineering work, not claims solved by publication.
 
 ## Scope amendment for release preparation (2026-10-08)
 
@@ -19,7 +44,7 @@ capacity-only choices. Review branches may now be pushed. Final integration,
 merge, tags and publication still require the owner's decision; no optional
 optimization is authorized by release preparation.
 
-The [rc.16 candidate notes](v0.1.0-rc.16.md) consolidate the shipping scope,
+The [rc.16 release record](v0.1.0-rc.16.md) consolidates the shipping scope,
 compatibility limits, completed high-degree confirmation, adversarial coverage
 and remaining release gates. In particular, the successful high-degree release
 crossed the fixed 5% trigger (+6.67115%, +15.45 microseconds median paired

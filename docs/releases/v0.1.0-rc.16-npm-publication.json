@@ -1,0 +1,209 @@
+{
+  "schema": "caveat-npm-publication-record/0.1",
+  "status": "verified",
+  "verifiedAt": "2026-10-09T00:14:32.379Z",
+  "name": "caveat-lang",
+  "version": "0.1.0-rc.16",
+  "revision": "3cc7b0f66a5b7dafe3d5a166bd20953fa74ce5f4",
+  "tag": "v0.1.0-rc.16",
+  "registry": "https://registry.npmjs.org",
+  "tarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.16.tgz",
+    "bytes": 1074938,
+    "sha256": "fc134fbfe5878555c562dcb1e85ed6b9667dfc605023859823acac659603ca3f",
+    "sha512": "359beeba1fe92d5d04f71ef8ee85c822741b8a934778c642d16eacfaae0e9ad60e57b4237a3727f65705bfa180d2f19103144bf06068deb47ea80281e56e7d8f",
+    "integrity": "sha512-NZvuuh/pLV0E9x747oXIInQbipNHeMZC0W6s+q4OmtYOV7Qjejcn9lcFv6GA0vGRAxRL8GBo3rR+qAKB5W59jw=="
+  },
+  "channelsAtVerification": {
+    "latest": "0.1.0-rc.16",
+    "next": "0.1.0-rc.15"
+  },
+  "publication": {
+    "method": "workflow",
+    "workflow": ".github/workflows/publish-npm.yml",
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/37863281824",
+    "runAttempt": 1,
+    "command": "npm publish caveat-lang-0.1.0-rc.16.tgz --provenance --access public --tag latest",
+    "authentication": "npm trusted publishing (OIDC), environment npm-publish",
+    "approval": "npm-publish environment approved by WSattazahn using the GitHub deployment review API",
+    "npm": "11.19.0",
+    "node": "v24.21.0",
+    "provenance": true,
+    "attestation": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/caveat-lang@0.1.0-rc.16",
+      "predicateType": "https://slsa.dev/provenance/v1"
+    },
+    "provenanceStatement": {
+      "workflow": {
+        "ref": "refs/tags/v0.1.0-rc.16",
+        "repository": "https://github.com/WSattazahn/caveat-lang",
+        "path": ".github/workflows/publish-npm.yml"
+      },
+      "revision": "3cc7b0f66a5b7dafe3d5a166bd20953fa74ce5f4",
+      "builder": "https://github.com/actions/runner/github-hosted"
+    },
+    "testedArtifact": {
+      "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/37858332503",
+      "artifact": "kit-package-candidate",
+      "artifactId": 11587105379,
+      "sha256": "fc134fbfe5878555c562dcb1e85ed6b9667dfc605023859823acac659603ca3f",
+      "bytes": 1074938,
+      "workflowChecksumCheck": true
+    },
+    "note": "All three publication jobs passed on attempt 1. The owner approved npm-publish through their authenticated GitHub CLI. The workflow updated latest only; next still named rc.15 at verification. GitHub prerelease creation is a separate workflow after this publication record reaches main; it does not move the release tag or rebuild the package."
+  },
+  "verificationArtifact": {
+    "name": "npm-publication-verification",
+    "id": 11587267880,
+    "run": "https://github.com/WSattazahn/caveat-lang/actions/runs/37863281824",
+    "digest": "sha256:72544bd27f71fd1124fda844356be041d7d0a73145051a037c928919676b84b6",
+    "file": "0.1.0-rc.16/npm-publication-verification.json",
+    "fileSha256": "fedcad824526f5a5294153c3514b0c4892597a4920cfc921f5cbda0db719fcac"
+  },
+  "checks": {
+    "registryBytesMatch": true,
+    "provenanceAttested": true,
+    "signaturesVerified": true,
+    "freshExactVersionInstall": true,
+    "freshCache": true,
+    "lockIntegrityAndOrigin": true,
+    "cliAliases": [
+      "caveat",
+      "caveat-lang"
+    ],
+    "doctor": true,
+    "demo": true,
+    "umbrellaScenarios": true,
+    "umbrellaExplanation": true,
+    "successfulCommands": 10
+  },
+  "tools": {
+    "node": "v24.21.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "npm": "11.19.0"
+  },
+  "commands": [
+    {
+      "id": "01",
+      "executable": "npm",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "005206ab803f8881d8227540b7980b37e723b69a8849edb31734a90b7e7964e2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "02",
+      "executable": "npm",
+      "args": [
+        "install",
+        "caveat-lang@0.1.0-rc.16",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "cb9a2dfff343c62297f062db9d6244b0013093b50d8b5396806cc6f75184e3b8",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "03",
+      "executable": "npm",
+      "args": [
+        "audit",
+        "signatures",
+        "--registry",
+        "https://registry.npmjs.org",
+        "--cache",
+        "<consumer>/cache"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "d6c98d41303a1d4376e2bcaae38fbf34cdd05591f0902f99a4f485ac18f70c70",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "04",
+      "executable": "caveat",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "86890426bd0a5c78220c4e8271fd4f4140d7ee65208c70829c1b13df34295e1b",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "05",
+      "executable": "caveat-lang",
+      "args": [
+        "--version"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "86890426bd0a5c78220c4e8271fd4f4140d7ee65208c70829c1b13df34295e1b",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "06",
+      "executable": "caveat-lang",
+      "args": [
+        "doctor",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "6b9370949917e4d88dcd5e4ffe9f5eb392d70b51316ff7251aa0427680ccf93e",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "07",
+      "executable": "caveat-lang",
+      "args": [
+        "demo",
+        "agent",
+        "--json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "957d9003b04e7c2a089134f7d019eb90aae055db8c2d18ae1fa32b46e050e543",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "08",
+      "executable": "caveat-lang",
+      "args": [
+        "init"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "7e7fbf91fa9eaacd811e2c9ebb9259f5788e88e00c413b723abf07d4967c0078",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "09",
+      "executable": "caveat-lang",
+      "args": [
+        "test",
+        "umbrella.scenarios.json"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "e046464220ae4e5280a7a31c823652e57e44e173e79347485e7d547620f3fcff",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "10",
+      "executable": "caveat-lang",
+      "args": [
+        "explain",
+        "umbrella.cav",
+        "events.jsonl"
+      ],
+      "exitCode": 0,
+      "stdoutSha256": "1d7313be6386de09407c1086ceb08db3ace12eca64cf910faee2077d4c90901e",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "method": "Fields copied from the successful publish-npm.yml npm-publication-verification artifact. All 20 raw stdout/stderr hashes were independently checked; a separate registry download matched the tested main tarball and its SHA512 provenance subject. Temporary consumer paths in command arguments are normalized to <consumer>; raw receipt hashes are preserved. channelsAtVerification is a dated observation, not a promise about later channel state.",
+  "scope": "Verification of the exact CI-tested rc.16 package published with npm provenance. The release carries departure, archive reconstruction and reviewed withdrawal-collector representation improvements. Required reason chains and archive storage can grow; C3 is fixture-specific. Restore and archive consistency do not authenticate saved history. View 0.2, series windows and other unimplemented features remain deferred. No unrestricted interactive-workload or universal bounded-save claim is introduced."
+}

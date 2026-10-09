@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:,">
   <title>CAVEAT Language — Programs that remember why.</title>
-  <meta name="description" content="CAVEAT Language: experimental programming language (rc.15 GitHub candidate; npm rc.15) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta name="description" content="CAVEAT Language: experimental programming language (npm rc.16) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/about.html">
   <meta property="og:type" content="website">
   <meta property="og:title" content="CAVEAT Language — Programs that remember why.">
-  <meta property="og:description" content="CAVEAT Language: experimental programming language (rc.15 GitHub candidate; npm rc.15) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta property="og:description" content="CAVEAT Language: experimental programming language (npm rc.16) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/about.html">
   <style>
     :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b}
@@ -39,10 +39,10 @@
   <p class="lede">A programming language whose decisions record what they
   rest on: the evidence they used, what permitted them, and why they were
   reopened.</p>
-  <p class="status"><strong>Available now: CAVEAT 0.1.0-rc.15.</strong>
+  <p class="status"><strong>Available now: CAVEAT 0.1.0-rc.16.</strong>
   Run CAVEAT in Node.js or the browser.
   <a href="#run">Get started</a> ·
-  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.15.md">Release notes</a>.</p>
+  <a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.16.md">Release notes</a>.</p>
 </header>
 
 <main>
@@ -98,7 +98,7 @@ issues and include the exact version, a small reproduction, and expected versus
 actual behavior.</p>
 
 <h2 id="example">One example: covering seedlings</h2>
-<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.15/kit/docs/WORKED_EXAMPLE.md">worked
+<p>The <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.16/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> is one program of about 60 lines. Two instruments read the soil
 temperature: a probe, and a survey drone whose readings carry the caveat
 <code>uncalibrated</code>. When the probe reads 2&nbsp;°C or colder and the
@@ -132,8 +132,8 @@ change nothing.</p>
 <h2 id="run">Run it</h2>
 <p>You need Node 20 or later. In an empty directory:</p>
 <pre><code>npm init -y
-npm install caveat-lang@0.1.0-rc.15</code></pre>
-<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.15/kit/docs/WORKED_EXAMPLE.md">worked
+npm install caveat-lang@0.1.0-rc.16</code></pre>
+<p>Save the three files shown in the <a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.16/kit/docs/WORKED_EXAMPLE.md">worked
 example</a> as <code>frost.cav</code>, <code>frost.scenarios.json</code> and
 <code>events.jsonl</code>. Then:</p>
 <pre><code>npx --no-install caveat test frost.scenarios.json
@@ -144,8 +144,9 @@ follow the worked example the same way.</p>
 
 <h2 id="limitations">Limitations</h2>
 <ul>
-  <li>0.1.0-rc.15 is a release candidate, not a stable release. npm's
-  <code>latest</code> and <code>next</code> tags both point to rc.15;
+  <li>0.1.0-rc.16 is a release candidate, not a stable release. At publication
+  verification on 2026-10-09, npm's <code>latest</code> points to rc.16
+  and <code>next</code> remains rc.15;
   <code>latest</code> does not mean stable. The bundled guides identify their exact package
   version; this page and the dated release record track publication.</li>
   <li>Caveat records what a decision rests on. It does not authenticate
@@ -164,11 +165,13 @@ follow the worked example the same way.</p>
   session's save. A save is not signed; restoring it checks that it is
   consistent, not that it is genuine. The journal is not a tamper-evident audit
   log.</li>
-  <li>Programs are small and bounded. Every history of readings or decisions
-  has a declared limit, and an event that would exceed it is refused, unless
-  the history declares a window, in which case its oldest record retires.
-  Retired records still count toward the save's size. State is
-  numbers, and a program does no input or output of its own.</li>
+  <li>Reading and decision histories have declared limits. An event that would
+  exceed a limit is refused, unless the history declares a supported window,
+  in which case its oldest record retires. rc.16 can remove eligible retired
+  records from the live save and transfer history to a host-drained archive.
+  Required reasons remain: their dependency chains can grow, so windows do not
+  bound the complete save. Archive storage is additional. State is numbers,
+  and a program does no input or output of its own.</li>
   <li>The evidence that it is useful is small: the project's own games, one
   benchmark game compared against TypeScript (by a single author, then in a
   seventh round by seven fresh AI agents), authoring
@@ -192,37 +195,39 @@ follow the worked example the same way.</p>
   <li>The registered agent examples have host-policy checks; these do not establish conformance for arbitrary integrations or a security sandbox.</li>
 </ul>
 
-<p>0.1.0-rc.15 adds integer clocks, history windows that retire a stream's, a
-renewable's or the journal's oldest records (retired records still stay in
-the save; departure is planned for rc.16), and a <code>caveat test</code> that runs <code>check</code>
-first. rc.14 corrected the package's MCP server name to
-<code>io.github.WSattazahn/caveat-lang</code>. rc.13 reports a program's interface as JSON and writes TypeScript
-declarations from it, makes restore refuse a caveat the source cannot attach
-and a membership without its record, and turns <code>id_text</code> of a
-non-handle into a refused event instead of a fatal failure. Restoring a save
-still does not authenticate its history. Hosts must handle rejected outcomes
-explicitly. Existing Lean proofs cover the documented model; the comparison is
-not a proof of the entire Rust runtime. No npm runtime dependency is added. See the
-<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.15.md">rc.15 verified release record</a>. The
-<a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.15">rc.15 GitHub prerelease</a>
-retains the exact tested Linux tarball and its checksum. rc.15 is published by
-the repository's publish workflow, with an npm provenance attestation; the
-registry bytes, the provenance, the registry signatures and a fresh
-exact-version installation are verified.</p>
+<p>0.1.0-rc.16 adds departure of eligible retired history, host-drained archives,
+collection of unreachable withdrawal groups, and reduced collector allocation
+and copying costs. It preserves required reasons and exact own grounds. Exact
+departed-history reconstruction needs the complete matching archive; insufficient
+archive evidence must remain visibly conservative. Historical completeness
+describes supplied records and their referenced closure, not authenticated or
+exhaustive session history. View 0.2 and series windows remain deferred. See the
+<a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.16/kit/docs/HISTORY.md">history
+integration guide</a> for the API and workload limits.</p>
+<p>rc.15 introduced integer clocks, history windows and <code>caveat test</code>
+checking each program first. rc.14 corrected the package's MCP server name to
+<code>io.github.WSattazahn/caveat-lang</code>. Restoring a save still does not
+authenticate its history, and hosts must handle rejected outcomes explicitly.
+Existing Lean proofs cover their documented model, not the entire Rust runtime.
+No npm runtime dependency is added. The
+<a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.16.md">rc.16
+verified release record</a> identifies the exact tested Linux tarball. Publication
+used the repository's workflow with npm provenance; registry bytes, provenance,
+signatures and a fresh exact-version installation were verified.</p>
 
 <h2 id="links">Links</h2>
 <ul>
-  <li><a href="https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.15">caveat-lang on npm</a>,
-  version 0.1.0-rc.15.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.15">The
-  GitHub pre-release</a>: the same package file, with its checksums.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.15/kit/docs/REFERENCE.md">Caveat
+  <li><a href="https://www.npmjs.com/package/caveat-lang/v/0.1.0-rc.16">caveat-lang on npm</a>,
+  version 0.1.0-rc.16.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.16-npm-publication.json">Verified
+  publication record</a>: exact package identity, checksums and provenance.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/v0.1.0-rc.16/kit/docs/REFERENCE.md">Caveat
   on one page</a>: the language in brief. Its links to the specifications work
   in the installed package, under <code>node_modules/caveat-lang/docs/</code>;
   on GitHub, use the specifications link below.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.15.md">Release
-  notes for 0.1.0-rc.15</a>.</li>
-  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.15/spec">The
+  <li><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/releases/v0.1.0-rc.16.md">Release
+  notes for 0.1.0-rc.16</a>.</li>
+  <li><a href="https://github.com/WSattazahn/caveat-lang/tree/v0.1.0-rc.16/spec">The
   specifications</a>, including drafts, earlier versions and profiles used only
   by the games.</li>
   <li><a href="https://github.com/WSattazahn/caveat-lang">Source code and
@@ -251,7 +256,7 @@ demonstrations, not part of the package.</p>
 </main>
 
 <footer>
-  <p>Published npm example: caveat-lang 0.1.0-rc.15. The GitHub prerelease and verified npm package contain the same tested artifact.</p>
+  <p>Published npm example: caveat-lang 0.1.0-rc.16. The verified publication record identifies its exact tested artifact.</p>
 </footer>
 </body>
 </html>

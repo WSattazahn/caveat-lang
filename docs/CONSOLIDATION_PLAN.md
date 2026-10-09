@@ -346,13 +346,13 @@ There is no implemented npm-kit package or tag-driven publishing workflow at
 the inspected head. Shipping a kit is a separate deliverable after this
 consolidation, not a side effect of merging the language stack.
 
-## Current release procedure addendum — 2026-10-03 UTC
+## Current release procedure addendum — 2026-10-09 UTC
 
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.15 verified release record](releases/v0.1.0-rc.15.md) for the current
-candidate, exact artifact identities and completed publication verification.
+Use the [rc.16 verified release record](releases/v0.1.0-rc.16.md) for the current
+published candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
 
 ## npm publication from rc.11 on
@@ -371,6 +371,7 @@ rc.12 is the first version published through it, with provenance (see the
 rc.13 is the second (see the [rc.13 release record](releases/v0.1.0-rc.13.md)).
 rc.14 is the third (see the [rc.14 release record](releases/v0.1.0-rc.14.md)).
 rc.15 is the fourth (see the [rc.15 release record](releases/v0.1.0-rc.15.md)).
+rc.16 is the fifth (see the [rc.16 release record](releases/v0.1.0-rc.16.md)).
 
 1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
@@ -410,6 +411,14 @@ promoted to `latest` at publication, so rc.11 is dispatched with `latest`.
 `npm dist-tag add caveat-lang@0.1.0-rc.11 next` with their own npm login; the
 publication record states both channels as the registry reports them.
 Installation instructions keep pinning exact versions.
+
+For rc.16, publication verification at `2026-10-09T00:14:32.379Z` recorded
+`latest` = rc.16 and `next` = rc.15. Publication changed only `latest`; a later
+owner-authenticated channel update must be recorded separately. The publication
+record and GitHub prerelease are follow-up steps, not effects of `npm publish`.
+After its documentation record is on main, `release-prerelease.yml` can attach
+the verified registry tarball, checksum and record to the existing annotated
+tag. Later documentation commits do not move that tag or replace the package.
 
 One-time setup, done by the owner before the first run:
 
