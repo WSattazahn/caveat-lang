@@ -18,9 +18,11 @@ commands passed. The [release record](v0.1.0-rc.16.md) and
 At verification, `latest` names rc.16 and `next` remains rc.15. The GitHub
 prerelease is a separate closeout step; npm publication does not create it.
 #174 was automatically marked merged when its commits entered main through
-#178; its original head and evidence remain intact. #175–#177 retain their
-original review heads. The site-only #179 draft is separate and is not included
-in this release.
+#178; its original head and evidence remain intact. At the owner's request,
+superseded review pages #175–#177 were closed with comments identifying their
+integration and publication. Their remote branches, original commits, evidence
+and review history remain preserved. The site-only #179 draft remains open,
+separate, and outside this release.
 
 The narrowed scope below shipped. View 0.2, series windows and unimplemented
 feature work remain deferred. Required-chain memory growth, conservative
