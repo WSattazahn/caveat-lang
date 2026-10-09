@@ -1,12 +1,12 @@
 # CAVEAT Language
 
-The published preview is **0.1.0-rc.15**. See the
-[rc.15 release record](docs/releases/v0.1.0-rc.15.md) for what it changes.
+The published preview is **0.1.0-rc.16**. See the
+[rc.16 release record](docs/releases/v0.1.0-rc.16.md) for what it changes.
 
-> npm publication verified 2026-10-05T15:13:00.656Z: exact **caveat-lang@0.1.0-rc.15**,
-> tested Linux artifact SHA256 `789b40ddf5bd1f24f4bcd9eb319dbd453e00e9d1519a2282dcf3a93e6e88805f`.
-> `latest` and `next` name rc.15. Published by `publish-npm.yml` from tag `v0.1.0-rc.15` with an npm provenance attestation.
-> [Publication record](docs/releases/v0.1.0-rc.15-npm-publication.json).
+> npm publication verified 2026-10-09T00:14:32.379Z: exact **caveat-lang@0.1.0-rc.16**,
+> tested Linux artifact SHA256 `fc134fbfe5878555c562dcb1e85ed6b9667dfc605023859823acac659603ca3f`.
+> At verification, `latest` names rc.16 and `next` remains rc.15. Published by `publish-npm.yml` from tag `v0.1.0-rc.16` with an npm provenance attestation.
+> [Publication record](docs/releases/v0.1.0-rc.16-npm-publication.json).
 
 
 **Programs that remember why.**
@@ -16,12 +16,12 @@ needs to reconsider its decision without losing the reasons for the original.
 Caveat is a programming language that keeps evidence and caveats with computed
 values, freezes a decision's grounds, and records why it was reopened.
 
-Try the published preview, **0.1.0-rc.15**, in an empty directory with Node 20 or
+Try the published preview, **0.1.0-rc.16**, in an empty directory with Node 20 or
 later. No Rust installation is needed:
 
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.15
+npm install caveat-lang@0.1.0-rc.16
 npx --no-install caveat-lang init
 npx --no-install caveat-lang test umbrella.scenarios.json
 npx --no-install caveat-lang explain umbrella.cav events.jsonl
@@ -33,22 +33,23 @@ knowledge changed the decision's status; its original grounds remain visible.
 [Getting started](kit/docs/GETTING_STARTED.md) walks through those files, and
 [the language in brief](kit/docs/REFERENCE.md) covers the syntax.
 
-The [rc.15 verified publication record](docs/releases/v0.1.0-rc.15.md) identifies the
-published npm candidate. The [rc.15 GitHub prerelease](https://github.com/WSattazahn/caveat-lang/releases/tag/v0.1.0-rc.15)
-retains the exact tested Linux tarball and its checksum. rc.15 adds integer
-clocks (`clock step every 16 integer;`), history windows that retire a stream's,
-a renewable's or the journal's oldest records (retired records still stay
-in the save; departure is planned for rc.16), and a `caveat test` that runs `check` first, with the C006
-`citation-unreachable` advisory. rc.14 corrected the package's MCP server name
-to `io.github.WSattazahn/caveat-lang`. rc.13 reports a
-program's interface as JSON and writes TypeScript declarations from it
-(`caveat-lang types`), makes restore refuse a caveat the source cannot attach
-and a membership without its record, and turns `id_text` of a non-handle into a
-refused event instead of a fatal failure. Restoring a save still does not
-authenticate its history. A refused operation is not completed; hosts must
-inspect its outcome. It adds no npm runtime dependency.
+The [rc.16 verified publication record](docs/releases/v0.1.0-rc.16.md) identifies
+the exact tested npm artifact. rc.16 adds departure of eligible retired history,
+host-drained archives, collection of unreachable withdrawal groups, and reduced
+collector allocation and copying costs. Required reasons and exact own grounds
+remain retained; required reason chains can still grow. Exact departed-history
+reconstruction needs the complete matching archive. View 0.2 and series windows
+remain deferred. See the [history integration guide](kit/docs/HISTORY.md).
 
-With rc.15 installed, use `npx --no-install caveat-lang doctor` to check it and
+rc.15 introduced integer clocks, history windows and `caveat test` checking each
+program first. rc.14 corrected the package's MCP server name to
+`io.github.WSattazahn/caveat-lang`. rc.13 introduced interface JSON and TypeScript
+declarations, stricter restore checks and refused invalid `id_text` operations.
+Restoring a save still does not authenticate its history. A refused operation is
+not completed; hosts must inspect its outcome. The package has no npm runtime
+dependencies.
+
+With rc.16 installed, use `npx --no-install caveat-lang doctor` to check it and
 `npx --no-install caveat-lang demo agent` to see observation, assessment,
 correction and revision in one run. Introduced in rc.7, the unambiguous
 `caveat-lang` command remains preferred; `caveat` is supported shorthand.

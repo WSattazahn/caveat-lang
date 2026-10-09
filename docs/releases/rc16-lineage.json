@@ -1,24 +1,92 @@
 {
   "schema": "caveat-release-lineage/0.1",
   "version": "0.1.0-rc.16",
-  "state": "release-preparation",
-  "published": false,
-  "releaseTag": null,
+  "state": "npm-publication-verified",
+  "published": true,
+  "releaseTag": "v0.1.0-rc.16",
   "preserveCommitAncestry": true,
   "integrationReview": "https://github.com/WSattazahn/caveat-lang/pull/178",
   "integrationBranch": "codex/rc16-release-prep",
-  "integrationIdentity": "Exact review revision and tested package hashes are recorded in the release-candidate report; this source file cannot name its own final commit.",
+  "integrationIdentity": "The reviewed commits were merged through PR #178 without squashing. The annotated release tag remains at the tested main revision; later publication-record commits do not replace the published package.",
   "stages": [
-    {"id":"published-rc15","version":"0.1.0-rc.15","revision":"3a88ba0f80d563b4493840dc7bd7e195329b8302","published":true,"record":"v0.1.0-rc.15.md"},
-    {"id":"merged-specifications","revision":"9a2d1dd391b29385ee34ce24242d3b15a44856f4"},
-    {"id":"departure-baseline","revision":"f5ec8294efe2be24705f234ef75e5f5459aa5e89","review":"https://github.com/WSattazahn/caveat-lang/pull/174"},
-    {"id":"repaired-collector","revision":"3d77aa27bcffa16f39818b2684e9afb3b102ed17","review":"https://github.com/WSattazahn/caveat-lang/pull/175"},
-    {"id":"index-compaction","revision":"c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3","review":"https://github.com/WSattazahn/caveat-lang/pull/176"},
-    {"id":"withdrawal-batch-extraction","revision":"055e2af0b411d8385941dd8522201e5afc73cb34","review":"https://github.com/WSattazahn/caveat-lang/pull/177"},
-    {"id":"renewal-profiling-scanner-portability","revision":"677ad1365398fe37bb24ff8fb6cfbae82d3ef5b5"},
-    {"id":"event-phase-profiling","revision":"11c2a6a741609d3b640f27224ab6c9943b07f72c"},
-    {"id":"early-archive-boxing","revision":"590fae59aa4295ac5209f930a1e58ac152bd4603"}
+    {
+      "id": "published-rc15",
+      "version": "0.1.0-rc.15",
+      "revision": "3a88ba0f80d563b4493840dc7bd7e195329b8302",
+      "published": true,
+      "record": "v0.1.0-rc.15.md"
+    },
+    {
+      "id": "merged-specifications",
+      "revision": "9a2d1dd391b29385ee34ce24242d3b15a44856f4"
+    },
+    {
+      "id": "departure-baseline",
+      "revision": "f5ec8294efe2be24705f234ef75e5f5459aa5e89",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/174"
+    },
+    {
+      "id": "repaired-collector",
+      "revision": "3d77aa27bcffa16f39818b2684e9afb3b102ed17",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/175"
+    },
+    {
+      "id": "index-compaction",
+      "revision": "c1d8fea1164e9d89edc8ff33af5a3bb608bc37d3",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/176"
+    },
+    {
+      "id": "withdrawal-batch-extraction",
+      "revision": "055e2af0b411d8385941dd8522201e5afc73cb34",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/177"
+    },
+    {
+      "id": "renewal-profiling-scanner-portability",
+      "revision": "677ad1365398fe37bb24ff8fb6cfbae82d3ef5b5"
+    },
+    {
+      "id": "event-phase-profiling",
+      "revision": "11c2a6a741609d3b640f27224ab6c9943b07f72c"
+    },
+    {
+      "id": "early-archive-boxing",
+      "revision": "590fae59aa4295ac5209f930a1e58ac152bd4603"
+    },
+    {
+      "id": "release-documentation-and-regressions",
+      "revision": "acbe4e48b7ea111397d4931064ff959a29d98ed5"
+    },
+    {
+      "id": "reviewed-release-closeout",
+      "revision": "cfe127a8db4ce43200615bef89e696655a1c44fb",
+      "review": "https://github.com/WSattazahn/caveat-lang/pull/178"
+    },
+    {
+      "id": "published-rc16",
+      "version": "0.1.0-rc.16",
+      "revision": "3cc7b0f66a5b7dafe3d5a166bd20953fa74ce5f4",
+      "tag": "v0.1.0-rc.16",
+      "published": true,
+      "record": "v0.1.0-rc.16-npm-publication.json"
+    }
   ],
-  "deferred": ["View 0.2", "series windows", "remaining unimplemented feature work"],
-  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on"
+  "deferred": [
+    "View 0.2",
+    "series windows",
+    "remaining unimplemented feature work"
+  ],
+  "publicationGate": "../CONSOLIDATION_PLAN.md#npm-publication-from-rc11-on",
+  "integratedRevision": "3cc7b0f66a5b7dafe3d5a166bd20953fa74ce5f4",
+  "publicationRecord": "v0.1.0-rc.16-npm-publication.json",
+  "publicationVerifiedAt": "2026-10-09T00:14:32.379Z",
+  "publicationRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/37863281824",
+  "runtimeRun": "https://github.com/WSattazahn/caveat-lang/actions/runs/37858332503",
+  "testedTarball": {
+    "url": "https://registry.npmjs.org/caveat-lang/-/caveat-lang-0.1.0-rc.16.tgz",
+    "bytes": 1074938,
+    "sha256": "fc134fbfe5878555c562dcb1e85ed6b9667dfc605023859823acac659603ca3f",
+    "sha512": "359beeba1fe92d5d04f71ef8ee85c822741b8a934778c642d16eacfaae0e9ad60e57b4237a3727f65705bfa180d2f19103144bf06068deb47ea80281e56e7d8f",
+    "integrity": "sha512-NZvuuh/pLV0E9x747oXIInQbipNHeMZC0W6s+q4OmtYOV7Qjejcn9lcFv6GA0vGRAxRL8GBo3rR+qAKB5W59jw=="
+  },
+  "reviewStateNote": "GitHub automatically marked #174 merged through #178 ancestry. The original #174-177 heads remain preserved; #175-177 are still open stacked review pages, although their commits are included in rc.16. The separate mobile UI PR #179 is not included."
 }
