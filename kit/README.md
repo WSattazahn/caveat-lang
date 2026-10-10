@@ -1,7 +1,7 @@
 # CAVEAT Language (`caveat-lang`)
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.16`**.
+Package: **`caveat-lang@0.1.0-rc.17`**.
 <!-- /caveat-package:identity -->
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
@@ -25,7 +25,7 @@ run its installation check, agent demo and starter:
 <!-- caveat-package:starter -->
 ```sh
 npm init -y
-npm install caveat-lang@0.1.0-rc.16
+npm install caveat-lang@0.1.0-rc.17
 npx --no-install caveat-lang --version
 npx --no-install caveat-lang doctor
 npx --no-install caveat-lang demo agent
