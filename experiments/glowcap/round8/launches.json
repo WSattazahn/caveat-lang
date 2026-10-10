@@ -1,0 +1,30 @@
+{
+  "registration": {
+    "stage1": "d42b70e",
+    "stage2": "4fcbca7"
+  },
+  "note": "Fresh general-purpose subagent contexts with no fork of any conversation, given exactly the registered prompt with the directory filled in. Model revision is not exposed to the dispatcher; tokens and duration are recorded where the agent tool reports them. The owner chose 'Now' for the writer and reviewer at 21:59 UTC on 2026-10-10 (amendment 3).",
+  "agents": [
+    {
+      "role": "writer",
+      "dispatched": "2026-10-10T21:59Z",
+      "directory": "/home/claude/glowcap-r8/writer",
+      "tokens": 129008,
+      "durationSeconds": 405
+    },
+    {
+      "role": "reviewer",
+      "dispatched": "2026-10-10T22:06Z",
+      "directory": "/home/claude/glowcap-r8/reviewer",
+      "tokens": 132883,
+      "durationSeconds": 261
+    },
+    {
+      "role": "writer (one revision, with REVIEW.md)",
+      "dispatched": "2026-10-10T22:11Z",
+      "note": "the writer context resumed with REVIEW.md copied into its directory; files before the revision: REQUESTS.md cad30ac98078e62ba20229a1ff0b1abfafe90850f68294d4dc711e2f8e2dafd1, scenarios-r8.mjs 82c6a5688cc7fb3fee30ed1bc475125b9143cd47b3447694c692ab613a27bf6d",
+      "tokens": 133892,
+      "durationSeconds": 19
+    }
+  ]
+}
