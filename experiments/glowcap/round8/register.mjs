@@ -1,10 +1,11 @@
 // Records the hashes of round 8's registered files (PROTOCOL.md,
 // "Registration"). Stage 1 is the approved protocol, the predictions, the
-// probe and the inherited round 7 files; stage 2 adds what depends on rc.17;
-// stage 3 adds the blind requests before any author starts. No stage
+// probe and the inherited round 7 files; stage 2 the writer's and reviewer's
+// inputs; stage 3 what depends on rc.17; stage 4 the blind requests before
+// any author starts. No stage
 // overwrites.
 //
-//   node experiments/glowcap/round8/register.mjs --stage=1|2|3
+//   node experiments/glowcap/round8/register.mjs --stage=1|2|3|4
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -19,6 +20,10 @@ const files = {
   1: ['PROTOCOL.md', 'PREDICTIONS.md', 'register.mjs', 'probe/instructions.md', 'probe/make-prompt.mjs',
     'probe/prompt.txt', '../round7/BEAT.md', ...INHERITED, '../round7/scenarios-r7.mjs',
     '../caveat5/glowcap.cav'],
+  // Amendment 3: the writer's and reviewer's inputs, before either starts.
+  2: ['PROTOCOL.md', 'register.mjs', 'build-beat.mjs', 'BEAT.md', 'prepare.mjs', 'prompts/writer.md',
+    'prompts/reviewer.md', 'workspace/README-writer.md', 'workspace/README-reviewer.md', '../scenarios.mjs',
+    '../round7/scenarios-r7.mjs'],
 }[stage];
 if (!files) throw new Error(`stage ${stage} has no file list yet; add it when its files exist`);
 const out = path.join(here, stage === '1' ? 'registration.json' : `registration-${stage}.json`);

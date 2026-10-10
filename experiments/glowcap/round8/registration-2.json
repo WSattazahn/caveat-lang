@@ -1,0 +1,18 @@
+{
+  "stage": 2,
+  "at": "2026-10-10T21:58:07.474Z",
+  "node": "22.22.0",
+  "files": {
+    "PROTOCOL.md": "1636073ee343d894fa0c1c54dba6e6aadff03e28969ec7cca624fd8f368dbeb7",
+    "register.mjs": "5264fe89352f9c6226684bec7b46fd996a2076976f9fffcc58dc54030b4fab75",
+    "build-beat.mjs": "44f55abc4a9d804d83844e91f646f8ef1c704fdb847f98d4650e2ab2b57a41a4",
+    "BEAT.md": "de3026e4f6e54b300ca377cf3f8519547eab42315dd9bd2ab585463a1cc30b85",
+    "prepare.mjs": "b465baa456f5996864455d082fcca1f96f6fc2158f79708a56499a62f527b168",
+    "prompts/writer.md": "757824dffa1509b7935729d6c836906315f41178f7e205ddb96c96ac26db3ecc",
+    "prompts/reviewer.md": "e6e78d10f6f2d800d0abe6c3b60a947053323387bcd97f498ebac1c17f511231",
+    "workspace/README-writer.md": "cc1b672a6cee2706236e1886154feeba1d4d03eaeb69d2535beb3babbebd3f06",
+    "workspace/README-reviewer.md": "9c003221bdcd23f4d4c8854d709dc1f14786afae886c48c5ba4966dd9e0eb211",
+    "../scenarios.mjs": "b011b7757580e36e1a1c42e95dbb2f8fe15bc5e7222fc1758ca6a4462a2c46bf",
+    "../round7/scenarios-r7.mjs": "6f3f7e2c920797c3baf128927c204eb691f7979b590c6e7fee1be8b369fd223f"
+  }
+}

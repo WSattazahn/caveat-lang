@@ -149,3 +149,14 @@ read. The owner's answers to the open choices are recorded under
    stage 1 registered it; the reply is committed with the model's name and
    time before it is read for the diff. Guide items it yields may land before
    rc.17 freezes its docs, and the record says which did.
+3. **The writer starts before rc.17 (after stage 1).** New requests need a
+   writer and a reviewer, and neither needs the runtime, so they run now.
+   Their inputs are registered first as `registration-2.json`: the
+   consolidated beat base to CR16 (`build-beat.mjs`: round 7's `BEAT.md`
+   plus its registered CR13–CR16 texts, verbatim), both scenario modules, the
+   prompts and directory READMEs (round 7's, with the request numbers, the
+   scenario file name and the first id changed, and the scratchpad sentence
+   of row 6 added to both prompts) and `prepare.mjs`. The stages under
+   *Registration* shift by one: what depends on rc.17 is stage 3
+   (`registration-3.json`) and the requests, scenarios, fuzz mode and
+   per-request predictions are stage 4 (`registration-4.json`).
