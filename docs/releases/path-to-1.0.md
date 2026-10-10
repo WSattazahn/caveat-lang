@@ -30,7 +30,7 @@ workstreams with different acceptance rules:
 
 | Decision | Answer | Source |
 | --- | --- | --- |
-| Policy identity of saves (D6) | **Reopened.** The 16:19 card rested on a wrong baseline (see "Save and source identity" below); a corrected card is with the owner | Owner card, 2026-10-10 16:19:07 UTC, superseded |
+| Policy identity of saves (D6) | Keep the refusal: restore under edited source stays refused as today, with no override. Saves add a SHA-256 of the exact source, and `explain` shows it beside past decisions. Saves made before that show "not recorded" | Owner card "Keep refusal", 2026-10-10 16:40:09 UTC (replaces the 16:19 pick, which rested on a wrong baseline) |
 | Who implements | Claude threads implement; the brief's "implementer plus independent reviewer" applies within that | Owner card, 2026-10-10 16:12 UTC |
 | Pilot timing | The outside pilot runs on the starter candidate **before** feature freeze | Owner card, 2026-10-10 16:12:57 UTC |
 | Positioning | "A decision ledger for agents" stays the headline. "An embeddable decision runtime with a small rules language" is the technical sentence under it | Owner card, 2026-10-10 16:13:03 UTC |
@@ -120,9 +120,9 @@ can approve the direction now.
 - Restore checks that a save is possible for the source. It does not
   authenticate history (A3).
 - **Policy identity of historical assessments (D6):** restore already refuses a
-  save under any source text other than the one it was made under. The
-  open question is only how a reader of a historical decision sees which
-  source it was made under; see D6 below. The id identifies source text; it
+  save under any source text other than the one it was made under, and that
+  stays. Saves add a SHA-256 of the exact source, and `explain` shows it beside
+  past decisions; saves made before then show "not recorded" (D6 below). The id identifies source text; it
   does not authenticate the save or its history (A3).
 
 ### Limits that are not defects
@@ -147,7 +147,7 @@ gate. Owners are the threads proposed under "Threads after approval".
 | --- | --- | --- | --- | --- |
 | B1 | The withdrawal collector and its capacity amendment are core behavior in every windowed program, but their contract lives in `docs/design/`. Departure's invariant now reads "ordinary departure preserves outcomes" | Missing contract | Core | `spec/caveat-withdrawal-collection-0.1.md` merged with a corpus sweep, as F268 was; departure spec points to it |
 | B2 | No written compatibility commitment or 1.x policy | Missing contract | Core | `docs/COMPATIBILITY.md` merged; each stable row has a named check |
-| B3 | Saves bind exact source, but reports do not show which source a historical decision was made under | Missing contract (D6, reopened) | Core | D6 answered; PR A3 merged with its tests, or closed by the owner choosing no change |
+| B3 | Saves bind exact source, but reports do not show which source a historical decision was made under | Missing contract (D6 decided) | Core | PR A3 merged with its tests |
 | B4 | View 0.2 not implemented | Missing feature in agreed scope | Core | Spec and implementation merged; the delta gate passes over the full discovered corpus with negative controls |
 | B5 | No starter; archive persistence after write failure or restart is undefined | Missing feature in agreed scope | Integration | Node and browser starters pass fresh-install lifecycle tests including the failure and restart cases they claim |
 | B6 | Round 8 not run | Required step (owner) | Benchmark | Round 8 record committed, whatever its verdict |
@@ -169,7 +169,7 @@ proposals, not promises. Each PR is its own reviewable change.
 | A0 | This plan | — | 0.5 | 2026-10-10 |
 | A1 | Collector spec (B1): move the accepted contract into `spec/`, restate departure's invariant with the capacity difference, run the corpus sweep. No runtime change expected; a sweep difference stops the PR | A0 | 2 | 2026-10-13 |
 | A2 | `docs/COMPATIBILITY.md` (B2), package README "Not yet" update, the D6 contract text | A1, D6 | 2 | 2026-10-15 |
-| A3 | D6 implementation (B3), as the corrected card decides. Held until it is answered | A2, D6 | 2 | 2026-10-17 |
+| A3 | D6 implementation (B3): an additive SHA-256 source field in saves; `explain` (and `dependents`) show it beside past decisions; saves without it show "not recorded", never a digest computed at restore; the existing refusal unchanged; tests for new saves, older saves and edited source | A2 | 2 | 2026-10-17 |
 | A4 | `spec/caveat-view-0.2.md`: ordered evidence, sorted caveats, `reopened`, delta schema; departures, qualifications, journal windows, sequence mismatch, event-local cues and effects; restore and resync. View 0.1 and its bytes unchanged | A1 | 2 | 2026-10-19 |
 | A5 | View 0.2 implementation and delta gate (B4): the save sweep's discovered population, exclusions named and counted, fail on an empty or shrunken population; an independently written host-side applier; negative controls that corrupt deltas; accepted, no-op, rejected, restore, mismatch, explanation-only, qualification, departure and journal cases; dispatch, view build, apply time and bytes measured separately | A4 | 6 | 2026-10-28 |
 | A6 | rc.17 candidate: A1–A5 and B1 starter (below), release notes, the release procedure. Tag and publish wait for the owner | A5, B2 | 1 + owner | 2026-11-02 |
@@ -223,18 +223,16 @@ schedule; none is set up by this plan.
 The two-week stabilization window is a proposal. If a blocker delays the
 release, this file names it and moves the date; scope is not added silently.
 
-## Open decision: D6, policy identity of historical assessments
+## Decided: D6, policy identity of historical assessments
 
 The owner's 16:19 UTC card ("Record and guard") was posted on this plan's first
-draft, which wrongly said a save bound only the program name. In fact restore
-already refuses a save under different source text. That answer would have
-loosened today's refusal with an override, not added a guard, so the
-decision is reopened on a corrected card:
-
-- **Keep the refusal; add a SHA-256 of the source shown beside past decisions**
-  in `explain` and `dependents` (recommended).
-- Add a named-replacement override, through its own spec PR.
-- Change nothing; document today's binding.
+draft, which wrongly said a save bound only the program name. Restore already
+refuses a save under different source text. On a corrected card the owner chose
+**Keep refusal** (2026-10-10 16:40:09 UTC): the refusal stays exactly as it is,
+with no override; saves add a SHA-256 of the exact source, shown by `explain`
+beside past decisions; older saves show "not recorded". The digest identifies
+the source text; no document may say it authenticates a save or detects
+forgery (A3). Options not taken: a named-replacement override; no change.
 
 ## Coverage of the brief
 
