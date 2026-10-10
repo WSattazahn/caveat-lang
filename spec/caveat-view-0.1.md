@@ -5,7 +5,8 @@ rc.16 amendment: provenance in View 0.1 may carry `departed` markers and the
 Current retained snapshots can omit eligible departed records under
 [Departure 0.1](caveat-departure-0.1.md) and the
 [withdrawal collection](caveat-withdrawal-collection-0.1.md); archive-backed
-history is separate. These changes do not implement View 0.2 or a delta view.
+history is separate. These changes do not implement View 0.2 or a delta view;
+[View 0.2](caveat-view-0.2.md) specifies them, and leaves View 0.1 unchanged.
 The [rc.16 scope amendment](../docs/releases/rc16-development.md#scope-amendment-for-release-preparation-2026-10-08)
 explicitly defers that API.
 
