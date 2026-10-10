@@ -440,8 +440,21 @@ fn a_save_made_by_the_rc2_release_still_restores() {
             .apply("read", &BTreeMap::from([("value".to_string(), value)]))
             .unwrap();
     }
-    assert_eq!(snapshot(&restored), snapshot(&replayed));
-    assert_eq!(restored.save_json().unwrap().trim_end(), saved.trim_end());
+    // The same session, except that its two events ran before saves
+    // recorded their source's SHA-256: their decisions show it as not
+    // recorded, and saving again keeps that.
+    let mut expected = snapshot(&replayed);
+    expected["source_unrecorded_through"] = json!(2);
+    assert_eq!(snapshot(&restored), expected);
+    let digest = &restored.snapshot().source_sha256;
+    assert_eq!(
+        restored.save_json().unwrap().trim_end(),
+        saved.trim_end().replacen(
+            r#","sequence":"#,
+            &format!(r#","source_sha256":"{digest}","source_unrecorded_through":2,"sequence":"#),
+            1
+        )
+    );
 }
 
 #[test]

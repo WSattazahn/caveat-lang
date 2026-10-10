@@ -153,6 +153,15 @@ test('the release ledger replays rc.12 to its attached report', async () => {
   for (const series of attached.decisions) {
     for (const revision of series.revisions) revision.retained = [...revision.grounds.caveats];
   }
+  // rc.17 reports the source each change was made under; this run records it
+  // from its first event.
+  assert.match(report.source.sha256, /^[0-9a-f]{64}$/);
+  assert.equal(report.source.unrecorded_through, 0);
+  for (const series of attached.decisions) {
+    for (const revision of series.revisions) {
+      for (const change of revision.history) change.source_sha256 = report.source.sha256;
+    }
+  }
   for (const key of ['sequence', 'decisions', 'evidence', 'displayed']) assert.deepEqual(report[key], attached[key], key);
 });
 

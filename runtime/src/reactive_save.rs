@@ -26,6 +26,13 @@ pub struct ReactiveSave {
     pub schema: String,
     /// The program this save belongs to; restoring checks it.
     pub source_id: String,
+    /// SHA-256 of the source, in lowercase hex. Saves made before
+    /// spec/caveat-save-0.1.md "Source digest" have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_sha256: Option<String>,
+    /// The last sequence whose decisions have no recorded source digest.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub source_unrecorded_through: u64,
     pub sequence: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_event: Option<String>,
@@ -98,7 +105,7 @@ pub struct ReactiveSave {
     pub cue_qualifications: Vec<Compact>,
 }
 
-fn is_zero(count: &u64) -> bool {
+pub(super) fn is_zero(count: &u64) -> bool {
     *count == 0
 }
 
@@ -562,6 +569,8 @@ impl ReactiveSession {
         Ok(ReactiveSave {
             schema: REACTIVE_SAVE_SCHEMA.into(),
             source_id: self.source_id.clone(),
+            source_sha256: Some(self.source_sha256.clone()),
+            source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
             elapsed: self.elapsed,
@@ -673,6 +682,23 @@ impl ReactiveSession {
         if save.source_id != self.source_id {
             return Err("it belongs to a different program".into());
         }
+        // A save without a digest predates it: the decisions it holds were
+        // made under this source (its `source_id` matched) but did not record
+        // its digest, so they stay "not recorded". The digest is never
+        // supplied for them here.
+        self.source_unrecorded_through = match &save.source_sha256 {
+            Some(digest) if *digest != self.source_sha256 => {
+                return Err("its source digest is not this source's".into());
+            }
+            Some(_) if save.source_unrecorded_through > save.sequence => {
+                return Err("source_unrecorded_through is past its sequence".into());
+            }
+            Some(_) => save.source_unrecorded_through,
+            None if save.source_unrecorded_through != 0 => {
+                return Err("source_unrecorded_through without source_sha256".into());
+            }
+            None => save.sequence,
+        };
         if let Some(event) = &save.last_event {
             if !self.events.contains_key(event) {
                 return Err(format!("unknown event {event}"));

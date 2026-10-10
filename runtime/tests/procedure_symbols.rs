@@ -258,7 +258,9 @@ on decide call settle(rink);
 
 fn snapshot_without_source(session: &ReactiveSession) -> serde_json::Value {
     let mut snapshot = serde_json::to_value(session.snapshot()).unwrap();
-    snapshot.as_object_mut().unwrap().remove("source_id");
+    let snapshot_fields = snapshot.as_object_mut().unwrap();
+    snapshot_fields.remove("source_id");
+    snapshot_fields.remove("source_sha256");
     snapshot
 }
 

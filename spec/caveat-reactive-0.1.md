@@ -211,7 +211,9 @@ resets the program to its source-authored initial state.
 - `symbols`, `relations`, `commitments`, `budget`: current epistemic state.
 - `effects`: graph effects newly produced by the last accepted event.
 - `labels`, `scenes`: authored presentation text.
-- `sequence`, `last_event`, `source_id`: event count and source identity.
+- `sequence`, `last_event`, `source_id`: event count and source identity;
+  `source_sha256` and `source_unrecorded_through` as in
+  [Save 0.1](caveat-save-0.1.md#source-digest).
 
 Relations preserve insertion order; names and numeric state serialize in stable
 order. Every current relation is reported as `{from, relation, to, origin:

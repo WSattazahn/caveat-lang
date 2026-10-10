@@ -1191,6 +1191,14 @@ pub struct ReactiveView<'a> {
 pub struct ReactiveSnapshot {
     pub schema: String,
     pub source_id: String,
+    /// SHA-256 of the exact source text, in lowercase hex. It identifies the
+    /// source; it does not authenticate a save or its history.
+    pub source_sha256: String,
+    /// Events at or before this sequence ran before this session's lineage
+    /// recorded its source digest: their decisions show the source as not
+    /// recorded. Zero, and left out, when every event's source is recorded.
+    #[serde(skip_serializing_if = "save::is_zero")]
+    pub source_unrecorded_through: u64,
     pub sequence: u64,
     /// Seconds counted from the time event's `dt`.
     pub elapsed: f64,
@@ -1261,6 +1269,8 @@ pub struct EventSignature {
 #[derive(Debug, Clone)]
 pub struct ReactiveSession {
     source_id: String,
+    source_sha256: String,
+    source_unrecorded_through: u64,
     sequence: u64,
     last_event: Option<String>,
     states: States,
@@ -1471,6 +1481,8 @@ impl ReactiveSession {
         }
         let mut session = Self {
             source_id: source_identity(source),
+            source_sha256: source_digest(source),
+            source_unrecorded_through: 0,
             sequence: 0,
             last_event: None,
             states: States::default(),
@@ -5462,6 +5474,8 @@ impl ReactiveSession {
             clock: self.clock.clone(),
             schema: REACTIVE_SCHEMA.into(),
             source_id: self.source_id.clone(),
+            source_sha256: self.source_sha256.clone(),
+            source_unrecorded_through: self.source_unrecorded_through,
             sequence: self.sequence,
             last_event: self.last_event.clone(),
             values: self
@@ -5656,6 +5670,12 @@ fn source_identity(source: &str) -> String {
         hash = (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3);
     }
     format!("fnv1a64:{hash:016x}:{}", source.len())
+}
+
+/// The source's SHA-256 (spec/caveat-save-0.1.md, "Source digest").
+fn source_digest(source: &str) -> String {
+    use sha2::{Digest, Sha256};
+    format!("{:x}", Sha256::digest(source.as_bytes()))
 }
 
 fn identifier(name: &str) -> Result<String, String> {

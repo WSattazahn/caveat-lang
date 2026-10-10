@@ -1383,7 +1383,7 @@ fn the_converted_ledger_expands_to_the_hand_routed_ledger_byte_for_byte() {
     assert_eq!(expected.matches("when target == ").count(), 124);
 }
 
-/// A dispatch outcome as JSON, with the snapshot's `source_id` taken out:
+/// A dispatch outcome as JSON, with the snapshot's source identity taken out:
 /// the two ledgers are different sources.
 fn outcome(session: &mut ReactiveSession, event: &str, payload: &str) -> Value {
     let mut value = match session.dispatch_outcome_json(event, payload) {
@@ -1393,6 +1393,7 @@ fn outcome(session: &mut ReactiveSession, event: &str, payload: &str) -> Value {
     .unwrap();
     if let Some(snapshot) = value.get_mut("snapshot").and_then(Value::as_object_mut) {
         assert!(snapshot.remove("source_id").is_some());
+        assert!(snapshot.remove("source_sha256").is_some());
     }
     value
 }
@@ -1439,8 +1440,11 @@ fn the_converted_ledger_runs_the_ledgers_scenarios_as_the_hand_routed_one() {
         }
         let (mut left, mut right) = (hand.snapshot(), routed.snapshot());
         assert_ne!(left.source_id, right.source_id);
+        assert_ne!(left.source_sha256, right.source_sha256);
         left.source_id.clear();
         right.source_id.clear();
+        left.source_sha256.clear();
+        right.source_sha256.clear();
         assert_eq!(left, right, "{id}");
     }
     assert!(
@@ -1476,8 +1480,11 @@ fn a_save_from_the_hand_routed_ledger_does_not_restore_into_the_routed_one() {
     // The same state, apart from which program holds it.
     let (mut left, mut right) = (hand.snapshot(), routed.snapshot());
     assert_ne!(left.source_id, right.source_id);
+    assert_ne!(left.source_sha256, right.source_sha256);
     left.source_id.clear();
     right.source_id.clear();
+    left.source_sha256.clear();
+    right.source_sha256.clear();
     assert_eq!(left, right);
 
     let save = hand.save_json().unwrap();

@@ -133,7 +133,11 @@ FAIL R01 step 8 send [primary]: expected a policy rejection; got input/bound_exc
 and why: each decision with its value, whether it is still in force, what it is
 based on, what else could have influenced it, and every time it was committed
 or reopened; each piece of evidence with its caveats; and the evidence behind
-each displayed value. Refused events are listed and change nothing.
+each displayed value. Refused events are listed and change nothing. Decisions
+show the SHA-256 of the source they were made under; changes from a save made
+before rc.17 show the source as "not recorded". The digest identifies the
+source text; it does not authenticate a save
+([Source digest](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-save-0.1.md#source-digest)).
 
 ```sh
 npx --no-install caveat-lang explain program.cav events.jsonl

@@ -558,6 +558,19 @@ impl Iterator for Alterations {
     }
 }
 
+/// The played save as runtimes wrote it before saves recorded their source's
+/// SHA-256. The witnesses below were found by altering this save: a seed and a
+/// round name places in it, so they keep naming them here.
+fn witness_save() -> serde_json::Value {
+    let mut save = serde_json::to_value(played().save().unwrap()).unwrap();
+    assert!(save
+        .as_object_mut()
+        .unwrap()
+        .remove("source_sha256")
+        .is_some());
+    save
+}
+
 #[test]
 fn no_altered_save_can_crash_the_runtime() {
     let save = serde_json::to_value(played().save().unwrap()).unwrap();
@@ -599,7 +612,7 @@ fn no_altered_save_can_crash_the_runtime() {
 // fix makes it no longer fatal, and this fails naming the entry to remove.
 #[test]
 fn every_known_fatal_outcome_still_happens() {
-    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let save = witness_save();
     let mut fixed = Vec::new();
     for KnownFatal {
         event,
@@ -639,7 +652,7 @@ fn every_known_fatal_outcome_still_happens() {
 // refuses it earlier: the basis keeps unmeasured, which only forecast carries.
 #[test]
 fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
-    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let save = witness_save();
     let witness = Alterations::new(&save, 1032).next().unwrap();
     assert_eq!(
         resume(&witness.to_string()),
@@ -683,7 +696,7 @@ fn a_commit_in_force_after_a_restore_is_refused_as_decision_in_force() {
 // on.
 #[test]
 fn a_relation_fatal_after_a_restore_is_refused_at_restore() {
-    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let save = witness_save();
     // Each witness, the fatal outcome it led to, and the refusal it now meets.
     for (seed, round, fatal, refusal) in [
         (
@@ -759,7 +772,7 @@ fn a_relation_fatal_after_a_restore_is_refused_at_restore() {
 // nothing kept, not merely play on.
 #[test]
 fn a_late_caveat_after_a_restore_is_refused_as_an_ungrounded_citation() {
-    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let save = witness_save();
     let witness = Alterations::new(&save, 1047).next().unwrap();
     let mut game =
         ReactiveSession::restore_json(PROGRAM, &witness.to_string()).expect("the save restores");
@@ -794,7 +807,7 @@ fn a_late_caveat_after_a_restore_is_refused_as_an_ungrounded_citation() {
 // at restore with that bound, before any event, and for its sequence alone.
 #[test]
 fn a_save_past_the_sequence_bound_is_refused_before_any_event() {
-    let save = serde_json::to_value(played().save().unwrap()).unwrap();
+    let save = witness_save();
     let mut witness = Alterations::new(&save, 2464).nth(1).unwrap();
     assert_eq!(
         witness["sequence"],
@@ -1043,7 +1056,8 @@ fn every_other_saved_number_keeps_its_zeros_sign() {
 }
 
 // A save written before -0.0 was kept left such a state out. It restores as it
-// did then, to the 0.0 the program loads, and saves the same text again.
+// did then, to the 0.0 the program loads, and saves the same text again, with
+// the source digest it predates marked as not recorded through its sequence.
 #[test]
 fn a_save_that_left_a_negative_zero_out_restores_as_before() {
     let source_id = ReactiveSession::from_source(SIGNED)
@@ -1056,7 +1070,15 @@ fn a_save_that_left_a_negative_zero_out_restores_as_before() {
     let restored = ReactiveSession::restore_json(SIGNED, &old).unwrap();
     assert_eq!(restored.snapshot().values["x"].to_bits(), 0);
     assert_eq!(angle(&restored), Some(std::f64::consts::PI));
-    assert_eq!(restored.save_json().unwrap(), old);
+    let digest = restored.snapshot().source_sha256;
+    assert_eq!(
+        restored.save_json().unwrap(),
+        old.replacen(
+            r#","sequence":"#,
+            &format!(r#","source_sha256":"{digest}","source_unrecorded_through":1,"sequence":"#),
+            1
+        )
+    );
 }
 
 /// The program of issue #43: one renewable evidence, renewed by one event.

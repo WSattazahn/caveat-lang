@@ -75,7 +75,9 @@ fn send(game: &mut ReactiveSession, event: &str, payload: Value) -> Value {
 
 fn snapshot(game: &ReactiveSession) -> Value {
     let mut snapshot = serde_json::to_value(game.snapshot()).unwrap();
-    snapshot.as_object_mut().unwrap().remove("source_id");
+    let fields = snapshot.as_object_mut().unwrap();
+    fields.remove("source_id");
+    fields.remove("source_sha256");
     snapshot
 }
 

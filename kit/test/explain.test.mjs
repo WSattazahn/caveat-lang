@@ -45,7 +45,8 @@ test('explain reports what the snapshot records, decision by decision', () => {
     assert.deepEqual(revision.grounds, snapshot.commitment_grounds[revision.id]);
     assert.deepEqual(revision.lineage, snapshot.commitment_bases[revision.id].provenance);
     assert.deepEqual(revision.history, snapshot.decision_journal.filter(entry => entry.commitment === revision.id)
-      .map(({ change, sequence, event, because, caveats }) => ({ change, sequence, event, because, caveats })));
+      .map(({ change, sequence, event, because, caveats }) => ({ change, sequence, event, because, caveats,
+        source_sha256: snapshot.source_sha256 })));
   }
   assert.deepEqual(report.evidence.map(item => [item.id, item.value, item.relation, item.caveats]),
     [['temperature@1', 17, 'opposes', ['calibration_offset']], ['temperature@2', 25, 'supports', ['calibration_offset']],

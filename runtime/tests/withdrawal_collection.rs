@@ -211,9 +211,16 @@ fn authentic_older_saves_rebuild_without_collecting_until_an_accepted_event() {
         let source = case["source"].as_str().unwrap();
         let save = case["save"].as_str().unwrap();
         let mut game = ReactiveSession::restore_json(source, save).unwrap();
+        // These saves predate source digests: saving again adds the digest
+        // and marks their events as not recorded, and changes nothing else.
+        let mut expected = serde_json::from_str::<Value>(save).unwrap();
+        expected["source_sha256"] = game.snapshot().source_sha256.into();
+        if expected["sequence"] != 0 {
+            expected["source_unrecorded_through"] = expected["sequence"].clone();
+        }
         assert_eq!(
             serde_json::from_str::<Value>(&game.save_json().unwrap()).unwrap(),
-            serde_json::from_str::<Value>(save).unwrap()
+            expected
         );
         assert!(game.drain_archive().is_empty());
         assert!(game.apply("collector_refuse", &BTreeMap::new()).is_err());

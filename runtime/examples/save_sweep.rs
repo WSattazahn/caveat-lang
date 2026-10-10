@@ -7,8 +7,28 @@
 //!
 //! Runs default to 8 and events to 150. A program that does not load as a
 //! reactive program is listed as `skipped`.
+//!
+//! The fields saves gained after rc.15 by design, `source_sha256` and
+//! `source_unrecorded_through` (spec/caveat-save-0.1.md, "Source digest"), are
+//! taken out of saves and snapshots before digesting, so the comparison with
+//! rc.15 covers everything else. The runtime's own tests check those fields.
 use caveat_runtime::reactive::{ParameterDomain, ReactiveSession};
 use std::io::{self, BufRead};
+
+/// `text` without the fields added since rc.15, wherever they occur (a save,
+/// or an outcome's snapshot). They are removed as text, so every other byte is
+/// compared as written.
+fn comparable(text: &str) -> String {
+    let mut text = text.to_string();
+    for field in [",\"source_sha256\":\"", ",\"source_unrecorded_through\":"] {
+        while let Some(start) = text.find(field) {
+            let value = start + field.len();
+            let end = value + text[value..].find([',', '}']).expect("a field ends");
+            text.replace_range(start..end, "");
+        }
+    }
+    text
+}
 
 struct Fnv(u64);
 
@@ -99,7 +119,7 @@ fn sweep(path: &str, source: &str, runs: u64, events: usize) -> String {
                     if text.contains("\"outcome\":\"rejected\"") {
                         refused += 1;
                     }
-                    digest.write(text.as_bytes());
+                    digest.write(comparable(&text).as_bytes());
                 }
                 Err(error) => {
                     fatal += 1;
@@ -110,9 +130,11 @@ fn sweep(path: &str, source: &str, runs: u64, events: usize) -> String {
             match session.save_json() {
                 Ok(save) => {
                     saves += 1;
-                    digest.write(save.as_bytes());
+                    digest.write(comparable(&save).as_bytes());
                     match ReactiveSession::restore_json(source, &save) {
-                        Ok(restored) => digest.write(restored.save_json().unwrap().as_bytes()),
+                        Ok(restored) => {
+                            digest.write(comparable(&restored.save_json().unwrap()).as_bytes())
+                        }
                         Err(error) => digest.write(format!("restore refused {error}").as_bytes()),
                     }
                 }

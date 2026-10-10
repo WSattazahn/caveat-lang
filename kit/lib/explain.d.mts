@@ -35,6 +35,8 @@ export interface ExplainReport {
   schema: 'caveat-explain/0.1';
   sequence: number;
   elapsed: number;
+  /** The session's source digest, and the last sequence whose decisions have none recorded (0 when all do). */
+  source: { sha256: string | null; unrecorded_through: number };
   events: ExplainEvent[];
   decisions: ExplainedSeries[];
   evidence: ExplainedEvidence[];
@@ -116,6 +118,12 @@ export interface RevisionChange {
   event: string;
   because: string[];
   caveats: string[];
+  /**
+   * SHA-256 of the source this change was made under, or null when it ran
+   * before saves recorded one ("not recorded"). Identifies the source; does
+   * not authenticate a save or its history.
+   */
+  source_sha256: string | null;
 }
 
 export interface ExplainedEvidence {
@@ -217,6 +225,12 @@ export interface DependentChange {
   via: string[];
   /** Withdrawals affecting the query-matched evidence in this reported basis. */
   withdrawn: Withdrawal[];
+  /**
+   * SHA-256 of the source this change was made under, or null when it ran
+   * before saves recorded one ("not recorded"). Identifies the source; does
+   * not authenticate a save or its history.
+   */
+  source_sha256: string | null;
 }
 
 export interface DependentValue {
@@ -251,7 +265,8 @@ export type DependentsFormatInput = Omit<DependentsReport, 'withdrawals' | 'reas
   reasonForWithdrawals?: Withdrawal[];
   claims?: DependentClaim[];
   decisions: FormattableDependent<DependentDecision>[];
-  changes: FormattableDependent<DependentChange>[];
+  /** Reports written before rc.17 have no `source_sha256`. */
+  changes: (FormattableDependent<Omit<DependentChange, 'source_sha256'>> & { source_sha256?: string | null })[];
   values: FormattableDependent<DependentValue>[];
   displayed: FormattableDependent<DependentDisplay>[];
 };
