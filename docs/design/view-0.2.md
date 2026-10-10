@@ -1,5 +1,9 @@
 # Design note: View 0.2, ordered grounds and a delta view
 
+[View 0.2](../../spec/caveat-view-0.2.md) is the specification adopted from this
+note (Path to 1.0, A4). Where the two differ, the specification decides; this
+note keeps its history.
+
 Status: accepted for rc.16. The owner chose "In rc.16" on the PR 7 card on
 2026-10-05 at 14:45 UTC. Nothing here is implemented yet, and no
 specification changes with this note. In rc.16 it follows the
