@@ -302,6 +302,12 @@ can still grow. Window sizes alone do not bound live memory or saves. See the
 [history integration guide](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/HISTORY.md)
 for archive persistence, restore, report interpretation and workload limits.
 
+The [integration starter](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/STARTER.md), `caveat-lang/starter` with a Node
+store in `caveat-lang/starter/node`, is one host that does this. It
+checkpoints every accepted event with the source's SHA-256 and keeps drained
+items until its store has written them. Its guide states what happens when a
+write fails and when the process restarts.
+
 ## TypeScript and bundlers
 
 Every library entry point carries its declarations (`lib/*.d.mts`), named
@@ -396,8 +402,9 @@ directory under `test-results/kit-package/` and uses it only through the
 install: the `caveat` command (`test` with exit statuses 0, 1 and 2,
 `explain`, `dependents`, `validate`, `replay`, `serve` and `init`), the
 library imported as `caveat-lang/node`, `caveat-lang/session`,
-`caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, and
-the browser check above. It also copies the agent-evidence example out of the
+`caveat-lang/scenarios`, `caveat-lang/explain` and `caveat-lang/serve`, a
+starter host resumed in a second process from `caveat-lang/starter` and
+`caveat-lang/starter/node`, and the browser check above. It also copies the agent-evidence example out of the
 install and runs its Python tests against the installed command. The tarball
 holds the command, the public library files, bounded authoring bridge and their declarations, `init`'s
 templates, the example, the runtime and its declarations, the documentation,

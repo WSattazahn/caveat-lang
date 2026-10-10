@@ -36,7 +36,9 @@ the program or changes a decision. For a long-running service, persist chunks
 outside the runtime rather than accumulating the example array indefinitely.
 Draining removes the runtime buffer, so retain the returned items until your
 storage write succeeds. The runtime does not supply a durable acknowledgment
-protocol or a host database transaction.
+protocol or a host database transaction. The
+[integration starter](STARTER.md) is one host that does this, with a stated
+rule for failed writes and restarts.
 
 `caveat serve` has matching `undrained` and `drainArchive` operations. Its
 `explain` and `dependents` requests accept an `archive` array supplied by the

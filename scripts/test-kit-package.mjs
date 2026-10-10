@@ -53,9 +53,9 @@ const buildInfo = JSON.parse(await readFile(path.join(dist, 'build-info.json'), 
 const shipped = file => packDocs.reference.includes(file);
 const staged = (source, text) => source.endsWith('.md') ? rewriteLinks(text, { from: source, revision: buildInfo.revision, shipped }) : { text, rewritten: [] };
 // The kit's own documents, committed in kit/.
-const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md'];
+const KIT_DOCS = ['README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md', 'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md', 'docs/STARTER.md'];
 // The library's modules, each with its TypeScript declarations.
-const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session', 'types'];
+const LIBRARY = ['archive', 'authoring', 'authoring-worker', 'mcp', 'demo', 'doctor', 'check', 'explain', 'node', 'scenarios', 'serve', 'session', 'starter', 'starter-node', 'types'];
 // The agent-evidence example, committed in kit/examples/. Nothing else, such
 // as Python's bytecode or test output, may be packed with it.
 const EXAMPLE = 'examples/agent-evidence';
@@ -371,6 +371,49 @@ const used = node(['use.mjs'], consumer);
 assert.equal(used.status, 0, used.stdout + used.stderr);
 assert.equal(JSON.parse(used.stdout).revision, buildInfo.revision);
 report.checks.library = true;
+
+// The starter host from the installed package: one process checkpoints every
+// event into a directory and exits without closing; a second resumes from it
+// and holds the same view and every departed record a direct session drained.
+await writeFile(path.join(consumer, 'starter.mjs'), `
+import assert from 'node:assert/strict';
+import { loadRuntimeFromDirectory } from '${manifest.name}/node';
+import { openHost, sourceDigest } from '${manifest.name}/starter';
+import { fileStore } from '${manifest.name}/starter/node';
+import { explain } from '${manifest.name}/explain';
+const source = 'claim seen; evidence glimpse from "glimpse"; readings s from glimpse window 1;'
+  + ' state last = 0; event look v min 1 max 5; on look sample s = v supports seen;'
+  + ' on look set last = v; bind hud.last = last;';
+const runtime = await loadRuntimeFromDirectory();
+const host = await openHost({ runtime, source, store: await fileStore('starter-store') });
+const events = [1, 2, 3, 4, 5];
+if (process.argv[2] === 'first') {
+  for (const v of events.slice(0, 3)) {
+    const sent = await host.send('look', { v });
+    assert.deepEqual([sent.handled, sent.accepted, sent.durable, sent.archived], [true, true, true, true]);
+  }
+  const refused = await host.send('look', { v: 9 });
+  assert.deepEqual([refused.handled, refused.accepted, refused.rejection.code], [true, false, 'bound_exceeded']);
+  process.exit(0);
+}
+assert.equal(host.sequence, 3);
+for (const v of events.slice(3)) await host.send('look', { v });
+const direct = runtime.open(source);
+const archive = [];
+for (const v of events) { direct.dispatch('look', { v }); archive.push(...direct.drainArchive()); }
+assert.deepEqual(host.view(), direct.view());
+assert.ok(archive.length > 0);
+assert.deepEqual(await host.archive(), archive);
+assert.equal(host.sourceSha256, sourceDigest(source));
+assert.ok(explain(host.snapshot(), [], { archive: await host.archive() }).displayed.length > 0);
+await host.close();
+console.log(JSON.stringify({ sequence: direct.view().sequence, archived: archive.length }));
+`);
+const starterFirst = node(['starter.mjs', 'first'], consumer);
+assert.equal(starterFirst.status, 0, starterFirst.stdout + starterFirst.stderr);
+const starterSecond = node(['starter.mjs', 'second'], consumer);
+assert.equal(starterSecond.status, 0, starterSecond.stdout + starterSecond.stderr);
+report.checks.starter = JSON.parse(starterSecond.stdout);
 
 // Findings 123, 188-191 through the installed runtime: a genuine examination
 // restores and plays on; an examination the budget never paid for is refused.
