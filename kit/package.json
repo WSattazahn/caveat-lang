@@ -2,7 +2,7 @@
   "name": "caveat-lang",
   "version": "0.1.0-rc.16",
   "mcpName": "io.github.WSattazahn/caveat-lang",
-  "description": "CAVEAT Language — Programs that remember why. A reactive programming language whose values carry their evidence and caveats, and whose decisions record what they rest on, any permission they were given and every reopening. Runs on WebAssembly in Node and browsers, with a Node CLI.",
+  "description": "CAVEAT Language — a decision ledger for agents. An embeddable decision runtime with a small rules language: values carry their evidence and caveats, decisions keep the grounds they were made on, and authored policies reopen them when evidence changes. Runs on WebAssembly in Node and browsers, with a Node CLI and an MCP authoring bridge.",
   "keywords": [
     "caveat",
     "programming-language",

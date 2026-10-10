@@ -1,8 +1,10 @@
 # Working with Caveat
 
-Caveat is an experimental programming language for programs whose values carry
-evidence and caveats and whose decisions retain their reasons. Agents can use
-the same source, runtime and tests as human authors.
+Caveat is a decision ledger for agents: an embeddable decision runtime with a
+small rules language, still a release candidate. Its values carry evidence and
+caveats, and its decisions retain their reasons. Agents can use the same
+source, runtime and tests as human authors. [What is checked, and how](docs/VERIFICATION.md)
+says what the proofs and tests cover and where they stop.
 
 ## Start with the existing tools
 

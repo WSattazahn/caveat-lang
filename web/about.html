@@ -7,11 +7,11 @@
   <meta name="theme-color" content="#111a24" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="data:,">
   <title>CAVEAT Language — Programs that remember why.</title>
-  <meta name="description" content="CAVEAT Language: experimental programming language (npm rc.16) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta name="description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.16) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <link rel="canonical" href="https://wsattazahn.github.io/caveat-lang/about.html">
   <meta property="og:type" content="website">
   <meta property="og:title" content="CAVEAT Language — Programs that remember why.">
-  <meta property="og:description" content="CAVEAT Language: experimental programming language (npm rc.16) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
+  <meta property="og:description" content="CAVEAT Language, a decision ledger for agents: an embeddable decision runtime with a small rules language (npm rc.16) whose decisions record the evidence they used, what permitted them, and why they were reopened.">
   <meta property="og:url" content="https://wsattazahn.github.io/caveat-lang/about.html">
   <style>
     :root{color-scheme:light dark;--ink:#1d2329;--muted:#555f69;--bg:#fbfaf7;--code:#f0eee8;--line:#d8d4cb;--link:#1f5f8b}
@@ -36,8 +36,9 @@
 <body>
 <header>
   <h1>CAVEAT Language</h1>
-  <p class="lede">A programming language whose decisions record what they
-  rest on: the evidence they used, what permitted them, and why they were
+  <p class="lede"><strong>A decision ledger for agents.</strong> An embeddable
+  decision runtime with a small rules language: its decisions record what they
+  rest on, the evidence they used, what permitted them, and why they were
   reopened.</p>
   <p class="status"><strong>Available now: CAVEAT 0.1.0-rc.16.</strong>
   Run CAVEAT in Node.js or the browser.
@@ -194,6 +195,10 @@ follow the worked example the same way.</p>
   report</a> gives the workloads, every round and its own limits.</li>
   <li>The registered agent examples have host-policy checks; these do not establish conformance for arbitrary integrations or a security sandbox.</li>
 </ul>
+<p><a href="https://github.com/WSattazahn/caveat-lang/blob/main/docs/VERIFICATION.md">What
+is checked, and how</a> separates the Lean model theorems, sampled native and
+WebAssembly conformance with mutation controls, runtime tests and the
+boundaries nothing proves.</p>
 
 <p>0.1.0-rc.16 adds departure of eligible retired history, host-drained archives,
 collection of unreachable withdrawal groups, and reduced collector allocation

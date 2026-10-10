@@ -6,9 +6,12 @@ Package: **`caveat-lang@0.1.0-rc.16`**.
 
 ![Mr. Caveat holding a fortune ticket whose fine print runs off the card](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/caveatism/character/mr-caveat-hero.png)
 
-When evidence changes, reconsider the decision while keeping its original
-reasons. CAVEAT Language carries evidence and caveats through computed values
-and records every decision revision. This package includes the WebAssembly
+**A decision ledger for agents.** Caveat is an embeddable decision runtime
+with a small rules language. It tracks evidence through computations, preserves
+the grounds of recorded decisions, and supports reconsideration under authored
+policies when evidence changes. [What is checked, and how](https://github.com/WSattazahn/caveat-lang/blob/main/docs/VERIFICATION.md)
+separates model theorems, sampled conformance, runtime tests and unproved
+boundaries. This package includes the WebAssembly
 runtime, Node/browser library and CLI; no Rust installation is needed.
 Requires Node 20 or later for the CLI.
 
