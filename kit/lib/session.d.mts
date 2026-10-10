@@ -367,6 +367,10 @@ export type Bindings = Record<string, Record<string, BindingValue>>;
 export interface Snapshot {
   schema: 'caveat-reactive/0.1';
   source_id: string;
+  /** SHA-256 of the exact source text, lowercase hex. Identifies the source; does not authenticate a save. */
+  source_sha256: string;
+  /** Events at or before this sequence ran before the session's saves recorded its digest; absent when none did. */
+  source_unrecorded_through?: number;
   sequence: number;
   elapsed: number;
   renewals: Record<string, Renewal>;

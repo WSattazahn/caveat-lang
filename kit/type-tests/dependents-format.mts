@@ -11,7 +11,7 @@ import type { Snapshot, Withdrawal } from '../lib/session.mjs';
 
 type LegacyReport = Omit<DependentsReport, 'withdrawals' | 'reasonForWithdrawals' | 'claims' | 'decisions' | 'changes' | 'values' | 'displayed'> & {
   decisions: Omit<DependentDecision, 'withdrawn'>[];
-  changes: Omit<DependentChange, 'withdrawn'>[];
+  changes: Omit<DependentChange, 'withdrawn' | 'source_sha256'>[];
   values: Omit<DependentValue, 'withdrawn'>[];
   displayed: Omit<DependentDisplay, 'withdrawn'>[];
 };
@@ -41,6 +41,7 @@ current.reasonForWithdrawals satisfies Withdrawal[];
 current.claims[0]!.relation satisfies 'supports' | 'opposes';
 current.decisions[0]!.withdrawn satisfies Withdrawal[];
 current.changes[0]!.withdrawn satisfies Withdrawal[];
+current.changes[0]!.source_sha256 satisfies string | null;
 current.values[0]!.withdrawn satisfies Withdrawal[];
 current.displayed[0]!.withdrawn satisfies Withdrawal[];
 

@@ -192,6 +192,16 @@ function sessionsOf() {
     }
     session.close();
   }
+  // A session restored from a save made before saves recorded their source
+  // digest carries source_unrecorded_through.
+  const first = real.open(thermostat);
+  first.dispatch('read', { value: 17 });
+  const older = JSON.parse(first.save());
+  first.close();
+  delete older.source_sha256;
+  const restored = real.restore(thermostat, JSON.stringify(older));
+  snapshots.unshift(restored.snapshot());
+  restored.close();
   return { snapshots, views };
 }
 const { snapshots, views } = sessionsOf();

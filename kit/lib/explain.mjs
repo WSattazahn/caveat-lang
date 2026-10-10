@@ -102,6 +102,16 @@ function caveatsByEvidence(snapshot) {
  * order, as `{event, payload, outcome}` where `outcome` is a dispatch outcome
  * without its snapshot.
  */
+// The source a decision journal entry was made under (owner decision D6;
+// spec/caveat-save-0.1.md, "Source digest"): the session's SHA-256, or null
+// when the entry ran before its lineage recorded one. It identifies the source
+// text; it does not authenticate a save or its history.
+function sourceAt(snapshot) {
+  const digest = snapshot.source_sha256 ?? null;
+  const through = snapshot.source_unrecorded_through ?? 0;
+  return sequence => (digest !== null && sequence > through ? digest : null);
+}
+
 export function explain(snapshot, events = [], { archive = [] } = {}) {
   const qualifiedBy = caveatsByEvidence(snapshot);
   const held = heldRecords(snapshot);
@@ -140,10 +150,12 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
   });
 
   const journal = snapshot.decision_journal ?? [];
+  const source = sourceAt(snapshot);
   const commitments = new Map((snapshot.commitments ?? []).map(item => [item.action, item]));
   const describe = (id, current) => {
     const history = journal.filter(entry => entry.commitment === id).map(entry => ({
       change: entry.change, sequence: entry.sequence, event: entry.event, because: entry.because, caveats: entry.caveats,
+      source_sha256: source(entry.sequence),
     }));
     const record = commitments.get(id);
     // The current graph status survives journal retirement and recommitment.
@@ -190,7 +202,9 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
     })));
 
   const historical = archiveHistory(snapshot, archive, departureMarkers(snapshot));
-  return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed, events, decisions, evidence, displayed,
+  return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed,
+    source: { sha256: snapshot.source_sha256 ?? null, unrecorded_through: snapshot.source_unrecorded_through ?? 0 },
+    events, decisions, evidence, displayed,
     ...(historical ? {archive: historical} : {}) };
 }
 
@@ -240,6 +254,12 @@ export function formatExplanation(report, title = 'the program') {
     });
   }
   lines.push('', 'Decisions');
+  const source = report.source ?? { sha256: null, unrecorded_through: 0 };
+  const changed = report.decisions.some(series => series.revisions.some(revision => revision.history.length));
+  if (changed && source.sha256 !== null) {
+    lines.push(`  made under source sha256:${source.sha256}`);
+    if (source.unrecorded_through > 0) lines.push(`  source not recorded for events through #${source.unrecorded_through}`);
+  }
   if (!report.decisions.length) lines.push('  none declared');
   for (const series of report.decisions) {
     lines.push(series.kind === 'plain' ? `  ${series.name}: plain commitment`
@@ -268,7 +288,8 @@ export function formatExplanation(report, title = 'the program') {
       for (const entry of revision.history) {
         const caveats = entry.change === 'committed' ? [] : entry.caveats;
         const retaining = entry.change === 'committed' && entry.caveats.length ? `; retaining: ${list(entry.caveats)}` : '';
-        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}`);
+        const unrecorded = entry.source_sha256 === null ? '  (source not recorded)' : '';
+        lines.push(`      #${entry.sequence} ${entry.event}: ${entry.change} because ${withCaveats({ evidence: entry.because, caveats })}${retaining}${unrecorded}`);
       }
     }
   }
@@ -415,11 +436,12 @@ export function dependents(snapshot, subject, {archive = []} = {}) {
     return found ? [{ id: revision.id, value: revision.value, status: revision.status, ...found,
       withdrawn: withdrawnVia(found, found.basis === 'grounds' ? revision.grounds : revision.lineage) }] : [];
   }));
+  const source = sourceAt(snapshot);
   const changes = (snapshot.decision_journal ?? []).flatMap(entry => {
     const names = resolved.kind === 'caveat' ? entry.caveats : entry.because;
     const found = (names ?? []).filter(name => resolved.ids.has(name));
     return found.length ? [{ sequence: entry.sequence, event: entry.event, commitment: entry.commitment, change: entry.change, via: found,
-      withdrawn: withdrawnVia({ via: found }, { evidence: entry.because }) }] : [];
+      withdrawn: withdrawnVia({ via: found }, { evidence: entry.because }), source_sha256: source(entry.sequence) }] : [];
   });
   const values = Object.entries(snapshot.qualified_values ?? {}).flatMap(([name, value]) => {
     const found = basis(snapshot.value_grounds?.[name], 'grounds', value.provenance);
@@ -475,7 +497,7 @@ export function formatDependents(report, title = 'the program', events = 0) {
   if (report.reasonForWithdrawals?.length) section('Withdrawals resting on this reason', report.reasonForWithdrawals, withdrawalText);
   if (report.claims?.length) section('Claims', report.claims, item => `${item.evidence} ${item.relation} ${item.claim}`);
   section('Decisions', report.decisions, item => `${item.id} = ${show(item.value)}  ${item.status}  ${label[item.basis]} ${item.basis === 'retained' ? list(item.via) : through(item.via)}`);
-  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} ${report.kind === 'caveat' && item.change === 'committed' ? 'retaining:' : 'because'} ${through(item.via)}`);
+  section('Decision changes', report.changes, item => `#${item.sequence} ${item.event}: ${item.commitment} ${item.change} ${report.kind === 'caveat' && item.change === 'committed' ? 'retaining:' : 'because'} ${through(item.via)}${item.source_sha256 === null ? '  (source not recorded)' : ''}`);
   section('Values', report.values, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   section('Displayed', report.displayed, item => `${item.name} = ${show(item.value)}  ${label[item.basis]} ${through(item.via)}`);
   formatArchive(lines, report.archive);

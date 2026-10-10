@@ -42,6 +42,9 @@ the program names it:
 
 - the program's `source_id`, the event `sequence`, the last event, and
   `elapsed` time;
+- `source_sha256`, the SHA-256 of the source text, and
+  `source_unrecorded_through` when it is not zero (see
+  [Source digest](#source-digest));
 - every state whose value, lineage or grounds differ from what the program gave
   it when it loaded, with its grounds written only when they differ from its
   lineage. A value differs when its bits do, so `-0` and `0` differ: the sign
@@ -84,6 +87,9 @@ source again, which supplies every declaration, and then applies the save. The
 save is refused with an error, and never crashes the runtime, when:
 
 - it is for a different program or schema, or has a field this schema lacks;
+- its `source_sha256` is not the loaded source's, its
+  `source_unrecorded_through` is past its `sequence`, or it has
+  `source_unrecorded_through` without `source_sha256`;
 - a required schema field is missing, including the `states` map, or a present
   state entry lacks its required `value`;
 - a present state entry names an undeclared state, or its value is outside the
@@ -229,6 +235,30 @@ what they list; they list none now. Each entry also names its witness, the
 altered save that reproduces it, and a test fails when a listed fatal outcome
 no longer happens on its witness, so an entry is removed once its fix is in.
 
+## Source digest
+
+A save binds the exact source it was made under: `source_id` is computed over
+the source bytes, and restore refuses a save made under any other source text,
+including one that differs only in a comment ("it belongs to a different
+program"). There is no override.
+
+`source_sha256` names that source in a form a reader can check against a
+stored file: the SHA-256 of the source text's UTF-8 bytes, in lowercase hex.
+Snapshots carry it, and `explain` and `dependents` show it beside each
+decision change as the source the change was made under.
+
+Saves made before this field existed have none. Restoring one under its source
+(the `source_id` matches) gives the session the digest from then on, and sets
+`source_unrecorded_through` to the save's `sequence`: decision changes at or
+before that sequence show the source as "not recorded", never a digest
+computed at restore. Later saves keep the boundary. A save with
+`source_sha256` and no `source_unrecorded_through` recorded the digest from
+its first event.
+
+The digest identifies source text. It does not authenticate a save, its
+history or its origin: anyone can compute it, and a matching digest is not
+evidence that a save is genuine. The boundary below applies unchanged.
+
 ## Host trust boundary
 
 A save is not signed. Restore checks the names, kinds, ranges and cross-record
@@ -279,6 +309,13 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-10 (rc.17, specified): the additive `source_sha256` and
+  `source_unrecorded_through` fields ([Source digest](#source-digest), owner
+  decision D6 in [Path to 1.0](../docs/releases/path-to-1.0.md)). Older saves
+  restore under their source as before and show their decisions' source as
+  not recorded; the refusal of other source is unchanged. The schema stays
+  `caveat-reactive-save/0.1`.
 
 - 2026-10-05 (rc.15, specified): the additive `retired` field and its restore
   checks for programs with a [window](caveat-windows-0.1.md). Saves of

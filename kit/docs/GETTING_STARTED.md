@@ -272,6 +272,7 @@ Events
     4  leave  refused (policy): You have already left.
 
 Decisions
+  made under source sha256:daa89b2abadde3e5c8dd2e0691f0c0dcb8d74a6b3ac73393e875b87fe1325bdd
   umbrella: 1 of at most 4
     umbrella@1 = 70  reopened
       based on rain_chance@1
@@ -287,8 +288,10 @@ Displayed
   advice.text = "Think again: the sky has cleared"  because rain_chance@1, sky (caveats: forecast_is_old)
 ```
 
-Each decision shows its value, whether it is still in force, what it is based
-on, and every time it was committed or reopened and why. The refused `leave`
+The first line under Decisions names the source the decisions were made under,
+by its SHA-256; editing `umbrella.cav` changes it. Each decision shows its
+value, whether it is still in force, what it is based on, and every time it
+was committed or reopened and why. The refused `leave`
 is listed but changed nothing. Add `--json` to get the same explanation as
 data, for a program or an agent to read.
 

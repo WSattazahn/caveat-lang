@@ -270,6 +270,7 @@ Events
     5  probe_read {"celsius":6}  accepted
 
 Decisions
+  made under source sha256:e2d9ca05c9e46dc4a3343830004bcf65d29b724da2c42dcec33a6177c7b9592f
   cover: 1 of at most 4
     cover@1 = 1  reopened
       based on soil@1

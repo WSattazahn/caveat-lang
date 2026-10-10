@@ -520,7 +520,7 @@ try {
       withSessions(declared, 1, one => withSessions(written, 1, two => {
         for (const event of ['decide', 'pushed', 'pushed', 'decide', 'pushed']) {
           const [a, b] = [dispatch(one, event).snapshot, dispatch(two, event).snapshot];
-          delete a.source_id; delete b.source_id;
+          for (const snapshot of [a, b]) { delete snapshot.source_id; delete snapshot.source_sha256; }
           assert.deepEqual(a, b, `after ${event}`);
         }
         assert.deepEqual(parse(one.snapshot()).decision_journal.map(entry => entry.change),
