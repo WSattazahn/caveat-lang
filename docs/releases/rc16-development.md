@@ -3,6 +3,7 @@
 Status: published on npm, with registry/provenance/fresh-install verification
 complete. This file preserves the owner's direction and the cycle's progress;
 the dated development entries below are historical, not current publication status.
+Work after rc.16 is planned in [Path to 1.0](path-to-1.0.md).
 
 ## Publication closeout (2026-10-08 Pacific; 2026-10-09 UTC)
 

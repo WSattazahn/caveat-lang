@@ -6,6 +6,9 @@ verified on 2026-09-23 against local Git objects, live `git ls-remote` output an
 read-only GitHub PR metadata. Its baseline is `3980c3d`, before any subsequent
 cleanup commits. Recheck moving refs before execution.
 
+Scope after rc.16 is planned in [Path to 1.0](releases/path-to-1.0.md); this
+file remains the release procedure.
+
 ## Verified state
 
 - Repository: `https://github.com/WSattazahn/caveat-lang.git`.
