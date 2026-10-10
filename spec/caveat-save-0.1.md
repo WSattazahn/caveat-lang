@@ -55,6 +55,11 @@ the program names it:
   created (reading and renewal occurrences, rebuilt from their names, and
   commitments with their reason), the relations they added in order (their
   order is observation order), caveats' attention and open commitments;
+- `evidence_order`, for each commitment whose grounds evidence was first
+  observed in an order other than name order, that order (see
+  [View 0.2](caveat-view-0.2.md#ordered-evidence-in-grounds)). A save made
+  before this field takes the order its retained `committed` journal entry
+  gives, and otherwise name order;
 - commitment bases and grounds, reading streams, decision series, renewals,
   scheduled qualifications, observation, examination, reopening and predicate
   records, and the decision journal;
@@ -87,6 +92,9 @@ source again, which supplies every declaration, and then applies the save. The
 save is refused with an error, and never crashes the runtime, when:
 
 - it is for a different program or schema, or has a field this schema lacks;
+- its `evidence_order` names a commitment without grounds, or gives a list
+  that is not a reordering of exactly that commitment's grounds evidence or
+  is in name order;
 - its `source_sha256` is not the loaded source's, its
   `source_unrecorded_through` is past its `sequence`, or it has
   `source_unrecorded_through` without `source_sha256`;
@@ -309,6 +317,11 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-10 (rc.17, specified): the additive `evidence_order` field, which
+  keeps View 0.2's first-observed grounds order after a journal window
+  retires the entry that gave it ([View 0.2](caveat-view-0.2.md)). Saves
+  without it restore as before. The schema stays `caveat-reactive-save/0.1`.
 
 - 2026-10-10 (rc.17, specified): the additive `source_sha256` and
   `source_unrecorded_through` fields ([Source digest](#source-digest), owner

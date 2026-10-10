@@ -67,6 +67,15 @@ export interface DispatchRejected {
 export type DispatchOutcome = DispatchAccepted | DispatchRejected;
 export type DispatchViewOutcome = DispatchViewAccepted | DispatchRejected;
 
+/** An accepted event, from `dispatchViewDelta`: how the View 0.2 changed. */
+export interface DispatchViewDeltaAccepted {
+  schema: 'caveat-dispatch/0.1';
+  outcome: 'accepted';
+  delta: ViewDelta;
+}
+
+export type DispatchViewDeltaOutcome = DispatchViewDeltaAccepted | DispatchRejected;
+
 /** The fatal report the runtime throws, kept as `CaveatError.report`. */
 export interface DispatchFatal {
   schema: 'caveat-dispatch/0.1';
@@ -111,10 +120,16 @@ export declare class CaveatSession {
   dispatch(event: string, payload?: object): DispatchOutcome;
   /** The same transaction as `dispatch`, with the view in place of the snapshot. */
   dispatchView(event: string, payload?: object): DispatchViewOutcome;
+  /**
+   * The same transaction as `dispatch`, with the View 0.2 delta in place of
+   * the snapshot. See spec/caveat-view-0.2.md.
+   */
+  dispatchViewDelta(event: string, payload?: object): DispatchViewDeltaOutcome;
   snapshotText(): string;
   snapshot(): Snapshot;
-  viewText(): string;
-  view(): View;
+  viewText(options?: { schema?: '0.1' | '0.2' }): string;
+  view(options?: { schema?: '0.1' }): View;
+  view(options: { schema: '0.2' }): ViewV2;
   /** JSON text. Restore it with the exact source it came from. */
   save(): string;
   /**
@@ -198,8 +213,10 @@ export interface CaveatRuntime {
 export interface RuntimeSessionHandle {
   dispatch_outcome(event: string, payload: string): string;
   dispatch_view_outcome?(event: string, payload: string): string;
+  dispatch_view_delta_outcome?(event: string, payload: string): string;
   snapshot(): string;
   view(): string;
+  view_v2?(): string;
   save(): string;
   drain_archive?(): string;
   undrained?(): number;
@@ -432,6 +449,40 @@ export interface View {
   decision_series: Record<string, DecisionSeries>;
   decision_journal: DecisionJournalEntry[];
   relations: Relation[];
+}
+
+/**
+ * View 0.2: View 0.1 with grounds evidence in first-observed order and
+ * `reopened` in place of `open`. See spec/caveat-view-0.2.md.
+ */
+export interface ViewV2 extends Omit<View, 'schema' | 'commitments'> {
+  schema: 'caveat-reactive-view/0.2';
+  commitments: ViewCommitment[];
+}
+
+/** A commitment as View 0.2 shows it. */
+export interface ViewCommitment extends Omit<Commitment, 'open'> {
+  /** True when the commitment was reopened and awaits a new decision. */
+  reopened: boolean;
+}
+
+/** How the full View 0.2 changed across one accepted event. */
+export interface ViewDelta {
+  schema: 'caveat-reactive-view-delta/0.2';
+  /** The sequence of the view this delta applies to. */
+  since: number;
+  sequence: number;
+  last_event: string | null;
+  bindings: { set: Bindings; removed: [string, string][] };
+  binding_explanations: { set: Record<string, Record<string, Provenance>>; removed: [string, string][] };
+  cues: Cue[];
+  effects: Effect[];
+  commitments: { set: ViewCommitment[]; removed: string[] };
+  commitment_grounds: { set: Record<string, Provenance>; removed: string[] };
+  decision_series: { set: Record<string, DecisionSeries>; removed: string[] };
+  /** Positions in the old list, ascending, then entries added at the end. */
+  decision_journal: { removed: number[]; appended: DecisionJournalEntry[] };
+  relations: { removed: number[]; appended: Relation[] };
 }
 
 export interface QualifiedValue {

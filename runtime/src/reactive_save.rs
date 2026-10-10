@@ -46,6 +46,11 @@ pub struct ReactiveSave {
     pub commitment_bases: BTreeMap<String, CommitmentBasis>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub commitment_grounds: BTreeMap<String, Compact>,
+    /// Each commitment's grounds evidence in first-observed order, where that
+    /// differs from name order. Absent in older saves, whose order comes from
+    /// the retained journal entry. See spec/caveat-view-0.2.md.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub evidence_order: BTreeMap<String, Vec<String>>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub reading_streams: BTreeMap<String, ReadingStream>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
@@ -511,6 +516,50 @@ pub(super) fn occurrence_parts(name: &str) -> Option<(&str, usize)> {
 }
 
 impl ReactiveSession {
+    /// The frozen order of each commitment's grounds evidence: from the save
+    /// where it records one, otherwise from the commitment's retained
+    /// `committed` journal entry, otherwise name order. Never invented.
+    fn restore_evidence_order(&mut self, save: &ReactiveSave) -> Result<(), String> {
+        let mut orders = BTreeMap::new();
+        for (name, names) in &save.evidence_order {
+            let grounds = self
+                .commitment_grounds
+                .get(name)
+                .ok_or_else(|| format!("evidence_order names {name}, which has no grounds"))?;
+            if names.len() != grounds.evidence.len()
+                || names.iter().collect::<BTreeSet<_>>().len() != names.len()
+                || names
+                    .iter()
+                    .any(|evidence| !grounds.evidence.contains(evidence))
+                || names.iter().eq(grounds.evidence.iter())
+            {
+                return Err(format!(
+                    "evidence_order for {name} is not a reordering of its grounds' evidence"
+                ));
+            }
+            orders.insert(name.clone(), names.clone());
+        }
+        for entry in self.journal.iter() {
+            if entry.change != "committed" || orders.contains_key(&entry.commitment) {
+                continue;
+            }
+            let Some(grounds) = self.commitment_grounds.get(&entry.commitment) else {
+                continue;
+            };
+            let names = super::view2::ordered(&grounds.evidence, Some(&entry.because));
+            if !names
+                .iter()
+                .copied()
+                .eq(grounds.evidence.iter().map(String::as_str))
+            {
+                let names = names.into_iter().map(String::from).collect();
+                orders.insert(entry.commitment.clone(), names);
+            }
+        }
+        self.evidence_order = Arc::new(orders);
+        Ok(())
+    }
+
     /// Everything this session knows that an event can change.
     pub fn save(&self) -> Result<ReactiveSave, String> {
         let names = self
@@ -603,6 +652,19 @@ impl ReactiveSession {
                 .commitment_grounds
                 .iter()
                 .map(|(name, grounds)| (name.clone(), Compact::from(grounds)))
+                .collect(),
+            evidence_order: self
+                .commitment_grounds
+                .iter()
+                .filter_map(|(name, grounds)| {
+                    let order = self.evidence_order.get(name)?;
+                    let names = super::view2::ordered(&grounds.evidence, Some(order));
+                    (!names
+                        .iter()
+                        .copied()
+                        .eq(grounds.evidence.iter().map(String::as_str)))
+                    .then(|| (name.clone(), names.into_iter().map(String::from).collect()))
+                })
                 .collect(),
             reading_streams: (*self.reading_streams).clone(),
             decision_series: (*self.decision_series).clone(),
@@ -2473,6 +2535,7 @@ impl ReactiveSession {
                 .collect(),
         );
         self.journal = Arc::new(save.decision_journal.clone());
+        self.restore_evidence_order(save)?;
         self.effects = save.effects.clone();
         self.cues = cues;
         self.cue_qualifications = save

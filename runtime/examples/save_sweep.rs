@@ -9,9 +9,10 @@
 //! reactive program is listed as `skipped`.
 //!
 //! The fields saves gained after rc.15 by design, `source_sha256` and
-//! `source_unrecorded_through` (spec/caveat-save-0.1.md, "Source digest"), are
-//! taken out of saves and snapshots before digesting, so the comparison with
-//! rc.15 covers everything else. The runtime's own tests check those fields.
+//! `source_unrecorded_through` (spec/caveat-save-0.1.md, "Source digest") and
+//! `evidence_order` (spec/caveat-view-0.2.md), are taken out of saves and
+//! snapshots before digesting, so the comparison with rc.15 covers everything
+//! else. The runtime's own tests check those fields.
 use caveat_runtime::reactive::{ParameterDomain, ReactiveSession};
 use std::io::{self, BufRead};
 
@@ -26,6 +27,14 @@ fn comparable(text: &str) -> String {
             let end = value + text[value..].find([',', '}']).expect("a field ends");
             text.replace_range(start..end, "");
         }
+    }
+    // An object of name lists: names hold no braces, so the first `}` after
+    // the opening one closes it.
+    let field = ",\"evidence_order\":{";
+    while let Some(start) = text.find(field) {
+        let value = start + field.len();
+        let end = value + text[value..].find('}').expect("an order ends") + 1;
+        text.replace_range(start..end, "");
     }
     text
 }

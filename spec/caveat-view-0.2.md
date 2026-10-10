@@ -1,8 +1,8 @@
 # CAVEAT View 0.2
 
-Status: specified for rc.17 (Path to 1.0, A4). The implementation and its
-delta gate are A5; until A5 merges, no runtime or kit function returns this
-schema. [View 0.1](caveat-view-0.1.md) and its bytes do not change.
+Status: implemented for rc.17 (Path to 1.0, A4 and A5), with the delta gate
+in `experiments/view-delta-gate`. [View 0.1](caveat-view-0.1.md) and its
+bytes do not change.
 
 This specification adopts the [View 0.2 design note](../docs/design/view-0.2.md)
 with the owner's decisions recorded in [Path to 1.0](../docs/releases/path-to-1.0.md):
@@ -53,8 +53,9 @@ reorder it.
 
 The order outlives the journal entry it came from: when a `journal window`
 retires and departs that entry, the grounds keep the order. A save therefore
-records the order wherever it differs from name order, as an additive field
-of `caveat-reactive-save/0.1` that A5 defines. A save made before that field
+records the order wherever it differs from name order, as the additive field
+`evidence_order` of [`caveat-reactive-save/0.1`](caveat-save-0.1.md#what-a-save-holds).
+A save made before that field
 restores with the order its journal entry gives, when the entry is retained,
 and otherwise with name order; it never invents an observation order.
 
@@ -186,3 +187,5 @@ the additive order field above) and every refusal code are unchanged.
 ## Changes
 
 - 2026-10-10: specified (Path to 1.0, A4).
+- 2026-10-10: implemented, with the save's `evidence_order` field and the
+  delta gate (Path to 1.0, A5).

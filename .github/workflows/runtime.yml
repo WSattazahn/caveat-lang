@@ -153,6 +153,16 @@ jobs:
             test-results/*-population.txt
             test-results/*-reviewed.json
           if-no-files-found: warn
+      - name: View 0.2 delta gate over the whole corpus
+        run: node experiments/view-delta-gate/run.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: view-delta-gate
+          path: |
+            test-results/view-delta-gate.json
+            test-results/view-delta-sweep.txt
+          if-no-files-found: warn
       - name: Adoption scorer mutation controls (no trial agents)
         run: node --test experiments/agent-adoption/v1/checks.test.mjs
       - name: Adoption runner capture failure controls (no trial agents)

@@ -262,6 +262,16 @@ is what `session.view()` then returns, or the same rejected outcome as
 and failures are `dispatch`'s, and after the same events either way the session
 is the same.
 
+[View 0.2](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-view-0.2.md)
+is available beside it. `session.view({ schema: '0.2' })` lists each
+decision's grounds evidence in the order it was first observed, and says
+`reopened` where View 0.1 says `open`. `session.dispatchViewDelta(event,
+payload)` runs the same event and returns `{outcome: "accepted", delta}`: only
+what the event changed, which applied to the 0.2 view the host holds gives the
+next one. A refusal is `dispatch`'s, with no delta. After a restore, or when a
+delta's `since` is not the sequence of the view the host holds, take a full
+view again. `session.view()` stays View 0.1.
+
 Rejections are values, following the
 [dispatch outcome contract](https://github.com/WSattazahn/caveat-lang/blob/main/spec/caveat-dispatch-0.1.md).
 Everything else throws a `CaveatError` with a `kind`:
