@@ -1,9 +1,14 @@
 # Glowcap round 8: the same beat, played to the registered rules
 
-Status: **draft, not registered.** It becomes the round's protocol when the
-owner approves it, as round 7's was approved on a project card before any
-change request was written (`round7/PROTOCOL.md` L3–8). Until then nothing
-below has started except the learnability probe's preparation.
+Status: **registered, stage 1.** The owner (OumuamuaWalt) chose Approve on
+the project card "Approve round 8's protocol draft so it can be registered?"
+at 21:56 UTC on 2026-10-10, as recorded in the project timeline, before any
+change request for the round was written and before the probe was sent. It
+was committed with the files named under *Registration*, stage 1, and
+`registration.json` records their hashes. The text above *Registration* is
+the approved draft, unchanged except for this status paragraph and the
+heading of *Choices still open*. Later changes are listed under *Amendments*
+with their reason.
 
 This is step R1 of the "Round 8" table in
 [the path to 1.0](../../../docs/releases/path-to-1.0.md): pre-register;
@@ -96,7 +101,7 @@ Each author implements 21 phases (base, CR1–CR20), four more than round 7's
 only after rc.17 is published, its size and cost estimate have gone to the
 owner, and the owner has said to start.
 
-## Choices for the owner before registration
+## Choices still open at registration
 
 1. **Blind requests (row 3).** New requests CR17–CR20 after inherited
    CR1–CR16 (recommended), or round 7's CR13–CR16 again as the blind phases,
@@ -109,13 +114,38 @@ owner, and the owner has said to start.
 
 ## Registration
 
-As round 7 (`round7/PROTOCOL.md` L333–341), in two stages: first this
-protocol, the prompts, the packet manifest with the rc.17 tarball and
-document hashes, the runner and comparator, and `registration.json`; then
-CR17–CR20, their scenarios, the round-8 fuzz mode and the per-request
-predictions, as `registration-2.json`, before any author starts. The probe's
-prompt hash is recorded when it is sent, before its reply is read.
+As round 7 (`round7/PROTOCOL.md` L333–341), with an earlier first stage,
+because the runtime pin and the blind requests do not exist yet. No stage
+overwrites another (`register.mjs`).
+
+1. **Stage 1, now:** this protocol, `PREDICTIONS.md`, the probe's sources and
+   built prompt, `register.mjs`, and the inherited round 7 files the round
+   reuses (`BEAT.md`, the phase texts base to CR16, `scenarios-r7.mjs`), as
+   `registration.json`.
+2. **Stage 2, once rc.17 is published:** the prompts, the packet manifest
+   with the rc.17 tarball and document hashes, the runner and the round-8
+   comparator, as `registration-2.json`.
+3. **Stage 3, before any author starts:** CR17–CR20 (or the owner's other
+   choice under *Choices still open*), their scenarios, the round-8 fuzz
+   mode and the per-request predictions, as `registration-3.json`.
+
+The probe's prompt hash is recorded when it is sent, before its reply is
+read. The owner's answers to the open choices are recorded under
+*Amendments* as they arrive.
 
 ## Amendments
 
-None yet.
+1. **Blind requests (choice 1, after stage 1).** The owner chose "New CR17
+   to CR20" on the project card "Choose the change requests for round 8's
+   blind phases." at 21:56 UTC on 2026-10-10. Row 3 stands as drafted: the
+   inherited phases are base and CR1–CR16, and the blind phases are CR17–CR20,
+   written by a fresh writer and reviewed as in round 7. Each author
+   implements 21 phases.
+2. **The probe runs now (choice 2, after stage 1).** The owner chose "Now" on
+   the project card "Choose when to run round 8's learnability probe." at
+   21:56 UTC on 2026-10-10. The owner runs it in a chat with a model of
+   another family. The prompt handed over is `probe/prompt.txt`, SHA256
+   `55e771f86b268afa5eacb504fbefc0f94f4208f7913a27a23035ac9a129bc7a7`, as
+   stage 1 registered it; the reply is committed with the model's name and
+   time before it is read for the diff. Guide items it yields may land before
+   rc.17 freezes its docs, and the record says which did.
