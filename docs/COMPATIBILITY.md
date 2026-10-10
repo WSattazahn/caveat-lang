@@ -16,7 +16,7 @@ material or anything else that shares the repository.
 | Language | Syntax, and what an accepted program computes, decides, refuses and explains | [`spec/caveat-0.1.md`](../spec/caveat-0.1.md) and every implemented profile in `spec/`, listed under "Specifications" below |
 | Dispatch outcomes | `accepted` or `rejected`; every rejection's `origin` and `code`; a fatal error is neither | [Dispatch 0.1](../spec/caveat-dispatch-0.1.md), "Origins and codes" |
 | CLI | The commands, their arguments, exit statuses and `--json` output | `caveat-lang --help`; [kit README](../kit/README.md) |
-| Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
+| Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
 | MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
 | Schemas | Every schema named below, by its name | the spec that defines it |
