@@ -30,7 +30,7 @@ workstreams with different acceptance rules:
 
 | Decision | Answer | Source |
 | --- | --- | --- |
-| Policy identity of saves (D6) | Saves record the source SHA-256; reports show it; restore under different source is refused unless the host names the replaced digest; older saves report "not recorded" | Owner card, 2026-10-10 16:19:07 UTC |
+| Policy identity of saves (D6) | **Reopened.** The 16:19 card rested on a wrong baseline (see "Save and source identity" below); a corrected card is with the owner | Owner card, 2026-10-10 16:19:07 UTC, superseded |
 | Who implements | Claude threads implement; the brief's "implementer plus independent reviewer" applies within that | Owner card, 2026-10-10 16:12 UTC |
 | Pilot timing | The outside pilot runs on the starter candidate **before** feature freeze | Owner card, 2026-10-10 16:12:57 UTC |
 | Positioning | "A decision ledger for agents" stays the headline. "An embeddable decision runtime with a small rules language" is the technical sentence under it | Owner card, 2026-10-10 16:13:03 UTC |
@@ -56,7 +56,7 @@ workstreams with different acceptance rules:
 | Collector contract | Owner-accepted experimental overlay, written in `docs/design/`, not `spec/` | [withdrawal-collector-draft.md](../design/withdrawal-collector-draft.md); [departure spec](../../spec/caveat-departure-0.1.md) |
 | View 0.2 | Design note only; no code | [view-0.2.md](../design/view-0.2.md) |
 | Starter | None. Pieces exist: `kit/examples/agent-evidence/` (Python over `caveat serve`), `kit/lib/session.mjs`, `kit/lib/archive.mjs`, `caveat-lang init` | kit tree at the inspected revision |
-| Save and source identity | Restore refuses a save "for a different program or schema". The save does not bind the exact source text | [save spec](../../spec/caveat-save-0.1.md), "Restore validation" |
+| Save and source identity | A save already binds its exact source: `source_id` is FNV-1a64 of the source bytes plus their length, and restore under any other source text refuses ("it belongs to a different program"). The id is not cryptographic and appears in no report. (Corrected 2026-10-10; the first draft of this plan said the save bound only the program name.) | `runtime/src/reactive.rs` `source_identity` L5653; `runtime/src/reactive_save.rs` L673; [save spec](../../spec/caveat-save-0.1.md) L43 |
 | Proofs | Lean models with `late_qualification_preserves_basis_and_grounds`; conformance gates in CI | [proofs/lean/README.md](../../proofs/lean/README.md) L238, `theorems.json` |
 | Game | `web/mr-caveat.html` still draws the brown antenna robot in exploration (L92) and chase (L119) | file at the inspected revision |
 | #179 | Open draft, 18 checks green, based on `9a2d1dd` (behind main) | PR #179 |
@@ -119,12 +119,10 @@ can approve the direction now.
   `dependents` in later 1.x runtimes.
 - Restore checks that a save is possible for the source. It does not
   authenticate history (A3).
-- **Policy identity of historical assessments (D6, decided):** a save records
-  the SHA-256 of the source text it was made under, and `explain` and
-  `dependents` show that digest beside historical decisions. Restore under
-  different source text is refused unless the host names the digest it is
-  replacing. Saves written before the field exist restore as today and report
-  the source identity as "not recorded". The digest identifies source text; it
+- **Policy identity of historical assessments (D6):** restore already refuses a
+  save under any source text other than the one it was made under. The
+  open question is only how a reader of a historical decision sees which
+  source it was made under; see D6 below. The id identifies source text; it
   does not authenticate the save or its history (A3).
 
 ### Limits that are not defects
@@ -149,7 +147,7 @@ gate. Owners are the threads proposed under "Threads after approval".
 | --- | --- | --- | --- | --- |
 | B1 | The withdrawal collector and its capacity amendment are core behavior in every windowed program, but their contract lives in `docs/design/`. Departure's invariant now reads "ordinary departure preserves outcomes" | Missing contract | Core | `spec/caveat-withdrawal-collection-0.1.md` merged with a corpus sweep, as F268 was; departure spec points to it |
 | B2 | No written compatibility commitment or 1.x policy | Missing contract | Core | `docs/COMPATIBILITY.md` merged; each stable row has a named check |
-| B3 | Saves do not bind exact source, so historical policy identity is undefined | Missing contract (decided as D6) | Core | PR A3 merged with its restore tests |
+| B3 | Saves bind exact source, but reports do not show which source a historical decision was made under | Missing contract (D6, reopened) | Core | D6 answered; PR A3 merged with its tests, or closed by the owner choosing no change |
 | B4 | View 0.2 not implemented | Missing feature in agreed scope | Core | Spec and implementation merged; the delta gate passes over the full discovered corpus with negative controls |
 | B5 | No starter; archive persistence after write failure or restart is undefined | Missing feature in agreed scope | Integration | Node and browser starters pass fresh-install lifecycle tests including the failure and restart cases they claim |
 | B6 | Round 8 not run | Required step (owner) | Benchmark | Round 8 record committed, whatever its verdict |
@@ -171,7 +169,7 @@ proposals, not promises. Each PR is its own reviewable change.
 | A0 | This plan | — | 0.5 | 2026-10-10 |
 | A1 | Collector spec (B1): move the accepted contract into `spec/`, restate departure's invariant with the capacity difference, run the corpus sweep. No runtime change expected; a sweep difference stops the PR | A0 | 2 | 2026-10-13 |
 | A2 | `docs/COMPATIBILITY.md` (B2), package README "Not yet" update, the D6 contract text | A1, D6 | 2 | 2026-10-15 |
-| A3 | D6 implementation (B3): the additive save field, the digest in `explain` and `dependents` reports, refusal of a restore under different source unless the host names the replaced digest, and older saves reported as "not recorded"; restore tests for all three cases | A2 | 2 | 2026-10-17 |
+| A3 | D6 implementation (B3), as the corrected card decides. Held until it is answered | A2, D6 | 2 | 2026-10-17 |
 | A4 | `spec/caveat-view-0.2.md`: ordered evidence, sorted caveats, `reopened`, delta schema; departures, qualifications, journal windows, sequence mismatch, event-local cues and effects; restore and resync. View 0.1 and its bytes unchanged | A1 | 2 | 2026-10-19 |
 | A5 | View 0.2 implementation and delta gate (B4): the save sweep's discovered population, exclusions named and counted, fail on an empty or shrunken population; an independently written host-side applier; negative controls that corrupt deltas; accepted, no-op, rejected, restore, mismatch, explanation-only, qualification, departure and journal cases; dispatch, view build, apply time and bytes measured separately | A4 | 6 | 2026-10-28 |
 | A6 | rc.17 candidate: A1–A5 and B1 starter (below), release notes, the release procedure. Tag and publish wait for the owner | A5, B2 | 1 + owner | 2026-11-02 |
@@ -225,14 +223,18 @@ schedule; none is set up by this plan.
 The two-week stabilization window is a proposal. If a blocker delays the
 release, this file names it and moves the date; scope is not added silently.
 
-## Decided: D6, policy identity of historical assessments
+## Open decision: D6, policy identity of historical assessments
 
-Owner card, 2026-10-10 16:19:07 UTC ("Record and guard"). Before this, a save
-bound only the program name, so an explanation after restore used whatever
-source the host loaded. The decision is the rule stated in the commitment
-section above and implemented by PR A3. It is an additive field:
-`caveat-reactive-save/0.1` stays readable. Options not taken: record and report
-without refusing; leave source identity to hosts.
+The owner's 16:19 UTC card ("Record and guard") was posted on this plan's first
+draft, which wrongly said a save bound only the program name. In fact restore
+already refuses a save under different source text. That answer would have
+loosened today's refusal with an override, not added a guard, so the
+decision is reopened on a corrected card:
+
+- **Keep the refusal; add a SHA-256 of the source shown beside past decisions**
+  in `explain` and `dependents` (recommended).
+- Add a named-replacement override, through its own spec PR.
+- Change nothing; document today's binding.
 
 ## Coverage of the brief
 
