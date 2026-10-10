@@ -21,19 +21,10 @@ button{font:inherit}
 .case small{display:block;color:#efc77f;font-size:9px;letter-spacing:.14em;text-transform:uppercase}.case b{font-size:12px;line-height:1.25}
 .sparkbar{display:flex;gap:4px;justify-content:flex-end;margin-top:5px}.spark{width:8px;height:8px;border-radius:50%;background:#5f514c;box-shadow:0 0 0 1px rgba(255,255,255,.12)}.spark.on{background:#ff8a61;box-shadow:0 0 12px #ff6c4f}
 .ground{position:absolute;left:0;right:0;bottom:0;height:28%;z-index:4;background:linear-gradient(transparent,rgba(21,12,13,.06) 22%,rgba(13,8,9,.18));pointer-events:none}
-.avatar{position:absolute;z-index:10;bottom:18%;left:18%;width:88px;height:122px;transform:translateX(-50%) rotate(var(--lean,0deg)) scaleY(var(--squash,1));transform-origin:50% 100%;transition:filter .15s ease;filter:drop-shadow(0 12px 13px rgba(0,0,0,.45))}
-.avatar.walking .leg.l{animation:stepL .22s ease-in-out infinite alternate}.avatar.walking .leg.r{animation:stepR .22s ease-in-out infinite alternate}.avatar.walking .arm.l{animation:armL .22s ease-in-out infinite alternate}.avatar.walking .arm.r{animation:armR .22s ease-in-out infinite alternate}.avatar.stumble{animation:stumble .28s ease}.avatar.jump .antenna{transform:translateY(-3px)}.avatar.land{animation:land .2s ease}
-.bot-head{position:absolute;left:8px;top:2px;width:72px;height:67px;border-radius:44% 48% 45% 46%;background:linear-gradient(145deg,#e9ddd0,#bba993 58%,#8d7867);border:2px solid #5d4a3c;box-shadow:inset 8px 7px 15px rgba(255,255,255,.3),inset -8px -8px 14px rgba(53,35,31,.28)}
-.bot-head:before{content:"";position:absolute;width:34px;height:11px;border-radius:50%;left:18px;top:-7px;background:#6b4b38;border:2px solid #3e3028;transform:rotate(-6deg)}
-.antenna{position:absolute;left:36px;top:-17px;width:4px;height:17px;background:#514239;border-radius:4px}.antenna:after{content:"";position:absolute;left:-5px;top:-7px;width:13px;height:13px;border-radius:50%;background:#ffd071;box-shadow:0 0 18px #ffb74f}
-.eye{position:absolute;top:20px;width:22px;height:30px;border-radius:45%;background:#1d1918;border:2px solid #5f5148;overflow:hidden}.eye:after{content:"";position:absolute;inset:4px 5px;border-radius:50%;background:#fff8de;box-shadow:0 0 12px rgba(255,244,205,.85)}.eye.l{left:11px}.eye.r{right:10px}
-.avatar.suspicious .eye.r{height:17px;top:27px}.avatar.panicked .antenna:after{background:#ff6150;box-shadow:0 0 20px #ff412e}
-.mouth{position:absolute;left:33px;top:54px;width:11px;height:5px;border-bottom:2px solid #47372e;border-radius:50%}
-.bot-body{position:absolute;left:21px;top:61px;width:48px;height:48px;border-radius:16px 16px 20px 20px;background:linear-gradient(145deg,#79604c,#4d3a31);border:2px solid #3b2d27;box-shadow:inset 6px 5px 10px rgba(255,255,255,.12)}
-.bot-body:after{content:"";position:absolute;left:15px;top:10px;width:15px;height:15px;border-radius:50%;background:#ffe08b;box-shadow:0 0 12px #ffc35c}
-.arm,.leg{position:absolute;background:#5f4a3c;border:2px solid #362b27;border-radius:12px}.arm{top:69px;width:16px;height:42px}.arm.l{left:11px;transform:rotate(18deg)}.arm.r{right:10px;transform:rotate(-18deg)}.leg{top:101px;width:18px;height:24px}.leg.l{left:22px}.leg.r{right:21px}
+.avatar{position:absolute;z-index:10;bottom:18%;left:18%;width:108px;height:180px;transform:translateX(-50%) rotate(var(--lean,0deg)) scaleY(var(--squash,1));transform-origin:50% 100%;transition:filter .15s ease;filter:drop-shadow(0 12px 13px rgba(0,0,0,.45))}
+.avatar.stumble{animation:stumble .28s ease}.avatar.land{animation:land .2s ease}
 .shadow{position:absolute;z-index:9;bottom:17.2%;left:18%;width:86px;height:18px;border-radius:50%;background:rgba(0,0,0,.3);filter:blur(3px);transform:translateX(-50%)}
-.thought{position:absolute;z-index:14;left:18%;bottom:calc(18% + 128px);transform:translateX(-50%) scale(.94);max-width:min(270px,70vw);padding:10px 13px;border-radius:18px;background:#fff4db;color:#2c1d19;font-weight:800;font-size:12px;line-height:1.3;box-shadow:0 8px 28px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.2s ease}
+.thought{position:absolute;z-index:14;left:18%;bottom:calc(18% + 188px);transform:translateX(-50%) scale(.94);max-width:min(270px,70vw);padding:10px 13px;border-radius:18px;background:#fff4db;color:#2c1d19;font-weight:800;font-size:12px;line-height:1.3;box-shadow:0 8px 28px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:.2s ease}
 .thought.show{opacity:1;transform:translateX(-50%) scale(1)}.thought:after{content:"";position:absolute;left:34px;bottom:-9px;width:17px;height:17px;background:#fff4db;transform:rotate(45deg);border-radius:3px}
 .marker{position:absolute;z-index:8;bottom:31%;width:54px;height:54px;border-radius:50%;transform:translateX(-50%);border:2px solid rgba(255,224,145,.65);background:rgba(255,196,93,.13);box-shadow:0 0 28px rgba(255,190,75,.25);opacity:0;transition:.2s;pointer-events:none}.marker.near{opacity:1;animation:pulse 1s ease-in-out infinite}
 .marker:after{content:"!";position:absolute;inset:0;display:grid;place-items:center;color:#ffe1a0;font-size:24px;font-weight:900}
@@ -56,22 +47,26 @@ button{font:inherit}
 .controls{position:absolute;z-index:25;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none}
 .pad,.acts{display:flex;gap:8px;pointer-events:auto}.ctrl{width:60px;height:60px;border:1px solid rgba(255,255,255,.18);border-radius:20px;background:rgba(18,12,15,.72);backdrop-filter:blur(10px);color:#fff2db;font-size:23px;font-weight:900;box-shadow:0 8px 25px rgba(0,0,0,.25);touch-action:none}.ctrl:active,.ctrl.on{transform:translateY(2px);background:rgba(255,194,97,.18)}.ctrl.small{width:52px;height:52px;font-size:17px}.action{min-width:116px;width:auto;padding:0 15px;font-size:13px;letter-spacing:.02em;background:rgba(238,183,88,.87);color:#2b1d16;border-color:#ffe1a4}.action:disabled{opacity:.38;filter:grayscale(.5)}
 .mischief{background:rgba(124,70,107,.8)}
-.runner{position:absolute;z-index:40;inset:0;display:none;overflow:hidden;background-image:linear-gradient(rgba(8,4,7,.12),rgba(8,4,7,.28)),url('./assets/mr-caveat-bridge.webp'),url('./assets/moon-market-run.svg');background-size:cover;background-position:50% 50%}.runner.show{display:block}.runner .road{position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(14,8,9,.15) 25%,rgba(9,6,8,.6))}
-.runnerBot{position:absolute;z-index:3;left:20%;bottom:18%;width:72px;height:98px;transform:scale(.86);filter:drop-shadow(0 10px 12px rgba(0,0,0,.45))}.runnerBot .bot-head{transform:scale(.82);transform-origin:top left}.runnerBot .bot-body{transform:scale(.82);transform-origin:top left}.runnerBot .arm,.runnerBot .leg{transform:scale(.82)}
-.chaser{position:absolute;z-index:2;left:5%;bottom:20%;font-size:58px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.4));animation:chaseBob .25s ease-in-out infinite alternate}.cat{left:auto;right:11%;font-size:50px}
+.runner{position:absolute;z-index:40;inset:0;display:none;overflow:hidden;background-image:linear-gradient(rgba(8,4,7,.12),rgba(8,4,7,.28)),url('./assets/moon-market-run.svg');background-size:cover;background-position:50% 50%}.runner.show{display:block}.runner .road{position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(14,8,9,.15) 25%,rgba(9,6,8,.6))}
+.runnerBot{position:absolute;z-index:3;left:20%;bottom:18%;width:100px;height:168px;transform:translateX(-50%);transform-origin:50% 100%;filter:drop-shadow(0 10px 12px rgba(0,0,0,.45))}.runnerBot.stumble{animation:runStumble .3s ease}
+.chaser{position:absolute;z-index:2;left:5%;bottom:18%;width:96px;height:118px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.4));animation:chaseBob .25s ease-in-out infinite alternate}.cat{left:auto;right:11%;width:118px;height:98px}.cat svg{transform:scaleX(-1)}
 .obstacle{position:absolute;z-index:2;bottom:17%;font-size:42px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.4))}
 .runnerHud{position:absolute;z-index:5;left:50%;top:max(70px,calc(env(safe-area-inset-top) + 55px));transform:translateX(-50%);width:min(560px,calc(100% - 30px));display:flex;gap:10px;align-items:center}.runnerBar{flex:1;height:10px;border-radius:99px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);overflow:hidden}.runnerBar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#ffc66a,#ff735c);border-radius:99px}.runnerText{font-size:11px;font-weight:850;text-shadow:0 2px 8px #000}
 .jumpBtn{position:absolute;z-index:6;right:18px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:0;border-radius:22px;background:#f4c66e;color:#291b16;font-weight:900;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .dodgeBtn{position:absolute;z-index:6;right:114px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:1px solid rgba(255,255,255,.17);border-radius:22px;background:rgba(31,23,31,.82);color:#fff0d7;font-weight:900;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .runnerBot.lane1{left:32%}.obstacle.lane1{bottom:28%}
-.splash{position:absolute;z-index:60;inset:0;display:grid;place-items:end center;padding:18px 18px max(22px,env(safe-area-inset-bottom));background-image:linear-gradient(180deg,transparent 15%,rgba(9,5,8,.06) 42%,rgba(9,5,8,.92) 88%),url('./assets/mr-caveat-scene.webp'),url('./assets/moon-market.svg');background-size:cover;background-position:center;background-repeat:no-repeat}
+@media(max-width:700px){#game .dialogue{top:max(124px,calc(env(safe-area-inset-top) + 112px));bottom:auto}#game .chaser{width:78px;height:96px}#game .cat{width:96px;height:80px}#game .avatar{width:84px;height:140px}#game .thought{bottom:calc(18% + 146px)}#game .runnerBot{width:78px;height:130px}}
+.splash{position:absolute;z-index:60;inset:0;display:grid;place-items:end center;padding:18px 18px max(22px,env(safe-area-inset-bottom));background-image:linear-gradient(180deg,transparent 15%,rgba(9,5,8,.06) 42%,rgba(9,5,8,.92) 88%),url('./assets/moon-market.svg');background-size:cover;background-position:center;background-repeat:no-repeat}
+.stage-hero{position:relative;z-index:1;flex:none;height:min(40vh,300px);aspect-ratio:120/200;margin-bottom:-6px;filter:drop-shadow(0 14px 16px rgba(0,0,0,.5));pointer-events:none}.splash,.end.show{display:flex;flex-direction:column;justify-content:flex-end;align-items:center}.splashCard{position:relative;z-index:2}
+.end .stage-hero{align-self:center;margin-right:min(28vw,220px)}.endMiso{position:absolute;right:16%;top:max(64px,calc(env(safe-area-inset-top) + 48px));width:min(190px,30vw);pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,0,0,.45))}.endMiso svg{width:100%;height:auto;display:block;transform:scaleX(-1)}.endMiso .crumb{position:absolute;left:18%;bottom:6%;width:34%}.endCard{position:relative;z-index:2}
+.market-prop svg{display:block;width:50px;height:44px}.obstacle svg{display:block;width:54px;height:48px}.chaser svg{display:block;width:100%;height:100%;overflow:visible}.scatter-cat svg{display:block;width:72px;height:60px;transform:scaleX(-1)}
 .splashCard{width:min(720px,100%);padding:18px;border:1px solid rgba(255,255,255,.14);border-radius:22px;background:rgba(17,11,13,.84);backdrop-filter:blur(14px);box-shadow:0 20px 70px rgba(0,0,0,.45)}
 .splashCard h1{margin:0;font-size:clamp(34px,9vw,64px);line-height:.92;letter-spacing:-.055em}.splashCard h1 small{display:block;font-size:.34em;letter-spacing:.02em;color:#f6c976;margin-bottom:6px}.splashCard p{margin:10px 0 15px;color:#e1d1c0;line-height:1.45;max-width:560px}.start{width:100%;min-height:52px;border:0;border-radius:15px;background:#f4c66e;color:#261914;font-weight:900;font-size:15px}
-.end{position:absolute;z-index:60;inset:0;display:none;place-items:end center;padding:18px;background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(8,4,6,.9)),url('./assets/mr-caveat-bridge.webp'),url('./assets/moon-market-run.svg');background-size:cover;background-position:center;background-repeat:no-repeat}.end.show{display:grid}.endCard{width:min(700px,100%);padding:18px;border-radius:22px;background:rgba(16,10,12,.89);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}.endCard h2{margin:0 0 8px;font-size:32px}.endCard p{margin:0 0 13px;color:#decfc0;line-height:1.45}.endCard button{width:100%;min-height:50px;border:0;border-radius:14px;background:#f4c66e;color:#251914;font-weight:900}
+.end{position:absolute;z-index:60;inset:0;display:none;place-items:end center;padding:18px;background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(8,4,6,.9)),url('./assets/moon-market-run.svg');background-size:cover;background-position:center;background-repeat:no-repeat}.end.show{display:grid}.endCard{width:min(700px,100%);padding:18px;border-radius:22px;background:rgba(16,10,12,.89);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}.endCard h2{margin:0 0 8px;font-size:32px}.endCard p{margin:0 0 13px;color:#decfc0;line-height:1.45}.endCard button{width:100%;min-height:50px;border:0;border-radius:14px;background:#f4c66e;color:#251914;font-weight:900}
 .brain{position:absolute;z-index:70;right:11px;top:82px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(17,11,13,.65);color:#d8c8b7;font-size:14px}.brainPanel{position:absolute;z-index:69;right:12px;top:125px;width:min(350px,calc(100% - 24px));max-height:52vh;overflow:auto;padding:12px;border-radius:15px;background:rgba(12,8,10,.94);border:1px solid rgba(255,255,255,.12);display:none;font-size:11px;line-height:1.45;color:#c8b8aa}.brainPanel.show{display:block}.brainPanel b{color:#f0c878}
 .toast{position:absolute;z-index:50;top:46%;left:50%;transform:translate(-50%,-50%) scale(.94);padding:11px 15px;border-radius:16px;background:rgba(16,10,12,.9);border:1px solid rgba(255,255,255,.14);font-weight:850;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 @keyframes stepL{to{transform:translate(-4px,2px) rotate(24deg)}}@keyframes stepR{to{transform:translate(4px,1px) rotate(-24deg)}}@keyframes armL{to{transform:rotate(-24deg)}}@keyframes armR{to{transform:rotate(24deg)}}@keyframes land{45%{transform:translateX(-50%) rotate(var(--lean,0deg)) scaleY(.84) scaleX(1.08)}}
-@keyframes stumble{30%{transform:translateX(-50%) rotate(-12deg)}70%{transform:translateX(-50%) rotate(9deg)}}@keyframes chaseBob{to{transform:translateY(-5px) rotate(-2deg)}}@keyframes pulse{50%{transform:translateX(-50%) scale(1.12);box-shadow:0 0 40px rgba(255,190,75,.4)}}
+@keyframes runStumble{35%{transform:translateX(-50%) rotate(-14deg) translateY(-6px)}75%{transform:translateX(-50%) rotate(6deg)}}@keyframes stumble{30%{transform:translateX(-50%) rotate(-12deg)}70%{transform:translateX(-50%) rotate(9deg)}}@keyframes chaseBob{to{transform:translateY(-5px) rotate(-2deg)}}@keyframes pulse{50%{transform:translateX(-50%) scale(1.12);box-shadow:0 0 40px rgba(255,190,75,.4)}}
 @keyframes npcIdle{to{transform:translateY(-5px) rotate(.8deg)}}@keyframes npcStartle{25%{transform:translateY(-15px) scale(1.05)}55%{transform:translateX(8px) rotate(4deg)}80%{transform:translateX(-5px) rotate(-3deg)}}@keyframes npcAngry{to{transform:translateX(5px) rotate(2deg)}}@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.08)}}@keyframes propBop{35%{transform:translateX(-50%) translateY(-15px) rotate(-8deg)}70%{transform:translateX(-50%) translateY(2px) rotate(5deg)}}@keyframes bellRing{25%{transform:translateX(-50%) rotate(-24deg)}50%{transform:translateX(-50%) rotate(20deg)}75%{transform:translateX(-50%) rotate(-13deg)}}@keyframes dust{to{transform:translate(var(--dx),-22px) scale(.25);opacity:0}}@keyframes catScatter{to{left:112%;transform:translateY(-30px) rotate(8deg)}}
 @media(max-width:700px){.avatar{width:76px;height:108px}.bot-head{transform:scale(.88);transform-origin:top left}.bot-body,.arm,.leg{transform:scale(.88);transform-origin:top left}.dialogue{bottom:calc(max(78px,env(safe-area-inset-bottom) + 70px));padding:12px}.line{font-size:13px}.ctrl{width:50px;height:50px;border-radius:17px}.ctrl.small{width:46px;height:46px}.action{min-width:88px;padding:0 11px;font-size:11px}.case{max-width:47%;padding:6px 8px;border-radius:13px}.case b{font-size:10px}.case small{font-size:8px}.logo{padding:7px 9px;border-radius:13px}.logo b{font-size:11px}.logo span{display:none}.brain{width:32px;height:32px;top:70px}.world{background-size:auto 100%;background-position:66% 50%}.npc{width:88px;height:116px}.npc-tag{font-size:8px}.jumpBtn,.dodgeBtn{width:74px;height:60px;border-radius:19px;font-size:12px}.dodgeBtn{right:100px}}
 </style>
@@ -81,17 +76,14 @@ button{font:inherit}
   <div class="world" id="world"></div>
   <div class="ground"></div>
   <div class="top">
-    <div class="logo"><b>MR. CAVEAT</b><span>small robot · big suspicions</span></div>
+    <div class="logo"><b>MR. CAVEAT</b><span>clockwork fortune teller · big suspicions</span></div>
     <div class="case"><small id="phaseLabel">Case 01</small><b id="objective">Someone stole Bao's moon dumpling.</b><div class="sparkbar"><i class="spark"></i><i class="spark"></i><i class="spark"></i></div></div>
   </div>
   <button class="brain" id="brainBtn" aria-label="Mr. Caveat's notes">?</button>
   <div class="brainPanel" id="brainPanel"><b>Mr. Caveat's extremely unnecessary brain notes</b><div id="brainLog"></div></div>
 
   <div class="shadow" id="shadow"></div>
-  <div class="avatar" id="avatar" aria-label="Mr. Caveat">
-    <div class="bot-head"><i class="antenna"></i><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div>
-    <div class="bot-body"></div><i class="arm l"></i><i class="arm r"></i><i class="leg l"></i><i class="leg r"></i>
-  </div>
+  <div class="avatar" id="avatar" role="img" aria-label="Mr. Caveat"></div>
   <div class="thought" id="thought">Extremely suspicious.</div>
   <div class="marker" id="marker"></div>
 
@@ -116,7 +108,7 @@ button{font:inherit}
   <div class="runner" id="runner">
     <div class="road"></div>
     <div class="runnerHud"><span class="runnerText" id="runnerText">RUN</span><div class="runnerBar"><i id="runnerProgress"></i></div></div>
-    <div class="runnerBot" id="runnerBot"><div class="bot-head"><i class="antenna"></i><i class="eye l"></i><i class="eye r"></i><i class="mouth"></i></div><div class="bot-body"></div><i class="arm l"></i><i class="arm r"></i><i class="leg l"></i><i class="leg r"></i></div>
+    <div class="runnerBot" id="runnerBot" role="img" aria-label="Mr. Caveat running"></div>
     <div class="chaser" id="chaser">😾</div>
     <button class="dodgeBtn" id="runnerDodge">DODGE</button>
     <button class="jumpBtn" id="runnerJump">JUMP</button>
@@ -125,18 +117,29 @@ button{font:inherit}
   <div class="toast" id="toast"></div>
 
   <div class="splash" id="splash">
+    <div class="stage-hero" id="splashHero" role="img" aria-label="Mr. Caveat, announcing"></div>
     <div class="splashCard"><h1><small>CASE 01</small>The Missing Dumpling</h1><p>Bao is missing one moon dumpling. Three bystanders look guilty. Mr. Caveat has already decided this is absolutely his business.</p><button class="start" id="start">Cause a problem</button></div>
   </div>
 
   <div class="end" id="end">
+    <div class="stage-hero" id="endHero" role="img" aria-label="Mr. Caveat, shrugging"></div>
+    <div class="endMiso" id="endMiso" role="img" aria-label="Miso the cat eating the dumpling"></div>
     <div class="endCard"><h2>Of course it was the cat.</h2><p>Miso sits above the bridge eating the evidence. Bao is furious. Mr. Caveat would like the record to show that his earlier accusations were “preliminary field research.”</p><button id="again">Do it again</button></div>
   </div>
 </div>
 <script type="module">
 import init,{WebSession}from'./pkg/caveat_runtime.js';
+import{mountMrCaveat}from'./mr-caveat-rig.js';
+import{ART}from'./mr-caveat-art.js';
 
 const $=s=>document.querySelector(s);
 const world=$('#world'),avatar=$('#avatar'),shadow=$('#shadow'),thought=$('#thought'),marker=$('#marker'),actionBtn=$('#action'),dialogue=$('#dialogue'),speaker=$('#speaker'),line=$('#line'),choiceBox=$('#dialogueChoices'),objective=$('#objective'),phaseLabel=$('#phaseLabel'),runner=$('#runner'),runnerBot=$('#runnerBot'),chaser=$('#chaser'),runnerProgress=$('#runnerProgress'),runnerText=$('#runnerText'),toast=$('#toast');
+const rig=mountMrCaveat(avatar),runRig=mountMrCaveat(runnerBot),game=$('#game');
+const splashRig=mountMrCaveat($('#splashHero')),endRig=mountMrCaveat($('#endHero'));splashRig.setMode('proud');endRig.setMode('shrug');
+for(const r of [rig,runRig,splashRig,endRig])r.update(1/60,{dist:0,dir:0,air:0,running:false});
+$('#endMiso').innerHTML=ART.miso+'<div class="crumb">'+ART.dumpling+'</div>';
+for(const el of document.querySelectorAll('.market-prop'))el.innerHTML=ART[el.id.slice(5)];
+const splash=$('#splash'),end=$('#end');
 const npcEls={sauce:$('#npc-sauce'),chop:$('#npc-chop'),innocent:$('#npc-innocent'),bao:$('#npc-bao')};
 const propEls=[...document.querySelectorAll('.market-prop')];
 let session,phase='intro',x=18,y=0,vy=0,moveInput=0,vx=0,lastFrame=performance.now(),trouble=0,lastTarget=null,brain=[],loop=0,locked=false;
@@ -175,9 +178,11 @@ function say(name,text,buttons=[]){speaker.textContent=name;line.textContent=tex
 function closeSay(){dialogue.classList.remove('show');choiceBox.innerHTML=''}
 function note(text){brain.push(text);$('#brainLog').innerHTML=brain.map((x,i)=>'<p><b>'+(i+1)+'.</b> '+x+'</p>').join('')}
 function pop(text){toast.textContent=text;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),900)}
-function think(text,ms=1500){thought.textContent=text;thought.classList.add('show');setTimeout(()=>thought.classList.remove('show'),ms)}
+function think(text,ms=1500){thought.textContent=text;thought.classList.add('show');setTimeout(()=>thought.classList.remove('show'),ms);if(rig.mode==='none')rig.setMode('thinking',ms/1000)}
 function setTrouble(n){trouble=Math.max(0,Math.min(3,n));document.querySelectorAll('.spark').forEach((e,i)=>e.classList.toggle('on',i<trouble))}
-function setFace(kind=''){avatar.classList.remove('suspicious','panicked');if(kind)avatar.classList.add(kind)}
+function setFace(kind=''){rig.setMode(kind||'none')}
+// Viewbox units moved for a horizontal shift of pct percent of the game's width.
+function rigDist(el,pct){return Math.abs(pct)*game.clientWidth/100*200/(el.clientHeight||180)}
 function setPhase(p){phase=p;locked=false;closeSay();updateObjective();updateTarget()}
 function updateObjective(){
   if(phase==='suspect'){phaseLabel.textContent='Find a clue';objective.textContent='Walk up to somebody suspicious and investigate.'}
@@ -208,7 +213,7 @@ function dustBurst(){
   for(let i=0;i<4;i++){const d=document.createElement('i');d.className='dust';d.style.left=(x+(Math.random()*3-1.5))+'%';d.style.bottom=(18+Math.random()*2)+'%';d.style.setProperty('--dx',(Math.random()*32-16)+'px');$('#game').appendChild(d);setTimeout(()=>d.remove(),500)}
 }
 function scatterCat(){
-  const cat=document.createElement('div');cat.className='scatter-cat';cat.textContent='🐈‍⬛';$('#game').appendChild(cat);setTimeout(()=>cat.remove(),1500)
+  const cat=document.createElement('div');cat.className='scatter-cat';cat.innerHTML=ART.miso;$('#game').appendChild(cat);setTimeout(()=>cat.remove(),1500)
 }
 function runtimeSelect(id){const p=JSON.parse(session.pending());if(!(p.options||[]).includes(id))throw Error('Story/runtime desync: '+id);session.apply(id);const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());note(id+(discoveries.length?' → '+discoveries.map(d=>d.evidence).join(', '):commitment?' → acted':' → ok'));return{discoveries,commitment}}
 function moveFrame(now){
@@ -221,28 +226,31 @@ function moveFrame(now){
     vx=Math.max(-.48,Math.min(.48,vx));
     if(moveInput&&Math.sign(oldV)&&Math.sign(oldV)!==Math.sign(moveInput)&&Math.abs(oldV)>.22)dustBurst();
   }
+  const prevX=x;
   x=Math.max(4,Math.min(96,x+vx*dt));
   if(x===4||x===96)vx*=.25;
-  avatar.classList.toggle('walking',Math.abs(vx)>.08&&y===0);
   avatar.style.setProperty('--lean',(Math.max(-5,Math.min(5,vx*12)))+'deg');
   const wasAir=y>0;
   if(y>0||vy!==0){y=Math.max(0,y+vy*dt);vy-=.13*dt;if(y<=0){y=0;vy=0;if(wasAir){avatar.classList.add('land');dustBurst();setTimeout(()=>avatar.classList.remove('land'),210)}}}
+  rig.update(dt/60,{dist:rigDist(avatar,x-prevX),dir:Math.abs(vx)>.02?Math.sign(vx):0,air:y,running:false});
   avatar.style.left=x+'%';shadow.style.left=x+'%';avatar.style.bottom='calc(18% + '+y+'px)';thought.style.left=x+'%';
   shadow.style.transform='translateX(-50%) scale('+(1-Math.min(.35,y/180))+')';
   const pan=40+(x/100)*40;world.style.backgroundPosition=pan+'% 50%';
   Object.entries(npcEls).forEach(([key,el])=>{if(!el)return;const nx=Number(el.dataset.x);el.style.setProperty('--watch',x<nx?-1:1)});
+  if(splash.style.display!=='none')splashRig.update(dt/60,{dist:0,dir:0,air:0,running:false});
+  if(end.classList.contains('show'))endRig.update(dt/60,{dist:0,dir:0,air:0,running:false});
   updateTarget();loop=requestAnimationFrame(moveFrame)
 }
-function jump(){if(y===0&&!locked){vy=3.65;avatar.classList.add('jump');setTimeout(()=>avatar.classList.remove('jump'),420)}}
+function jump(){if(y===0&&!locked)vy=3.65}
 function begin(){document.querySelector('#splash').style.display='none';setPhase('suspect');think('Three suspects. Excellent.');note('Bao reports one missing moon dumpling.')}
 async function interact(){
   if(locked||!lastTarget)return;
-  locked=true;
+  locked=true;rig.face(lastTarget.x<x?-1:1);
   try{
     if(phase==='suspect'){
       const id=lastTarget.inspect;runtimeSelect(id);reactNpc(lastTarget.key);setFace('suspicious');const [who,text]=inspectLines[id];say(who,text,[{label:'That complicates things.',on:()=>{closeSay();setFace('');setPhase('lead')}}])
     }else if(phase==='lead'){
-      const id=lastTarget.lead;const target={...lastTarget};runtimeSelect(id);reactNpc(lastTarget.key,'angry',1100);setFace('panicked');setTrouble(trouble+1);const [who,text]=leadLines[id];say(who,text,[{label:'Run.',on:()=>{closeSay();startRunner('escape',target)}}])
+      const id=lastTarget.lead;const target={...lastTarget};runtimeSelect(id);reactNpc(lastTarget.key,'angry',1100);rig.setMode('proud',.7);setTimeout(()=>{if(rig.mode==='proud')setFace('panicked')},700);setTrouble(trouble+1);const [who,text]=leadLines[id];say(who,text,[{label:'Run.',on:()=>{closeSay();startRunner('escape',target)}}])
     }else if(phase==='second'){
       const id=lastTarget.select;runtimeSelect(id);const [who,text]=secondLines[id];say(who,text,[{label:'Follow it.',on:()=>{closeSay();setFace('');setPhase('hunt')}}])
     }else if(phase==='hunt'){
@@ -275,9 +283,9 @@ addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','d'].includes(e.ke
 
 let runnerKind='',runnerStart=0,runnerLast=0,runnerY=0,runnerVy=0,runnerLane=0,runnerScore=0,runnerDanger=0,nextSpawn=0,obstacles=[],runnerRAF=0;
 function startRunner(kind,target){
-  locked=true;$('#brainBtn').style.display='none';runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerLast=runnerStart;runnerY=0;runnerVy=0;runnerLane=0;runnerScore=0;runnerDanger=0;nextSpawn=runnerStart+1050;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH MISO':'LOSE '+target.label.toUpperCase();chaser.textContent=kind==='miso'?'🐈‍⬛':target.emoji||'😾';chaser.classList.toggle('cat',kind==='miso');runnerBot.classList.remove('lane1');spawnObstacle(108);spawnObstacle(150);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
+  locked=true;$('#brainBtn').style.display='none';runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerLast=runnerStart;runnerY=0;runnerVy=0;runnerLane=0;runnerScore=0;runnerDanger=0;nextSpawn=runnerStart+1050;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH MISO':'LOSE '+target.label.toUpperCase();chaser.innerHTML=kind==='miso'?ART.miso:(npcEls[target.key]?.querySelector('svg')?.outerHTML||'');chaser.classList.toggle('cat',kind==='miso');runnerBot.classList.remove('lane1');runRig.setMode(kind==='miso'?'none':'panicked',kind==='miso'?0:1.2);spawnObstacle(108);spawnObstacle(150);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
 }
-function spawnObstacle(xp=105){const e=document.createElement('div');e.className='obstacle';e.textContent=Math.random()>.5?'🧺':'📦';e.dataset.x=xp;e.dataset.lane=Math.random()>.5?1:0;e.classList.toggle('lane1',e.dataset.lane==='1');runner.appendChild(e);obstacles.push(e)}
+function spawnObstacle(xp=105){const e=document.createElement('div');e.className='obstacle';e.innerHTML=Math.random()>.5?ART.basket:ART.crate;e.dataset.x=xp;e.dataset.lane=Math.random()>.5?1:0;e.classList.toggle('lane1',e.dataset.lane==='1');runner.appendChild(e);obstacles.push(e)}
 function runnerJump(){if(runnerY===0)runnerVy=6.1}
 function runnerDodge(){runnerLane=runnerLane?0:1;runnerBot.classList.toggle('lane1',runnerLane===1);pop(runnerLane?'UPPER PATH':'LOWER PATH')}
 $('#runnerJump').onclick=runnerJump;$('#runnerDodge').onclick=runnerDodge;
@@ -288,12 +296,13 @@ function runnerTick(t){
   runnerY=Math.max(0,runnerY+runnerVy*(dt/16.67));runnerVy-=.28*(dt/16.67);if(runnerY<=0){runnerY=0;runnerVy=0}
   runnerBot.style.bottom='calc('+(runnerLane?28:18)+'% + '+runnerY+'px)';
   const speed=(runnerKind==='miso'?1.15:1.05)*(dt/16.67);
+  runRig.update(dt/1000,{dist:rigDist(runnerBot,speed),dir:1,air:runnerY,running:true});
   if(t>=nextSpawn){spawnObstacle(105);nextSpawn=t+900+Math.random()*700}
   for(const o of [...obstacles]){
     let ox=Number(o.dataset.x)-speed;o.dataset.x=ox;o.style.left=ox+'%';
     const sameLane=Number(o.dataset.lane)===runnerLane;
     if(ox>15&&ox<27&&sameLane&&runnerY<34&&!o.dataset.hit){
-      o.dataset.hit='1';runnerScore=Math.max(0,runnerScore-16);runnerDanger++;runnerBot.classList.add('stumble');setTimeout(()=>runnerBot.classList.remove('stumble'),300);pop(runnerKind==='miso'?'MISO GAINS GROUND':'TOO CLOSE');navigator.vibrate?.(35)
+      o.dataset.hit='1';runnerScore=Math.max(0,runnerScore-16);runnerDanger++;runnerBot.classList.remove('stumble');void runnerBot.offsetWidth;runnerBot.classList.add('stumble');runRig.setMode('panicked',.5);setTimeout(()=>runnerBot.classList.remove('stumble'),300);pop(runnerKind==='miso'?'MISO GAINS GROUND':'TOO CLOSE');navigator.vibrate?.(35)
     }
     if(ox<-12){o.remove();obstacles.splice(obstacles.indexOf(o),1)}
   }
