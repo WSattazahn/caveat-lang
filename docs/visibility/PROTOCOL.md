@@ -93,6 +93,6 @@ documentation since the previous run.
 ## Separate: fresh-agent discovery study
 
 Whether an agent, given a real task and no hint, finds, chooses, installs and
-uses Caveat is a different question. That study is designed separately (Path
-to 1.0, PR C6) with frozen task prompts that never name Caveat, its slogan,
+uses Caveat is a different question. That study is
+[designed separately](DISCOVERY_STUDY.md) with frozen task prompts that never name Caveat, its slogan,
 syntax or URL, and it needs its own approval to run.
