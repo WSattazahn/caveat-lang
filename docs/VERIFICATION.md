@@ -105,6 +105,6 @@ These are limits, not defects:
 
 ## Related work
 
-A short comparison with truth maintenance, Datalog provenance, Rego, Cedar,
-differential dataflow and Scallop is planned under the
-[Path to 1.0](releases/path-to-1.0.md) plan (PR C5).
+[Related work](RELATED_WORK.md) compares Caveat with truth maintenance,
+Datalog provenance, Rego, Cedar, differential dataflow and Scallop from
+primary sources, and marks each difference as checked or unverified.
