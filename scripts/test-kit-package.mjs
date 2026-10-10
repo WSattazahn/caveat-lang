@@ -66,6 +66,9 @@ const EXAMPLE_FILES = ['README.md', 'QUALIFICATION.md', 'BRANCHING.md', 'test_br
 // its scenarios.
 const SMALL_EXAMPLES = [['reviewer-decision', 'rely'], ['boss-stance', 'boss']]
   .flatMap(([folder, program]) => ['cav', 'events.jsonl', 'scenarios.json'].map(extension => `examples/${folder}/${program}.${extension}`));
+// The engineering-readiness pilot (rc.17): a program, its scenarios and a
+// starter host that runs it.
+const READINESS = ['README.md', 'readiness.cav', 'readiness.scenarios.json', 'run.mjs'].map(file => `examples/readiness/${file}`);
 
 function npm(args, cwd) {
   // npm is a .cmd on Windows, which Node only starts through a shell, so the
@@ -135,7 +138,7 @@ try {
     ...LIBRARY.flatMap(name => [`lib/${name}.mjs`, `lib/${name}.d.mts`]),
     'templates/events.jsonl', 'templates/umbrella.cav', 'templates/umbrella.scenarios.json',
     'runtime/build-info.json', ...RUNTIME_FILES.map(file => `runtime/${file}`),
-    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...STAGED_DOCS.map(([, target]) => target),
+    ...KIT_DOCS, ...EXAMPLE_FILES, ...SMALL_EXAMPLES, ...READINESS, ...STAGED_DOCS.map(([, target]) => target),
   ].sort(), 'the tarball holds exactly the library and its types, command, runtime, documentation, examples, license and notices');
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', run], kit))[0];
   assert.equal(packed.filename, `${manifest.name}-${manifest.version}.tgz`);
@@ -414,6 +417,20 @@ assert.equal(starterFirst.status, 0, starterFirst.stdout + starterFirst.stderr);
 const starterSecond = node(['starter.mjs', 'second'], consumer);
 assert.equal(starterSecond.status, 0, starterSecond.stdout + starterSecond.stderr);
 report.checks.starter = JSON.parse(starterSecond.stdout);
+
+// The readiness pilot as its README runs it: the folder copied out of the
+// installed package, its scenarios, then run.mjs into an empty directory.
+const readiness = path.join(consumer, 'readiness');
+await mkdir(readiness);
+for (const file of READINESS) await copyFile(path.join(installed, file), path.join(readiness, path.basename(file)));
+const readinessScenarios = node([path.join(installed, 'bin', 'caveat.mjs'), 'test', 'readiness.scenarios.json'], readiness);
+assert.equal(readinessScenarios.status, 0, readinessScenarios.stdout + readinessScenarios.stderr);
+const readinessRun = node(['run.mjs', 'pilot-store', '--json'], readiness);
+assert.equal(readinessRun.status, 0, readinessRun.stdout + readinessRun.stderr);
+const readinessReport = JSON.parse(readinessRun.stdout);
+assert.deepEqual(readinessReport.steps.map(step => step.step),
+  ['approve', 'unrelated', 'restart', 'reopen', 'unchanged', 'refusal', 'storage_failure', 'new_approval', 'history']);
+report.checks.readiness = { scenarios: 4, departed: readinessReport.steps.at(-1).departed };
 
 // Findings 123, 188-191 through the installed runtime: a genuine examination
 // restores and plays on; an examination the budget never paid for is refused.

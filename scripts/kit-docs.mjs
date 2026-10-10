@@ -10,7 +10,7 @@ export const KIT_DOCUMENTS = [
   'README.md', 'docs/README.md', 'docs/GETTING_STARTED.md', 'docs/REFERENCE.md',
   'docs/WORKED_EXAMPLE.md', 'docs/NAMES.md', 'docs/AGENT_START.md', 'docs/MCP.md', 'docs/HISTORY.md',
   'docs/STARTER.md', 'examples/agent-evidence/README.md', 'examples/agent-evidence/QUALIFICATION.md',
-  'examples/agent-evidence/BRANCHING.md',
+  'examples/agent-evidence/BRANCHING.md', 'examples/readiness/README.md',
 ];
 
 const BLOCKS = {
@@ -20,6 +20,7 @@ const BLOCKS = {
   'docs/NAMES.md': ['identity'],
   'docs/MCP.md': ['identity'],
   'examples/agent-evidence/README.md': ['identity', 'agent-install'],
+  'examples/readiness/README.md': ['identity'],
 };
 
 export function packageIdentity(manifest) {
