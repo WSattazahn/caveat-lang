@@ -39,10 +39,10 @@ function injectStyle() {
 .mc-svg{width:100%;height:100%;overflow:visible;display:block;filter:drop-shadow(0 0 1.1px rgba(255,230,186,.62))}
 .mc-svg.left{transform:scaleX(-1)}
 .mc-svg .mc-alt{display:none}
-.mc-svg.f-suspicious .mc-mouth-base,.mc-svg.f-panicked .mc-mouth-base,.mc-svg.f-proud .mc-mouth-base,.mc-svg.f-thinking .mc-mouth-base{display:none}
+.mc-svg.f-suspicious .mc-mouth-base,.mc-svg.f-panicked .mc-mouth-base,.mc-svg.f-proud .mc-mouth-base,.mc-svg.f-thinking .mc-mouth-base,.mc-svg.f-shrug .mc-mouth-base{display:none}
 .mc-svg.f-suspicious .mc-mouth-flat,.mc-svg.f-thinking .mc-mouth-flat{display:inline}
 .mc-svg.f-panicked .mc-mouth-o{display:inline}
-.mc-svg.f-proud .mc-mouth-grin{display:inline}
+.mc-svg.f-proud .mc-mouth-grin,.mc-svg.f-shrug .mc-mouth-o{display:inline}
 .mc-svg.f-proud .mc-eyes{display:none}.mc-svg.f-proud .mc-eyes-happy{display:inline}
 .mc-svg.f-panicked .mc-bang{display:inline}
 .mc-svg.f-thinking .mc-dots{display:inline}
@@ -183,6 +183,7 @@ const GESTURES = {
   suspicious: { b: [46, 117], f: [66, 60], head: 8, lean: 4 },    // squint, lean in
   panicked: { b: [22, 70], f: [61, 57], head: -5, lean: -3 },     // "Oh...": hand to mouth
   proud: { b: [37, 120], f: [110, 64], head: -9, lean: -2 },      // open palm out
+  shrug: { b: [16, 82], f: [104, 82], bend: [-1, 1], head: 6, lean: 0 },        // "Still a chance!"
 };
 
 // Shoulder and elbow angles (degrees, clockwise from hanging straight down)
@@ -228,7 +229,7 @@ export function mountMrCaveat(host) {
     s.mode = mode in GESTURES ? mode : 'none';
     s.modeUntil = seconds ? s.t + seconds : Infinity;
     if (s.mode !== 'none') s.gPose = GESTURES[s.mode];
-    svg.classList.remove('f-thinking', 'f-suspicious', 'f-panicked', 'f-proud');
+    svg.classList.remove('f-thinking', 'f-suspicious', 'f-panicked', 'f-proud', 'f-shrug');
     if (s.mode !== 'none') svg.classList.add('f-' + s.mode);
   }
 
@@ -290,7 +291,7 @@ export function mountMrCaveat(host) {
       sh[i] = lerp(sh[i], i ? -40 : -30, s.air * 0.85) + (i ? -1 : 1) * 3 * s.idle;
       el[i] = lerp(el[i], -40, s.air * 0.6);
       const gp = i ? G.f : G.b;
-      const [gs, ge] = solveArm(armX[i], 76, gp[0], gp[1], i ? -1 : -1);
+      const [gs, ge] = solveArm(armX[i], 76, gp[0], gp[1], G.bend ? G.bend[i] : -1);
       sh[i] = lerp(sh[i], gs, s.g * (s.amp > 0.5 ? 0.45 : 1));
       el[i] = lerp(el[i], ge, s.g * (s.amp > 0.5 ? 0.45 : 1));
     }
@@ -350,7 +351,7 @@ export function mountMrCaveat(host) {
     const squint = s.mode === 'suspicious' ? 0.42 : s.mode === 'panicked' ? 1.25 : 1;
     parts.eyes.children[0].setAttribute('transform', `translate(54.4 41.6) scale(1 ${f(eyeY * (s.mode === 'panicked' ? 1.25 : 1))}) translate(-54.4 -41.6)`);
     parts.eyes.children[1].setAttribute('transform', `translate(66 41.6) scale(1 ${f(eyeY * squint)}) translate(-66 -41.6)`);
-    const browLift = s.mode === 'panicked' ? -2.4 : s.mode === 'thinking' ? -1.2 : 0;
+    const browLift = s.mode === 'panicked' || s.mode === 'shrug' ? -2.4 : s.mode === 'thinking' ? -1.2 : 0;
     parts.browL.setAttribute('transform', `translate(0 ${f(browLift + (s.mode === 'suspicious' ? -1.6 : 0))})`);
     parts.browR.setAttribute('transform', s.mode === 'suspicious' ? 'translate(0 1.4) rotate(12 66 37)' : `translate(0 ${f(browLift)})`);
   }

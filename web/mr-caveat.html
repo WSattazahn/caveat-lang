@@ -47,19 +47,22 @@ button{font:inherit}
 .controls{position:absolute;z-index:25;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));display:flex;align-items:flex-end;justify-content:space-between;pointer-events:none}
 .pad,.acts{display:flex;gap:8px;pointer-events:auto}.ctrl{width:60px;height:60px;border:1px solid rgba(255,255,255,.18);border-radius:20px;background:rgba(18,12,15,.72);backdrop-filter:blur(10px);color:#fff2db;font-size:23px;font-weight:900;box-shadow:0 8px 25px rgba(0,0,0,.25);touch-action:none}.ctrl:active,.ctrl.on{transform:translateY(2px);background:rgba(255,194,97,.18)}.ctrl.small{width:52px;height:52px;font-size:17px}.action{min-width:116px;width:auto;padding:0 15px;font-size:13px;letter-spacing:.02em;background:rgba(238,183,88,.87);color:#2b1d16;border-color:#ffe1a4}.action:disabled{opacity:.38;filter:grayscale(.5)}
 .mischief{background:rgba(124,70,107,.8)}
-.runner{position:absolute;z-index:40;inset:0;display:none;overflow:hidden;background-image:linear-gradient(rgba(8,4,7,.12),rgba(8,4,7,.28)),url('./assets/mr-caveat-bridge.webp'),url('./assets/moon-market-run.svg');background-size:cover;background-position:50% 50%}.runner.show{display:block}.runner .road{position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(14,8,9,.15) 25%,rgba(9,6,8,.6))}
+.runner{position:absolute;z-index:40;inset:0;display:none;overflow:hidden;background-image:linear-gradient(rgba(8,4,7,.12),rgba(8,4,7,.28)),url('./assets/moon-market-run.svg');background-size:cover;background-position:50% 50%}.runner.show{display:block}.runner .road{position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(14,8,9,.15) 25%,rgba(9,6,8,.6))}
 .runnerBot{position:absolute;z-index:3;left:20%;bottom:18%;width:100px;height:168px;transform:translateX(-50%);transform-origin:50% 100%;filter:drop-shadow(0 10px 12px rgba(0,0,0,.45))}.runnerBot.stumble{animation:runStumble .3s ease}
-.chaser{position:absolute;z-index:2;left:5%;bottom:20%;font-size:58px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.4));animation:chaseBob .25s ease-in-out infinite alternate}.cat{left:auto;right:11%;font-size:50px}
+.chaser{position:absolute;z-index:2;left:5%;bottom:18%;width:96px;height:118px;filter:drop-shadow(0 8px 8px rgba(0,0,0,.4));animation:chaseBob .25s ease-in-out infinite alternate}.cat{left:auto;right:11%;width:118px;height:98px}.cat svg{transform:scaleX(-1)}
 .obstacle{position:absolute;z-index:2;bottom:17%;font-size:42px;filter:drop-shadow(0 6px 7px rgba(0,0,0,.4))}
 .runnerHud{position:absolute;z-index:5;left:50%;top:max(70px,calc(env(safe-area-inset-top) + 55px));transform:translateX(-50%);width:min(560px,calc(100% - 30px));display:flex;gap:10px;align-items:center}.runnerBar{flex:1;height:10px;border-radius:99px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14);overflow:hidden}.runnerBar i{display:block;width:0;height:100%;background:linear-gradient(90deg,#ffc66a,#ff735c);border-radius:99px}.runnerText{font-size:11px;font-weight:850;text-shadow:0 2px 8px #000}
 .jumpBtn{position:absolute;z-index:6;right:18px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:0;border-radius:22px;background:#f4c66e;color:#291b16;font-weight:900;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .dodgeBtn{position:absolute;z-index:6;right:114px;bottom:max(20px,env(safe-area-inset-bottom));width:86px;height:70px;border:1px solid rgba(255,255,255,.17);border-radius:22px;background:rgba(31,23,31,.82);color:#fff0d7;font-weight:900;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .runnerBot.lane1{left:32%}.obstacle.lane1{bottom:28%}
-@media(max-width:700px){#game .avatar{width:84px;height:140px}#game .thought{bottom:calc(18% + 146px)}#game .runnerBot{width:78px;height:130px}}
-.splash{position:absolute;z-index:60;inset:0;display:grid;place-items:end center;padding:18px 18px max(22px,env(safe-area-inset-bottom));background-image:linear-gradient(180deg,transparent 15%,rgba(9,5,8,.06) 42%,rgba(9,5,8,.92) 88%),url('./assets/mr-caveat-scene.webp'),url('./assets/moon-market.svg');background-size:cover;background-position:center;background-repeat:no-repeat}
+@media(max-width:700px){#game .dialogue{top:max(124px,calc(env(safe-area-inset-top) + 112px));bottom:auto}#game .chaser{width:78px;height:96px}#game .cat{width:96px;height:80px}#game .avatar{width:84px;height:140px}#game .thought{bottom:calc(18% + 146px)}#game .runnerBot{width:78px;height:130px}}
+.splash{position:absolute;z-index:60;inset:0;display:grid;place-items:end center;padding:18px 18px max(22px,env(safe-area-inset-bottom));background-image:linear-gradient(180deg,transparent 15%,rgba(9,5,8,.06) 42%,rgba(9,5,8,.92) 88%),url('./assets/moon-market.svg');background-size:cover;background-position:center;background-repeat:no-repeat}
+.stage-hero{position:relative;z-index:1;flex:none;height:min(40vh,300px);aspect-ratio:120/200;margin-bottom:-6px;filter:drop-shadow(0 14px 16px rgba(0,0,0,.5));pointer-events:none}.splash,.end.show{display:flex;flex-direction:column;justify-content:flex-end;align-items:center}.splashCard{position:relative;z-index:2}
+.end .stage-hero{align-self:center;margin-right:min(28vw,220px)}.endMiso{position:absolute;right:16%;top:max(64px,calc(env(safe-area-inset-top) + 48px));width:min(190px,30vw);pointer-events:none;filter:drop-shadow(0 8px 10px rgba(0,0,0,.45))}.endMiso svg{width:100%;height:auto;display:block;transform:scaleX(-1)}.endMiso .crumb{position:absolute;left:18%;bottom:6%;width:34%}.endCard{position:relative;z-index:2}
+.market-prop svg{display:block;width:50px;height:44px}.obstacle svg{display:block;width:54px;height:48px}.chaser svg{display:block;width:100%;height:100%;overflow:visible}.scatter-cat svg{display:block;width:72px;height:60px;transform:scaleX(-1)}
 .splashCard{width:min(720px,100%);padding:18px;border:1px solid rgba(255,255,255,.14);border-radius:22px;background:rgba(17,11,13,.84);backdrop-filter:blur(14px);box-shadow:0 20px 70px rgba(0,0,0,.45)}
 .splashCard h1{margin:0;font-size:clamp(34px,9vw,64px);line-height:.92;letter-spacing:-.055em}.splashCard h1 small{display:block;font-size:.34em;letter-spacing:.02em;color:#f6c976;margin-bottom:6px}.splashCard p{margin:10px 0 15px;color:#e1d1c0;line-height:1.45;max-width:560px}.start{width:100%;min-height:52px;border:0;border-radius:15px;background:#f4c66e;color:#261914;font-weight:900;font-size:15px}
-.end{position:absolute;z-index:60;inset:0;display:none;place-items:end center;padding:18px;background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(8,4,6,.9)),url('./assets/mr-caveat-bridge.webp'),url('./assets/moon-market-run.svg');background-size:cover;background-position:center;background-repeat:no-repeat}.end.show{display:grid}.endCard{width:min(700px,100%);padding:18px;border-radius:22px;background:rgba(16,10,12,.89);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}.endCard h2{margin:0 0 8px;font-size:32px}.endCard p{margin:0 0 13px;color:#decfc0;line-height:1.45}.endCard button{width:100%;min-height:50px;border:0;border-radius:14px;background:#f4c66e;color:#251914;font-weight:900}
+.end{position:absolute;z-index:60;inset:0;display:none;place-items:end center;padding:18px;background-image:linear-gradient(180deg,rgba(0,0,0,.04),rgba(8,4,6,.9)),url('./assets/moon-market-run.svg');background-size:cover;background-position:center;background-repeat:no-repeat}.end.show{display:grid}.endCard{width:min(700px,100%);padding:18px;border-radius:22px;background:rgba(16,10,12,.89);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}.endCard h2{margin:0 0 8px;font-size:32px}.endCard p{margin:0 0 13px;color:#decfc0;line-height:1.45}.endCard button{width:100%;min-height:50px;border:0;border-radius:14px;background:#f4c66e;color:#251914;font-weight:900}
 .brain{position:absolute;z-index:70;right:11px;top:82px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(17,11,13,.65);color:#d8c8b7;font-size:14px}.brainPanel{position:absolute;z-index:69;right:12px;top:125px;width:min(350px,calc(100% - 24px));max-height:52vh;overflow:auto;padding:12px;border-radius:15px;background:rgba(12,8,10,.94);border:1px solid rgba(255,255,255,.12);display:none;font-size:11px;line-height:1.45;color:#c8b8aa}.brainPanel.show{display:block}.brainPanel b{color:#f0c878}
 .toast{position:absolute;z-index:50;top:46%;left:50%;transform:translate(-50%,-50%) scale(.94);padding:11px 15px;border-radius:16px;background:rgba(16,10,12,.9);border:1px solid rgba(255,255,255,.14);font-weight:850;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 @keyframes stepL{to{transform:translate(-4px,2px) rotate(24deg)}}@keyframes stepR{to{transform:translate(4px,1px) rotate(-24deg)}}@keyframes armL{to{transform:rotate(-24deg)}}@keyframes armR{to{transform:rotate(24deg)}}@keyframes land{45%{transform:translateX(-50%) rotate(var(--lean,0deg)) scaleY(.84) scaleX(1.08)}}
@@ -73,7 +76,7 @@ button{font:inherit}
   <div class="world" id="world"></div>
   <div class="ground"></div>
   <div class="top">
-    <div class="logo"><b>MR. CAVEAT</b><span>small robot · big suspicions</span></div>
+    <div class="logo"><b>MR. CAVEAT</b><span>clockwork fortune teller · big suspicions</span></div>
     <div class="case"><small id="phaseLabel">Case 01</small><b id="objective">Someone stole Bao's moon dumpling.</b><div class="sparkbar"><i class="spark"></i><i class="spark"></i><i class="spark"></i></div></div>
   </div>
   <button class="brain" id="brainBtn" aria-label="Mr. Caveat's notes">?</button>
@@ -114,20 +117,29 @@ button{font:inherit}
   <div class="toast" id="toast"></div>
 
   <div class="splash" id="splash">
+    <div class="stage-hero" id="splashHero" role="img" aria-label="Mr. Caveat, announcing"></div>
     <div class="splashCard"><h1><small>CASE 01</small>The Missing Dumpling</h1><p>Bao is missing one moon dumpling. Three bystanders look guilty. Mr. Caveat has already decided this is absolutely his business.</p><button class="start" id="start">Cause a problem</button></div>
   </div>
 
   <div class="end" id="end">
+    <div class="stage-hero" id="endHero" role="img" aria-label="Mr. Caveat, shrugging"></div>
+    <div class="endMiso" id="endMiso" role="img" aria-label="Miso the cat eating the dumpling"></div>
     <div class="endCard"><h2>Of course it was the cat.</h2><p>Miso sits above the bridge eating the evidence. Bao is furious. Mr. Caveat would like the record to show that his earlier accusations were “preliminary field research.”</p><button id="again">Do it again</button></div>
   </div>
 </div>
 <script type="module">
 import init,{WebSession}from'./pkg/caveat_runtime.js';
 import{mountMrCaveat}from'./mr-caveat-rig.js';
+import{ART}from'./mr-caveat-art.js';
 
 const $=s=>document.querySelector(s);
 const world=$('#world'),avatar=$('#avatar'),shadow=$('#shadow'),thought=$('#thought'),marker=$('#marker'),actionBtn=$('#action'),dialogue=$('#dialogue'),speaker=$('#speaker'),line=$('#line'),choiceBox=$('#dialogueChoices'),objective=$('#objective'),phaseLabel=$('#phaseLabel'),runner=$('#runner'),runnerBot=$('#runnerBot'),chaser=$('#chaser'),runnerProgress=$('#runnerProgress'),runnerText=$('#runnerText'),toast=$('#toast');
 const rig=mountMrCaveat(avatar),runRig=mountMrCaveat(runnerBot),game=$('#game');
+const splashRig=mountMrCaveat($('#splashHero')),endRig=mountMrCaveat($('#endHero'));splashRig.setMode('proud');endRig.setMode('shrug');
+for(const r of [rig,runRig,splashRig,endRig])r.update(1/60,{dist:0,dir:0,air:0,running:false});
+$('#endMiso').innerHTML=ART.miso+'<div class="crumb">'+ART.dumpling+'</div>';
+for(const el of document.querySelectorAll('.market-prop'))el.innerHTML=ART[el.id.slice(5)];
+const splash=$('#splash'),end=$('#end');
 const npcEls={sauce:$('#npc-sauce'),chop:$('#npc-chop'),innocent:$('#npc-innocent'),bao:$('#npc-bao')};
 const propEls=[...document.querySelectorAll('.market-prop')];
 let session,phase='intro',x=18,y=0,vy=0,moveInput=0,vx=0,lastFrame=performance.now(),trouble=0,lastTarget=null,brain=[],loop=0,locked=false;
@@ -201,7 +213,7 @@ function dustBurst(){
   for(let i=0;i<4;i++){const d=document.createElement('i');d.className='dust';d.style.left=(x+(Math.random()*3-1.5))+'%';d.style.bottom=(18+Math.random()*2)+'%';d.style.setProperty('--dx',(Math.random()*32-16)+'px');$('#game').appendChild(d);setTimeout(()=>d.remove(),500)}
 }
 function scatterCat(){
-  const cat=document.createElement('div');cat.className='scatter-cat';cat.textContent='🐈‍⬛';$('#game').appendChild(cat);setTimeout(()=>cat.remove(),1500)
+  const cat=document.createElement('div');cat.className='scatter-cat';cat.innerHTML=ART.miso;$('#game').appendChild(cat);setTimeout(()=>cat.remove(),1500)
 }
 function runtimeSelect(id){const p=JSON.parse(session.pending());if(!(p.options||[]).includes(id))throw Error('Story/runtime desync: '+id);session.apply(id);const discoveries=JSON.parse(session.discoveries()),commitment=JSON.parse(session.commitment());note(id+(discoveries.length?' → '+discoveries.map(d=>d.evidence).join(', '):commitment?' → acted':' → ok'));return{discoveries,commitment}}
 function moveFrame(now){
@@ -225,6 +237,8 @@ function moveFrame(now){
   shadow.style.transform='translateX(-50%) scale('+(1-Math.min(.35,y/180))+')';
   const pan=40+(x/100)*40;world.style.backgroundPosition=pan+'% 50%';
   Object.entries(npcEls).forEach(([key,el])=>{if(!el)return;const nx=Number(el.dataset.x);el.style.setProperty('--watch',x<nx?-1:1)});
+  if(splash.style.display!=='none')splashRig.update(dt/60,{dist:0,dir:0,air:0,running:false});
+  if(end.classList.contains('show'))endRig.update(dt/60,{dist:0,dir:0,air:0,running:false});
   updateTarget();loop=requestAnimationFrame(moveFrame)
 }
 function jump(){if(y===0&&!locked)vy=3.65}
@@ -269,9 +283,9 @@ addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','d'].includes(e.ke
 
 let runnerKind='',runnerStart=0,runnerLast=0,runnerY=0,runnerVy=0,runnerLane=0,runnerScore=0,runnerDanger=0,nextSpawn=0,obstacles=[],runnerRAF=0;
 function startRunner(kind,target){
-  locked=true;$('#brainBtn').style.display='none';runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerLast=runnerStart;runnerY=0;runnerVy=0;runnerLane=0;runnerScore=0;runnerDanger=0;nextSpawn=runnerStart+1050;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH MISO':'LOSE '+target.label.toUpperCase();chaser.textContent=kind==='miso'?'🐈‍⬛':target.emoji||'😾';chaser.classList.toggle('cat',kind==='miso');runnerBot.classList.remove('lane1');runRig.setMode(kind==='miso'?'none':'panicked',kind==='miso'?0:1.2);spawnObstacle(108);spawnObstacle(150);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
+  locked=true;$('#brainBtn').style.display='none';runnerKind=kind;runner.classList.add('show');runnerStart=performance.now();runnerLast=runnerStart;runnerY=0;runnerVy=0;runnerLane=0;runnerScore=0;runnerDanger=0;nextSpawn=runnerStart+1050;obstacles=[];runnerProgress.style.width='0%';runnerText.textContent=kind==='miso'?'CATCH MISO':'LOSE '+target.label.toUpperCase();chaser.innerHTML=kind==='miso'?ART.miso:(npcEls[target.key]?.querySelector('svg')?.outerHTML||'');chaser.classList.toggle('cat',kind==='miso');runnerBot.classList.remove('lane1');runRig.setMode(kind==='miso'?'none':'panicked',kind==='miso'?0:1.2);spawnObstacle(108);spawnObstacle(150);cancelAnimationFrame(runnerRAF);runnerRAF=requestAnimationFrame(runnerTick)
 }
-function spawnObstacle(xp=105){const e=document.createElement('div');e.className='obstacle';e.textContent=Math.random()>.5?'🧺':'📦';e.dataset.x=xp;e.dataset.lane=Math.random()>.5?1:0;e.classList.toggle('lane1',e.dataset.lane==='1');runner.appendChild(e);obstacles.push(e)}
+function spawnObstacle(xp=105){const e=document.createElement('div');e.className='obstacle';e.innerHTML=Math.random()>.5?ART.basket:ART.crate;e.dataset.x=xp;e.dataset.lane=Math.random()>.5?1:0;e.classList.toggle('lane1',e.dataset.lane==='1');runner.appendChild(e);obstacles.push(e)}
 function runnerJump(){if(runnerY===0)runnerVy=6.1}
 function runnerDodge(){runnerLane=runnerLane?0:1;runnerBot.classList.toggle('lane1',runnerLane===1);pop(runnerLane?'UPPER PATH':'LOWER PATH')}
 $('#runnerJump').onclick=runnerJump;$('#runnerDodge').onclick=runnerDodge;
