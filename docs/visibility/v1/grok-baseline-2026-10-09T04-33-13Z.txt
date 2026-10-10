@@ -1,0 +1,79 @@
+The Codex instruction cannot be sent from this session. The visibility check below is the V1 baseline, run before any description change. No installation was performed.
+
+**Check metadata.** Searches were issued in this session immediately after `2026-10-09T04:33:13Z`. The provider is this session's `web_search` tool, not a public search-engine results page. It was asked for 10 results per query and returned 10 summarized entries each. The order below is the tool's return order, not an organic rank. Locale and personalization were not exposed. The model is Grok in this chat. Per-query timestamps were not returned.
+
+## Baseline
+
+| Query | Returned | `caveat-lang` | `caveat-cli` | Version in a matching snippet |
+|---|---|---|---|---|
+| P1 `javascript library track evidence behind decisions` | 10 | absent | absent | — |
+| P2 `agent decision audit trail corrected tool results` | 10 | absent | absent | — |
+| P3 `rules engine reconsider decisions when facts change` | 10 | absent | absent | — |
+| P4 `invalidate approval when supporting evidence is withdrawn` | 10 | absent | absent | — |
+| P5 `preserve original decision reasons after new evidence` | 10 | absent | absent | — |
+| P6 `MCP tools test and explain decision policies` | 10 | absent | absent | — |
+| C1 `caveat-lang` | 10 | present | absent | rc.16 on npm, GitHub, and docs; rc.5 on npm.io; Lean page mentions rc.9, rc.13, rc.15 |
+| C2 `caveat agent MCP` | 10 | present, 8th returned | present, several earlier results | `caveat-lang` snippet shows rc.16; `caveat-cli` snippet shows 0.20.1 |
+
+Problem queries P1–P6 did not return the `caveat-lang` package or repository. C2 also returned `@yodolabs/caveat-mcp` and capnagent, which are neither package.
+
+## Registry and package
+
+Captured at `2026-10-09T04:33:13Z`. Registry HTTP 200 from `GET /v0/servers/io.github.WSattazahn%2Fcaveat-lang/versions/latest`:
+
+| Source | Version | Description | Package / launch |
+|---|---|---|---|
+| Registry latest, status `active`, `isLatest: true`, `updatedAt` `2026-10-05T15:24:08.659927Z` | `0.1.0-rc.15` | Authoring bridge for Caveat: validate, check and test programs; explain decisions; find dependents. | npm `caveat-lang@0.1.0-rc.15`, `npx`, stdio, positional `mcp` |
+| `main` `server.json` | `0.1.0-rc.16` | same authoring-bridge sentence | npm `caveat-lang@0.1.0-rc.16`, same launch |
+| npm `latest` | `0.1.0-rc.16`, published `2026-10-09T00:13:49.158Z` | package description is the language summary, not the MCP sentence | — |
+| npm `next` | `0.1.0-rc.15`, published `2026-10-05T14:58:40.731Z` | — | — |
+
+The registry latest version matches npm `next`, not npm `latest` or `server.json`. The description matches `server.json` and does not claim a persistent session. The captured documents do not say whether the version lag is intentional. No separate owner attestation was fetched beyond these published records.
+
+```json
+{
+  "server": {
+    "name": "io.github.WSattazahn/caveat-lang",
+    "description": "Authoring bridge for Caveat: validate, check and test programs; explain decisions; find dependents.",
+    "version": "0.1.0-rc.15",
+    "packages": [{
+      "registryType": "npm",
+      "identifier": "caveat-lang",
+      "version": "0.1.0-rc.15",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "packageArguments": [{ "value": "mcp", "type": "positional" }]
+    }]
+  },
+  "_meta": {
+    "io.modelcontextprotocol.registry/official": {
+      "status": "active",
+      "publishedAt": "2026-10-05T15:24:08.659927Z",
+      "updatedAt": "2026-10-05T15:24:08.659927Z",
+      "isLatest": true
+    }
+  }
+}
+```
+
+## Returned results, in tool order
+
+Snippets below are the tool's summarized extracts, not raw search-engine snippets.
+
+**P1.** [Trrack](https://vdl.sci.utah.edu/blog/2020/10/28/trrack/) · [fardog/evidence](https://github.com/fardog/evidence) · [trrackjs](https://github.com/Trrack/trrackjs) · [JSgraph](https://www.ndss-symposium.org/wp-content/uploads/2018/02/ndss2018_07B-4_Li_paper.pdf) · [TraceKit](https://github.com/csnover/TraceKit/) · [TrackJS](https://trackjs.com/demo/) · [web-user-behaviour](https://github.com/TA3/web-user-behaviour) · [scry](https://github.com/racgoo/scry) · [web-tracing](https://github.com/M-cheng-web/web-tracing) · [stack traces](https://blog.openreplay.com/read-javascript-stack-trace/). Version not shown. Neither package.
+
+**P2.** [Decision Log](https://www.decisionlog.ai/) · [decision provenance](https://tianpan.co/blog/2026/04/19/decision-provenance-agentic-systems) · [AgentCenter](https://www.agentcenter.cloud/blogs/how-to-log-ai-agent-decisions) · [Lorca Labs](https://www.lorcalabs.io/products/decision-audit) · [CarbonSilicon](https://carbonsiliconlabs.com/blog/ai-audit-trails) · [AWS DevOps Agent](https://aws.amazon.com/blogs/devops/audit-trails-for-autonomous-agents-with-aws-devops-agent/) · [ARSA](https://arsa.technology/blogs/ai-agent-audit-trail-human-approval-write-access/) · [lowtouch.ai](https://www.lowtouch.ai/agent-observability-enterprise-audit-trail/) · [AgentDock](https://agentdock.ai/capabilities/traceability) · [7wData](https://7wdata.be/data-governance/audit-logging-traceability-agentic-systems/). Version not shown. Neither package.
+
+**P3.** [Drools state](https://stackoverflow.com/questions/64733003/drools-rule-is-holding-state-and-fire-rules-when-it-shouldnt) · [Higson](https://www.higson.io/blog/aml-kyc-business-rules-engine-banking-compliance) · [Nected engines](https://www.nected.ai/us/blog-us/open-source-rules-engine) · [arXiv 2609.39608](https://arxiv.org/abs/2609.39608) · [behaviour planner](https://arxiv.org/html/2407.00460v1) · [Red Hat truth maintenance](https://docs.redhat.com/en/documentation/red_hat_decision_manager/7.6/html/decision_engine_in_red_hat_decision_manager/inference-and-truth-maintenance_decision-engine) · [json-rules-engine](https://raw.githubusercontent.com/cachecontrol/json-rules-engine/HEAD/docs/rules.md) · [Decisions](https://decisions.com/platform/rules-engine) · [rules-engine pattern](https://www.nected.ai/us/blog-us/rules-engine-design-pattern) · [Oracle Rules Engine](https://docs.oracle.com/cd/E11036_01/web.1013/b28964.pdf). Version not shown. Neither package.
+
+**P4.** [KENFOX](https://kenfoxlaw.com/withdrawing-an-already-claimed-invalidation-action-in-vietnam) · [Oracle EDMCS](https://docs.oracle.com/en/cloud/saas/enterprise-data-management-cloud/dmcaa/understand_withdraw_approval.html) · [SAP](https://help.sap.com/docs/strategic-sourcing/managing-projects-teams-documents-and-tasks/how-to-withdraw-approval-round) · [revoke/withdraw/rescind](https://www.b-cafe.net/newsletter/2026/09/shounin-wo-torikesu-english-revoke-withdraw-rescind-approval.php) · [NHI](https://nhimg.org/faq/what-happens-when-a-wallet-or-contract-is-authorised-and-then-never-de-authorise/) · [HMRC](https://www.gov.uk/hmrc-internal-manuals/employment-income-manual/eim30265) · [ApprovalMax](https://support.approvalmax.com/en/articles/413448-can-i-revoke-my-decision-if-it-is-not-the-final-approval) · [Oracle withdraw](https://docs.oracle.com/en/cloud/saas/enterprise-data-management-cloud/dmcaa/withdraw_approval_request.html) · [token revoke](https://walletreview.com/how-to-revoke-token-approvals/) · [ISO 9001](https://advisera.com/9001academy/blog/2016/04/12/how-to-set-up-document-approvalwithdrawal-within-your-qms-based-on-iso-90012015/). Version not shown. Neither package.
+
+**P5.** [after-discovered evidence](https://www.law.cornell.edu/wex/after-discovered_evidence) · [Gutierrez-Morales](https://txfamlaw.com/opinions/gutierrez-morales-newly-discovered-evidence-waived-without-hearing) · [disciplinary hearings](https://contendlegal.org/employment/managing-employees/employee-discipline/disciplinary-hearings/new-evidence-alter-disciplinary-hearings/) · [administrative record](https://legalclarity.org/administrative-record-what-it-contains-and-how-courts-use-it/) · [judicial review evidence](https://dadkhah.ca/blog/immigration/131/bringing-new-evidence-to-a-judicial-review-what-the-courts-say/) · [new evidence on appeal](https://legalclarity.org/can-new-evidence-be-introduced-in-an-appeal/) · [changed firing reason](https://swartz-legal.com/employer-changed-reason-for-firing-wrongful-termination/) · [Judicial Review Handbook](https://dokumen.pub/judicial-review-handbook-9781509922833-9781509922864-9781509922840.html) · [new evidence on appeal](https://scholarship.law.umn.edu/cgi/viewcontent.cgi?article=1422&context=mlr) · [new facts](https://cld.irmct.org/notions/show/593/new-facts). Version not shown. Neither package.
+
+**P6.** [DecisionRules MCP](https://www.decisionrules.io/en/articles/decision-rules-mcp-server-build-and-manage-business-rules-from-chat-gpt-claude-and-copilot/) · [rego_explain_decision](https://glama.ai/mcp/servers/OrygnsCode/opa-mcp-server/tools/rego_explain_decision) · [@putervision/agent-reasoning-mcp](https://www.npmjs.com/package/@putervision/agent-reasoning-mcp) · [MCP evaluation](https://www.confident-ai.com/blog/the-step-by-step-guide-to-mcp-evaluation) · [Cerbos](https://www.cerbos.dev/blog/dynamic-authorization-for-ai-agents-guide-to-fine-grained-permissions-mcp-servers) · [AGP](https://agp-protocol.dev/integrations/mcp) · [MCP Tool Rules](https://mcpboundary.com/mcp-tool-rules) · [Decide Test MCP](https://lobehub.com/ko/mcp/k-n-t-lam-decide-test-mcp) · [Decisions MCP](https://mcpservers.org/servers/roberton003/mcp-server-decisions) · [MCP governance policies](https://microsoft.github.io/agent-governance-toolkit/tutorials/policy-as-code/mcp-governance/). Version not shown. Neither package.
+
+**C1.** [npm caveat-lang](https://www.npmjs.com/package/caveat-lang), rc.16 · [GETTING_STARTED.md](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/GETTING_STARTED.md), rc.16 · [REFERENCE.md](https://github.com/WSattazahn/caveat-lang/blob/main/kit/docs/REFERENCE.md), version not shown · [GitHub repo](https://github.com/WSattazahn/caveat-lang), rc.16 · [npm.io](https://npm.io/package/caveat-lang), rc.5 · [AGENT_START.md](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/kit/docs/AGENT_START.md), rc.16 · [GitHub about](https://github.com/WSattazahn/caveat-lang), version not shown · [proofs/lean](https://github.com/WSattazahn/caveat-lang/tree/main/proofs/lean), rc.9, rc.13, rc.15 · [README culture section](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/README.md), version not shown · [Late.lean](https://raw.githubusercontent.com/WSattazahn/caveat-lang/main/proofs/lean/Caveat/Late.lean), version not shown.
+
+**C2.** [kitepon/Caveat](https://github.com/kitepon-rgb/Caveat), `caveat-cli`, version not shown · [pixelx caveat-mcp](https://lobehub.com/fr/mcp/pixelx-jp-caveat-mcp), `@yodolabs/caveat-mcp` 0.1.1 · [kitepon changelog](https://github.com/kitepon-rgb/Caveat/blob/main/CHANGELOG.md), 0.19.10 and 0.16.3 shown · [PulseMCP kitepon](https://www.pulsemcp.com/servers/kitepon-rgb-caveat), version not shown · [kitepon plan](https://github.com/kitepon-rgb/Caveat/blob/main/docs/01_plan.md), version not shown · [capnagent](https://github.com/euanmcrosson-dotcom/capnagent), not either package · [npm caveat-cli](https://www.npmjs.com/package/caveat-cli), 0.20.1 · [npm caveat-lang](https://www.npmjs.com/package/caveat-lang), rc.16 · [LobeHub ja caveat-mcp](https://lobehub.com/ja/mcp/pixelx-jp-caveat-mcp), 0.1.1 · [kitepon plan history](https://github.com/kitepon-rgb/Caveat/blob/main/docs/01_plan.md), version not shown.
+
+This is the V1 search-visibility record. It is not a fresh-agent discovery study, and it does not support a claim about install behavior or demand. Repeat this query set unchanged after any approved metadata change.

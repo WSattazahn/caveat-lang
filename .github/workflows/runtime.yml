@@ -95,6 +95,8 @@ jobs:
         run: node --test scripts/pages-gate.test.mjs
       - name: npm publication gate refuses untested, mismatched or unattested packages
         run: node --test scripts/release-publish.test.mjs
+      - name: Distribution closeout check refuses unexplained channel or registry mismatches
+        run: node --test scripts/check-distribution.test.mjs
       - run: command -v wasm-bindgen >/dev/null || cargo install wasm-bindgen-cli --version 0.2.104 --locked
       - uses: actions/setup-node@v7
         with:

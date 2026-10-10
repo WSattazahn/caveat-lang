@@ -59,3 +59,7 @@ experiments/departure-gate/withdrawal-batch/results/** -text whitespace=cr-at-eo
 
 # Frozen release-preparation observations preserve their original bytes.
 experiments/departure-gate/release-evidence/** -text whitespace=cr-at-eol,-blank-at-eof
+
+# Supplied third-party visibility reports are archived byte for byte (CRLF
+# included) so their recorded SHA-256 values survive checkout.
+docs/visibility/v1/*.txt -text whitespace=cr-at-eol,-blank-at-eof

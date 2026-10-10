@@ -1,5 +1,12 @@
 # CAVEAT Language
 
+**A decision ledger for agents.**
+
+Caveat is an embeddable decision runtime with a small rules language. It
+tracks evidence through computations, preserves the grounds of recorded
+decisions, and supports reconsideration under authored policies when evidence
+changes.
+
 The published preview is **0.1.0-rc.16**. See the
 [rc.16 release record](docs/releases/v0.1.0-rc.16.md) for what it changes.
 
@@ -8,8 +15,6 @@ The published preview is **0.1.0-rc.16**. See the
 > At verification, `latest` names rc.16 and `next` remains rc.15. Published by `publish-npm.yml` from tag `v0.1.0-rc.16` with an npm provenance attestation.
 > [Publication record](docs/releases/v0.1.0-rc.16-npm-publication.json).
 
-
-**Programs that remember why.**
 
 When a tool result is corrected or a memory turns out to be stale, an application
 needs to reconsider its decision without losing the reasons for the original.
@@ -60,6 +65,13 @@ and the [official Python client](kit/examples/agent-evidence/README.md). Caveat
 records supplied evidence and authored policy; it does not authenticate evidence
 or authorize external actions. [Repository agent guidance](AGENTS.md) includes
 how to report a capability missing from a real integration.
+
+**What stands behind it?** [What is checked, and how](docs/VERIFICATION.md)
+separates the Lean model theorems ([proofs/lean](proofs/lean/README.md)),
+sampled native and WebAssembly conformance with mutation controls, runtime
+tests, and the boundaries nothing proves. It also states the limits: windows
+do not bound saves, nothing is authenticated, and hosts set their own resource
+budgets.
 
 ## Principles and capabilities
 
