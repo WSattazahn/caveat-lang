@@ -428,3 +428,43 @@ One-time setup, done by the owner before the first run:
 - **GitHub environment** (repository Settings → Environments → New
   environment): name `npm-publish`; required reviewer `WSattazahn`; deployment
   branches and tags limited to the tag pattern `v*`. It needs no secrets.
+
+## Distribution closeout
+
+Publication changes one npm dist-tag. A release is closed out only when every
+channel names it, or lags for a reason the owner stated and the record keeps.
+Since rc.13 these have been owner steps after the publication record; for
+rc.16 they were not yet done when the Grok V1 visibility baseline was captured
+(see [docs/visibility](visibility/README.md)). Do not move a channel, republish
+npm bytes or overwrite an earlier registry entry only to make metadata agree.
+
+1. **npm `next`.** With their own npm login, the owner runs
+   `npm dist-tag add caveat-lang@<version> next`. Trusted publishing cannot
+   do it.
+2. **MCP Registry.** The owner publishes `server.json` from the release tag
+   (`git show v<version>:server.json`), not from a later `main`, with
+   `mcp-publisher validate`, `login github` and `publish`. A registry entry is
+   immutable once published; a wrong one is followed by a corrected version,
+   never edited.
+3. **Check.** Run
+   `node scripts/check-distribution.mjs --version <version>` and keep its JSON
+   output. It reads npm's dist-tags and the registry's latest entry, and fails
+   unless both npm channels and the registry name the version, and the
+   registry's name, package, status, description and launch arguments match
+   `server.json`. An intentional lag is passed as
+   `--lag npm-next="reason"` or `--lag registry="reason"`; the reason is in the
+   output. A metadata difference cannot be excused that way. Exit 2 means a
+   source could not be read: the check is unavailable, not passed.
+4. **One install path.** Start the server the way the registry entry launches
+   it (`npx -y caveat-lang@<version> mcp`, stdio), send `initialize` and
+   `tools/list`, and record the server version and tool names. On 2026-10-10
+   rc.16 answered as `caveat-lang` 0.1.0-rc.16 with `caveat_validate`,
+   `caveat_check`, `caveat_test`, `caveat_explain` and `caveat_dependents`.
+   The registry description must stay within those tools: an authoring bridge,
+   not a persistent session, automatic reassessment of outside systems or
+   authenticated evidence.
+5. **Socket.** The owner's screenshots of the package's Socket scores and
+   alerts are recorded as a signal, not a gate.
+6. **Record.** A documentation pull request adds the check output, the
+   install-path result and the Socket reading to the release record, with the
+   time of each. Record a channel as moved only after the check shows it.
