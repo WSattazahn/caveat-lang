@@ -1,0 +1,369 @@
+You are taking part in a study of how guessable a small programming language is. The language is called Caveat. You have never seen its syntax, and you must not look it up: do not search the web, open any link or use any tool. Work only from this message.
+
+Below are two things: a description of what Caveat is for, with every piece of code removed, and the specification of a small game feature, Glowcap, as a base phase followed by change requests CR1 to CR12, applied in order.
+
+Write the Caveat program you would expect to implement the whole feature, through CR12, as if Caveat existed in the form you imagine from its description. Invent whatever syntax seems most natural to you for what the description says the language does. Also write the small host-side adapter (in JavaScript) that you would expect to need, if any, to turn the program's state into the view shape the feature specifies.
+
+Reply with exactly three parts:
+
+1. The Caveat program, in one code block.
+2. The adapter, in one code block, or the words "no adapter" if you expect none.
+3. A list of your assumptions: each construct you invented, what you expect it to do, and anything in the feature you were unsure how the language would express.
+
+Do not apologise for guessing; guessing is the point. Do not ask questions; where something is unclear, choose and record the choice in part 3.
+
+=== What Caveat is (its documentation, with all code removed) ===
+
+**A decision ledger for agents.** Caveat is an embeddable decision runtime
+with a small rules language. It tracks evidence through computations, preserves
+the grounds of recorded decisions, and supports reconsideration under authored
+policies when evidence changes. What is checked, and how
+separates model theorems, sampled conformance, runtime tests and unproved
+boundaries. This package includes the WebAssembly
+runtime, Node/browser library and CLI; no Rust installation is needed.
+Requires Node 20 or later for the CLI.
+
+# Preserving Caveat while expanding the language
+
+Caveat's identity is the persistent epistemic graph described in the original specification: claims, evidence with provenance, qualified uncertainty, provisional commitments, and reopening without erased history. Replacing host-language code is useful only when that model remains intact.
+
+## What must remain true
+
+- Supporting and opposing evidence may coexist. A new reading does not silently delete the old forecast.
+- Evidence retains its source. Declaring evidence does not make it observed.
+- A commitment selects an action without asserting that its assumptions are certainly true.
+- Retained caveats remain attached when a commitment reopens. The cause of reopening remains inspectable.
+- Examination spends the program's attention budget. Presentation cannot bypass that cost.
+- A failed event publishes none of its numeric changes, graph changes, or presentation cues.
+- Knowledge can change an actor's response. It must not retroactively change the external physical condition being observed.
+- An explanation may cite less than a value depended on, never more. The runtime rejects a citation its binding did not read; the complete lineage remains inspectable.
+- Lineage records what could have influenced a value; grounds record what it is based on. Control (guards, skipped rules, revealing guards, predecessor decisions) belongs to lineage only, and grounds never exceed lineage.
+
+(…) answers whether evidence was observed, through a stance-bearing relation or an explicit neutral reveal, not whether a claim is true. Neutral observation asserts no support or opposition. (…) and (…) describe the history and current status of a decision. These queries do not turn the graph into a single confidence score.
+
+## Ordinary computation still has a place
+
+Coordinates, geometry, audio frequencies, and interface layout can be ordinary deterministic values. Pure arithmetic functions and presentation bindings support the epistemic program. They do not make every number uncertain, claim to implement a truth oracle, or replace the graph with application flags.
+
+Bindings display the state reached by the program. Emitted cues describe the effects of a successfully committed event. Neither form may mutate the evidence graph from browser code.
+
+Physical key presses are ordinary input facts. Light the Way now interprets
+their aliases, held states, opposing directions, and steering in Caveat source.
+The browser forwards declared press/release events; it does not decide what a
+key means. Holding Space still requires a complete source-timed observation
+before a reading exists. Releasing input or pausing clears held keys without
+erasing observations, retained caveats, or earlier commitment bases. This moves
+application policy into Caveat without treating every input as epistemic evidence.
+
+## Qualifications survive computation
+
+Reactive 0.3 makes qualified numeric values part of execution. Arithmetic and reusable functions carry their evidence and caveats. Comparisons preserve those dependencies, and conditional writes retain the qualifications involved in choosing the result. Multiplying by zero or passing an argument to a function that ignores it cannot silently erase its evaluated dependency.
+
+A commitment made (…) such a value records the number and its provenance at that moment, automatically retains its caveats, and adds (…) evidence edges. A later assignment can replace the current estimate without rewriting the earlier decision. The original evidence source remains in the graph. Ordinary browser values are projections of this state; they are not fed back as stripped authoritative values.
+
+Conditional graph effects preserve their dependencies too. Revealing, examining, reopening, or deciding to skip one of those effects cannot be used as an intermediate step to erase a qualified condition. Query metadata records dependencies on absence without falsely marking unseen evidence as observed.
+
+This is dependency preservation, not a truth oracle. The author chooses how evidence informs a measurement. The runtime enforces observation availability and retained qualifications; it does not independently certify sensor accuracy or evidence quality.
+
+## Repeated observations remain distinct
+
+Reactive 0.5 gives each successful sample a fresh occurrence identity and frozen numeric value. A declared sensor is a source template; declaring it does not make it an observation. Equal-valued samples remain separate occurrences. Taking another reading never relabels the provenance already attached to a saved value or an earlier decision.
+
+A decision series can select a new revision only after its current decision has explicitly reopened. Every revision retains its numeric basis, caveats, predecessor, and actual evidence links. Reading the latest value selects a particular occurrence; it does not rewrite the archived record. A new decision can depend on the reason its predecessor reopened as well as its fresh measurement. Those are computational dependencies, not a statement that every earlier reading is still physically current.
+
+Skipped sampling and revision guards also affect which record remains current. Their dependencies belong to the current selection, separate from immutable archived values. A missing sample is still missing. Failed transactions consume no occurrence IDs and publish no partial history. Capacity limits reject an event atomically rather than evicting evidence silently.
+
+Renewal 0.1 extends the same rule to evidence a program declares: a renewable name means its current occurrence, and (…) gives it a new, unobserved one. Provenance names occurrences, never the name's current meaning, so renewing never relabels what an earlier value or decision rests on. A new occurrence inherits only the caveats declared on the evidence; a caveat learned about one occurrence stays with it. A scheduled (…) is bound to the occurrence that was current when it was scheduled.
+
+## Computation over archives
+
+Reactive 0.6 allows source-defined computation
+over these archives. A fold's reducer is ordinary Caveat code; Rust supplies
+bounded traversal. Counting and selecting records preserve the qualifications
+behind membership and indexing, and every visited record remains a dependency
+even if a reducer ignores it. Means, ranges, and trends describe authored
+interpretations of recorded observations. They do not discharge calibration
+caveats, turn past observations into present truth, or erase conflicting edges.
+The thermostat tests demonstrate that changing only a Caveat policy can change
+the control decision without altering the observations it was based on.
+
+## Qualifications survive reusable effects
+
+Reactive 0.7 extends reuse to effect procedures.
+A call freezes its entry arguments and guard, retaining all their evidence and
+caveats through descendant effects even when an argument is ignored. Body
+guards can respond to earlier effects, but cannot shed the call's inherited
+basis. A skipped call retains the evaluated guard's reasons on possible effect
+targets without evaluating untaken arguments, inventing observations, or
+spending attention. Nested calls share one event transaction and work budget.
+Any late failure rolls back history, graph changes, cues, and occurrence IDs.
+
+The game uses this facility for ordinary control policy; the thermostat uses
+it for observation, archive computation, and explicit decision revision. The
+same mechanism serves both without an application-specific Rust operation.
+It does not independently determine whether an authored policy is warranted.
+
+## The crosscurrent example
+
+The rescue source defines a morning forecast with provenance and a caveat about an unmeasured surge. The initial navigation decision retains that caveat. A later observation can oppose the forecast and reopen the earlier decision. The revised counter-steering commitment also retains uncertainty.
+
+The current's physical field is calculated from actual strength, position, and time. Observing it supplies a qualified measurement that source functions convert into a retained steering plan. The forecast, opposing observation, original commitment, revised commitment, and unresolved qualification all remain inspectable. A later change in actual strength need not match the retained estimate. The player sees the consequence through steering and brief visual feedback rather than a required reading panel.
+
+The regression test compares legitimate input histories, checks the persistent graph, and separates external force from navigation compensation. It must fail if observation merely changes a journal flag or rewrites physical reality.
+
+The storm crossing makes the distinction playable. Visible weather changes can reopen the current steering commitment without supplying perfect new measurements. The player may keep correcting an old plan manually, or hold the light over the current to take a fresh sample while the ferry keeps moving. One sampling procedure appends readings and one navigation series retains successive decisions. Faint last-reading arrows can disagree with the bright surface-flow arrows. Earlier numbers and decision bases remain intact, and later readings still retain the caveat that conditions can change again.
+
+This separation is a design invariant enforced by the game's source and regression tests. The language does not independently decide which authored numeric variables represent external physics.
+
+## Honest boundaries
+
+The source function library lets native Rust
+and browser hosts call the same compiled Caveat functions. All numeric inputs
+are checked, and native tracked inputs retain their qualifications even when
+ignored. Caller-supplied provenance is not automatically authenticated evidence.
+The library's function validation also does not validate an entire surrounding
+game; each program still needs its corresponding session checks.
+
+Host transactions remain explicit. Door motion policy is inside its staged
+action, so a failed call publishes no partial movement. Last Beacon feedback
+is display policy applied after a committed action. If that display fails,
+the interface must preserve and accurately report the recorded action instead
+of replaying it or claiming that it rolled back.
+
+The reactive runtime still uses Rust for parsing, validation, expression execution, transactions, and the graph. JavaScript still connects browser input, graphics, audio, and DOM elements to generic program outputs. Adding functions and source-authored presentation does not make Caveat self-hosting.
+
+The source-defined prelude moves the algorithms for (…), (…), (…), and (…) out of Rust and into Caveat functions. Formatting policies for clocks, rounded numbers, and percentages also live in Caveat. A lazy conditional retains the condition and the branch actually evaluated; ordinary function arguments still contribute their dependencies even when the function body ignores them. Turning a qualified number into display text must preserve its qualification metadata.
+
+Supporting text, conditional expressions, and history records extends the Rust evaluator, so moving source algorithms does not imply a net reduction in Rust lines. Parsing, transactions, graph storage, primitive numeric/text operations, and WebAssembly remain Rust. General modules and a compiler written in Caveat remain future work.
+
+The thermostat history example tests the same observation and revision facilities outside the game. It demonstrates reuse, but it does not establish that Caveat is broadly useful in production. That requires more applications, user experience, and measurement.
+
+The success criterion is that a new behavior and its feedback can be authored in Caveat while preserving the invariants above. More (…) lines, fewer JavaScript lines, or a Rust-like surface syntax are not evidence of epistemic correctness by themselves.
+
+## The Atlas as a design reference
+
+The user-supplied *The Caveatist Atlas v1* distinguishes fictional cultural invention from doctrine. It reinforces a useful operational distinction: recording a qualification does not disprove it, and producing an objection does not by itself establish authority to stop a task. Examination concerns material consequences; stopping can permit action while uncertainty remains recorded. These ideas inform the checks above without converting fictional institutions or rituals into compiler requirements.
+
+=== The feature to implement ===
+
+# Glowcap: the beat and change requests CR1-CR12
+
+# Phase base
+
+## The beat
+
+Vessel's slime finds glowing mushrooms that all look alike. Glowcaps make it
+glow for 30 s. Duskcaps make it heavy for 20 s. The slime can absorb a
+mushroom, which consumes it and reveals its kind through the effect, or taste
+one, which identifies that mushroom without consuming it. What it has learned
+changes what the HUD tells the player, what it will agree to absorb, and what
+its journal says, and the journal explains why.
+
+Base level: `cave`, `pool`, `ruin`. Scenarios report each mushroom's true kind
+in their events; the policy never knows a kind until it is absorbed or tasted.
+
+### Events (host → policy)
+
+| Event | Payload | Rejected when |
+| --- | --- | --- |
+| `absorb` | `id`, `kind` (`glowcap`/`duskcap`) | unknown id or kind; mushroom consumed; `canAbsorb` false; kind contradicts a previous taste |
+| `taste` | `id`, `kind` | unknown id or kind; mushroom consumed; mushroom already tasted |
+| `tick` | `dt`, 0 ≤ dt ≤ 0.1 | dt out of range |
+
+A rejected event throws and must leave the view exactly as it was.
+
+### Effects
+
+- Absorbing a glowcap sets the glow timer to 30 s; a duskcap sets the heavy
+  timer to 20 s. `tick` lowers both timers by `dt`, not below 0.
+- `slime.glowing` is glow timer > 0; `slime.heavy` is heavy timer > 0.
+
+### Knowledge
+
+- **Evidence ids** are `absorb_<id>` and `taste_<id>`.
+- A mushroom is *known* once tasted (sweet = glowcap, bitter = duskcap).
+- The **belief** about glowing mushrooms comes from absorptions only:
+  `supportedBy` = glowcap absorptions, `contradictedBy` = duskcap absorptions.
+
+| belief.state | when | text | note |
+| --- | --- | --- | --- |
+| `none` | nothing absorbed | `""` | `""` |
+| `probably_safe` | support, no contradiction | `Glowing mushrooms give you light.` | `Based on one observation.` / `Based on N observations.` (N = supportedBy count) |
+| `probably_unsafe` | contradiction, no support | `Glowing mushrooms make you heavy.` | same form, N = contradictedBy count |
+| `uncertain` | both | `Not every glowing mushroom is safe. Taste before absorbing.` | `""` |
+
+### Decision
+
+`trust` = "absorb glowing mushrooms without tasting".
+
+- **Committed** the first time the belief becomes `probably_safe`.
+  `basis` = the evidence that made it so. The basis is frozen: later support
+  does not change it.
+- **Reopened** by every duskcap absorption after it was committed.
+  `reopenedBy` lists them in order. It is never recommitted in this beat.
+- `state`: `none`, `committed`, or `reopened`.
+
+### Mushroom view (every mushroom in the level)
+
+| Condition (first match) | label | canAbsorb | canTaste | because |
+| --- | --- | --- | --- | --- |
+| consumed | `""` | false | false | `[]` |
+| tasted glowcap | `Glowcap` | true | false | `[taste_<id>]` |
+| tasted duskcap | `Duskcap — avoid` | false | false | `[taste_<id>]` |
+| belief `none` | `Glowing mushroom` | true | true | `[]` |
+| belief `probably_safe` | `Probably a glowcap` | true | true | supportedBy |
+| belief `probably_unsafe` | `Probably a duskcap` | true | true | contradictedBy |
+| belief `uncertain` | `Could be a duskcap — taste first` | true | true | supportedBy ∪ contradictedBy |
+
+`present` is false only when consumed. Evidence lists are compared as sets.
+
+### View shape
+
+```js
+{
+  slime: { glowing, heavy },
+  mushrooms: { <id>: { present, label, canAbsorb, canTaste, because } },
+  belief: { state, text, note, supportedBy, contradictedBy },
+  decision: { state, basis, reopenedBy },
+}
+```
+
+Each implementation exports `createPolicy()` returning `{ dispatch(event), view() }`.
+Whatever glue an implementation needs to produce this shape counts as its code.
+
+# Phase cr1
+
+Applied after every earlier phase; cumulative.
+
+- **CR1 — a fourth mushroom.** Add `grove`. Every rule applies to it.
+
+# Phase cr2
+
+Applied after every earlier phase; cumulative.
+
+- **CR2 — twice bitten.** When `contradictedBy` has two or more entries, an
+  unknown present mushroom is labelled `Too risky — taste first`,
+  `canAbsorb` false, `canTaste` true, `because` = contradictedBy. Known
+  mushrooms are unaffected.
+
+# Phase cr3
+
+Applied after every earlier phase; cumulative.
+
+- **CR3 — tasting teaches, darkness qualifies.** A sweet taste also supports
+  the belief and a bitter taste contradicts it, exactly like absorptions (so
+  it can commit or reopen `trust`). A taste made while the slime is not glowing
+  carries the caveat `tasted_in_dark`. Every mushroom view, the belief and the
+  decision gain `caveats`: the union of the caveats on the evidence they cite
+  (`because`; supportedBy ∪ contradictedBy; `basis`). Tasted mushrooms whose
+  taste carries the caveat are labelled `Probably a glowcap (tasted in the
+  dark)` / `Probably a duskcap (tasted in the dark)`, with the same
+  `canAbsorb`/`canTaste` as their certain versions.
+
+# Phase cr4
+
+Applied after every earlier phase; cumulative.
+
+- **CR4 — cite the counterexample.** In the `uncertain` state an unknown
+  mushroom's `because` is contradictedBy only (its `caveats` follow `because`).
+
+# Phase cr5
+
+Applied after every earlier phase; cumulative.
+
+- **CR5 — a taste fades.** Sixty seconds after a taste (counted in ticks since
+  that taste), it has faded. The tasted mushroom is labelled
+  `Probably a glowcap (taste has faded)` / `Probably a duskcap (taste has
+  faded)`, which wins over the dark label, with the same `canAbsorb` and
+  `canTaste`. The taste evidence now carries the caveat `taste_faded`, so
+  every view citing it includes that caveat. The trust decision keeps the
+  caveats its basis carried when it was committed; a later fade does not
+  change them.
+
+# Phase cr6
+
+Applied after every earlier phase; cumulative.
+
+- **CR6 — trust has a history.** `decision.history` lists each change to
+  trust, in order: `{ change: 'committed', because: basis }` and
+  `{ change: 'reopened', because: [evidence] }`. It is compared in order.
+
+# Phase cr7
+
+Applied after every earlier phase; cumulative.
+
+- **CR7 — trust recovers.** While trust is reopened, the second glowcap
+  observation (an absorption or a sweet taste) since the most recent
+  contradiction commits it again. The new basis is those two observations,
+  in order. `reopenedBy` and `caveats` describe the current commitment, and
+  the history gains the entry. Belief and labels are unaffected.
+
+# Phase cr8
+
+Applied after every earlier phase; cumulative.
+
+- **CR8 — heaviness stacks.** Absorbing a duskcap while heavy adds 20 s to
+  the heavy timer, up to 30 s; otherwise it sets the timer to 20 s.
+  `slime.heavySeconds` is the remaining heavy time rounded up to a whole
+  second, and 0 when the slime is not heavy.
+
+# Phase cr9
+
+Applied after every earlier phase; cumulative.
+
+- **CR9 — watching others eat.** A new event, `witness` (`id`, `kind`): the
+  slime sees another creature eat that mushroom and what it did to the
+  creature. The mushroom is consumed. The evidence is `witness_<id>`, and it
+  always carries the caveat `secondhand`. A witnessed glowcap supports the
+  belief and a witnessed duskcap contradicts it, exactly like an absorption
+  (it can commit, reopen and recover trust). The slime's own timers do not
+  change. Rejected when the id or kind is unknown, the mushroom is consumed,
+  or the kind contradicts a previous taste. Being too risky for the slime to
+  absorb does not stop another creature eating it.
+
+# Phase cr10
+
+Applied after every earlier phase; cumulative.
+
+- **CR10 — mushrooms regrow.** Forty-five seconds after a mushroom is consumed
+  (counted in ticks since, like a fade), a new mushroom grows in its place:
+  present, untasted, of unknown kind, which may differ from the last. Evidence
+  about the new mushroom takes a life number: the first life keeps
+  `absorb_cave`, `taste_cave`, `witness_cave`; the second is `absorb_cave_2`,
+  `taste_cave_2`, `witness_cave_2`; and so on, up to a capacity the implementation declares, of at least
+  64 lives per mushroom. A mushroom that has used its last life stays consumed
+  and does not regrow; no tick is rejected for this, and an event on that
+  mushroom is rejected as on any consumed mushroom. Evidence from
+  earlier lives stays in the belief and the decision, and an earlier taste
+  still fades on its own clock.
+
+# Phase cr11
+
+Applied after every earlier phase; cumulative.
+
+- **CR11 — say why not.** Each mushroom view gains
+  `why: { absorb: { reason, because, caveats }, taste: { reason, because, caveats } }`.
+  `reason` is `''` and `because` is `[]` when the action is allowed;
+  otherwise the first match:
+
+  | action | when | reason | because |
+  | --- | --- | --- | --- |
+  | absorb, taste | consumed | `Already eaten` | the evidence that consumed the current life |
+  | absorb | tasted duskcap | `Known duskcap` | the taste |
+  | absorb | unknown, twice bitten | `Too risky untasted` | contradictedBy |
+  | taste | tasted | `Already tasted` | the taste |
+
+  `caveats` is the union of the caveats on `because`, as for every other view.
+
+# Phase cr12
+
+Applied after every earlier phase; cumulative.
+
+- **CR12 — save and resume.** Each policy gains `save()`, returning a JSON
+  value, and `createPolicy(saved)` resumes from it. After resuming, the view is
+  identical and every later event is accepted or rejected, and changes the
+  view, exactly as it would have without the save. `JSON.stringify(save())` is
+  at most 4096 bytes in every scenario, including ten minutes of continuous
+  play. The harness step `['resume']` saves, round-trips the save through
+  JSON, resumes, compares the complete views and continues on the resumed
+  policy.
