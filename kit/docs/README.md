@@ -105,9 +105,11 @@ Background:
   [lineage compaction](reference/spec/caveat-lineage-compaction-0.1.md) and
   [departure](reference/spec/caveat-departure-0.1.md): retirement, exact own
   grounds and records leaving a session.
-- [Withdrawal collector contract](reference/docs/design/withdrawal-collector-draft.md):
+- [Withdrawal collection](reference/spec/caveat-withdrawal-collection-0.1.md):
   required reasons, conservative retention, historical report scope and
-  transactional collection.
+  transactional collection. The
+  [collector draft](reference/docs/design/withdrawal-collector-draft.md) keeps
+  its evidence.
 
 ## The kit
 

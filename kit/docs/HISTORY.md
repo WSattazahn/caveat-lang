@@ -111,7 +111,9 @@ record measured workloads and their limitations.
 The packaged [Windows](reference/spec/caveat-windows-0.1.md),
 [lineage-compaction](reference/spec/caveat-lineage-compaction-0.1.md),
 [departure](reference/spec/caveat-departure-0.1.md) and
-[collector contract](reference/docs/design/withdrawal-collector-draft.md)
-describe the retention rules. The
+[withdrawal collection](reference/spec/caveat-withdrawal-collection-0.1.md)
+specifications describe the retention rules; the
+[collector draft](reference/docs/design/withdrawal-collector-draft.md) keeps
+their evidence. The
 [root inventory](reference/experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md)
 records the source consumers behind conservative retention.

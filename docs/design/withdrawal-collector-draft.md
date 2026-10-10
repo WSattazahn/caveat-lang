@@ -1,5 +1,10 @@
 # Withdrawal collector — reviewable draft contract
 
+Specified since the 1.0 cycle as
+[Withdrawal Collection 0.1](../../spec/caveat-withdrawal-collection-0.1.md),
+which decides where the two differ. This draft keeps the history, evidence and
+measurements behind it.
+
 Status: **repaired collector accepted as an experimental development baseline**,
 2026-10-08 UTC, at `3d77aa27bcffa16f39818b2684e9afb3b102ed17` in PR #175.
 The owner explicitly accepted departed-record snapshot changes, the scoped

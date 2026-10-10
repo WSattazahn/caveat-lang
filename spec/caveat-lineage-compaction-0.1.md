@@ -12,7 +12,8 @@ reviewable implementation of additional withdrawal collection, based on
 preserves exact own-ground pins and ordinary compaction while identifying the
 new candidate, archive and capacity-limit boundaries for review. This is not
 merge or release approval. The owner subsequently accepted the repaired experimental contract as recorded there; it does not resolve the broader
-retained-state bound discussed below.
+retained-state bound discussed below. That contract is now specified as
+[Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md).
 
 [Windows 0.1](caveat-windows-0.1.md) lets a history retire its oldest records.
 A retired record leaves the live graph but stays in the session, so a

@@ -8,18 +8,12 @@ option A, meaning 3), after [Windows 0.1](caveat-windows-0.1.md) and
 owner's (2026-10-05 16:40 UTC): lineage compaction, then departure, then the
 C3 gate on a runtime build.
 
-Collector draft note (2026-10-07): the owner has separately authorized a
-reviewable withdrawal-collection implementation on
-`codex/withdrawal-collector-draft`, based on `f5ec829`. The
-[draft contract and acceptance checklist](../docs/design/withdrawal-collector-draft.md)
-record its proposed additional candidates, conservative transfer vetoes,
-archive reporting and capacity-limit differences. On 2026-10-08 UTC the owner
-accepted repaired `3d77aa` as an experimental development baseline, including
-those explicit snapshot, scoped historical-completeness and capacity-only
-choices. This document retains the original ordinary-departure contract;
-the collector contract defines its accepted experimental overlay. Merge and
-release remain unapproved. Representation-only index compaction does not
-authorize changing either retention rule or the capacity admission timing.
+Collection note: [Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md)
+specifies the additional collection of unreachable withdrawal groups that
+shipped in rc.16, and its one outcome difference (capacity). It supersedes the
+pointers to the [collector draft](../docs/design/withdrawal-collector-draft.md)
+that this file carried during rc.16, which keeps its history and evidence.
+This document retains the ordinary-departure contract.
 
 Windows 0.1 retires a windowed history's oldest records: they leave the live
 graph and stay in the session. Lineage Compaction 0.1 says what every citation
@@ -79,9 +73,8 @@ its form: a marker could stand for one record, with `from` equal to
   cycles and reachable reason chains retain growing pinned sets; the
   [withdrawal reachability proposal](../experiments/departure-gate/WITHDRAWAL-REACHABILITY-DESIGN.md)
   records the pre-collector measurements. Exact reasons and predicate behavior
-  remain required. The reviewed `f5ec829` baseline has no cycle collector; the
-  separately authorized [collector draft](../docs/design/withdrawal-collector-draft.md)
-  has its own evidence; the repaired experimental contract was accepted on 2026-10-08 as recorded there.
+  remain required. [Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md)
+  removes unreachable self and mutual groups; reachable chains remain.
 
 Both pins serve one invariant: **ordinary departure preserves
 decision/evaluation outcomes.** For ordinary departure, a program accepts and
@@ -89,7 +82,7 @@ refuses the same events as with retirement alone, with the same refusal origins
 and codes; departure appears in retained snapshots, save size, `depart` effects,
 markers and the archive.
 
-The accepted [collector capacity amendment](../docs/design/withdrawal-collector-draft.md)
+[Withdrawal Collection 0.1](caveat-withdrawal-collection-0.1.md)
 adds one explicit difference: a later event may succeed after an earlier
 accepted event freed held-record capacity. It retains the threshold, admission
 timing and rollback, and cannot rescue an already-refused event. The ordinary
@@ -237,7 +230,8 @@ Exact membership does not authenticate the host's history.
   that record departs later in the same event. These reports are not pins.
   Restore permits such a reference only when a corresponding valid `depart`
   effect agrees with the source and the actual history gap in the save. An
-  arbitrary absent record or forged departure report is insufficient.
+  arbitrary absent record, or a departure report that the source and the
+  save's history cannot produce, is not enough.
 
 Restore refuses a save when:
 

@@ -1,5 +1,5 @@
 {
-  "note": "Repository files copied into the package when it is packed, each at docs/reference/ plus its repository path, so links between them keep working. The first 27 are the reference set the v2 authoring study used; the kit adds its four specs, identifiers, withdrawal, permission, reopening triggers, routed repetition and the thermostat example. Neutral Reveal 0.1 extends observation without a stance. rc.16 includes the history/departure specifications and the collector contract/root inventory.",
+  "note": "Repository files copied into the package when it is packed, each at docs/reference/ plus its repository path, so links between them keep working. The first 27 are the reference set the v2 authoring study used; the kit adds its four specs, identifiers, withdrawal, permission, reopening triggers, routed repetition and the thermostat example. Neutral Reveal 0.1 extends observation without a stance. rc.16 includes the history/departure specifications and the collector contract/root inventory; Withdrawal Collection 0.1 is that contract as specification.",
   "reference": [
     "docs/AI_AUTHORING.md",
     "docs/CAVEAT_ESSENCE.md",
@@ -48,6 +48,7 @@
     "spec/caveat-windows-0.1.md",
     "spec/caveat-lineage-compaction-0.1.md",
     "spec/caveat-departure-0.1.md",
+    "spec/caveat-withdrawal-collection-0.1.md",
     "docs/design/withdrawal-collector-draft.md",
     "experiments/departure-gate/WITHDRAWAL-ROOT-INVENTORY.md"
   ]
