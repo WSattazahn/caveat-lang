@@ -24,6 +24,7 @@ export const DECLARED_CAPABILITIES = {
     'lib/doctor.mjs',
     'lib/mcp.mjs',
     'lib/node.mjs',
+    'lib/starter-node.mjs',
   ],
   subprocess: [
     'examples/agent-evidence/caller.py',
