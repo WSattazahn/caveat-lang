@@ -98,6 +98,9 @@ Background:
 
 ## History and long-running sessions
 
+- [Integration starter](STARTER.md): a host for Node and browsers that
+  checkpoints every accepted event, keeps the archive through store failures
+  and restarts, and keeps a send's answers apart from the current assessment.
 - [History integration](HISTORY.md): drain and retain the host archive,
   interpret exact versus conservative reports, and budget live and historical
   storage separately.

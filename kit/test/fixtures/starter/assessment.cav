@@ -1,0 +1,33 @@
+scene "The agent-evidence assessment with a window, so observations depart and the host keeps them.";
+
+claim answer_supported;
+claim misreport;
+evidence tool from "a tool observation the agent reported";
+evidence recheck from "a second look at that observation";
+
+readings observations from tool window 2;
+decisions assessment limit 64 reopened by observations opposing answer_supported;
+
+event observe confidence min 0 max 100;
+event assess;
+event retract;
+
+on observe when confidence >= 70 sample observations = confidence supports answer_supported;
+on observe when confidence < 70 sample observations = confidence opposes answer_supported;
+
+on assess when not has_sample(observations) reject "No observation to assess.";
+on assess when withdrawn(latest(observations)) reject "The latest observation is withdrawn.";
+on assess when committed(assessment) and not reopened(assessment) reject "Already assessed.";
+on assess when latest(observations) < 70 reject "The evidence does not support the answer.";
+on assess commit assessment because enough using latest(observations);
+
+on retract when not has_sample(observations) reject "No observation to withdraw.";
+on retract when withdrawn(latest(observations)) reject "The latest observation is already withdrawn.";
+on retract when not observed(recheck) reveal recheck supports misreport;
+on retract withdraw latest(observations) because recheck;
+on retract when committed(assessment) and not reopened(assessment) and rests_on_withdrawn(assessment)
+    reopen assessment because recheck;
+
+bind assessment.verdict = "none";
+bind assessment.verdict = "approved" when committed(assessment) and not reopened(assessment);
+bind assessment.verdict = "reopened" when reopened(assessment);

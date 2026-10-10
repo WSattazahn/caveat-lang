@@ -71,3 +71,30 @@ export function use(runtime: CaveatRuntime, source: string): void {
   const wrong: ProgramEvent = { event: 'read', payload: { bed: 'north', size: 'small', who: 'x' } };
   void [value, covered, label, always, cited, queued, wrong];
 }
+
+// The starter host takes the same declarations.
+import { memoryStore, openHost } from '../lib/starter.mjs';
+import type { SendResult } from '../lib/starter.mjs';
+import { fileStore } from '../lib/starter-node.mjs';
+
+export async function host(runtime: CaveatRuntime, source: string, directory: string): Promise<void> {
+  const typedHost = await openHost<Program>({ runtime, source, store: memoryStore() });
+  const result: SendResult<View> = await typedHost.send('read', { celsius: 17 });
+  if (result.accepted && result.durable) {
+    const shown: number = result.view.bindings.gauge.value;
+    void shown;
+  } else if (result.handled && !result.accepted) {
+    const code: string = result.rejection.code;
+    void code;
+  }
+  await typedHost.send('decide');
+  // @ts-expect-error not an event of the program
+  await typedHost.send('raed', { celsius: 17 });
+  // @ts-expect-error read needs its payload
+  await typedHost.send('read');
+  const status: 'none' | 'in_force' | 'reopened' = typedHost.assessment('cover').status;
+  void status;
+  const onDisk = await openHost({ runtime, source, store: await fileStore(directory) });
+  const entries: ArchiveEntry[] = await onDisk.archive();
+  void entries;
+}

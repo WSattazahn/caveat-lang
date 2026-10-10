@@ -1,7 +1,8 @@
 // Runs the developer kit's session library and scenario runner inside a real
 // browser: load the WebAssembly runtime from URLs, dispatch, and dispatch for a
 // view, refuse bad input without changing state, save and restore, read
-// elapsed(), and run scenario files with fetch. Run after `npm run build`.
+// elapsed(), run scenario files with fetch, and keep a starter host in
+// IndexedDB. Run after `npm run build`.
 //
 //   node scripts/test-kit-browser.mjs      PLAYWRIGHT_CHANNEL=chrome uses an installed Chrome
 //
@@ -180,6 +181,32 @@ try {
   const failure = failing.scenarios[0].failure;
   results.scenarioFailureReported = failing.failed === 1 && failure.kind === 'expect' && failure.path === '/bindings/heating/text' && failure.actual === '0%';
 
+  // The starter over IndexedDB: every accepted event checkpointed, departed
+  // records kept in the store, and a second connection resuming from it.
+  const { openHost, indexedDbStore, sourceDigest } = await import(${JSON.stringify(`${kit}starter.mjs`)});
+  const database = 'caveat-starter-check-' + Math.random().toString(36).slice(2);
+  const direct = runtime.open(${JSON.stringify(ARCHIVE_SOURCE)});
+  const expectedArchive = [];
+  const host = await openHost({ runtime, source: ${JSON.stringify(ARCHIVE_SOURCE)}, store: await indexedDbStore(database) });
+  let persisted = true;
+  for (let v = 1; v <= 5; v++) {
+    const sent = await host.send('look', { v });
+    persisted &&= sent.accepted && sent.durable && sent.archived;
+    direct.dispatch('look', { v });
+    expectedArchive.push(...direct.drainArchive());
+  }
+  const refusedSend = await host.send('look', { v: 9 });
+  await host.close();
+  const resumedHost = await openHost({ runtime, source: ${JSON.stringify(ARCHIVE_SOURCE)}, store: await indexedDbStore(database) });
+  results.starterIndexedDb = persisted && expectedArchive.length > 0
+    && refusedSend.handled && !refusedSend.accepted && refusedSend.rejection.origin === 'input'
+    && resumedHost.sequence === 5 && resumedHost.sourceSha256 === sourceDigest(${JSON.stringify(ARCHIVE_SOURCE)})
+    && JSON.stringify(resumedHost.view()) === JSON.stringify(direct.view())
+    && JSON.stringify(await resumedHost.archive()) === JSON.stringify(expectedArchive);
+  await resumedHost.close();
+  direct.close();
+  await new Promise(resolve => { const removal = indexedDB.deleteDatabase(database); removal.onsuccess = removal.onerror = resolve; });
+
   // Two loads of one module share its instance, so a trap reached through one
   // stops the other; loading again afterwards gives a fresh, working instance.
   const again = await loadRuntime({ module: moduleUrl, wasm: wasmUrl });
@@ -251,7 +278,7 @@ export async function checkKitInBrowser({ root, kit, runtime, examples, channel 
 export function assertBrowserResults({ results, problems }) {
   assert.equal(results.error, undefined, results.error);
   assert.deepEqual(problems, []);
-  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'sharedTrap', 'freshAfterTrap']) {
+  for (const check of ['accepted', 'inputRefusalKeepsState', 'malformedKeepsState', 'payloadRefused', 'dispatchViewAccepted', 'dispatchViewRefusal', 'restoreMatches', 'resumedAgrees', 'elapsed', 'neutralObservation', 'archiveTransfer', 'restoreNarrowedGrounds', 'restoreGroundsRejected', 'scenariosPass', 'scenarioFailureReported', 'starterIndexedDb', 'sharedTrap', 'freshAfterTrap']) {
     assert.equal(results[check], true, check);
   }
 }
@@ -260,5 +287,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const root = fileURLToPath(new URL('../', import.meta.url));
   const outcome = await checkKitInBrowser({ root, kit: '/kit/lib/', runtime: '/dist/pkg-reactive/', examples: '/examples/' });
   assertBrowserResults(outcome);
-  console.log(`Kit browser checks pass in ${outcome.browser}: session library, runtime from URLs, elapsed(), and scenario files run with fetch.`);
+  console.log(`Kit browser checks pass in ${outcome.browser}: session library, runtime from URLs, elapsed(), scenario files run with fetch, and the starter host in IndexedDB.`);
 }

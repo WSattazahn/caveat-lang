@@ -61,6 +61,14 @@
       "types": "./lib/types.d.mts",
       "default": "./lib/types.mjs"
     },
+    "./starter": {
+      "types": "./lib/starter.d.mts",
+      "default": "./lib/starter.mjs"
+    },
+    "./starter/node": {
+      "types": "./lib/starter-node.d.mts",
+      "default": "./lib/starter-node.mjs"
+    },
     "./runtime/*": "./runtime/*"
   },
   "files": [
