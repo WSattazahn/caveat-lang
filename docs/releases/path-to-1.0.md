@@ -1,6 +1,6 @@
 # Path to 1.0
 
-Status: **draft for the owner's approval.** This is the plan of record for the
+Status: **approved by the owner on 2026-10-10 at 16:28 UTC.** This is the plan of record for the
 work between rc.16 and 1.0.0. Earlier plans keep their history; where they
 disagree with this file about scope after rc.16, this file decides. Approving
 the plan does not approve any merge, tag, npm or registry publication, Pages
