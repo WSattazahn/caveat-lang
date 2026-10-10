@@ -126,6 +126,9 @@ Background:
 - [Agent evidence](../examples/agent-evidence/README.md): a Python caller for
   `caveat serve` that sends evidence, withdraws it and judges each attempt by
   the current assessment.
+- [Engineering readiness](../examples/readiness/README.md): a release approval
+  tied to one revision's test result, reopened by an authored policy when that
+  result is qualified, run through the integration starter.
 - [Check 0.1](reference/spec/caveat-check-0.1.md): `caveat check`, advisory
   warnings about patterns worth a second look, and how to allow one on purpose.
 - [Interface 0.1](reference/spec/caveat-interface-0.1.md): a program's events,

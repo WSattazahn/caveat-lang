@@ -16,7 +16,9 @@ It does four things the session alone leaves to you:
   (see [History integration](HISTORY.md));
 - reads the current assessment of a decision from the current view.
 
-Taking an external action is still up to the application.
+Taking an external action is still up to the application. The
+[readiness example](../examples/readiness/README.md) runs a whole approval
+lifecycle through a starter host.
 
 ## A host in Node
 

@@ -1,0 +1,60 @@
+{
+  "schema": "caveat-scenarios/0.1",
+  "source": "readiness.cav",
+  "scenarios": [
+    {"id": "P01", "title": "The release approval rests on a passing test result for the exact candidate revision",
+     "steps": [
+       {"send": "approve_release", "rejected": "No candidate revision."},
+       {"send": "propose", "payload": {"revision": "rev-a1b2c3"}},
+       {"send": "test_reported", "payload": {"revision": "rev-0ld999", "passed": 1}},
+       {"send": "approve_release", "rejected": "The test result is not for the candidate revision."},
+       {"send": "test_reported", "payload": {"revision": "rev-a1b2c3", "passed": 0}},
+       {"send": "approve_release", "rejected": "The candidate revision has no passing test result."},
+       {"send": "test_reported", "payload": {"revision": "rev-a1b2c3", "passed": 1}},
+       {"send": "approve_release"},
+       {"expect": {"/bindings/release/status": "approved", "/decision_journal/0/because": ["test_result@3"],
+                   "/decision_journal/0/caveats": []}},
+       {"send": "approve_release", "rejected": "The release is already approved."}
+     ]},
+    {"id": "P02", "title": "Wrong configuration qualifies the test result; the authored policy reopens the approval, which keeps its original grounds",
+     "steps": [
+       {"send": "propose", "payload": {"revision": "rev-a1b2c3"}},
+       {"send": "test_reported", "payload": {"revision": "rev-a1b2c3", "passed": 1}},
+       {"send": "approve_release"},
+       {"send": "audit_reported", "payload": {"findings": 0}},
+       {"send": "sign_off_dependencies"},
+       {"checkpoint": "approved"},
+       {"send": "test_configuration_wrong"},
+       {"expect": {"/bindings/release/status": "reopened", "/bindings/dependencies/status": "signed off",
+                   "/decision_journal/0/because": ["test_result"], "/decision_journal/0/caveats": [],
+                   "/decision_journal/2/change": "reopened", "/decision_journal/2/caveats": ["wrong_configuration"],
+                   "/commitment_grounds/dependency_signoff@1": {"evidence": ["dependency_audit"], "caveats": []}}},
+       {"send": "approve_release", "rejected": "The test result ran under the wrong configuration."},
+       {"resume": true},
+       {"expect": {"/bindings/release/status": "reopened", "/decision_journal/0/because": ["test_result"]}}
+     ]},
+    {"id": "P03", "title": "A low-consequence caveat on the audit reopens nothing, because no policy says it should",
+     "steps": [
+       {"send": "audit_reported", "payload": {"findings": 0}},
+       {"send": "sign_off_dependencies"},
+       {"send": "audit_mirror_lagged"},
+       {"expect": {"/bindings/dependencies/status": "signed off", "/decision_journal/0/caveats": []}},
+       {"send": "sign_off_dependencies", "rejected": "Dependencies are already signed off."}
+     ]},
+    {"id": "P04", "title": "A corrected test run is a new occurrence without the caveat; it earns a new approval and the reopened one keeps its grounds",
+     "steps": [
+       {"send": "propose", "payload": {"revision": "rev-a1b2c3"}},
+       {"send": "test_reported", "payload": {"revision": "rev-a1b2c3", "passed": 1}},
+       {"send": "approve_release"},
+       {"send": "test_configuration_wrong"},
+       {"send": "propose", "payload": {"revision": "rev-d4e5f6"}},
+       {"send": "test_reported", "payload": {"revision": "rev-d4e5f6", "passed": 1}},
+       {"send": "approve_release"},
+       {"expect": {"/bindings/release/status": "approved",
+                   "/decision_journal/0/because": ["test_result"],
+                   "/decision_journal/1/change": "reopened", "/decision_journal/1/caveats": ["wrong_configuration"],
+                   "/decision_journal/2/commitment": "release@2", "/decision_journal/2/because": ["test_result@2"],
+                   "/decision_journal/2/caveats": []}}
+     ]}
+  ]
+}
