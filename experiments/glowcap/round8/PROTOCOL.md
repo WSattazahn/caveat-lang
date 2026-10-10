@@ -180,3 +180,18 @@ read. The owner's answers to the open choices are recorded under
    any diff against it is information only. The probe still needs one run on
    a model of another family, with the same prompt. A counting reply is
    committed as `probe/reply.md`, as registered.
+6. **Two more attempts, neither counted (2026-10-10, 23:28 UTC).** The owner
+   tried Grok, which did not finish on a free plan
+   (`probe/runs/3-grok-unfinished.md`). They then ran the registered prompt in
+   ChatGPT, a family other than the authors'. The reply's first assumption says the
+   conversation "already contains Caveat syntax and repository material, so
+   this response is not a syntax-naïve trial", which breaks the probe's
+   "one fresh chat ... never shown Caveat's syntax". It is kept verbatim in
+   `probe/runs/2-chatgpt-not-counted.md` under amendment 5's rule: no guide or
+   packet items, and any diff is information only. A counting run needs a
+   fresh chat with no memory, no custom instructions and no tools or web,
+   such as a ChatGPT Temporary Chat or a new Gemini chat, with the prompt
+   pasted unchanged. On the same day, at 23:29 UTC, the owner chose "Don't
+   wait" on the card asking whether rc.17's tag should wait for a counting
+   run. So round 8 runs on rc.17's docs as they are, and any guide item
+   from a later counting run goes to rc.18, as "Timing" provides.
