@@ -1,7 +1,7 @@
 # Engineering readiness: an approval that keeps its reasons
 
 <!-- caveat-package:identity -->
-Package: **`caveat-lang@0.1.0-rc.16`**.
+Package: **`caveat-lang@0.1.0-rc.17`**.
 <!-- /caveat-package:identity -->
 
 A release approval is only as good as the test result it rests on. This
