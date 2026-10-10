@@ -30,6 +30,7 @@ workstreams with different acceptance rules:
 
 | Decision | Answer | Source |
 | --- | --- | --- |
+| Policy identity of saves (D6) | Saves record the source SHA-256; reports show it; restore under different source is refused unless the host names the replaced digest; older saves report "not recorded" | Owner card, 2026-10-10 16:19:07 UTC |
 | Who implements | Claude threads implement; the brief's "implementer plus independent reviewer" applies within that | Owner card, 2026-10-10 16:12 UTC |
 | Pilot timing | The outside pilot runs on the starter candidate **before** feature freeze | Owner card, 2026-10-10 16:12:57 UTC |
 | Positioning | "A decision ledger for agents" stays the headline. "An embeddable decision runtime with a small rules language" is the technical sentence under it | Owner card, 2026-10-10 16:13:03 UTC |
@@ -118,9 +119,13 @@ can approve the direction now.
   `dependents` in later 1.x runtimes.
 - Restore checks that a save is possible for the source. It does not
   authenticate history (A3).
-- **Policy identity of historical assessments:** see decision D6 below. Until
-  it is decided, the save binds only the program name, so the docs must not
-  imply that a historical explanation used the policy in force at the time.
+- **Policy identity of historical assessments (D6, decided):** a save records
+  the SHA-256 of the source text it was made under, and `explain` and
+  `dependents` show that digest beside historical decisions. Restore under
+  different source text is refused unless the host names the digest it is
+  replacing. Saves written before the field exist restore as today and report
+  the source identity as "not recorded". The digest identifies source text; it
+  does not authenticate the save or its history (A3).
 
 ### Limits that are not defects
 
@@ -144,7 +149,7 @@ gate. Owners are the threads proposed under "Threads after approval".
 | --- | --- | --- | --- | --- |
 | B1 | The withdrawal collector and its capacity amendment are core behavior in every windowed program, but their contract lives in `docs/design/`. Departure's invariant now reads "ordinary departure preserves outcomes" | Missing contract | Core | `spec/caveat-withdrawal-collection-0.1.md` merged with a corpus sweep, as F268 was; departure spec points to it |
 | B2 | No written compatibility commitment or 1.x policy | Missing contract | Core | `docs/COMPATIBILITY.md` merged; each stable row has a named check |
-| B3 | Saves do not bind exact source, so historical policy identity is undefined | Missing contract | Core | D6 decided and implemented with restore tests |
+| B3 | Saves do not bind exact source, so historical policy identity is undefined | Missing contract (decided as D6) | Core | PR A3 merged with its restore tests |
 | B4 | View 0.2 not implemented | Missing feature in agreed scope | Core | Spec and implementation merged; the delta gate passes over the full discovered corpus with negative controls |
 | B5 | No starter; archive persistence after write failure or restart is undefined | Missing feature in agreed scope | Integration | Node and browser starters pass fresh-install lifecycle tests including the failure and restart cases they claim |
 | B6 | Round 8 not run | Required step (owner) | Benchmark | Round 8 record committed, whatever its verdict |
@@ -166,7 +171,7 @@ proposals, not promises. Each PR is its own reviewable change.
 | A0 | This plan | — | 0.5 | 2026-10-10 |
 | A1 | Collector spec (B1): move the accepted contract into `spec/`, restate departure's invariant with the capacity difference, run the corpus sweep. No runtime change expected; a sweep difference stops the PR | A0 | 2 | 2026-10-13 |
 | A2 | `docs/COMPATIBILITY.md` (B2), package README "Not yet" update, the D6 contract text | A1, D6 | 2 | 2026-10-15 |
-| A3 | D6 implementation, if D6 picks a source digest (B3) | A2 | 2 | 2026-10-17 |
+| A3 | D6 implementation (B3): the additive save field, the digest in `explain` and `dependents` reports, refusal of a restore under different source unless the host names the replaced digest, and older saves reported as "not recorded"; restore tests for all three cases | A2 | 2 | 2026-10-17 |
 | A4 | `spec/caveat-view-0.2.md`: ordered evidence, sorted caveats, `reopened`, delta schema; departures, qualifications, journal windows, sequence mismatch, event-local cues and effects; restore and resync. View 0.1 and its bytes unchanged | A1 | 2 | 2026-10-19 |
 | A5 | View 0.2 implementation and delta gate (B4): the save sweep's discovered population, exclusions named and counted, fail on an empty or shrunken population; an independently written host-side applier; negative controls that corrupt deltas; accepted, no-op, rejected, restore, mismatch, explanation-only, qualification, departure and journal cases; dispatch, view build, apply time and bytes measured separately | A4 | 6 | 2026-10-28 |
 | A6 | rc.17 candidate: A1–A5 and B1 starter (below), release notes, the release procedure. Tag and publish wait for the owner | A5, B2 | 1 + owner | 2026-11-02 |
@@ -220,22 +225,14 @@ schedule; none is set up by this plan.
 The two-week stabilization window is a proposal. If a blocker delays the
 release, this file names it and moves the date; scope is not added silently.
 
-## Open decision
+## Decided: D6, policy identity of historical assessments
 
-**D6. Policy identity of historical assessments.** Today a save binds the
-program name, not the source text, so an explanation after restore uses
-whatever source the host loaded. Options:
-
-- **A (recommended):** the save records a SHA-256 digest of the source, and
-  `explain` and `dependents` reports print it beside historical decisions.
-  Restore with different source text is refused by default. A host that
-  deliberately migrates passes the old digest it expects to replace. This is
-  an additive save field (`caveat-reactive-save/0.1` stays readable; saves
-  without the field restore as today and report "source identity not
-  recorded").
-- **B:** record and report the digest, never refuse. Hosts decide.
-- **C:** no runtime change; the starter keeps source and saves together and
-  the docs say so. Historical policy identity is a host responsibility.
+Owner card, 2026-10-10 16:19:07 UTC ("Record and guard"). Before this, a save
+bound only the program name, so an explanation after restore used whatever
+source the host loaded. The decision is the rule stated in the commitment
+section above and implemented by PR A3. It is an additive field:
+`caveat-reactive-save/0.1` stays readable. Options not taken: record and report
+without refusing; leave source identity to hosts.
 
 ## Coverage of the brief
 
