@@ -74,19 +74,20 @@ for anything they share.
 
 ## Scoped offer
 
-**Price: a hypothesis, not a quote.** The owner sets it before any outreach.
+**Price: the first pilot is free** (owner's decision, 2026-10-10), in exchange
+for the measurements above. Whether a team would pay for the same scope is
+asked during the pilot, not assumed.
 
 | | |
 | --- | --- |
 | Scope | One approval step, one program written with the pilot team, the starter integrated into their environment, and one review of the result |
 | Out of scope | Hosting, authentication of evidence, actions taken on the team's systems, other approval steps, support after the pilot |
 | Duration | Two weeks of elapsed time (hypothesis) |
-| Price for the first pilot | None, in exchange for the measurements above (hypothesis) |
-| Price question to test | Whether a team would pay a fixed fee for the same scope; the amount is the owner's to set and is asked, not assumed |
+| Price for the first pilot | Free, in exchange for the measurements above |
+| Price question to test | Whether a team would pay a fixed fee for the same scope, and how much; asked, not assumed |
 | Data | The team's own data stays with them; anything shared with the project is sanitized and shared only with their permission |
 
 ## Before outreach
 
 - rc.17, carrying the starter, is published and its record verified.
 - The owner approves the named target and the exact message.
-- The owner sets the price hypothesis, or keeps it as "none".
