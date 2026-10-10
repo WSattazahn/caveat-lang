@@ -24,7 +24,8 @@ material or anything else that shares the repository.
 
 ### Schemas
 
-`caveat-dispatch/0.1`, `caveat-reactive-view/0.1` (and `/0.2` once it ships),
+`caveat-dispatch/0.1`, `caveat-reactive-view/0.1`, `caveat-reactive-view/0.2`,
+`caveat-reactive-view-delta/0.2`,
 `caveat-reactive-save/0.1`, `caveat-explain/0.1`, `caveat-dependents/0.1`,
 `caveat-check/0.1`, `caveat-interface/0.1`, `caveat-archive-provenance/0.1`.
 Package 1.0 does not rename them. A schema changes its version only by a new

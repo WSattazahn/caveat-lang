@@ -182,7 +182,9 @@ impl DispatchFailure {
 
     /// A classified refusal's origin, code and message; anything else is fatal.
     /// Both outcome shapes take their refusals and fatal errors from here.
-    fn classify(self) -> Result<(RejectionOrigin, RejectionCode, String), DispatchFatal> {
+    pub(super) fn classify(
+        self,
+    ) -> Result<(RejectionOrigin, RejectionCode, String), DispatchFatal> {
         match self.rejection {
             Some((origin, code)) => {
                 Ok((origin, code, self.policy_message.unwrap_or(self.diagnostic)))

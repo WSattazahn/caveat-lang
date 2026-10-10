@@ -17,6 +17,20 @@ export function use(runtime: CaveatRuntime, source: string): void {
   session.dispatch('decide');
   inferred.dispatchView('decide', {});
 
+  // View 0.2 on an untyped session (spec/caveat-view-0.2.md).
+  const plain = runtime.open(source);
+  const next = plain.view({ schema: '0.2' });
+  const reopened: boolean | undefined = next.commitments[0]?.reopened;
+  // @ts-expect-error View 0.2 has no `open`
+  next.commitments[0]?.open;
+  const delta = plain.dispatchViewDelta('decide');
+  if (delta.outcome === 'accepted') {
+    const since: number = delta.delta.since;
+    const dropped: number[] = delta.delta.relations.removed;
+    void [since, dropped];
+  }
+  void reopened;
+
   // @ts-expect-error not an event of the program
   session.dispatch('raed', { celsius: 17 });
   // @ts-expect-error not a field of read's payload

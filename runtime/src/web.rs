@@ -81,6 +81,31 @@ impl WebReactiveSession {
         serde_json::to_string(&self.inner.view()).expect("finite reactive view")
     }
 
+    /// The per-event view in schema 0.2, as compact JSON. See
+    /// spec/caveat-view-0.2.md.
+    pub fn view_v2(&self) -> String {
+        serde_json::to_string(&self.inner.view_v2()).expect("finite reactive view")
+    }
+
+    /// `dispatch_outcome` with the View 0.2 delta of an accepted event in
+    /// place of the snapshot. A refusal is the same returned value and a fatal
+    /// error the same thrown report. See spec/caveat-view-0.2.md.
+    pub fn dispatch_view_delta_outcome(
+        &mut self,
+        event: &str,
+        payload_json: &str,
+    ) -> Result<String, String> {
+        match self
+            .inner
+            .dispatch_view_delta_outcome_json(event, payload_json)
+        {
+            Ok(outcome) => serde_json::to_string(&outcome).map_err(|error| error.to_string()),
+            Err(fatal) => {
+                Err(serde_json::to_string(&fatal).expect("serializable fatal dispatch error"))
+            }
+        }
+    }
+
     /// Everything the session knows that an event can change, as JSON a host
     /// can store. See spec/caveat-save-0.1.md.
     pub fn save(&self) -> Result<String, String> {

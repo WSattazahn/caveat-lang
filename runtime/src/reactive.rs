@@ -50,6 +50,14 @@ pub use save::{
 #[path = "reactive_outcome.rs"]
 mod outcome;
 
+#[path = "reactive_view2.rs"]
+mod view2;
+pub use view2::{
+    CommitmentChanges, DispatchViewDeltaOutcome, DispatchViewDeltaResult, ListChanges,
+    NamedChanges, OrderedGrounds, PropertyChanges, ReactiveViewV2, ViewCommitment, ViewDelta,
+    REACTIVE_VIEW_DELTA_SCHEMA, REACTIVE_VIEW_V2_SCHEMA,
+};
+
 #[path = "reactive_collector.rs"]
 mod collector;
 #[path = "reactive_departure.rs"]
@@ -1323,6 +1331,10 @@ pub struct ReactiveSession {
     binding_qualifications: BTreeMap<String, BTreeMap<String, Provenance>>,
     binding_explanations: BTreeMap<String, BTreeMap<String, Provenance>>,
     commitment_grounds: Arc<BTreeMap<String, Provenance>>,
+    /// Each commitment's grounds evidence in first-observed order, frozen when
+    /// it was made; only where that differs from name order. View 0.2 shows
+    /// grounds in this order. See spec/caveat-view-0.2.md.
+    evidence_order: Arc<BTreeMap<String, Vec<String>>>,
     journal: Arc<Vec<JournalEntry>>,
     /// The histories declared with `window N` instead of `limit N`, and the
     /// journal's window. Fixed at load. See spec/caveat-windows-0.1.md.
@@ -1517,6 +1529,7 @@ impl ReactiveSession {
             binding_qualifications: BTreeMap::new(),
             binding_explanations: BTreeMap::new(),
             commitment_grounds: Arc::default(),
+            evidence_order: Arc::default(),
             journal: Arc::default(),
             windows: Arc::default(),
             journal_window: None,
@@ -4777,6 +4790,10 @@ impl ReactiveSession {
                     caveats: grounds.caveats.iter().cloned().collect(),
                     permitted_by: permission.map(|record| record.grant),
                 };
+                if !entry.because.iter().eq(grounds.evidence.iter()) {
+                    Arc::make_mut(&mut self.evidence_order)
+                        .insert(name.clone(), entry.because.clone());
+                }
                 self.retire_journal_entry();
                 self.pin_journal_entry(&entry);
                 Arc::make_mut(&mut self.journal).push(entry);

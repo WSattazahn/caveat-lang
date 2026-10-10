@@ -64,7 +64,7 @@ export function payloadText(payload) {
 }
 
 // accepted names what an accepted outcome carries: dispatch() the snapshot,
-// dispatchView() the view.
+// dispatchView() the view, dispatchViewDelta() the delta.
 function validOutcome(outcome, accepted = 'snapshot') {
   if (!outcome || outcome.schema !== DISPATCH_SCHEMA) return false;
   if (outcome.outcome === 'accepted') return isPlainObject(outcome[accepted]);
@@ -162,8 +162,50 @@ export class CaveatSession {
 
   snapshotText() { return this.#json(() => this.#inner.snapshot(), 'snapshot').text; }
   snapshot() { return this.#json(() => this.#inner.snapshot(), 'snapshot').value; }
-  viewText() { return this.#json(() => this.#inner.view(), 'view').text; }
-  view() { return this.#json(() => this.#inner.view(), 'view').value; }
+  // view() is View 0.1; view({ schema: '0.2' }) is View 0.2
+  // (spec/caveat-view-0.2.md). A runtime build that predates View 0.2 throws
+  // CaveatError("load") for 0.2.
+  viewText(options) { return this.#json(this.#viewReader(options), 'view').text; }
+  view(options) { return this.#json(this.#viewReader(options), 'view').value; }
+
+  // Checked before the runtime is called, so a wrong schema or an older
+  // runtime leaves the session usable.
+  #viewReader(options = {}) {
+    this.#usable();
+    const schema = options?.schema ?? '0.1';
+    if (schema === '0.1') return () => this.#inner.view();
+    if (schema !== '0.2') throw new TypeError("view schema must be '0.1' or '0.2'");
+    if (typeof this.#inner.view_v2 !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no view_v2; it predates View 0.2');
+    }
+    return () => this.#inner.view_v2();
+  }
+
+  // The same transaction, payload handling and failures as dispatch(), with
+  // the View 0.2 delta in place of the snapshot: {outcome: "accepted", delta},
+  // which applied to view({ schema: '0.2' }) before the event gives the view
+  // after it, or the rejected outcome dispatch() returns, with no delta. A
+  // runtime build that predates it throws CaveatError("load") and the session
+  // is untouched.
+  dispatchViewDelta(event, payload = {}) {
+    this.#usable();
+    if (typeof this.#inner.dispatch_view_delta_outcome !== 'function') {
+      throw new CaveatError('load', 'this runtime build has no dispatch_view_delta_outcome; it predates dispatchViewDelta');
+    }
+    if (typeof event !== 'string' || !event) throw new TypeError('event must be a non-empty string');
+    const text = payloadText(payload);
+    let raw;
+    try { raw = this.#inner.dispatch_view_delta_outcome(event, text); } catch (error) { throw this.#fail(error); }
+    let outcome;
+    try { outcome = JSON.parse(raw); } catch { throw this.#fail(new CaveatError('fatal', 'dispatchViewDelta returned text that is not JSON')); }
+    if (!validOutcome(outcome, 'delta')) {
+      // Not a fatal report either: keep what arrived for diagnostics only.
+      const error = new CaveatError('fatal', `unrecognised dispatch outcome: ${String(raw).slice(0, 200)}`);
+      error.received = outcome;
+      throw this.#fail(error);
+    }
+    return outcome;
+  }
 
   // The save is JSON text; restore it with the exact source it came from.
   save() { return this.#json(() => this.#inner.save(), 'save').text; }
@@ -220,7 +262,8 @@ function lifecycleOf(SessionClass) {
 // SessionClass is the runtime's WebReactiveSession, or a stand-in with the same
 // methods: new SessionClass(source), SessionClass.restore(source, saved),
 // dispatch_outcome, snapshot, view, save and free, and optionally
-// dispatch_view_outcome (for dispatchView), drain_archive and undrained (for
+// dispatch_view_outcome (for dispatchView), view_v2 and
+// dispatch_view_delta_outcome (for View 0.2), drain_archive and undrained (for
 // drainArchive and undrained), SessionClass.check(source) and
 // SessionClass.interface(source).
 export function createRuntime(SessionClass, identity = {}) {
