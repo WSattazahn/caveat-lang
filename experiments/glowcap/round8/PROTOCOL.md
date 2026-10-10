@@ -172,3 +172,11 @@ read. The owner's answers to the open choices are recorded under
    predictions; stage 4 (`registration-4.json`) is what depends on rc.17 and
    the round-8 fuzz mode, before any author starts.
 
+5. **A probe run from the authors' family does not count (2026-10-10, 23:26
+   UTC).** The owner ran the registered prompt in Fable and posted the reply.
+   Fable is a Claude model, the same family as the round's authors, so under
+   "The learnability probe" the run is not the probe. It is kept verbatim in
+   `probe/runs/1-fable-not-counted.md`, produces no guide or packet items, and
+   any diff against it is information only. The probe still needs one run on
+   a model of another family, with the same prompt. A counting reply is
+   committed as `probe/reply.md`, as registered.
