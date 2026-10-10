@@ -1,8 +1,8 @@
 // Records the hashes of round 8's registered files (PROTOCOL.md,
 // "Registration"). Stage 1 is the approved protocol, the predictions, the
 // probe and the inherited round 7 files; stage 2 the writer's and reviewer's
-// inputs; stage 3 what depends on rc.17; stage 4 the blind requests before
-// any author starts. No stage
+// inputs; stage 3 the blind requests (amendment 4); stage 4 what depends on
+// rc.17 and the fuzz mode, before any author starts. No stage
 // overwrites.
 //
 //   node experiments/glowcap/round8/register.mjs --stage=1|2|3|4
@@ -24,6 +24,9 @@ const files = {
   2: ['PROTOCOL.md', 'register.mjs', 'build-beat.mjs', 'BEAT.md', 'prepare.mjs', 'prompts/writer.md',
     'prompts/reviewer.md', 'workspace/README-writer.md', 'workspace/README-reviewer.md', '../scenarios.mjs',
     '../round7/scenarios-r7.mjs'],
+  // Amendment 4: the blind requests, before the runtime's stage.
+  3: ['PROTOCOL.md', 'PREDICTIONS.md', 'register.mjs', 'REQUESTS.md', 'REVIEW.md', 'scenarios-r8.mjs',
+    'build-phases.mjs', 'phases/cr17.md', 'phases/cr18.md', 'phases/cr19.md', 'phases/cr20.md', 'launches.json'],
 }[stage];
 if (!files) throw new Error(`stage ${stage} has no file list yet; add it when its files exist`);
 const out = path.join(here, stage === '1' ? 'registration.json' : `registration-${stage}.json`);

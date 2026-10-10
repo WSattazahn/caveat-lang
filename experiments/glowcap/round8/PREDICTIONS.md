@@ -44,3 +44,19 @@ read: its program fails `caveat check` on the first run; of the constructs
 it uses, fewer than half are **same** under the protocol's classes; and it
 puts the explanation bookkeeping (`because` lists, caveat unions) in the
 adapter rather than the source, which is the cause of most round 7 glue.
+
+## Per request, CR17–CR20
+
+Added at 2026-10-10 22:15 UTC, after the writer's revision and before any
+author starts (protocol row 8). The predictor has read the requests, the
+review and the scenarios, and no implementation, because none exists. "Diff"
+is blind-phase change cost in code lines; "failed runs" counts runs that fail
+during the request. Primary medians.
+
+| CR | Predicted | Why |
+| --- | --- | --- |
+| CR17: the HUD shows countdowns | TypeScript smaller diff and fewer failed runs | three derived numbers from timers each side already keeps; TypeScript reads its fields, while Caveat needs the remaining time of a schedule exposed to the view and rounded up, likely partly in the adapter |
+| CR18: doubt what you saw | Caveat smaller diff by more than 10%; Caveat at least one failed run | a caveat that every citation shows is late qualification, which Caveat carries to every citing view by itself; TypeScript must add `doubted` to each caveat union by hand. Excluding a doubted witness from the belief while keeping its memory slot and CR7's count is new bookkeeping on both sides |
+| CR19: taste again | tie | a second taste per life is a renewable observation on the Caveat side and a copy of the taste path on the TypeScript side; the "replaces the first taste as what identifies the mushroom" rule touches the label table on both |
+| CR20: take back a doubt | TypeScript smaller diff and fewer failed runs | removing a caveat everywhere it is cited is a flag flip in TypeScript; in Caveat a qualification is part of the evidence's record, so taking it back needs either a withdrawable qualification the packet documents or per-witness state the views consult |
+| Drift | Caveat lower on CR18, TypeScript lower on CR17 and CR20, tie on CR19 | follows the diffs |

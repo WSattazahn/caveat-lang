@@ -1,0 +1,19 @@
+{
+  "stage": 3,
+  "at": "2026-10-10T22:11:54.221Z",
+  "node": "22.22.0",
+  "files": {
+    "PROTOCOL.md": "2240a5d108c35247ea919f944af33059eecbfcbec9be2f203fc59ffe101ef04e",
+    "PREDICTIONS.md": "7ea6258034fe38996b0b796fb0bd142ece21d813f140ad61d863e45cd96de8bb",
+    "register.mjs": "8f8f130da5b7be51491410a626fb86eebf9f3ea7ff7fd6051ed48bac4cd2ba22",
+    "REQUESTS.md": "e7ec38cd1a45f3b3149d6d732829b0c3f9e288b2304e005fab6564fc0e4be946",
+    "REVIEW.md": "a00ed2f42123d699d87d8a9117b862482aa237722f715b24f47c7671d9938e53",
+    "scenarios-r8.mjs": "589c5f96360c0b5c96fa4810e895defde77454d8ab6a663e141dc6b00d124fb3",
+    "build-phases.mjs": "2dcbe312d9cc6c98fb5f4ffbc5695b178e0567bdb4caae9f6a7d4b5e01634fc5",
+    "phases/cr17.md": "e1fcb66f1f8680fb050578b4e5ea8e4117e01341f390f6f3953030ac2e48344c",
+    "phases/cr18.md": "aa00dcf8086e4365c8f8b47029acbf46637cf1fecc4a0c23387d96bc688caed6",
+    "phases/cr19.md": "99e48aa0038d5b383c7327efc94cd43b241948b6522f6216b7b5f2330eac6291",
+    "phases/cr20.md": "b782f1372f170ab2c741651542d3f1c114201a6d4ccf50b1b8237a738e63436e",
+    "launches.json": "f459d84ea5114800b5320852b5f97db92d158babd728fff2034e41b3899d249e"
+  }
+}

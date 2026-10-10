@@ -162,3 +162,13 @@ read. The owner's answers to the open choices are recorded under
    *Registration* shift by one: what depends on rc.17 is stage 3
    (`registration-3.json`) and the requests, scenarios, fuzz mode and
    per-request predictions are stage 4 (`registration-4.json`).
+4. **The requests are registered before the runtime work (after stage 2).**
+   The writer, reviewer and one revision ran on the owner's "Now"
+   (2026-10-10, 21:59 UTC), and the reviewer found two wording problems in
+   CR18 and no wrong expectation (`REVIEW.md`). So the requests' stage comes
+   before the runtime's: stage 3 (`registration-3.json`) is `REQUESTS.md`,
+   `REVIEW.md`, `scenarios-r8.mjs`, the phase texts CR17–CR20
+   (`build-phases.mjs`, verbatim from `REQUESTS.md`) and the per-request
+   predictions; stage 4 (`registration-4.json`) is what depends on rc.17 and
+   the round-8 fuzz mode, before any author starts.
+
