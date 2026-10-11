@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.7 — reusable procedures
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This profile extends [Reactive 0.6](caveat-reactive-0.6.md) with named,
 bounded sequences of effects. A program can reuse input handling, observation,
 and revision behavior without implementing an application-specific operation

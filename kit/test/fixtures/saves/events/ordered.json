@@ -1,0 +1,88 @@
+{
+ "before": [
+  {
+   "event": "see_zeta",
+   "payload": {
+    "ok": 1
+   }
+  },
+  {
+   "event": "see_alpha",
+   "payload": {
+    "ok": 1
+   }
+  },
+  {
+   "event": "decide",
+   "payload": {}
+  },
+  {
+   "event": "measure",
+   "payload": {
+    "value": 10
+   }
+  },
+  {
+   "event": "measure",
+   "payload": {
+    "value": 20
+   }
+  },
+  {
+   "event": "measure",
+   "payload": {
+    "value": 30
+   }
+  },
+  {
+   "event": "measure",
+   "payload": {
+    "value": 40
+   }
+  },
+  {
+   "event": "measure",
+   "payload": {
+    "value": 50
+   }
+  }
+ ],
+ "after": [
+  {
+   "event": "age",
+   "payload": {}
+  },
+  {
+   "event": "decide",
+   "payload": {}
+  },
+  {
+   "event": "retract",
+   "payload": {}
+  },
+  {
+   "event": "decide",
+   "payload": {}
+  },
+  {
+   "event": "see_zeta",
+   "payload": {
+    "ok": 0
+   }
+  },
+  {
+   "event": "measure",
+   "payload": {
+    "value": 60
+   }
+  },
+  {
+   "event": "retract",
+   "payload": {}
+  },
+  {
+   "event": "nonsense",
+   "payload": {}
+  }
+ ]
+}

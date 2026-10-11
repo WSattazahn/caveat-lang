@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.2
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This profile adds pure numeric functions, presentation bindings, emitted cues,
 and host input/clock metadata to the event runtime described in
 [Reactive Profile 0.1](caveat-reactive-0.1.md). The 0.1 document remains the

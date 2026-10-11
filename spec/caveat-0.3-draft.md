@@ -1,5 +1,7 @@
 # CAVEAT Language Specification — Draft 0.3 (world-map integration)
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 This draft extends the 0.1/0.2 epistemic model with explicit world topology. The goal is to make reasoning state and physical state part of one checked program model.
 
 ## 1. CAVEAT Map

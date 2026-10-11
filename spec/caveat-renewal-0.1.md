@@ -1,5 +1,7 @@
 # CAVEAT Renewal 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Evidence is declared, so a program has a fixed set of things it can learn
 from. Games do not work that way. A mushroom is eaten and another grows in its
 place; an enemy respawns; a sensor is replaced. The new one is a new source of

@@ -1,5 +1,7 @@
 # Source-authored presentation
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 CAVEAT programs can declare world-space coordinates, camera views and the
 physical shape of already connected routes. These declarations accompany the
 world graph in the map and live game snapshot. They do not change which actions

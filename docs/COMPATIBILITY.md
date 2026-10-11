@@ -46,18 +46,31 @@ syntax. Hosts should treat an unknown code as a refusal.
 
 ### Specifications
 
-Stable: every file in `spec/` whose name has no `-draft`, except the profiles
-listed under "What is not stable" below. The drafts `caveat-0.2-draft.md` to
-`caveat-0.5-draft.md` are not promises, and neither is
-`caveat-member-symbols-0.1.md`, whose status is draft and which nothing
-implements. A spec's own status line is updated to match this list before
-1.0.0.
+Stable: every file in `spec/` except those listed here. Each spec's status
+line, under its title, says which it is, and `kit/test/compatibility.test.mjs`
+checks that the two agree.
+
+- Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
+  `caveat-0.5-draft.md`, and `caveat-member-symbols-0.1.md`, which nothing
+  implements.
+- Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
+  `caveat3d-0.2.md`, `presentation.md`, and the semantic map they share,
+  `caveat-map-0.1.md`.
+- Native only: `caveat-rs-0.1.md` and `source-library-0.1.md`.
+- Records rather than behavior: `caveat-verification-0.1.md`, the proof
+  boundary, and `caveat-incremental-evaluation-0.1.md`, a performance design
+  whose observable behavior the stable profiles state (timing is not stable;
+  see "Limits").
+
+`caveat-0.1.md` is the founding vocabulary. It is stable, and the reactive
+profiles define what the package does with it.
 
 ## What is not stable
 
 - **Games and presentation.** `game-session-0.1`, `caveat3d-0.1`,
-  `caveat3d-0.2`, `presentation.md`, the `games` Cargo feature, `web/` and
-  `game/`. They may change in any release.
+  `caveat3d-0.2`, `presentation.md`, `caveat-map-0.1`, the `games` Cargo
+  feature, `web/` and `game/`. They may change in any release.
+- **The specifications listed as not stable** under "Specifications" above.
 - **`./runtime/*` paths** in the package. They are how the library loads its
   WebAssembly, not an API.
 - **Host conformance and `origin: "host"`.** These are future components. No
@@ -128,18 +141,26 @@ change their numbers only upward:
 
 - Node 20 or later (`engines` in `kit/package.json`). CI runs Node 22 on Linux,
   and the MCP worker also on Windows.
-- Browsers through the WebAssembly build: CI runs current Chromium and WebKit.
-  Firefox is expected to work but is not run in CI.
+- Browsers through the WebAssembly build: CI runs the kit in current Chromium.
+  The games' QA also runs WebKit, which does not test the kit. Firefox is
+  expected to work but is not run in CI.
 
 ## How each promise is checked
 
-| Promise | Check |
-| --- | --- |
-| Language and dispatch outcomes | `cargo test` in `runtime/`; the departure gate's no-window sweep against published rc.15 (`experiments/departure-gate/run.mjs`) |
-| Rejection codes | the dispatch table tests in `runtime/src/reactive_outcome.rs` and `runtime/tests/` |
-| CLI, library, `serve`, MCP | `npm run test:kit` and `npm run test:kit-package` against the packed tarball |
-| Saves across versions | the published rc.15 C3 save restore (`experiments/departure-gate/cross-restore.mjs`); from 1.0, a fixture save per release |
-| Browsers | the runtime workflow's browser jobs |
+Each row names the steps of the runtime workflow
+(`.github/workflows/runtime.yml`) that run its checks on every pull request
+and on the release candidate; `kit/test/compatibility.test.mjs` checks that
+each named step exists.
 
-A promise without a check is not yet a promise. Before 1.0.0, each row must
-name a check that runs in CI on the release candidate.
+| Promise | Check | CI steps |
+| --- | --- | --- |
+| Language and dispatch outcomes | `cargo test` in `runtime/`; the departure gate's no-window sweep against published rc.15 (`experiments/departure-gate/run.mjs`) | "Test the reactive-only runtime"; "Departure save bound, exact rc.15 compatibility, and restore continuation" |
+| Rejection codes | the dispatch outcome tests in `runtime/tests/dispatch_outcomes.rs`; `kit/test/compatibility.test.mjs`, which holds the list above to Dispatch 0.1's catalog and the kit's `KnownRejectionCode` | "Test the reactive-only runtime"; "Developer kit session library and scenario runner" |
+| CLI, library, `serve`, MCP | `npm run test:kit`, and `npm run test:kit-package` against the packed tarball; the MCP worker on Linux and Windows | "Developer kit session library and scenario runner"; "Pack the developer kit and use it from a fresh install"; "Exercise isolated authoring workers and lifecycle failures" |
+| Schemas | `kit/test/compatibility.test.mjs`: each schema named above is written by the kit or the runtime | "Developer kit session library and scenario runner" |
+| View 0.2 and its delta | the delta gate over every tracked program | "View 0.2 delta gate over the whole corpus" |
+| Saves across versions | the published rc.15 C3 save restore (`experiments/departure-gate/cross-restore.mjs`); a fixture per release from rc.17 (`kit/test/fixtures/saves/`, written by `scripts/save-fixture.mjs` from the published package): this runtime restores each save, and the events after it give the outcomes, View 0.1 and View 0.2 that release gave (`kit/test/save-fixtures.test.mjs`) | "Departure save bound, exact rc.15 compatibility, and restore continuation"; "Developer kit session library and scenario runner" |
+| Browsers | the kit's session library and runner in Chromium | "Developer kit session library and runner in Chromium" |
+
+A promise without a check is not yet a promise. Each release from rc.17 on
+adds its save fixture once it is published.

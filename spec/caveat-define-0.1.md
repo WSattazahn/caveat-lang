@@ -1,5 +1,7 @@
 # CAVEAT Define 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Conditions repeat. In the glowcap beat, `support > 0 and contradiction == 0`
 appeared once for each binding that depended on the belief, and every label
 guard for a mushroom began with the same `consumed == 0 and known == 0`. Pure

@@ -1,5 +1,7 @@
 # CAVEAT Decision Journal 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Caveat decisions already keep their frozen bases, their grounds and their
 reopening evidence. A host that wanted to show a decision's history ("trusted
 because of the cave mushroom; stopped trusting because of the pool; trusted

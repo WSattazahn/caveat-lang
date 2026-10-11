@@ -1,5 +1,7 @@
 # CAVEAT Language Specification — Draft 0.4
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 This draft adds knowledge-dependent action requirements and source-authored
 outcomes to the checked world/action model in Draft 0.3. The executable profile
 is `GameSession`, also exposed as `WebGameSession` for WebAssembly. Its host may

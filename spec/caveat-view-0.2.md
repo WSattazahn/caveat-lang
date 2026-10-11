@@ -1,6 +1,6 @@
 # CAVEAT View 0.2
 
-Status: implemented for rc.17 (Path to 1.0, A4 and A5), with the delta gate
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Implemented for rc.17 (Path to 1.0, A4 and A5), with the delta gate
 in `experiments/view-delta-gate`. [View 0.1](caveat-view-0.1.md) and its
 bytes do not change.
 

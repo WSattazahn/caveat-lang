@@ -1,5 +1,7 @@
 # CAVEAT Interface 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A program's interface is what a host can send it and what it can show: its
 events and their payload fields, its states, its displayed values and their
 types, its cues, its histories, and the names of its evidence, caveats and

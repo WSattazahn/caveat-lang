@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.4 — source library and qualified text
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This profile extends [Reactive Profile 0.3](caveat-reactive-0.3.md) with bounded
 text expressions, lazy expression selection, and a standard library written in
 Caveat. Numeric state, events, graph effects, and qualification metadata retain

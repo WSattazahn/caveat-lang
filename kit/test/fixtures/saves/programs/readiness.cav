@@ -1,0 +1,79 @@
+scene "Engineering readiness: an approval tied to the evidence for one exact revision, reassessed under an authored policy when that evidence changes.";
+
+# Sources describe evidence; they do not authenticate it.
+claim revision_tested;
+claim dependencies_cleared;
+evidence test_result from "a test run reported for a revision";
+evidence dependency_audit from "the dependency audit reported for the candidate revision";
+
+# A caveat that undermines a test result, and one that only notes a lag.
+caveat wrong_configuration consequence material;
+caveat mirror_lag consequence low;
+
+# Each reported test run is its own occurrence: test_result, test_result@2
+# and so on. A caveat added to one run says nothing about the next. The
+# eight most recent runs stay live; older ones leave for the host's archive
+# unless a decision still rests on them.
+renewable test_result window 8;
+
+identifiers limit 16;
+state candidate = 0;
+state tested_revision = 0;
+state tests_passed = 0;
+state audit_findings = 100;
+
+decisions release limit 32;
+decisions dependency_signoff limit 32;
+
+event propose revision id;
+event test_reported revision id, passed min 0 max 1;
+event audit_reported findings min 0 max 100;
+event approve_release;
+event sign_off_dependencies;
+event test_configuration_wrong;
+event audit_mirror_lagged;
+
+on propose set candidate = revision;
+
+on test_reported when observed(test_result) renew test_result;
+on test_reported when passed == 1 reveal test_result supports revision_tested;
+on test_reported when passed == 0 reveal test_result opposes revision_tested;
+on test_reported set tested_revision = revision;
+on test_reported set tests_passed = qualified(passed, test_result);
+
+on audit_reported reveal dependency_audit supports dependencies_cleared;
+on audit_reported set audit_findings = qualified(findings, dependency_audit);
+
+# Approval of the candidate revision rests on its own passing test result.
+on approve_release when candidate == 0 reject "No candidate revision.";
+on approve_release when tested_revision != candidate reject "The test result is not for the candidate revision.";
+on approve_release when tests_passed < 1 reject "The candidate revision has no passing test result.";
+on approve_release when has_caveat(tests_passed, wrong_configuration) reject "The test result ran under the wrong configuration.";
+on approve_release when committed(release) and not reopened(release) reject "The release is already approved.";
+on approve_release commit release because enough using tests_passed;
+
+# The dependency sign-off rests only on the audit.
+on sign_off_dependencies when not observed(dependency_audit) reject "No dependency audit.";
+on sign_off_dependencies when audit_findings > 0 reject "The audit has findings.";
+on sign_off_dependencies when committed(dependency_signoff) and not reopened(dependency_signoff) reject "Dependencies are already signed off.";
+on sign_off_dependencies commit dependency_signoff because enough using audit_findings;
+
+# Qualification: the test result ran under the wrong configuration.
+on test_configuration_wrong when not observed(test_result) reject "No test result to qualify.";
+on test_configuration_wrong qualify test_result with wrong_configuration;
+# The authored reopening policy: an approval in force that rests on a test
+# result now known to use the wrong configuration is reopened. A caveat does
+# not reopen anything without a rule like this one.
+on test_configuration_wrong when committed(release) and not reopened(release)
+    reopen release because caveated(tests_passed, wrong_configuration);
+
+# A low-consequence caveat on the audit. No policy reopens on it.
+on audit_mirror_lagged when not observed(dependency_audit) reject "No audit to qualify.";
+on audit_mirror_lagged qualify dependency_audit with mirror_lag;
+
+bind release.status = "none";
+bind release.status = "approved" when committed(release) and not reopened(release);
+bind release.status = "reopened" when reopened(release);
+bind dependencies.status = "none";
+bind dependencies.status = "signed off" when committed(dependency_signoff) and not reopened(dependency_signoff);
+bind dependencies.status = "reopened" when reopened(dependency_signoff);

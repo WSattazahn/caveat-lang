@@ -1,5 +1,7 @@
 # CAVEAT Save 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 rc.16 amendment: [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)
 defines `departed` markers and the `inherited` provenance split;
 [Departure 0.1](caveat-departure-0.1.md) defines departed journal counts and

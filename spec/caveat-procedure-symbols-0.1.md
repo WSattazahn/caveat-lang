@@ -1,5 +1,7 @@
 # CAVEAT Procedure Symbols 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A procedure's parameters were numbers. Round 6 of the
 [glowcap benchmark](../experiments/glowcap/RESULTS.md) added a second way to
 observe a mushroom: watching another creature eat one. Everything the slime

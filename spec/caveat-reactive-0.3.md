@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.3 — qualified computation
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This profile extends [Reactive Profile 0.2](caveat-reactive-0.2.md) with numeric
 values that carry their evidence and caveats through computation. It also records
 the value and qualifications used by a commitment. The runtime remains a Rust

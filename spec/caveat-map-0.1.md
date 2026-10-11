@@ -1,6 +1,6 @@
 # CAVEAT Map — 0.1
 
-**Status:** executable shared semantic map.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Executable shared semantic map.
 
 ## Purpose
 

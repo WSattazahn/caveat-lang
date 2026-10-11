@@ -1,5 +1,7 @@
 # CAVEAT Typed Parameters 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Event parameters were numbers with bounds. A host that wanted to say "the
 slime absorbed the pool mushroom, and it was a duskcap" had to know a
 per-mushroom event name and encode the kind as `0` or `1`. The source, in

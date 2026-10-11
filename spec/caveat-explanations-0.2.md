@@ -1,5 +1,7 @@
 # CAVEAT Explanations 0.2 — grounds
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 [Explanations 0.1](caveat-explanations-0.1.md) let a binding cite part of its
 lineage. The [glowcap blind round](../experiments/glowcap/RESULTS.md#round-3-blind-change-requests)
 showed the same problem one level down, in state and commitments. A request

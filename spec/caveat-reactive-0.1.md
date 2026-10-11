@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 The reactive profile runs a continuous game or other event-driven simulation
 from CAVEAT source. Numeric rules share the existing epistemic graph: observed
 evidence, examined caveats, commitments, and reopening can change motion and

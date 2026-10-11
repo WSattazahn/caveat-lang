@@ -1,5 +1,7 @@
 # CAVEAT View 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 rc.16 amendment: provenance in View 0.1 may carry `departed` markers and the
 `inherited` split specified by [Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md).
 Current retained snapshots can omit eligible departed records under

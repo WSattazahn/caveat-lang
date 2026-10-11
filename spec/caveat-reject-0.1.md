@@ -1,5 +1,7 @@
 # CAVEAT Reject 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 An event that is not allowed should fail and keep nothing. Before this
 profile, a program could only fail an event by making an expression fail. The
 usual way was `set check = require(allowed, 0)`, which needs a state nobody

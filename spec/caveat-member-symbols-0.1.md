@@ -1,6 +1,6 @@
 # CAVEAT Member Symbols 0.1 (draft)
 
-**Status:** draft, not implemented. Nothing in the runtime, kit, editor or
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Draft, not implemented. Nothing in the runtime, kit, editor or
 `caveat check` reads this profile. It records a design for the need that
 [PR #68](https://github.com/WSattazahn/caveat-lang/pull/68) (`$Q`, routed
 repetition section 10 on branch `feat/evidence-by-member`) tried to meet, and

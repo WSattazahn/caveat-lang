@@ -1,6 +1,6 @@
 # CAVEAT Withdrawal Collection 0.1 — when an unreachable withdrawal group leaves
 
-Status: specification of behavior that shipped in 0.1.0-rc.16. This document
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Specification of behavior that shipped in 0.1.0-rc.16. This document
 makes the rule a supported contract for 1.0 ([Path to 1.0](../docs/releases/path-to-1.0.md),
 blocker B1). It replaces nothing: it restates, as specification, the
 experimental contract the owner accepted on 2026-10-08 UTC in

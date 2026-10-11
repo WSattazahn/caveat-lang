@@ -1,6 +1,6 @@
 # CAVEAT-RS — Bootstrap Systems Profile 0.1
 
-**Status:** executable bootstrap experiment.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Executable bootstrap experiment.
 
 CAVEAT-RS asks whether Rust-like systems programming becomes more useful when provisional commitment, retained uncertainty, and reopening are first-class program semantics rather than comments or ad-hoc application state.
 

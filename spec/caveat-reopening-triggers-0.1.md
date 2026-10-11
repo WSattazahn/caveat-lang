@@ -1,5 +1,7 @@
 # CAVEAT Reopening Triggers 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A decision often has to be reconsidered whenever a certain kind of observation
 arrives: a new push after a merge decision, a failed check after it. Before
 this profile, every rule that took such a reading needed its own reopening

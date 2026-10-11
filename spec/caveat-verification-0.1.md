@@ -1,5 +1,7 @@
 # Caveat Verification Pilot 0.1 — semantics and proof boundary
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 The first slice provides the semantics contract, targeted boundary tests, and a
 pinned Lean core with provenance-constructor laws. The second adds an executable
 model for a bounded guarded-assignment/citation fragment and a comparison gate

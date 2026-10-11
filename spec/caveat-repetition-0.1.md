@@ -1,5 +1,7 @@
 # CAVEAT Repetition 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 `game/light_the_way.cav` is 888 lines. 182 of them are the same fourteen
 statements written out once per reef, byte-identical apart from the name:
 

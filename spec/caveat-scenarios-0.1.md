@@ -1,5 +1,7 @@
 # CAVEAT Scenarios 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A scenario file states what a reactive program should do: events to send and
 what should follow. The developer kit's runner executes it through the
 [dispatch outcome contract](caveat-dispatch-0.1.md). On every step the runner

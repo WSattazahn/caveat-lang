@@ -1,5 +1,7 @@
 # CAVEAT Check 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 `caveat check PROGRAM` loads a program and reports patterns worth a second
 look. A warning describes what the text of the program shows. It is not a
 proven fault, and it never changes what the program means or does. The check

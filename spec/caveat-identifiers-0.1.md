@@ -1,5 +1,7 @@
 # CAVEAT Identifiers 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 An event parameter was a number, a name from a list fixed in the source, or an
 entity the source declares. None of these can carry a commit SHA, a pull
 request number or a file path: things a program first hears about while it

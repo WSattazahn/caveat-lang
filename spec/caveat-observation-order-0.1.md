@@ -1,5 +1,7 @@
 # CAVEAT Observation Order 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A value can rest only on evidence that has been observed. Rules run in source
 order, so a rule that qualifies a value with evidence a *later* rule of the same
 event reveals fails when it runs. Round 6 of the
