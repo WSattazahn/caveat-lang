@@ -1,5 +1,7 @@
 # CAVEAT source text — 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 The Rust reference parser reads semicolon-separated statements. A semicolon inside
 a double-quoted string is ordinary text. Strings support Unicode and preserve
 spaces and line breaks; this applies to `scene`, `display`, and quoted evidence

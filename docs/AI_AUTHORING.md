@@ -218,9 +218,11 @@ Source files and individual event lines are limited to 1 MiB each. The
 interpreter's expression, history, provenance, and event-work limits still
 apply. A source file is read once; this is replay, not a file watcher.
 
-`caveat-map validate` checks declared map structure and reports
+`caveat-map validate` is another native command of a repository checkout; the
+npm package does not ship it. It checks declared map structure and reports
 `validation_scope: "declared_map"`. It does not validate reactive execution.
-Use `caveat-reactive validate` for reactive source. Pure function extraction
+Use `caveat-reactive validate`, or `caveat validate` from the package, for
+reactive source. Pure function extraction
 through `SourceLibrary` has a different scope again: it validates the extracted
 functions, not the rest of their containing program.
 

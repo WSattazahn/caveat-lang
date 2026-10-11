@@ -1,5 +1,7 @@
 # CAVEAT Language Specification — Draft 0.2 (working)
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 This draft records changes earned by executable/adversarial evidence. It does not supersede 0.1 yet.
 
 ## 1. Qualification topology

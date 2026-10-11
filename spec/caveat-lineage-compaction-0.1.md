@@ -1,6 +1,6 @@
 # CAVEAT Lineage Compaction 0.1 — what a record leaves behind when it departs
 
-Status: implemented in the unpublished rc.16 continuation (2026-10-07);
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Implemented in the unpublished rc.16 continuation (2026-10-07);
 release verification is recorded in [the development record](../docs/releases/rc16-development.md). It is the rule that
 [departure](../docs/design/save-forgetting.md) and series windows build on
 (owner, 2026-10-05 14:45 UTC; marker shape and riders 16:34 UTC, see

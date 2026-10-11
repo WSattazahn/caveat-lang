@@ -1,5 +1,7 @@
 # CAVEAT Permission 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A decision can rest on evidence and still need someone's permission. In the
 [agent ledger](../experiments/agent-ledger/README.md), "merge this pull
 request" rests on its checks, but it may happen only with the user's go-ahead

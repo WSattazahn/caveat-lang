@@ -1,5 +1,7 @@
 # CAVEAT Dispatch Outcomes 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This is the outcome contract for the reactive developer kit and its scenario
 runner. It adds a structured API to the existing interpreter. The existing
 `dispatch`, `dispatch_view`, native `dispatch_json` and `apply` keep their

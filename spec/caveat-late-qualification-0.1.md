@@ -1,5 +1,7 @@
 # CAVEAT Late Qualification 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Some caveats arrive after the fact. A taste fades from memory. An instrument
 turns out to have been miscalibrated. A witness is discovered to have been
 elsewhere. When that happens, everything built on that evidence should now be

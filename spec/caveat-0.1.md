@@ -1,6 +1,6 @@
 # CAVEAT Language Specification — Draft 0.1
 
-**Status:** experimental; semantics before syntax; deliberately incomplete.
+**Status:** the founding vocabulary, stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); the reactive profiles define what the package does. Until 1.0.0 a prerelease may still change it. It began as: experimental; semantics before syntax; deliberately incomplete.
 
 ## Core idea
 CAVEAT operates on a persistent epistemic graph containing claims, evidence, caveats, contexts, commitments, actions, and observations. Contradictory positions may coexist. Computation may stop through provisional commitment while unresolved caveats remain, and later evidence may reopen that commitment.

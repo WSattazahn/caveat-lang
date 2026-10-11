@@ -1,6 +1,6 @@
 # CAVEAT Take-back 0.1 — taking back a late qualification
 
-Status: specified for rc.18 ([rc.18 plan](../docs/releases/rc18-development.md),
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Specified for rc.18 ([rc.18 plan](../docs/releases/rc18-development.md),
 P3; the owner's decision Q1 B, 2026-10-11 18:24 UTC). Not implemented yet:
 the runtime, save, View 0.2 and kit changes are P4. Until P4 merges, a
 program that uses `unqualify` does not load. This profile adds to

@@ -1,6 +1,6 @@
 # CAVEAT Routed Repetition 0.1
 
-**Status:** implemented. The pass is in `runtime/src/repeat.rs`, and C003
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Implemented. The pass is in `runtime/src/repeat.rs`, and C003
 skips routed blocks in `runtime/src/reactive_check.rs`. Sections 1 to 8 are
 tested in `runtime/tests/routed_repetition.rs` and `runtime/tests/check.rs`.
 The converted agent ledger passes the ledger's 11 scenarios

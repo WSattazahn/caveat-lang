@@ -1,5 +1,7 @@
 # CAVEAT Serve 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 `caveat serve PROGRAM` keeps one session of a program open and answers
 requests, so that a hook, a test harness or a program in another language can
 send events and ask why without writing JavaScript. It speaks JSON lines: one

@@ -1,5 +1,7 @@
 # CAVEAT Dependents 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 The kit's reverse explanation reports what rests on an evidence occurrence,
 a reading stream, evidence template, or caveat. It reads a snapshot without
 running a program or changing any decision.

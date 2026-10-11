@@ -1,5 +1,7 @@
 # CAVEAT Incremental Evaluation 0.1
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 An event should cost what it touches, not the size of the program. Round 6 of
 the [glowcap benchmark](../experiments/glowcap/RESULTS.md) showed the opposite:
 declaring eight times the entities made every event about ten times slower, to

@@ -1,6 +1,6 @@
 # CAVEAT Windows 0.1 — declared windows and retirement
 
-Status: implemented in rc.15 (owner decision of 2026-10-04, option A of
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Implemented in rc.15 (owner decision of 2026-10-04, option A of
 [save forgetting](../docs/design/save-forgetting.md), first half). Departure from the session and the host-drained
 archive (the note's meaning 3) are a separate, later half with their own
 specification; nothing here removes a record from a save.

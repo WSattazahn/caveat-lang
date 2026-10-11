@@ -1,5 +1,7 @@
 # CAVEAT Explanations 0.1 — grounded citations
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 A binding already carries its **lineage**: `binding_qualifications` holds every
 evidence and caveat its value and its candidate conditions read (see
 [Reactive 0.3](caveat-reactive-0.3.md)). Lineage is conservative on purpose.

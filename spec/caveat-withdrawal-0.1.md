@@ -1,5 +1,7 @@
 # CAVEAT Withdrawal 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Evidence can turn out to be wrong: a test log misread, a witness who was
 elsewhere. Before this profile a program could only add a caveat to evidence
 or record a contrary observation. In the

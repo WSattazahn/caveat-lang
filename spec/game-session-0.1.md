@@ -1,5 +1,7 @@
 # CAVEAT game session 0.1
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 `GameSession` is the generic bridge between a CAVEAT program, epistemic state,
 physical action execution and a renderer. It does not recognize scenario names,
 named destinations or particular player decisions.

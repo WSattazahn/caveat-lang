@@ -1,5 +1,7 @@
 # CAVEAT Language Specification — Draft 0.5
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 This draft adds modules. Until now a program is one file, and the only library
 is `runtime/prelude.cav`, which is compiled into the runtime binary by
 `include_str!` and restricted to pure function definitions. An author cannot

@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.6 — computation over retained history
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This profile extends [Reactive 0.5](caveat-reactive-0.5.md) with read-only,
 bounded history queries and source-defined reductions. Programs can compare
 observations, summarize recorded ranges, and compute control policies without

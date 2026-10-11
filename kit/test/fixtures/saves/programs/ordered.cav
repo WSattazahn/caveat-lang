@@ -1,0 +1,46 @@
+# Written for the save fixtures: evidence observed out of name order, a
+# withdrawal, a late qualification and a windowed stream whose old readings
+# depart, so a save carries evidence_order, withdrawals, retirements and
+# departures.
+claim safe;
+claim mistaken;
+evidence zeta from "a check observed first";
+evidence alpha from "a check observed second";
+evidence audit from "an audit of the first check";
+evidence gauge from "a gauge";
+caveat stale consequence low;
+
+readings level from gauge window 3;
+decisions verdict limit 8;
+state z = 0;
+state a = 0;
+
+event see_zeta ok min 0 max 1;
+event see_alpha ok min 0 max 1;
+event measure value min 0 max 100;
+event decide;
+event retract;
+event age;
+
+on see_zeta reveal zeta supports safe;
+on see_zeta set z = qualified(ok, zeta);
+on see_alpha reveal alpha supports safe;
+on see_alpha set a = qualified(ok, alpha);
+on measure sample level = value supports safe;
+
+on decide when committed(verdict) and not reopened(verdict) reject "Already decided.";
+on decide commit verdict because enough using z + a;
+
+on retract when not observed(zeta) reject "Nothing to retract.";
+on retract when not observed(audit) reveal audit supports mistaken;
+on retract withdraw zeta because audit;
+on retract when committed(verdict) and not reopened(verdict) reopen verdict because audit;
+
+on age when not observed(alpha) reject "Nothing to age.";
+on age qualify alpha with stale;
+
+bind panel.verdict = "none";
+bind panel.verdict = "safe" when committed(verdict) and not reopened(verdict);
+bind panel.verdict = "reconsider" when reopened(verdict);
+bind panel.level = "no reading";
+bind panel.level = number_text(latest(level)) when has_sample(level);

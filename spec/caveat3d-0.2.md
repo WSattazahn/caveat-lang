@@ -1,6 +1,6 @@
 # CAVEAT 3D Presentation Contract — 0.2
 
-**Status:** executable semantic presentation layer.
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release. Executable semantic presentation layer.
 
 ## Purpose
 

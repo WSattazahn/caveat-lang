@@ -1,5 +1,7 @@
 # CAVEAT Neutral Reveal 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Consulting a source does not by itself support a claim. This profile adds an
 observation without a stance:
 

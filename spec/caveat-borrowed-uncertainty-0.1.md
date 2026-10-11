@@ -1,5 +1,7 @@
 # CAVEAT Borrowed Uncertainty 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 [caveat-0.5](caveat-0.5-draft.md) let a program retain a caveat another part
 wrote:
 

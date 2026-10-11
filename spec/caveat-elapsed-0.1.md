@@ -1,5 +1,7 @@
 # CAVEAT Elapsed 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 Reactive expressions can read the session clock directly:
 
 ```caveat

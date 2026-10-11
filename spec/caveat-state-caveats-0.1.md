@@ -1,5 +1,7 @@
 # CAVEAT State Caveats 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 An evidence name can be renewed while a plan still rests on its previous
 occurrence. `carries(sighting, stale)` asks about today's occurrence. A live
 state that retained the plan's basis needs to ask about the evidence it

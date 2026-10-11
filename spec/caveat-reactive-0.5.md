@@ -1,5 +1,7 @@
 # CAVEAT Reactive Profile 0.5 — observations and decision histories
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 This profile extends [Reactive Profile 0.4](caveat-reactive-0.4.md) with bounded
 reading streams and decision series. Each reached sample receives its own
 evidence identity. Each deliberate decision revision receives its own commitment

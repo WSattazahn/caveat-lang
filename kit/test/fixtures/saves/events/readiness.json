@@ -1,0 +1,163 @@
+{
+ "before": [
+  {
+   "event": "propose",
+   "payload": {
+    "revision": "rev-1"
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-1",
+    "passed": 1
+   }
+  },
+  {
+   "event": "approve_release",
+   "payload": {}
+  },
+  {
+   "event": "test_configuration_wrong",
+   "payload": {}
+  },
+  {
+   "event": "propose",
+   "payload": {
+    "revision": "rev-2"
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 1
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 0
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 1
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 0
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 1
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 0
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 1
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 0
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 1
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 0
+   }
+  },
+  {
+   "event": "audit_reported",
+   "payload": {
+    "findings": 0
+   }
+  },
+  {
+   "event": "sign_off_dependencies",
+   "payload": {}
+  },
+  {
+   "event": "audit_mirror_lagged",
+   "payload": {}
+  }
+ ],
+ "after": [
+  {
+   "event": "approve_release",
+   "payload": {}
+  },
+  {
+   "event": "approve_release",
+   "payload": {}
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-2",
+    "passed": 0
+   }
+  },
+  {
+   "event": "test_configuration_wrong",
+   "payload": {}
+  },
+  {
+   "event": "sign_off_dependencies",
+   "payload": {}
+  },
+  {
+   "event": "propose",
+   "payload": {
+    "revision": "rev-3"
+   }
+  },
+  {
+   "event": "test_reported",
+   "payload": {
+    "revision": "rev-3",
+    "passed": 1
+   }
+  },
+  {
+   "event": "approve_release",
+   "payload": {}
+  },
+  {
+   "event": "audit_reported",
+   "payload": {
+    "findings": 101
+   }
+  }
+ ]
+}

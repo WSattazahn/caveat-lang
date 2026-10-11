@@ -15,7 +15,7 @@ material or anything else that shares the repository.
 | --- | --- | --- |
 | Language | Syntax, and what an accepted program computes, decides, refuses and explains | [`spec/caveat-0.1.md`](../spec/caveat-0.1.md) and every implemented profile in `spec/`, listed under "Specifications" below |
 | Dispatch outcomes | `accepted` or `rejected`; every rejection's `origin` and `code`; a fatal error is neither | [Dispatch 0.1](../spec/caveat-dispatch-0.1.md), "Origins and codes" |
-| CLI | The commands, their arguments, exit statuses and `--json` output | `caveat-lang --help`; [kit README](../kit/README.md) |
+| CLI | The commands, their arguments, exit statuses and `--json` output. `check` reads a single-file program; it refuses a bundle (`#caveat-bundle 1`) with exit status 2, which `validate`, `test` and the library accept | `caveat-lang --help`; [kit README](../kit/README.md) |
 | Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
 | MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
@@ -46,18 +46,31 @@ syntax. Hosts should treat an unknown code as a refusal.
 
 ### Specifications
 
-Stable: every file in `spec/` whose name has no `-draft`, except the profiles
-listed under "What is not stable" below. The drafts `caveat-0.2-draft.md` to
-`caveat-0.5-draft.md` are not promises, and neither is
-`caveat-member-symbols-0.1.md`, whose status is draft and which nothing
-implements. A spec's own status line is updated to match this list before
-1.0.0.
+Stable: every file in `spec/` except those listed here. Each spec's status
+line, under its title, says which it is, and `kit/test/compatibility.test.mjs`
+checks that the two agree.
+
+- Drafts: `caveat-0.2-draft.md`, `caveat-0.3-draft.md`, `caveat-0.4-draft.md`,
+  `caveat-0.5-draft.md`, and `caveat-member-symbols-0.1.md`, which nothing
+  implements.
+- Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
+  `caveat3d-0.2.md` and `presentation.md`.
+- Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
+  `caveat-map-0.1.md`, which the npm package does not ship.
+- Timing: `caveat-incremental-evaluation-0.1.md`, a performance design whose
+  observable behavior the stable profiles state (see "Limits").
+- Repository process: `caveat-verification-0.1.md`, a repository process CI
+  runs; it promises nothing to a host.
+
+`caveat-0.1.md` is the founding vocabulary. It is stable, and the reactive
+profiles define what the package does with it.
 
 ## What is not stable
 
 - **Games and presentation.** `game-session-0.1`, `caveat3d-0.1`,
   `caveat3d-0.2`, `presentation.md`, the `games` Cargo feature, `web/` and
   `game/`. They may change in any release.
+- **The specifications listed as not stable** under "Specifications" above.
 - **`./runtime/*` paths** in the package. They are how the library loads its
   WebAssembly, not an API.
 - **Host conformance and `origin: "host"`.** These are future components. No
@@ -65,11 +78,16 @@ implements. A spec's own status line is updated to match this list before
   "Not yet" list.
 - **Native Rust API.** The `runtime/` crate is not published. Its public items
   are not a promise, and neither are the profiles that exist only there:
-  `caveat-rs-0.1` (a bootstrap experiment) and `source-library-0.1`.
+  `caveat-rs-0.1` (a bootstrap experiment), `source-library-0.1` and the
+  semantic map `caveat-map-0.1` with its `caveat-map` command.
 - **Diagnostics and messages.** A rejection's `message`, CLI prose, `check`
   warning text and fatal-error text can change. Their codes and statuses
   cannot.
-- **Timing, memory and sizes.** See "Limits".
+- **Timing, memory and sizes.** See "Limits". This includes
+  `caveat-incremental-evaluation-0.1`, whose observable behavior the stable
+  profiles state.
+- **The verification record.** `caveat-verification-0.1` is a repository
+  process CI runs; it promises nothing to a host.
 
 ## Versioning policy
 
@@ -128,18 +146,26 @@ change their numbers only upward:
 
 - Node 20 or later (`engines` in `kit/package.json`). CI runs Node 22 on Linux,
   and the MCP worker also on Windows.
-- Browsers through the WebAssembly build: CI runs current Chromium and WebKit.
-  Firefox is expected to work but is not run in CI.
+- Browsers through the WebAssembly build: CI runs the kit in current Chromium.
+  The games' QA also runs WebKit, which does not test the kit. Firefox is
+  expected to work but is not run in CI.
 
 ## How each promise is checked
 
-| Promise | Check |
-| --- | --- |
-| Language and dispatch outcomes | `cargo test` in `runtime/`; the departure gate's no-window sweep against published rc.15 (`experiments/departure-gate/run.mjs`) |
-| Rejection codes | the dispatch table tests in `runtime/src/reactive_outcome.rs` and `runtime/tests/` |
-| CLI, library, `serve`, MCP | `npm run test:kit` and `npm run test:kit-package` against the packed tarball |
-| Saves across versions | the published rc.15 C3 save restore (`experiments/departure-gate/cross-restore.mjs`); from 1.0, a fixture save per release |
-| Browsers | the runtime workflow's browser jobs |
+Each row names the steps of the runtime workflow
+(`.github/workflows/runtime.yml`) that run its checks on every pull request
+and on the release candidate; `kit/test/compatibility.test.mjs` checks that
+each named step exists.
 
-A promise without a check is not yet a promise. Before 1.0.0, each row must
-name a check that runs in CI on the release candidate.
+| Promise | Check | CI steps |
+| --- | --- | --- |
+| Language and dispatch outcomes | `cargo test` in `runtime/`; the departure gate's no-window sweep against published rc.15 (`experiments/departure-gate/run.mjs`) | "Test the reactive-only runtime"; "Departure save bound, exact rc.15 compatibility, and restore continuation" |
+| Rejection codes | the dispatch outcome tests in `runtime/tests/dispatch_outcomes.rs`; `kit/test/compatibility.test.mjs`, which holds the list above to Dispatch 0.1's catalog and the kit's `KnownRejectionCode` | "Test the reactive-only runtime"; "Developer kit session library and scenario runner" |
+| CLI, library, `serve`, MCP | `npm run test:kit`, and `npm run test:kit-package` against the packed tarball; the MCP worker on Linux and Windows | "Developer kit session library and scenario runner"; "Pack the developer kit and use it from a fresh install"; "Exercise isolated authoring workers and lifecycle failures" |
+| Schemas | `kit/test/compatibility.test.mjs`: each schema named above is written by the kit or the runtime | "Developer kit session library and scenario runner" |
+| View 0.2 and its delta | the delta gate over every tracked program | "View 0.2 delta gate over the whole corpus" |
+| Saves across versions | the published rc.15 C3 save restore (`experiments/departure-gate/cross-restore.mjs`); a fixture per release from rc.17 (`kit/test/fixtures/saves/`, written by `scripts/save-fixture.mjs` from the published package): this runtime restores each save, and the events after it give the outcomes, View 0.1 and View 0.2 that release gave, except that rc.18 lists binding-explanation evidence in first-observed order, which is held instead to the same events played live (`kit/test/save-fixtures.test.mjs`) | "Departure save bound, exact rc.15 compatibility, and restore continuation"; "Developer kit session library and scenario runner" |
+| Browsers | the kit's session library and runner in Chromium | "Developer kit session library and runner in Chromium" |
+
+A promise without a check is not yet a promise. Each release from rc.17 on
+adds its save fixture once it is published.

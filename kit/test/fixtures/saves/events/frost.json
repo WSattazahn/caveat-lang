@@ -1,0 +1,72 @@
+{
+ "before": [
+  {
+   "event": "probe_read",
+   "payload": {
+    "celsius": 1
+   }
+  },
+  {
+   "event": "approve",
+   "payload": {
+    "by": "sam"
+   }
+  },
+  {
+   "event": "decide",
+   "payload": {}
+  },
+  {
+   "event": "drone_read",
+   "payload": {
+    "celsius": 0
+   }
+  }
+ ],
+ "after": [
+  {
+   "event": "probe_read",
+   "payload": {
+    "celsius": 6
+   }
+  },
+  {
+   "event": "misread",
+   "payload": {}
+  },
+  {
+   "event": "decide",
+   "payload": {}
+  },
+  {
+   "event": "probe_read",
+   "payload": {
+    "celsius": 1
+   }
+  },
+  {
+   "event": "decide",
+   "payload": {}
+  },
+  {
+   "event": "lay_cover",
+   "payload": {}
+  },
+  {
+   "event": "probe_read",
+   "payload": {
+    "celsius": 99
+   }
+  },
+  {
+   "event": "approve",
+   "payload": {
+    "by": "ana"
+   }
+  },
+  {
+   "event": "misread",
+   "payload": {}
+  }
+ ]
+}

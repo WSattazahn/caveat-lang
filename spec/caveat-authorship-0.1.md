@@ -1,5 +1,7 @@
 # CAVEAT Authorship 0.1
 
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it.
+
 [caveat-0.5](caveat-0.5-draft.md) gave the language modules, and flattened
 `weather::fog_bank` to `weather__fog_bank` so that one program comes out the
 other side. That left the graph answering "which part asserted this?" with a

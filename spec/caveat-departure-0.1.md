@@ -1,6 +1,6 @@
 # CAVEAT Departure 0.1 — when a retired record leaves the session
 
-Status: implemented in the unpublished rc.16 continuation (2026-10-07);
+**Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Implemented in the unpublished rc.16 continuation (2026-10-07);
 release verification is recorded in [the development record](../docs/releases/rc16-development.md). It is the second half of the
 owner's 2026-10-04 decision ([save forgetting](../docs/design/save-forgetting.md),
 option A, meaning 3), after [Windows 0.1](caveat-windows-0.1.md) and

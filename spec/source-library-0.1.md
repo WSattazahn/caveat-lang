@@ -1,5 +1,7 @@
 # Source function library API 0.1
 
+**Status:** not part of the [compatibility commitment](../docs/COMPATIBILITY.md#what-is-not-stable); it may change in any release.
+
 The library makes existing pure Caveat functions callable from Rust and
 WebAssembly. It adds no new function syntax and creates no reactive session.
 A host compiles functions once, then invokes them with numeric inputs. The
