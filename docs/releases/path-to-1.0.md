@@ -151,7 +151,7 @@ gate. Owners are the threads proposed under "Threads after approval".
 | B4 | View 0.2 not implemented | Missing feature in agreed scope | Core | Spec and implementation merged; the delta gate passes over the full discovered corpus with negative controls |
 | B5 | No starter; archive persistence after write failure or restart is undefined | Missing feature in agreed scope | Integration | Node and browser starters pass fresh-install lifecycle tests including the failure and restart cases they claim |
 | B6 | Round 8 not run | Required step (owner) | Benchmark | Round 8 record committed, whatever its verdict |
-| B7 | Pilot not run | Required step (owner) | Integration | One outside developer or team has attempted the starter candidate with the owner's approved outreach, and its defects are triaged; or the owner waives it at the freeze review |
+| B7 | Pilot not run | Required step (owner) | Integration | One outside developer, team or agent has attempted the starter candidate on a real task of its own, with the owner's approved outreach or setup, and its defects are triaged; or the owner waives it at the freeze review |
 | B8 | Final artifact not verified | Release gate | Release | The release procedure passes on the exact 1.0.0 candidate, followed by the owner's approval |
 
 Not blockers: series windows, further collector or dispatch optimization,
@@ -180,7 +180,7 @@ proposals, not promises. Each PR is its own reviewable change.
 | --- | --- | --- | --- | --- |
 | B1 | Node starter and browser starter from `caveat-lang init`: typed event forwarding, outcome handling that keeps "handled", "accepted" and "permitted by the current assessment" separate, save/resume with source identity, view resync, archive persistence. Node: append-only archive file with fsync before acknowledging a drain, pending items kept on write failure. Browser: IndexedDB with the same rule. Tests cover write failure, retry and restart; no crash-safety claim beyond those tests. Fresh-install tests from the packed tarball | A2 (contract), A5 for 0.2 view use | 5 | 2026-10-31 |
 | B2 | Pilot package: the readiness example (revision A approved on test result T; unrelated decision on U; T found to use the wrong configuration; qualification and the authored reopening policy; U's decision unchanged; original grounds and policy identity shown; repeated through save, resume and archive), a one-page brief, acceptance criteria and a scoped offer whose price is marked as a hypothesis. Sanitized inputs only | B1 | 3 | 2026-11-04 |
-| B3 | Pilot run (B7): outreach to one named developer or team, only after the owner approves the target and message. Measured separately: install, correct integration, useful behavior, repeat use, willingness to pay | B2, rc.17 published, owner approval | elapsed, not effort | by 2026-11-13 |
+| B3 | Pilot run (B7): one named developer, team or agent, only after the owner approves the target and the message or setup. An agent pilot is a fresh session given only the published package and its docs, never this repository or a briefing (owner card, 2026-10-11 04:26 UTC). Measured separately: install, correct integration, useful behavior, repeat use, willingness to pay (for an agent, its operator's) | B2, rc.17 published, owner approval | elapsed, not effort | by 2026-11-13 |
 
 ### Round 8 (benchmark thread)
 
