@@ -1,0 +1,1 @@
+An agent approved a deployment because a test tool reported success. Later the tool's result was found to have used the wrong configuration. Build a small Node component that records why the approval was made, lets the correction arrive later, and shows afterwards both what the approval rested on and whether it still holds.

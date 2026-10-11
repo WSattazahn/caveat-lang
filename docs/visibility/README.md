@@ -11,3 +11,5 @@ these records shows the next one.
 - [Discovery study design](DISCOVERY_STUDY.md): a separate, not yet approved
   study of whether fresh agents find, choose and correctly use Caveat for a
   real task.
+- [Discovery study, run 1](discovery/2026-10-11/RESULTS.md) (2026-10-11): six
+  fresh Claude runs at a reduced size. None considered Caveat.
