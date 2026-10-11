@@ -1,13 +1,13 @@
 //! View 0.2 and its delta. See spec/caveat-view-0.2.md.
 //!
 //! The full view orders each commitment's grounds evidence as it was first
-//! observed, frozen when the commitment was made, and says `reopened` where
-//! View 0.1 says `open`. A delta is built by comparing the full view before
+//! observed, frozen when the commitment was made, orders each binding
+//! explanation's evidence the same way as of the view, and says `reopened`
+//! where View 0.1 says `open`. A delta is built by comparing the full view before
 //! and after one accepted event, so applying it gives exactly the next view.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
 use super::{
-    BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, Provenance, ReactiveSession,
-    DISPATCH_SCHEMA,
+    BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ReactiveSession, DISPATCH_SCHEMA,
 };
 use crate::map::{MapCommitment, MapRelation, RetainedCaveat};
 use crate::reactive_expr::{departure_markers, Marker};
@@ -25,7 +25,7 @@ pub struct ReactiveViewV2<'a> {
     pub sequence: u64,
     pub last_event: Option<&'a str>,
     pub bindings: &'a BTreeMap<String, BTreeMap<String, BindingValue>>,
-    pub binding_explanations: &'a BTreeMap<String, BTreeMap<String, Provenance>>,
+    pub binding_explanations: BTreeMap<&'a str, BTreeMap<&'a str, OrderedGrounds<'a>>>,
     pub cues: &'a [Cue],
     pub effects: &'a [EffectReport],
     pub commitments: Vec<ViewCommitment>,
@@ -57,8 +57,8 @@ impl From<MapCommitment> for ViewCommitment {
     }
 }
 
-/// A commitment's grounds with evidence in first-observed order. Every other
-/// member serializes as `Provenance` does.
+/// A commitment's grounds, or a binding explanation, with evidence in
+/// first-observed order. Every other member serializes as `Provenance` does.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct OrderedGrounds<'a> {
     pub evidence: Vec<&'a str>,
@@ -195,7 +195,7 @@ impl ReactiveSession {
             sequence: self.sequence,
             last_event: self.last_event.as_deref(),
             bindings: &self.bindings,
-            binding_explanations: &self.binding_explanations,
+            binding_explanations: self.ordered_explanations(),
             cues: &self.cues,
             effects: &self.effects,
             commitments: self
@@ -223,6 +223,39 @@ impl ReactiveSession {
             decision_journal: &self.journal,
             relations: self.relation_records(&names),
         }
+    }
+
+    /// Each binding explanation with its evidence in first-observed order as
+    /// of now: observed names by where they were first observed, then any
+    /// never observed, by name. Caveats stay sorted.
+    fn ordered_explanations(&self) -> BTreeMap<&str, BTreeMap<&str, OrderedGrounds<'_>>> {
+        let ranks = self.observation_ranks();
+        self.binding_explanations
+            .iter()
+            .map(|(target, properties)| {
+                let properties = properties
+                    .iter()
+                    .map(|(property, explanation)| {
+                        let mut evidence = explanation
+                            .evidence
+                            .iter()
+                            .map(|name| (ranks.rank(name), name.as_str()))
+                            .collect::<Vec<_>>();
+                        evidence.sort_unstable();
+                        (
+                            property.as_str(),
+                            OrderedGrounds {
+                                evidence: evidence.into_iter().map(|(_, name)| name).collect(),
+                                caveats: &explanation.caveats,
+                                departed: &explanation.departed,
+                                inherited: &explanation.inherited,
+                            },
+                        )
+                    })
+                    .collect();
+                (target.as_str(), properties)
+            })
+            .collect()
     }
 
     /// Dispatch one event and return the View 0.2 delta it caused. The same

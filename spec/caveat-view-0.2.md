@@ -10,12 +10,14 @@ caveats stay sorted and only evidence moves to first-observed order
 (2026-10-10), and the delta view is gated on the whole corpus
 (2026-10-05).
 
-View 0.2 changes three things for a host that asks for it:
+View 0.2 changes four things for a host that asks for it:
 
 1. a decision's grounds list their evidence in the order it was first
    observed, frozen when the decision was made;
-2. a commitment says `reopened`, not `open`;
-3. a **delta** carries only what an accepted event changed, so a host can keep
+2. a binding explanation lists its evidence in the order it was first
+   observed;
+3. a commitment says `reopened`, not `open`;
+4. a **delta** carries only what an accepted event changed, so a host can keep
    its view current without receiving or comparing the whole view.
 
 A host that does not ask for 0.2 keeps getting 0.1.
@@ -28,7 +30,8 @@ meaning, except as this table says:
 | Field | In 0.2 |
 | --- | --- |
 | `schema` | `"caveat-reactive-view/0.2"` |
-| `sequence`, `last_event`, `bindings`, `binding_explanations`, `cues`, `effects`, `decision_series`, `decision_journal`, `relations` | as in 0.1 |
+| `sequence`, `last_event`, `bindings`, `cues`, `effects`, `decision_series`, `decision_journal`, `relations` | as in 0.1 |
+| `binding_explanations` | as in 0.1, except the order of each explanation's `evidence` (below) |
 | `commitments` | as in 0.1, sorted by `action`, except that each has `reopened` in place of `open`, with the same value |
 | `commitment_grounds` | as in 0.1, except the order of each grounds' `evidence` (below) |
 
@@ -48,8 +51,7 @@ reorder it.
   a `departed` marker stands for it ([Lineage Compaction 0.1](caveat-lineage-compaction-0.1.md)).
   The remaining names keep their order. `departed` and `inherited` are as in
   0.1.
-- `binding_explanations` are unchanged from 0.1: their evidence stays
-  sorted. Their order was not part of this decision.
+- Binding explanations are ordered too; see the next section.
 
 The order outlives the journal entry it came from: when a `journal window`
 retires and departs that entry, the grounds keep the order. A save therefore
@@ -58,6 +60,29 @@ records the order wherever it differs from name order, as the additive field
 A save made before that field
 restores with the order its journal entry gives, when the entry is retained,
 and otherwise with name order; it never invents an observation order.
+
+### Ordered evidence in binding explanations
+
+In `binding_explanations[target][property].evidence`, evidence is listed in
+the order it was first observed, by the rule the journal's `because` uses:
+its place in the session's `observations` ledger
+([Neutral Reveal 0.1](caveat-neutral-reveal-0.1.md)), or, in a session
+without one, the place of its first `supports` or `opposes` relation. A name
+with neither would follow the observed ones, in name order.
+
+- An explanation is recomputed after every event, so its order is that of
+  the session at the view, not frozen. Observation order only grows, and a
+  departure removes names from it without reordering the rest, so two names
+  in an explanation keep their relative order from one view to the next.
+- The membership is the same as 0.1's. Only the order differs.
+- `caveats` stay sorted by name, as in grounds.
+- `departed` and `inherited` are as in 0.1.
+
+The owner chose this order on 2026-10-11 ([rc.18 plan](../docs/releases/rc18-development.md),
+decision Q2): round 8's authors built the same order by hand from binding
+explanations, and after 1.0 it could change only under a new schema name.
+Nothing is saved for it: it is computed from the observation order the save
+already keeps.
 
 ### `reopened`
 
@@ -188,6 +213,10 @@ in the runtime workflow (A5):
 the additive order field above) and every refusal code are unchanged.
 
 ## Changes
+
+- 2026-10-11 (rc.18 P2): binding explanations list their evidence in
+  first-observed order, as grounds do; caveats stay sorted. View 0.1 is
+  unchanged.
 
 - 2026-10-11 (rc.18, specified; implemented in P4): a program with
   `unqualify` has a `taken_back` member in the full view and in the delta,

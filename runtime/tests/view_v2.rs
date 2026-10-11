@@ -100,6 +100,64 @@ fn grounds_list_evidence_in_first_observed_order_and_keep_it() {
     assert_eq!(restored.save_json().unwrap(), session.save_json().unwrap());
 }
 
+/// Round 8 item 3 (rc.18 plan, decision Q2): two of three round 8 programs
+/// rebuilt observation order from binding explanations by hand. View 0.2
+/// lists an explanation's evidence as grounds do; View 0.1 keeps it sorted.
+#[test]
+fn round8_item3_binding_explanations_list_evidence_in_first_observed_order() {
+    let mut session = ReactiveSession::from_source(ORDERED).unwrap();
+    let mut held = view(&session);
+    for event in ["look_z", "look_a"] {
+        step(&mut session, &mut held, event, "{}");
+    }
+    let explanation =
+        |view: &Value| view["binding_explanations"]["hud"]["route"]["evidence"].clone();
+    assert_eq!(explanation(&held), json!(["zs@1", "alphas@1"]));
+    let old = serde_json::to_value(session.view()).unwrap();
+    assert_eq!(explanation(&old), json!(["alphas@1", "zs@1"]));
+
+    // Observed the other way round, the newer readings come the other way
+    // round; the delta carries the reordered explanation.
+    for event in ["decide", "recheck", "look_a"] {
+        step(&mut session, &mut held, event, "{}");
+    }
+    let outcome = step(&mut session, &mut held, "look_z", "{}");
+    assert_eq!(
+        outcome["delta"]["binding_explanations"]["set"]["hud"]["route"]["evidence"],
+        json!(["alphas@2", "zs@2"])
+    );
+    assert_eq!(explanation(&held), json!(["alphas@2", "zs@2"]));
+
+    // The order comes from what the save already keeps.
+    let restored = ReactiveSession::restore_json(ORDERED, &session.save_json().unwrap()).unwrap();
+    assert!(same(&view(&restored), &held));
+}
+
+/// A neutral observation keeps an explicit ledger; explanations follow it,
+/// not the order of stance relations.
+#[test]
+fn round8_item3_binding_explanations_follow_the_observation_ledger() {
+    let source = r#"
+claim warm;
+evidence zed from "z"; evidence alpha from "a";
+event look_z; event look_a; event lean;
+on look_z reveal zed;
+on look_a reveal alpha supports warm;
+on lean reveal zed supports warm;
+bind hud.both = qualified(1, alpha) + qualified(1, zed) when observed(alpha) and observed(zed) because qualified(1, alpha), qualified(1, zed);
+"#;
+    let mut session = ReactiveSession::from_source(source).unwrap();
+    let mut held = view(&session);
+    for event in ["look_z", "look_a", "lean"] {
+        step(&mut session, &mut held, event, "{}");
+    }
+    assert_eq!(
+        held["binding_explanations"]["hud"]["both"]["evidence"],
+        json!(["zed", "alpha"])
+    );
+    assert!(held["binding_explanations"]["hud"]["both"]["caveats"].is_array());
+}
+
 #[test]
 fn an_older_save_takes_the_order_its_journal_entry_gives_and_never_invents_one() {
     let mut session = ReactiveSession::from_source(ORDERED).unwrap();
