@@ -162,6 +162,16 @@ test('the release ledger replays rc.12 to its attached report', async () => {
       for (const change of revision.history) change.source_sha256 = report.source.sha256;
     }
   }
+  // rc.18 names the event that observed each ground (issue #199). The
+  // receipt predates the field; check it lines up with the grounds, then
+  // compare the rest.
+  for (const series of report.decisions) {
+    for (const revision of series.revisions) {
+      if (!revision.observed_by) continue;
+      assert.deepEqual(revision.observed_by.map(item => item.evidence), revision.grounds.evidence);
+      delete revision.observed_by;
+    }
+  }
   for (const key of ['sequence', 'decisions', 'evidence', 'displayed']) assert.deepEqual(report[key], attached[key], key);
 });
 

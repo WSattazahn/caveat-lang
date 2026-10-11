@@ -112,7 +112,27 @@ function sourceAt(snapshot) {
   return sequence => (digest !== null && sequence > through ? digest : null);
 }
 
+// The accepted event that first observed each occurrence (issue #199), from
+// the effects the runtime reported for it: a `reveal` names the evidence
+// occurrence it observed, and a `sample` the reading it recorded. Only events
+// that carry their `sequence` and `effects` count; null when none does.
+function observers(events) {
+  if (!events.some(entry => Array.isArray(entry.effects))) return null;
+  const found = new Map();
+  for (const entry of events) {
+    if (entry.outcome?.outcome !== 'accepted' || !Array.isArray(entry.effects) || !Number.isSafeInteger(entry.sequence)) continue;
+    for (const effect of entry.effects) {
+      const id = effect.kind === 'reveal' ? effect.evidence : effect.kind === 'sample' ? effect.id : null;
+      if (typeof id === 'string' && !found.has(id)) found.set(id, { sequence: entry.sequence, event: entry.event, payload: entry.payload ?? {} });
+    }
+  }
+  return found;
+}
+
+const unobserved = { sequence: null, event: null, payload: null };
+
 export function explain(snapshot, events = [], { archive = [] } = {}) {
+  const observedBy = observers(events);
   const qualifiedBy = caveatsByEvidence(snapshot);
   const held = heldRecords(snapshot);
   const archivedNames = archiveResolver(snapshot, archive);
@@ -173,6 +193,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
       permission: snapshot.commitment_permissions?.[id] ?? null,
       withdrawn: grounds.evidence.filter(name => withdrawals.has(name))
         .map(name => ({ evidence: name, ...withdrawals.get(name) })),
+      ...(observedBy ? { observed_by: grounds.evidence.map(name => ({ evidence: name, ...(observedBy.get(name) ?? unobserved) })) } : {}),
       history,
     };
   };
@@ -204,7 +225,7 @@ export function explain(snapshot, events = [], { archive = [] } = {}) {
   const historical = archiveHistory(snapshot, archive, departureMarkers(snapshot));
   return { schema: EXPLAIN_SCHEMA, sequence: snapshot.sequence, elapsed: snapshot.elapsed,
     source: { sha256: snapshot.source_sha256 ?? null, unrecorded_through: snapshot.source_unrecorded_through ?? 0 },
-    events, decisions, evidence, displayed,
+    events: events.map(({ sequence: _sequence, effects: _effects, ...entry }) => entry), decisions, evidence, displayed,
     ...(historical ? {archive: historical} : {}) };
 }
 
@@ -267,6 +288,11 @@ export function formatExplanation(report, title = 'the program') {
     for (const revision of series.revisions) {
       lines.push(`    ${revision.id} = ${show(revision.value)}  ${revision.status}`);
       lines.push(`      based on ${withCaveats({ ...revision.grounds, caveats: [] })}`);
+      for (const item of revision.observed_by ?? []) {
+        if (item.sequence === null) { lines.push(`      ${item.evidence}: observed before these events`); continue; }
+        const payload = item.payload && Object.keys(item.payload).length ? ` ${JSON.stringify(item.payload)}` : '';
+        lines.push(`      ${item.evidence}: observed at #${item.sequence} ${item.event}${payload}`);
+      }
       const retained = revision.retained ?? revision.grounds.caveats;
       if (retained.length) lines.push(`      retaining: ${list(retained)}`);
       for (const item of revision.withdrawn ?? []) lines.push(`      ${item.evidence} has since been ${withdrawnNote(item)}`);

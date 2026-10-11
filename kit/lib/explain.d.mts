@@ -7,6 +7,7 @@ import type {
   CaveatErrorKind,
   DispatchRejected,
   DepartureMarker,
+  Effect,
   PermissionRecord,
   Provenance,
   Snapshot,
@@ -24,6 +25,16 @@ export interface ExplainEvent {
   event: string;
   payload: unknown;
   outcome: ExplainEventOutcome;
+}
+
+/**
+ * An event as `explain` takes it. For an accepted event, the snapshot's
+ * `sequence` and `effects` after it may come with it; then each revision
+ * reports `observed_by`. The report's `events` leave both out.
+ */
+export interface ExplainInputEvent extends ExplainEvent {
+  sequence?: number;
+  effects?: Effect[];
 }
 
 export type ExplainEventOutcome =
@@ -109,8 +120,19 @@ export interface ExplainedRevision {
   permission: PermissionRecord | null;
   /** Grounds withdrawn since the decision was made. */
   withdrawn: Withdrawal[];
+  /**
+   * For each grounds evidence, in grounds order, the accepted event whose
+   * `reveal` or `sample` effect first observed it, with its payload. Present
+   * when the events given to `explain` carry their effects; all null when
+   * none of them observed it.
+   */
+  observed_by?: GroundsObservation[];
   history: RevisionChange[];
 }
+
+export type GroundsObservation =
+  | { evidence: string; sequence: number; event: string; payload: unknown }
+  | { evidence: string; sequence: null; event: null; payload: null };
 
 export interface RevisionChange {
   change: 'committed' | 'reopened';
@@ -168,7 +190,7 @@ export interface ExplainOptions {
 }
 
 /** A structured explanation of `snapshot`; `events` lists what led to it, in order. */
-export declare function explain(snapshot: Snapshot, events?: ExplainEvent[], options?: ExplainOptions): ExplainReport;
+export declare function explain(snapshot: Snapshot, events?: ExplainInputEvent[], options?: ExplainOptions): ExplainReport;
 
 /** The explanation as text for a person. `title` names the program. */
 export declare function formatExplanation(report: ExplainReport, title?: string): string;

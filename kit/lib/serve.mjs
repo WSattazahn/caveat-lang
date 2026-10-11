@@ -65,8 +65,9 @@ export function createServer({ runtime, source, program = null }) {
         throw error;
       }
       const { schema: _schema, snapshot, ...outcome } = result;
-      events.push({ event: request.event, payload, outcome });
       const after = snapshot ?? session.snapshot();
+      events.push({ event: request.event, payload, outcome,
+        ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
       return { ...outcome, sequence: after.sequence, ...(request.snapshot ? { snapshot: after } : {}) };
     }
     if (op === 'snapshot') return { snapshot: session.snapshot() };
