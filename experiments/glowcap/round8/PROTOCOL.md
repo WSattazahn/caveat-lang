@@ -244,3 +244,11 @@ read. The owner's answers to the open choices are recorded under
    the run* stands: ten agents as registered, of which the writer and the
    reviewer have already run. The eight that remain start once a counting
    probe reply has been committed as `probe/reply.md`.
+
+8. **The counted probe (2026-10-11, 03:03 UTC).** The owner posted a Gemini
+   reply to the registered prompt in this round's thread. It meets "The
+   learnability probe": the model is from another family, and nothing in the
+   reply suggests it had seen Caveat's syntax. It is committed unchanged as
+   `probe/reply.md`, and its diff is `probe/DIFF.md`. The reply came after
+   rc.17 was published and before any author started, so its items wait for
+   a later candidate (amendment 6).
