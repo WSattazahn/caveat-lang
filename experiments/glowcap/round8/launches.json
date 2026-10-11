@@ -1,7 +1,9 @@
 {
   "registration": {
     "stage1": "d42b70e",
-    "stage2": "4fcbca7"
+    "stage2": "4fcbca7",
+    "stage3": "b23c0cc",
+    "stage4": "57686de"
   },
   "note": "Fresh general-purpose subagent contexts with no fork of any conversation, given exactly the registered prompt with the directory filled in. Model revision is not exposed to the dispatcher; tokens and duration are recorded where the agent tool reports them. The owner chose 'Now' for the writer and reviewer at 21:59 UTC on 2026-10-10 (amendment 3).",
   "agents": [
@@ -25,6 +27,49 @@
       "note": "the writer context resumed with REVIEW.md copied into its directory; files before the revision: REQUESTS.md cad30ac98078e62ba20229a1ff0b1abfafe90850f68294d4dc711e2f8e2dafd1, scenarios-r8.mjs 82c6a5688cc7fb3fee30ed1bc475125b9143cd47b3447694c692ab613a27bf6d",
       "tokens": 133892,
       "durationSeconds": 19
+    },
+    {
+      "role": "author",
+      "id": "C1",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/C1",
+      "prompt": "prompts/author-caveat.md"
+    },
+    {
+      "role": "author",
+      "id": "T1",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/T1",
+      "prompt": "prompts/author-ts.md"
+    },
+    {
+      "role": "author",
+      "id": "C2",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/C2",
+      "prompt": "prompts/author-caveat.md"
+    },
+    {
+      "role": "author",
+      "id": "T2",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/T2",
+      "prompt": "prompts/author-ts.md"
+    },
+    {
+      "role": "author",
+      "id": "C3",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/C3",
+      "prompt": "prompts/author-caveat.md"
+    },
+    {
+      "role": "author",
+      "id": "T3",
+      "dispatched": "2026-10-11T05:27Z",
+      "directory": "/home/claude/glowcap-r8/authors/T3",
+      "prompt": "prompts/author-ts.md"
     }
-  ]
+  ],
+  "runNote": "The owner chose 'Full run' at 02:46 UTC on 2026-10-11 (amendment 7); the six authors were dispatched in parallel after stage 4 was registered (57686de) and the counted probe was committed (amendment 8)."
 }

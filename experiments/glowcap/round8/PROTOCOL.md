@@ -172,3 +172,83 @@ read. The owner's answers to the open choices are recorded under
    predictions; stage 4 (`registration-4.json`) is what depends on rc.17 and
    the round-8 fuzz mode, before any author starts.
 
+5. **A probe run from the authors' family does not count (2026-10-10, 23:26
+   UTC).** The owner ran the registered prompt in Fable and posted the reply.
+   Fable is a Claude model, the same family as the round's authors, so under
+   "The learnability probe" the run is not the probe. It is kept verbatim in
+   `probe/runs/1-fable-not-counted.md`, produces no guide or packet items, and
+   any diff against it is information only. The probe still needs one run on
+   a model of another family, with the same prompt. A counting reply is
+   committed as `probe/reply.md`, as registered.
+6. **Two more attempts, neither counted (2026-10-10, 23:28 UTC).** The owner
+   tried Grok, which did not finish on a free plan
+   (`probe/runs/3-grok-unfinished.md`). They then ran the registered prompt in
+   ChatGPT, a family other than the authors'. The reply's first assumption says the
+   conversation "already contains Caveat syntax and repository material, so
+   this response is not a syntax-naïve trial", which breaks the probe's
+   "one fresh chat ... never shown Caveat's syntax". It is kept verbatim in
+   `probe/runs/2-chatgpt-not-counted.md` under amendment 5's rule: no guide or
+   packet items, and any diff is information only. A counting run needs a
+   fresh chat with no memory, no custom instructions and no tools or web,
+   such as a ChatGPT Temporary Chat or a new Gemini chat, with the prompt
+   pasted unchanged. On the same day, at 23:29 UTC, the owner chose "Don't
+   wait" on the card asking whether rc.17's tag should wait for a counting
+   run. So round 8 runs on rc.17's docs as they are, and any guide item
+   from a later counting run goes to rc.18, as "Timing" provides.
+
+7. **Stage 4, and the run's size (2026-10-11).** rc.17 was published to npm
+   at 02:35 UTC from tag `v0.1.0-rc.17` (commit `304a16d`). Stage 4
+   (`registration-4.json`) holds what depends on it and every later agent's
+   inputs:
+   - **The pin (row 1).** `prepare.mjs` names the tarball npm serves for
+     `caveat-lang@0.1.0-rc.17`, SHA256
+     `03bc86cf7fc396b32a8184028303202d33c6ca33439b86939e07ba6621c991b6`
+     (its sha512 equals the registry's integrity field). It refuses to
+     prepare authors or the packet manifest unless
+     `docs/releases/v0.1.0-rc.17-npm-publication.json` records that hash as
+     verified, so stage 4 is registered only after that record is on main.
+   - **The packet (row 2).** The same transformation as round 7: the guide
+     loses its final section, from "Evidence from fresh authors". The hashes
+     are in `packet/manifest.json`.
+   - **Tooling (row 4).** Caveat authors are told about the CLI's `types`,
+     check-first `test` and `init` (the starter), and the starter's
+     `templates/` join what they may read. The package's runtime,
+     `lib/*.mjs` and `examples/` stay closed, as in round 7.
+   - **The comparator (row 5).** `exec.mjs` is round 7's, except that each
+     journal entry's `caveats` is compared as a set. `lib.mjs`,
+     `workspace/run.mjs` and `workspace/README-author.md` are round 7's, for
+     21 phases.
+   - **Fuzz.** `fuzz.mjs` is round 7's with CR18 to CR20's events added
+     (doubt, undoubt, retaste).
+   - **Prompts.** The author prompts are round 7's wave-2 prompts, with the
+     scratchpad sentence (row 6). The mutator's prompt and directory README
+     are round 7's, with that sentence added. The drift counter's README is
+     round 7's definition, applied to CR17 to CR20.
+   - **Versions (row 11).** Node 22.22.0 and `typescript` 7.0.2, as in
+     round 7.
+   - **Disclosed: Glowcap in the documentation.** As in round 7, specifications
+     in the frozen packet use Glowcap fragments. In rc.17 there are 19 of them,
+     plus the package README and two passages of the guide before the cut.
+     Some are new since rc.11 and cite round 7's CR13 to CR16 (windows,
+     departure, lineage compaction, which names round 7's C3 program). Those
+     are inherited phases here (row 3). No packet file uses CR17 to CR20's
+     events or fields. Two generic passages use the words "countdown" and
+     "doubt": `caveat-reactive-0.4.md` L97 and `caveat-save-0.1.md` L286.
+   - **Smoke check, not results.** Round 7's finished T1 and C3 programs went
+     through the runner on rc.17 in a separate root (`--smoke`). Each passed
+     all 50 CR16 scenarios, then failed exactly CR17's three new scenarios.
+     The fuzz ran across both programs.
+
+   The owner chose "Full run" at 02:46 UTC on 2026-10-11 on the card "Start
+   round 8's eight-agent run on rc.17 after your probe chat?". So *Size of
+   the run* stands: ten agents as registered, of which the writer and the
+   reviewer have already run. The eight that remain start once a counting
+   probe reply has been committed as `probe/reply.md`.
+
+8. **The counted probe (2026-10-11, 03:03 UTC).** The owner posted a Gemini
+   reply to the registered prompt in this round's thread. It meets "The
+   learnability probe": the model is from another family, and nothing in the
+   reply suggests it had seen Caveat's syntax. It is committed unchanged as
+   `probe/reply.md`, and its diff is `probe/DIFF.md`. The reply came after
+   rc.17 was published and before any author started, so its items wait for
+   a later candidate (amendment 6).
