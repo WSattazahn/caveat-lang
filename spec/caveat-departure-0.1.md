@@ -330,6 +330,12 @@ recorded beside them.
 
 ## Changes
 
+- 2026-10-11 (rc.18, specified; implemented in P4): a take-back record departs
+  with its occurrence and pins nothing, and a current value that held a
+  departing record keeps the take-back caveats that record's live relations
+  gave it, so departure still preserves outcomes
+  ([Take-back 0.1](caveat-take-back-0.1.md#departure-and-collection)).
+
 - 2026-10-05 (rc.16, specified): new profile. Retired records that nothing
   pins depart at the end of each accepted event; departure is a reported,
   transactional effect; a host-drained archive outside the save, with each

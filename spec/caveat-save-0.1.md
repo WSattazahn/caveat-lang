@@ -69,6 +69,10 @@ the program names it:
   one made before that profile, holds none;
 - the withdrawn observations ([Withdrawal 0.1](caveat-withdrawal-0.1.md)),
   checked against the graph's `withdrawn` relations when restored;
+- the take-back records, as `taken_back`, and each provenance's kept
+  take-back caveats, as `kept`, both left out when empty and checked as
+  [Take-back 0.1](caveat-take-back-0.1.md#snapshot-and-save) says (rc.18,
+  specified; implemented in P4);
 - each permitted commitment's frozen permission record
   ([Permission 0.1](caveat-permission-0.1.md)), checked against the journal's
   `permitted_by` when restored;
@@ -231,7 +235,9 @@ save is refused with an error, and never crashes the runtime, when:
 
 Journal `elapsed` and `value` fields are optional for saves written before
 those fields were introduced. Historical caveats may be a strict subset of
-current caveats: later qualification does not rewrite history.
+current caveats: later qualification does not rewrite history. In a program
+that takes back, current caveats may also lack one a historical record keeps:
+a [take-back](caveat-take-back-0.1.md) does not rewrite history either.
 
 The runtime tests alter a saved game at random, 3,000 times on every run and
 30,000 when asked, and remove each of its records in turn. Each altered save
@@ -317,6 +323,12 @@ do not establish that accepted histories really occurred. The
 validation and host trust mechanisms separately from this contract.
 
 ## Changes
+
+- 2026-10-11 (rc.18, specified; implemented in P4): the additive `taken_back`
+  and `kept` fields and their restore checks
+  ([Take-back 0.1](caveat-take-back-0.1.md)). Only a program with `unqualify`
+  writes them; saves without them restore as before. The schema stays
+  `caveat-reactive-save/0.1`.
 
 - 2026-10-10 (rc.17, specified): the additive `evidence_order` field, which
   keeps View 0.2's first-observed grounds order after a journal window

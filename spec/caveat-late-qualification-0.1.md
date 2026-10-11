@@ -12,7 +12,9 @@ on tick when taste_age >= 60 qualify taste_pool with taste_faded;
 ```
 
 To record that an observation is no longer stood behind, rather than add a
-caveat to it, see [Withdrawal 0.1](caveat-withdrawal-0.1.md).
+caveat to it, see [Withdrawal 0.1](caveat-withdrawal-0.1.md). To record that a
+late qualification no longer stands, see
+[Take-back 0.1](caveat-take-back-0.1.md).
 
 ## Syntax
 
@@ -33,7 +35,10 @@ When the effect runs, `EVIDENCE` must already be observed; otherwise the event
 is refused as `evaluation/unobserved_evidence`
 ([Dispatch 0.1](caveat-dispatch-0.1.md)). Then:
 
-1. The graph gains `CAVEAT qualifies EVIDENCE`, once. From now on every
+1. The graph gains `CAVEAT qualifies EVIDENCE`, once: while the occurrence
+   has a live `CAVEAT qualifies` relation, declared or added, another
+   `qualify` adds nothing. A relation a [take-back](caveat-take-back-0.1.md)
+   has marked is not live, so a `qualify` after it adds a new one. From now on every
    `qualified(v, EVIDENCE)` and `observed(EVIDENCE)` inherits the caveat, and
    any caveats that qualify it, as it would a declared qualification.
 2. Every **current value** whose evidence includes `EVIDENCE` gains the caveat
@@ -61,3 +66,9 @@ that cost a plain `epoch` counter per mushroom, four fade rules per mushroom,
 and a window test on the recovery accumulator. With `qualify`, the program
 states the one fact, "this taste has faded", and the runtime finds every value
 that fact touches, because provenance already records the dependency.
+
+## Changes
+
+- 2026-10-11 (rc.18, specified; implemented in P4): a `qualify` after a
+  [take-back](caveat-take-back-0.1.md) of the same caveat adds a new relation.
+  Without a take-back nothing changes: the relation is still added once.

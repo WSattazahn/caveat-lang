@@ -72,7 +72,8 @@ A retired record:
   `sighting@7` is `sighting@8` whether or not `sighting@1` retired. A name is
   never reused.
 - **cannot be named by a new effect.** `qualify`, `withdraw` and `reopen` name
-  current occurrences and latest records, which are live. A scheduled
+  current occurrences and latest records, which are live, and `unqualify`
+  reaches only held occurrences ([Take-back 0.1](caveat-take-back-0.1.md)). A scheduled
   qualification pending on an occurrence that retires before it is due still
   applies when due, to the retired occurrence's record, and is reported; like
   every relation of a retired record it counts in no later read.
