@@ -117,7 +117,8 @@ function replay(runtime, source, events) {
     for (const { event, payload = {} } of events) {
       try {
         const { snapshot: after, ...outcome } = session.dispatch(event, payload);
-        sent.push({ event, payload, outcome });
+        sent.push({ event, payload, outcome,
+          ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
         if (outcome.outcome === 'accepted') {
           snapshot = after;
           for (const item of session.drainArchive()) archive.push(item);
@@ -208,7 +209,8 @@ export async function runAuthoringOperation(toolName, args, { runtimeDirectory }
   const { snapshot, sent, archive, failed } = replayed;
   if (operation === 'explain') return wrap(failed ? 1 : 0, { program, ...explain(snapshot, sent, { archive }) });
   try {
-    return wrap(failed ? 1 : 0, { program, events: sent, ...dependents(snapshot, args.subject, { archive }) });
+    const events = sent.map(({ event, payload, outcome }) => ({ event, payload, outcome }));
+    return wrap(failed ? 1 : 0, { program, events, ...dependents(snapshot, args.subject, { archive }) });
   } catch (error) {
     return wrap(2, { program, subject: args.subject, error: error.message });
   }

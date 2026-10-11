@@ -490,11 +490,14 @@ test('explain, dependents and check reports have the declared fields', () => {
       [['look'], ['look'], ['look']], 's@1'],
   ]) {
     const session = real.open(source);
-    const sent = events.map(([event, payload]) => {
-      const { snapshot: _snapshot, ...outcome } = session.dispatch(event, payload ?? {});
-      return { event, payload: payload ?? {}, outcome };
+    const traced = events.map(([event, payload]) => {
+      const { snapshot: after, ...outcome } = session.dispatch(event, payload ?? {});
+      return { event, payload: payload ?? {}, outcome,
+        ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) };
     });
+    const sent = traced.map(({ event, payload, outcome }) => ({ event, payload, outcome }));
     explained.push(explain(session.snapshot(), sent));
+    explained.push(explain(session.snapshot(), traced));
     rests.push(dependents(session.snapshot(), subject));
     const archive = session.drainArchive();
     if (archive.length) {

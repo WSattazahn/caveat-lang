@@ -187,7 +187,8 @@ function sendAll(session, events, each = () => {}) {
   for (const { event, payload, line } of events) {
     try {
       const { snapshot: after, ...outcome } = session.dispatch(event, payload);
-      sent.push({ event, payload, outcome });
+      sent.push({ event, payload, outcome,
+        ...(outcome.outcome === 'accepted' ? { sequence: after.sequence, effects: after.effects } : {}) });
       if (outcome.outcome === 'accepted') {
         snapshot = after;
         for (const item of session.drainArchive()) archive.push(item);
@@ -236,7 +237,8 @@ async function dependentsOf(options) {
   const { sent, snapshot, archive, failed } = sendAll(opened.session, opened.events);
   let result;
   try { result = dependents(snapshot, subject, { archive }); } catch (error) { console.error(error.message); return 2; }
-  if (options.json) console.log(JSON.stringify({ program, events: sent, ...result }, null, 2));
+  const events = sent.map(({ event, payload, outcome }) => ({ event, payload, outcome }));
+  if (options.json) console.log(JSON.stringify({ program, events, ...result }, null, 2));
   else {
     console.log(formatDependents(result, path.basename(program), sent.length));
     if (failed) console.log(`\nEvent ${sent.length} failed; the answer above is about the session before it.`);

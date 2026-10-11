@@ -274,6 +274,7 @@ Decisions
   cover: 1 of at most 4
     cover@1 = 1  reopened
       based on soil@1
+      soil@1: observed at #1 probe_read {"celsius":1}
       permitted by approvals@1
       could also have been influenced by approvals@1
       #3 decide: committed because soil@1
@@ -294,7 +295,9 @@ Displayed
 Three words in this output mean different things:
 
 - **Based on** is the decision's **grounds**: what its `using` read, fixed when
-  it was made. A later reading never changes them.
+  it was made. A later reading never changes them. The lines after it name
+  the event that observed each one, with its payload, such as which revision
+  a test result was for.
 - **Permitted by** is the grant its `permitted by` clause found. That grant is
   not grounds.
 - **Could also have been influenced by** is the rest of its **lineage**:
