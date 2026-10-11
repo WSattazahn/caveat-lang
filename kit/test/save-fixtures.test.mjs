@@ -16,6 +16,21 @@ const fixtures = fileURLToPath(new URL('./fixtures/saves/', import.meta.url));
 const releases = readdirSync(fixtures).filter(name => /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/.test(name)).sort();
 const programs = readdirSync(path.join(fixtures, 'programs')).filter(name => name.endsWith('.cav')).sort();
 
+// View 0.2 is not frozen until 1.0.0, and rc.18 changed it on purpose: binding
+// explanations list evidence in first-observed order, not sorted (rc.18 plan,
+// Q2; spec/caveat-view-0.2.md). For a fixture written before that
+// change, View 0.2 is compared with each evidence list sorted on both sides;
+// every other byte must still match. View 0.1 is compared exactly for every
+// release.
+const sortedEvidence = view => {
+  const copy = structuredClone(view);
+  for (const fields of Object.values(copy.binding_explanations ?? {})) {
+    for (const explanation of Object.values(fields)) explanation.evidence.sort();
+  }
+  return JSON.stringify(copy);
+};
+const viewV2Before = { '0.1.0-rc.17': sortedEvidence };
+
 // Expected objects match partially and arrays exactly, as in a scenario's
 // `expect` (spec/caveat-scenarios-0.1.md): a later kit may add report fields.
 function contains(actual, expected, at = '') {
@@ -60,7 +75,10 @@ for (const release of releases) {
           assert.equal(JSON.stringify(session.view()), view, `View 0.1 after ${event} (after event ${index + 1})`);
           archive.push(...session.drainArchive());
         });
-        assert.equal(JSON.stringify(session.view({ schema: '0.2' })), fixture.view_v2, 'View 0.2 after the last event');
+        const asWritten = viewV2Before[release];
+        const viewV2 = session.view({ schema: '0.2' });
+        if (asWritten) assert.equal(asWritten(viewV2), asWritten(JSON.parse(fixture.view_v2)), 'View 0.2 after the last event, evidence order aside');
+        else assert.equal(JSON.stringify(viewV2), fixture.view_v2, 'View 0.2 after the last event');
         contains(explain(session.snapshot(), [], { archive }), fixture.explain, 'explain');
         // The continued session saves and restores in this runtime.
         const again = real.restore(source, session.save());
