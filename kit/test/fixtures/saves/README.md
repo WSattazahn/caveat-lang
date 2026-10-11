@@ -22,5 +22,7 @@ test and requires the same outcomes (origin and code, not message text), the
 same View 0.1 and View 0.2 bytes, and an explanation that contains the
 recorded one. One exception is View 0.2 in releases before rc.18, which sorted
 the evidence in binding explanations. rc.18 lists that evidence in
-first-observed order instead, so for those releases the evidence lists are
-compared as sorted sets and every other byte must still match. Each release adds its directory once it is published.
+first-observed order instead. For those releases, View 0.2 is compared with
+the evidence lists sorted, so every other byte must still match that release.
+Its exact bytes, order included, must also match the same events played live
+by the runtime under test, so a restore that loses the order fails. Each release adds its directory once it is published.

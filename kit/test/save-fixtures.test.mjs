@@ -19,9 +19,11 @@ const programs = readdirSync(path.join(fixtures, 'programs')).filter(name => nam
 // View 0.2 is not frozen until 1.0.0, and rc.18 changed it on purpose: binding
 // explanations list evidence in first-observed order, not sorted (rc.18 plan,
 // Q2; spec/caveat-view-0.2.md). For a fixture written before that
-// change, View 0.2 is compared with each evidence list sorted on both sides;
-// every other byte must still match. View 0.1 is compared exactly for every
-// release.
+// change, View 0.2 is compared with each evidence list sorted on both sides,
+// so every other byte must still match that release, and the order is held
+// byte for byte to the same events played live, without a save, by this
+// runtime: a restore that lost first-observed order fails. View 0.1 is
+// compared exactly for every release.
 const sortedEvidence = view => {
   const copy = structuredClone(view);
   for (const fields of Object.values(copy.binding_explanations ?? {})) {
@@ -59,7 +61,7 @@ for (const release of releases) {
       const fixture = JSON.parse(readFileSync(path.join(fixtures, release, file), 'utf8'));
       assert.equal(fixture.package, `caveat-lang@${release}`);
       const source = readFileSync(path.join(fixtures, fixture.program), 'utf8');
-      const { after } = JSON.parse(readFileSync(path.join(fixtures, fixture.events), 'utf8'));
+      const { before, after } = JSON.parse(readFileSync(path.join(fixtures, fixture.events), 'utf8'));
       const saved = JSON.parse(fixture.save);
       if (saved.source_sha256 !== undefined) {
         assert.equal(saved.source_sha256, createHash('sha256').update(source).digest('hex'), 'the fixture program is the source the save was made under');
@@ -77,8 +79,16 @@ for (const release of releases) {
         });
         const asWritten = viewV2Before[release];
         const viewV2 = session.view({ schema: '0.2' });
-        if (asWritten) assert.equal(asWritten(viewV2), asWritten(JSON.parse(fixture.view_v2)), 'View 0.2 after the last event, evidence order aside');
-        else assert.equal(JSON.stringify(viewV2), fixture.view_v2, 'View 0.2 after the last event');
+        if (asWritten) {
+          assert.equal(asWritten(viewV2), asWritten(JSON.parse(fixture.view_v2)), 'View 0.2 after the last event, evidence order aside');
+          const live = real.open(source);
+          try {
+            for (const { event, payload } of [...before, ...after]) live.dispatch(event, payload);
+            assert.equal(JSON.stringify(viewV2), JSON.stringify(live.view({ schema: '0.2' })), 'View 0.2 after the last event, as the same events give it without a save');
+          } finally {
+            live.close();
+          }
+        } else assert.equal(JSON.stringify(viewV2), fixture.view_v2, 'View 0.2 after the last event');
         contains(explain(session.snapshot(), [], { archive }), fixture.explain, 'explain');
         // The continued session saves and restores in this runtime.
         const again = real.restore(source, session.save());
