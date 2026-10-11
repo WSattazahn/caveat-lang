@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -229,7 +229,7 @@
+         commit trust because enough using qualified(1, e);
+     # While trust is reopened, the second glowcap observation since the most
+     # recent contradiction commits it again, on those two observations.
+-    when found == 1 and reopened(trust) set recovery = recovery + qualified(1, e);
++    when found == 1 and reopened(trust) set recovery = qualified(1, e) + recovery;
+     # (0 * recovery grounds the journal entry on the new basis.)
+     when found == 1 and reopened(trust) and recovery >= 2
+         call note(ident * 100 + if(act == 3, 11, 10) + 0 * recovery, 0);

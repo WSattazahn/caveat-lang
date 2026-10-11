@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -357,8 +357,6 @@
+     # regrowth before then leaves the old taste to fade on its own clock.
+     on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and not $m_retasted
+         qualify taste_$m with taste_faded;
+-    on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 and $m_retasted
+-        qualify retaste_$m with taste_faded;
+     on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 set $m_tasted_at = -1;
+     define $m_regrows = $m_gone_at >= 0 and elapsed() - $m_gone_at >= 45;
+     on tick when $m_regrows and $m_tasted_at >= 0 and not $m_retasted

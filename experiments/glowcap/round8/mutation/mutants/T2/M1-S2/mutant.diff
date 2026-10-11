@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -195,7 +195,7 @@
+   const m = s.mushrooms[id];
+   if (OUT_OF_REACH.includes(id) || m.consumed || m.tasted === null || m.retasted) return false;
+   const taste = find(s, evidenceId(s, 'taste', id));
+-  return taste !== undefined && taste.caveats.includes(TASTE_FADED);
++  return taste !== undefined && false;
+ }
+ 
+ // CR17: whole seconds rounded up; 0 when the timer is not running.

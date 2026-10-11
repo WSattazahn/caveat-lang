@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -127,7 +127,7 @@
+ }
+ 
+ function isDoubted(s: State, ev: string): boolean {
+-  return (s.evidenceCaveats[ev] ?? []).includes(DOUBTED);
++  return false;
+ }
+ 
+ // CR18: the belief counts remembered, undoubted observations only.

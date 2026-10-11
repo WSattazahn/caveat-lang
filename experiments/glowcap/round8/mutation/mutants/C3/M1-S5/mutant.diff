@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -306,7 +306,7 @@
+     on retaste when $m_eaten reject "That mushroom is gone.";
+     on retaste when not $m_tasted reject "Not tasted yet.";
+     on retaste when $m_retasted reject "Already tasted again.";
+-    on retaste when not carries(taste_$m, taste_faded) reject "The taste has not faded yet.";
++    on retaste when not false reject "The taste has not faded yet.";
+     on retaste when $m_disagrees reject "That is not what it tasted like.";
+     on retaste call saw(retaste_$m, sort);
+     on retaste call note(sort, $m_life * 100 + (6 + sort) * 10 + $index);

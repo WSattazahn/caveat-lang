@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -231,7 +231,7 @@
+ function mushroomRow(s: State, id: string): MushroomRow {
+   const m = s.mushrooms[id];
+   if (m.consumed) {
+-    const eaten: Refusal = { reason: 'Already eaten', because: m.consumedBy === null ? [] : [m.consumedBy] };
++    const eaten: Refusal = { reason: 'Already eaten', because: [...(m.consumedBy === null ? [] : [m.consumedBy]), 'absorb_cave'] };
+     return row(s, id, '', [], eaten, eaten);
+   }
+   // CR15: out of reach comes directly after Already eaten, for both actions.

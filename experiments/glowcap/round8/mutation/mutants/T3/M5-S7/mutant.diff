@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -140,7 +140,7 @@
+   if (OUT_OF_REACH.includes(id)) return { absorb: why(s, 'Out of reach', []), taste: why(s, 'Out of reach', []) };
+   const tasteEv = idTaste(s, id);
+   const contra = con(s);
+-  const absorb = m.tasted === 'duskcap' ? why(s, 'Known duskcap', [tasteEv])
++  const absorb = m.tasted === 'duskcap' ? why(s, 'Known duskcap', [tasteEv, 'absorb_cave'])
+     : m.marked ? why(s, 'Marked to avoid', [])
+     : m.tasted === null && contra.length >= 2 ? why(s, 'Too risky untasted', contra)
+     : why(s, '', []);

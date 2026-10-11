@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -276,7 +276,7 @@
+   s.decision.basis = [...basis];
+   s.decision.reopenedBy = [];
+   s.decision.caveats = caveatsOf(s, basis);
+-  const entry: HistoryEntry = { change: 'committed', because: [...basis] };
++  const entry: HistoryEntry = { change: 'committed', because: [...basis, 'absorb_cave'] };
+   pushBounded(s.decision.history, entry, DECISION_MEMORY);
+   return entry;
+ }

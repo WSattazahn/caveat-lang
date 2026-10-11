@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -382,7 +382,7 @@
+     return 'reopened';
+   } else if (d.state === 'reopened' && s.recovery.length >= RECOVERY_COUNT && s.recovery[RECOVERY_COUNT - 1] === e.id) {
+     // CR7: the second glowcap observation since the most recent contradiction recommits.
+-    return commit(s, s.recovery);
++    return commit(s, [...s.recovery, 'absorb_cave']);
+   }
+   return null;
+ }

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -484,7 +484,7 @@
+ bind belief.note = "Based on " + number_text(contradiction) + " observations." when belief == 2 and contradiction > 1;
+ # The evidence lists are these bindings' citations.
+ bind belief.supportedBy = support because support;
+-bind belief.contradictedBy = contradiction because contradiction;
++bind belief.contradictedBy = contradiction because contradiction, observed(absorb_cave);
+ 
+ bind decision.state = "none";
+ bind decision.state = "committed" when committed(trust);

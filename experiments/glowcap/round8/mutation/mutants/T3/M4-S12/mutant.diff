@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -565,7 +565,7 @@
+   }
+   const d = s.decision;
+   d.state = sv.d.st as State['decision']['state'];
+-  d.basis = unrefs(sv.d.b);
++  d.basis = unrefs(sv.d.b).reverse();
+   d.basisCaveats = [...sv.d.bc];
+   d.reopenedBy = unrefs(sv.d.r);
+   d.history = sv.d.h === '' ? [] : sv.d.h.split(';').map((e) => ({

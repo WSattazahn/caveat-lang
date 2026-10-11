@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -411,7 +411,7 @@
+         when $m_sweet and $m_retasted and carries(retaste_$m, taste_faded) because $m_retasted;
+     bind $m.label = "Probably a duskcap (taste has faded)"
+         when $m_bitter and $m_retasted and carries(retaste_$m, taste_faded) because $m_retasted;
+-    bind $m.label = "" when $m_eaten because nothing;
++    bind $m.label = "" when $m_eaten because observed(absorb_cave);
+ 
+     # CR11: why an action is not allowed.
+     bind $m.whyAbsorb = "" because nothing;

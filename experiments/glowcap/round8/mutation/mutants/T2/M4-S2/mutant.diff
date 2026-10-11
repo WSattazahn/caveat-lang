@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -304,7 +304,7 @@
+       basis: [...s.decision.basis],
+       reopenedBy: [...s.decision.reopenedBy],
+       caveats: [...s.decision.caveats],
+-      history: s.decision.history.map((h) => ({ change: h.change, because: [...h.because] })),
++      history: s.decision.history.map((h) => ({ change: h.change, because: [...h.because].reverse() })),
+     },
+     journal: s.journal.map((j) => ({ text: journalText(j), because: [...j.because], caveats: caveatsOf(s, j.because) })),
+   };

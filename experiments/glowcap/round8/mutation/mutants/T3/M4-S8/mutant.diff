@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -471,7 +471,7 @@
+ function journalToken(s: State, e: JournalEntry): string {
+   if (e.entry === 'glowcap' || e.entry === 'duskcap') return fullToken(s, e.because[0], e.entry);
+   const kind: Kind | null = e.entry === 'committed' ? 'glowcap' : e.entry === 'reopened' ? 'duskcap' : null;
+-  return `${e.entry[0]}${e.because.map((ev) => fullToken(s, ev, kind)).join(',')}`;
++  return `${e.entry[0]}${[...e.because].reverse().map((ev) => fullToken(s, ev, kind)).join(',')}`;
+ }
+ 
+ const JOURNAL_PREFIX: Record<string, JournalEntry['entry']> = { c: 'committed', r: 'reopened', d: 'doubt', u: 'undoubt' };

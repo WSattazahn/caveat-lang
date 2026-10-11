@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -65,7 +65,7 @@
+     decision: {
+       state: b.decision.state,
+       basis: grounds ? named(grounds.evidence.filter((e) => !grounds.inherited?.includes(e))) : [],
+-      caveats: grounds ? [...grounds.caveats] : [],
++      caveats: grounds ? [...new Set(Object.values(v.binding_explanations ?? {}).flatMap((props) => Object.values(props)).filter((x) => (x.evidence ?? []).some((n) => (grounds.evidence).includes(n))).flatMap((x) => x.caveats ?? []))] : [],
+       history: journal.map((e) => ({ change: e.change, because: named(e.because) })),
+       reopenedBy: journal.filter((e) => e.change === 'reopened' && e.commitment === current)
+         .flatMap((e) => named(e.because)),

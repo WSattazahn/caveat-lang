@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -366,7 +366,7 @@
+       if (isDoubted(s, obs.ev)) fail(`${obs.ev} is already doubted`);
+       if (!counted(s).some((o) => o.ev !== obs.ev)) fail('at least one undoubted observation must remain');
+       s.caveats[obs.ev] = [...(s.caveats[obs.ev] ?? []), 'doubted'];
+-      pushJournal(s, { entry: 'doubt', because: [obs.ev] });
++      pushJournal(s, { entry: 'doubt', because: [obs.ev, 'absorb_cave'] });
+       break;
+     }
+     case 'undoubt': {

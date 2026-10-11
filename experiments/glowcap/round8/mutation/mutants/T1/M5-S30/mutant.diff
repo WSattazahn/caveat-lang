@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -472,7 +472,7 @@
+       } else {
+         if (!isDoubted(s, ev)) fail(`${ev} is not doubted`);
+         s.evidenceCaveats[ev] = (s.evidenceCaveats[ev] ?? []).filter((c) => c !== DOUBTED);
+-        pushBounded(s.journal, { text: `I believe what I saw at the ${name} mushroom again.`, because: [ev] }, JOURNAL_MEMORY);
++        pushBounded(s.journal, { text: `I believe what I saw at the ${name} mushroom again.`, because: [ev, 'absorb_cave'] }, JOURNAL_MEMORY);
+       }
+       return;
+     }

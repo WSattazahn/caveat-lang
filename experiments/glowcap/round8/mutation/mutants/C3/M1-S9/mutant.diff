@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -361,8 +361,6 @@
+         qualify retaste_$m with taste_faded;
+     on tick when $m_tasted_at >= 0 and elapsed() - $m_tasted_at >= 60 set $m_tasted_at = -1;
+     define $m_regrows = $m_gone_at >= 0 and elapsed() - $m_gone_at >= 45;
+-    on tick when $m_regrows and $m_tasted_at >= 0 and not $m_retasted
+-        qualify taste_$m with taste_faded after 60 - (elapsed() - $m_tasted_at);
+     on tick when $m_regrows and $m_tasted_at >= 0 and $m_retasted
+         qualify retaste_$m with taste_faded after 60 - (elapsed() - $m_tasted_at);
+     on tick when $m_regrows set $m_tasted_at = -1;

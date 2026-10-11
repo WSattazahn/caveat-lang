@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -173,7 +173,7 @@
+ define jcite3 = j3 + if(y3 == 1, doubt_mark, 0);
+ define jcite4 = j4 + if(y4 == 1, doubt_mark, 0);
+ define jcite5 = j5 + if(y5 == 1, doubt_mark, 0);
+-define jcite6 = j6 + if(y6 == 1, doubt_mark, 0);
++define jcite6 = j6;
+ 
+ fn mushroom_name(m) = if(m == 1, "cave", if(m == 2, "pool", if(m == 3, "ruin", if(m == 4, "grove", "pit"))));
+ fn observation_text(kind, m) =

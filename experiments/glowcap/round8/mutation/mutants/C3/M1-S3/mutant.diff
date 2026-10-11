@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -274,7 +274,7 @@
+     define $m_can_absorb = not $m_out_of_reach and not $m_eaten and not $m_bitter and not $m_too_risky and $m_marked == 0;
+     define $m_can_taste = not $m_out_of_reach and not $m_eaten and not $m_tasted;
+     define $m_can_retaste = not $m_out_of_reach and not $m_eaten and $m_tasted
+-        and carries(taste_$m, taste_faded) and not $m_retasted;
++        and false and not $m_retasted;
+     define $m_disagrees = ($m_sweet and sort != sort.glowcap) or ($m_bitter and sort != sort.duskcap);
+     # When the current life was consumed; -1 while it is not.
+     state $m_gone_at = -1;

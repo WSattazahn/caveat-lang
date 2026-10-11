@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -431,7 +431,7 @@
+     bind $m.whyTaste = "Already eaten" when observed(absorb_$m) because observed(absorb_$m);
+     bind $m.whyTaste = "Already eaten" when observed(witness_$m) because observed(witness_$m);
+     bind $m.whyTaste = "Already eaten" when observed(witness_$m) and $m_doubted == 1
+-        and (examined(doubted) or true) because observed(witness_$m), examined(doubted);
++        because observed(witness_$m);
+ };
+ 
+ on absorb when sort == sort.glowcap set glow = 30;

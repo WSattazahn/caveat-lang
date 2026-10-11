@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -433,7 +433,7 @@
+       if (m.tasted !== null) throw new Error(`${id} already tasted`);
+       if (!mushroomRow(s, id).canTaste) throw new Error(`${id} may not be tasted`);
+       m.tasted = kind;
+-      const caveats = s.glow > 0 ? [] : [TASTED_IN_DARK];
++      const caveats = s.glow > 0 ? [] : [];
+       observe(s, { id: evidenceId(s, 'taste', id), kind, caveats, age: 0 });
+       return;
+     }

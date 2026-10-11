@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -236,7 +236,7 @@
+   if (OUT_OF_REACH.includes(id)) return { absorb: mk('Out of reach', []), taste: mk('Out of reach', []) };
+   let absorb = allowed;
+   if (m.tasted === 'duskcap') absorb = mk('Known duskcap', [tasteEv]);
+-  else if (m.marked) absorb = mk('Marked to avoid', []);
++  else if (m.marked) absorb = mk('Marked to avoid', ['absorb_cave']);
+   else if (m.tasted === null && contradictedBy(s).length >= 2) absorb = mk('Too risky untasted', contradictedBy(s));
+   const taste = m.tasted !== null ? mk('Already tasted', [tasteEv]) : mk('', []);
+   return { absorb, taste };

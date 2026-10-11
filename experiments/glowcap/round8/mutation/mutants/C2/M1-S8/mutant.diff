@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -285,8 +285,6 @@
+     # taste of the old life that has not faded yet is scheduled to fade on its
+     # own clock, since its name will mean the new life's taste.
+     define $m_regrows = $m_regrow > 0 and $m_regrow <= dt;
+-    on tick when $m_regrows and $m_fade > dt and not $m_retasted
+-        qualify t_$m with faded after $m_fade - dt;
+     on tick when $m_regrows and $m_fade > dt and $m_retasted
+         qualify r_$m with faded after $m_fade - dt;
+     on tick when $m_regrows renew r_$m;

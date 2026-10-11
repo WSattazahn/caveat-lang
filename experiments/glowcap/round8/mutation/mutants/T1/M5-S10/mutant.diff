@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -237,7 +237,7 @@
+   let absorb = allowed;
+   if (m.tasted === 'duskcap') absorb = mk('Known duskcap', [tasteEv]);
+   else if (m.marked) absorb = mk('Marked to avoid', []);
+-  else if (m.tasted === null && contradictedBy(s).length >= 2) absorb = mk('Too risky untasted', contradictedBy(s));
++  else if (m.tasted === null && contradictedBy(s).length >= 2) absorb = mk('Too risky untasted', [...contradictedBy(s), 'absorb_cave']);
+   const taste = m.tasted !== null ? mk('Already tasted', [tasteEv]) : mk('', []);
+   return { absorb, taste };
+ }

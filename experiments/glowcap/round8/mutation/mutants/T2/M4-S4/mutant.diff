@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -334,7 +334,7 @@
+ function commit(s: State, basis: string[]): Change {
+   const d = s.decision;
+   d.state = 'committed';
+-  d.basis = [...basis];
++  d.basis = [...basis].reverse();
+   d.reopenedBy = [];
+   d.caveats = caveatsOf(s, basis);
+   pushBounded(d.history, { change: 'committed', because: [...basis] }, DECISION_KEEP);

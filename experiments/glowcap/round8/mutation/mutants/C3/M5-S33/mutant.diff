@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -429,7 +429,7 @@
+     bind $m.whyTaste = "Already tasted" when $m_retasted because $m_retasted;
+     bind $m.whyTaste = "Out of reach" when $m_out_of_reach because nothing;
+     bind $m.whyTaste = "Already eaten" when observed(absorb_$m) because observed(absorb_$m);
+-    bind $m.whyTaste = "Already eaten" when observed(witness_$m) because observed(witness_$m);
++    bind $m.whyTaste = "Already eaten" when observed(witness_$m) because observed(witness_$m), observed(absorb_cave);
+     bind $m.whyTaste = "Already eaten" when observed(witness_$m) and $m_doubted == 1
+         and (examined(doubted) or true) because observed(witness_$m), examined(doubted);
+ };

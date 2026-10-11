@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -512,7 +512,7 @@
+     mushrooms,
+     belief,
+     decision: { state: s.decision.state, basis: [...s.decision.basis], reopenedBy: [...s.decision.reopenedBy], caveats: [...s.decision.caveats],
+-      history: s.decision.history.map((h) => ({ change: h.change, because: [...h.because] })),
++      history: s.decision.history.map((h) => ({ change: h.change, because: [...h.because].reverse() })),
+     },
+     journal: s.journal.map((j) => ({ text: j.text, because: [...j.because], caveats: caveatsOf(s, j.because) })),
+   };

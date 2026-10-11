@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -656,7 +656,6 @@
+     if (!match) throw new Error(`bad evidence code ${code}`);
+     const caveats: string[] = [];
+     if (match[1] === 'w') caveats.push(SECONDHAND);
+-    if (match[4].includes('d')) caveats.push(TASTED_IN_DARK);
+     if (match[4].includes('f')) caveats.push(TASTE_FADED);
+     if (match[4].includes('x')) caveats.push(DOUBTED);
+     return { id: idFromParts(match[1], match[2], match[5]), kind: kindOf(match[3]), caveats };

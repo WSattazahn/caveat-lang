@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -388,7 +388,7 @@
+ 
+ # The evidence lists, carried as the explanations of these values.
+ bind belief.supported_by = support because support;
+-bind belief.contradicted_by = contradiction because contradiction;
++bind belief.contradicted_by = contradiction because contradiction, observed(a_cave);
+ bind belief.cited = support + contradiction because support, contradiction;
+ 
+ bind decision.state = "none";

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -468,7 +468,7 @@
+         if (isDoubted(s, ev)) fail(`${ev} is already doubted`);
+         if (!s.memory.some((o) => o.ev !== ev && !isDoubted(s, o.ev))) fail('at least one undoubted observation must remain');
+         s.evidenceCaveats[ev] = [...(s.evidenceCaveats[ev] ?? []), DOUBTED];
+-        pushBounded(s.journal, { text: `I doubt what I saw at the ${name} mushroom.`, because: [ev] }, JOURNAL_MEMORY);
++        pushBounded(s.journal, { text: `I doubt what I saw at the ${name} mushroom.`, because: [ev, 'absorb_cave'] }, JOURNAL_MEMORY);
+       } else {
+         if (!isDoubted(s, ev)) fail(`${ev} is not doubted`);
+         s.evidenceCaveats[ev] = (s.evidenceCaveats[ev] ?? []).filter((c) => c !== DOUBTED);

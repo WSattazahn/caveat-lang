@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -73,7 +73,7 @@
+ # `doubted` and no evidence: the belief slots (x_k), the journal entries (y_k)
+ # and a consumed mushroom's `why` ($m_doubted_consumer) keep a flag for it.
+ # (Reading examined(doubted) gives a value that carries the caveat `doubted`.)
+-define doubt_mark = if(examined(doubted), 0, 0);
++define doubt_mark = 0;
+ # Whether slot (g, d, x) holds the witness with glowcap code wg / duskcap code
+ # wd, with doubt flag `flag`.
+ fn slot_is(g, d, x, wg, wd, flag) = if((g == wg or d == wd) and x == flag, 1, 0) == 1;

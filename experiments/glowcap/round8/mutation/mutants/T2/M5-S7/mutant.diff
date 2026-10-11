@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -235,7 +235,7 @@
+     return row(s, id, '', [], eaten, eaten);
+   }
+   // CR15: out of reach comes directly after Already eaten, for both actions.
+-  const outOfReach: Refusal = OUT_OF_REACH.includes(id) ? { reason: 'Out of reach', because: [] } : null;
++  const outOfReach: Refusal = OUT_OF_REACH.includes(id) ? { reason: 'Out of reach', because: ['absorb_cave'] } : null;
+   // CR14: a mark refuses absorbing after `Known duskcap` and before the twice-bitten check.
+   const marked: Refusal = m.marked ? { reason: 'Marked to avoid', because: [] } : null;
+   if (m.tasted !== null) {

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -354,7 +354,7 @@
+     bind $m.why_taste = "Already eaten" when $m_eaten_by_absorb because qualified(1, a_$m);
+     bind $m.why_taste = "Already eaten" when $m_eaten_by_witness because qualified(1, w_$m);
+     bind $m.why_taste = "Already eaten" when $m_eaten_by_witness
+-        and qualified($m_doubted, w_$m, doubted) == 1 because qualified(1, w_$m, doubted);
++        and qualified($m_doubted, w_$m, doubted) == 1 because qualified(1, w_$m, doubted), observed(a_cave);
+ };
+ 
+ # ---------------------------------------------------------------- the slime

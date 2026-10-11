@@ -1,0 +1,14 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -557,9 +557,9 @@
+     bind journal.$e_cites = qualified(j3_s + j3_c + j3_x, d, doubted)
+         when $e_shown and $e_obs and $e_page == 3 and $e_flag1
+         because qualified(j3_s + j3_c + j3_x, d, doubted);
+-    bind journal.$e_cites = qualified(j4_s + j4_c + j4_x, d, doubted)
++    bind journal.$e_cites = j4_s + j4_c + j4_x
+         when $e_shown and $e_obs and $e_page == 4 and $e_flag1
+-        because qualified(j4_s + j4_c + j4_x, d, doubted);
++        because j4_s + j4_c + j4_x;
+     bind journal.$e_cites = qualified(j5_s + j5_c + j5_x, d, doubted)
+         when $e_shown and $e_obs and $e_page == 5 and $e_flag1
+         because qualified(j5_s + j5_c + j5_x, d, doubted);

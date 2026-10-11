@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -376,7 +376,6 @@
+     // Base rule (restated by CR13): the observation after which the belief is safe commits.
+     if (currentBelief(s) === 'probably_safe') return commit(s, [e.id]);
+   } else if (e.kind === 'duskcap') {
+-    d.state = 'reopened';
+     pushBounded(d.reopenedBy, e.id, DECISION_KEEP);
+     pushBounded(d.history, { change: 'reopened', because: [e.id] }, DECISION_KEEP);
+     return 'reopened';

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -313,7 +313,7 @@
+         when $m_tasted and $m_taste == 1 and carries(t_$m, dark) because qualified(1, t_$m);
+     bind $m.label = "Duskcap — avoid" when $m_tasted and $m_taste == 2 because qualified(1, t_$m);
+     bind $m.label = "Probably a duskcap (tasted in the dark)"
+-        when $m_tasted and $m_taste == 2 and carries(t_$m, dark) because qualified(1, t_$m);
++        when $m_tasted and $m_taste == 2 and false because qualified(1, t_$m);
+     bind $m.label = "Probably a glowcap (taste has faded)"
+         when $m_tasted and $m_taste == 1 and carries(t_$m, faded) because qualified(1, t_$m);
+     bind $m.label = "Probably a duskcap (taste has faded)"

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -232,7 +232,7 @@
+   const m = s.mushrooms[id];
+   if (m.consumed) {
+     const eaten: Refusal = { reason: 'Already eaten', because: m.consumedBy === null ? [] : [m.consumedBy] };
+-    return row(s, id, '', [], eaten, eaten);
++    return row(s, id, '', ['absorb_cave'], eaten, eaten);
+   }
+   // CR15: out of reach comes directly after Already eaten, for both actions.
+   const outOfReach: Refusal = OUT_OF_REACH.includes(id) ? { reason: 'Out of reach', because: [] } : null;

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -330,7 +330,7 @@
+       m.tasted = kind;
+       const ev = evId('taste', id, m.life);
+       s.tasteAges[ev] = 0;
+-      observe(s, ev, kind, s.glow > 0 ? [] : ['tasted_in_dark']);
++      observe(s, ev, kind, s.glow > 0 ? [] : []);
+       break;
+     }
+     case 'retaste': {

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -447,7 +447,7 @@
+ bind belief.note = "Based on " + number_text(contradiction) + " observations." when probably_unsafe and contradiction > 1 because contradiction;
+ 
+ # The evidence lists are these values' explanations: the remembered observations.
+-bind belief.supported_by = support because support;
++bind belief.supported_by = support because support, observed(absorb_cave);
+ bind belief.contradicted_by = contradiction because contradiction;
+ 
+ bind decision.state = "none" because nothing;

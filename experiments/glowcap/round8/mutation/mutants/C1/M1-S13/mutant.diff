@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -305,7 +305,7 @@
+ 
+     # Tasting identifies this mushroom, and teaches like an absorption.
+     on taste when not $m_can_taste reject "The slime cannot taste that mushroom.";
+-    on taste call observe(taste_$m, sort, if(glow > 0, 0, 1), 2, $m_life * 10 + $index);
++    on taste call observe(taste_$m, sort, 0, 2, $m_life * 10 + $index);
+     on taste set $m_taste = qualified(sort, taste_$m);
+     on taste set $m_tasted_at = elapsed();
+     # A taste fades sixty seconds (of ticks) after it was made.

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -321,7 +321,7 @@
+   pushBounded(s.journal, { text: JOURNAL_TEXT[source]![kind].replace('<id>', id), because: [ev] }, JOURNAL_MEMORY);
+   if (change !== null) {
+     const text = change.change === 'committed' ? 'I trust glowing mushrooms now.' : 'I no longer trust glowing mushrooms.';
+-    pushBounded(s.journal, { text, because: [...change.because] }, JOURNAL_MEMORY);
++    pushBounded(s.journal, { text, because: [...change.because].reverse() }, JOURNAL_MEMORY);
+   }
+ }
+ 

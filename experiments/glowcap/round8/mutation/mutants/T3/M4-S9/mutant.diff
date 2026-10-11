@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -492,7 +492,7 @@
+     f: Object.entries(s.tasteAges).map(([ev, age]) => [refToken(ev), age]),
+     d: {
+       st: d.state,
+-      b: refs(d.basis),
++      b: refs([...d.basis].reverse()),
+       bc: [...d.basisCaveats],
+       r: refs(d.reopenedBy),
+       h: d.history.map((e) => `${e.change === 'committed' ? 'c' : 'r'}${refs(e.because).replace(/ /g, ',')}`).join(';'),

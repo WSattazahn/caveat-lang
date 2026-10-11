@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -154,7 +154,7 @@
+   const tasteEv = idTaste(s, id);
+   const tc = m.tasted !== null ? (s.caveats[tasteEv] ?? []) : [];
+   const qual = tc.includes('taste_faded') ? ' (taste has faded)' : tc.includes('tasted_in_dark') ? ' (tasted in the dark)' : null;
+-  if (m.tasted === 'glowcap') return { present: true, label: qual !== null ? `Probably a glowcap${qual}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteEv] };
++  if (m.tasted === 'glowcap') return { present: true, label: qual !== null ? `Probably a glowcap${qual}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteEv, 'absorb_cave'] };
+   if (m.tasted === 'duskcap') return { present: true, label: qual !== null ? `Probably a duskcap${qual}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteEv] };
+   const supported = sup(s), contra = con(s);
+   if (contra.length >= 2) return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: contra };

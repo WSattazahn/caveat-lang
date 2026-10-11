@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -219,7 +219,7 @@
+ // Record one accepted observation, forget beyond MEMORY, and update the trust decision.
+ function observe(s: State, ev: string, kind: Kind, caveats: string[]): void {
+   if (caveats.length > 0) s.caveats[ev] = [...caveats];
+-  pushJournal(s, { entry: kind, because: [ev] });
++  pushJournal(s, { entry: kind, because: [ev, 'absorb_cave'] });
+   s.memory.push({ ev, kind });
+   keepLast(s.memory, MEMORY);
+   const d = s.decision;

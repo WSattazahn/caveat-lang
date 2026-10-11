@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -241,7 +241,7 @@
+   if (m.tasted !== null) {
+     const because = [identifyingTaste(s, id)];
+     const cav = caveatsOf(s, because);
+-    const tasted: Refusal = { reason: 'Already tasted', because };
++    const tasted: Refusal = { reason: 'Already tasted', because: [...because, 'absorb_cave'] };
+     // CR5: the faded label wins over the dark label.
+     const qualifier = cav.includes(TASTE_FADED) ? ' (taste has faded)' : cav.includes(TASTED_IN_DARK) ? ' (tasted in the dark)' : null;
+     if (m.tasted === 'glowcap') {

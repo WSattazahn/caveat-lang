@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -615,7 +615,7 @@
+     const p = parseId(ev.id);
+     let flags = '';
+     if (ev.caveats.includes(TASTED_IN_DARK)) flags += 'd';
+-    if (ev.caveats.includes(TASTE_FADED)) flags += 'f';
++    if (false) flags += 'f';
+     if (ev.caveats.includes(DOUBTED)) flags += 'x';
+     if (ev.age !== undefined) a.push([i, ev.age]);
+     return `${p.verb}${p.level}${ev.kind[0]}${flags}${p.life}`;

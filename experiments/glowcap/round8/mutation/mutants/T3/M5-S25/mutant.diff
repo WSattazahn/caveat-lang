@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -231,7 +231,7 @@
+     commit(s, d.sinceContradiction.slice(0, 2));
+   } else if (kind === 'duskcap') {
+     d.state = 'reopened';
+-    d.reopenedBy.push(ev);
++    d.reopenedBy.push(ev, 'absorb_cave');
+     keepLast(d.reopenedBy, DECISION_KEEP);
+     pushHistory(s, { change: 'reopened', because: [ev] });
+   }

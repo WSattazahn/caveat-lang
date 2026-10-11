@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -225,7 +225,6 @@
+     set rb = rb + (obs * 100 + 10) * 100000000;
+     when k == sort.duskcap and standing >= 1 call shift_records();
+     when k == sort.duskcap and standing >= 1 set rb = rb + (obs * 100 + 40) * 100000000;
+-    when k == sort.duskcap and standing >= 1 set trust_code = trust_code - standing + 2;
+ };
+ # CR18/CR20: a doubt (type 5) or undoubt (type 6) of the witness in slot s
+ # of mushroom w, with that witness as the record's own carrier.

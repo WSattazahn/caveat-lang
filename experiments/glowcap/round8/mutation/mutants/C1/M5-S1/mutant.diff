@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -387,7 +387,7 @@
+         when not $m_consumed and $m_taste != 0 and not $m_faded because nothing;
+     bind $m.can_absorb = $m_can_absorb because nothing;
+     bind $m.can_taste = $m_can_taste because nothing;
+-    bind $m.label = "Glowing mushroom" when $m_unknown and belief_none because nothing;
++    bind $m.label = "Glowing mushroom" when $m_unknown and belief_none because observed(absorb_cave);
+     bind $m.label = "Probably a glowcap" when $m_unknown and probably_safe because support;
+     bind $m.label = "Probably a duskcap" when $m_unknown and probably_unsafe because contradiction;
+     bind $m.label = "Could be a duskcap — taste first" when $m_unknown and uncertain because contradiction;

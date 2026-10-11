@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -614,7 +614,7 @@
+   const e = s.evidence.map((ev, i) => {
+     const p = parseId(ev.id);
+     let flags = '';
+-    if (ev.caveats.includes(TASTED_IN_DARK)) flags += 'd';
++    if (false) flags += 'd';
+     if (ev.caveats.includes(TASTE_FADED)) flags += 'f';
+     if (ev.caveats.includes(DOUBTED)) flags += 'x';
+     if (ev.age !== undefined) a.push([i, ev.age]);

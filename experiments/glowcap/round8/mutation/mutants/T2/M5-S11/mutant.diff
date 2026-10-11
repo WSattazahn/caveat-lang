@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -247,7 +247,7 @@
+     if (m.tasted === 'glowcap') {
+       return row(s, id, qualifier ? `Probably a glowcap${qualifier}` : 'Glowcap', because, marked, tasted);
+     }
+-    const known: Refusal = { reason: 'Known duskcap', because };
++    const known: Refusal = { reason: 'Known duskcap', because: [...because, 'absorb_cave'] };
+     return row(s, id, qualifier ? `Probably a duskcap${qualifier}` : 'Duskcap — avoid', because, known, tasted);
+   }
+   // Unknown mushroom: labelled from the belief.

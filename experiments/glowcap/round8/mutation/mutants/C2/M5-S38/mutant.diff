@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -532,7 +532,7 @@
+     bind journal.$e_text = "I believe what I saw at the " + $e_name + " mushroom again."
+         when $e_shown and $e_type == 8;
+     # What the entry rests on (its explanation gives the entry's because and caveats).
+-    bind journal.$e_cites = $e_g when $e_shown and not $e_obs because $e_g;
++    bind journal.$e_cites = $e_g when $e_shown and not $e_obs because $e_g, observed(a_cave);
+     bind journal.$e_cites = qualified($e_g, d, doubted) when $e_shown and not $e_obs and $e_flag1
+         because qualified($e_g, d, doubted);
+     # An observation's entry rests on its page.

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -534,7 +534,7 @@
+     # What the entry rests on (its explanation gives the entry's because and caveats).
+     bind journal.$e_cites = $e_g when $e_shown and not $e_obs because $e_g;
+     bind journal.$e_cites = qualified($e_g, d, doubted) when $e_shown and not $e_obs and $e_flag1
+-        because qualified($e_g, d, doubted);
++        because qualified($e_g, d, doubted), observed(a_cave);
+     # An observation's entry rests on its page.
+     bind journal.$e_cites = j1_s + j1_c + j1_x when $e_shown and $e_obs and $e_page == 1
+         because j1_s, j1_c, j1_x;

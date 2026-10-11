@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -495,7 +495,7 @@
+       b: refs(d.basis),
+       bc: [...d.basisCaveats],
+       r: refs(d.reopenedBy),
+-      h: d.history.map((e) => `${e.change === 'committed' ? 'c' : 'r'}${refs(e.because).replace(/ /g, ',')}`).join(';'),
++      h: d.history.map((e) => `${e.change === 'committed' ? 'c' : 'r'}${refs([...e.because].reverse()).replace(/ /g, ',')}`).join(';'),
+       sc: refs(d.sinceContradiction),
+     },
+   };

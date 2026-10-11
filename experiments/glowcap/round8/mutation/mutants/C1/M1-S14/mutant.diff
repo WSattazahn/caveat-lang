@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -309,7 +309,6 @@
+     on taste set $m_taste = qualified(sort, taste_$m);
+     on taste set $m_tasted_at = elapsed();
+     # A taste fades sixty seconds (of ticks) after it was made.
+-    on taste qualify taste_$m with taste_faded after fade_seconds;
+ 
+     # Tasting again: an observation like a taste, which from now on identifies
+     # this life of the mushroom in place of the first taste.

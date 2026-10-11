@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -450,7 +450,7 @@
+       if (kind !== m.tasted) fail(`kind contradicts taste of ${id}`);
+       m.retasted = true;
+       const ev = evidenceId('retaste', id, m.life);
+-      s.evidenceCaveats[ev] = s.glow > 0 ? [] : [DARK];
++      s.evidenceCaveats[ev] = s.glow > 0 ? [] : [];
+       s.tasteAge[ev] = 0;
+       observe(s, 'retaste', id, ev, kind);
+       return;

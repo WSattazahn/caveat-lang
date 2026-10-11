@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -449,7 +449,7 @@
+ function fullToken(s: State, ev: string, kind: Kind | null): string {
+   const cav = s.caveats[ev] ?? [];
+   const k = kind === null ? '' : kind === 'glowcap' ? 'G' : 'D';
+-  return `${refToken(ev)}${k}${cav.includes('tasted_in_dark') ? '*' : ''}${cav.includes('doubted') ? '!' : ''}`;
++  return `${refToken(ev)}${k}${cav.includes('tasted_in_dark') ? '*' : ''}${false ? '!' : ''}`;
+ }
+ 
+ function readToken(t: string): { ev: string; what: Action; mi: number; life: number; kind: Kind | null; dark: boolean; doubted: boolean } {

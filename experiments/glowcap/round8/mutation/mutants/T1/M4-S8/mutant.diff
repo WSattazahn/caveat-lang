@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -584,7 +584,7 @@
+     sc: s.sinceContradiction.map(encodeEv),
+     d: [
+       DECISION_CODES.indexOf(s.decision.state),
+-      s.decision.basis.map(encodeEv),
++      s.decision.basis.map(encodeEv).reverse(),
+       s.decision.reopenedBy.map(encodeEv),
+       encodeCaveats(s.decision.caveats),
+       s.decision.history.map((h) => [h.change === 'committed' ? 1 : 2, h.because.map(encodeEv)]),

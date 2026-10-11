@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -249,7 +249,7 @@
+   const con = contradictedBy(s);
+   const tasteEv = identifyingTaste(s, id);
+   const tc = s.evidenceCaveats[tasteEv] ?? [];
+-  const dark = tc.includes(DARK);
++  const dark = false;
+   const faded = tc.includes(FADED);
+   const qual = faded ? ' (taste has faded)' : dark ? ' (tasted in the dark)' : '';
+   if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] };

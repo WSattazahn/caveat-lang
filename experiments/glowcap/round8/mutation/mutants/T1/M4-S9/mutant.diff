@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -587,7 +587,7 @@
+       s.decision.basis.map(encodeEv),
+       s.decision.reopenedBy.map(encodeEv),
+       encodeCaveats(s.decision.caveats),
+-      s.decision.history.map((h) => [h.change === 'committed' ? 1 : 2, h.because.map(encodeEv)]),
++      s.decision.history.map((h) => [h.change === 'committed' ? 1 : 2, h.because.map(encodeEv).reverse()]),
+     ],
+     j: s.journal.map((j) => [j.text, j.because.map(encodeEv)]),
+   };

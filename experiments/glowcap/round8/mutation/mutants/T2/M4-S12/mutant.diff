@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -691,7 +691,7 @@
+       caveats: [...caveats],
+       history: history.map(([c, because]) => ({
+         change: c === 'c' ? ('committed' as const) : ('reopened' as const),
+-        because: because.map(idFromCode),
++        because: because.map(idFromCode).reverse(),
+       })),
+     },
+     journal: sv.j.map(([c, because]) => {

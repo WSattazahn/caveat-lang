@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -406,7 +406,7 @@
+     bind $m.label = "Probably a glowcap (tasted in the dark)"
+         when $m_sweet and $m_retasted and carries(retaste_$m, tasted_in_dark) because $m_retasted;
+     bind $m.label = "Probably a duskcap (tasted in the dark)"
+-        when $m_bitter and $m_retasted and carries(retaste_$m, tasted_in_dark) because $m_retasted;
++        when $m_bitter and $m_retasted and false because $m_retasted;
+     bind $m.label = "Probably a glowcap (taste has faded)"
+         when $m_sweet and $m_retasted and carries(retaste_$m, taste_faded) because $m_retasted;
+     bind $m.label = "Probably a duskcap (taste has faded)"

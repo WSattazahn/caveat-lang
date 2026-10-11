@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -284,7 +284,7 @@
+ 
+     define $m_unknown = not $m_consumed and $m_taste == 0;
+     define $m_in_dark = has_caveat($m_taste, tasted_in_dark);
+-    define $m_faded = has_caveat($m_taste, taste_faded);
++    define $m_faded = false;
+     # Twice bitten: after two contradictions an unknown mushroom must be tasted first.
+     define $m_too_risky = $m_unknown and contradiction >= 2;
+     define $m_out_of_reach = $index == target.pit;

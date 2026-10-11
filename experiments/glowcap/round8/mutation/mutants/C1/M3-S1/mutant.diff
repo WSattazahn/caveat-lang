@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -237,7 +237,6 @@
+         commit trust because enough using recovery;
+     # Every contradiction after the first commitment reopens it, and restarts
+     # the count towards recovery.
+-    when found == 2 and committed(trust) reopen trust because e;
+     when found == 2 and committed(trust) call note(qualified(ident * 100 + if(act == 3, 13, 12), e), 0);
+     when found == 2 set recovery = 0;
+ };

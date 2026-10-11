@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -554,7 +554,7 @@
+       if (prefixed !== undefined) {
+         const toks = part.slice(1).split(',').map(readToken);
+         toks.forEach(restore);
+-        s.journal.push({ entry: prefixed, because: toks.map((t) => t.ev) });
++        s.journal.push({ entry: prefixed, because: toks.map((t) => t.ev).reverse() });
+       } else {
+         const t = readToken(part);
+         if (t.kind === null) fail(`bad token ${part}`);

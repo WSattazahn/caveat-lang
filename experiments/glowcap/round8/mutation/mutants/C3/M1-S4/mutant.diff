@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -297,7 +297,6 @@
+     on taste when not $m_can_taste reject "That mushroom was already tasted.";
+     on taste call saw(taste_$m, sort);
+     on taste call note(sort, $m_life * 100 + (2 + sort) * 10 + $index);
+-    on taste when glow == 0 qualify taste_$m with tasted_in_dark;
+     on taste set $m_tasted_at = elapsed();
+     on taste when sort == sort.glowcap set $m_taste = 1;
+     on taste when sort == sort.duskcap set $m_taste = 2;

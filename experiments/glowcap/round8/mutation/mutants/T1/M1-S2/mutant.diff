@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -186,7 +186,7 @@
+ function canRetaste(s: State, id: string): boolean {
+   const m = s.mushrooms[id]!;
+   if (OUT_OF_REACH.includes(id) || m.consumed || m.tasted === null || m.retasted) return false;
+-  return (s.evidenceCaveats[evidenceId('taste', id, m.life)] ?? []).includes(FADED);
++  return false;
+ }
+ 
+ function caveatsOf(s: State, evidence: readonly string[]): string[] {

@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -123,7 +123,7 @@
+       .flatMap((j) => j.because));
+   }
+   // The journal keeps its six most recent entries (journal window 6).
+-  out.decision.history = journal.map((j) => ({ change: j.change, because: names(j.because) }));
++  out.decision.history = journal.map((j) => ({ change: j.change, because: names(j.because).reverse() }));
+   return out;
+ }
+ 

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -543,7 +543,7 @@
+     bind journal.$e_cites = j3_s + j3_c + j3_x when $e_shown and $e_obs and $e_page == 3
+         because j3_s, j3_c, j3_x;
+     bind journal.$e_cites = j4_s + j4_c + j4_x when $e_shown and $e_obs and $e_page == 4
+-        because j4_s, j4_c, j4_x;
++        because j4_s, j4_c, j4_x, observed(a_cave);
+     bind journal.$e_cites = j5_s + j5_c + j5_x when $e_shown and $e_obs and $e_page == 5
+         because j5_s, j5_c, j5_x;
+     bind journal.$e_cites = j6_s + j6_c + j6_x when $e_shown and $e_obs and $e_page == 6

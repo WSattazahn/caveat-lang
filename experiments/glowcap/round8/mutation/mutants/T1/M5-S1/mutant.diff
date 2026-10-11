@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -136,7 +136,7 @@
+ }
+ 
+ function supportedBy(s: State): string[] {
+-  return counted(s).filter((o) => o.glow).map((o) => o.ev);
++  return counted(s).filter((o) => o.glow).map((o) => o.ev).concat('absorb_cave');
+ }
+ 
+ function contradictedBy(s: State): string[] {

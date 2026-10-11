@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -340,7 +340,7 @@
+       m.retasted = true;
+       const ev = evId('retaste', id, m.life);
+       s.tasteAges[ev] = 0;
+-      observe(s, ev, kind, s.glow > 0 ? [] : ['tasted_in_dark']);
++      observe(s, ev, kind, s.glow > 0 ? [] : []);
+       break;
+     }
+     case 'mark':

@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -630,7 +630,7 @@
+   const [state, basis, reopenedBy, cav, history] = v.d;
+   s.decision = {
+     state: DECISION_CODES[state] ?? fail('bad decision state'),
+-    basis: basis.map(decodeEv),
++    basis: basis.map(decodeEv).reverse(),
+     reopenedBy: reopenedBy.map(decodeEv),
+     caveats: decodeCaveats(cav),
+     history: history.map(([c, b]) => ({ change: c === 1 ? 'committed' : 'reopened', because: b.map(decodeEv) })),

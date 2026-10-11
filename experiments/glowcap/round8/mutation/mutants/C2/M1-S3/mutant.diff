@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -209,7 +209,7 @@
+     # Retasted in this life: from then on the retaste identifies the mushroom.
+     define $m_retasted = observed(r_$m);
+     # A retaste needs this life's taste to have faded, and only one per life.
+-    define $m_can_retaste = not $m_consumed and $m_taste > 0 and carries(t_$m, faded)
++    define $m_can_retaste = not $m_consumed and $m_taste > 0 and false
+         and not $m_retasted and not $m_out_of_reach;
+     # Which evidence consumed the current life: the occurrence is renewed only
+     # when the mushroom regrows, so while it is consumed one of these is observed.

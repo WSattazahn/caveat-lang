@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -344,7 +344,7 @@
+     bind $m.why_absorb = "Known duskcap" when $m_retasted and $m_taste == 2 because qualified(1, r_$m);
+     bind $m.why_absorb = "Out of reach" when $m_out_of_reach because nothing;
+     bind $m.why_absorb = "Already eaten" when $m_eaten_by_absorb because qualified(1, a_$m);
+-    bind $m.why_absorb = "Already eaten" when $m_eaten_by_witness because qualified(1, w_$m);
++    bind $m.why_absorb = "Already eaten" when $m_eaten_by_witness because qualified(1, w_$m), observed(a_cave);
+     bind $m.why_absorb = "Already eaten" when $m_eaten_by_witness
+         and qualified($m_doubted, w_$m, doubted) == 1 because qualified(1, w_$m, doubted);
+     bind $m.why_taste = "" because nothing;

@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -389,7 +389,7 @@
+ # The evidence lists, carried as the explanations of these values.
+ bind belief.supported_by = support because support;
+ bind belief.contradicted_by = contradiction because contradiction;
+-bind belief.cited = support + contradiction because support, contradiction;
++bind belief.cited = support + contradiction because support, contradiction, observed(a_cave);
+ 
+ bind decision.state = "none";
+ bind decision.state = "committed" when committed(trust) and not reopened(trust);

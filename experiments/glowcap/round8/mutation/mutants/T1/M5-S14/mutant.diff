@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -254,7 +254,7 @@
+   const qual = faded ? ' (taste has faded)' : dark ? ' (tasted in the dark)' : '';
+   if (m.consumed) return { present: false, label: '', canAbsorb: false, canTaste: false, because: [] };
+   if (m.tasted === 'glowcap')
+-    return { present: true, label: qual ? `Probably a glowcap${qual}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteEv] };
++    return { present: true, label: qual ? `Probably a glowcap${qual}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteEv, 'absorb_cave'] };
+   if (m.tasted === 'duskcap')
+     return { present: true, label: qual ? `Probably a duskcap${qual}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteEv] };
+   // CR2: twice bitten.

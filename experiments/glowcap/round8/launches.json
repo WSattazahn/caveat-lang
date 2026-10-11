@@ -111,7 +111,12 @@
     },
     {
       "role": "mutator (step 2, mutants; the same context resumed)",
-      "dispatched": "2026-10-11T06:31Z"
+      "dispatched": "2026-10-11T06:31Z",
+      "tokens": 301085,
+      "toolUses": 33,
+      "durationSeconds": 883,
+      "mutants": 485,
+      "note": "as reported by the agent tool for the resumed run"
     }
   ],
   "runNote": "The owner chose 'Full run' at 02:46 UTC on 2026-10-11 (amendment 7); the six authors were dispatched in parallel after stage 4 was registered (57686de) and the counted probe was committed (amendment 8).",

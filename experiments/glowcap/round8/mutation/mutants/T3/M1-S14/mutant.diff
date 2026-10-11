@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -516,7 +516,6 @@
+     if (t.what === 'taste' || t.what === 'retaste') {
+       const age = unfaded.get(t.ev);
+       if (age !== undefined) s.tasteAges[t.ev] = age;
+-      else cav.push('taste_faded');
+     }
+     if (t.doubted) cav.push('doubted');
+     if (cav.length > 0) s.caveats[t.ev] = cav;

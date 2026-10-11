@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -375,7 +375,7 @@
+       if (obs === undefined || !obs.ev.startsWith('witness_')) fail(`${String(ev)} is not a remembered witness`);
+       if (!isDoubted(s, obs.ev)) fail(`${obs.ev} is not doubted`);
+       s.caveats[obs.ev] = (s.caveats[obs.ev] ?? []).filter((c) => c !== 'doubted');
+-      pushJournal(s, { entry: 'undoubt', because: [obs.ev] });
++      pushJournal(s, { entry: 'undoubt', because: [obs.ev, 'absorb_cave'] });
+       break;
+     }
+     case 'tick': {

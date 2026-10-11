@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -566,7 +566,7 @@
+   const d = s.decision;
+   d.state = sv.d.st as State['decision']['state'];
+   d.basis = unrefs(sv.d.b);
+-  d.basisCaveats = [...sv.d.bc];
++  d.basisCaveats = caveatsOf(s, d.basis);
+   d.reopenedBy = unrefs(sv.d.r);
+   d.history = sv.d.h === '' ? [] : sv.d.h.split(';').map((e) => ({
+     change: e[0] === 'c' ? 'committed' as const : 'reopened' as const,

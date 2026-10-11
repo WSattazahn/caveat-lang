@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -461,7 +461,7 @@
+ bind journal.text4 = entry_text(j4) when j4 > 0 because nothing;
+ bind journal.text5 = entry_text(j5) when j5 > 0 because nothing;
+ bind journal.text6 = entry_text(j6) when j6 > 0 because nothing;
+-bind journal.cites1 = jcite1 when j1 > 0 because jcite1;
++bind journal.cites1 = jcite1 when j1 > 0 because jcite1, observed(absorb_cave);
+ bind journal.cites2 = jcite2 when j2 > 0 because jcite2;
+ bind journal.cites3 = jcite3 when j3 > 0 because jcite3;
+ bind journal.cites4 = jcite4 when j4 > 0 because jcite4;

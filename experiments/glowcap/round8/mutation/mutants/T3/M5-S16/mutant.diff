@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -157,7 +157,7 @@
+   if (m.tasted === 'glowcap') return { present: true, label: qual !== null ? `Probably a glowcap${qual}` : 'Glowcap', canAbsorb: true, canTaste: false, because: [tasteEv] };
+   if (m.tasted === 'duskcap') return { present: true, label: qual !== null ? `Probably a duskcap${qual}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteEv] };
+   const supported = sup(s), contra = con(s);
+-  if (contra.length >= 2) return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: contra };
++  if (contra.length >= 2) return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...contra, 'absorb_cave'] };
+   switch (beliefState(s)) {
+     case 'none': return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: [] as string[] };
+     case 'probably_safe': return { present: true, label: 'Probably a glowcap', canAbsorb: true, canTaste: true, because: supported };

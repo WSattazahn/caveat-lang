@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -259,7 +259,7 @@
+     return { present: true, label: qual ? `Probably a duskcap${qual}` : 'Duskcap — avoid', canAbsorb: false, canTaste: false, because: [tasteEv] };
+   // CR2: twice bitten.
+   if (con.length >= 2) return { present: true, label: 'Too risky — taste first', canAbsorb: false, canTaste: true, because: [...con] };
+-  if (bs === 'none') return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: [] };
++  if (bs === 'none') return { present: true, label: 'Glowing mushroom', canAbsorb: true, canTaste: true, because: ['absorb_cave'] };
+   if (bs === 'probably_safe') return { present: true, label: 'Probably a glowcap', canAbsorb: true, canTaste: true, because: [...sup] };
+   if (bs === 'probably_unsafe') return { present: true, label: 'Probably a duskcap', canAbsorb: true, canTaste: true, because: [...con] };
+   // CR4: cite the counterexample only.

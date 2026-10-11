@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -419,7 +419,7 @@
+       m.consumedAge = 0;
+       const ev = evidenceId('witness', id, m.life);
+       m.consumedBy = ev;
+-      s.evidenceCaveats[ev] = [SECONDHAND];
++      s.evidenceCaveats[ev] = [];
+       observe(s, 'witness', id, ev, kind);
+       return;
+     }

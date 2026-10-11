@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -226,7 +226,7 @@
+   if (kind === 'duskcap') d.sinceContradiction = [];
+   else if (d.sinceContradiction.length < 2) d.sinceContradiction.push(ev);
+   if (d.state === 'none') {
+-    if (beliefState(s) === 'probably_safe') commit(s, [ev]);
++    if (beliefState(s) === 'probably_safe') commit(s, [ev, 'absorb_cave']);
+   } else if (d.state === 'reopened' && d.sinceContradiction.length >= 2) {
+     commit(s, d.sinceContradiction.slice(0, 2));
+   } else if (kind === 'duskcap') {

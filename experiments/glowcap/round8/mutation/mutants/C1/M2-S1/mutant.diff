@@ -1,0 +1,11 @@
+--- a/adapter.mjs
++++ b/adapter.mjs
+@@ -89,7 +89,7 @@
+       state: b.decision.state,
+       // The current commitment's frozen grounds, in the order first observed (View 0.2).
+       basis: names(grounds?.evidence ?? []),
+-      caveats: [...(grounds?.caveats ?? [])],
++      caveats: [...new Set(Object.values(ex).flatMap((props) => Object.values(props)).filter((x) => (x.evidence ?? []).some((n) => (grounds?.evidence ?? []).includes(n))).flatMap((x) => x.caveats ?? []))],
+       reopenedBy: names(changes.filter((e) => e.commitment === current && e.change === 'reopened').flatMap((e) => e.because)),
+       history: changes.map((e) => ({ change: e.change, because: names(e.because) })),
+     },

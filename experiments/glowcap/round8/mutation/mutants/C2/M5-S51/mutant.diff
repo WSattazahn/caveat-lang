@@ -1,0 +1,11 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -565,7 +565,7 @@
+         because qualified(j5_s + j5_c + j5_x, d, doubted);
+     bind journal.$e_cites = qualified(j6_s + j6_c + j6_x, d, doubted)
+         when $e_shown and $e_obs and $e_page == 6 and $e_flag1
+-        because qualified(j6_s + j6_c + j6_x, d, doubted);
++        because qualified(j6_s + j6_c + j6_x, d, doubted), observed(a_cave);
+     # The trust entry, shown while no more than five newer entries follow it.
+     define $e_trust_shown = $e_h > 0 and $e_after < 6;
+     bind journal.$e_trust = "I trust glowing mushrooms now." when $e_trust_shown and $e_h != 6;

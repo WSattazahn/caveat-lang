@@ -1,0 +1,11 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -376,7 +376,7 @@
+         s.tasteAge[ev] = age;
+         const cav = s.evidenceCaveats[ev] ?? [];
+         if (age >= FADE_SECONDS - EPS) {
+-          if (!cav.includes(FADED)) s.evidenceCaveats[ev] = [...cav, FADED];
++          if (!cav.includes(FADED)) s.evidenceCaveats[ev] = [...cav];
+           // Once faded, the age no longer matters; drop it to keep saves small.
+           delete s.tasteAge[ev];
+         }

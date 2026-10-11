@@ -1,0 +1,10 @@
+--- a/glowcap.cav
++++ b/glowcap.cav
+@@ -258,7 +258,6 @@
+     on retaste when not $m_can_retaste reject "The slime cannot taste that mushroom again.";
+     on retaste when sort != $m_taste reject "That is not what the mushroom tasted like.";
+     on retaste reveal r_$m;
+-    on retaste when glow == 0 qualify r_$m with dark;
+     on retaste set $m_fade = 60;
+     on retaste set life_now = $m_life;
+     on retaste call observe(r_$m, sort, 4, $index);

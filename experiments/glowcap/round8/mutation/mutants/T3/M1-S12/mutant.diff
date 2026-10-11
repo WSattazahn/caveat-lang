@@ -1,0 +1,10 @@
+--- a/glowcap.ts
++++ b/glowcap.ts
+@@ -511,7 +511,6 @@
+   // Restore the caveats an evidence token implies.
+   const restore = (t: ReturnType<typeof readToken>) => {
+     const cav: string[] = [];
+-    if (t.what === 'witness') cav.push('secondhand');
+     if (t.dark) cav.push('tasted_in_dark');
+     if (t.what === 'taste' || t.what === 'retaste') {
+       const age = unfaded.get(t.ev);
