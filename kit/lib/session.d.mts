@@ -199,6 +199,15 @@ export interface CaveatRuntime {
   readonly identity: Readonly<RuntimeIdentity>;
   readonly trapped: boolean;
   markTrapped(): void;
+  /**
+   * Sessions opened or restored through this instance and neither closed nor
+   * garbage-collected. Each holds runtime memory until `close()`.
+   */
+  readonly openSessions: number;
+  /** Called by a session's `close()`; hosts do not call it. */
+  released(session: CaveatSession): void;
+  /** The message a trap is reported with: names running out of memory when the runtime can tell. */
+  trapMessage(error: unknown): string;
   /** Throws `CaveatError("load")` when the source does not load. */
   open(source: string): CaveatSession;
   /** Advisory warnings for a program that loads; throws as `open` does when it does not. */
@@ -229,6 +238,8 @@ export interface RuntimeSessionClass {
   restore(source: string, saved: string): RuntimeSessionHandle;
   check?(source: string): string;
   interface?(source: string): string;
+  /** True once the instance has failed to allocate memory; safe to read after a trap. */
+  out_of_memory?(): boolean;
 }
 
 /** The imported namespace of the runtime's caveat_runtime.js. */

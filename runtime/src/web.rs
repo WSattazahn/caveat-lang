@@ -3,6 +3,52 @@ use crate::reactive::ReactiveSession;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
+/// The WebAssembly build's allocator: the system allocator, recording
+/// whether an allocation has ever failed. A failed allocation aborts the
+/// instance with the trap `unreachable`, which says nothing about memory; the
+/// record lets a host name the cause afterwards (`out_of_memory`). A host
+/// that never frees its sessions exhausts memory this way (Glowcap round 8,
+/// item 7).
+#[cfg(target_arch = "wasm32")]
+mod allocation {
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    pub static FAILED: AtomicBool = AtomicBool::new(false);
+
+    pub struct Recording;
+
+    fn record(pointer: *mut u8) -> *mut u8 {
+        if pointer.is_null() {
+            FAILED.store(true, Ordering::Relaxed);
+        }
+        pointer
+    }
+
+    // SAFETY: each method forwards to `System` with the caller's arguments
+    // unchanged, and only reads the pointer it returns.
+    unsafe impl GlobalAlloc for Recording {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            record(unsafe { System.alloc(layout) })
+        }
+
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+            record(unsafe { System.alloc_zeroed(layout) })
+        }
+
+        unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+            record(unsafe { System.realloc(pointer, layout, size) })
+        }
+
+        unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+            unsafe { System.dealloc(pointer, layout) }
+        }
+    }
+
+    #[global_allocator]
+    static ALLOCATOR: Recording = Recording;
+}
+
 // The sequential, graphics and 3D sessions. A host that only runs reactive
 // programs can build without them: cargo build --no-default-features.
 #[cfg(feature = "games")]
@@ -26,6 +72,17 @@ impl WebReactiveSession {
 
     pub fn snapshot(&self) -> String {
         to_json_pretty(&self.inner.snapshot()).expect("finite reactive snapshot")
+    }
+
+    /// Whether this runtime instance has failed to allocate memory. After a
+    /// trap, true means the instance ran out of WebAssembly memory, most
+    /// often because sessions were never freed. Reading it is safe after a
+    /// trap; nothing else is. Always false outside WebAssembly.
+    pub fn out_of_memory() -> bool {
+        #[cfg(target_arch = "wasm32")]
+        return allocation::FAILED.load(std::sync::atomic::Ordering::Relaxed);
+        #[cfg(not(target_arch = "wasm32"))]
+        false
     }
 
     /// Advisory warnings for a program that loads, as JSON

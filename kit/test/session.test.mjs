@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { CaveatError, createRuntime, loadRuntime, payloadText } from '../lib/session.mjs';
-import { faulty, real, thermostat } from './helpers.mjs';
+import { faulty, Real, real, thermostat } from './helpers.mjs';
 
 test('dispatch returns accepted and rejected outcomes as values', () => {
   const session = real.open(thermostat);
@@ -169,6 +169,38 @@ test('a trap marks the whole runtime unusable', () => {
   assert.throws(() => session.dispatch('read', { value: 17 }), error => error.kind === 'fatal');
   assert.equal(runtime.trapped, true);
   assert.throws(() => runtime.open(thermostat), error => error.kind === 'fatal' && /trapped/.test(error.message));
+});
+
+// Glowcap round 8, item 7: a host that opened sessions and never closed them
+// ran the runtime out of memory, and the only message was "unreachable".
+test('round8_item7_unfreed_sessions: a trap from exhausted memory names the cause and the open sessions', () => {
+  let exhausted = false;
+  class Exhausting {
+    constructor() { if (exhausted) throw new WebAssembly.RuntimeError('unreachable'); }
+    static restore() { return new Exhausting(); }
+    static out_of_memory() { return exhausted; }
+    free() {}
+  }
+  const runtime = createRuntime(Exhausting);
+  const kept = [runtime.open(thermostat), runtime.open(thermostat), runtime.open(thermostat)];
+  kept[2].close();
+  assert.equal(runtime.openSessions, 2, 'a closed session is no longer counted');
+  exhausted = true;
+  assert.throws(() => runtime.open(thermostat), error => error.kind === 'fatal'
+    && /ran out of WebAssembly memory with 2 session\(s\) open/.test(error.message)
+    && /close\(\)/.test(error.message) && /unreachable/.test(error.message));
+  assert.equal(runtime.trapped, true);
+  assert.equal(kept.length, 3);
+});
+
+test('round8_item7_unfreed_sessions: any other trap keeps its own message', () => {
+  const { runtime } = faulty({ dispatch() { throw new WebAssembly.RuntimeError('unreachable'); } });
+  const session = runtime.open(thermostat);
+  assert.throws(() => session.dispatch('read', { value: 17 }), error => error.kind === 'fatal' && error.message === 'unreachable');
+});
+
+test('the real runtime reports whether it has run out of memory', () => {
+  assert.equal(Real.out_of_memory(), false);
 });
 
 test('a runtime without dispatch_outcome is refused at load', async () => {
