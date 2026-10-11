@@ -349,12 +349,12 @@ There is no implemented npm-kit package or tag-driven publishing workflow at
 the inspected head. Shipping a kit is a separate deliverable after this
 consolidation, not a side effect of merging the language stack.
 
-## Current release procedure addendum — 2026-10-09 UTC
+## Current release procedure addendum — 2026-10-11 UTC
 
 The historical inventory above predates the implemented kit and present CI.
 The kit now exists; Runtime includes full/reactive-only lint/tests, installed
 package validation, browser checks, reproducibility and same-tarball security.
-Use the [rc.16 verified release record](releases/v0.1.0-rc.16.md) for the current
+Use the [rc.17 verified release record](releases/v0.1.0-rc.17.md) for the current
 published candidate, exact artifact identities and completed publication verification.
 Historical source pins, study limitations and registered evidence remain intact.
 
@@ -375,6 +375,7 @@ rc.13 is the second (see the [rc.13 release record](releases/v0.1.0-rc.13.md)).
 rc.14 is the third (see the [rc.14 release record](releases/v0.1.0-rc.14.md)).
 rc.15 is the fourth (see the [rc.15 release record](releases/v0.1.0-rc.15.md)).
 rc.16 is the fifth (see the [rc.16 release record](releases/v0.1.0-rc.16.md)).
+rc.17 is the sixth (see the [rc.17 release record](releases/v0.1.0-rc.17.md)).
 
 1. **Candidate.** Merge the release candidate to `main`. The Runtime run for that
    push must succeed. Its `kit-package-candidate` artifact holds the tested
@@ -422,6 +423,12 @@ record and GitHub prerelease are follow-up steps, not effects of `npm publish`.
 After its documentation record is on main, `release-prerelease.yml` can attach
 the verified registry tarball, checksum and record to the existing annotated
 tag. Later documentation commits do not move that tag or replace the package.
+
+For rc.17, publication verification at `2026-10-11T02:41:12.760Z` recorded
+`latest` = rc.17 and `next` = rc.16. The verification job passed on its second
+attempt; the first ran about 12 seconds after publication and failed with
+`ETARGET` before the registry served the new version. The owner then moved
+`next` to rc.17, recorded in the rc.17 release record's distribution closeout.
 
 One-time setup, done by the owner before the first run:
 
