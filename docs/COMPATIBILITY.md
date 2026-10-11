@@ -15,7 +15,7 @@ material or anything else that shares the repository.
 | --- | --- | --- |
 | Language | Syntax, and what an accepted program computes, decides, refuses and explains | [`spec/caveat-0.1.md`](../spec/caveat-0.1.md) and every implemented profile in `spec/`, listed under "Specifications" below |
 | Dispatch outcomes | `accepted` or `rejected`; every rejection's `origin` and `code`; a fatal error is neither | [Dispatch 0.1](../spec/caveat-dispatch-0.1.md), "Origins and codes" |
-| CLI | The commands, their arguments, exit statuses and `--json` output | `caveat-lang --help`; [kit README](../kit/README.md) |
+| CLI | The commands, their arguments, exit statuses and `--json` output. `check` reads a single-file program; it refuses a bundle (`#caveat-bundle 1`) with exit status 2, which `validate`, `test` and the library accept | `caveat-lang --help`; [kit README](../kit/README.md) |
 | Library | The package's exports: `./session`, `./node`, `./scenarios`, `./explain`, `./serve`, `./check`, `./types`, and the integration starter's `./starter` and `./starter/node`, with their TypeScript declarations | `kit/package.json`, `kit/lib/*.d.mts` |
 | `serve` | Its request and response lines and operations | [Serve 0.1](../spec/caveat-serve-0.1.md) |
 | MCP tools | `caveat_validate`, `caveat_check`, `caveat_test`, `caveat_explain`, `caveat_dependents`, as an authoring bridge | [MCP tools](../kit/docs/MCP.md) |
@@ -54,13 +54,13 @@ checks that the two agree.
   `caveat-0.5-draft.md`, and `caveat-member-symbols-0.1.md`, which nothing
   implements.
 - Games and presentation: `game-session-0.1.md`, `caveat3d-0.1.md`,
-  `caveat3d-0.2.md`, `presentation.md`, and the semantic map they share,
-  `caveat-map-0.1.md`.
-- Native only: `caveat-rs-0.1.md` and `source-library-0.1.md`.
-- Records rather than behavior: `caveat-verification-0.1.md`, the proof
-  boundary, and `caveat-incremental-evaluation-0.1.md`, a performance design
-  whose observable behavior the stable profiles state (timing is not stable;
-  see "Limits").
+  `caveat3d-0.2.md` and `presentation.md`.
+- Native only: `caveat-rs-0.1.md`, `source-library-0.1.md` and
+  `caveat-map-0.1.md`, which the npm package does not ship.
+- Timing: `caveat-incremental-evaluation-0.1.md`, a performance design whose
+  observable behavior the stable profiles state (see "Limits").
+- Repository process: `caveat-verification-0.1.md`, a repository process CI
+  runs; it promises nothing to a host.
 
 `caveat-0.1.md` is the founding vocabulary. It is stable, and the reactive
 profiles define what the package does with it.
@@ -68,8 +68,8 @@ profiles define what the package does with it.
 ## What is not stable
 
 - **Games and presentation.** `game-session-0.1`, `caveat3d-0.1`,
-  `caveat3d-0.2`, `presentation.md`, `caveat-map-0.1`, the `games` Cargo
-  feature, `web/` and `game/`. They may change in any release.
+  `caveat3d-0.2`, `presentation.md`, the `games` Cargo feature, `web/` and
+  `game/`. They may change in any release.
 - **The specifications listed as not stable** under "Specifications" above.
 - **`./runtime/*` paths** in the package. They are how the library loads its
   WebAssembly, not an API.
@@ -78,11 +78,16 @@ profiles define what the package does with it.
   "Not yet" list.
 - **Native Rust API.** The `runtime/` crate is not published. Its public items
   are not a promise, and neither are the profiles that exist only there:
-  `caveat-rs-0.1` (a bootstrap experiment) and `source-library-0.1`.
+  `caveat-rs-0.1` (a bootstrap experiment), `source-library-0.1` and the
+  semantic map `caveat-map-0.1` with its `caveat-map` command.
 - **Diagnostics and messages.** A rejection's `message`, CLI prose, `check`
   warning text and fatal-error text can change. Their codes and statuses
   cannot.
-- **Timing, memory and sizes.** See "Limits".
+- **Timing, memory and sizes.** See "Limits". This includes
+  `caveat-incremental-evaluation-0.1`, whose observable behavior the stable
+  profiles state.
+- **The verification record.** `caveat-verification-0.1` is a repository
+  process CI runs; it promises nothing to a host.
 
 ## Versioning policy
 
