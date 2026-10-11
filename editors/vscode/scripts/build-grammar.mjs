@@ -19,7 +19,7 @@ const notProperty = String.raw`(?<![.\w$])`;
 const declarations = ['scene', 'claim', 'evidence', 'caveat', 'state', 'event', 'readings', 'decisions', 'renewable',
   'identifiers', 'define', 'fn', 'proc', 'bind', 'cue', 'control', 'clock', 'budget', 'entity', 'display', 'module', 'use'];
 const control = ['on', 'when', 'for', 'as', 'if', 'then', 'otherwise', 'when_committed'];
-const effects = ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'renew', 'withdraw', 'defer'];
+const effects = ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'unqualify', 'renew', 'withdraw', 'defer'];
 const modifiers = ['from', 'limit', 'because', 'using', 'retaining', 'after', 'with', 'cost', 'consequence', 'kind',
   'id', 'permitted', 'by', 'supporting', 'opposing', 'at', 'to', 'via', 'through', 'toward'];
 // Epistemic predicates, expression functions and callable primitives: names

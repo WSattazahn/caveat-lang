@@ -17,7 +17,7 @@ lake env lean Audit.lean
 lake env leanchecker --verbose Caveat
 ```
 
-`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, and runner. `laws.json` records 97 authored theorem declarations, including four inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws and 17 reopening laws. `theorems.json` inventories all 250 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
+`Caveat.lean` imports the core model, laws, executable bridge, late-qualification model, reopening model, and runner. `laws.json` records 108 authored theorem declarations, including six inclusion helper lemmas, 26 bridge laws, 12 late-qualification laws, 9 take-back laws and 17 reopening laws. `theorems.json` inventories all 266 public `Caveat` theorems in the elaborated environment, including compiler-generated declarations. `Audit.lean` prints their transitive axioms, emits the actual environment inventory, and rejects forbidden axioms in every public `Caveat` declaration (including definitions and unused custom axioms).
 A successful build alone does not enforce an axiom allowlist; the repository
 verification gate checks the registry and audit output. The allowed standard
 axioms are `propext`, `Classical.choice`, and `Quot.sound`. No custom,
@@ -278,6 +278,30 @@ bases, and one that reaches bases, grounds and the journal together, so that
 the runtime's own restore checks still accept its saves. This is sampled
 agreement on the qualification step from states the runtime reached, not a
 proof that the runtime's commit or qualify implementation refines the model.
+
+### Take-back
+
+The same file models one step of `[when GUARD] unqualify EVIDENCE with
+CAVEAT` from [Take-back 0.1](../../spec/caveat-take-back-0.1.md).
+`TakeBack` carries the caveat, the held occurrences whose live relation the
+take-back marks, and the current values for which the caveat is neither live
+nor kept. The model has no graph, so those two lists are supplied as input, as
+a qualification's qualifiers are; the runtime computes them, and the runtime
+tests in `runtime/tests/take_back.rs` check that computation. `takeBackStep`
+never refuses: a false guard and an empty take-back change nothing.
+
+What is proved, for every ledger and take-back: an accepted step leaves the
+commitment list, and so every basis and grounds, and the observations equal
+(`take_back_preserves_commitments`, `take_back_preserves_basis_and_grounds`,
+`take_back_preserves_observations`); a value keeps its number and evidence
+(`take_back_keeps_number`), loses at most the take-back caveat from lineage
+and grounds alike (`take_back_loses_at_most_the_caveat`), keeps grounds within
+lineage (`take_back_grounds_within_lineage`), and is unchanged when it holds
+no marked occurrence (`take_back_ignores_unrelated_value`). The witness
+`round8_take_back_spares_commitment` doubts `ea` and takes the doubt back: the
+value loses `doubted`, the commitment keeps `{ea; ca}`. Renewal, retirement,
+departure, kept caveats and the save are not modeled, and the take-back has
+no runner schema or conformance cases.
 
 ## Reopening keeps what a commitment retained and records its cause
 

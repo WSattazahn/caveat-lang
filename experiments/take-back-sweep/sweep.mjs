@@ -3,7 +3,8 @@
 // to a program that takes back. This reads every tracked Caveat program and
 // reports:
 //   - every use of the new word `unqualify`, as a token anywhere (it must be
-//     none: the word is reserved, so a declaration of it would stop loading);
+//     none outside this profile's own programs in programs/: the word is
+//     reserved, so a declaration of it would stop loading);
 //   - every `qualify EVIDENCE with CAVEAT`, and for each caveat whether a
 //     take-back of it would meet the profile's load rules, or which rule it
 //     would break. This changes no program; it shows where the rules bite.
@@ -136,7 +137,9 @@ const report = {
   pairs_a_take_back_could_name: allowed,
   rows,
 };
-assert.deepEqual(wordUses, [], 'a tracked program uses the word unqualify');
+// P4 adds the profile's own corpus programs; no other program may use the word.
+const own = 'experiments/take-back-sweep/programs/';
+assert.deepEqual(wordUses.filter(path => !path.startsWith(own)), [], 'a tracked program uses the word unqualify');
 const text = JSON.stringify(report, null, 2) + '\n';
 if (process.argv.includes('--write')) writeFileSync(join(here, 'RESULTS.json'), text);
 console.log(`${programs.length} programs; unqualify used in ${wordUses.length}; ` +

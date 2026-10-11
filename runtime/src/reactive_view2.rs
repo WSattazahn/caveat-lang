@@ -7,7 +7,8 @@
 //! and after one accepted event, so applying it gives exactly the next view.
 use super::outcome::{DispatchFailure, DispatchFatal, RejectionCode, RejectionOrigin};
 use super::{
-    BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ReactiveSession, DISPATCH_SCHEMA,
+    BindingValue, Cue, DecisionSeries, EffectReport, JournalEntry, ReactiveSession, TakeBack,
+    DISPATCH_SCHEMA,
 };
 use crate::map::{MapCommitment, MapRelation, RetainedCaveat};
 use crate::reactive_expr::{departure_markers, Marker};
@@ -33,6 +34,10 @@ pub struct ReactiveViewV2<'a> {
     pub decision_series: &'a BTreeMap<String, DecisionSeries>,
     pub decision_journal: &'a [JournalEntry],
     pub relations: Vec<MapRelation>,
+    /// The snapshot's take-back records, only in a program that takes back.
+    /// See spec/caveat-take-back-0.1.md, "Views".
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub taken_back: Option<&'a [TakeBack]>,
 }
 
 /// A commitment as View 0.2 shows it: `reopened` in place of 0.1's `open`.
@@ -70,6 +75,8 @@ pub struct OrderedGrounds<'a> {
     pub departed: &'a BTreeMap<String, Marker>,
     #[serde(skip_serializing_if = "no_names")]
     pub inherited: &'a BTreeSet<String>,
+    #[serde(skip_serializing_if = "no_names")]
+    pub kept: &'a BTreeSet<String>,
 }
 
 fn no_markers(markers: &&BTreeMap<String, Marker>) -> bool {
@@ -152,6 +159,9 @@ pub struct ViewDelta {
     pub decision_series: NamedChanges,
     pub decision_journal: ListChanges,
     pub relations: ListChanges,
+    /// Only in a program that takes back, as the view's member.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub taken_back: Option<ListChanges>,
 }
 
 /// Changed `[target, property]` values, and the pairs that went.
@@ -215,6 +225,7 @@ impl ReactiveSession {
                             caveats: &grounds.caveats,
                             departed: &grounds.departed,
                             inherited: &grounds.inherited,
+                            kept: &grounds.kept,
                         },
                     )
                 })
@@ -222,6 +233,7 @@ impl ReactiveSession {
             decision_series: &self.decision_series,
             decision_journal: &self.journal,
             relations: self.relation_records(&names),
+            taken_back: (!self.take_back_caveats.is_empty()).then_some(self.taken_back.as_slice()),
         }
     }
 
@@ -249,6 +261,7 @@ impl ReactiveSession {
                                 caveats: &explanation.caveats,
                                 departed: &explanation.departed,
                                 inherited: &explanation.inherited,
+                                kept: &explanation.kept,
                             },
                         )
                     })
@@ -367,6 +380,12 @@ fn view_delta(since: u64, before: &Map<String, Value>, after: &Map<String, Value
             array(member(before, "relations")),
             array(member(after, "relations")),
         ),
+        taken_back: after.contains_key("taken_back").then(|| {
+            list_changes(
+                array(member(before, "taken_back")),
+                array(member(after, "taken_back")),
+            )
+        }),
     }
 }
 

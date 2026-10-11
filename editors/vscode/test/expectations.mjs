@@ -37,7 +37,7 @@ export const groups = [
   },
   {
     name: 'effects',
-    words: ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'renew', 'withdraw', 'defer'],
+    words: ['set', 'sample', 'reveal', 'examine', 'commit', 'reopen', 'emit', 'call', 'reject', 'qualify', 'unqualify', 'renew', 'withdraw', 'defer'],
     probe: 'x @ y;',
     scope: 'keyword.other.effect',
   },

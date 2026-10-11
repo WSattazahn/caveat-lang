@@ -101,6 +101,7 @@ const RESERVED: &[&str] = &[
     "through",
     "to",
     "toward",
+    "unqualify",
     "use",
     "using",
     "via",

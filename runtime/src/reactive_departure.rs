@@ -362,6 +362,10 @@ pub struct ArchiveEntry {
     pub journal_entry: Option<JournalEntry>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub withdrawal: Option<Withdrawal>,
+    /// Its take-back records, in the order they were made. See
+    /// spec/caveat-take-back-0.1.md, "Departure and collection".
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub taken_back: Vec<TakeBack>,
     /// Every provenance that named it when it departed.
     pub holders: Vec<Holder>,
 }
@@ -418,6 +422,31 @@ impl ReactiveSession {
     /// Merge a selection or reopening qualification into `into`. Only a
     /// program with a window keeps which names were inherited, since only
     /// departure consults it; elsewhere the names merge as any others.
+    /// Each departing record's take-back caveats with a live relation to it.
+    /// Read before the records leave the graph; empty in a program that does
+    /// not take back.
+    fn live_take_backs(
+        &self,
+        departing: &BTreeMap<String, (String, u64)>,
+    ) -> Vec<(String, Vec<String>)> {
+        if self.take_back_caveats.is_empty() {
+            return Vec::new();
+        }
+        departing
+            .keys()
+            .filter_map(|record| {
+                let occurrence = *self.symbols.get(record)?;
+                let caveats = self
+                    .take_back_caveats
+                    .iter()
+                    .filter(|caveat| self.has_live_relation(self.symbols[*caveat], occurrence))
+                    .cloned()
+                    .collect::<Vec<_>>();
+                (!caveats.is_empty()).then(|| (record.clone(), caveats))
+            })
+            .collect()
+    }
+
     pub(crate) fn inherit(&self, into: &mut Provenance, from: &Provenance) -> Result<(), String> {
         if self.windowed() {
             into.merge_inherited(from)
@@ -629,6 +658,11 @@ impl ReactiveSession {
             }
         };
 
+        // A current value keeps each take-back caveat a departing record's
+        // live relations gave it: those relations can no longer be marked.
+        // See spec/caveat-take-back-0.1.md, "Departure and collection".
+        let live_take_backs = self.live_take_backs(&departing);
+
         // 1. Every provenance that names a departing record compacts.
         for slot in 0..self.states.len() {
             let cell = &self.states.cells[slot];
@@ -639,6 +673,13 @@ impl ReactiveSession {
             }
             let name = self.states.names[slot].clone();
             let cell = self.states.cell_mut(slot);
+            for (record, caveats) in &live_take_backs {
+                for provenance in [&mut cell.value.provenance, &mut cell.grounds] {
+                    if provenance.evidence.contains(record) {
+                        provenance.keep(caveats);
+                    }
+                }
+            }
             compact(
                 &mut cell.value.provenance,
                 &departing,
@@ -863,6 +904,24 @@ impl ReactiveSession {
         let mut withdrawals = extract_departing_withdrawals(&mut self.withdrawals, &departing)
             .into_iter()
             .peekable();
+        let mut taken_back = BTreeMap::<String, Vec<TakeBack>>::new();
+        if self
+            .taken_back
+            .iter()
+            .any(|record| departing.contains_key(&record.evidence))
+        {
+            Arc::make_mut(&mut self.taken_back).retain(|record| {
+                if departing.contains_key(&record.evidence) {
+                    taken_back
+                        .entry(record.evidence.clone())
+                        .or_default()
+                        .push(record.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+        }
         // Stage the final boxes so ordering retains handles rather than a
         // full inline record buffer alongside the published archive.
         let mut entries = BTreeMap::new();
@@ -966,6 +1025,7 @@ impl ReactiveSession {
                         reading,
                         journal_entry: None,
                         withdrawal,
+                        taken_back: taken_back.remove(record).unwrap_or_default(),
                         holders: entry_holders,
                     }),
                 ),

@@ -378,6 +378,61 @@ on decide commit trust because enough permitted by latest(grants);
     }
 }
 
+/// Take-back 0.1 with a window: a doubt taken back and raised again, and
+/// the departure of a taken-back occurrence and of one still doubted. See
+/// spec/caveat-take-back-0.1.md, "Views" and "Departure and collection".
+const TAKE_BACK: &str = r#"
+caveat doubted consequence material;
+evidence witness_pool from "the slime saw a creature eat it";
+renewable witness_pool window 1;
+state flagged = 0;
+event see; event doubt; event regrow; event undoubt; event flag;
+on see reveal witness_pool;
+on flag when carries(witness_pool, doubted) set flagged = 1;
+on doubt qualify witness_pool with doubted;
+on regrow renew witness_pool;
+on undoubt unqualify witness_pool with doubted;
+"#;
+
+fn take_back_run(events: &[&str]) -> (ReactiveSession, Value) {
+    let mut session = ReactiveSession::from_source(TAKE_BACK).unwrap();
+    let mut held = view(&session);
+    for event in events {
+        let outcome = step(&mut session, &mut held, event, "{}");
+        assert_eq!(outcome["outcome"], "accepted", "{event}");
+    }
+    (session, held)
+}
+
+#[test]
+fn round8_item1_named_cases_keep_the_take_back_records_current() {
+    // A take-back, and a qualification raised again after one.
+    let (_, held) = take_back_run(&["see", "doubt", "undoubt", "doubt", "undoubt"]);
+    assert_eq!(held["taken_back"].as_array().unwrap().len(), 2);
+    // The departure of a taken-back occurrence: its record leaves with it.
+    // (A declared first occurrence never departs; a renewed one can.)
+    let (mut session, held) = take_back_run(&["regrow", "see", "doubt", "undoubt", "regrow"]);
+    assert_eq!(held["taken_back"], json!([]));
+    let departed = session
+        .drain_archive()
+        .into_iter()
+        .filter_map(|item| item.record().map(|record| record.taken_back.clone()))
+        .flatten()
+        .collect::<Vec<_>>();
+    assert_eq!(departed.len(), 1);
+    assert_eq!(departed[0].evidence, "witness_pool@2");
+    // A value that held an occurrence departing doubted keeps the doubt.
+    let (session, _) = take_back_run(&["regrow", "see", "doubt", "flag", "regrow"]);
+    let state = serde_json::to_value(session.snapshot()).unwrap();
+    let flagged = &state["qualified_values"]["flagged"]["provenance"];
+    assert_eq!(flagged["caveats"], json!(["doubted"]), "{state}");
+    assert_eq!(flagged["kept"], json!(["doubted"]));
+    assert!(
+        flagged["evidence"].as_array().unwrap().is_empty(),
+        "{flagged}"
+    );
+}
+
 #[test]
 fn corrupted_deltas_are_detected() {
     let mut session = ReactiveSession::from_source(ORDERED).unwrap();

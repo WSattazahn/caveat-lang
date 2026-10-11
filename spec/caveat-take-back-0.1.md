@@ -1,9 +1,9 @@
 # CAVEAT Take-back 0.1 — taking back a late qualification
 
 **Status:** stable from 1.0.0 under the [compatibility commitment](../docs/COMPATIBILITY.md); until then a prerelease may still change it. Specified for rc.18 ([rc.18 plan](../docs/releases/rc18-development.md),
-P3; the owner's decision Q1 B, 2026-10-11 18:24 UTC). Not implemented yet:
-the runtime, save, View 0.2 and kit changes are P4. Until P4 merges, a
-program that uses `unqualify` does not load. This profile adds to
+P3; the owner's decision Q1 B, 2026-10-11 18:24 UTC) and implemented in P4:
+the runtime, save, View 0.2, kit types and the Late.lean take-back step. This
+profile adds to
 [Late Qualification 0.1](caveat-late-qualification-0.1.md); it changes no
 program that does not take back.
 
@@ -333,3 +333,7 @@ the implementation.
 ## Changes
 
 - 2026-10-11: specified (rc.18 P3).
+- 2026-10-11: implemented (rc.18 P4). Tests: `runtime/tests/take_back.rs`
+  (round 8 item 1, including CR20's doubt, renew and take-back) and the
+  take-back named cases in `runtime/tests/view_v2.rs`. A declared first
+  occurrence never departs, so departure reaches only renewed occurrences.
